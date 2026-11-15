@@ -28,17 +28,31 @@ internal static class CertificateRevocationEvaluator {
     private const int MaxPathLength = 16;
     private const int MaxTokens = 512;
     private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
+    private static readonly HashSet<string> SupportedCriticalCrlExtensions = new(StringComparer.Ordinal) {
+        X509Extensions.IssuingDistributionPoint.Id,
+        X509Extensions.CrlNumber.Id,
+        X509Extensions.AuthorityKeyIdentifier.Id,
+        "2.5.29.60"
+    };
+    private static readonly HashSet<string> SupportedCriticalCrlEntryExtensions = new(StringComparer.Ordinal) {
+        X509Extensions.ReasonCode.Id,
+        X509Extensions.InvalidityDate.Id
+    };
 
     internal static OfficeRevocationOutcome Validate(OfficeRevocationRequest request) {
         var findings = new List<SecurityFinding>();
         ParsedCms parsed;
         try {
-            parsed = ParsedCms.Parse(request.EncodedCms, request.IsTimestampToken);
+            parsed = ParsedCms.Parse(request.EncodedCms, request.IsTimestampToken, ToBouncyCastle(request.ExtraCertificates));
         } catch (Exception exception) when (IsValidationException(exception)) {
             findings.Add(Finding(SecurityFindingSeverity.Error, "RevocationContainerUnreadable",
                 "Revocation could not be checked because the CMS container could not be read: " + exception.Message));
             return new OfficeRevocationOutcome(SecurityValidationStatus.Indeterminate, SecurityValidationStatus.NotPerformed,
-                false, false, false, findings);
+                false, false, false, false, findings);
+        }
+        if (parsed.SigningCertificateMismatch) {
+            findings.Add(Finding(SecurityFindingSeverity.Error, "SigningCertificateMismatch",
+                "The ESS signing-certificate attribute identifies a different certificate than the CMS signer's (RFC 5035)."));
         }
 
         DateTime now = (request.Now ?? DateTimeOffset.UtcNow).UtcDateTime;
@@ -86,6 +100,7 @@ internal static class CertificateRevocationEvaluator {
             status,
             timestampStatus.Result,
             parsed.HasSigningCertificateAttribute,
+            parsed.SigningCertificateMismatch,
             context.CheckedCertificates > 0 && context.CheckedCertificates == context.SettledByDocument,
             context.SettledByDocument > 0 && context.SettledByDocument == context.SettledByDocumentWithProof,
             findings);
@@ -97,7 +112,7 @@ internal static class CertificateRevocationEvaluator {
         ICertificateRevocationFetcher fetcher,
         X509Certificate2Collection? extraCertificates,
         CancellationToken cancellationToken) {
-        ParsedCms parsed = ParsedCms.Parse(encodedCms, isTimestampToken);
+        ParsedCms parsed = ParsedCms.Parse(encodedCms, isTimestampToken, ToBouncyCastle(extraCertificates));
         var pool = new CertificatePool();
         pool.AddRange(parsed.Certificates);
         if (extraCertificates is not null) {
@@ -231,6 +246,10 @@ internal static class CertificateRevocationEvaluator {
             }
         } catch (OperationCanceledException) when (context.Request.CancellationToken.IsCancellationRequested) {
             throw;
+        } catch (OperationCanceledException exception) {
+            // A fetcher's own timeout surfaces as cancellation; it is a source failure, not a cancelled validation.
+            context.Findings.Add(Finding(SecurityFindingSeverity.Warning, "RevocationFetchFailed",
+                "Online revocation data for " + label + " could not be fetched: " + exception.Message));
         } catch (Exception exception) when (IsValidationException(exception)) {
             context.Findings.Add(Finding(SecurityFindingSeverity.Warning, "RevocationFetchFailed",
                 "Online revocation data for " + label + " could not be fetched: " + exception.Message));
@@ -350,7 +369,7 @@ internal static class CertificateRevocationEvaluator {
         }
         // RFC 6960 section 4.4.4: after expiry a "good" answer only proves history back to the archive cutoff.
         if (thisUpdate > certificate.NotAfter.ToUniversalTime() &&
-            !(ReadGeneralizedTime(response.GetExtensionValue(OcspArchiveCutoffOid)) is DateTime cutoff &&
+            !(ReadGeneralizedTime(single.GetExtensionValue(OcspArchiveCutoffOid)) is DateTime cutoff &&
               cutoff <= certificate.NotAfter.ToUniversalTime())) {
             reasons.Add("the OCSP response (" + Describe(token) + ") was produced after the certificate expired and has no archive cutoff covering its validity");
             return null;
@@ -394,6 +413,16 @@ internal static class CertificateRevocationEvaluator {
     /// </summary>
     private static string? CheckCrlScope(X509Crl crl, BcX509Certificate certificate) {
         if (crl.GetExtensionValue(X509Extensions.DeltaCrlIndicator) is not null) return "is a delta CRL, which is not supported";
+        // RFC 5280 sections 5.2 and 5.3: a CRL with a critical CRL or entry extension that cannot be processed
+        // must not be used to determine the status of any certificate.
+        foreach (string oid in crl.GetCriticalExtensionOids() ?? new HashSet<string>()) {
+            if (!SupportedCriticalCrlExtensions.Contains(oid)) return "has the unsupported critical extension " + oid;
+        }
+        foreach (X509CrlEntry entry in crl.GetRevokedCertificates() ?? new HashSet<X509CrlEntry>()) {
+            foreach (string oid in entry.GetCriticalExtensionOids() ?? new HashSet<string>()) {
+                if (!SupportedCriticalCrlEntryExtensions.Contains(oid)) return "has an entry with the unsupported critical extension " + oid;
+            }
+        }
         Asn1OctetString? value = crl.GetExtensionValue(X509Extensions.IssuingDistributionPoint);
         if (value is null) return null;
         IssuingDistributionPoint scope;
@@ -536,6 +565,7 @@ internal static class CertificateRevocationEvaluator {
             if (!MatchesResponderId(response.ResponderId, candidate)) continue;
             // RFC 6960 section 4.2.2.2: a delegated responder is issued directly by the CA and carries id-kp-OCSPSigning.
             if (!candidate.IssuerDN.Equivalent(issuer.SubjectDN, inOrder: true) || !IsSignedBy(candidate, issuer)) continue;
+            if (!PermitsSigning(candidate)) continue;
             IList<DerObjectIdentifier>? usages = candidate.GetExtendedKeyUsage();
             if (usages is null || !usages.Any(static usage => usage.Id == OcspSigningExtendedKeyUsageOid)) continue;
             return candidate;
@@ -550,6 +580,12 @@ internal static class CertificateRevocationEvaluator {
         } catch (Exception exception) when (IsValidationException(exception)) {
             return false;
         }
+    }
+
+    /// <summary>RFC 5280 section 4.2.1.3: a key used to sign OCSP responses needs digitalSignature or nonRepudiation.</summary>
+    private static bool PermitsSigning(BcX509Certificate certificate) {
+        bool[]? keyUsage = certificate.GetKeyUsage();
+        return keyUsage is null || (keyUsage.Length > 0 && keyUsage[0]) || (keyUsage.Length > 1 && keyUsage[1]);
     }
 
     private static bool AllowsUsage(BcX509Certificate certificate, int usage) {
@@ -679,6 +715,27 @@ internal static class CertificateRevocationEvaluator {
         exception is not StackOverflowException &&
         exception is not AccessViolationException &&
         exception is not OperationCanceledException;
+
+    private static IReadOnlyList<BcX509Certificate> ToBouncyCastle(X509Certificate2Collection? certificates) {
+        if (certificates is null || certificates.Count == 0) return Array.Empty<BcX509Certificate>();
+        var parser = new X509CertificateParser();
+        var result = new List<BcX509Certificate>(certificates.Count);
+        foreach (X509Certificate2 certificate in certificates) {
+            try {
+                BcX509Certificate? converted = parser.ReadCertificate(certificate.RawData);
+                if (converted is not null) result.Add(converted);
+            } catch (Exception exception) when (IsValidationException(exception)) {
+                // An unreadable supplied certificate cannot identify a signer.
+            }
+        }
+        return result;
+    }
+
+    private enum SigningCertificateBinding {
+        Absent,
+        Valid,
+        Mismatch
+    }
 
     private sealed class EvaluationContext {
         internal EvaluationContext(
@@ -830,14 +887,18 @@ internal static class CertificateRevocationEvaluator {
         internal List<RevocationSubject> Subjects { get; } = new List<RevocationSubject>();
         internal bool HasSigningCertificateAttribute { get; private set; }
 
-        internal static ParsedCms Parse(byte[] encoded, bool isTimestampToken) {
+        /// <summary>True when an ESS signing-certificate attribute names a different certificate than the signer's.</summary>
+        internal bool SigningCertificateMismatch { get; private set; }
+
+        internal static ParsedCms Parse(byte[] encoded, bool isTimestampToken, IEnumerable<BcX509Certificate>? suppliedCertificates = null) {
             var parsed = new ParsedCms();
+            BcX509Certificate[] supplied = suppliedCertificates?.ToArray() ?? Array.Empty<BcX509Certificate>();
             var signedData = new CmsSignedData(encoded);
             if (isTimestampToken) {
                 var token = new TimeStampToken(signedData);
                 parsed.AddContainer(signedData);
                 parsed.Subjects.Add(new RevocationSubject("Time-stamp authority",
-                    FindSigner(token.GetCertificates().EnumerateMatches(null), token.SignerID),
+                    FindSigner(token.GetCertificates().EnumerateMatches(null).Concat(supplied), token.SignerID),
                     token.TimeStampInfo.GenTime.ToUniversalTime(), isTimestampAuthority: true));
                 return parsed;
             }
@@ -850,13 +911,14 @@ internal static class CertificateRevocationEvaluator {
             for (int signerIndex = 0; signerIndex < signers.Count; signerIndex++) {
                 SignerInformation signer = signers[signerIndex];
                 string role = signers.Count > 1 ? "Signer " + (signerIndex + 1) : "Signer";
-                parsed.Subjects.Add(new RevocationSubject(role,
-                    FindSigner(parsed.Certificates, signer.SignerID), null, isTimestampAuthority: false));
+                // Signer certificates may come from caller-supplied certificates, as in CMS verification.
+                BcX509Certificate? signerCertificate = FindSigner(parsed.Certificates.Concat(supplied), signer.SignerID);
+                parsed.Subjects.Add(new RevocationSubject(role, signerCertificate, null, isTimestampAuthority: false));
 
                 Org.BouncyCastle.Asn1.Cms.AttributeTable? signedAttributes = signer.SignedAttributes;
-                parsed.HasSigningCertificateAttribute &= signedAttributes is not null &&
-                    (signedAttributes[new DerObjectIdentifier(SigningCertificateV2Oid)] is not null ||
-                     signedAttributes[new DerObjectIdentifier(SigningCertificateOid)] is not null);
+                SigningCertificateBinding binding = CheckSigningCertificate(signedAttributes, signerCertificate);
+                parsed.HasSigningCertificateAttribute &= binding == SigningCertificateBinding.Valid;
+                parsed.SigningCertificateMismatch |= binding == SigningCertificateBinding.Mismatch;
                 Org.BouncyCastle.Asn1.Cms.Attribute? archival = signedAttributes?[new DerObjectIdentifier(AdobeRevocationInfoArchivalOid)];
                 if (archival is not null) parsed.AddRevocationInfoArchival(archival);
 
@@ -871,7 +933,7 @@ internal static class CertificateRevocationEvaluator {
                         parsed.AddContainer(tokenData);
                         parsed.Subjects.Add(new RevocationSubject(
                             role + " time-stamp authority" + (timestamps.AttrValues.Count > 1 ? " " + index : string.Empty),
-                            FindSigner(token.GetCertificates().EnumerateMatches(null), token.SignerID),
+                            FindSigner(token.GetCertificates().EnumerateMatches(null).Concat(supplied), token.SignerID),
                             token.TimeStampInfo.GenTime.ToUniversalTime(), isTimestampAuthority: true));
                     } catch (Exception exception) when (IsValidationException(exception)) {
                         // Time-stamp validation reports malformed tokens; there is no authority path to check.
@@ -883,6 +945,47 @@ internal static class CertificateRevocationEvaluator {
 
         private static BcX509Certificate? FindSigner(IEnumerable<BcX509Certificate> certificates, SignerID signerId) =>
             certificates.FirstOrDefault(signerId.Match);
+
+        /// <summary>
+        /// RFC 5035: the first ESSCertID(v2) identifies the signer certificate by hash and, when present, by
+        /// issuer and serial number. A different certificate means the attribute binds someone else.
+        /// </summary>
+        private static SigningCertificateBinding CheckSigningCertificate(
+            Org.BouncyCastle.Asn1.Cms.AttributeTable? attributes,
+            BcX509Certificate? signer) {
+            if (attributes is null) return SigningCertificateBinding.Absent;
+            Org.BouncyCastle.Asn1.Cms.Attribute? v2 = attributes[new DerObjectIdentifier(SigningCertificateV2Oid)];
+            Org.BouncyCastle.Asn1.Cms.Attribute? v1 = attributes[new DerObjectIdentifier(SigningCertificateOid)];
+            if (v2 is null && v1 is null) return SigningCertificateBinding.Absent;
+            if (signer is null) return SigningCertificateBinding.Absent;
+            try {
+                byte[] encoded = signer.GetEncoded();
+                byte[] expected;
+                byte[] actual;
+                Org.BouncyCastle.Asn1.X509.IssuerSerial? issuerSerial;
+                if (v2 is not null) {
+                    Org.BouncyCastle.Asn1.Ess.EssCertIDv2 id = Org.BouncyCastle.Asn1.Ess.SigningCertificateV2
+                        .GetInstance(v2.AttrValues[0]).GetCerts()[0];
+                    string algorithm = id.HashAlgorithm?.Algorithm.Id ?? "2.16.840.1.101.3.4.2.1";
+                    expected = id.GetCertHash();
+                    actual = Org.BouncyCastle.Security.DigestUtilities.CalculateDigest(algorithm, encoded);
+                    issuerSerial = id.IssuerSerial;
+                } else {
+                    Org.BouncyCastle.Asn1.Ess.EssCertID id = Org.BouncyCastle.Asn1.Ess.SigningCertificate
+                        .GetInstance(v1!.AttrValues[0]).GetCerts()[0];
+                    expected = id.GetCertHash();
+                    actual = Org.BouncyCastle.Security.DigestUtilities.CalculateDigest("1.3.14.3.2.26", encoded);
+                    issuerSerial = id.IssuerSerial;
+                }
+                if (!Org.BouncyCastle.Utilities.Arrays.FixedTimeEquals(expected, actual)) return SigningCertificateBinding.Mismatch;
+                if (issuerSerial is not null && !issuerSerial.Serial.Value.Equals(signer.SerialNumber)) {
+                    return SigningCertificateBinding.Mismatch;
+                }
+                return SigningCertificateBinding.Valid;
+            } catch (Exception exception) when (IsValidationException(exception)) {
+                return SigningCertificateBinding.Mismatch;
+            }
+        }
 
         private void AddContainer(CmsSignedData signedData) {
             Certificates.AddRange(signedData.GetCertificates().EnumerateMatches(null));

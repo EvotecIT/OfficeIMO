@@ -433,9 +433,10 @@ internal static class PdfSignatureValidator {
             return PdfPadesLevel.BaselineT;
         }
 
-        if (!result.RevocationEvidenceHasProofOfExistence) {
+        // The archive time-stamp must protect this signature itself, not only DSS data reused from an earlier revision.
+        if (!coveredByDocumentTimestamp || !result.RevocationEvidenceHasProofOfExistence) {
             AddLevelFinding(findings, signature, "pades-baseline-lta-not-reached",
-                "PAdES B-LTA needs a valid document time-stamp covering the Document Security Store data used for validation.");
+                "PAdES B-LTA needs a valid document time-stamp covering both this signature and the Document Security Store data used to validate it.");
             return PdfPadesLevel.BaselineLT;
         }
         return PdfPadesLevel.BaselineLTA;

@@ -171,6 +171,126 @@ public sealed class PdfSignatureRevocationTests {
         Assert.Equal(0, pki.OcspRequests + pki.CrlRequests);
     }
 
+    [Fact]
+    public void CrlWithUnknownCriticalExtensionIsNotUsed() {
+        using var pki = new PdfTestPki(Now, ocsp: false, crlUnknownCriticalExtension: true);
+        using X509Certificate2 signer = pki.IssueSigner("Unknown critical CRL extension", Now.AddDays(-30), Now.AddDays(30));
+        byte[] signed = pki.Sign(signer, timestampTime: Now.AddHours(-1));
+        using var fetcher = InternalFetcher();
+
+        PdfSignatureValidationResult signature = Assert.Single(PdfDocument.Load(signed).Security
+            .ValidateSignatures(OnlineProvider(pki, fetcher)).Signatures);
+
+        Assert.Equal(PdfCryptographicValidationStatus.Indeterminate, signature.CryptographicResult!.RevocationStatus);
+        Assert.Contains(signature.Findings, finding => finding.Code == "RevocationDataUnusable" &&
+            finding.Message.Contains("unsupported critical extension", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GoodOcspAnswerAfterExpiryNeedsArchiveCutoff(bool archiveCutoff) {
+        using var pki = new PdfTestPki(Now);
+        if (archiveCutoff) pki.OcspArchiveCutoff = Now.AddDays(-30);
+        using X509Certificate2 signer = pki.IssueSigner("Expired before the OCSP answer", Now.AddDays(-10), Now.AddDays(-1));
+        byte[] signed = pki.Sign(signer, timestampTime: Now.AddDays(-5));
+        using var fetcher = InternalFetcher();
+
+        PdfSignatureValidationResult signature = Assert.Single(PdfDocument.Load(signed).Security
+            .ValidateSignatures(OnlineProvider(pki, fetcher)).Signatures);
+
+        if (archiveCutoff) {
+            Assert.Equal(PdfCryptographicValidationStatus.Valid, signature.CryptographicResult!.RevocationStatus);
+        } else {
+            Assert.Equal(PdfCryptographicValidationStatus.Indeterminate, signature.CryptographicResult!.RevocationStatus);
+            Assert.Contains(signature.Findings, finding => finding.Message.Contains("archive cutoff", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
+    public async Task ArchiveLevelRequiresTimestampOverTheSignatureItself() {
+        using var pki = new PdfTestPki(Now);
+        using X509Certificate2 signer = pki.IssueSigner("Signs twice", Now.AddDays(-30), Now.AddDays(30));
+        byte[] signed = pki.Sign(signer, timestampTime: Now.AddHours(-2));
+        PdfCmsSignatureCryptographyProvider provider = pki.Provider();
+        pki.ResponderTime = Now.AddHours(-1);
+        using var fetcher = InternalFetcher();
+        byte[] longTerm = (await PdfLongTermValidationEnricher.FetchAndEnrichAsync(
+            signed, SignatureObject(signed, provider), provider, fetcher)).Pdf;
+        byte[] archived = pki.AddDocumentTimestamp(longTerm, Now.AddMinutes(-30));
+
+        // The second signature reuses DSS data that an earlier time-stamp proves, but nothing archives it.
+        byte[] resigned = pki.SignAgain(archived, signer, Now.AddMinutes(-10));
+        PdfSignatureValidationReport report = PdfDocument.Load(resigned).Security.ValidateSignatures(provider);
+
+        Assert.Equal(PdfPadesLevel.BaselineLTA, Assert.Single(report.Signatures, item => item.Signature.FieldName == "Signature1").PadesLevel);
+        PdfSignatureValidationResult second = Assert.Single(report.Signatures, item => item.Signature.FieldName == "Signature2");
+        Assert.Equal(PdfPadesLevel.BaselineLT, second.PadesLevel);
+        Assert.Contains(second.Findings, finding => finding.Code == "pades-baseline-lta-not-reached");
+    }
+
+    [Fact]
+    public void SigningCertificateAttributeNamingAnotherCertificateInvalidatesSignature() {
+        using var pki = new PdfTestPki(Now);
+        using X509Certificate2 signer = pki.IssueSigner("Actual signer", Now.AddDays(-30), Now.AddDays(30));
+        using X509Certificate2 other = pki.IssueSigner("Named in the attribute", Now.AddDays(-30), Now.AddDays(30));
+        PdfExternalSignaturePreparation preparation = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("ESS binding"))
+            .Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+                SubFilter = PdfExternalSignatureSubFilter.CadesDetached,
+                ReservedSignatureContentsBytes = 24576
+            });
+        byte[] cms = CreateCmsNamingOtherCertificate(signer, pki.PrivateKeyOf(signer), other, preparation.SignedContent);
+
+        PdfSignatureValidationResult signature = Assert.Single(preparation.Complete(cms).Security.ValidateSignatures(pki.Provider()).Signatures);
+
+        Assert.Equal(PdfCryptographicValidationStatus.Invalid, signature.CryptographicResult!.MathematicalSignatureStatus);
+        Assert.Contains(signature.Findings, finding => finding.Code == "SigningCertificateMismatch");
+        Assert.Equal(PdfPadesLevel.None, signature.PadesLevel);
+    }
+
+    [Fact]
+    public void FetcherTimeoutIsReportedInsteadOfCancellingValidation() {
+        using var pki = new PdfTestPki(Now);
+        using X509Certificate2 signer = pki.IssueSigner("Slow responder", Now.AddDays(-30), Now.AddDays(30));
+        byte[] signed = pki.Sign(signer, timestampTime: Now.AddHours(-1));
+
+        PdfSignatureValidationResult signature = Assert.Single(PdfDocument.Load(signed).Security
+            .ValidateSignatures(OnlineProvider(pki, new TimingOutFetcher())).Signatures);
+
+        Assert.Equal(PdfCryptographicValidationStatus.Indeterminate, signature.CryptographicResult!.RevocationStatus);
+        Assert.Contains(signature.Findings, finding => finding.Code == "RevocationFetchFailed");
+    }
+
+    private static PdfCmsSignatureCryptographyProvider OnlineProvider(PdfTestPki pki, ICertificateRevocationFetcher fetcher) =>
+        new(OfficeSecurityProvider.Default, pki.VerificationOptions()) {
+            RevocationPolicy = CertificateRevocationPolicy.EmbeddedThenOnline,
+            RevocationFetcher = fetcher
+        };
+
+    private static byte[] CreateCmsNamingOtherCertificate(X509Certificate2 signer,
+        Org.BouncyCastle.Crypto.AsymmetricKeyParameter privateKey, X509Certificate2 other, byte[] content) {
+        Org.BouncyCastle.X509.X509Certificate signerCertificate = Org.BouncyCastle.Security.DotNetUtilities.FromX509Certificate(signer);
+        byte[] otherHash = Org.BouncyCastle.Security.DigestUtilities.CalculateDigest("SHA256", other.RawData);
+        var attributes = new Org.BouncyCastle.Asn1.Asn1EncodableVector(new Org.BouncyCastle.Asn1.Cms.Attribute(
+            Org.BouncyCastle.Asn1.Pkcs.PkcsObjectIdentifiers.IdAASigningCertificateV2,
+            new Org.BouncyCastle.Asn1.DerSet(new Org.BouncyCastle.Asn1.Ess.SigningCertificateV2(
+                new Org.BouncyCastle.Asn1.Ess.EssCertIDv2(otherHash)))));
+        var factory = new Org.BouncyCastle.Crypto.Operators.Asn1SignatureFactory("SHA256WITHRSA", privateKey);
+        var generator = new Org.BouncyCastle.Cms.CmsSignedDataGenerator();
+        generator.AddSignerInfoGenerator(new Org.BouncyCastle.Cms.SignerInfoGeneratorBuilder()
+            .WithSignedAttributeGenerator(new Org.BouncyCastle.Cms.DefaultSignedAttributeTableGenerator(
+                new Org.BouncyCastle.Asn1.Cms.AttributeTable(attributes)))
+            .Build(factory, signerCertificate));
+        generator.AddCertificates(Org.BouncyCastle.Utilities.Collections.CollectionUtilities.CreateStore(new[] { signerCertificate }));
+        return generator.Generate(new Org.BouncyCastle.Cms.CmsProcessableByteArray(content), false).GetEncoded();
+    }
+
+    private sealed class TimingOutFetcher : ICertificateRevocationFetcher {
+        public Task<CertificateRevocationEvidence> FetchAsync(X509Certificate2 certificate, X509Certificate2 issuer,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<CertificateRevocationEvidence>(new OperationCanceledException("The responder timed out."));
+    }
+
     private static CertificateRevocationFetcher InternalFetcher() =>
         new(new CertificateRevocationFetcherOptions { AllowNonPublicAddresses = true });
 

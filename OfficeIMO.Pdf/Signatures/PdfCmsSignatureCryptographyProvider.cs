@@ -158,6 +158,15 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
             if (revocation.TimestampAuthorityStatus == SecurityValidationStatus.Invalid &&
                 timestampStatus != PdfCryptographicValidationStatus.NotPerformed) {
                 timestampStatus = PdfCryptographicValidationStatus.Invalid;
+            } else if (timestampStatus == PdfCryptographicValidationStatus.Indeterminate &&
+                revocation.TimestampAuthorityStatus == SecurityValidationStatus.Valid &&
+                security.Signers.SelectMany(static signer => signer.TimestampTokens).All(IsSettledByRevocationEvidence)) {
+                // The token checks passed and only the platform revocation answer was unknown; the evidence settled it.
+                timestampStatus = PdfCryptographicValidationStatus.Valid;
+            }
+            if (revocation.SigningCertificateMismatch) {
+                // RFC 5035: a signing-certificate attribute naming another certificate invalidates the signature.
+                signatureStatus = PdfCryptographicValidationStatus.Invalid;
             }
         }
 
@@ -237,6 +246,16 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         return result;
     }
 
+    /// <summary>
+    /// A time-stamp token is indeterminate with an accepted TSA chain only when the platform revocation answer was
+    /// unknown (see the RFC 3161 verifier), so valid revocation evidence settles it.
+    /// </summary>
+    private static bool IsSettledByRevocationEvidence(Rfc3161TimestampVerificationResult token) =>
+        token.Status == SecurityValidationStatus.Valid ||
+        (token.Status == SecurityValidationStatus.Indeterminate &&
+         token.CertificateValidation.ChainStatus == SecurityValidationStatus.Valid &&
+         token.CertificateValidation.RevocationStatus is SecurityValidationStatus.Indeterminate);
+
     /// <summary>Embedded and fetched revocation data decide; a platform revocation check can only add a revoked result.</summary>
     private static PdfCryptographicValidationStatus CombineRevocation(
         PdfCryptographicValidationStatus platform,
@@ -279,7 +298,13 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
             findings);
         if (revocation is not null) {
             revocationStatus = CombineRevocation(revocationStatus, MapStatus(revocation.Status));
-            if (revocationStatus == PdfCryptographicValidationStatus.Invalid) timestampStatus = PdfCryptographicValidationStatus.Invalid;
+            if (revocationStatus == PdfCryptographicValidationStatus.Invalid) {
+                timestampStatus = PdfCryptographicValidationStatus.Invalid;
+            } else if (revocationStatus == PdfCryptographicValidationStatus.Valid && IsSettledByRevocationEvidence(timestamp)) {
+                // Signature, imprint and TSA chain passed; only the platform revocation answer was unknown.
+                cryptoStatus = PdfCryptographicValidationStatus.Valid;
+                timestampStatus = PdfCryptographicValidationStatus.Valid;
+            }
         }
         if (timestampStatus == PdfCryptographicValidationStatus.Invalid) {
             findings.Add(Finding(

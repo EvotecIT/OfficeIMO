@@ -129,12 +129,14 @@ internal sealed class OfficeRevocationOutcome {
         SecurityValidationStatus status,
         SecurityValidationStatus timestampAuthorityStatus,
         bool hasSigningCertificateAttribute,
+        bool signingCertificateMismatch,
         bool settledByDocument,
         bool documentEvidenceHasProofOfExistence,
         IReadOnlyList<SecurityFinding> findings) {
         Status = status;
         TimestampAuthorityStatus = timestampAuthorityStatus;
         HasSigningCertificateAttribute = hasSigningCertificateAttribute;
+        SigningCertificateMismatch = signingCertificateMismatch;
         SettledByDocument = settledByDocument;
         DocumentEvidenceHasProofOfExistence = documentEvidenceHasProofOfExistence;
         Findings = findings;
@@ -146,8 +148,11 @@ internal sealed class OfficeRevocationOutcome {
     /// <summary>Status for signature time-stamp authority paths only.</summary>
     internal SecurityValidationStatus TimestampAuthorityStatus { get; }
 
-    /// <summary>True when the CMS signer carries ESS signing-certificate or signing-certificate-v2.</summary>
+    /// <summary>True when every CMS signer carries an ESS signing-certificate(-v2) attribute that matches its certificate.</summary>
     internal bool HasSigningCertificateAttribute { get; }
+
+    /// <summary>True when an ESS signing-certificate attribute identifies a different certificate than the signer's.</summary>
+    internal bool SigningCertificateMismatch { get; }
 
     /// <summary>True when every checked certificate was settled by document-supplied tokens.</summary>
     internal bool SettledByDocument { get; }

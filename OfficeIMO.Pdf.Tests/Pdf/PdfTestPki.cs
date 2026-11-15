@@ -33,12 +33,14 @@ internal sealed class PdfTestPki : IDisposable {
     private readonly AsymmetricCipherKeyPair _responderKey = CreateKey();
     private readonly ConcurrentDictionary<string, DateTime> _revoked = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, BcCertificate> _issued = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, AsymmetricKeyParameter> _signerKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _serverLoop;
     private readonly bool _ocsp;
     private readonly bool _crl;
     private readonly bool _crlCoversOnlyAuthorities;
+    private readonly bool _crlUnknownCriticalExtension;
     private readonly BcCertificate _rootCertificate;
     private readonly BcCertificate _tsaCertificate;
     private readonly BcCertificate? _responderCertificate;
@@ -47,8 +49,9 @@ internal sealed class PdfTestPki : IDisposable {
     private int _crlRequests;
 
     internal PdfTestPki(DateTime now, bool ocsp = true, bool crl = true, bool delegatedResponder = true, DateTime? responderNotAfter = null,
-        bool crlCoversOnlyAuthorities = false) {
+        bool crlCoversOnlyAuthorities = false, bool crlUnknownCriticalExtension = false) {
         _crlCoversOnlyAuthorities = crlCoversOnlyAuthorities;
+        _crlUnknownCriticalExtension = crlUnknownCriticalExtension;
         Now = now;
         ResponderTime = now;
         _ocsp = ocsp;
@@ -84,6 +87,9 @@ internal sealed class PdfTestPki : IDisposable {
 
     internal DateTime Now { get; }
 
+    /// <summary>RFC 6960 archive cutoff added to every OCSP single response, when set.</summary>
+    internal DateTime? OcspArchiveCutoff { get; set; }
+
     /// <summary>Time at which OCSP responses and CRLs are produced.</summary>
     internal DateTime ResponderTime { get; set; }
 
@@ -97,8 +103,13 @@ internal sealed class PdfTestPki : IDisposable {
         AsymmetricCipherKeyPair key = CreateKey();
         BcCertificate certificate = IssueLeaf("CN=" + name, key.Public, notBefore, notAfter, generator =>
             generator.AddExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.DigitalSignature | KeyUsage.NonRepudiation)));
-        return ToPlatform(certificate, key);
+        X509Certificate2 platform = ToPlatform(certificate, key);
+        _signerKeys[platform.Thumbprint] = key.Private;
+        return platform;
     }
+
+    /// <summary>Private key of a signer issued by this PKI, for building custom CMS without exporting a platform key.</summary>
+    internal AsymmetricKeyParameter PrivateKeyOf(X509Certificate2 signer) => _signerKeys[signer.Thumbprint];
 
     internal void Revoke(X509Certificate2 certificate, DateTime revokedAt) =>
         _revoked[new BigInteger(1, Enumerable.Reverse(certificate.GetSerialNumber()).ToArray()).ToString(16)] = revokedAt;
@@ -137,6 +148,17 @@ internal sealed class PdfTestPki : IDisposable {
                 FieldName = "Signature1",
                 ReservedSignatureContentsBytes = 24576
             }).ToDocument().ToBytes();
+    }
+
+    internal byte[] SignAgain(byte[] pdf, X509Certificate2 signer, DateTime timestampTime) {
+        var options = new CmsSigningOptions { SignatureTimestampProvider = TimestampClient(timestampTime).GetTimestamp };
+        using var cmsSigner = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, signer,
+            signingOptions: options, certificateChain: new[] { Root });
+        return PdfDocument.Load(pdf).Security.SignExternal(cmsSigner, new PdfExternalSignatureOptions {
+            SubFilter = PdfExternalSignatureSubFilter.CadesDetached,
+            FieldName = "Signature2",
+            ReservedSignatureContentsBytes = 24576
+        }).ToDocument().ToBytes();
     }
 
     internal byte[] AddDocumentTimestamp(byte[] pdf, DateTime generationTime) =>
@@ -200,7 +222,12 @@ internal sealed class PdfTestPki : IDisposable {
             CertificateStatus? status = _revoked.TryGetValue(id.SerialNumber.ToString(16), out DateTime revokedAt)
                 ? new RevokedStatus(revokedAt, CrlReason.KeyCompromise)
                 : _issued.ContainsKey(id.SerialNumber.ToString(16)) ? CertificateStatus.Good : new UnknownStatus();
-            generator.AddResponse(id, status, thisUpdate, thisUpdate.AddDays(7), null);
+            X509Extensions? extensions = OcspArchiveCutoff is DateTime cutoff
+                ? new X509Extensions(new Dictionary<DerObjectIdentifier, Org.BouncyCastle.Asn1.X509.X509Extension> {
+                    [new DerObjectIdentifier("1.3.6.1.5.5.7.48.1.6")] = new Org.BouncyCastle.Asn1.X509.X509Extension(false, new DerOctetString(new DerGeneralizedTime(cutoff)))
+                })
+                : null;
+            generator.AddResponse(id, status, thisUpdate, thisUpdate.AddDays(7), extensions);
         }
         AsymmetricKeyParameter key = _responderCertificate is null ? _rootKey.Private : _responderKey.Private;
         BcCertificate[] chain = _responderCertificate is null ? Array.Empty<BcCertificate>() : new[] { _responderCertificate };
@@ -217,6 +244,9 @@ internal sealed class PdfTestPki : IDisposable {
             generator.AddCrlEntry(new BigInteger(revoked.Key, 16), revoked.Value, CrlReason.KeyCompromise);
         }
         generator.AddExtension(X509Extensions.CrlNumber, false, new CrlNumber(BigInteger.ValueOf(ResponderTime.Ticks)));
+        if (_crlUnknownCriticalExtension) {
+            generator.AddExtension(new DerObjectIdentifier("1.3.6.1.4.1.59069.9.1"), true, DerNull.Instance);
+        }
         if (_crlCoversOnlyAuthorities) {
             generator.AddExtension(X509Extensions.IssuingDistributionPoint, true,
                 new IssuingDistributionPoint(null, false, true, null, false, false));

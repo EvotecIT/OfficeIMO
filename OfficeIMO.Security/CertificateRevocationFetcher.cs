@@ -41,11 +41,13 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
     private const int MaxRedirects = 3;
     private static readonly TimeSpan UndatedResponseLifetime = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan FailureLifetime = TimeSpan.FromMinutes(1);
+    private const int MaxCacheEntries = 256;
     private readonly CertificateRevocationFetcherOptions _options;
     private readonly HttpClient _client;
     private readonly CancellationTokenSource _disposal = new();
     private readonly Dictionary<string, CacheEntry> _cache = new(StringComparer.Ordinal);
     private readonly object _cacheLock = new();
+    private long _cacheSequence;
     private bool _disposed;
 
     /// <summary>Creates a fetcher. The options are copied.</summary>
@@ -148,8 +150,10 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         CacheEntry entry;
         lock (_cacheLock) {
             // A cached answer is reused until its nextUpdate, so a long-lived fetcher does not serve stale data.
-            if (!_cache.TryGetValue(key, out entry!) || entry.IsExpired(DateTime.UtcNow)) {
-                entry = new CacheEntry();
+            DateTime now = DateTime.UtcNow;
+            if (!_cache.TryGetValue(key, out entry!) || entry.IsExpired(now)) {
+                TrimCache(now);
+                entry = new CacheEntry { Sequence = ++_cacheSequence };
                 entry.Task = FetchAndStampAsync(entry, location, ocspRequest);
                 _cache[key] = entry;
             }
@@ -163,6 +167,21 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
             findings.Add(Finding("RevocationFetchFailed",
                 "Revocation data for " + label + " could not be fetched from " + location + ": " + exception.Message));
             return null;
+        }
+    }
+
+    /// <summary>Drops expired answers and, above the entry limit, the oldest completed ones; requests in flight stay.</summary>
+    private void TrimCache(DateTime now) {
+        foreach (string expired in _cache.Where(item => item.Value.IsExpired(now)).Select(static item => item.Key).ToList()) {
+            _cache.Remove(expired);
+        }
+        if (_cache.Count < MaxCacheEntries) return;
+        foreach (string oldest in _cache.Where(static item => item.Value.Task.IsCompleted)
+                     .OrderBy(static item => item.Value.Sequence)
+                     .Take(_cache.Count - MaxCacheEntries + 1)
+                     .Select(static item => item.Key)
+                     .ToList()) {
+            _cache.Remove(oldest);
         }
     }
 
@@ -414,6 +433,7 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
     private sealed class CacheEntry {
         internal Task<byte[]> Task { get; set; } = null!;
         internal DateTime? ExpiresUtc { get; set; }
+        internal long Sequence { get; set; }
 
         internal bool IsExpired(DateTime now) => ExpiresUtc is DateTime expires && now >= expires;
     }
