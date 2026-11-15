@@ -9,30 +9,30 @@
 {{~ if bench_index && bench_index.comparisons ~}}{{~ for comparison in bench_index.comparisons ~}}{{~ titles[comparison.comparisonId] = comparison ~}}{{~ end ~}}{{~ end ~}}
 <div class="imo-bench-area-page" data-benchmark-area="{{ area.id }}">
   <nav class="imo-bench-crumbs" aria-label="Breadcrumb"><a href="/benchmarks/">Benchmarks</a> <span aria-hidden="true">/</span> <span>{{ area.title }}</span></nav>
-  <p class="imo-bench-lead">Each table compares libraries doing the same validated work on one machine and one operating system. Lower is better. Pick another run to switch operating system or run type.</p>
-  {{~ if workloads.size == 0 ~}}
+  <p class="imo-bench-lead">Every workload compares OfficeIMO with the other .NET libraries doing the same validated work on one machine. Each run shows all contenders: full and quick runs, on every operating system measured so far. Lower is better.</p>
+  {{~ if workloads.size > 0 ~}}
+  <nav class="imo-bench-toc" aria-label="Workloads on this page">
+    {{~ for id in workloads ~}}<a href="#{{ id }}">{{ (titles[id] && titles[id].title) ? titles[id].title : bench_title(id) }}{{ if titles[id] && (id | string.contains "-net8.0") }} (.NET 8){{ end }} <small>{{ lookup[id].runs.size }} {{ if lookup[id].runs.size == 1 }}run{{ else }}runs{{ end }}</small></a>{{~ end ~}}
+  </nav>
+  {{~ else ~}}
   <section class="imo-bench-empty">
     <h2>No published results yet</h2>
     <p>The suites for this area are part of the benchmark runner. Results appear here after the next measured run on Windows, Linux and macOS.</p>
-    {{~ if bench_index && bench_index.comparisons ~}}
-    <ul class="imo-bench-planned">
-      {{~ for comparison in bench_index.comparisons ~}}{{~ if comparison.area == area.id ~}}
-      <li><strong>{{ comparison.title ?? bench_title(comparison.comparisonId) }}</strong>{{ if comparison.libraries }}<span>compared with {{ comparison.libraries | array.join ", " }}</span>{{ end }}</li>
-      {{~ end ~}}{{~ end ~}}
-    </ul>
-    {{~ end ~}}
-    <p><a href="/docs/capabilities/benchmarks/">Run the suites yourself <span aria-hidden="true">→</span></a></p>
   </section>
   {{~ end ~}}
   {{~ for id in workloads ~}}
   {{~ workload = lookup[id] ~}}
   {{~ meta = titles[id] ~}}
-  <section class="imo-bench-workload" id="{{ id }}" aria-labelledby="{{ id }}-title" data-benchmark-workload>
+  <section class="imo-bench-workload" id="{{ id }}" aria-labelledby="{{ id }}-title" data-benchmark-workload data-comparison="{{ id }}" data-libraries="{{ if meta && meta.libraries }}{{ meta.libraries | array.join "|" }}{{ end }}">
     <header>
       {{~ workload_title = (meta && meta.title) ? meta.title : bench_title(id) ~}}
       <h2 id="{{ id }}-title">{{ workload_title }}</h2>
-      <p class="imo-bench-workload__suite">{{ workload.suite }}{{ if meta && meta.libraries }} · compared with {{ meta.libraries | array.join ", " }}{{ end }}</p>
+      {{~ if meta && meta.libraries ~}}
+      <p class="imo-bench-workload__contenders">{{ for library in meta.libraries }}<span{{ if library == "OfficeIMO" }} class="is-officeimo"{{ end }}>{{ library }}</span>{{ if !for.last }}<i aria-hidden="true">vs</i>{{ end }}{{ end }}</p>
+      {{~ end ~}}
+      <p class="imo-bench-workload__suite">{{ if id | string.contains "-net8.0" }}.NET 8{{ else }}.NET 10{{ end }}{{ if id | string.contains "-affinity-" }} · pinned to a fixed set of CPU cores{{ end }} · suite <code>{{ workload.suite }}</code></p>
     </header>
+    <div class="imo-bench-overview-slot" data-benchmark-overview></div>
     <div class="imo-bench-runs" role="group" aria-label="Runs">
       {{~ for run in (workload.runs | array.sort "platform") ~}}
       <button type="button" class="imo-bench-run" data-result="{{ run.resultPath }}" data-platform="{{ run.platform }}" data-mode="{{ run.runMode }}" data-published="{{ run.publish }}" aria-pressed="false">
@@ -44,16 +44,37 @@
     <div class="imo-bench-chart" data-benchmark-chart aria-live="polite">
       <ul class="imo-bench-raw">
         {{~ for run in workload.runs ~}}
-        <li><a href="{{ run.resultPath }}">{{ workload_title }} · {{ run.platform }} · {{ run.runMode }} · {{ run.environment.processorName ?? "unrecorded hardware" }} · {{ run.generatedUtc | string.slice 0 16 }} · result JSON</a></li>
+        <li><a href="{{ run.resultPath }}">{{ workload_title }} · {{ for platform in bench_platforms }}{{ if platform.id == run.platform }}{{ platform.label }}{{ end }}{{ end }} · {{ if run.runMode == "full" }}full run{{ else }}quick run{{ end }} · {{ if run.environment.processorName }}{{ run.environment.processorName }}{{ else }}environment not recorded{{ end }} · {{ run.generatedUtc | string.slice 0 10 }} · result JSON</a></li>
         {{~ end ~}}
       </ul>
     </div>
   </section>
   {{~ end ~}}
+  {{~ planned_count = 0 ~}}
+  {{~ if bench_index && bench_index.comparisons ~}}{{~ for comparison in bench_index.comparisons ~}}{{~ if comparison.area == area.id && !lookup[comparison.comparisonId] ~}}{{~ planned_count = planned_count + 1 ~}}{{~ end ~}}{{~ end ~}}{{~ end ~}}
+  {{~ if planned_count > 0 ~}}
+  <section class="imo-bench-planned-section" aria-labelledby="planned-title">
+    <h2 id="planned-title">Not measured yet</h2>
+    <p>These comparisons are in the benchmark runner but have no published result. They appear above after their first measured run.</p>
+    <ul class="imo-bench-planned">
+      {{~ for comparison in bench_index.comparisons ~}}{{~ if comparison.area == area.id && !lookup[comparison.comparisonId] ~}}
+      <li><strong>{{ comparison.title ?? bench_title(comparison.comparisonId) }}{{ if comparison.comparisonId | string.contains "-net8.0" }} (.NET 8){{ end }}</strong>{{ if comparison.libraries }}<span>{{ comparison.libraries | array.join " vs " }}</span>{{ end }}</li>
+      {{~ end ~}}{{~ end ~}}
+    </ul>
+    <p><a href="/docs/capabilities/benchmarks/">Run the suites yourself <span aria-hidden="true">→</span></a></p>
+  </section>
+  {{~ end ~}}
+  {{~ if area.id == "excel" || area.id == "csv" ~}}
+  <section class="imo-bench-snapshots" aria-labelledby="snapshots-title">
+    <h2 id="snapshots-title">More Excel and CSV workloads</h2>
+    <p>Dated workstation measurements from before the per-platform runner. They cover workloads the runner doesn't measure yet and keep their own recorded settings, so they are shown apart from the runs above.{{ if area.id == "excel" }} The <a href="/benchmarks/archive/">complete Excel matrix</a> keeps all 274 scenarios and eight libraries.{{ end }}</p>
+    {{ include "generated/benchmarks-overview" }}
+  </section>
+  {{~ end ~}}
   <section class="imo-bench-method">
     <h2>How to read these results</h2>
-    <p>Full runs are complete BenchmarkDotNet measurements and support comparisons. Quick runs are shorter diagnostic runs, shown for coverage. Each result links to its raw JSON, the source commit and the exact environment. Run the suites on hardware close to yours before deciding.</p>
-    <p><a href="/docs/capabilities/benchmarks/">Benchmark reproduction guide <span aria-hidden="true">→</span></a> · <a href="/benchmarks/archive/">Earlier Excel and CSV measurements <span aria-hidden="true">→</span></a></p>
+    <p><strong>Full runs</strong> are complete BenchmarkDotNet measurements. <strong>Quick runs</strong> are shorter diagnostic runs; they are shown so every contender and platform is visible, and carry less weight. "1.6× faster" is the geometric mean of the per-case time ratios, so one large case doesn't dominate. Each run links to its raw JSON with every sample, the source commit and the recorded environment. Measure on hardware close to yours before deciding.</p>
+    <p><a href="/docs/capabilities/benchmarks/">Benchmark reproduction guide <span aria-hidden="true">→</span></a> · <a href="/benchmarks/archive/">Complete Excel matrix and earlier measurements <span aria-hidden="true">→</span></a></p>
   </section>
 </div>
 {{~ end ~}}

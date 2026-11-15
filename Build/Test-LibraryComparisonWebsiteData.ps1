@@ -28,18 +28,19 @@ if ($quickEntries.Count -eq 0) {
 $sourceHash = (Get-FileHash -LiteralPath $CatalogPath -Algorithm SHA256).Hash
 $temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('officeimo-benchmark-website-' + [guid]::NewGuid().ToString('N'))
 $websiteIndex = Join-Path $temporaryRoot 'data/benchmarks_index.json'
+$summaryPath = Join-Path $temporaryRoot 'static/summary.json'
 $generator = Join-Path $PSScriptRoot 'Generate-LibraryComparisonWebsiteData.ps1'
 $overview = Join-Path $PSScriptRoot 'Generate-BenchmarkWebsiteOverview.ps1'
 $excelPath = Join-Path $PSScriptRoot '../Docs/benchmarks/readme-current/officeimo.excel.comparison.json'
 $csvPath = Join-Path $PSScriptRoot '../Docs/benchmarks/readme-current/officeimo.csv.comparison.json'
 $previousCulture = [System.Globalization.CultureInfo]::CurrentCulture
 try {
-    $plan = & $generator -CatalogPath $CatalogPath -WebsiteIndexPath $websiteIndex -DryRun
+    $plan = & $generator -CatalogPath $CatalogPath -WebsiteIndexPath $websiteIndex -SummaryPath $summaryPath -DryRun
     if (Test-Path -LiteralPath $temporaryRoot) {
         throw 'Generator DryRun created output.'
     }
-    if (@($plan.OutputPath).Count -ne 1 -or $plan.OutputPath[0] -ne $websiteIndex) {
-        throw 'Generator DryRun does not expose its single build-time data destination.'
+    if (@($plan.OutputPath).Count -ne 2 -or $plan.OutputPath[0] -ne $websiteIndex -or $plan.OutputPath[1] -ne $summaryPath) {
+        throw 'Generator DryRun does not expose its build-time data destinations.'
     }
 
     New-Item -ItemType Directory -Path (Split-Path -Parent $websiteIndex) -Force | Out-Null
@@ -69,7 +70,7 @@ try {
         $archiveHash = $currentArchiveHash
         $fallbackHash = $currentFallbackHash
 
-        & $generator -CatalogPath $CatalogPath -WebsiteIndexPath $websiteIndex
+        & $generator -CatalogPath $CatalogPath -WebsiteIndexPath $websiteIndex -SummaryPath $summaryPath
         if ((Get-FileHash -LiteralPath $websiteIndex).Hash -ne $sourceHash -or
             (Get-FileHash -LiteralPath $CatalogPath).Hash -ne $sourceHash -or
             (Get-FileHash -LiteralPath $archivePath).Hash -ne $archiveHash) {
@@ -79,6 +80,20 @@ try {
         $retainedQuick = @($mirror.entries | Where-Object { $_.runMode -eq 'quick' -and -not $_.publish })
         if ($retainedQuick.Count -ne $quickEntries.Count -or $mirror.entries.Count -ne $catalog.entries.Count) {
             throw 'The template index filtered benchmark evidence.'
+        }
+        $summary = Get-Content -LiteralPath $summaryPath -Raw -Encoding UTF8 | ConvertFrom-Json -Depth 100
+        if (@($summary.runs).Count -ne $catalog.entries.Count) {
+            throw 'The result summary dropped published runs.'
+        }
+        foreach ($run in $summary.runs) {
+            $result = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $CatalogPath) (Split-Path -Leaf $run.resultPath)) -Raw -Encoding UTF8 | ConvertFrom-Json -Depth 100
+            if (@($run.rows).Count -ne @($result.summary).Count) {
+                throw "The result summary dropped rows from '$($run.resultPath)'."
+            }
+            $libraries = @($result.summary.scenario | Sort-Object -Unique)
+            if (@($run.rows.library | Sort-Object -Unique).Count -ne $libraries.Count) {
+                throw "The result summary dropped a contender from '$($run.resultPath)'."
+            }
         }
     }
     Write-Host "Website catalog and archive verified in en-US/pl-PL: $($mirror.entries.Count) entries, including $($retainedQuick.Count) unpublished quick results."

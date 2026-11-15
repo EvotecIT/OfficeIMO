@@ -9,7 +9,7 @@ meta.content_engine: scriban
 
 <div class="imo-benchmark-hub">
   <nav class="imo-bench-crumbs" aria-label="Breadcrumb"><a href="/benchmarks/">Benchmarks</a> <span aria-hidden="true">/</span> <span>Archive</span></nav>
-  <p class="imo-bench-lead">These measurements predate the per-platform runner. They stay available for their detail, with their missing environment data shown, and are kept apart from the current Windows, Linux and macOS results.</p>
+  <p class="imo-bench-lead">These measurements predate the per-platform runner. The full Excel matrix lives here; the dated Excel and CSV snapshots also appear on the <a href="/benchmarks/excel/">Excel benchmark</a> and <a href="/benchmarks/csv/">CSV benchmark</a> pages, next to the current Windows, Linux and macOS results.</p>
 
   <section class="imo-benchmark-archive" id="historical-benchmark-evidence" aria-labelledby="historical-benchmark-title">
     <header class="imo-benchmark-archive__header">

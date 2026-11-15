@@ -12,6 +12,11 @@ meta.content_engine: scriban
 
   {{ include "benchmark-overview" }}
 
+  <section class="imo-bench-hub-results" aria-labelledby="bench-results-title">
+    <div class="imo-bench-heading"><h2 id="bench-results-title">Every comparison at a glance</h2><p>One row per measured workload, using its strongest run (a full run where there is one). Open a workload to see every case, every contender and every other run, including quick runs on other operating systems.</p></div>
+    <div data-benchmark-hub-results><p class="imo-bench-note">The results table needs JavaScript. Each area page above lists every run with its raw result.</p></div>
+  </section>
+
   <section class="imo-benchmark-method" aria-labelledby="benchmark-method-title">
     <h2 id="benchmark-method-title">Reproduce before you decide.</h2>
     <p>Hardware, runtime, data shape, enabled features and output validation all affect results. Use these results to choose a suite, then run it on infrastructure close to your own.</p>
