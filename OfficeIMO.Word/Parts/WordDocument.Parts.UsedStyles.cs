@@ -60,6 +60,9 @@ public partial class WordDocument {
                 // The untouched default catalog already defines this style; resolve it without parsing styles.xml.
                 foreach (string? dependency in dependencies) EnsureDependency(dependency);
                 return;
+            } else if (_document.TryAppendToUnparsedDefaultPackageStyles(styleId, out string?[]? appendedDependencies)) {
+                foreach (string? dependency in appendedDependencies) EnsureDependency(dependency);
+                return;
             } else {
                 _document.LoadDefaultPackageStyles();
                 var styles = _document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;

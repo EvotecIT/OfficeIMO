@@ -6,8 +6,23 @@ namespace OfficeIMO.Word;
 /// <summary>Pre-order walk of an element's descendants without the iterator and allocation of <c>Descendants()</c>.</summary>
 internal static class WordElementWalk {
     /// <summary>Paragraph and run formatting and text, which hold no block content, content controls or tables.</summary>
-    internal static bool IsFormattingOrText(OpenXmlElement element) =>
-        element is ParagraphProperties or RunProperties or Text;
+    /// <remarks>Only decides whether a walk descends, so exact types suffice: a type test against classes that are not
+    /// sealed costs more than the rest of the step.</remarks>
+    internal static bool IsFormattingOrText(OpenXmlElement element) {
+        Type type = element.GetType();
+        return type == typeof(ParagraphProperties) || type == typeof(RunProperties) || type == typeof(Text);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="element"/> is one of the most common body elements, which are none of the tables,
+    /// cells and cell-merge markers that walks look for. It lets a walk skip type tests on most elements.
+    /// </summary>
+    internal static bool IsCommonContent(OpenXmlElement element) {
+        Type type = element.GetType();
+        return type == typeof(Paragraph) || type == typeof(Run) || type == typeof(Text) ||
+            type == typeof(ParagraphProperties) || type == typeof(RunProperties) || type == typeof(TableRow) ||
+            type == typeof(TableCellProperties) || type == typeof(TableCellWidth);
+    }
 
     /// <summary>
     /// Returns the first child of type <typeparamref name="T"/> by following sibling links, without the iterator of

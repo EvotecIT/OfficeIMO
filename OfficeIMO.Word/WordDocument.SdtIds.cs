@@ -93,7 +93,7 @@ namespace OfficeIMO.Word {
 
             for (OpenXmlElement? element = root.FirstChild; element != null;
                  element = WordElementWalk.Next(element, root, descend: !WordElementWalk.IsFormattingOrText(element))) {
-                if (element is SdtId { Val.HasValue: true } sdtId) {
+                if (!WordElementWalk.IsCommonContent(element) && element is SdtId { Val.HasValue: true } sdtId) {
                     yield return sdtId.Val.Value;
                 }
             }

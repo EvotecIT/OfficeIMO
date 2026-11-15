@@ -219,21 +219,15 @@ internal sealed class WordZipPackage : Package {
                 continue;
             }
 
-            byte[] data;
-            int length;
-            if (ReferenceEquals(entry, _contentTypes)) {
-                data = contentTypesXml!;
-                length = data.Length;
-            } else {
-                data = entry.Part!.Data;
-                length = entry.Part.Length;
-            }
+            PartBuffer data = ReferenceEquals(entry, _contentTypes)
+                ? PartBuffer.Wrap(contentTypesXml!)
+                : entry.Part!.Data;
             if (!entry.HasArchiveData) {
                 ToDosDateTime(now, out ushort time, out ushort date);
                 entry.DosTime = time;
                 entry.DosDate = date;
             }
-            written.Add(WriteNewEntry(output, entry, data, length, headerOffset));
+            written.Add(WriteNewEntry(output, entry, data, headerOffset));
         }
 
         long centralDirectoryOffset = output.Position;
@@ -271,7 +265,22 @@ internal sealed class WordZipPackage : Package {
         throw new InvalidOperationException("The Word package stream no longer exposes its buffer.");
     }
 
-    private byte[] ReadEntry(Entry entry, out int length) => Inflate(_container, entry, out length);
+    private PartBuffer ReadEntry(Entry entry) {
+        if (!_container.TryGetBuffer(out ArraySegment<byte> buffer)) {
+            throw new InvalidOperationException("The Word package stream no longer exposes its buffer.");
+        }
+        int compressedSize = checked((int)entry.CompressedSize);
+        int offset = checked(buffer.Offset + (int)entry.PayloadOffset);
+        var data = new PartBuffer();
+        if (entry.Method == 0) {
+            data.Write(0, buffer.Array!, offset, compressedSize);
+            return data;
+        }
+        using var input = new MemoryStream(buffer.Array!, offset, compressedSize, writable: false);
+        using var deflate = new DeflateStream(input, CompressionMode.Decompress);
+        data.ReadFrom(deflate, entry.UncompressedSize);
+        return data;
+    }
 
     private static byte[] Inflate(MemoryStream container, Entry entry, out int length) {
         if (!container.TryGetBuffer(out ArraySegment<byte> buffer)) {
@@ -312,8 +321,9 @@ internal sealed class WordZipPackage : Package {
         output.Write(source.Array!, checked(source.Offset + (int)entry.PayloadOffset), checked((int)entry.CompressedSize));
     }
 
-    private static WrittenEntry WriteNewEntry(MemoryStream output, Entry entry, byte[] data, int length, long headerOffset) {
-        uint crc = OfficePngCrc32.Compute(data, 0, length);
+    private static WrittenEntry WriteNewEntry(MemoryStream output, Entry entry, PartBuffer data, long headerOffset) {
+        int length = data.Length;
+        uint crc = data.ComputeCrc32();
         ushort flags = (ushort)(entry.Flags & Utf8NameFlag);
         // Placeholder sizes are patched once the compressed length is known.
         WriteLocalHeader(output, entry.NameBytes, flags, 8, entry.DosTime, entry.DosDate, crc, 0, length);
@@ -321,14 +331,14 @@ internal sealed class WordZipPackage : Package {
         ushort method = 8;
         if (length > 0) {
             using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
-                deflate.Write(data, 0, length);
+                data.CopyTo(deflate);
             }
         }
         long compressed = output.Position - dataOffset;
         if (length == 0 || compressed >= length) {
             output.SetLength(dataOffset);
             output.Position = dataOffset;
-            output.Write(data, 0, length);
+            data.CopyTo(output);
             method = 0;
             compressed = length;
         }
@@ -641,8 +651,7 @@ internal sealed class WordZipPackage : Package {
     /// <summary>A part whose bytes are inflated on first use and written again only after a change.</summary>
     private sealed class Part : PackagePart {
         private readonly WordZipPackage _package;
-        private byte[]? _data;
-        private int _length;
+        private PartBuffer? _data;
         private bool _changed;
 
         internal Part(WordZipPackage package, Uri partUri, string contentType, Entry entry)
@@ -654,9 +663,9 @@ internal sealed class WordZipPackage : Package {
 
         internal Entry Entry { get; }
         internal bool IsUnchanged => !_changed && Entry.HasArchiveData;
-        internal int Length => _length;
+        internal int Length => _data?.Length ?? 0;
 
-        internal byte[] Data {
+        internal PartBuffer Data {
             get {
                 EnsureData();
                 return _data!;
@@ -667,57 +676,182 @@ internal sealed class WordZipPackage : Package {
 
         protected override Stream GetStreamCore(FileMode mode, FileAccess access) {
             if (mode == FileMode.Create || mode == FileMode.Truncate) {
-                _data ??= new byte[256];
-                _length = 0;
+                if (_data == null) {
+                    _data = new PartBuffer();
+                } else {
+                    _data.SetLength(0);
+                }
                 _changed = true;
             } else {
                 EnsureData();
             }
             var stream = new PartStream(this, access != FileAccess.Read);
-            if (mode == FileMode.Append) stream.Position = _length;
+            if (mode == FileMode.Append) stream.Position = _data!.Length;
             return stream;
         }
 
         private void EnsureData() {
             if (_data != null) return;
-            if (Entry.HasArchiveData) {
-                _data = _package.ReadEntry(Entry, out _length);
-            } else {
-                _data = new byte[256];
-                _length = 0;
-            }
+            _data = Entry.HasArchiveData ? _package.ReadEntry(Entry) : new PartBuffer();
         }
+
+        internal int Read(long position, byte[] buffer, int offset, int count) => _data!.Read(position, buffer, offset, count);
+
+        internal void Write(long position, byte[] buffer, int offset, int count) {
+            _data!.Write(position, buffer, offset, count);
+            _changed = true;
+        }
+
+        internal void SetLength(long value) {
+            _data!.SetLength(value);
+            _changed = true;
+        }
+    }
+
+    /// <summary>A part's uncompressed bytes in blocks.</summary>
+    /// <remarks>Blocks stay below the large object heap threshold, so a growing part neither copies what it already
+    /// holds nor keeps up to twice its size in one array. Every block but the last is full; a first block grows to the
+    /// block size, so small parts stay small, and a loaded part's blocks match its declared size.</remarks>
+    private sealed class PartBuffer {
+        private const int BlockSize = 64 * 1024;
+        private const int InitialSize = 256;
+        private readonly List<byte[]> _blocks = new();
+        private int _length;
+
+        internal int Length => _length;
+
+        /// <summary>A buffer over <paramref name="data"/> itself, for writing only.</summary>
+        internal static PartBuffer Wrap(byte[] data) {
+            var buffer = new PartBuffer();
+            buffer._blocks.Add(data);
+            buffer._length = data.Length;
+            return buffer;
+        }
+
+        // Every block but the last is full.
+        private long Capacity => _blocks.Count == 0 ? 0 : (_blocks.Count - 1) * (long)BlockSize + _blocks[_blocks.Count - 1].Length;
 
         internal int Read(long position, byte[] buffer, int offset, int count) {
             if (position >= _length) return 0;
-            int available = (int)Math.Min(count, _length - position);
-            Buffer.BlockCopy(_data!, (int)position, buffer, offset, available);
-            return available;
+            int remaining = (int)Math.Min(count, _length - position);
+            int read = remaining;
+            int current = (int)position;
+            while (remaining > 0) {
+                int start = current % BlockSize;
+                int take = Math.Min(remaining, BlockSize - start);
+                Buffer.BlockCopy(_blocks[current / BlockSize], start, buffer, offset, take);
+                offset += take;
+                current += take;
+                remaining -= take;
+            }
+            return read;
         }
 
         internal void Write(long position, byte[] buffer, int offset, int count) {
             long end = checked(position + count);
             if (end > int.MaxValue) throw new IOException("A Word package part cannot exceed 2 GB.");
             EnsureCapacity((int)end);
-            if (position > _length) Array.Clear(_data!, _length, (int)position - _length);
-            Buffer.BlockCopy(buffer, offset, _data!, (int)position, count);
+            if (position > _length) Clear(_length, (int)position);
+            int current = (int)position;
+            while (count > 0) {
+                int start = current % BlockSize;
+                int take = Math.Min(count, BlockSize - start);
+                Buffer.BlockCopy(buffer, offset, _blocks[current / BlockSize], start, take);
+                offset += take;
+                current += take;
+                count -= take;
+            }
             if (end > _length) _length = (int)end;
-            _changed = true;
         }
 
         internal void SetLength(long value) {
             if (value > int.MaxValue) throw new IOException("A Word package part cannot exceed 2 GB.");
             int length = (int)value;
-            EnsureCapacity(length);
-            if (length > _length) Array.Clear(_data!, _length, length - _length);
+            if (length > _length) {
+                EnsureCapacity(length);
+                Clear(_length, length);
+            } else {
+                // The first block is kept for the part's next contents.
+                int keep = Math.Max(1, (int)(((long)length + BlockSize - 1) / BlockSize));
+                if (_blocks.Count > keep) _blocks.RemoveRange(keep, _blocks.Count - keep);
+            }
             _length = length;
-            _changed = true;
+        }
+
+        /// <summary>Reads <paramref name="source"/> to its end, appending at the current length.</summary>
+        /// <param name="source">Stream to read.</param>
+        /// <param name="expectedLength">Declared length, which sizes the blocks of an empty buffer exactly.</param>
+        internal void ReadFrom(Stream source, long expectedLength) {
+            if (_blocks.Count == 0) {
+                for (long remaining = Math.Min(expectedLength, int.MaxValue); remaining > 0; remaining -= BlockSize) {
+                    _blocks.Add(new byte[(int)Math.Min(remaining, BlockSize)]);
+                }
+            }
+            while (true) {
+                if (_length == Capacity || _length == int.MaxValue) {
+                    // A full buffer usually holds the whole entry already; look for one more byte before growing.
+                    int next = source.ReadByte();
+                    if (next < 0) return;
+                    if (_length == int.MaxValue) throw new IOException("A Word package part cannot exceed 2 GB.");
+                    EnsureCapacity(_length + 1);
+                    _blocks[_length / BlockSize][_length % BlockSize] = (byte)next;
+                    _length++;
+                    continue;
+                }
+                byte[] block = _blocks[_length / BlockSize];
+                int start = _length % BlockSize;
+                int read = source.Read(block, start, Math.Min(block.Length - start, int.MaxValue - _length));
+                if (read == 0) return;
+                _length += read;
+            }
+        }
+
+        internal uint ComputeCrc32() {
+            uint crc = OfficePngCrc32.Begin();
+            int remaining = _length;
+            for (int index = 0; remaining > 0; index++) {
+                int count = Math.Min(remaining, _blocks[index].Length);
+                crc = OfficePngCrc32.Append(crc, _blocks[index], 0, count);
+                remaining -= count;
+            }
+            return OfficePngCrc32.Complete(crc);
+        }
+
+        internal void CopyTo(Stream destination) {
+            int remaining = _length;
+            for (int index = 0; remaining > 0; index++) {
+                int count = Math.Min(remaining, _blocks[index].Length);
+                destination.Write(_blocks[index], 0, count);
+                remaining -= count;
+            }
+        }
+
+        // Capacity past the length can hold bytes from before a truncation.
+        private void Clear(int from, int to) {
+            while (from < to) {
+                int start = from % BlockSize;
+                int count = Math.Min(to - from, BlockSize - start);
+                Array.Clear(_blocks[from / BlockSize], start, count);
+                from += count;
+            }
         }
 
         private void EnsureCapacity(int required) {
-            if (required <= _data!.Length) return;
-            int capacity = Math.Max(required, (int)Math.Min(int.MaxValue, _data.Length * 2L));
-            Array.Resize(ref _data, capacity);
+            if (required <= Capacity) return;
+            int count = _blocks.Count;
+            if (count > 0 && _blocks[count - 1].Length < BlockSize) {
+                // Only a lone first block grows gradually; a later short block goes straight to full size.
+                byte[] last = _blocks[count - 1];
+                int size = count == 1 ? Math.Max(InitialSize, last.Length * 2) : BlockSize;
+                while (size < required - (count - 1) * (long)BlockSize && size < BlockSize) size *= 2;
+                Array.Resize(ref last, Math.Min(size, BlockSize));
+                _blocks[count - 1] = last;
+            } else if (count == 0 && required <= BlockSize) {
+                int size = InitialSize;
+                while (size < required) size *= 2;
+                _blocks.Add(new byte[Math.Min(size, BlockSize)]);
+            }
+            while (Capacity < required) _blocks.Add(new byte[BlockSize]);
         }
     }
 
