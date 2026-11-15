@@ -366,6 +366,52 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Byte array compatibility", paragraph.Text);
         }
 
+        [Fact]
+        public void Test_SaveKeepsStoredBytesOfUntouchedPartsAcrossRepeatedSaves() {
+            byte[] source = File.ReadAllBytes(Path.Combine(_directoryDocuments, "DocumentWithImages.docx"));
+            Dictionary<string, byte[]> sourceEntries = ReadStoredZipEntries(source);
+            string[] media = sourceEntries.Keys.Where(name => name.StartsWith("word/media/", StringComparison.Ordinal)).ToArray();
+            Assert.NotEmpty(media);
+
+            using var input = new MemoryStream(source, writable: false);
+            using var document = WordDocument.Load(input);
+            int images = document.Images.Count;
+            document.AddParagraph("First save");
+            byte[] first = document.ToBytes();
+            document.AddParagraph("Second save");
+            byte[] second = document.ToBytes();
+
+            foreach (byte[] saved in new[] { first, second }) {
+                Dictionary<string, byte[]> savedEntries = ReadStoredZipEntries(saved);
+                foreach (string name in media) {
+                    Assert.Equal(sourceEntries[name], savedEntries[name]);
+                }
+            }
+            using var reloaded = WordDocument.Load(new MemoryStream(second, writable: false));
+            Assert.Equal(new[] { "First save", "Second save" }, reloaded.Paragraphs.Skip(reloaded.Paragraphs.Count - 2).Select(paragraph => paragraph.Text));
+            Assert.Equal(images, reloaded.Images.Count);
+        }
+
+        /// <summary>Reads each ZIP entry's stored (compressed) bytes through the central directory.</summary>
+        private static Dictionary<string, byte[]> ReadStoredZipEntries(byte[] package) {
+            int end = package.Length - 22;
+            while (BitConverter.ToUInt32(package, end) != 0x06054b50) end--;
+            int count = BitConverter.ToUInt16(package, end + 10);
+            int cursor = BitConverter.ToInt32(package, end + 16);
+            var entries = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            for (int index = 0; index < count; index++) {
+                int compressedSize = BitConverter.ToInt32(package, cursor + 20);
+                int nameLength = BitConverter.ToUInt16(package, cursor + 28);
+                int headerLength = 46 + nameLength + BitConverter.ToUInt16(package, cursor + 30) + BitConverter.ToUInt16(package, cursor + 32);
+                int local = BitConverter.ToInt32(package, cursor + 42);
+                string name = Encoding.UTF8.GetString(package, cursor + 46, nameLength);
+                int payload = local + 30 + BitConverter.ToUInt16(package, local + 26) + BitConverter.ToUInt16(package, local + 28);
+                entries.Add(name, package.Skip(payload).Take(compressedSize).ToArray());
+                cursor += headerLength;
+            }
+            return entries;
+        }
+
         private static void AssertAllRelationshipTargetsNormalized(Stream packageStream) {
             if (packageStream.CanSeek) {
                 packageStream.Seek(0, SeekOrigin.Begin);

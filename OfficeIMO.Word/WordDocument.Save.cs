@@ -424,7 +424,7 @@ namespace OfficeIMO.Word {
             EnsureDestinationFileWritable(filePath);
 
             EnsureLegacyDocSaveDoesNotDropImportedContent(options);
-            if (_legacyValidationLivePackageStream != null) {
+            if (_legacyValidationLivePackageStream != null || _ownedZipPackage != null) {
                 OfficeFileCommit.WriteAllBytes(filePath, CreateOpenXmlBytesAfterSave(filePath));
                 if (updateFilePath) {
                     FilePath = filePath;
@@ -450,7 +450,8 @@ namespace OfficeIMO.Word {
                 return CreateLegacyRuntimeOpenXmlBytesAfterSave(filePath);
             }
             if (_ownedPackageStream != null) {
-                return OfficeRuntime.IsNetFramework
+                // System.IO.Packaging on .NET Framework cannot be flushed reliably in place, so its packages are copied.
+                return OfficeRuntime.IsNetFramework && _ownedZipPackage == null
                     ? CreateClonedPackageSnapshot(filePath)
                     : CreateOwnedPackageSnapshot(filePath);
             }
@@ -483,18 +484,24 @@ namespace OfficeIMO.Word {
 #pragma warning disable OOXML0001
         private byte[] CreateOwnedPackageSnapshot(string? filePath) {
             _wordprocessingDocument.Save();
+            // Writes the parts that changed into the owned stream; nothing is written when the save already did.
+            _ownedZipPackage?.Flush();
             _ownedPackageStream!.Flush();
             byte[] packageBytes = _ownedPackageStream.ToArray();
-            // Normalizing reopens and rewrites the package, so it runs only when a relationship target needs it.
-            bool normalize = _normalizeOpenOfficeRelationshipsOnSave &&
+            // Aligning and normalizing reopen and rewrite the package, so each runs only when it changes something.
+            // Changing the document type rewrites the main relationship, so normalization follows it. Saves to a path,
+            // and saves on .NET Framework, where the SDK writes absolute targets, always normalized, so they still do.
+            bool align = !string.IsNullOrEmpty(filePath) && NeedsDocumentTypeAlignment(filePath!);
+            bool normalize = align ||
+                (_normalizeOpenOfficeRelationshipsOnSave || OfficeRuntime.IsNetFramework || !string.IsNullOrEmpty(filePath)) &&
                 WordPackageSnapshot.NeedsOpenOfficeNormalization(_wordprocessingDocument);
-            if (!normalize && string.IsNullOrEmpty(filePath)) {
+            if (!normalize && !align) {
                 return packageBytes;
             }
             using var output = new MemoryStream(packageBytes.Length + 4096);
             output.Write(packageBytes, 0, packageBytes.Length);
             output.Position = 0;
-            if (!string.IsNullOrEmpty(filePath)) {
+            if (align) {
                 using WordprocessingDocument savedDocument = WordprocessingDocument.Open(output, true);
                 AlignDocumentTypeWithFilePath(savedDocument, filePath!);
             }

@@ -1085,7 +1085,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('itemcount')
             ExpectedCases = @(
                 foreach ($itemCount in @(100, 1000, 10000)) {
-                    foreach ($engine in @('OfficeIMO', 'DocX', 'NPOI', 'OpenXmlSdk')) {
+                    foreach ($engine in @('OfficeIMO', 'DocX', 'NPOI', 'OpenXmlSdkMinimal', 'OpenXmlSdkEquivalent')) {
                         "$engine|ItemCount=$itemCount"
                     }
                 }
@@ -1110,8 +1110,10 @@ function Get-LibraryComparisonDefinitions {
                 'DocX|RowCount=1000'
                 'NPOI|RowCount=100'
                 'NPOI|RowCount=1000'
-                'OpenXmlSdk|RowCount=100'
-                'OpenXmlSdk|RowCount=1000'
+                'OpenXmlSdkMinimal|RowCount=100'
+                'OpenXmlSdkMinimal|RowCount=1000'
+                'OpenXmlSdkEquivalent|RowCount=100'
+                'OpenXmlSdkEquivalent|RowCount=1000'
             )
         }
         wordread = [pscustomobject]@{

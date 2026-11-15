@@ -22,12 +22,19 @@ public class WordCreateParagraphComparisonBenchmarks {
     [Params(100, 1000, 10000)]
     public int ItemCount { get; set; }
 
+    private WordEquivalentPackageParts _equivalentParts = null!;
+
     [GlobalSetup]
     public void Validate() {
-        WordBenchmarkCorpus.ValidateParagraphDocument(OfficeIMO(), ItemCount);
+        byte[] officeImo = OfficeIMO();
+        WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount);
+        _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
         WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateParagraphDocument(NPOI(), ItemCount);
-        WordBenchmarkCorpus.ValidateParagraphDocument(OpenXmlSdk(), ItemCount);
+        WordBenchmarkCorpus.ValidateParagraphDocument(OpenXmlSdkMinimal(), ItemCount);
+        byte[] equivalent = OpenXmlSdkEquivalent();
+        WordBenchmarkCorpus.ValidateParagraphDocument(equivalent, ItemCount);
+        WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
     }
 
     [Benchmark(Baseline = true)]
@@ -62,14 +69,22 @@ public class WordCreateParagraphComparisonBenchmarks {
         return stream.ToArray();
     }
 
+    /// <summary>The main document part only: no styles, settings, theme, fonts, notes or properties.</summary>
     [Benchmark]
-    public byte[] OpenXmlSdk() {
+    public byte[] OpenXmlSdkMinimal() => CreateOpenXmlSdkParagraphs(supportingParts: null);
+
+    /// <summary>The same package parts as the OfficeIMO lane writes.</summary>
+    [Benchmark]
+    public byte[] OpenXmlSdkEquivalent() => CreateOpenXmlSdkParagraphs(_equivalentParts);
+
+    private byte[] CreateOpenXmlSdkParagraphs(WordEquivalentPackageParts? supportingParts) {
         using var stream = new MemoryStream();
         using (WordprocessingDocument document = WordprocessingDocument.Create(
                    stream,
                    WordprocessingDocumentType.Document,
                    autoSave: true)) {
             MainDocumentPart mainPart = document.AddMainDocumentPart();
+            supportingParts?.AddTo(document, mainPart);
             var body = new Body();
             for (int index = 0; index < ItemCount; index++) {
                 body.Append(new OpenXmlParagraph(new OpenXmlRun(new Text(WordBenchmarkCorpus.ParagraphText(index)))));
@@ -87,12 +102,19 @@ public class WordCreateReportComparisonBenchmarks {
     [Params(100, 1000)]
     public int RowCount { get; set; }
 
+    private WordEquivalentPackageParts _equivalentParts = null!;
+
     [GlobalSetup]
     public void Validate() {
-        WordBenchmarkCorpus.ValidateReportDocument(OfficeIMO(), RowCount);
+        byte[] officeImo = OfficeIMO();
+        WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount);
+        _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
         WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
-        WordBenchmarkCorpus.ValidateReportDocument(OpenXmlSdk(), RowCount);
+        WordBenchmarkCorpus.ValidateReportDocument(OpenXmlSdkMinimal(), RowCount);
+        byte[] equivalent = OpenXmlSdkEquivalent();
+        WordBenchmarkCorpus.ValidateReportDocument(equivalent, RowCount);
+        WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
 #if NET10_0_OR_GREATER
         WordBenchmarkCorpus.ValidateReportDocument(OneDocument(), RowCount);
 #endif
@@ -170,14 +192,22 @@ public class WordCreateReportComparisonBenchmarks {
         return stream.ToArray();
     }
 
+    /// <summary>The main document and its header and footer only: no styles, settings, theme, fonts, notes or properties.</summary>
     [Benchmark]
-    public byte[] OpenXmlSdk() {
+    public byte[] OpenXmlSdkMinimal() => CreateOpenXmlSdkReport(supportingParts: null);
+
+    /// <summary>The same package parts as the OfficeIMO lane writes, including its TableGrid style.</summary>
+    [Benchmark]
+    public byte[] OpenXmlSdkEquivalent() => CreateOpenXmlSdkReport(_equivalentParts);
+
+    private byte[] CreateOpenXmlSdkReport(WordEquivalentPackageParts? supportingParts) {
         using var stream = new MemoryStream();
         using (WordprocessingDocument document = WordprocessingDocument.Create(
                    stream,
                    WordprocessingDocumentType.Document,
                    autoSave: true)) {
             MainDocumentPart mainPart = document.AddMainDocumentPart();
+            supportingParts?.AddTo(document, mainPart);
             HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
             headerPart.Header = new OpenXmlHeader(CreateParagraph(WordBenchmarkCorpus.ReportHeader));
             FooterPart footerPart = mainPart.AddNewPart<FooterPart>();
