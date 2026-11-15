@@ -174,6 +174,22 @@ public sealed class PdfMalformedInputHardeningTests {
     }
 
     [Fact]
+    public void ExtractPages_KeepsTaggedPagesWhenTheTrailerInfoObjectIsMissing() {
+        byte[] pdf = BuildPdf(new[] {
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources " + HelveticaResources + " /Contents 4 0 R /StructParents 0 >>",
+            Stream("/P << /MCID 0 >> BDC BT /F1 12 Tf 10 100 Td (Tagged) Tj ET EMC"),
+            "<< /Type /StructTreeRoot /K 6 0 R >>",
+            "<< /Type /StructElem /S /P /P 5 0 R /Pg 3 0 R /K 0 >>"
+        }, " /Info 9 0 R");
+
+        PdfDocument extracted = PdfDocument.Load(new MemoryStream(pdf)).Pages.Extract("1");
+
+        Assert.Contains("Tagged", PdfDocument.Load(new MemoryStream(extracted.ToBytes())).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadLimits_DefaultsAcceptLargeObjectsThatTheUntrustedProfileRejects() {
         // One 1.5 million character token, like a large inline image or font program written as a string.
         string largeString = "(" + new string('A', 1_500_000) + ")";
@@ -214,7 +230,7 @@ public sealed class PdfMalformedInputHardeningTests {
 
     private static byte[] BuildPdf(params string[] objects) => BuildPdf((IReadOnlyList<string?>)objects);
 
-    private static byte[] BuildPdf(IReadOnlyList<string?> objects) {
+    private static byte[] BuildPdf(IReadOnlyList<string?> objects, string trailerEntries = "") {
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new int[objects.Count];
         for (int index = 0; index < objects.Count; index++) {
@@ -229,7 +245,7 @@ public sealed class PdfMalformedInputHardeningTests {
                 ? "0000000000 65535 f \n"
                 : offsets[index].ToString("D10", CultureInfo.InvariantCulture) + " 00000 n \n");
         }
-        pdf.Append("trailer << /Root 1 0 R /Size ").Append(objects.Count + 1).Append(" >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        pdf.Append("trailer << /Root 1 0 R /Size ").Append(objects.Count + 1).Append(trailerEntries).Append(" >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
         return Encoding.ASCII.GetBytes(pdf.ToString());
     }
 }

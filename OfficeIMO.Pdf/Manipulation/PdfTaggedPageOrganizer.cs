@@ -3,8 +3,8 @@ namespace OfficeIMO.Pdf;
 /// <summary>Organizes tagged pages through the catalog-rooted writer without rebuilding the catalog from a subset.</summary>
 internal static partial class PdfTaggedPageOrganizer {
     internal static bool IsTagged(PdfReadDocument document) =>
-        document.Security.RootObjectNumber is int root && document.Objects[root].Value is PdfDictionary catalog &&
-        catalog.Items.ContainsKey("StructTreeRoot");
+        document.Security.RootObjectNumber is int root && document.Objects.TryGetValue(root, out PdfIndirectObject? rootObject) &&
+        rootObject.Value is PdfDictionary catalog && catalog.Items.ContainsKey("StructTreeRoot");
 
     internal static byte[] Rewrite(byte[] source, PdfReadDocument document, IReadOnlyList<int> pageNumbers,
         PdfLoadOptions? options, long? maximumOutputBytes = null,
