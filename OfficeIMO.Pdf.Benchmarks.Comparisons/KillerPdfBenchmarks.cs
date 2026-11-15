@@ -44,8 +44,9 @@ internal static class KillerPdfEngines {
     }
 
     internal static byte[] MergeWithKillerPdf(byte[][] sources) {
-        var editor = new PdfIncrementalPageEditor(KillerPdfDocument.Open(sources[0]));
-        int expectedPageCount = PageCount(sources[0]);
+        KillerPdfDocument first = KillerPdfDocument.Open(sources[0]);
+        int expectedPageCount = new PdfPageContentReader(first).PageCount;
+        var editor = new PdfIncrementalPageEditor(first);
         for (int index = 1; index < sources.Length; index++) {
             KillerPdfDocument source = KillerPdfDocument.Open(sources[index]);
             expectedPageCount += new PdfPageContentReader(source).PageCount;
