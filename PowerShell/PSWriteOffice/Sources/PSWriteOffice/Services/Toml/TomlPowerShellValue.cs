@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Management.Automation;
+using System.Text;
 using OfficeIMO.Toml;
 
 namespace PSWriteOffice.Services.Toml;
@@ -80,6 +81,83 @@ internal static class TomlPowerShellValue {
         object? projected = Project(value, 0, MaxDepth, ref truncated);
         if (projected is null) throw new ArgumentException("TOML has no null; use Remove-OfficeTomlNode to remove a value.");
         return WithoutNulls(projected, ref nulls)!;
+    }
+
+    /// <summary>
+    /// Writes a PowerShell value as JSON text for the TOML patch methods, which read JSON: hashtables and objects as
+    /// objects, lists as arrays, and dates as RFC 3339 strings. Nulls stay, since a merge patch null removes a key.
+    /// </summary>
+    internal static string ToJson(object? value, out bool truncated) {
+        truncated = false;
+        var json = new StringBuilder();
+        WriteJson(json, Project(value, 0, MaxDepth, ref truncated));
+        return json.ToString();
+    }
+
+    private static void WriteJson(StringBuilder json, object? value) {
+        switch (value) {
+            case null:
+                json.Append("null");
+                return;
+            case bool flag:
+                json.Append(flag ? "true" : "false");
+                return;
+            case long number:
+                json.Append(number.ToString(CultureInfo.InvariantCulture));
+                return;
+            case double number when !double.IsNaN(number) && !double.IsInfinity(number):
+                json.Append(number.ToString("R", CultureInfo.InvariantCulture));
+                return;
+            case Dictionary<string, object?> members: {
+                json.Append('{');
+                bool first = true;
+                foreach (KeyValuePair<string, object?> member in members) {
+                    if (!first) json.Append(',');
+                    first = false;
+                    WriteJsonString(json, member.Key);
+                    json.Append(':');
+                    WriteJson(json, member.Value);
+                }
+                json.Append('}');
+                return;
+            }
+            case List<object?> items: {
+                json.Append('[');
+                for (int i = 0; i < items.Count; i++) {
+                    if (i > 0) json.Append(',');
+                    WriteJson(json, items[i]);
+                }
+                json.Append(']');
+                return;
+            }
+            case DateTime date:
+                WriteJsonString(json, date.ToString(date.Kind == DateTimeKind.Unspecified ? "yyyy-MM-ddTHH:mm:ss.FFFFFFF" : "o", CultureInfo.InvariantCulture));
+                return;
+            case DateTimeOffset offset:
+                WriteJsonString(json, offset.ToString("o", CultureInfo.InvariantCulture));
+                return;
+            default:
+                WriteJsonString(json, Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
+                return;
+        }
+    }
+
+    private static void WriteJsonString(StringBuilder json, string text) {
+        json.Append('"');
+        foreach (char c in text) {
+            switch (c) {
+                case '"': json.Append("\\\""); break;
+                case '\\': json.Append("\\\\"); break;
+                case '\n': json.Append("\\n"); break;
+                case '\r': json.Append("\\r"); break;
+                case '\t': json.Append("\\t"); break;
+                default:
+                    if (c < ' ') json.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+                    else json.Append(c);
+                    break;
+            }
+        }
+        json.Append('"');
     }
 
     // A table's values come before its sub-tables, as TOML requires.

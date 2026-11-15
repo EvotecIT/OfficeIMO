@@ -210871,6 +210871,198 @@ specification's exact rules, and Untrusted the engine's limits for files from ou
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Update-OfficeToml</command:name>
+      <command:verb>Update</command:verb>
+      <command:noun>OfficeToml</command:noun>
+      <maml:description>
+        <maml:para>Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live TOML document.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>-JsonPatch takes a list of add, remove, replace, move, copy and test operations whose paths are JSON Pointers
+such as /project/version. -MergePatch takes a partial document whose keys overwrite the document's, where $null
+removes a key. Either can be JSON text or PowerShell hashtables, arrays and objects; dates in PowerShell values are
+written as text.</maml:para>
+      <maml:para>Only the patched lines change; comments and layout elsewhere stay. New objects become [header] tables and
+arrays of objects [[header]] arrays of tables. TOML has no null, so a null value in a JSON Patch fails. A patch is
+all or nothing: when a test fails, a path is missing or an edit cannot be made, a non-terminating toml-patch-failed
+error is written and the document is unchanged.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="JsonPatch">
+        <maml:name>Update-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">TomlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>TomlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>JsonPatch</maml:name>
+          <maml:description>
+            <maml:para>The JSON Patch operations: JSON text, or an array of hashtables or objects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="MergePatch">
+        <maml:name>Update-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">TomlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>TomlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MergePatch</maml:name>
+          <maml:description>
+            <maml:para>The merge patch: JSON text, or a hashtable or object; $null values remove keys.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">TomlDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>TomlDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>JsonPatch</maml:name>
+        <maml:description>
+          <maml:para>The JSON Patch operations: JSON text, or an array of hashtables or objects.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>MergePatch</maml:name>
+        <maml:description>
+          <maml:para>The merge patch: JSON text, or a hashtable or object; $null values remove keys.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Toml.TomlDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Toml.TomlPatchReport</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Bump a version only if it is the expected one.</maml:title>
+        <dev:code>Open-OfficeToml -Path ./pyproject.toml {
+                Update-OfficeToml -JsonPatch @(
+                    @{ op = 'test'; path = '/project/version'; value = '1.4.0' }
+                    @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }
+                    @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }
+                )
+            }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Change a setting and remove another with a merge patch.</maml:title>
+        <dev:code>Update-OfficeToml -Document $document -MergePatch @{ tool = @{ ruff = @{ 'line-length' = 100; exclude = $null } } } -PassThru</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Update-OfficeWordField</command:name>
       <command:verb>Update</command:verb>
       <command:noun>OfficeWordField</command:noun>
@@ -211829,6 +212021,202 @@ specification's exact rules, and Untrusted the engine's limits for files from ou
         <dev:code>Update-OfficeWordText -Path .\Report.docx -OldValue 'old.example.com' -NewValue 'new.example.com' -IncludeHyperlinkUri</dev:code>
         <dev:remarks>
           <maml:para>Loads the document, updates matching hyperlink URLs, saves the file, and closes it.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Update-OfficeYaml</command:name>
+      <command:verb>Update</command:verb>
+      <command:noun>OfficeYaml</command:noun>
+      <maml:description>
+        <maml:para>Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live YAML document.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>-JsonPatch takes a list of add, remove, replace, move, copy and test operations whose paths are JSON Pointers
+such as /spec/replicas. -MergePatch takes a partial document whose keys overwrite the document's, where $null removes
+a key. Either can be JSON or YAML text, a YAML document, or PowerShell hashtables, arrays and objects.</maml:para>
+      <maml:para>Only the patched lines change; comments, quoting and layout elsewhere stay. A patch is all or nothing: when a
+test fails, a path is missing or an edit cannot be made, a non-terminating yaml-patch-failed error is written and the
+document is unchanged. Patches address the first document of a multi-document stream.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="JsonPatch">
+        <maml:name>Update-OfficeYaml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">YamlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>YamlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>JsonPatch</maml:name>
+          <maml:description>
+            <maml:para>The JSON Patch operations: JSON or YAML text, a YAML document, or an array of hashtables or objects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="MergePatch">
+        <maml:name>Update-OfficeYaml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">YamlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>YamlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MergePatch</maml:name>
+          <maml:description>
+            <maml:para>The merge patch: JSON or YAML text, a YAML document, or a hashtable or object; $null values remove keys.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">YamlDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>YamlDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>JsonPatch</maml:name>
+        <maml:description>
+          <maml:para>The JSON Patch operations: JSON or YAML text, a YAML document, or an array of hashtables or objects.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>MergePatch</maml:name>
+        <maml:description>
+          <maml:para>The merge patch: JSON or YAML text, a YAML document, or a hashtable or object; $null values remove keys.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Yaml.YamlDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Yaml.YamlPatchReport</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Scale a deployment only if it still has the expected replica count.</maml:title>
+        <dev:code>Open-OfficeYaml -Path ./deployment.yaml {
+                Update-OfficeYaml -JsonPatch @(
+                    @{ op = 'test'; path = '/spec/replicas'; value = 2 }
+                    @{ op = 'replace'; path = '/spec/replicas'; value = 3 }
+                )
+            }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Apply a patch file and list what changed.</maml:title>
+        <dev:code>Update-OfficeYaml -Document $document -JsonPatch (Get-Content ./scale.patch.json -Raw) -PassThru</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Override values and remove a key with a merge patch.</maml:title>
+        <dev:code>Update-OfficeYaml -Document $document -MergePatch @{ image = @{ tag = '1.27.2' }; podAnnotations = $null }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>
