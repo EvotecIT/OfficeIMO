@@ -54,30 +54,64 @@ public sealed class CsvLosslessRoundTripTests
         });
     }
 
-    [Fact]
-    public void DefaultOptions_WriteIsoDatesAndShortestNumbers()
+    public static TheoryData<string> TextRoutes => new() { "TextWriter", "Utf8Stream" };
+
+    /// <summary>
+    /// The exact default text, through the UTF-16 writer and the UTF-8 stream writer that writes typed rows of
+    /// dates and numbers as bytes: the fraction trimmed of trailing zeros, Z for UTC, the local offset the
+    /// runtime's K format gives, four-digit years and every offset sign.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(TextRoutes))]
+    public void DefaultOptions_WriteIsoDatesAndShortestNumbers(string route)
     {
         WithCulture("pl-PL", () =>
         {
-            var table = new DataTable();
-            table.Columns.Add("When", typeof(DateTime));
-            table.Columns.Add("Offset", typeof(DateTimeOffset));
-            table.Columns.Add("Number", typeof(double));
-            table.Columns.Add("Binary", typeof(byte[]));
-            table.Rows.Add(
-                new DateTime(2024, 1, 2, 3, 4, 5).AddTicks(1200000),
-                new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(-7)),
-                0.1 + 0.2,
-                new byte[] { 1, 2, 3 });
+            var dates = new DataTable();
+            dates.Columns.Add("When", typeof(DateTime)).DateTimeMode = DataSetDateTime.Unspecified;
+            dates.Columns.Add("Utc", typeof(DateTime)).DateTimeMode = DataSetDateTime.Utc;
+            dates.Columns.Add("Local", typeof(DateTime)).DateTimeMode = DataSetDateTime.Local;
+            dates.Columns.Add("Number", typeof(double));
+            dates.Rows.Add(new DateTime(2024, 1, 2, 3, 4, 5).AddTicks(1200000),
+                new DateTime(1, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(1),
+                new DateTime(2026, 10, 25, 2, 30, 0, DateTimeKind.Local).AddTicks(1000000), 0.1 + 0.2);
+            dates.Rows.Add(new DateTime(2024, 1, 2).AddTicks(10),
+                new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc).AddTicks(9999999),
+                new DateTime(2026, 3, 29, 1, 59, 59, DateTimeKind.Local), 1e20);
+            var offsets = new DataTable();
+            offsets.Columns.Add("Offset", typeof(DateTimeOffset));
+            offsets.Columns.Add("Binary", typeof(byte[]));
+            offsets.Rows.Add(new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(-7)), new byte[] { 1, 2, 3 });
+            offsets.Rows.Add(new DateTimeOffset(9999, 12, 31, 23, 59, 59, TimeSpan.FromHours(14)).AddTicks(9999999), new byte[0]);
+            offsets.Rows.Add(new DateTimeOffset(5, 6, 7, 8, 9, 10, TimeSpan.FromMinutes(-839)).AddTicks(100000), new byte[] { 255 });
+            offsets.Rows.Add(new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.Zero).AddTicks(1230), new byte[] { 0 });
 
-            using var writer = new StringWriter();
-            CsvDocument.WriteDataTable(writer, table);
-
-            Assert.Equal("When,Offset,Number,Binary" + Environment.NewLine +
-                "2024-01-02T03:04:05.12,2024-01-02T03:04:05-07:00,0.30000000000000004,AQID" + Environment.NewLine, writer.ToString());
+            string newLine = Environment.NewLine;
+            // The runtime's own round-trip pattern is the reference for the local offset, daylight saving included.
+            string Local(int row) => ((DateTime)dates.Rows[row]["Local"]).ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK", CultureInfo.InvariantCulture);
+            Assert.Equal("When,Utc,Local,Number" + newLine +
+                "2024-01-02T03:04:05.12,0001-01-01T00:00:00.0000001Z," + Local(0) + ",0.30000000000000004" + newLine +
+                "2024-01-02T00:00:00.000001,9999-12-31T23:59:59.9999999Z," + Local(1) + ",1E+20" + newLine, WriteTable(route, dates));            Assert.Equal("Offset,Binary" + newLine +
+                "2024-01-02T03:04:05-07:00,AQID" + newLine +
+                "9999-12-31T23:59:59.9999999+14:00," + newLine +
+                "0005-06-07T08:09:10.01-13:59,/w==" + newLine +
+                "2024-01-02T03:04:05.000123+00:00,AA==" + newLine, WriteTable(route, offsets));
         });
     }
 
+    private static string WriteTable(string route, DataTable table)
+    {
+        if (route == "TextWriter")
+        {
+            using var writer = new StringWriter();
+            CsvDocument.WriteDataTable(writer, table);
+            return writer.ToString();
+        }
+
+        using var stream = new MemoryStream();
+        CsvDocument.WriteDataTable(stream, table, new CsvSaveOptions { Encoding = new UTF8Encoding(false) });
+        return Encoding.UTF8.GetString(stream.ToArray());
+    }
     [Theory]
     [MemberData(nameof(WriteRoutes))]
     public void NullValueMarker_KeepsNullDistinctFromEmptyText(string route)
