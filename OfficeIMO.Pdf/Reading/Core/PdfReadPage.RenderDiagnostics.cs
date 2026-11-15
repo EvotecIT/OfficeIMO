@@ -62,8 +62,9 @@ public sealed partial class PdfReadPage {
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var textClippingBudget = new PdfTextClippingBudget(_limits);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        string content = GetContentStreamContent(pageContentBudget);
         CollectRenderCapabilityDiagnostics(
-            GetContentStreamContent(pageContentBudget),
+            content,
             resources,
             diagnostics,
             seen,
@@ -73,7 +74,9 @@ public sealed partial class PdfReadPage {
             textClippingBudget,
             0,
             0,
-            GetVisualPageTransform());
+            GetVisualPageTransform(),
+            // The page's own content shares the cached root analysis with the render and text reads.
+            invokedResources: GetRootInvokedResourceNames(content, resources, cancellationToken.ThrowIfCancellationRequested));
         CollectAnnotationCapabilityDiagnostics(diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget);
         return diagnostics;
     }
@@ -96,9 +99,10 @@ public sealed partial class PdfReadPage {
         PdfPageColorSpace initialStrokeColorSpace = default,
         PdfPagePatternSelection? initialStrokePattern = null,
         PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        PdfPageInvokedResourceNames? invokedResources = null) {
         EnsureContentNestingBudget(depth);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+        invokedResources ??= GetInvokedResourceNames(
             content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources, pageContentBudget, invokedResources.ColorSpaces);
         HashSet<string> approximatedIccColorSpaces = GetApproximatedIccColorSpaceResourceNames(resources, pageContentBudget, invokedResources.ColorSpaces);
@@ -200,7 +204,8 @@ public sealed partial class PdfReadPage {
             invokedXObjectStates,
             diagnostics,
             seen,
-            depth);
+            depth,
+            invokedResources);
         CollectFontCapabilityDiagnostics(resources, invokedFonts, failedType3Fonts, diagnostics, seen, pageContentBudget.CancellationToken);
         CollectShadingCapabilityDiagnostics(resources, invokedShadings, invokedPatterns, diagnostics, seen, pageContentBudget);
         CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
@@ -242,11 +247,10 @@ public sealed partial class PdfReadPage {
         List<PdfPageXObjectInvocation> invokedXObjectStates,
         List<PdfRenderCapabilityDiagnostic> diagnostics,
         HashSet<string> seen,
-        int contentNestingDepth) {
+        int contentNestingDepth,
+        PdfPageInvokedResourceNames invokedResources) {
         var failures = new HashSet<string>(StringComparer.Ordinal);
         var activeStreams = new HashSet<PdfStream>();
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
-            content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         PdfFontResourceSet fontResources = _fontResourceCache.GetOrCreate(resources, _objects);
         Dictionary<string, PdfFontResource> fonts = fontResources.Fonts;
         Dictionary<string, Func<byte[], double>> widthProviders = fontResources.WidthProviders;

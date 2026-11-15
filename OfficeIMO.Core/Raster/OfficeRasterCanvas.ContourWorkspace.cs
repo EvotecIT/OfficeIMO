@@ -64,6 +64,21 @@ public sealed partial class OfficeRasterCanvas {
             return Active;
         }
 
+        private int[] _edgeOrder = Array.Empty<int>();
+        private ContourCrossing[] _addedCrossings = Array.Empty<ContourCrossing>();
+
+        /// <summary>Returns the identity permutation of the collected edges, to be sorted by their lower ends.</summary>
+        internal int[] EdgeOrder(int count) {
+            if (_edgeOrder.Length < count) _edgeOrder = Grow(_edgeOrder, 0, count);
+            for (int index = 0; index < count; index++) _edgeOrder[index] = index;
+            return _edgeOrder;
+        }
+
+        internal ContourCrossing[] AddedCrossings(int capacity) {
+            if (_addedCrossings.Length < capacity) _addedCrossings = Grow(_addedCrossings, 0, capacity);
+            return _addedCrossings;
+        }
+
         internal ContourCrossing[] RowCrossings(int capacity) {
             if (_rowCrossings.Length < capacity) _rowCrossings = Grow(_rowCrossings, _rowCrossings.Length, capacity);
             return _rowCrossings;
@@ -100,6 +115,8 @@ public sealed partial class OfficeRasterCanvas {
             _rowCrossings = Release(_rowCrossings);
             _scanlines = Release(_scanlines);
             Intervals = Release(Intervals);
+            _addedCrossings = Release(_addedCrossings);
+            _edgeOrder = Release(_edgeOrder);
         }
 
         private static T[] Grow<T>(T[] source, int count, int required) {

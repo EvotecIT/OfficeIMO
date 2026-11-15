@@ -123,12 +123,19 @@ public sealed class OfficeRasterImage {
 
     /// <summary>Fills the whole image with a color.</summary>
     public void Fill(OfficeColor color) {
+#if NET8_0_OR_GREATER
+        if (_pixels.Length == 0) return;
+        _pixels[0] = color.R; _pixels[1] = color.G; _pixels[2] = color.B; _pixels[3] = color.A;
+        uint packed = System.Runtime.InteropServices.MemoryMarshal.Read<uint>(_pixels);
+        System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(_pixels.AsSpan()).Fill(packed);
+#else
         for (int i = 0; i < _pixels.Length; i += 4) {
             _pixels[i] = color.R;
             _pixels[i + 1] = color.G;
             _pixels[i + 2] = color.B;
             _pixels[i + 3] = color.A;
         }
+#endif
     }
 
     private void ValidateCoordinates(int x, int y) {
