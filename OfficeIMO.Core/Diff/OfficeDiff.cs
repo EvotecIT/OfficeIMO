@@ -73,20 +73,12 @@ public static class OfficeDiff {
 
     private static void Intern<T>(IReadOnlyList<T> oldItems, IReadOnlyList<T> newItems, IEqualityComparer<T> comparer, int[] oldIds, int[] newIds,
         CancellationToken cancellationToken) {
-#pragma warning disable CS8714 // Null items never reach the dictionary; they get their own id below.
-        var ids = new Dictionary<T, int>(comparer);
-#pragma warning restore CS8714
-        int nullId = -1;
-        int next = 0;
+        var ids = new Dictionary<InternKey<T>, int>(new InternKeyComparer<T>(comparer));
         int IdOf(T item) {
-            if (item is null) {
-                if (nullId < 0) nullId = next++;
-                return nullId;
-            }
-
-            if (!ids.TryGetValue(item, out int id)) {
-                id = next++;
-                ids.Add(item, id);
+            var key = new InternKey<T>(item);
+            if (!ids.TryGetValue(key, out int id)) {
+                id = ids.Count;
+                ids.Add(key, id);
             }
 
             return id;
@@ -100,6 +92,37 @@ public static class OfficeDiff {
         for (int index = 0; index < newItems.Count; index++) {
             if ((index & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             newIds[index] = IdOf(newItems[index]);
+        }
+    }
+
+    // Wraps items so null can be a dictionary key and still go through the caller's comparer.
+    private readonly struct InternKey<T> {
+        internal InternKey(T value) => Value = value;
+
+        internal T Value { get; }
+    }
+
+    private sealed class InternKeyComparer<T> : IEqualityComparer<InternKey<T>> {
+        private readonly IEqualityComparer<T> _comparer;
+        private readonly int _nullHash;
+
+        internal InternKeyComparer(IEqualityComparer<T> comparer) {
+            _comparer = comparer;
+            _nullHash = NullHash(comparer);
+        }
+
+        public bool Equals(InternKey<T> x, InternKey<T> y) => _comparer.Equals(x.Value, y.Value);
+
+        public int GetHashCode(InternKey<T> obj) => obj.Value is null ? _nullHash : _comparer.GetHashCode(obj.Value);
+
+        // A comparer that equates null with another value must hash both alike. One that rejects null
+        // (such as StringComparer.Ordinal) never equates it with anything, so any fixed hash is safe.
+        private static int NullHash(IEqualityComparer<T> comparer) {
+            try {
+                return comparer.GetHashCode(default!);
+            } catch (ArgumentNullException) {
+                return 0;
+            }
         }
     }
 
@@ -185,7 +208,7 @@ internal sealed class OfficeTextTokenComparer : IEqualityComparer<OfficeTextToke
     internal string Key(OfficeTextToken token) {
         string text = token.Text ?? string.Empty;
         if (_ignoreWhitespace) {
-            if (_lines) text = string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            if (_lines || token.Kind == OfficeTextTokenKind.Line) text = string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
             else if (token.Kind == OfficeTextTokenKind.Whitespace) text = " ";
         }
 

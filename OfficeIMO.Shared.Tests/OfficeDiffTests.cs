@@ -277,6 +277,61 @@ public sealed class OfficeDiffTests {
     }
 
     [Fact]
+    public void MovesAreOrderedByTheirDestination() {
+        OfficeDiffResult<OfficeTextToken> diff = OfficeDiff.CompareLines("Moved paragraph\nA\nB\n", "A\nExtra\nB\nMoved paragraph\n");
+
+        OfficeChangeSet changes = OfficeChangeSet.FromTextDiff(diff);
+
+        Assert.Equal(new[] { OfficeChangeKind.Inserted, OfficeChangeKind.Moved }, changes.Changes.Select(static change => change.Kind));
+        Assert.True(changes.Changes[0].New!.Start < changes.Changes[1].New!.Start);
+    }
+
+    [Fact]
+    public void PageCallbacksOnlyReceiveExistingTokenIndexes() {
+        OfficeDiffResult<OfficeTextToken> appended = OfficeDiff.CompareWords("one two", "one two three");
+        int[] oldPages = Enumerable.Repeat(4, appended.Old.Count).ToArray();
+        int[] newPages = Enumerable.Repeat(5, appended.New.Count).ToArray();
+
+        OfficeChange insertion = Assert.Single(OfficeChangeSet.FromTextDiff(appended, new OfficeChangeSetOptions {
+            OldPageNumber = index => oldPages[index],
+            NewPageNumber = index => newPages[index]
+        }).Changes);
+
+        Assert.Equal(OfficeChangeKind.Inserted, insertion.Kind);
+        Assert.Equal(4, insertion.Old!.PageNumber);
+        Assert.Equal(5, insertion.New!.PageNumber);
+
+        OfficeChange intoEmpty = Assert.Single(OfficeChangeSet.FromTextDiff(OfficeDiff.CompareWords("", "new text"), new OfficeChangeSetOptions {
+            OldPageNumber = static _ => throw new InvalidOperationException("The old document has no tokens.")
+        }).Changes);
+        Assert.Null(intoEmpty.Old!.PageNumber);
+    }
+
+    [Fact]
+    public void CompareTokensIgnoresWhitespaceInsideLineTokens() {
+        var options = new OfficeDiffOptions { IgnoreWhitespace = true };
+
+        OfficeDiffResult<OfficeTextToken> diff = OfficeDiff.CompareTokens(OfficeTextTokenizer.Lines("a  b\n"), OfficeTextTokenizer.Lines("a b\n"), options);
+
+        Assert.Empty(diff.GetChangedRegions());
+    }
+
+    [Fact]
+    public void CallerComparerDecidesWhetherNullMatches() {
+        string?[] oldItems = { null, "x" };
+        string?[] newItems = { "", "x" };
+
+        Assert.Empty(OfficeDiff.Compare(oldItems, newItems, new NullAsEmptyComparer()).GetChangedRegions());
+        Assert.Single(OfficeDiff.Compare(oldItems, newItems, StringComparer.Ordinal).GetChangedRegions());
+    }
+
+    private sealed class NullAsEmptyComparer : IEqualityComparer<string?> {
+        public bool Equals(string? x, string? y) => string.Equals(x ?? string.Empty, y ?? string.Empty, StringComparison.Ordinal);
+
+        public int GetHashCode(string? obj) => StringComparer.Ordinal.GetHashCode(obj ?? string.Empty);
+    }
+
+    [Fact]
     public void ChangeSetJsonIsEscapedAndComplete() {
         var regions = new[] { new OfficeChangeRegion(2, 10, 20, 30.12345, 40) };
         var set = new OfficeChangeSet(new[] {

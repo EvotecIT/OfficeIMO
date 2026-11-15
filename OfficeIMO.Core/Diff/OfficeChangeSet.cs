@@ -204,14 +204,14 @@ public sealed class OfficeChangeSet {
         if (options.DetectMoves) PairMoves(drafts, options.MinimumMoveLength);
 
         var changes = new List<OfficeChange>(drafts.Count);
-        foreach (Draft draft in drafts.Where(static draft => !draft.Absorbed).OrderBy(static draft => draft.NewStart).ThenBy(static draft => draft.OldStart)) {
+        foreach (Draft draft in drafts.Where(static draft => !draft.Absorbed).OrderBy(static draft => (draft.MovedTo ?? draft).NewStart).ThenBy(static draft => draft.OldStart)) {
             OfficeChangeKind kind = draft.MovedTo != null ? OfficeChangeKind.Moved
                 : draft.OldLength == 0 ? OfficeChangeKind.Inserted
                 : draft.NewLength == 0 ? OfficeChangeKind.Deleted
                 : OfficeChangeKind.Replaced;
             Draft target = draft.MovedTo ?? draft;
-            var oldAnchor = new OfficeChangeAnchor(draft.OldStart, draft.OldLength, options.OldPageNumber?.Invoke(draft.OldStart));
-            var newAnchor = new OfficeChangeAnchor(target.NewStart, target.NewLength, options.NewPageNumber?.Invoke(target.NewStart));
+            var oldAnchor = new OfficeChangeAnchor(draft.OldStart, draft.OldLength, PageOf(options.OldPageNumber, draft.OldStart, diff.Old.Count));
+            var newAnchor = new OfficeChangeAnchor(target.NewStart, target.NewLength, PageOf(options.NewPageNumber, target.NewStart, diff.New.Count));
             changes.Add(new OfficeChange(changes.Count + 1, kind, draft.OldText, target.NewText, oldAnchor, newAnchor));
         }
 
@@ -225,6 +225,12 @@ public sealed class OfficeChangeSet {
 
     /// <summary>Serialises the change set to JSON with camel-case property names and string enum values.</summary>
     public string ToJson(bool indented = true) => OfficeChangeSetJson.Write(this, indented);
+
+    // An insertion or deletion point can sit one past the last token; map it to the nearest existing token.
+    private static int? PageOf(Func<int, int?>? pageNumber, int start, int tokenCount) {
+        if (pageNumber is null || tokenCount == 0) return null;
+        return pageNumber(start < tokenCount ? start : tokenCount - 1);
+    }
 
     private static void TrimWhitespace(IReadOnlyList<OfficeTextToken> tokens, ref int start, ref int end) {
         while (start < end && string.IsNullOrWhiteSpace(tokens[start].Text)) start++;
