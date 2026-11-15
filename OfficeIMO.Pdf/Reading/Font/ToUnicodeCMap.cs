@@ -1,38 +1,6 @@
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Pdf;
 
 internal sealed class ToUnicodeCMap {
-    private static readonly TimeSpan RegexTimeout = TimeSpan.FromSeconds(2);
-#if NET8_0_OR_GREATER
-    private const RegexOptions StaticRegexOptions =
-        RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.NonBacktracking;
-#else
-    private const RegexOptions StaticRegexOptions =
-        RegexOptions.Compiled | RegexOptions.CultureInvariant;
-#endif
-    // Hex strings can contain whitespace inside source codes and UTF-16 destinations.
-    private static readonly Regex BfCharEntryRegex = new Regex(
-        @"<(?<src>[0-9A-Fa-f\s\x00]+)>\s*<(?<dst>[0-9A-Fa-f\s\x00]+)>",
-        StaticRegexOptions,
-        RegexTimeout);
-    private static readonly Regex BfCharSectionRegex = new Regex(
-        @"beginbfchar([\s\S]*?)endbfchar",
-        StaticRegexOptions | RegexOptions.IgnoreCase,
-        RegexTimeout);
-    private static readonly Regex BfRangeSequentialEntryRegex = new Regex(
-        @"<(?<from>[0-9A-Fa-f\s\x00]+)>\s*<(?<to>[0-9A-Fa-f\s\x00]+)>\s*<(?<dst>[0-9A-Fa-f\s\x00]+)>",
-        StaticRegexOptions,
-        RegexTimeout);
-    private static readonly Regex BfRangeSectionRegex = new Regex(
-        @"beginbfrange([\s\S]*?)endbfrange",
-        StaticRegexOptions | RegexOptions.IgnoreCase,
-        RegexTimeout);
-    private static readonly Regex BfRangeArrayEntryRegex = new Regex(
-        @"<(?<from>[0-9A-Fa-f\s\x00]+)>\s*<(?<to>[0-9A-Fa-f\s\x00]+)>\s*\[(?<dsts>[\s\S]*?)\]",
-        StaticRegexOptions | RegexOptions.IgnoreCase,
-        RegexTimeout);
-
     private const int MaxMappings = 65536;
     private const int MaxRangeMappings = 4096;
     private const int MaxSourceCodeBytes = 4;
@@ -44,6 +12,11 @@ internal sealed class ToUnicodeCMap {
     // Keyed by source-code byte count and value so lookups never format the code bytes as hex text.
     // A balanced tree bounds lookup cost for untrusted codes, including colliding integer hashes.
     private readonly SortedDictionary<ulong, string> _map = new();
+    // Text is decoded one glyph at a time, so lookups dominate. One- and two-byte codes, the common
+    // case, are mirrored in tables with bounded lookups: a direct array and an integer-keyed dictionary
+    // whose 65,536 possible keys cannot be made to share a hash bucket chain beyond its prime modulus.
+    private string?[]? _oneByteMap;
+    private Dictionary<int, string>? _twoByteMap;
     private readonly ReverseMapNode _reverseMapRoot = new();
     private int _maxKeyBytes = 1;
     private int _processedMappings;
@@ -83,13 +56,11 @@ internal sealed class ToUnicodeCMap {
 
     private void Parse(string s) {
         // Handle beginbfchar / endbfchar lines like: <AB> <00E9>
-        foreach (Match section in BfCharSectionRegex.Matches(s)) {
-            foreach (Match m in BfCharEntryRegex.Matches(section.Groups[1].Value)) {
-                if (HasReachedMappingLimit()) {
-                    break;
-                }
-
-                AddMap(m.Groups["src"].Value, m.Groups["dst"].Value);
+        int position = 0;
+        while (TryFindSection(s, "beginbfchar", "endbfchar", ref position, out int bodyStart, out int bodyEnd)) {
+            int entry = bodyStart;
+            while (!HasReachedMappingLimit() && TryMatchHexEntry(s, ref entry, bodyEnd, 2, out HexGroups groups)) {
+                AddMap(groups.Value(s, 0), groups.Value(s, 1));
             }
 
             if (HasReachedMappingLimit()) {
@@ -97,22 +68,20 @@ internal sealed class ToUnicodeCMap {
             }
         }
         // Handle beginbfrange / endbfrange, sequential mapping
-        foreach (Match section in BfRangeSectionRegex.Matches(s)) {
+        position = 0;
+        while (TryFindSection(s, "beginbfrange", "endbfrange", ref position, out int bodyStart, out int bodyEnd)) {
             if (HasReachedMappingLimit()) {
                 break;
             }
 
-            string body = section.Groups[1].Value;
-            string sequentialBody = BfRangeArrayEntryRegex.Replace(body, string.Empty);
-            foreach (Match m in BfRangeSequentialEntryRegex.Matches(sequentialBody)) {
-                if (HasReachedMappingLimit()) {
-                    break;
-                }
-
-                string fromHex = RemoveHexWhitespace(m.Groups["from"].Value);
+            string body = s.Substring(bodyStart, bodyEnd - bodyStart);
+            string sequentialBody = RemoveRangeArrayEntries(body);
+            int entry = 0;
+            while (!HasReachedMappingLimit() && TryMatchHexEntry(sequentialBody, ref entry, sequentialBody.Length, 3, out HexGroups groups)) {
+                string fromHex = RemoveHexWhitespace(groups.Value(sequentialBody, 0));
                 uint from = Convert.ToUInt32(fromHex, 16);
-                uint to = Convert.ToUInt32(RemoveHexWhitespace(m.Groups["to"].Value), 16);
-                string dstHex = RemoveHexWhitespace(m.Groups["dst"].Value);
+                uint to = Convert.ToUInt32(RemoveHexWhitespace(groups.Value(sequentialBody, 1)), 16);
+                string dstHex = RemoveHexWhitespace(groups.Value(sequentialBody, 2));
                 ulong rangeLength = to >= from ? (ulong)to - from + 1 : 0;
                 if (rangeLength == 0 || rangeLength > MaxRangeMappings || rangeLength > (ulong)(MaxMappings - _processedMappings)) {
                     continue;
@@ -127,14 +96,11 @@ internal sealed class ToUnicodeCMap {
                 }
             }
 
-            foreach (Match m in BfRangeArrayEntryRegex.Matches(body)) {
-                if (HasReachedMappingLimit()) {
-                    break;
-                }
-
-                string fromHex = RemoveHexWhitespace(m.Groups["from"].Value);
+            entry = 0;
+            while (!HasReachedMappingLimit() && TryMatchRangeArrayEntry(body, ref entry, out HexGroups groups, out int destinationsStart, out int destinationsEnd)) {
+                string fromHex = RemoveHexWhitespace(groups.Value(body, 0));
                 uint from = Convert.ToUInt32(fromHex, 16);
-                uint to = Convert.ToUInt32(RemoveHexWhitespace(m.Groups["to"].Value), 16);
+                uint to = Convert.ToUInt32(RemoveHexWhitespace(groups.Value(body, 1)), 16);
                 if (to < from) {
                     continue;
                 }
@@ -142,7 +108,7 @@ internal sealed class ToUnicodeCMap {
                 int rangeLength = (int)Math.Min((ulong)MaxRangeMappings, (ulong)to - from + 1);
                 int keyBytes = fromHex.Length / 2;
                 int index = 0;
-                foreach (string destination in ReadHexArrayEntries(m.Groups["dsts"].Value)) {
+                foreach (string destination in ReadHexArrayEntries(body.Substring(destinationsStart, destinationsEnd - destinationsStart))) {
                     if (index >= rangeLength || HasReachedMappingLimit()) {
                         break;
                     }
@@ -154,6 +120,125 @@ internal sealed class ToUnicodeCMap {
                 }
             }
         }
+    }
+
+    // The CMap is scanned directly instead of with regular expressions. Each scan reproduces the matches
+    // of the patterns it replaced: sections are "begin...end" keywords matched without regard to case
+    // with the shortest body, and entries are hex strings of [0-9A-Fa-f], whitespace or NUL characters.
+
+    /// <summary>Character offsets of up to three hex-string groups of one entry.</summary>
+    private struct HexGroups {
+        internal int Start0, End0, Start1, End1, Start2, End2;
+
+        internal readonly string Value(string text, int group) => group switch {
+            0 => text.Substring(Start0, End0 - Start0),
+            1 => text.Substring(Start1, End1 - Start1),
+            _ => text.Substring(Start2, End2 - Start2)
+        };
+
+        internal void Set(int group, int start, int end) {
+            switch (group) {
+                case 0: Start0 = start; End0 = end; break;
+                case 1: Start1 = start; End1 = end; break;
+                default: Start2 = start; End2 = end; break;
+            }
+        }
+    }
+
+    private static bool TryFindSection(string text, string begin, string end, ref int position, out int bodyStart, out int bodyEnd) {
+        bodyStart = bodyEnd = 0;
+        if (position >= text.Length) return false;
+        int beginIndex = text.IndexOf(begin, position, StringComparison.OrdinalIgnoreCase);
+        if (beginIndex < 0) return false;
+        int endIndex = text.IndexOf(end, beginIndex + begin.Length, StringComparison.OrdinalIgnoreCase);
+        // Without a closing keyword after this one there is none after any later opening keyword either.
+        if (endIndex < 0) return false;
+        bodyStart = beginIndex + begin.Length;
+        bodyEnd = endIndex;
+        position = endIndex + end.Length;
+        return true;
+    }
+
+    private static bool IsHexEntryCharacter(char value) =>
+        value is >= '0' and <= '9' or >= 'A' and <= 'F' or >= 'a' and <= 'f' or '\0' || char.IsWhiteSpace(value);
+
+    /// <summary>Matches consecutive hex strings, separated only by whitespace, starting at <paramref name="start"/>.</summary>
+    private static int MatchHexGroupsAt(string text, int start, int limit, int groupCount, ref HexGroups groups) {
+        int index = start;
+        for (int group = 0; group < groupCount; group++) {
+            if (group > 0) {
+                while (index < limit && char.IsWhiteSpace(text[index])) index++;
+            }
+            if (index >= limit || text[index] != '<') return -1;
+            int valueStart = ++index;
+            while (index < limit && IsHexEntryCharacter(text[index])) index++;
+            if (index == valueStart || index >= limit || text[index] != '>') return -1;
+            groups.Set(group, valueStart, index);
+            index++;
+        }
+        return index;
+    }
+
+    /// <summary>Finds the next entry of <paramref name="groupCount"/> hex strings at or after <paramref name="position"/>.</summary>
+    private static bool TryMatchHexEntry(string text, ref int position, int limit, int groupCount, out HexGroups groups) {
+        groups = default;
+        while (position < limit) {
+            int start = text.IndexOf('<', position, limit - position);
+            if (start < 0) {
+                position = limit;
+                return false;
+            }
+            int end = MatchHexGroupsAt(text, start, limit, groupCount, ref groups);
+            if (end >= 0) {
+                position = end;
+                return true;
+            }
+            position = start + 1;
+        }
+        return false;
+    }
+
+    /// <summary>Finds the next "&lt;from&gt; &lt;to&gt; [destinations]" range entry; the destinations end at the first ']'.</summary>
+    private static bool TryMatchRangeArrayEntry(string text, ref int position, out HexGroups groups,
+        out int destinationsStart, out int destinationsEnd) {
+        groups = default;
+        destinationsStart = destinationsEnd = 0;
+        int nextClose = -1;
+        while (position < text.Length) {
+            int start = text.IndexOf('<', position);
+            if (start < 0) break;
+            int index = MatchHexGroupsAt(text, start, text.Length, 2, ref groups);
+            if (index >= 0) {
+                while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
+                if (index < text.Length && text[index] == '[') {
+                    if (nextClose <= index) nextClose = text.IndexOf(']', index + 1);
+                    // With no ']' left, no later entry can close either.
+                    if (nextClose < 0) break;
+                    destinationsStart = index + 1;
+                    destinationsEnd = nextClose;
+                    position = nextClose + 1;
+                    return true;
+                }
+            }
+            position = start + 1;
+        }
+        position = text.Length;
+        return false;
+    }
+
+    private static string RemoveRangeArrayEntries(string body) {
+        int position = 0, copied = 0;
+        StringBuilder? remaining = null;
+        while (TryMatchRangeArrayEntry(body, ref position, out HexGroups groups, out _, out _)) {
+            // The entry begins at its first hex string, one character before the group.
+            int entryStart = groups.Start0 - 1;
+            remaining ??= new StringBuilder(body.Length);
+            remaining.Append(body, copied, entryStart - copied);
+            copied = position;
+        }
+        if (remaining is null) return body;
+        remaining.Append(body, copied, body.Length - copied);
+        return remaining.ToString();
     }
 
     private void AddMap(string srcHex, string dstHex) {
@@ -183,6 +268,12 @@ internal sealed class ToUnicodeCMap {
         else _retainedMappingTextCharacters += srcHex.Length;
         _retainedMappingTextCharacters += s.Length;
         _map[key] = s;
+        uint code = (uint)key;
+        if (keyBytes == 1) {
+            (_oneByteMap ??= new string?[256])[code] = s;
+        } else if (keyBytes == 2) {
+            (_twoByteMap ??= new Dictionary<int, string>())[(int)code] = s;
+        }
         if (!_reverseMapBudgetExhausted && s.Length > 0 && s.Length <= MaxReverseMappingTextCharacters) {
             ReverseMapNode node = _reverseMapRoot;
             for (int index = 0; index < s.Length; index++) {
@@ -288,7 +379,7 @@ internal sealed class ToUnicodeCMap {
             cancellationCheck?.Invoke();
             int used = 0;
             for (int length = Math.Min(_maxKeyBytes, bytes.Length - index); length >= 1; length--) {
-                if (_map.ContainsKey(CreateKey(bytes, index, length))) {
+                if (TryGetMapping(bytes, index, length, out _)) {
                     used = length;
                     break;
                 }
@@ -311,7 +402,7 @@ internal sealed class ToUnicodeCMap {
             int max = Math.Min(_maxKeyBytes, bytes.Length - i);
             string? mapped = null; int used = 0;
             for (int len = max; len >= 1; len--) {
-                if (_map.TryGetValue(CreateKey(bytes, i, len), out var s)) { mapped = s; used = len; break; }
+                if (TryGetMapping(bytes, i, len, out var s)) { mapped = s; used = len; break; }
             }
             if (mapped is null) {
                 allMapped = false;
@@ -412,6 +503,18 @@ internal sealed class ToUnicodeCMap {
             child = null!;
             return false;
         }
+    }
+
+    private bool TryGetMapping(byte[] bytes, int start, int byteCount, out string? mapped) {
+        if (byteCount == 1) {
+            mapped = _oneByteMap?[bytes[start]];
+            return mapped != null;
+        }
+        if (byteCount == 2) {
+            mapped = null;
+            return _twoByteMap != null && _twoByteMap.TryGetValue((bytes[start] << 8) | bytes[start + 1], out mapped);
+        }
+        return _map.TryGetValue(CreateKey(bytes, start, byteCount), out mapped);
     }
 
     private static readonly string[] KeyFormats = { "X0", "X2", "X4", "X6", "X8" };

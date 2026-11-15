@@ -29,8 +29,22 @@ internal sealed partial class PdfFontResource {
     public IReadOnlyDictionary<int, string>? Differences { get; }
     private readonly byte[]? _embeddedTrueTypeFont;
     public byte[]? EmbeddedTrueTypeFont => _embeddedTrueTypeFont ?? RetainedDrawingResource?._embeddedTrueTypeFont;
-    private readonly string? _drawingFontFamily;
-    public string? DrawingFontFamily => _drawingFontFamily ?? RetainedDrawingResource?._drawingFontFamily;
+    // The family identity hashes the embedded program. A font that receives a drawing program is replaced by a
+    // copy with its own identity, so each resource hashes its program only when the family is first read.
+    private static readonly string DrawingFontFamilyNotCreated = new string('?', 1);
+    private string? _drawingFontFamily;
+    private readonly byte[]? _drawingFontFamilyProgramData;
+    private readonly PdfDrawingFontProgram? _drawingFontFamilyProgram;
+    private string? OwnDrawingFontFamily {
+        get {
+            string? family = Volatile.Read(ref _drawingFontFamily);
+            if (!ReferenceEquals(family, DrawingFontFamilyNotCreated)) return family;
+            family = CreateDrawingFontFamily(BaseFont, _drawingFontFamilyProgramData, _drawingFontFamilyProgram);
+            Volatile.Write(ref _drawingFontFamily, family);
+            return family;
+        }
+    }
+    public string? DrawingFontFamily => OwnDrawingFontFamily ?? RetainedDrawingResource?.OwnDrawingFontFamily;
     public int? FontWeight { get; }
     public int? FontDescriptorFlags { get; }
     internal bool IsSymbolicSubstitute { get; }
@@ -75,7 +89,8 @@ internal sealed partial class PdfFontResource {
         PredefinedCMap = predefinedCMap;
         Differences = differences;
         _embeddedTrueTypeFont = embeddedTrueTypeFont;
-        _drawingFontFamily = CreateDrawingFontFamily(baseFont, embeddedTrueTypeFont);
+        _drawingFontFamily = embeddedTrueTypeFont == null ? null : DrawingFontFamilyNotCreated;
+        _drawingFontFamilyProgramData = embeddedTrueTypeFont;
         FontWeight = fontWeight;
         FontDescriptorFlags = fontDescriptorFlags;
         IsSymbolicSubstitute = DetectSymbolicSubstitute(baseFont, fontDescriptorFlags);
@@ -99,9 +114,13 @@ internal sealed partial class PdfFontResource {
         PredefinedCMap = source.PredefinedCMap;
         Differences = source.Differences;
         _embeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
-        _drawingFontFamily = embeddedTrueTypeFont == null
-            ? source.DrawingFontFamily
-            : CreateDrawingFontFamily(source.BaseFont, embeddedTrueTypeFont, drawingProgram);
+        if (embeddedTrueTypeFont == null) {
+            _drawingFontFamily = source.DrawingFontFamily;
+        } else {
+            _drawingFontFamily = DrawingFontFamilyNotCreated;
+            _drawingFontFamilyProgramData = embeddedTrueTypeFont;
+            _drawingFontFamilyProgram = drawingProgram;
+        }
         FontWeight = source.FontWeight;
         FontDescriptorFlags = source.FontDescriptorFlags;
         IsSymbolicSubstitute = source.IsSymbolicSubstitute;

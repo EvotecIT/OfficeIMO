@@ -44,7 +44,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly ushort _numHMetrics;
     private readonly short _indexToLocFormat;
     private readonly int? _collectionIndex;
-    private readonly string _fingerprint;
+    // Hashing the whole program is deferred until a caller asks for the identity; many loads only validate a face.
+    private string? _fingerprint;
     // Portable scalar-text projections require the original static face, including default-axis rejection.
     internal bool IsVariableFont => _variationModel.IsVariable;
     /// <summary>Static font math design metrics, when the selected face supplies a valid MATH table.</summary>
@@ -59,8 +60,6 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         int? collectionIndex,
         OfficeFontVariationModel? variationModel = null) {
         _data = data;
-        _fingerprint = ComputeFingerprint(data, collectionIndex)
-            + (variationModel != null && variationModel.IsVariable ? ":axes=" + variationModel.Identity : string.Empty);
         _collectionIndex = collectionIndex;
         _variationModel = variationModel ?? OfficeFontVariationModel.None;
         _cmap = tables["cmap"];
@@ -132,10 +131,13 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     /// <inheritdoc />
-    public string Fingerprint => _trackingEvaluationScale == 1D ? _fingerprint
-        : _fingerprint + ":tracking-scale=" + _trackingEvaluationScale.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+    public string Fingerprint => _trackingEvaluationScale == 1D ? BaseFingerprint
+        : BaseFingerprint + ":tracking-scale=" + _trackingEvaluationScale.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
     IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
         _variationModel?.DesignCoordinates ?? OfficeFontVariationModel.None.DesignCoordinates;
+
+    private string BaseFingerprint => _fingerprint ??= ComputeFingerprint(_data, _collectionIndex)
+        + (_variationModel.IsVariable ? ":axes=" + _variationModel.Identity : string.Empty);
 
     private static string ComputeFingerprint(byte[] data, int? collectionIndex) {
         using HashAlgorithm hash = SHA256.Create();
