@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
@@ -31,6 +32,14 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxContentTypesBytes);
 
             try {
+                // Detection runs before any load policy, so it never materializes more entries
+                // than the shared package limit allows.
+                if (OfficeArchiveSafety.ScanZipCentralDirectory(
+                        packageBytes, OfficePackageSecurityOptions.SecureDefaults.MaxPartCount).LimitExceeded) {
+                    workbookPartName = null;
+                    return false;
+                }
+
                 using var packageStream = new MemoryStream(packageBytes, writable: false);
                 using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
                 return TryFindWorkbookPart(

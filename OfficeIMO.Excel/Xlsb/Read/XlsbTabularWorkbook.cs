@@ -964,6 +964,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             bool metadataOnly = false) {
             ZipArchive? archive = null;
             try {
+                OfficePackageSecurityInspector.Validate(packageStream, OfficePackageSecurityOptions.SecureDefaults);
                 archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true);
                 bool foundWorkbook = metadataOnly
                     ? XlsbPackageDetector.TryFindWorkbookPart(

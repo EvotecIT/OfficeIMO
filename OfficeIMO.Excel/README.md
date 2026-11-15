@@ -174,7 +174,7 @@ foreach (Order order in book["Orders"].RowsAs<Order>()) {
 record Order(string Customer, string Region, decimal Total, double Margin);
 ```
 
-Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`.
+Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`. XLSB workbooks are always checked against `OfficePackageSecurityOptions.SecureDefaults` (entry count, sizes, compression ratio, part names) unless `PackageSecurity` sets another policy.
 
 For a forward-only read, `OpenReader(pathOrStream, options)` returns an
 `ExcelWorkbookDataReader` derived from `DbDataReader`. The shared `OfficeIMO.Data`

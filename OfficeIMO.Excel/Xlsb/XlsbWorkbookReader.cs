@@ -78,11 +78,15 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int MaximumHyperlinkLocationLengthExclusive = 2_084;
         private const int MaximumHyperlinkTooltipLengthExclusive = 256;
 
-        internal static XlsbWorkbook Load(byte[] packageBytes, XlsbImportOptions? options = null) {
+        internal static XlsbWorkbook Load(byte[] packageBytes, XlsbImportOptions? options = null,
+            bool packageSecurityValidated = false) {
             ArgumentNullException.ThrowIfNull(packageBytes);
             XlsbImportOptions resolved = options ?? new XlsbImportOptions();
             resolved.Validate();
             CancellationToken cancellationToken = resolved.CancellationToken;
+            if (!packageSecurityValidated) {
+                OfficePackageSecurityInspector.Validate(packageBytes, OfficePackageSecurityOptions.SecureDefaults);
+            }
 
             if (!XlsbPackageDetector.TryFindWorkbookPart(packageBytes, out string? workbookPartName)
                 || string.IsNullOrWhiteSpace(workbookPartName)) {

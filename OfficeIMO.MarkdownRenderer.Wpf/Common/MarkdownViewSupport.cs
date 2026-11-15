@@ -102,9 +102,11 @@ internal static class MarkdownViewSupport {
             return false;
         }
 
-        if (string.Equals(parsed.Scheme, "about", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(parsed.Scheme, "data", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(parsed.Scheme, "javascript", StringComparison.OrdinalIgnoreCase)) {
+        // Only web and mail links leave the preview. Local files, script/data URIs and
+        // registered custom protocols would otherwise reach the operating-system shell.
+        if (!string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(parsed.Scheme, Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 

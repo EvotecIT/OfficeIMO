@@ -81,10 +81,16 @@ internal static partial class OfficeArchiveSafety {
         try {
             compressedLength = entry.CompressedLength;
         } catch {
-            return false;
+            return true;
         }
 
-        if (compressedLength <= 0) return false;
+        return IsCompressionRatioExceeded(compressedLength, uncompressedLength, maxRatio);
+    }
+
+    /// <summary>Checks declared lengths, treating missing or invalid compressed-size metadata on a non-empty entry as exceeded.</summary>
+    internal static bool IsCompressionRatioExceeded(long compressedLength, long uncompressedLength, double maxRatio) {
+        if (maxRatio <= 0 || uncompressedLength <= 0) return false;
+        if (compressedLength <= 0) return true;
         return (double)uncompressedLength / compressedLength > maxRatio;
     }
 

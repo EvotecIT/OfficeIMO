@@ -41,7 +41,10 @@ public class MarkdownViewSupportTests {
 
     [Theory]
     [InlineData("https://example.com/readme", true)]
+    [InlineData("http://example.com/readme", true)]
     [InlineData("mailto:test@example.com", true)]
+    [InlineData("file:///C:/Windows/System32/calc.exe", false)]
+    [InlineData("ms-settings:privacy", false)]
     [InlineData("about:blank", false)]
     [InlineData("data:text/html,hello", false)]
     [InlineData("javascript:alert(1)", false)]

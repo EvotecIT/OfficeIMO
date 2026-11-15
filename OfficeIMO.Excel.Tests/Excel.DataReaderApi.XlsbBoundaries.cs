@@ -10,6 +10,30 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Fact]
+    public void XlsbReaderRejectsArchiveEntryCountBeforeOpeningParts() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.XlsbEntryCount.{Guid.NewGuid():N}.xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                document.AddSheet("Data").Cell(1, 1).SetValue("Value");
+                File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+            }
+            using (ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update)) {
+                int entries = OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
+                for (int index = 0; index < entries; index++) {
+                    archive.CreateEntry("padding/" + index, CompressionLevel.NoCompression);
+                }
+            }
+
+            OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(
+                () => ExcelDocument.OpenReader(path));
+
+            Assert.Equal(OfficePackageSecurityRule.PartCount, exception.Rule);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void XlsbLoadRejectsOversizedWorksheetNameBeforeFormulaExpansion() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.LongXlsbName.{Guid.NewGuid():N}.xlsb");
         File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);

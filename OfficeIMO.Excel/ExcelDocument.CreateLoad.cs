@@ -270,7 +270,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (detectedFormat == ExcelFileFormat.Xlsb) {
-                ExcelDocument document = LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions);
+                ExcelDocument document = LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions,
+                    packageSecurityValidated: options.PackageSecurity != null);
                 return captureSourcePackageSecurity ? WithSourcePackageInspection(document, bytes, options) : document;
             }
 
@@ -443,13 +444,14 @@ namespace OfficeIMO.Excel {
             bool readOnly,
             bool saveOnDispose,
             string? filePath,
-            XlsbImportOptions? importOptions) {
+            XlsbImportOptions? importOptions,
+            bool packageSecurityValidated) {
             if (!readOnly && saveOnDispose) {
                 throw new NotSupportedException("SaveOnDispose is not supported for imported XLSB workbooks. Use an explicit Save operation.");
             }
 
             XlsbImportOptions effectiveOptions = importOptions ?? new XlsbImportOptions();
-            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, effectiveOptions);
+            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, effectiveOptions, packageSecurityValidated);
             ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook,
                 effectiveOptions.CancellationToken, effectiveOptions.MaxCells);
             if (readOnly) {
