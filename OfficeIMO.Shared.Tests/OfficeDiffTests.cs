@@ -89,6 +89,34 @@ public sealed class OfficeDiffTests {
     }
 
     [Fact]
+    public void PatienceChecksTheWorkLimitBeforeChoosingAnchors() {
+        int[] oldItems = Enumerable.Range(0, 1000).ToArray();
+        int[] newItems = Enumerable.Reverse(oldItems).ToArray();
+
+        OfficeDiffResult<int> diff = OfficeDiff.Compare(oldItems, newItems, options: new OfficeDiffOptions { Algorithm = OfficeDiffAlgorithm.Patience, MaxWorkUnits = 1 });
+
+        Assert.True(diff.LimitReached);
+        Assert.Equal(newItems, diff.Apply(oldItems));
+    }
+
+    [Fact]
+    public void CancelledTokenStopsEvenIdenticalInputs() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => OfficeDiff.CompareWords("same text", "same text", cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public void ApplyReturnsTheNewValuesWhenTheComparerIgnoresCase() {
+        OfficeDiffResult<OfficeTextToken> diff = OfficeDiff.CompareWords("Alpha beta", "alpha BETA", new OfficeDiffOptions { IgnoreCase = true });
+
+        Assert.True(diff.AreEqual);
+        Assert.Equal("alpha BETA", Concat(diff.Apply(diff.Old)));
+        Assert.Equal("Alpha beta", Concat(diff.Revert(diff.New)));
+    }
+
+    [Fact]
     public void ApplyRejectsADifferentSource() {
         OfficeDiffResult<char> diff = OfficeDiff.Compare("abc".ToCharArray(), "abd".ToCharArray());
 

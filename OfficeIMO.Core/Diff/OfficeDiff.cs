@@ -49,7 +49,7 @@ public static class OfficeDiff {
 
         int[] oldIds = new int[oldItems.Count];
         int[] newIds = new int[newItems.Count];
-        Intern(oldItems, newItems, comparer, oldIds, newIds);
+        Intern(oldItems, newItems, comparer, oldIds, newIds, cancellationToken);
         OfficeDiffEngine engine = OfficeDiffEngine.Run(oldIds, newIds, options, cancellationToken);
         IReadOnlyList<OfficeDiffMatch> matches = engine.Matches;
         if (isSeparator != null && matches.Count > 1) {
@@ -71,7 +71,8 @@ public static class OfficeDiff {
         return flags;
     }
 
-    private static void Intern<T>(IReadOnlyList<T> oldItems, IReadOnlyList<T> newItems, IEqualityComparer<T> comparer, int[] oldIds, int[] newIds) {
+    private static void Intern<T>(IReadOnlyList<T> oldItems, IReadOnlyList<T> newItems, IEqualityComparer<T> comparer, int[] oldIds, int[] newIds,
+        CancellationToken cancellationToken) {
 #pragma warning disable CS8714 // Null items never reach the dictionary; they get their own id below.
         var ids = new Dictionary<T, int>(comparer);
 #pragma warning restore CS8714
@@ -91,8 +92,15 @@ public static class OfficeDiff {
             return id;
         }
 
-        for (int index = 0; index < oldItems.Count; index++) oldIds[index] = IdOf(oldItems[index]);
-        for (int index = 0; index < newItems.Count; index++) newIds[index] = IdOf(newItems[index]);
+        for (int index = 0; index < oldItems.Count; index++) {
+            if ((index & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            oldIds[index] = IdOf(oldItems[index]);
+        }
+
+        for (int index = 0; index < newItems.Count; index++) {
+            if ((index & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            newIds[index] = IdOf(newItems[index]);
+        }
     }
 
     private static IReadOnlyList<OfficeDiffEdit> BuildEdits(IReadOnlyList<OfficeDiffMatch> matches, int oldCount, int newCount) {
@@ -119,29 +127,34 @@ public static class OfficeDiff {
     // "the quick fox" -> "a slow fox" reads as one replacement rather than word, space, word fragments.
     private static IReadOnlyList<OfficeDiffMatch> CleanupSemantic<T>(IReadOnlyList<OfficeDiffMatch> source, IReadOnlyList<T> oldItems,
         IReadOnlyList<T> newItems, Func<T, int> weight) {
-        var matches = new List<OfficeDiffMatch>(source);
         long[] oldPrefix = PrefixWeights(oldItems, weight);
         long[] newPrefix = PrefixWeights(newItems, weight);
-        int index = 0;
-        while (index < matches.Count) {
-            OfficeDiffMatch match = matches[index];
-            int oldBefore = index == 0 ? 0 : matches[index - 1].OldStart + matches[index - 1].Length;
-            int newBefore = index == 0 ? 0 : matches[index - 1].NewStart + matches[index - 1].Length;
-            int oldAfter = index == matches.Count - 1 ? oldItems.Count : matches[index + 1].OldStart;
-            int newAfter = index == matches.Count - 1 ? newItems.Count : matches[index + 1].NewStart;
+
+        // Removing a run changes only its neighbours, so the surviving runs are kept on a stack and the
+        // top is re-checked after each removal. Every run is pushed and popped at most once.
+        bool Removable(OfficeDiffMatch? previous, OfficeDiffMatch match, OfficeDiffMatch? next) {
+            int oldBefore = previous is { } p ? p.OldStart + p.Length : 0;
+            int newBefore = previous is { } q ? q.NewStart + q.Length : 0;
+            int oldAfter = next is { } n ? n.OldStart : oldItems.Count;
+            int newAfter = next is { } m ? m.NewStart : newItems.Count;
             long before = Math.Max(oldPrefix[match.OldStart] - oldPrefix[oldBefore], newPrefix[match.NewStart] - newPrefix[newBefore]);
             long after = Math.Max(oldPrefix[oldAfter] - oldPrefix[match.OldStart + match.Length], newPrefix[newAfter] - newPrefix[match.NewStart + match.Length]);
             long own = oldPrefix[match.OldStart + match.Length] - oldPrefix[match.OldStart];
-            if (before > 0 && after > 0 && own <= before && own <= after) {
-                matches.RemoveAt(index);
-                index = Math.Max(0, index - 1);
+            return before > 0 && after > 0 && own <= before && own <= after;
+        }
+
+        var kept = new List<OfficeDiffMatch>(source.Count);
+        for (int index = 0; index < source.Count; index++) {
+            OfficeDiffMatch? next = index + 1 < source.Count ? source[index + 1] : null;
+            if (!Removable(kept.Count == 0 ? null : kept[kept.Count - 1], source[index], next)) {
+                kept.Add(source[index]);
                 continue;
             }
 
-            index++;
+            while (kept.Count > 0 && Removable(kept.Count > 1 ? kept[kept.Count - 2] : null, kept[kept.Count - 1], next)) kept.RemoveAt(kept.Count - 1);
         }
 
-        return matches;
+        return kept;
     }
 
     private static long[] PrefixWeights<T>(IReadOnlyList<T> items, Func<T, int> weight) {

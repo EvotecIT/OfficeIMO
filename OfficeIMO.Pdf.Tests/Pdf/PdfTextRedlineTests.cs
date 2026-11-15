@@ -141,6 +141,29 @@ public sealed class PdfTextRedlineTests {
     }
 
     [Fact]
+    public void AnnotationLimitCountsChangesNotHighlights() {
+        byte[] oldPdf = Build(First, null, Second, Third);
+        byte[] newPdf = Build(First.Replace("all regions.", "every region in"), null, Second.Replace("Northern offices", "the north"), Third.Replace("October", "November"));
+
+        PdfTextRedlineResult result = PdfTextRedline.Compare(oldPdf, newPdf, new PdfTextRedlineOptions { MaxAnnotatedChanges = 1, CreatePopups = false });
+
+        Assert.Equal(2, result.Changes.Changes.Count);
+        Assert.Equal(2, result.AnnotationCount);
+        Assert.True(result.AnnotationLimitReached);
+    }
+
+    [Fact]
+    public void HtmlReportFollowsTheCaseSettingOfTheComparison() {
+        byte[] oldPdf = Build(First, Second);
+        byte[] newPdf = Build(First, Second.Replace("Northern", "NORTHERN"));
+
+        PdfTextRedlineResult result = PdfTextRedline.Compare(oldPdf, newPdf, new PdfTextRedlineOptions { IgnoreCase = true });
+
+        Assert.False(result.HasChanges);
+        Assert.DoesNotContain("<del>", result.ToHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlReportShowsBothTextsAndTheChangeList() {
         byte[] oldPdf = Build(First, Second);
         byte[] newPdf = Build(First, Second.Replace("faster", "slower"));

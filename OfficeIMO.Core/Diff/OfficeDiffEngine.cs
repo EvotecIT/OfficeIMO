@@ -39,6 +39,7 @@ internal sealed class OfficeDiffEngine {
     internal long WorkUnits => _work;
 
     internal static OfficeDiffEngine Run(int[] oldItems, int[] newItems, OfficeDiffOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var engine = new OfficeDiffEngine(oldItems, newItems, options, cancellationToken);
         engine.Diff(0, oldItems.Length, 0, newItems.Length, 0);
         return engine;
@@ -206,6 +207,8 @@ internal sealed class OfficeDiffEngine {
         }
 
         _work += (oldEnd - oldStart) + (newEnd - newStart);
+        // A limit reached while counting leaves the region as a deletion plus an insertion.
+        if (Exhausted()) return;
         var unique = new List<OfficeDiffMatch>();
         for (int index = oldStart; index < oldEnd; index++) {
             PatienceCount count = counts[_old[index]];
@@ -270,6 +273,7 @@ internal sealed class OfficeDiffEngine {
         }
 
         _work += oldEnd - oldStart;
+        if (Exhausted()) return;
         int bestOld = -1, bestNew = -1, bestLength = 0, bestCount = int.MaxValue;
         int newIndex = newStart;
         while (newIndex < newEnd) {

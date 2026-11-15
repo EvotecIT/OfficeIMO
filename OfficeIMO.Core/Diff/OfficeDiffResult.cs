@@ -63,7 +63,8 @@ public sealed class OfficeDiffResult<T> {
 
     /// <summary>
     /// Applies the edit script to <paramref name="source"/> and returns the new sequence.
-    /// Every kept and deleted item is checked against the item recorded in the script.
+    /// Every kept and deleted item is checked against the item recorded in the script; kept positions return the
+    /// recorded new item, so a comparer that ignores case or position still yields the new values.
     /// </summary>
     /// <exception cref="InvalidOperationException">The source does not match the old sequence this script was computed from.</exception>
     public IReadOnlyList<T> Apply(IReadOnlyList<T> source) {
@@ -74,9 +75,8 @@ public sealed class OfficeDiffResult<T> {
             switch (edit.Operation) {
                 case OfficeDiffOperation.Equal:
                     for (int index = 0; index < edit.OldLength; index++) {
-                        T item = source[edit.OldStart + index];
-                        if (!Comparer.Equals(item, Old[edit.OldStart + index])) throw new InvalidOperationException("The source differs from the old sequence at item " + (edit.OldStart + index) + ".");
-                        output.Add(item);
+                        if (!Comparer.Equals(source[edit.OldStart + index], Old[edit.OldStart + index])) throw new InvalidOperationException("The source differs from the old sequence at item " + (edit.OldStart + index) + ".");
+                        output.Add(New[edit.NewStart + index]);
                     }
 
                     break;

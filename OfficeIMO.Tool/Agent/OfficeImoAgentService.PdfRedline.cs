@@ -62,18 +62,17 @@ internal sealed partial class OfficeImoAgentService {
             throw new AgentUsageException(exception.Message.Split('\n')[0].Replace(" (Parameter '" + exception.ParamName + "')", string.Empty, StringComparison.Ordinal), exception);
         }
 
-        var artifacts = new List<AgentPdfArtifact>();
-        long total = 0;
-        void Publish(string path, byte[] content) {
-            total += content.LongLength;
-            if (total > settings.MaximumOutputBytes) throw new AgentUsageException("The redline output exceeds maximumOutputBytes.");
+        // Every artifact is produced and the combined size checked before anything is written, so a refused run leaves no partial output.
+        var pending = new List<(string Path, byte[] Content)> { (destination, redline.Pdf) };
+        if (changes is not null) pending.Add((changes, System.Text.Encoding.UTF8.GetBytes(redline.ToJson())));
+        if (report is not null) pending.Add((report, System.Text.Encoding.UTF8.GetBytes(redline.ToHtml(cancellationToken: cancellationToken))));
+        if (pending.Sum(static item => item.Content.LongLength) > settings.MaximumOutputBytes) throw new AgentUsageException("The redline output exceeds maximumOutputBytes.");
+
+        var artifacts = new List<AgentPdfArtifact>(pending.Count);
+        foreach ((string path, byte[] content) in pending) {
             WriteRedlineOutput(path, content, settings.Overwrite);
             artifacts.Add(new AgentPdfArtifact { Path = path, SizeBytes = content.LongLength });
         }
-
-        Publish(destination, redline.Pdf);
-        if (changes is not null) Publish(changes, System.Text.Encoding.UTF8.GetBytes(redline.ToJson()));
-        if (report is not null) Publish(report, System.Text.Encoding.UTF8.GetBytes(redline.ToHtml(cancellationToken: cancellationToken)));
 
         OfficeChangeSet set = redline.Changes;
         string summary = set.Changes.Count + " change(s): " + set.Count(OfficeChangeKind.Inserted) + " inserted, " +
@@ -85,9 +84,19 @@ internal sealed partial class OfficeImoAgentService {
             artifacts, Array.Empty<OfficeWorkflowDiagnostic>(), maxOutputCharacters, summary: summary);
     }
 
+    // Reads through one stream and stops at the limit, so a file that grows after it was opened cannot exceed it.
     private static byte[] ReadBoundedInput(string path, long maximumBytes) {
-        if (new FileInfo(path).Length > maximumBytes) throw new AgentUsageException("An input PDF exceeds maximumInputBytes.");
-        return File.ReadAllBytes(path);
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (stream.Length > maximumBytes) throw new AgentUsageException("An input PDF exceeds maximumInputBytes.");
+        using var buffer = new MemoryStream((int)Math.Min(stream.Length, int.MaxValue));
+        byte[] chunk = new byte[81920];
+        int read;
+        while ((read = stream.Read(chunk, 0, chunk.Length)) > 0) {
+            if (buffer.Length + read > maximumBytes) throw new AgentUsageException("An input PDF exceeds maximumInputBytes.");
+            buffer.Write(chunk, 0, read);
+        }
+
+        return buffer.ToArray();
     }
 
     private static void WriteRedlineOutput(string destination, byte[] content, bool overwrite) {

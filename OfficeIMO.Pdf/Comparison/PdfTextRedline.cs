@@ -50,7 +50,7 @@ public static class PdfTextRedline {
         }
 
         var changeSet = new OfficeChangeSet(changes, options.OldName, options.NewName, "word", draft.IsComplete);
-        List<PdfAnnotationCreateOptions> annotations = BuildAnnotations(changeSet, newText, options);
+        List<PdfAnnotationCreateOptions> annotations = BuildAnnotations(changeSet, newText, options, out bool annotationLimitReached);
         byte[] output;
         if (annotations.Count == 0) {
             output = (byte[])newPdf.Clone();
@@ -58,8 +58,7 @@ public static class PdfTextRedline {
             output = PdfAnnotationEditor.AddAnnotations(newPdf, annotations, options.NewReadOptions, PdfMutationExecutionPreference.Automatic, cancellationToken).Bytes;
         }
 
-        return new PdfTextRedlineResult(output, changeSet, annotations.Count,
-            annotations.Count < CountAnnotatable(changeSet), oldText.PlainText, newText.PlainText);
+        return new PdfTextRedlineResult(output, changeSet, annotations.Count, annotationLimitReached, options.IgnoreCase, oldText.PlainText, newText.PlainText);
     }
 
     /// <summary>Compares two PDF files and returns the annotated new PDF and the change list.</summary>
@@ -76,16 +75,23 @@ public static class PdfTextRedline {
         return Compare(File.ReadAllBytes(oldPath), File.ReadAllBytes(newPath), options, cancellationToken);
     }
 
-    private static int CountAnnotatable(OfficeChangeSet changes) =>
-        changes.Changes.Count(static change => change.New != null && (change.New.Regions.Count > 0 || change.New.PageNumber.HasValue));
-
-    private static List<PdfAnnotationCreateOptions> BuildAnnotations(OfficeChangeSet changes, PdfRedlineText newText, PdfTextRedlineOptions options) {
+    // The limit counts changes, not annotations: a change across a page break gets one highlight per page.
+    private static List<PdfAnnotationCreateOptions> BuildAnnotations(OfficeChangeSet changes, PdfRedlineText newText, PdfTextRedlineOptions options,
+        out bool limitReached) {
         var annotations = new List<PdfAnnotationCreateOptions>();
         int annotatedChanges = 0;
+        limitReached = false;
         foreach (OfficeChange change in changes.Changes) {
-            if (annotatedChanges >= options.MaxAnnotatedChanges) break;
             OfficeChangeAnchor? anchor = change.New;
             if (anchor is null) continue;
+            if (annotatedChanges >= options.MaxAnnotatedChanges) {
+                if (anchor.Regions.Count > 0 || anchor.PageNumber.HasValue) {
+                    limitReached = true;
+                    break;
+                }
+
+                continue;
+            }
             int before = annotations.Count;
             string note = Note(change, options);
             if (change.Kind == OfficeChangeKind.Deleted) {
@@ -259,7 +265,10 @@ public sealed class PdfTextRedlineOptions {
 
 /// <summary>Result of <see cref="PdfTextRedline.Compare(byte[], byte[], PdfTextRedlineOptions?, CancellationToken)"/>.</summary>
 public sealed class PdfTextRedlineResult {
-    internal PdfTextRedlineResult(byte[] pdf, OfficeChangeSet changes, int annotationCount, bool annotationLimitReached, string oldText, string newText) {
+    private readonly bool _ignoreCase;
+
+    internal PdfTextRedlineResult(byte[] pdf, OfficeChangeSet changes, int annotationCount, bool annotationLimitReached, bool ignoreCase, string oldText, string newText) {
+        _ignoreCase = ignoreCase;
         Pdf = pdf;
         Changes = changes;
         AnnotationCount = annotationCount;
@@ -298,7 +307,7 @@ public sealed class PdfTextRedlineResult {
             Title = title ?? "PDF text comparison",
             OldTitle = Changes.OldSource ?? "Old",
             NewTitle = Changes.NewSource ?? "New",
-            DiffOptions = new OfficeDiffOptions { IgnoreWhitespace = true },
+            DiffOptions = new OfficeDiffOptions { IgnoreWhitespace = true, IgnoreCase = _ignoreCase },
             Changes = Changes
         }, cancellationToken);
 }
@@ -328,7 +337,7 @@ internal sealed class PdfRedlineText {
     internal string PlainText => _text.ToString();
 
     internal static PdfRedlineText Read(byte[] pdf, PdfLoadOptions? readOptions, string parameterName, string label, CancellationToken cancellationToken) {
-        PdfDocumentReadResult document = PdfDocumentReadResult.Load(pdf, null, readOptions);
+        PdfDocumentReadResult document = PdfDocument.Load(pdf, readOptions).Read(new PdfLoadOptions { LayoutOptions = new PdfTextLayoutOptions() }, cancellationToken);
         var text = new PdfRedlineText();
         int lineKey = 0;
         foreach (PdfLogicalPage page in document.Pages) {

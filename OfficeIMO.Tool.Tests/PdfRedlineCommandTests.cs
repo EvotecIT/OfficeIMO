@@ -54,6 +54,25 @@ public sealed class PdfRedlineCommandTests {
     }
 
     [Fact]
+    public async Task OutputBudgetCoversEveryArtifactBeforeAnythingIsWritten() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-pdf-redline-budget-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string first = Write(root, "v1.pdf", Sentence), second = Write(root, "v2.pdf", Sentence.Replace("faster", "slower"));
+            var service = new OfficeImoAgentService(new AgentPathPolicy(new[] { root }));
+            string probe = Path.Combine(root, "probe.pdf");
+            await service.RedlinePdfAsync(first, second, probe, null, null, new PdfWorkflowSettings());
+            string output = Path.Combine(root, "redline.pdf"), changes = Path.Combine(root, "changes.json");
+
+            await Assert.ThrowsAsync<AgentUsageException>(() => service.RedlinePdfAsync(first, second, output, changes, null,
+                new PdfWorkflowSettings { MaximumOutputBytes = new FileInfo(probe).Length + 16 }));
+
+            Assert.False(File.Exists(output));
+            Assert.False(File.Exists(changes));
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public async Task StdioMcpRedlinesRegisteredSourcesAndReturnsCountsOnly() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-pdf-redline-mcp-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
