@@ -307,7 +307,7 @@ internal static partial class MarkdownReader {
             if (markerEnd >= line.Length || (line[markerEnd] != '.' && line[markerEnd] != ')')) return false;
             delimiter = line[markerEnd];
             if (!TryGetListContentStartIndex(line, markerEnd, out contentStartIndex)) return false;
-            if (!int.TryParse(line.Substring(markerStart, markerEnd - markerStart), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
+            number = ParseListMarkerNumber(line, markerStart, markerEnd);
             markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
             return true;
         }
@@ -335,6 +335,22 @@ internal static partial class MarkdownReader {
         number = 0;
         markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
         return false;
+    }
+
+    // At most nine digits, so the value fits; as int.TryParse with invariant integer rules, a
+    // marker with a non-ASCII digit counts as 1. Every list line is parsed several times.
+    private static int ParseListMarkerNumber(string line, int start, int end) {
+        int value = 0;
+        for (int index = start; index < end; index++) {
+            char digit = line[index];
+            if (digit < '0' || digit > '9') {
+                return 1;
+            }
+
+            value = (value * 10) + (digit - '0');
+        }
+
+        return value;
     }
 
     private static int GetOrderedListMarkerDelimiterIndex(string line, int leadingSpaces) {
@@ -494,15 +510,23 @@ internal static partial class MarkdownReader {
     }
 
     private static bool HasIndentedCodePaddingAfterMarker(string line, int markerEndIndex) {
-        line = ExpandWhitespaceAfterContainerMarker(line, markerEndIndex + 1);
-        int paddingStart = markerEndIndex + 1;
-        if (paddingStart >= line.Length || line[paddingStart] != ' ') return false;
+        // Counts the spaces ExpandWhitespaceAfterContainerMarker would leave after the marker
+        // without building the expanded line: every list line is checked here.
+        int markerEnd = markerEndIndex + 1;
+        int end = markerEnd;
+        int column = markerEnd;
+        int structuralEndColumn = markerEnd + 5;
+        while (end < line.Length && column < structuralEndColumn && (line[end] == ' ' || line[end] == '\t')) {
+            column += line[end] == '\t' ? 4 - column % 4 : 1;
+            end++;
+        }
 
-        int spaces = 0;
-        int cursor = paddingStart;
-        while (cursor < line.Length && line[cursor] == ' ') {
+        int spaces = column - markerEnd;
+        if (spaces == 0) return false;
+
+        while (end < line.Length && line[end] == ' ') {
             spaces++;
-            cursor++;
+            end++;
         }
 
         return spaces >= 5;
