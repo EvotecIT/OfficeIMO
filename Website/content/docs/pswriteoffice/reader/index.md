@@ -34,4 +34,4 @@ Reader adapters are modular. A deployment can carry only the adapters it needs, 
 
 Detect first, inspect capabilities, extract the required surfaces, and record warnings/provenance with the output. Do not silently reduce a document to plain text when tables, visuals, or assets matter to the consumer.
 
-See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/e71f09178f1e1231bd7901cbda405bd4f6b4718b/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.
+See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/eab1391a78e175da0249c08bc297f94d8229f0f7/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.
