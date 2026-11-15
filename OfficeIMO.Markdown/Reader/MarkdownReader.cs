@@ -235,12 +235,13 @@ internal static partial class MarkdownReader {
         List<MarkdownSyntaxNode>? syntaxNodes = null,
         int lineOffset = 0,
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
-        bool applyDocumentTransforms = true) {
+        bool applyDocumentTransforms = true,
+        string[]? preparedLines = null) {
         var doc = MarkdownDocument.Create();
         state.CaptureSyntaxTree = syntaxNodes != null;
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         normalizedSourceText = string.Empty;
-        if (string.IsNullOrEmpty(markdown)) return doc;
+        if (preparedLines == null && string.IsNullOrEmpty(markdown)) return doc;
         int previousLineOffset = state.SourceLineOffset;
         var previousSourceTextMap = state.SourceTextMap;
         var previousSyntheticTerminalLine = state.HasSyntheticTerminalLine;
@@ -248,16 +249,24 @@ internal static partial class MarkdownReader {
 
         try {
             bool captureSourceSpans = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans;
-            var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
-            normalizedSourceText = text;
-            state.HasSyntheticTerminalLine = !state.LastInputLineIsContent &&
-                (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal));
-            if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
-                state.SourceTextMap = new MarkdownSourceTextMap(text);
+            string[] lines;
+            if (preparedLines != null) {
+                // TryGetPreparedNestedLines checked that preparing and splitting the joined lines
+                // would return them unchanged, and that the last line is content.
+                lines = preparedLines;
+                state.HasSyntheticTerminalLine = false;
+            } else {
+                var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
+                normalizedSourceText = text;
+                state.HasSyntheticTerminalLine = !state.LastInputLineIsContent &&
+                    (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal));
+                if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
+                    state.SourceTextMap = new MarkdownSourceTextMap(text);
+                }
+                lines = captureSourceSpans
+                    ? text.Split('\n')
+                    : SplitMarkdownLines(text);
             }
-            var lines = captureSourceSpans
-                ? text.Split('\n')
-                : SplitMarkdownLines(text);
             int i = 0;
 
             // Parsing with syntax capture binds the complete object and source trees together
