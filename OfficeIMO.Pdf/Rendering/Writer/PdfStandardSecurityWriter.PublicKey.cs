@@ -60,6 +60,8 @@ internal static partial class PdfStandardSecurityWriter {
     internal static byte[] CreatePublicKeyRecipientContent(byte[] seed, int permissions) {
         var content = new byte[24];
         Buffer.BlockCopy(seed, 0, content, 0, 20);
+        // Bit 1 grants nothing the reader enforces; PDFBox and pyHanko set it in recipient data for Acrobat.
+        permissions |= 1;
         unchecked {
             content[20] = (byte)(permissions >> 24);
             content[21] = (byte)(permissions >> 16);

@@ -51,6 +51,17 @@ public sealed class PdfPublicKeyEncryptedWriteTests {
     }
 
     [Fact]
+    public void RecipientsWithoutCopyPermissionStillGetTheDocument() {
+        const PdfStandardPermissions granted = PdfStandardPermissions.Print;
+        byte[] pdf = CreateEncrypted(granted);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf, OptionsFor(_recipient));
+        Assert.Equal(granted, info.Security.AllowedStandardPermissions);
+        Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, OptionsFor(_recipient)));
+    }
+
+    [Fact]
     public void OtherCertificatesAndMissingOptionsFailClosed() {
         byte[] pdf = CreateEncrypted(PdfStandardPermissions.All);
 
@@ -77,7 +88,7 @@ public sealed class PdfPublicKeyEncryptedWriteTests {
         byte[] content = recipient.GetContent(DotNetUtilities.GetRsaKeyPair(_recipient.GetRSAPrivateKey()!).Private);
         Assert.Equal(24, content.Length);
         int permissions = (content[20] << 24) | (content[21] << 16) | (content[22] << 8) | content[23];
-        Assert.Equal(PdfStandardEncryptionOptions.ToRawPermissions(granted), permissions);
+        Assert.Equal(PdfStandardEncryptionOptions.ToRawPermissions(granted) | 1, permissions);
 
         byte[] fileKey;
         using (SHA256 sha = SHA256.Create()) {

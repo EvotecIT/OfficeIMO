@@ -129,9 +129,9 @@ internal static class PdfSecurityEditor {
             PreserveRevisionStructure = false,
             PreserveSecurityState = false
         };
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(sourcePdf, rewrittenPdf, preservationOptions,
-            originalReadOptions: null, rewrittenReadOptions: null, cancellationToken);
-        preservation.ThrowIfFailed();
+        // The planner already authorized the change, so the proof must not demand extraction rights a recipient may lack.
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreservedForMutation(sourcePdf, rewrittenPdf,
+            preservationOptions, plan, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         PdfDocumentSecurityInfo outputSecurity = PdfSyntax.ReadDocumentSecurityInfo(rewrittenPdf, outputReadOptions, cancellationToken: cancellationToken);
