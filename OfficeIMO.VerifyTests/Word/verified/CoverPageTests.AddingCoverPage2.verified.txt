@@ -275,6 +275,9 @@
           <w:docPartGallery w:val="Table of Contents" />
           <w:docPartUnique />
         </w:docPartObj>
+        <w:placeholder>
+          <w:docPart w:val="OfficeIMO_TocPlaceholder_1" />
+        </w:placeholder>
       </w:sdtPr>
       <w:sdtEndPr>
         <w:rPr>
@@ -297,16 +300,21 @@
           </w:r>
         </w:p>
         <w:p>
-          <w:fldSimple w:instr=" TOC \o &quot;1-3&quot; \h \z \u " w:dirty="true">
-            <w:r>
-              <w:t xml:space="preserve" />
-            </w:r>
-          </w:fldSimple>
-        </w:p>
-        <w:p>
           <w:pPr>
             <w:pStyle w:val="TOC1" />
+            <w:tabs>
+              <w:tab w:val="right" w:leader="dot" w:pos="9360" />
+            </w:tabs>
           </w:pPr>
+          <w:r>
+            <w:fldChar w:fldCharType="begin" w:dirty="true" />
+          </w:r>
+          <w:r>
+            <w:instrText xml:space="preserve"> TOC \o "1-3" \h \z \u </w:instrText>
+          </w:r>
+          <w:r>
+            <w:fldChar w:fldCharType="separate" w:dirty="true" />
+          </w:r>
           <w:hyperlink w:history="true" w:anchor="_OfficeIMO_Toc_0_0" r:id="R00000001">
             <w:r>
               <w:t xml:space="preserve">Prepare document</w:t>
@@ -315,13 +323,28 @@
               <w:tab />
             </w:r>
             <w:r>
+              <w:fldChar w:fldCharType="begin" w:dirty="true" />
+            </w:r>
+            <w:r>
+              <w:instrText xml:space="preserve"> PAGEREF _OfficeIMO_Toc_0_0 \h </w:instrText>
+            </w:r>
+            <w:r>
+              <w:fldChar w:fldCharType="separate" w:dirty="true" />
+            </w:r>
+            <w:r>
               <w:t>3</w:t>
+            </w:r>
+            <w:r>
+              <w:fldChar w:fldCharType="end" w:dirty="true" />
             </w:r>
           </w:hyperlink>
         </w:p>
         <w:p>
           <w:pPr>
             <w:pStyle w:val="TOC1" />
+            <w:tabs>
+              <w:tab w:val="right" w:leader="dot" w:pos="9360" />
+            </w:tabs>
           </w:pPr>
           <w:hyperlink w:history="true" w:anchor="_OfficeIMO_Toc_1_1" r:id="R00000002">
             <w:r>
@@ -331,13 +354,28 @@
               <w:tab />
             </w:r>
             <w:r>
+              <w:fldChar w:fldCharType="begin" w:dirty="true" />
+            </w:r>
+            <w:r>
+              <w:instrText xml:space="preserve"> PAGEREF _OfficeIMO_Toc_1_1 \h </w:instrText>
+            </w:r>
+            <w:r>
+              <w:fldChar w:fldCharType="separate" w:dirty="true" />
+            </w:r>
+            <w:r>
               <w:t>3</w:t>
+            </w:r>
+            <w:r>
+              <w:fldChar w:fldCharType="end" w:dirty="true" />
             </w:r>
           </w:hyperlink>
         </w:p>
         <w:p>
           <w:pPr>
             <w:pStyle w:val="TOC1" />
+            <w:tabs>
+              <w:tab w:val="right" w:leader="dot" w:pos="9360" />
+            </w:tabs>
           </w:pPr>
           <w:hyperlink w:history="true" w:anchor="_OfficeIMO_Toc_2_2" r:id="R00000003">
             <w:r>
@@ -347,9 +385,24 @@
               <w:tab />
             </w:r>
             <w:r>
+              <w:fldChar w:fldCharType="begin" w:dirty="true" />
+            </w:r>
+            <w:r>
+              <w:instrText xml:space="preserve"> PAGEREF _OfficeIMO_Toc_2_2 \h </w:instrText>
+            </w:r>
+            <w:r>
+              <w:fldChar w:fldCharType="separate" w:dirty="true" />
+            </w:r>
+            <w:r>
               <w:t>4</w:t>
             </w:r>
+            <w:r>
+              <w:fldChar w:fldCharType="end" w:dirty="true" />
+            </w:r>
           </w:hyperlink>
+          <w:r>
+            <w:fldChar w:fldCharType="end" w:dirty="true" />
+          </w:r>
         </w:p>
       </w:sdtContent>
     </w:sdt>
@@ -2030,4 +2083,26 @@
     <w:abstractNumId w:val="0" />
   </w:num>
 </w:numbering>
+<!--------------------------------------------------------------------------------------------------------------------->
+/word/glossary/document.xml
+<!--------------------------------------------------------------------------------------------------------------------->
+<w:glossaryDocument xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docParts>
+    <w:docPart>
+      <w:docPartPr>
+        <w:name w:val="OfficeIMO_TocPlaceholder_1" />
+        <w:types>
+          <w:type w:val="bbPlcHdr" />
+        </w:types>
+      </w:docPartPr>
+      <w:docPartBody>
+        <w:p>
+          <w:r>
+            <w:t xml:space="preserve">No table of contents entries found.</w:t>
+          </w:r>
+        </w:p>
+      </w:docPartBody>
+    </w:docPart>
+  </w:docParts>
+</w:glossaryDocument>
 <!--------------------------------------------------------------------------------------------------------------------->

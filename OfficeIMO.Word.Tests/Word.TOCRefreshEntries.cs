@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Overview", "Details");
                 Assert.DoesNotContain("Appendix", TocText(toc));
                 Assert.All(report.Entries, entry => Assert.Contains(document._document.Body!.Descendants<BookmarkStart>(), bookmark => bookmark.Name == entry.BookmarkName));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated TOC Overview", "Word-generated TOC Detail");
                 Assert.DoesNotContain("Word-generated TOC Appendix", TocText(toc));
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated TOC Overview", "Word-generated TOC Detail");
                 Assert.DoesNotContain("Word-generated TOC Appendix", TocText(toc));
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated TOC Overview", "Word-generated TOC Detail");
                 Assert.DoesNotContain("Word-generated TOC Appendix", TocText(toc));
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -517,7 +517,7 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated text-box TOC overview", "Word-generated text-box TOC detail");
                 Assert.DoesNotContain("Word-generated text-box TOC appendix", TocText(toc));
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -571,7 +571,7 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated table text-box TOC overview", "Word-generated table text-box TOC detail");
                 Assert.DoesNotContain("Word-generated table text-box TOC appendix", TocText(toc));
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -618,7 +618,7 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated outline root", "Word-generated outline child");
                 Assert.DoesNotContain("Word-generated outline appendix", TocText(toc));
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -666,9 +666,9 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated TC root", "Word-generated TC child", "Word-generated TC appendix");
                 Assert.DoesNotContain("Word-generated TC other type", TocText(toc));
                 Assert.Equal(3, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\f \"A\"", StringComparison.Ordinal));
+                Assert.True(toc.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\f \"A\"", StringComparison.Ordinal));
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -703,8 +703,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(4, report.Entries[0].Level);
                 AssertGeneratedEntries(toc, "TC only entry");
                 Assert.DoesNotContain("Heading should stay out", TocText(toc));
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\f \"A\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\f \"A\"", StringComparison.Ordinal));
             }
         }
 
@@ -740,8 +740,8 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Custom style entry", "Included style entry");
                 Assert.DoesNotContain("Heading should stay out", TocText(toc));
                 Assert.DoesNotContain("Excluded case-distinct body", TocText(toc));
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"included,1,CustomOnly,4\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\t \"included,1,CustomOnly,4\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
                 document.Save();
             }
@@ -774,10 +774,10 @@ namespace OfficeIMO.Tests {
                 Assert.Single(report.Entries);
                 Assert.Equal("Real TOC Heading", report.Entries[0].Text);
                 AssertGeneratedEntries(toc, "Real TOC Heading");
-                SimpleField generatedField = toc.SdtBlock.Descendants<SimpleField>().Single(field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("TOC", StringComparison.OrdinalIgnoreCase));
-                Assert.Contains("\\o \"1-1\"", generatedField.Instruction?.Value ?? generatedField.Instruction ?? string.Empty);
-                Assert.DoesNotContain("PAGEREF", generatedField.Instruction?.Value ?? generatedField.Instruction ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+                FieldCode generatedField = toc.SdtBlock.Descendants<FieldCode>().Single(field =>
+                    field.Text.TrimStart().StartsWith("TOC", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains("\\o \"1-1\"", generatedField.Text);
+                Assert.DoesNotContain("PAGEREF", generatedField.Text, StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -811,8 +811,8 @@ namespace OfficeIMO.Tests {
                 AssertGeneratedEntries(toc, "Word-generated custom style root", "Word-generated custom style child", "Word-generated custom style appendix");
                 Assert.DoesNotContain("Word-generated custom style excluded body", TocText(toc));
                 Assert.Equal(3, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"Custom TOC Root,1,Custom TOC Detail,2,Custom TOC Appendix,4\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\t \"Custom TOC Root,1,Custom TOC Detail,2,Custom TOC Appendix,4\"", StringComparison.Ordinal));
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -865,8 +865,8 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("Outside before scope", tocText);
                 Assert.DoesNotContain("Outside after scope", tocText);
                 Assert.DoesNotContain("Scoped appendix outside range", tocText);
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\b \"ScopedToc\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\b \"ScopedToc\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -880,8 +880,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Scoped child", tocText);
                 Assert.DoesNotContain("Outside before scope", tocText);
                 Assert.DoesNotContain("Outside after scope", tocText);
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\b \"ScopedToc\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\b \"ScopedToc\"", StringComparison.Ordinal));
             }
         }
 
@@ -919,8 +919,8 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain("Word-generated scoped TOC outside after", TocText(toc));
                 Assert.DoesNotContain("Word-generated scoped TOC appendix", TocText(toc));
                 Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\b \"OfficeIMO_TocScope\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\b \"OfficeIMO_TocScope\"", StringComparison.Ordinal));
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -958,8 +958,8 @@ namespace OfficeIMO.Tests {
                 AssertTocEntryPageNumberState(toc, "Visible page root", expectedStyleId: "TOC1", shouldContainPageNumber: true);
                 AssertTocEntryPageNumberState(toc, "Suppressed page child", expectedStyleId: "TOC2", shouldContainPageNumber: false);
                 AssertTocEntryPageNumberState(toc, "Suppressed page detail", expectedStyleId: "TOC3", shouldContainPageNumber: false);
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n \"2-3\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\n \"2-3\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -992,8 +992,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
                 AssertTocEntryPageNumberState(toc, "All suppressed root", expectedStyleId: "TOC1", shouldContainPageNumber: false);
                 AssertTocEntryPageNumberState(toc, "All suppressed child", expectedStyleId: "TOC2", shouldContainPageNumber: false);
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\n", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -1037,8 +1037,8 @@ namespace OfficeIMO.Tests {
                 AssertTocEntryPageNumberState(toc, "Word-generated no-page root", expectedStyleId: "TOC1", shouldContainPageNumber: true);
                 AssertTocEntryPageNumberState(toc, "Word-generated no-page child", expectedStyleId: "TOC2", shouldContainPageNumber: false);
                 AssertTocEntryPageNumberState(toc, "Word-generated no-page detail", expectedStyleId: "TOC3", shouldContainPageNumber: false);
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n \"2-3\"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\n \"2-3\"", StringComparison.Ordinal));
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -1084,8 +1084,8 @@ namespace OfficeIMO.Tests {
                 AssertTocEntryPageNumberSeparator(toc, "Word-generated no-page root", expectedStyleId: "TOC1", expectedSeparator: " -> ", expectedPageNumber: "1");
                 AssertTocEntryPageNumberSeparator(toc, "Word-generated no-page child", expectedStyleId: "TOC2", expectedSeparator: " -> ", expectedPageNumber: "2");
                 AssertTocEntryPageNumberSeparator(toc, "Word-generated no-page detail", expectedStyleId: "TOC3", expectedSeparator: " -> ", expectedPageNumber: "2");
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \" -> \"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\p \" -> \"", StringComparison.Ordinal));
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -1119,8 +1119,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
                 AssertTocEntryPageNumberSeparator(toc, "Separator root", expectedStyleId: "TOC1", expectedSeparator: " -> ", expectedPageNumber: "1");
                 AssertTocEntryPageNumberSeparator(toc, "Separator child", expectedStyleId: "TOC2", expectedSeparator: " -> ", expectedPageNumber: "2");
-                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \" -> \"", StringComparison.Ordinal));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\p \" -> \"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -1246,8 +1246,8 @@ namespace OfficeIMO.Tests {
                 AssertTocEntryPageNumberSeparator(list, "Figure 1 Separator network diagram", expectedStyleId: "TOC1", expectedSeparator: " :: ", expectedPageNumber: "1");
                 AssertTocEntryPageNumberSeparator(list, "Figure 2 Separator latency chart", expectedStyleId: "TOC1", expectedSeparator: " :: ", expectedPageNumber: "2");
                 Assert.DoesNotContain("Separator excluded table", TocText(list));
-                Assert.Contains(list.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \" :: \"", StringComparison.Ordinal));
+                Assert.Contains(list.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\p \" :: \"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -1281,8 +1281,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Figure", report.SequenceIdentifier);
                 Assert.Equal(2, report.EntryCount);
                 Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
-                Assert.Contains(list.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n", StringComparison.Ordinal));
+                Assert.Contains(list.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\n", StringComparison.Ordinal));
                 AssertTocEntryPageNumberState(list, "Figure 1 No-page network diagram", expectedStyleId: "TOC1", shouldContainPageNumber: false);
                 AssertTocEntryPageNumberState(list, "Figure 2 No-page latency chart", expectedStyleId: "TOC1", shouldContainPageNumber: false);
                 Assert.DoesNotContain("Still excluded", TocText(list));
@@ -1296,8 +1296,8 @@ namespace OfficeIMO.Tests {
 
                 AssertTocEntryPageNumberState(list, "Figure 1 No-page network diagram", expectedStyleId: "TOC1", shouldContainPageNumber: false);
                 AssertTocEntryPageNumberState(list, "Figure 2 No-page latency chart", expectedStyleId: "TOC1", shouldContainPageNumber: false);
-                Assert.Contains(list.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n", StringComparison.Ordinal));
+                Assert.Contains(list.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\n", StringComparison.Ordinal));
             }
         }
 
@@ -1710,8 +1710,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.SkippedCaptionCount);
                 Assert.Equal(new[] { "Figure 1 Word-authored network diagram", "Figure 2 Word-authored latency chart" }, report.Entries.Select(entry => entry.Text).ToArray());
                 Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
-                Assert.Contains(list.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \" :: \"", StringComparison.Ordinal));
+                Assert.Contains(list.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\p \" :: \"", StringComparison.Ordinal));
                 AssertTocEntryPageNumberSeparator(list, "Figure 1 Word-authored network diagram", expectedStyleId: "TOC1", expectedSeparator: " :: ", expectedPageNumber: "1");
                 AssertTocEntryPageNumberSeparator(list, "Figure 2 Word-authored latency chart", expectedStyleId: "TOC1", expectedSeparator: " :: ", expectedPageNumber: "2");
                 Assert.DoesNotContain("Word-authored signal table", TocText(list));
@@ -1759,8 +1759,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, report.SkippedCaptionCount);
                 Assert.Equal(new[] { "Figure 1 Word-authored no-page network diagram", "Figure 2 Word-authored no-page latency chart" }, report.Entries.Select(entry => entry.Text).ToArray());
                 Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
-                Assert.Contains(list.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\n", StringComparison.Ordinal));
+                Assert.Contains(list.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\n", StringComparison.Ordinal));
                 AssertTocEntryPageNumberState(list, "Figure 1 Word-authored no-page network diagram", expectedStyleId: "TOC1", shouldContainPageNumber: false);
                 AssertTocEntryPageNumberState(list, "Figure 2 Word-authored no-page latency chart", expectedStyleId: "TOC1", shouldContainPageNumber: false);
                 Assert.DoesNotContain("Word-authored excluded table", TocText(list));
@@ -1975,7 +1975,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(index.SdtBlock.Descendants<Paragraph>(), paragraph =>
                     paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value == "Index3" &&
                     string.Concat(paragraph.Descendants<Text>().Select(text => text.Text)).Contains("Deep Dive", StringComparison.Ordinal));
-                Assert.True(index.SdtBlock.Descendants<SimpleField>().Single(field => (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("INDEX", StringComparison.OrdinalIgnoreCase)).Dirty?.Value);
+                Assert.True(index.SdtBlock.Descendants<FieldChar>().First(field => field.FieldCharType == FieldCharValues.Begin).Dirty?.Value);
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -2524,8 +2524,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("WordLoose => 2 | 3", indexText);
                 Assert.Contains("WordRange => 1 to 2", indexText);
                 Assert.Contains("WordSee -> See WordLoose", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field => {
-                    string instruction = field.Instruction?.Value ?? field.Instruction ?? string.Empty;
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field => {
+                    string instruction = field.Text;
                     return instruction.Contains("\\e \" => \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\l \" | \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\g \" to \"", StringComparison.Ordinal) &&
@@ -2544,8 +2544,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("WordLoose => 2 | 3", indexText);
                 Assert.Contains("WordRange => 1 to 2", indexText);
                 Assert.Contains("WordSee -> See WordLoose", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field => {
-                    string instruction = field.Instruction?.Value ?? field.Instruction ?? string.Empty;
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field => {
+                    string instruction = field.Text;
                     return instruction.Contains("\\e \" => \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\l \" | \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\g \" to \"", StringComparison.Ordinal) &&
@@ -2585,8 +2585,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("See Alpha", indexText);
                 Assert.DoesNotContain("Beta", indexText);
                 Assert.DoesNotContain("Loose", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\f \"A\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\f \"A\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -2601,8 +2601,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Gamma", indexText);
                 Assert.DoesNotContain("Beta", indexText);
                 Assert.DoesNotContain("Loose", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\f \"A\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\f \"A\"", StringComparison.Ordinal));
             }
         }
 
@@ -2643,8 +2643,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("ScopedBeta", indexText);
                 Assert.DoesNotContain("OutsideBefore", indexText);
                 Assert.DoesNotContain("OutsideAfter", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\b \"ScopedIndex\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\b \"ScopedIndex\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -2659,8 +2659,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("ScopedBeta", indexText);
                 Assert.DoesNotContain("OutsideBefore", indexText);
                 Assert.DoesNotContain("OutsideAfter", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\b \"ScopedIndex\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\b \"ScopedIndex\"", StringComparison.Ordinal));
             }
         }
 
@@ -2789,8 +2789,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Alpha => 1 | 2", indexText);
                 Assert.Contains("Range Topic => 2 to 3", indexText);
                 Assert.Contains("Gamma -> See Alpha", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field => {
-                    string instruction = field.Instruction?.Value ?? field.Instruction ?? string.Empty;
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field => {
+                    string instruction = field.Text;
                     return instruction.Contains("\\e \" => \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\l \" | \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\g \" to \"", StringComparison.Ordinal) &&
@@ -2808,8 +2808,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Alpha => 1 | 2", indexText);
                 Assert.Contains("Range Topic => 2 to 3", indexText);
                 Assert.Contains("Gamma -> See Alpha", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field => {
-                    string instruction = field.Instruction?.Value ?? field.Instruction ?? string.Empty;
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field => {
+                    string instruction = field.Text;
                     return instruction.Contains("\\e \" => \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\l \" | \"", StringComparison.Ordinal) &&
                            instruction.Contains("\\g \" to \"", StringComparison.Ordinal) &&
@@ -2846,8 +2846,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Detail", indexText);
                 Assert.Contains("--M--Mango", indexText);
                 Assert.Contains("1Number", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\h \"--A--\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\h \"--A--\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -2857,8 +2857,8 @@ namespace OfficeIMO.Tests {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Equal(new[] { "--A--", "--B--", "--M--" }, GetIndexHeadingTexts(index));
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\h \"--A--\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\h \"--A--\"", StringComparison.Ordinal));
             }
         }
 
@@ -2884,8 +2884,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Two Column Index", indexText);
                 Assert.Contains("Alpha", indexText);
                 Assert.Contains("Beta", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\c \"2\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\c \"2\"", StringComparison.Ordinal));
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
@@ -2895,8 +2895,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\c \"2\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\c \"2\"", StringComparison.Ordinal));
                 Assert.Contains("Alpha", TocText(index));
                 Assert.Contains("Beta", TocText(index));
             }
@@ -3022,8 +3022,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Mango", indexText);
                 Assert.DoesNotContain("Zulu", indexText);
                 Assert.DoesNotContain("1Number", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \"A-M\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\p \"A-M\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();
@@ -3037,8 +3037,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Mango", indexText);
                 Assert.DoesNotContain("Zulu", indexText);
                 Assert.DoesNotContain("1Number", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \"A-M\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\p \"A-M\"", StringComparison.Ordinal));
             }
         }
 
@@ -3068,8 +3068,8 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Alpha", indexText);
                 Assert.Contains("Beta", indexText);
                 Assert.DoesNotContain("Cobalt", indexText);
-                Assert.Contains(index.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\p \"!--B\"", StringComparison.Ordinal));
+                Assert.Contains(index.SdtBlock.Descendants<FieldCode>(), field =>
+                    field.Text.Contains("\\p \"!--B\"", StringComparison.Ordinal));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
                 document.Save();

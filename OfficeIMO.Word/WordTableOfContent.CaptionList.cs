@@ -231,6 +231,7 @@ namespace OfficeIMO.Word {
         }
 
         private void ReplaceCaptionListContent(string instruction, string sequenceIdentifier, string title, IReadOnlyList<CaptionListEntry> entries, ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
+            string noContentText = GetNoContentText("No " + sequenceIdentifier + " entries found.");
             SdtContentBlock content = _sdtBlock.SdtContentBlock
                 ?? throw new InvalidOperationException("Table of contents content block is missing.");
 
@@ -240,11 +241,9 @@ namespace OfficeIMO.Word {
 
             content.RemoveAllChildren();
             content.Append(titleParagraph);
-            content.Append(CreateTocFieldParagraph(instruction, entries.Count == 0 ? "No " + sequenceIdentifier + " entries found." : string.Empty));
-
-            foreach (CaptionListEntry entry in entries) {
-                content.Append(CreateEntryParagraph(new TocHeadingEntry(entry.Text, 1, entry.PageNumber, entry.BookmarkName, applyLevelRange: false), !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator));
-            }
+            AppendGeneratedFieldResult(content, instruction, entries.Select(entry => CreateEntryParagraph(
+                new TocHeadingEntry(entry.Text, 1, entry.PageNumber, entry.BookmarkName, applyLevelRange: false),
+                !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator)), noContentText);
         }
 
         private static bool ContainsSequenceField(Paragraph paragraph, string sequenceIdentifier) {
