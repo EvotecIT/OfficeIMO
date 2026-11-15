@@ -274,6 +274,7 @@ internal static class OfficeImoToolCommands {
                 ["ocr"] = "Add searchable text from an OCR provider.",
                 ["optimize|sanitize"] = "Write a smaller copy, or a copy without active content.",
                 ["convert-to-pdfa"] = "Write a PDF/A copy, or refuse and report every violation.",
+                ["redline"] = "Mark the text changes between two PDFs on a copy of the newer one.",
                 ["providers"] = "List the OCR providers that are loaded.",
                 ["redact providers"] = "List the OCR providers available to redaction.",
                 ["redact batch"] = "Run several redactions from one request file.",

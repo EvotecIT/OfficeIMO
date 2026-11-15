@@ -3507,6 +3507,50 @@
           ]
         },
         {
+          "name": "redline",
+          "names": [
+            "redline"
+          ],
+          "summary": "Mark the text changes between two PDFs on a copy of the newer one.",
+          "usage": [
+            "officeimo pdf redline <old.pdf> <new.pdf> --output <annotated.pdf> [--changes <changes.json>] [--report <report.html>] [--algorithm myers|patience|histogram] [--ignore-case] [--password-env <name>] [--new-password-env <name>] [--force]"
+          ],
+          "options": [
+            {
+              "name": "--output",
+              "value": "<annotated.pdf>"
+            },
+            {
+              "name": "--changes",
+              "value": "<changes.json>"
+            },
+            {
+              "name": "--report",
+              "value": "<report.html>"
+            },
+            {
+              "name": "--algorithm",
+              "value": "myers|patience|histogram"
+            },
+            {
+              "name": "--ignore-case",
+              "value": null
+            },
+            {
+              "name": "--password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--new-password-env",
+              "value": "<name>"
+            },
+            {
+              "name": "--force",
+              "value": null
+            }
+          ]
+        },
+        {
           "name": "redact providers",
           "names": [
             "redact providers"
