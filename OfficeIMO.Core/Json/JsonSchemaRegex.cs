@@ -138,8 +138,7 @@ internal static class JsonSchemaRegex {
             int close = pattern.IndexOf('>', i + 3);
             if (close < 0) throw new ArgumentException("The group name is not closed.");
             string name = pattern.Substring(i + 3, close - i - 3);
-            state.Captures++;
-            text.Append("(?<").Append(state.Names[name].ToString(CultureInfo.InvariantCulture)).Append('>');
+            text.Append("(?<").Append((++state.Captures).ToString(CultureInfo.InvariantCulture)).Append('>');
             return close + 1;
         }
         // Modifier groups such as (?i:...) scope flags to the group; global (?i) flags are not ECMA-262. .NET has no
@@ -222,8 +221,8 @@ internal static class JsonSchemaRegex {
                 int close = pattern.IndexOf('>', i + 3);
                 if (close < 0) throw new ArgumentException("\\k needs a group name.");
                 string name = pattern.Substring(i + 3, close - i - 3);
-                if (!state.Names.TryGetValue(name, out int number)) throw new ArgumentException("\\k<" + name + "> names no group.");
-                text.Append("\\k<").Append(number.ToString(CultureInfo.InvariantCulture)).Append('>');
+                if (!state.Names.TryGetValue(name, out List<int>? numbers)) throw new ArgumentException("\\k<" + name + "> names no group.");
+                AppendBackreference(text, numbers);
                 return close + 1;
             }
             case 't':
@@ -237,8 +236,11 @@ internal static class JsonSchemaRegex {
             default:
                 if (n >= '1' && n <= '9') {
                     int end = i + 2;
-                    while (end < pattern.Length && char.IsDigit(pattern[end]) && pattern[end] < 128) end++;
-                    text.Append(pattern, i, end - i);
+                    while (end < pattern.Length && pattern[end] >= '0' && pattern[end] <= '9') end++;
+                    if (!int.TryParse(pattern.Substring(i + 1, end - i - 1), NumberStyles.None, CultureInfo.InvariantCulture, out int group) || group > state.TotalCaptures) {
+                        throw new ArgumentException("\\" + pattern.Substring(i + 1, end - i - 1) + " refers to no group.");
+                    }
+                    AppendBackreference(text, new List<int> { group });
                     return end;
                 }
                 if (IsAsciiLetter(n)) throw new ArgumentException("\\" + n + " is not an ECMA-262 escape.");
@@ -247,17 +249,31 @@ internal static class JsonSchemaRegex {
         }
     }
 
+    /// <summary>
+    /// Appends a backreference to whichever of the groups captured. A reference to a group that captured nothing matches
+    /// the empty string in ECMA-262, while .NET fails, so each reference is conditional on its group.
+    /// </summary>
+    private static void AppendBackreference(StringBuilder text, List<int> groups) {
+        foreach (int group in groups) {
+            string number = group.ToString(CultureInfo.InvariantCulture);
+            text.Append("(?(").Append(number).Append(")\\k<").Append(number).Append(">|");
+        }
+        for (int i = 0; i < groups.Count; i++) text.Append(')');
+    }
+
     /// <summary>Translation state: the output, the m and s flags of each open group, and capture numbers by name.</summary>
     private sealed class State {
         private readonly Stack<bool> _scopes = new Stack<bool>();
 
         public State(string pattern) {
             Text = new StringBuilder(pattern.Length + 16);
-            Names = NumberNamedGroups(pattern);
+            Names = NumberNamedGroups(pattern, out int total);
+            TotalCaptures = total;
         }
 
         public StringBuilder Text { get; }
-        public Dictionary<string, int> Names { get; }
+        public Dictionary<string, List<int>> Names { get; }
+        public int TotalCaptures { get; }
         public int Captures { get; set; }
         public bool Multiline { get; private set; }
         public bool DotAll { get; private set; }
@@ -276,9 +292,9 @@ internal static class JsonSchemaRegex {
         }
 
         /// <summary>Gives each group name its ECMA-262 capture number: groups count left to right, named or not.</summary>
-        private static Dictionary<string, int> NumberNamedGroups(string pattern) {
-            var names = new Dictionary<string, int>(StringComparer.Ordinal);
-            int captures = 0;
+        private static Dictionary<string, List<int>> NumberNamedGroups(string pattern, out int captures) {
+            var names = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            captures = 0;
             bool inClass = false;
             for (int i = 0; i < pattern.Length; i++) {
                 char c = pattern[i];
@@ -294,8 +310,11 @@ internal static class JsonSchemaRegex {
                     } else if (At(pattern, i + 2) == '<' && At(pattern, i + 3) is not ('=' or '!')) {
                         captures++;
                         int close = pattern.IndexOf('>', i + 3);
-                        // A name repeated in other alternatives shares the first group's number, as .NET allows.
-                        if (close > 0 && !names.ContainsKey(pattern.Substring(i + 3, close - i - 3))) names.Add(pattern.Substring(i + 3, close - i - 3), captures);
+                        if (close < 0) continue;
+                        // A name can repeat in other alternatives; each group keeps its own number.
+                        string name = pattern.Substring(i + 3, close - i - 3);
+                        if (!names.TryGetValue(name, out List<int>? numbers)) names.Add(name, numbers = new List<int>());
+                        numbers.Add(captures);
                     }
                 }
             }

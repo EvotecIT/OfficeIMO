@@ -43,6 +43,21 @@ public class JsonSchemaEdgeCaseTests {
         Assert.True(finding.Message.Length < 200, finding.Message);
     }
 
+    [Fact]
+    public void PreviewsOfLongStringsAndNamesStayShort() {
+        string huge = new string('x', 1_000_000);
+        JsonData[] constants = {
+            JsonData.CreateString(huge),
+            JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>(huge, JsonData.CreateNull()) })
+        };
+
+        foreach (JsonData constant in constants) {
+            JsonSchema schema = JsonSchema.Load(JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>("const", constant) }));
+            JsonSchemaFinding finding = Assert.Single(schema.Validate(JsonData.CreateNumber(0)).Findings);
+            Assert.True(finding.Message.Length < 200, finding.Message.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+    }
+
     [Theory]
     [InlineData("^..$", "\U0001F600", false)]
     [InlineData("^.$", "\U0001F600", true)]
@@ -54,6 +69,10 @@ public class JsonSchemaEdgeCaseTests {
     [InlineData("^(?<a>a)(b)\\1$", "aba", true)]
     [InlineData("^(?<a>a)(b)\\1$", "abb", false)]
     [InlineData("^(?<a>a)(b)\\k<a>$", "aba", true)]
+    [InlineData("^(?:(?<x>a)|(?<x>b))(c)\\2$", "bcb", true)]
+    [InlineData("^(?:(?<x>a)|(?<x>b))\\k<x>$", "bb", true)]
+    [InlineData("^(?:(?<x>a)|(?<x>b))\\k<x>$", "ba", false)]
+    [InlineData("^(a)?\\1b$", "b", true)]
     public void PatternsFollowEcmaScriptSemantics(string pattern, string value, bool valid) {
         JsonSchema schema = JsonSchema.Load(JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>("pattern", JsonData.CreateString(pattern)) }));
 

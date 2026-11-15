@@ -377,10 +377,10 @@ public sealed class JsonData {
         switch (value.Kind) {
             case JsonDataKind.Null: text.Append("null"); break;
             case JsonDataKind.Boolean: text.Append(value._boolean ? "true" : "false"); break;
-            case JsonDataKind.String: WriteString(text, value._string!); break;
+            case JsonDataKind.String: WriteString(text, value._string!, limit); break;
             case JsonDataKind.Number:
                 if (value._hasExact) text.Append(value._exact.ToString());
-                else if (double.IsNaN(value._double) || double.IsInfinity(value._double)) WriteString(text, value._double.ToString(CultureInfo.InvariantCulture));
+                else if (double.IsNaN(value._double) || double.IsInfinity(value._double)) WriteString(text, value._double.ToString(CultureInfo.InvariantCulture), limit);
                 else text.Append(value._double.ToString("R", CultureInfo.InvariantCulture));
                 break;
             case JsonDataKind.Array:
@@ -395,7 +395,7 @@ public sealed class JsonData {
                 text.Append('{');
                 for (int i = 0; i < value._properties.Length; i++) {
                     if (i > 0) text.Append(',');
-                    WriteString(text, value._properties[i].Key);
+                    if (!WriteString(text, value._properties[i].Key, limit)) return false;
                     text.Append(':');
                     if (!Write(text, value._properties[i].Value, limit)) return false;
                 }
@@ -405,9 +405,11 @@ public sealed class JsonData {
         return text.Length <= limit;
     }
 
-    internal static void WriteString(StringBuilder text, string value) {
+    /// <summary>Appends a JSON string; stops and returns false once the text exceeds <paramref name="limit"/> characters.</summary>
+    internal static bool WriteString(StringBuilder text, string value, int limit) {
         text.Append('"');
         foreach (char c in value) {
+            if (text.Length > limit) return false;
             switch (c) {
                 case '"': text.Append("\\\""); break;
                 case '\\': text.Append("\\\\"); break;
@@ -423,6 +425,7 @@ public sealed class JsonData {
             }
         }
         text.Append('"');
+        return text.Length <= limit;
     }
 }
 

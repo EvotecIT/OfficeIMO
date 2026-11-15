@@ -80,7 +80,8 @@ UTS 46 mapping are approximated from Unicode categories and script ranges rather
 
 Patterns are ECMA-262 regular expressions, translated to .NET: `\d`, `\w`, `\s` and `\b` keep their ECMA-262 sets
 (`\d` matches only ASCII digits), `$` matches only at the end, `.` and literal astral characters match whole code
-points even when backtracking, captures keep their ECMA-262 numbers when named and unnamed groups mix, `(?m:...)` and
+points even when backtracking, captures keep their ECMA-262 numbers when named and unnamed groups mix or a name repeats across alternatives, a
+backreference to a group that captured nothing matches empty, `(?m:...)` and
 `(?s:...)` groups change `^`, `$` and `.` as ECMA-262 defines, and `\p{Letter}`-style property names map to .NET categories (`Script=` maps to the .NET block of that name). Syntax
 ECMA-262 lacks, such as `\a`, `\z` or `(?#...)`, makes the schema invalid. Every match runs with
 `JsonSchemaOptions.RegexTimeout`.
