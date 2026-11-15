@@ -7,18 +7,23 @@ namespace OfficeIMO.Word;
 public partial class WordDocument {
     private static readonly ConcurrentDictionary<WordprocessingDocumentType, DefaultPackageStyles> DefaultPackageStyleCatalogs = new();
 
-    // Default catalogs with library styles appended, keyed by document type and the appended style IDs in order.
-    private static readonly ConcurrentDictionary<(WordprocessingDocumentType Type, string AppendedStyles), DefaultPackageStyles> ExtendedPackageStyleCatalogs = new();
+    // Default catalogs with one library style appended, keyed by document type and style. Only the first style a
+    // document adds is served from here and the entries keep no parsed catalog, so the cache stays small and bounded.
+    private const int MaxExtendedPackageStyleCatalogs = 32;
+    private static readonly ConcurrentDictionary<(WordprocessingDocumentType Type, string StyleId), DefaultPackageStyles> ExtendedPackageStyleCatalogs = new();
+    // Admissions reserved or stored, so concurrent misses cannot take the cache past its limit.
+    private static int _extendedPackageStyleCatalogSlots;
 
     // The style part copied from the cached default package; while unparsed it still holds that package's styles,
-    // followed by the library styles named in _defaultPackageAppendedStyles.
+    // followed by _defaultPackageAppendedStyle when one was appended.
     private StyleDefinitionsPart? _defaultPackageStylesPart;
-    private string _defaultPackageAppendedStyles = string.Empty;
+    private string? _defaultPackageAppendedStyle;
 
     /// <summary>Style IDs and dependencies of a cached default package, and its parsed style catalog to clone.</summary>
     private sealed class DefaultPackageStyles {
         internal DefaultPackageStyles(Styles styles, byte[]? partBytes = null) {
-            Styles = styles;
+            // An extended catalog is served as part bytes; a document that needs its DOM parses the part.
+            Styles = partBytes == null ? styles : null;
             PartBytes = partBytes;
             foreach (Style style in styles.Elements<Style>()) {
                 string? id = style.StyleId?.Value;
@@ -31,9 +36,10 @@ public partial class WordDocument {
             }
         }
 
-        internal Styles Styles { get; }
+        /// <summary>The parsed default catalog to clone; <see langword="null"/> for an extended catalog.</summary>
+        internal Styles? Styles { get; }
 
-        /// <summary>The style part as the Open XML SDK saves <see cref="Styles"/>; <see langword="null"/> for the
+        /// <summary>The style part as the Open XML SDK saves the extended catalog; <see langword="null"/> for the
         /// default package's own catalog, which the copied part already holds.</summary>
         internal byte[]? PartBytes { get; }
 
@@ -47,12 +53,12 @@ public partial class WordDocument {
             !ReferenceEquals(_wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart, part)) {
             return null;
         }
-        DefaultPackageStyles defaults = DefaultPackageStyleCatalogs.GetOrAdd(_defaultPackageType, ReadDefaultPackageStyles);
-        return _defaultPackageAppendedStyles.Length == 0
-            ? defaults
-            : ExtendedPackageStyleCatalogs.TryGetValue((_defaultPackageType, _defaultPackageAppendedStyles), out DefaultPackageStyles? extended)
-                ? extended
-                : null;
+        if (_defaultPackageAppendedStyle == null) {
+            return DefaultPackageStyleCatalogs.GetOrAdd(_defaultPackageType, ReadDefaultPackageStyles);
+        }
+        return ExtendedPackageStyleCatalogs.TryGetValue((_defaultPackageType, _defaultPackageAppendedStyle), out DefaultPackageStyles? extended)
+            ? extended
+            : null;
     }
 
     /// <summary>
@@ -61,42 +67,54 @@ public partial class WordDocument {
     /// </summary>
     /// <param name="styleId">Style that the unparsed catalog does not define.</param>
     /// <param name="dependencies">The appended style's based-on, linked and next styles.</param>
-    /// <returns><see langword="false"/> when the part is not an unparsed default catalog or the style is not a
-    /// theme-independent library style; the caller then takes the parsed route.</returns>
+    /// <returns><see langword="false"/> when the part is not the unparsed default catalog, already has a style
+    /// appended, the style is not a theme-independent library style or the cache is full; the caller then takes the
+    /// parsed route.</returns>
     private bool TryAppendToUnparsedDefaultPackageStyles(string styleId, out string?[] dependencies) {
         dependencies = Array.Empty<string?>();
-        if (GetUnparsedDefaultPackageStyles() is not { } catalog) return false;
+        if (GetUnparsedDefaultPackageStyles() is not { Styles: { } defaultStyles }) return false;
         // The modern table style is generated from the document's creation theme.
         if (WordTableStyles.TryGetStyle(styleId, out WordTableStyle tableStyle) && tableStyle == WordTableStyle.OfficeIMOModern) return false;
 
-        var key = (_defaultPackageType, _defaultPackageAppendedStyles + "\n" + styleId);
+        var key = (_defaultPackageType, styleId);
         if (!ExtendedPackageStyleCatalogs.TryGetValue(key, out DefaultPackageStyles? extended)) {
-            Style? definition = FindLibraryStyleDefinition(styleId);
-            if (definition == null) return false;
-            var styles = (Styles)catalog.Styles.CloneNode(true);
-            // Selecting a style for content must preserve both existing defaults and their absence.
-            definition.Default = null;
-            styles.Append(definition);
-            using var serialized = new MemoryStream();
-            styles.Save(serialized);
-            extended = ExtendedPackageStyleCatalogs.GetOrAdd(key, new DefaultPackageStyles(styles, serialized.ToArray()));
+            if (Interlocked.Increment(ref _extendedPackageStyleCatalogSlots) > MaxExtendedPackageStyleCatalogs) {
+                Interlocked.Decrement(ref _extendedPackageStyleCatalogSlots);
+                return false;
+            }
+            DefaultPackageStyles? created = null;
+            try {
+                Style? definition = FindLibraryStyleDefinition(styleId);
+                if (definition == null) return false;
+                var styles = (Styles)defaultStyles.CloneNode(true);
+                // Selecting a style for content must preserve both existing defaults and their absence.
+                definition.Default = null;
+                styles.Append(definition);
+                using var serialized = new MemoryStream();
+                styles.Save(serialized);
+                created = new DefaultPackageStyles(styles, serialized.ToArray());
+                extended = ExtendedPackageStyleCatalogs.GetOrAdd(key, created);
+            } finally {
+                // Release the slot unless this call stored the entry.
+                if (created == null || !ReferenceEquals(extended, created)) Interlocked.Decrement(ref _extendedPackageStyleCatalogSlots);
+            }
         }
 
         using (var stream = new MemoryStream(extended.PartBytes!, writable: false)) {
             _defaultPackageStylesPart!.FeedData(stream);
         }
-        _defaultPackageAppendedStyles = key.Item2;
+        _defaultPackageAppendedStyle = styleId;
         dependencies = extended.Dependencies[styleId];
         return true;
     }
 
     /// <summary>
     /// Gives an unparsed default style part a copy of the cached catalog, which is cheaper than parsing the same XML
-    /// again for every new document that adds a style.
+    /// again for every new document that adds a style. A part extended with a library style is parsed when needed.
     /// </summary>
     private void LoadDefaultPackageStyles() {
-        if (GetUnparsedDefaultPackageStyles() is { } defaults) {
-            _defaultPackageStylesPart!.Styles = (Styles)defaults.Styles.CloneNode(true);
+        if (GetUnparsedDefaultPackageStyles() is { Styles: { } styles }) {
+            _defaultPackageStylesPart!.Styles = (Styles)styles.CloneNode(true);
         }
     }
 
