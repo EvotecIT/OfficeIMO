@@ -3330,8 +3330,8 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_TagsRowGroupsOnceAcrossPagesAndKeepsCellTextInTheCell() {
         string bodyRows = string.Concat(Enumerable.Range(1, 90).Select(index =>
             "<tr><td>Row " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "</td><td><p>Value</p></td></tr>"));
-        string html = "<table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>" + bodyRows
-            + "</tbody><tfoot><tr><td>Total</td><td>90</td></tr></tfoot></table>";
+        string html = "<html lang='en'><body><table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>" + bodyRows
+            + "</tbody><tfoot><tr><td>Total</td><td>90</td></tr></tfoot></table></body></html>";
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
