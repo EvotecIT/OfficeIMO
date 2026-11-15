@@ -23,7 +23,7 @@ Close-OfficeWord -Document $document
 
 Use `Get-OfficeWordParagraph -Pattern 'Quarter' -SimpleMatch` for literal text; omit `-SimpleMatch` for regular expressions. The inspection family also covers fields, bookmarks, comments and revisions, footnotes and endnotes, images, content controls, tables of contents, and document properties.
 
-The complete [inspect-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/eab1391a78e175da0249c08bc297f94d8229f0f7/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-InspectExisting.ps1) creates a representative file, opens it once, and reports sections, paragraphs, tables, word count, and matches.
+The complete [inspect-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/af5cbdae97e9b1c0ad9199707f0f23b0b8864a2d/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-InspectExisting.ps1) creates a representative file, opens it once, and reports sections, paragraphs, tables, word count, and matches.
 
 ## Choose the next step
 
