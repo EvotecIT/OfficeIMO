@@ -1,6 +1,6 @@
 ---
 title: YAML Configuration Files in .NET
-description: "Load appsettings.yaml into Microsoft.Extensions.Configuration with OfficeIMO.Yaml.Configuration: AddYamlFile, reload on change, merge keys, aliases and options binding."
+description: "Load appsettings.yaml into Microsoft.Extensions.Configuration with AddYamlFile: reload on change, merge keys, aliases and options binding."
 order: 55
 verified: 2026-11-15
 packages:

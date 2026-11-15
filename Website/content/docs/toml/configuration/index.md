@@ -1,6 +1,6 @@
 ---
 title: TOML Configuration Files in .NET
-description: "Load appsettings.toml into Microsoft.Extensions.Configuration with OfficeIMO.Toml.Configuration: AddTomlFile, reload on change, arrays of tables, ISO 8601 date-times and options binding."
+description: "Load appsettings.toml into Microsoft.Extensions.Configuration with AddTomlFile: reload on change, arrays of tables and ISO 8601 date-times."
 order: 60
 verified: 2026-11-15
 packages:
