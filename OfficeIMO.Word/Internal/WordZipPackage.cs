@@ -729,7 +729,7 @@ internal sealed class WordZipPackage : Package {
         }
 
         // Every block but the last is full.
-        private int Capacity => _blocks.Count == 0 ? 0 : (_blocks.Count - 1) * BlockSize + _blocks[_blocks.Count - 1].Length;
+        private long Capacity => _blocks.Count == 0 ? 0 : (_blocks.Count - 1) * (long)BlockSize + _blocks[_blocks.Count - 1].Length;
 
         internal int Read(long position, byte[] buffer, int offset, int count) {
             if (position >= _length) return 0;
@@ -772,7 +772,7 @@ internal sealed class WordZipPackage : Package {
                 Clear(_length, length);
             } else {
                 // The first block is kept for the part's next contents.
-                int keep = Math.Max(1, (length + BlockSize - 1) / BlockSize);
+                int keep = Math.Max(1, (int)(((long)length + BlockSize - 1) / BlockSize));
                 if (_blocks.Count > keep) _blocks.RemoveRange(keep, _blocks.Count - keep);
             }
             _length = length;
@@ -843,7 +843,7 @@ internal sealed class WordZipPackage : Package {
                 // Only a lone first block grows gradually; a later short block goes straight to full size.
                 byte[] last = _blocks[count - 1];
                 int size = count == 1 ? Math.Max(InitialSize, last.Length * 2) : BlockSize;
-                while (size < required - (count - 1) * BlockSize && size < BlockSize) size *= 2;
+                while (size < required - (count - 1) * (long)BlockSize && size < BlockSize) size *= 2;
                 Array.Resize(ref last, Math.Min(size, BlockSize));
                 _blocks[count - 1] = last;
             } else if (count == 0 && required <= BlockSize) {
