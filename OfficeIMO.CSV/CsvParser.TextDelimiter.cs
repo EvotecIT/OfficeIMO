@@ -356,10 +356,12 @@ internal static partial class CsvParser
             throw new ArgumentOutOfRangeException(nameof(options), "MaxCommentContinuationLines must be greater than zero.");
         }
 
+        // Lines are kept only when they may be replayed; an unbounded scan just counts them.
         var continuations = new List<CsvLine>();
+        int continuationCount = 0;
         var state = new QuotedRecordState();
         UpdateQuotedRecordState(firstLine, delimiter, trim, ref state, quote, escape);
-        while (continuations.Count < continuationLimit)
+        while (continuationCount < continuationLimit)
         {
             ThrowIfCancellationRequested(options);
             var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
@@ -373,11 +375,16 @@ internal static partial class CsvParser
                 return true;
             }
 
-            continuations.Add(new CsvLine(next, nextSeparator, lineNumber + continuations.Count + 1));
+            continuationCount++;
+            if (bounded)
+            {
+                continuations.Add(new CsvLine(next, nextSeparator, lineNumber + continuationCount));
+            }
+
             UpdateQuotedRecordState(next, delimiter, trim, ref state, quote, escape);
             if (!state.InQuotes)
             {
-                lineNumber += continuations.Count;
+                lineNumber += continuationCount;
                 return true;
             }
         }
