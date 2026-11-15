@@ -4921,20 +4921,25 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void IndexedPaletteLookupStopsAtTheExactPaletteByteBudget() {
+    public void IndexedPaletteLookupDropsTrailingBytesAndStopsAtItsBoundedAllowance() {
         var dictionary = new PdfDictionary();
         dictionary.Items["Filter"] = new PdfName("FlateDecode");
-        var lookupStream = new PdfStream(dictionary, CompressWithDeflate(new byte[4_096]));
+        // Producers commonly end a palette with a newline after the last entry.
+        var paddedLookup = new PdfStream(dictionary, CompressWithDeflate(new byte[] { 1, 2, 3, 10 }));
+        var oversizedLookup = new PdfStream(dictionary, CompressWithDeflate(new byte[16_384]));
 
+        Assert.True(PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
+            paddedLookup, new Dictionary<int, PdfIndirectObject>(), maxLookupBytes: 3, out byte[] palette));
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfIndexedImageNormalizer.TryReadIndexedLookupBytes(
-                lookupStream,
+                oversizedLookup,
                 new Dictionary<int, PdfIndirectObject>(),
                 maxLookupBytes: 3,
                 out _));
 
+        Assert.Equal(new byte[] { 1, 2, 3 }, palette);
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
-        Assert.Equal(3, exception.Limit);
+        Assert.Equal(3 + 4_096, exception.Limit);
     }
 
     [Fact]

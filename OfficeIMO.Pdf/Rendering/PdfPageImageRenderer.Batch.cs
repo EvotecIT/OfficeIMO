@@ -147,8 +147,12 @@ internal static partial class PdfPageImageRenderer {
             }
             var pageSize = document.Pages[pageNumber - 1].GetVisualPageSize();
             double functionScale = options.GetScale(pageSize.Width, pageSize.Height);
-            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage, printing: printing)
-                : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage);
+            IReadOnlyList<PdfRenderCapabilityDiagnostic> renderDegradations = Array.Empty<PdfRenderCapabilityDiagnostic>();
+            void ReportRenderDegradations(IReadOnlyList<PdfRenderCapabilityDiagnostic> skipped) => renderDegradations = skipped;
+            OfficeDrawing drawing = forDisplay ? document.Pages[pageNumber - 1].ToDisplayDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage, printing: printing,
+                    reportRenderDegradations: ReportRenderDegradations)
+                : document.Pages[pageNumber - 1].ToDrawing(cancellationToken, ConfigureDrawing, functionScale, options.MaxPixelsPerPage, ReportRenderDegradations);
+            var rasterOmissions = new RasterOmissionSink();
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));
             int height = checked((int)Math.Ceiling(drawing.Height * scale));
@@ -167,6 +171,7 @@ internal static partial class PdfPageImageRenderer {
                     options.MaxPixelsPerPage,
                     options.TextShapingProvider,
                     options.TextShapingLanguage,
+                    rasterOmissions,
                     cancellationToken)));
                 bytes = Array.Empty<byte>();
             } else if (options.Format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png) {
@@ -178,6 +183,7 @@ internal static partial class PdfPageImageRenderer {
                     options.MaxPixelsPerPage,
                     options.TextShapingProvider,
                     options.TextShapingLanguage,
+                    rasterOmissions,
                     options.RasterEncoding?.Png,
                     cancellationToken);
             } else {
@@ -203,6 +209,8 @@ internal static partial class PdfPageImageRenderer {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, options.MaxOutputBytesPerPage, bytes.LongLength);
             }
             timer.Stop();
+            capabilityDiagnostics = AppendRenderDegradations(capabilityDiagnostics, renderDegradations,
+                rasterOmissions.ElementOmitted, options.MaxDiagnosticsPerPage);
             return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed,
                 capabilityDiagnostics, options.MaxDiagnosticCharactersPerPage);
         } catch (OperationCanceledException) {

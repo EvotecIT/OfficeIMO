@@ -51,6 +51,7 @@ public sealed partial class PdfReadLimits {
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
             MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
             MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
+            MaxClippingIntersectionWorkPerPage = MaxClippingIntersectionWorkPerPage,
             MaxPrintProductionContexts = MaxPrintProductionContexts,
             MaxPrintProductionOperations = MaxPrintProductionOperations,
         };

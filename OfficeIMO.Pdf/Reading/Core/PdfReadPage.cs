@@ -856,6 +856,7 @@ public sealed partial class PdfReadPage {
         List<string> unsupported,
         HashSet<PdfStream> activeForms,
         PageContentBudget pageContentBudget,
+        PdfTextClippingBudget textClippingBudget,
         int contentNestingDepth = 0) {
         EnsureContentNestingBudget(contentNestingDepth);
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
@@ -864,6 +865,7 @@ public sealed partial class PdfReadPage {
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                      maxOperands: _limits.MaxContentOperands,
+                     textClippingBudget: textClippingBudget,
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      cancellationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
             pageContentBudget.CancellationToken.ThrowIfCancellationRequested();
@@ -881,7 +883,10 @@ public sealed partial class PdfReadPage {
                 }
 
                 var formResources = ResolveDictionary(formStream.Dictionary.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
-                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formResources, unsupported, activeForms, pageContentBudget, contentNestingDepth + 1);
+                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formResources, unsupported, activeForms, pageContentBudget, textClippingBudget, contentNestingDepth + 1);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
+                // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
+                pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -966,7 +971,7 @@ public sealed partial class PdfReadPage {
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
             _limits.MaxActualTextCharacters,
             _limits.MaxDecodedTextCharacters);
-        textClippingBudget ??= new PdfTextClippingBudget();
+        textClippingBudget ??= new PdfTextClippingBudget(_limits);
         Dictionary<string, Func<byte[], int, string>>? configuredDecoders = null;
         string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) {
             try {
@@ -1257,6 +1262,9 @@ public sealed partial class PdfReadPage {
                     onUnmappableText: onUnmappableText,
                     onCompletedDrawingActualText: onCompletedDrawingActualText,
                     retainEditingEvidence: retainEditingEvidence);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
+                // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
+                pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1306,7 +1314,7 @@ public sealed partial class PdfReadPage {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
-        textClippingBudget ??= new PdfTextClippingBudget();
+        textClippingBudget ??= new PdfTextClippingBudget(_limits);
         Action? operationCheck = consumeWork is null && cancellationCheck is null
             ? null
             : () => {
@@ -1497,6 +1505,9 @@ public sealed partial class PdfReadPage {
                     maximumPlacements: maximumPlacements,
                     consumeWork: consumeWork,
                     cancellationCheck: cancellationCheck);
+            } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion && pageContentBudget.SkipsFormsBeyondStack) {
+                // A form nested deeper than this thread's stack allows is skipped; the rest of the content is kept.
+                pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, invocation.Name);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1521,6 +1532,11 @@ public sealed partial class PdfReadPage {
                 PdfReadLimitKind.ContentNestingDepth,
                 _limits.MaxContentNestingDepth,
                 contentNestingDepth);
+        }
+        // Content nested deeper than the thread's stack allows stops with a typed rejection instead of overflowing it.
+        // The form-invocation walkers catch it and skip only that nested form.
+        if (!HasSufficientExecutionStack()) {
+            throw PdfReadLimitException.CallStackExhausted(_limits.MaxContentNestingDepth, contentNestingDepth);
         }
     }
 
@@ -2665,6 +2681,10 @@ public sealed partial class PdfReadPage {
 
         internal CancellationToken CancellationToken { get; }
         internal PdfColorFunctionResolutionContext ColorFunctionResolutionContext { get; }
+
+        // Analysis passes parse many nested streams; charging them to one budget keeps clipping work bounded per page.
+        internal PdfTextClippingBudget AnalysisClippingBudget => _analysisClippingBudget ??= new PdfTextClippingBudget(_page._limits);
+        private PdfTextClippingBudget? _analysisClippingBudget;
 
         // The render invocation owns both resource limits and its final text profile.
         // Nested forms and pattern tiles must configure it before measuring glyphs.

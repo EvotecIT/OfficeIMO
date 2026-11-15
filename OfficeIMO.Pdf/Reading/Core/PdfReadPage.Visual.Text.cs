@@ -15,6 +15,10 @@ public sealed partial class PdfReadPage {
         if (string.IsNullOrEmpty(span.Text) || !span.IsVisible || span.Color is { A: 0 }) {
             return;
         }
+        // A zero or non-finite font size (for example "0 Tf") paints no glyphs.
+        if (span.FontSize == 0D || double.IsNaN(span.FontSize) || double.IsInfinity(span.FontSize)) {
+            return;
+        }
         if (span.ClipPath.HasValue) {
             var sourceClip = span.ClipPath.Value;
             if (sourceClip.Width <= 0D || sourceClip.Height <= 0D) return;

@@ -75,6 +75,11 @@ public sealed partial class OfficeRasterCanvas {
         int top = (int)Math.Max(0D, Math.Floor(minY));
         int bottom = (int)Math.Min(Height - 1D, Math.Ceiling(maxY) - 1D);
         if (right < left || bottom < top) return;
+        // Each pixel row costs at least every edge times its sub-scanlines, so a shape whose lower bound already exceeds
+        // the work limit is rejected before any row is painted rather than after most of the work is spent.
+        if (contourEdges > MaximumContourCrossingWork / (ContourSubScanlines * (bottom - top + 1L))) {
+            throw new OfficeRasterWorkLimitException("Contour coverage work exceeds the rasterization limit.");
+        }
         _transformedTextBudget.ChargePaintPixels((long)(right - left + 1) * (bottom - top + 1));
         int tileLength = Math.Min(right - left + 1, MaximumContourCoverageTileWidth);
         bool singleTile = right - left + 1 == tileLength;
@@ -103,7 +108,7 @@ public sealed partial class OfficeRasterCanvas {
                 long rowWork = contourEdges * (rowBoundaryCount - 1L);
                 if (rowWork > MaximumContourRowCrossingWork ||
                     rowWork > MaximumContourCrossingWork - crossingWork) {
-                    throw new InvalidOperationException("Contour coverage work exceeds the rasterization limit.");
+                    throw new OfficeRasterWorkLimitException("Contour coverage work exceeds the rasterization limit.");
                 }
                 crossingWork += rowWork;
                 _transformedTextBudget.ChargePaintCrossings(rowWork);
@@ -123,7 +128,7 @@ public sealed partial class OfficeRasterCanvas {
                     ContourCrossing[] crossings = workspace.Active;
                     if (activeCount >= 2) {
                         if (activeCount > MaximumRetainedContourCrossings - retainedCrossings) {
-                            throw new InvalidOperationException("Contour coverage intersections exceed the rasterization limit.");
+                            throw new OfficeRasterWorkLimitException("Contour coverage intersections exceed the rasterization limit.");
                         }
                         retainedCrossings += activeCount;
                         // Ordinary glyphs fit one tile. Accumulate in the same

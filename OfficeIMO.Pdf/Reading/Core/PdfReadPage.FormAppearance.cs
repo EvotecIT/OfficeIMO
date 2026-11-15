@@ -174,8 +174,8 @@ public sealed partial class PdfReadPage {
             _textOutputBudget = new TextContentParser.TextOutputBudget(
                 page._limits.MaxActualTextCharacters,
                 page._limits.MaxDecodedTextCharacters);
-            _textClippingBudget = new PdfTextClippingBudget();
-            _patternClippingBudget = new PdfTextClippingBudget();
+            _textClippingBudget = new PdfTextClippingBudget(page._limits);
+            _patternClippingBudget = new PdfTextClippingBudget(page._limits);
             _type3GlyphBudget = new Type3GlyphBudget(page._limits.MaxType3GlyphInvocationsPerPage);
         }
     }

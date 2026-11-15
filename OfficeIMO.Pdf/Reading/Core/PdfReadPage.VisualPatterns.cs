@@ -432,8 +432,8 @@ public sealed partial class PdfReadPage {
         out bool consumesInheritedLineState,
         out bool hasMalformedStrictInvocation) {
         using IDisposable projectionScope = pageContentBudget.BeginTransparencyGroupProjectionScope();
-        invocationTextClippingBudget ??= new PdfTextClippingBudget();
-        patternTextClippingBudget ??= new PdfTextClippingBudget();
+        invocationTextClippingBudget ??= new PdfTextClippingBudget(_limits);
+        patternTextClippingBudget ??= new PdfTextClippingBudget(_limits);
         var drawing = new OfficeDrawing(width, height);
         consumesInheritedLineState = false;
         hasMalformedStrictInvocation = false;

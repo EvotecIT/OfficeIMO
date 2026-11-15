@@ -271,62 +271,69 @@ internal static partial class PdfSyntax {
         HashSet<int> visitedReferences,
         bool structureTreeOwnsElements,
         CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-        switch (value) {
-            case PdfNumber:
-            case PdfBoolean:
-            case PdfName:
-            case PdfStringObj:
-            case PdfNull:
-                return true;
-            case PdfReference reference:
-                if (!visitedReferences.Add(reference.ObjectNumber)) {
-                    return true;
-                }
+        // Outline items chain through /First, /Next and /Parent, so real documents and malformed ones
+        // nest far deeper than the call stack allows; walk the graph with an explicit stack instead.
+        var pending = new Stack<PdfObject>();
+        pending.Push(value);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            switch (pending.Pop()) {
+                case PdfNumber:
+                case PdfBoolean:
+                case PdfName:
+                case PdfStringObj:
+                case PdfNull:
+                    break;
+                case PdfReference reference:
+                    if (!visitedReferences.Add(reference.ObjectNumber)) {
+                        break;
+                    }
 
-                if (!PdfObjectLookup.TryGet(map, reference, out var indirect)) {
-                    return false;
-                }
-
-                return IsPageDictionary(indirect.Value) ||
-                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences, structureTreeOwnsElements, cancellationToken);
-            case PdfArray array:
-                foreach (var item in array.Items) {
-                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, structureTreeOwnsElements, cancellationToken)) {
+                    if (!PdfObjectLookup.TryGet(map, reference, out var indirect)) {
                         return false;
                     }
-                }
 
-                return true;
-            case PdfDictionary dictionary:
-                if (IsPageDictionary(dictionary)) {
-                    return true;
-                }
-
-                if (dictionary.Items.ContainsKey("AA")) {
-                    return false;
-                }
-
-                if (dictionary.Items.TryGetValue("A", out var action) &&
-                    !IsSupportedOutlineAction(map, action, cancellationToken)) {
-                    return false;
-                }
-
-                foreach (var item in dictionary.Items) {
-                    if (structureTreeOwnsElements && item.Key == "SE" && dictionary.Items.ContainsKey("Title") &&
-                        IsStructureElementReference(map, item.Value)) {
-                        continue;
+                    if (!IsPageDictionary(indirect.Value)) {
+                        pending.Push(indirect.Value);
                     }
 
-                    if (!IsSupportedOutlineGraph(map, item.Value, visitedReferences, structureTreeOwnsElements, cancellationToken)) {
+                    break;
+                case PdfArray array:
+                    for (int index = array.Items.Count - 1; index >= 0; index--) {
+                        pending.Push(array.Items[index]);
+                    }
+
+                    break;
+                case PdfDictionary dictionary:
+                    if (IsPageDictionary(dictionary)) {
+                        break;
+                    }
+
+                    if (dictionary.Items.ContainsKey("AA")) {
                         return false;
                     }
-                }
 
-                return true;
-            default:
-                return false;
+                    if (dictionary.Items.TryGetValue("A", out var action) &&
+                        !IsSupportedOutlineAction(map, action, cancellationToken)) {
+                        return false;
+                    }
+
+                    foreach (var item in dictionary.Items) {
+                        if (structureTreeOwnsElements && item.Key == "SE" && dictionary.Items.ContainsKey("Title") &&
+                            IsStructureElementReference(map, item.Value)) {
+                            continue;
+                        }
+
+                        pending.Push(item.Value);
+                    }
+
+                    break;
+                default:
+                    return false;
+            }
         }
+
+        return true;
     }
 
     internal static bool IsStructureElementReference(Dictionary<int, PdfIndirectObject> map, PdfObject value) =>
