@@ -1,44 +1,113 @@
 ---
 title: "TOML Files"
-description: "Read, edit and write TOML 1.1 in .NET with a lossless document model that saves unchanged input byte for byte, a pull reader and a forward-only writer."
+description: "Read, edit and write TOML 1.1 files in .NET with a lossless document model, a streaming pull reader and an object serializer from OfficeIMO.Toml."
 order: 57
+verified: 2026-11-14
+commands:
+  - officeimo read
 meta.seo_title: "Read and edit TOML in C# with OfficeIMO.Toml"
+packages:
+  - OfficeIMO.Toml
+cmdlets:
+  - Open-OfficeToml
+  - Get-OfficeTomlNode
+  - Import-OfficeToml
+related:
+  - /docs/toml/read-typed/
+  - /docs/toml/edit-write/
+  - /docs/data-conversions/
+  - /docs/yaml/
+limits: TomlLoadOptions bound depth (256), nodes (1,000,000) and string length (16 MiB) by default; UntrustedDefaults lowers them to depth 64, 200,000 nodes, 1 MiB strings and 16 MiB of input.
+search_terms:
+  - toml parser
+  - read toml c#
+  - cargo.toml
+  - pyproject.toml
+  - cargo.lock
 ---
 
-`OfficeIMO.Toml` is a TOML 1.1 engine with four entry points: `TomlDocument`, a lossless editable model; `TomlReader`, a forward-only pull reader; `TomlWriter`, a forward-only emitter; and `TomlSerializer`, which maps .NET objects to TOML. It depends only on `OfficeIMO.Core` and targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
+`OfficeIMO.Toml` is a TOML 1.1 engine with no runtime dependencies beyond `OfficeIMO.Core`. It targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
 
-```shell
+```sh
 dotnet add package OfficeIMO.Toml
 ```
 
-## Edit a file without reformatting it
+| Type | Use it to |
+|---|---|
+| `TomlDocument` | Load, edit and save a file losslessly. |
+| `TomlSerializer` | Convert .NET objects to and from TOML, with reflection or a source-generated `TomlSerializerContext`. |
+| `TomlReader` | Read tokens forward-only from a string, stream or `TextReader`. |
+| `TomlWriter` | Emit TOML forward-only with deterministic output. |
+
+The engine passes all 214 valid and 467 invalid TOML 1.1 cases of toml-test 2.2.0, and real-world files (`pyproject.toml`, `Cargo.toml`, `Cargo.lock`, `uv.lock`, Hugo, Netlify, Starship) save back byte for byte.
+
+## Load a TOML file and read values
+
+`Load` reads a file or stream, `LoadAsync` does the same asynchronously and `Parse` takes a string. `Root` is the root table; a table is one object even when the file spreads it over `[a]`, `[a.b]` and dotted keys.
+
+### C#
 
 ```csharp
 using OfficeIMO.Toml;
 
-using var document = TomlDocument.Load("pyproject.toml");
-string name = document.Select("project.name")!.AsString();
-int lineLength = document.Select("tool.ruff.line-length")?.GetValue<int>() ?? 88;
+using TomlDocument document = TomlDocument.Load("Cargo.toml");
 
-document.Set("project.version", "1.2.0");                        // only the version text changes
-document.Select("project.dependencies")!.AsArray().Add("httpx"); // follows the array's own layout
-document.Set("tool.ruff.line-length", 100);                      // adds [tool.ruff] if it is missing
-document.Save();
+string name = document.Select("package.name")!.AsString();
+string edition = document.Select("package.edition")?.AsString() ?? "2015";
+Console.WriteLine($"{name} (edition {edition})");
+
+if (document.Select("dependencies") is TomlNode node) {
+    foreach (KeyValuePair<string, TomlNode> dependency in node.AsTable()) {
+        Console.WriteLine($"  {dependency.Key}");
+    }
+}
 ```
 
-Saving an unchanged document reproduces the input byte for byte: comments, blank lines, quoting, key order, alignment, line endings, a UTF-8 byte-order mark and the original spelling of values such as `0xFF`, `1_000` or `1979-05-27 07:32:00Z`. Edits touch only the text they change:
+Typed reads cover `string`, `bool`, `int`, `long`, `double`, `float`, `decimal`, `TomlDateTime`, `DateTime`, `DateTimeOffset` and `TimeSpan`, plus `DateOnly` and `TimeOnly` on .NET 8 and later. `TomlDateTime` keeps all four TOML date-time kinds with nanosecond precision.
 
-- `SetValue` keeps the current style when it can hold the new value (hexadecimal stays hexadecimal, literal strings stay literal).
-- `Add` and `Set` insert a `key = value` line after the table's last pair, using its indentation and `=` spacing.
-- Array edits follow the array's layout: a new line in a multi-line array, `, item` on a single line.
-- `Remove` deletes a key with the comment lines directly above it.
-- `LeadingComments`, `TrailingComment` and `SetComment` read and change comments.
+### PowerShell
 
-Paths use dots, `["key"]` for keys containing dots or brackets, and `[n]` for array items and array-of-tables entries (`package[3].name`). Typed reads cover `string`, `bool`, `int`, `long`, `double`, `float`, `decimal`, `TomlDateTime`, `DateTime`, `DateTimeOffset` and `TimeSpan`, plus `DateOnly` and `TimeOnly` on .NET 8 and later. `TomlDateTime` keeps all four TOML date-time kinds with nanosecond precision.
+```powershell
+$document = Open-OfficeToml -Path ./Cargo.toml
+Get-OfficeTomlNode -Document $document -Select 'package.name', 'package.version' |
+    Select-Object -Property Path, Value, Line, Column
+Close-OfficeToml -Document $document
+```
+
+### CLI
+
+```sh
+officeimo read Cargo.toml --format json
+```
+
+## Stream a large lock file
+
+`TomlReader` reads a stream without loading the whole input and allocates nothing per token; strings are created only when you call `GetString()`. It checks TOML 1.1 syntax completely. Whole-document rules such as duplicate keys are checked by `TomlDocument`.
+
+### C#
+
+```csharp
+using OfficeIMO.Toml;
+
+using FileStream stream = File.OpenRead("Cargo.lock");
+using var reader = new TomlReader(stream);
+
+int packages = 0;
+while (reader.Read()) {
+    if (reader.TokenType == TomlTokenType.ArrayOfTablesHeaderStart) packages++;
+}
+Console.WriteLine($"{packages} locked packages");
+```
 
 ## Merge layered files
 
+Tables merge key by key whether they are written as `[header]` sections, dotted keys or inline tables, and values are assigned, so an equal value keeps the base's spelling. Arrays and arrays of tables are replaced by default, or appended, or matched by a key such as `name` for the `[[package]]` tables of a lock file. A value that changes kind, such as a table over a string, takes the overlay's value and is listed in `report.Diagnostics`. TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks. The merged file keeps the base's comments and layout and differs only where `report.Added` and `report.Replaced` say it does.
+
+### C#
+
 ```csharp
+using OfficeIMO.Toml;
+
 using var config = TomlDocument.Load("pyproject.toml");
 using var local = TomlDocument.Load("pyproject.local.toml");
 TomlMergeReport report = config.Merge(local, new TomlMergeOptions {
@@ -47,70 +116,29 @@ TomlMergeReport report = config.Merge(local, new TomlMergeOptions {
 config.Save("pyproject.merged.toml");
 ```
 
-Tables merge key by key whether they are written as `[header]` sections, dotted keys or inline tables, and values are assigned, so an equal value keeps the base's spelling. Arrays and arrays of tables are replaced by default, or appended, or matched by a key such as `name` for the `[[package]]` tables of a lock file. A value that changes kind, such as a table over a string, takes the overlay's value and is listed in `report.Diagnostics`. TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks. The merged file keeps the base's comments and layout and differs only where `report.Added` and `report.Replaced` say it does.
+## Load TOML from outside safely
 
-## Read tokens
+Invalid input throws `TomlException` with a stable `Code`, `Line` and `Column`. Exceeding a limit throws `TomlLimitExceededException` naming the limit.
 
-```csharp
-var reader = new TomlReader(File.ReadAllText("Cargo.toml"));
-while (reader.Read()) {
-    if (reader.TokenType == TomlTokenType.Key) Console.Write(reader.GetString() + " ");
-    else if (reader.TokenType == TomlTokenType.String) Console.WriteLine("= " + reader.GetString());
-}
-```
-
-The reader allocates nothing per token; strings are created only when you call `GetString()`, and `ValueSpan` exposes the source text of the current token. It validates TOML 1.1 syntax completely. Whole-document rules such as duplicate keys and table redefinition are checked by `TomlDocument`.
-
-## Write
+### C#
 
 ```csharp
-using var stream = File.Create("settings.toml");
-using var writer = new TomlWriter(stream);
-writer.WriteKey("name");
-writer.WriteString("officeimo");
-writer.WriteTableHeader("tool", "ruff");
-writer.WriteKey("line-length");
-writer.WriteInteger(120);
-```
-
-`TomlWriter` rejects calls TOML does not allow at that point and produces deterministic output. `TomlWriterOptions.NewLine` selects `\n` (default) or `\r\n`. Text written by OfficeIMO stays readable by TOML 1.0 parsers: no `\e` or `\x` escapes, and times always include seconds.
-
-## Serializing objects
-
-```csharp
-using OfficeIMO;
 using OfficeIMO.Toml;
 
-[TomlSerializable(typeof(CargoManifest))]
-internal partial class CargoContext : TomlSerializerContext { }
-
-var context = new CargoContext(new TomlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.KebabCaseLower });
-CargoManifest manifest = TomlSerializer.Deserialize(File.ReadAllText("Cargo.toml"), context.CargoManifest);
-string toml = TomlSerializer.Serialize(manifest, context.CargoManifest);
-```
-
-`TomlSerializer` reads the same `[OfficePropertyName]`, `[OfficeIgnore]`, `[OfficeRequired]`, `[OfficeConstructor]` and `[OfficeDerivedType]` attributes as `YamlSerializer`, so one model maps to both formats. Objects and dictionaries become `[table]` sections after the key/value pairs, collections of objects become `[[table]]` arrays of tables, and `[TomlInlineTable]` writes a type or property inline, as Cargo dependencies are written. TOML has no null: null values are left out, or fail when `NullHandling` is `Error`. The source generator ships in the package; overloads that take `TomlSerializerOptions` alone use reflection metadata, which is off in `PublishAot` and `PublishTrimmed` applications.
-
-## Untrusted input
-
-```csharp
 try {
-    using var config = TomlDocument.Load("upload.toml", TomlLoadOptions.UntrustedDefaults);
-}
-catch (TomlException exception) {
+    using TomlDocument config = TomlDocument.Load("upload.toml", TomlLoadOptions.UntrustedDefaults);
+    Console.WriteLine($"{config.Root.Count} top-level keys");
+} catch (TomlException exception) {
     Console.WriteLine($"{exception.Code} at {exception.Line}:{exception.Column}");
 }
 ```
 
-`TomlLoadOptions` bounds nesting depth (256), node count (1,000,000) and string length (16 MiB) by default. `UntrustedDefaults` tightens these to 16 MiB of input, depth 64, 200,000 nodes and 1 MiB per string. Exceeding a limit throws `TomlLimitExceededException` naming the limit.
+### PowerShell
 
-## Conformance and limits
+```powershell
+$document = Open-OfficeToml -LiteralPath ./uploads/Cargo.toml -Untrusted
+Get-OfficeTomlNode -Document $document -Select 'package.name'
+Close-OfficeToml -Document $document
+```
 
-The engine passes all 214 valid and 467 invalid TOML 1.1 cases of toml-test 2.2.0, and valid cases and real-world files (`pyproject.toml`, `Cargo.toml`, `Cargo.lock`, `uv.lock`, Hugo, Netlify, Starship) save back byte for byte.
-
-- TOML has no null; passing `null` to `Add` or `Set` throws.
-- The engine reads and writes TOML only. To extract TOML into chunks for search or indexing, use `OfficeIMO.Reader.Toml`, which emits one path, type and value row per value with the same path grammar as `Select`.
-
-To convert TOML to and from JSON, YAML, XML, CSV or Excel, see [data conversions](/docs/data-conversions/).
-
-See the [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Toml/README.md) and the [Reader overview](/docs/reader/).
+To extract TOML into chunks for search or indexing, use `OfficeIMO.Reader.Toml`, which emits one path, type and value row per value with the same path grammar as `Select`. The [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Toml/README.md) lists every node type and editing method.

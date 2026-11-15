@@ -1,17 +1,34 @@
 ---
-title: "RTF Documents"
-description: "Read, create, edit, preserve, and convert Rich Text Format documents with bounded parsing and explicit loss reports. Includes examples and API links."
+title: Create and Edit RTF Documents
+description: Create Rich Text Format (RTF) files in .NET, edit text and bookmarks, merge documents, apply a theme, and make surgical edits that keep the original RTF syntax.
 order: 40
-meta.seo_title: "Read and convert RTF in .NET with OfficeIMO"
+meta.seo_title: "Create and edit RTF in .NET with OfficeIMO"
+search_terms:
+  - rtf
+  - rich text format
+  - create rtf
+  - edit rtf
+  - rtf replace text
+packages:
+  - OfficeIMO.Rtf
+cmdlets:
+  - New-OfficeRtf
+  - Add-OfficeRtfParagraph
+  - Save-OfficeRtf
+  - Update-OfficeRtfText
+limits: Semantic saves normalize the document; use the lossless editor when untouched control words, unknown destinations or binary data must stay byte for byte.
+verified: 2026-11-14
 ---
 
-`OfficeIMO.Rtf` provides both an editable semantic document and a source-preserving syntax tree. Use the semantic model for normalized authoring and the lossless editor when untouched control words, destinations, binary data, or trailing bytes must survive exactly.
+`OfficeIMO.Rtf` reads RTF into two views. `RtfDocument` is the editable semantic model: paragraphs, runs, tables, lists, notes, headers and footers. Saving it with `ToRtf()` writes normalized RTF. The syntax tree behind `EditLossless()` keeps every control word, so a targeted edit leaves the rest of the file exactly as it was. Pick the semantic model for authoring and the lossless editor for changing documents produced elsewhere.
 
-## Install and create
-
-```shell
+```sh
 dotnet add package OfficeIMO.Rtf
 ```
+
+## Create an RTF document
+
+### C#
 
 ```csharp
 using OfficeIMO.Rtf;
@@ -19,65 +36,108 @@ using OfficeIMO.Rtf;
 RtfDocument document = RtfDocument.Create();
 document.AddParagraph().AddText("Quarterly report").SetBold();
 document.AddParagraph("Prepared by OfficeIMO");
+document.AddParagraph("Revenue grew in every region.");
+
 File.WriteAllText("report.rtf", document.ToRtf());
 ```
 
-## Edit semantically
+### PowerShell
 
-```csharp
-RtfDocument document = RtfDocument.Load("input.rtf");
+```powershell
+New-OfficeRtf -Path .\Note.rtf -Text 'Server maintenance starts at 22:00.'
 
-document.InsertParagraph(0, "Confidential");
-document.ReplaceText("Contoso Ltd.", "Contoso Europe");
-document.ReplaceBookmarkText("CustomerName", "Contoso Europe");
-File.WriteAllText("updated.rtf", document.ToRtf());
+$rtf = New-OfficeRtf
+Add-OfficeRtfParagraph -Document $rtf -Text 'Maintenance completed.' -Bold
+Add-OfficeRtfParagraph -Document $rtf -Text 'All services are back online.'
+Save-OfficeRtf -Document $rtf -Path .\Maintenance.rtf
 ```
 
-Semantic saves normalize the document. For surgical edits that retain untouched syntax, use `EditLossless()`:
+## Replace text and fill bookmarks
 
-```csharp
-RtfLosslessEditor editor = RtfDocument.Load("input.rtf").EditLossless();
-editor.ReplaceText("Old text", "New text");
-editor.SetInfo(RtfDocumentInfoField.Title, "Updated title");
-editor.SaveLossless("updated-lossless.rtf");
-```
+Semantic edits work on the model and write normalized RTF.
 
-## Process uploaded RTF safely
-
-```csharp
-RtfLoadOptions options = RtfLoadOptions.UntrustedDefaults;
-using FileStream input = File.OpenRead("upload.rtf");
-
-RtfReadResult read = await RtfDocument.LoadResultAsync(
-    input,
-    options,
-    cancellationToken: cancellationToken);
-```
-
-The untrusted profile limits input, group depth/count, tokens, text, binary payloads, images, objects, and semantic blocks. It disables embedded-object and file-reference materialization and restricts semantic hyperlinks to web and mail schemes. The engine does not fetch external resources.
-
-## Convert with an explicit fidelity policy
-
-Focused adapters connect RTF to Word, Markdown, HTML, PDF, and Reader. Each adapter reports preserved, flattened, omitted, blocked, and failed content through `RtfConversionReport`.
-
-Install the adapter for the destination you need. This example uses `OfficeIMO.Rtf.Markdown`:
-
-```shell
-dotnet add package OfficeIMO.Rtf.Markdown
-```
+### C#
 
 ```csharp
 using OfficeIMO.Rtf;
-using OfficeIMO.Rtf.Markdown;
 
-RtfReadResult read = RtfDocument.LoadResult("input.rtf");
-foreach (var diagnostic in read.Diagnostics)
-    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+RtfDocument template = RtfDocument.Create();
+template.AddParagraph("Contract between Contoso Ltd. and the customer.");
+File.WriteAllText("contract.rtf", template.ToRtf());
 
-OfficeConversionReport report = read.Document.SaveAsMarkdown("output.md",
-    new RtfMarkdownExportOptions { FailOnLoss = true });
+RtfDocument document = RtfDocument.Load("contract.rtf");
+document.InsertParagraph(0, "Confidential");
+document.ReplaceText("Contoso Ltd.", "Contoso Europe");
+
+File.WriteAllText("contract-updated.rtf", document.ToRtf());
 ```
 
-Use `ThrowIfLoss()` for strict archival or compliance workflows. In permissive workflows, inspect each diagnostic and accept only the tradeoffs appropriate for the destination.
+`ReplaceBookmarkText("CustomerName", "…")` replaces the text inside a named bookmark in the same way.
 
-See the [RTF support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.rtf-support-matrix.md) and the [content publishing patterns](/docs/workflows/content-publishing/).
+## Edit an existing file without rewriting it
+
+The lossless editor changes only the nodes you touch. Everything else, including control words OfficeIMO does not model, is written back unchanged.
+
+### C#
+
+```csharp
+using OfficeIMO.Rtf;
+
+RtfDocument source = RtfDocument.Create();
+source.AddParagraph("Status: Draft");
+File.WriteAllText("input.rtf", source.ToRtf());
+
+RtfLosslessEditor editor = RtfDocument.LoadResult("input.rtf").EditLossless();
+editor.ReplaceText("Draft", "Final");
+editor.SetInfo(RtfDocumentInfoField.Title, "Status report");
+editor.InsertRootParagraph(editor.RootNodeCount, "Approved by the review board.");
+editor.SaveLossless("output.rtf");
+```
+
+### PowerShell
+
+```powershell
+Update-OfficeRtfText -Path .\Input.rtf -OutputPath .\Output.rtf -OldText Draft -NewText Final -PassThru
+```
+
+## Merge RTF documents
+
+`AppendDocument` imports the other document's content with its fonts, colors, styles and lists. With `PreserveSections`, each appended document keeps its page setup and headers and footers.
+
+### C#
+
+```csharp
+using OfficeIMO.Rtf;
+
+RtfDocument cover = RtfDocument.Create();
+cover.AddParagraph("Annual report");
+
+RtfDocument body = RtfDocument.Create();
+body.AddParagraph("Chapter 1");
+
+RtfDocumentMergeResult merge = cover.AppendDocument(body,
+    new RtfDocumentMergeOptions { PreserveSections = true });
+
+foreach (var diagnostic in merge.Report.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+}
+
+File.WriteAllText("annual-report.rtf", merge.Document.ToRtf());
+```
+
+## Apply a theme
+
+`ApplyTheme` restyles typography, spacing and table decoration while keeping content, lists and page geometry.
+
+### C#
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Rtf;
+
+RtfDocument document = RtfDocument.Create();
+document.AddParagraph("Meeting notes");
+document.ApplyTheme(OfficeTheme.Boardroom);
+
+File.WriteAllText("notes-styled.rtf", document.ToRtf());
+```

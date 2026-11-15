@@ -117,29 +117,51 @@ public static partial class OfficeDrawingRasterRenderer {
         System.Threading.CancellationToken cancellationToken) {
         foreach (OfficeDrawingElement element in elements) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (element is OfficeDrawingShape shape) {
-                RenderShape(canvas, shape, scale);
-            } else if (element is OfficeDrawingText text) {
-                bool preserve = canvas.PreservePaintedGlyphOrder;
-                canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
-                try {
-                    RenderText(canvas, text, scale, maximumRasterPixels);
-                } finally {
-                    canvas.PreservePaintedGlyphOrder = preserve;
-                }
-            } else if (element is OfficeDrawingRichText richText) {
-                RenderRichText(canvas, richText, scale);
-            } else if (element is OfficeDrawingImage drawingImage) {
-                RenderImage(canvas, drawingImage, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingImagePattern imagePattern) {
-                RenderImagePattern(canvas, imagePattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
-                RenderTilingPattern(canvas, tilingPattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingGroup drawingGroup) {
-                RenderGroup(canvas, drawingGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
-            } else if (element is OfficeDrawingEffectGroup effectGroup) {
-                RenderEffectGroup(canvas, effectGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
+            if (!canvas.PdfRasterConventions) {
+                RenderElement(canvas, element, scale, imageCodec, maximumRasterPixels, cancellationToken);
+                continue;
             }
+            // Like PDF viewers, a page render omits one element whose coverage work exceeds the raster limit instead of
+            // failing the page. Rows painted before the limit was reached stay painted; the sink records the omission.
+            try {
+                RenderElement(canvas, element, scale, imageCodec, maximumRasterPixels, cancellationToken);
+            } catch (OfficeRasterWorkLimitException exception) {
+                canvas.DiagnosticSink?.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                    OfficeRasterWorkLimitException.DiagnosticCode, exception.Message, canvas.DiagnosticSource,
+                    OfficeConversionLossKind.Omission));
+            }
+        }
+    }
+
+    private static void RenderElement(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingElement element,
+        double scale,
+        IOfficeRasterImageCodec? imageCodec,
+        long maximumRasterPixels,
+        System.Threading.CancellationToken cancellationToken) {
+        if (element is OfficeDrawingShape shape) {
+            RenderShape(canvas, shape, scale);
+        } else if (element is OfficeDrawingText text) {
+            bool preserve = canvas.PreservePaintedGlyphOrder;
+            canvas.PreservePaintedGlyphOrder = text.PreservesPaintedGlyphs;
+            try {
+                RenderText(canvas, text, scale, maximumRasterPixels);
+            } finally {
+                canvas.PreservePaintedGlyphOrder = preserve;
+            }
+        } else if (element is OfficeDrawingRichText richText) {
+            RenderRichText(canvas, richText, scale);
+        } else if (element is OfficeDrawingImage drawingImage) {
+            RenderImage(canvas, drawingImage, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingImagePattern imagePattern) {
+            RenderImagePattern(canvas, imagePattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingTilingPattern tilingPattern) {
+            RenderTilingPattern(canvas, tilingPattern, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingGroup drawingGroup) {
+            RenderGroup(canvas, drawingGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        } else if (element is OfficeDrawingEffectGroup effectGroup) {
+            RenderEffectGroup(canvas, effectGroup, scale, imageCodec, maximumRasterPixels, cancellationToken);
         }
     }
 

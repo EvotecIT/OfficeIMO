@@ -1,119 +1,148 @@
 ---
 title: YAML Documents
-description: OfficeIMO.Yaml engine overview: lossless YAML editing, overlay merging, streaming and object serialization, with examples, options, limits and API links.
+description: Read, edit, merge, validate and write YAML 1.2 files in .NET with OfficeIMO.Yaml, keeping comments and formatting, with matching PowerShell cmdlets.
 order: 51
+verified: 2026-11-14
+commands:
+  - officeimo read
+packages:
+  - OfficeIMO.Yaml
+cmdlets:
+  - Open-OfficeYaml
+  - Get-OfficeYamlNode
+  - Test-OfficeYaml
+limits: YamlLoadOptions bound depth (256), scalar length (16 MiB), nodes (10,000,000) and alias expansion (100,000); UntrustedDefaults lowers them for files from outside.
+search_terms:
+  - yml
+  - yaml parser
+  - read yaml c#
+  - validate yaml
+  - yaml lint
 ---
 
-`OfficeIMO.Yaml` is OfficeIMO's own YAML 1.2 engine. It reads, edits, merges and writes YAML without changing anything you didn't change, and converts .NET objects with generated or reflection metadata. It depends only on `OfficeIMO.Core`.
+`OfficeIMO.Yaml` is OfficeIMO's own YAML 1.2 engine. It depends only on `OfficeIMO.Core` and targets .NET Standard 2.0, .NET Framework 4.7.2, .NET 8 and .NET 10.
 
-```powershell
+```sh
 dotnet add package OfficeIMO.Yaml
 ```
 
-## Key classes
+It has four entry points:
 
-| Class | Description |
+| Type | Use it to |
 |-------|-------------|
-| `YamlDocument` | A YAML file or stream you can edit and save losslessly. |
-| `YamlMapping`, `YamlSequence`, `YamlScalar`, `YamlAlias` | The nodes of a document. |
-| `YamlMergeReport` | The added, replaced and removed paths of an overlay merge, with diagnostics. |
-| `YamlReader` | A forward-only pull reader that allocates nothing per event. |
-| `YamlWriter` | A forward-only emitter with deterministic output. |
-| `YamlSerializer` | Converts objects to and from YAML, following the `System.Text.Json` API. |
-| `YamlSerializerContext` | Generated serializer metadata for trimmed and NativeAOT applications. |
+| `YamlDocument` | Load, edit and save a file losslessly. Unchanged input saves back byte for byte. |
+| `YamlSerializer` | Convert .NET objects to and from YAML, with reflection or a source-generated `YamlSerializerContext`. |
+| `YamlReader` | Read events forward-only, without allocating per event. |
+| `YamlWriter` | Emit YAML forward-only with deterministic output. |
 
-## Loading and saving
+The task guides cover [typed reading](/docs/yaml/read-typed/), [editing and merging](/docs/yaml/edit-merge/) and [writing](/docs/yaml/write/).
+
+## Load a YAML file and read values
+
+`Load` reads a file or stream, `LoadAsync` does the same asynchronously and `Parse` takes a string. The encoding and byte-order mark are detected and kept.
+
+### C#
 
 ```csharp
 using OfficeIMO.Yaml;
 
 using YamlDocument document = YamlDocument.Load("deployment.yaml");
-int replicas = document.Select("spec.replicas")!.GetValue<int>();
-document.Save();   // unchanged: the same bytes as the input
-```
 
-`Load` reads a file or stream, `LoadAsync` does the same asynchronously and `Parse` takes a string. `Create(path)` starts an empty document for a file. `Save()` writes to the file the document was created or loaded with; `Save(path)` replaces a file atomically. The encoding and byte-order mark are detected and kept.
+string? name = document.Select("metadata.name")?.AsString();
+int replicas = document.Select("spec.replicas")?.GetValue<int>() ?? 1;
+string? image = document.Select("spec.template.spec.containers[0].image")?.AsString();
+Console.WriteLine($"{name}: {replicas} x {image}");
 
-## Editing
-
-```csharp
-using YamlDocument document = YamlDocument.Load("deployment.yaml");
-document.Set("spec.replicas", 3);
-YamlMapping container = document.Select("spec.template.spec.containers[0]")!.AsMapping();
-container.Add("imagePullPolicy", "Always").SetComment("pinned by CI");
-container.Remove("command");
-document.Save();
-```
-
-Saving copies every untouched part of the source and writes only what changed. A value equal to the current one keeps its spelling, new nodes follow the indentation and quoting of their neighbors, and removing an entry removes its own comments while its neighbors keep theirs. New strings are quoted wherever a YAML 1.1 reader such as PyYAML would read them as something else, so `yes`, `on` and `012` stay strings.
-
-## Paths
-
-| Step | Selects |
-|---|---|
-| `name`, `.name` | The value of the key whose text is `name`, whatever its quoting. |
-| `["key"]` | Any key, with JSON escapes: `labels["app.kubernetes.io/name"]`. |
-| `[n]` | The zero-based item of a sequence. |
-| `$`, `$[n]` | The starting node; `$[n]` picks a document of a multi-document stream. |
-
-`Select` returns a node or `null`, `Set` creates missing mappings on the way, `Add` appends to a sequence and `Remove` returns `false` when nothing is there. `node.GetPath()` writes the same form, and `OfficeIMO.Reader.Yaml` reports the same paths.
-
-## Merging overlays
-
-```csharp
-using var values = YamlDocument.Load("values.yaml");
-using var production = YamlDocument.Load("values.prod.yaml");
-YamlMergeReport report = values.Merge(production, new YamlMergeOptions {
-    NullRemovesKey = true,
-    Sequences = YamlSequenceMerge.MergeByKey("name")
-});
-values.Save("values.merged.yaml");
-```
-
-Mappings merge key by key. Sequences are replaced by default, as in Helm, or appended or merged by key. With `NullRemovesKey`, an overlay `null` removes the base key. The merged file differs from the base only where the report says it does.
-
-## Serializing objects
-
-```csharp
-[YamlSerializable(typeof(AppConfig))]
-internal partial class AppYamlContext : YamlSerializerContext { }
-
-var context = new AppYamlContext(new YamlSerializerOptions { PropertyNamingPolicy = OfficeNamingPolicy.CamelCase });
-AppConfig? config = YamlSerializer.Deserialize(File.ReadAllText("app.yaml"), context.AppConfig);
-string yaml = YamlSerializer.Serialize(config!, context.AppConfig);
-```
-
-The source generator ships in the package. Overloads that take `YamlSerializerOptions` alone use reflection metadata, which is off in `PublishAot` and `PublishTrimmed` applications. Polymorphism works only through `[OfficeDerivedType]` registrations; a tag in the input never chooses a .NET type by itself.
-
-## Options and diagnostics
-
-| Options | Used by | Settings |
-|---|---|---|
-| `YamlLoadOptions` | `Load`, `LoadAsync`, `Parse` | `Schema`, `Strict`, `DuplicateKeys`, limits, `UntrustedDefaults` |
-| `YamlReaderOptions` | `YamlReader`, the serializer | `Schema`, `Strict`, `IncludeComments`, limits, `UntrustedDefaults` |
-| `YamlSaveOptions` | `Save`, `SaveAsync` | `Reformat`, `WriterOptions` |
-| `YamlWriterOptions` | `YamlWriter`, the serializer | Mapping indent, sequence indent, dash offset, line break |
-| `YamlMergeOptions` | `Merge` | `Sequences`, `NullRemovesKey` |
-
-By default the engine reads YAML the way real files use it: flow collections and quoted continuations indented no deeper than their key, merge keys without a `%YAML 1.1` directive, and repeated keys, where the last one wins. Each is reported in `Diagnostics` with its line and column. `Strict` applies the specification's exact rules instead.
-
-Malformed input throws `YamlException` with a stable `Code`, line and column; `ToDiagnostic()` returns it as an `OfficeDiagnostic`. Exceeding `MaxDepth`, `MaxNodes`, `MaxAliasExpansion`, `MaxScalarLength` or `MaxInputBytes` throws `YamlLimitExceededException`. Use `YamlLoadOptions.UntrustedDefaults` for files from outside.
-
-## PowerShell
-
-PSWriteOffice builds its YAML commands on the same API:
-
-```powershell
-Open-OfficeYaml -Path .\deployment.yaml {
-    Set-OfficeYamlNode -Select 'spec.replicas' -Value 3
+YamlMapping labels = document.Select("metadata.labels")!.AsMapping();
+foreach (YamlMappingEntry entry in labels) {
+    Console.WriteLine($"{entry.Key.AsString()} = {entry.Value.AsString()}");
 }
 ```
 
-`New-`, `Open-`, `Save-` and `Close-OfficeYaml` manage documents, `Get-`, `Set-` and `Remove-OfficeYamlNode` edit by path, `ConvertFrom-` and `ConvertTo-OfficeYaml` follow `ConvertFrom-Json` and `ConvertTo-Json`, `Import-` and `Export-OfficeYaml` read and write objects through files, `Test-OfficeYaml` validates, and `Merge-OfficeDocument` merges YAML overlays.
+Typed reads go through the document's schema: `GetValue<T>()` and `TryGetValue<T>()` cover `string`, `bool`, `int`, `long`, `double`, `float` and `decimal`. Aliases and `<<` merge keys are followed by lookups and paths without being flattened into the tree. Dispose the document after its last use; it returns pooled storage.
 
-## Further reading
+### PowerShell
 
-- [OfficeIMO.Yaml README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Yaml/README.md): the complete API guide, including comments, anchors, schemas and supported serializer types.
-- [YAML engine design](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.yaml-engine-design.md): architecture, editing rules and qualification.
-- [Data conversions](/docs/data-conversions/): convert YAML to and from JSON, TOML, XML, CSV and Excel.
-- [OfficeIMO.Yaml API reference](/api/yaml/)
+```powershell
+$document = Open-OfficeYaml -Path ./deployment.yaml
+(Get-OfficeYamlNode -Document $document -Select 'spec.template.spec.containers[0].image').Value
+Close-OfficeYaml -Document $document
+```
+
+### CLI
+
+Extract a YAML file as Markdown or Reader JSON, with one path and value per entry:
+
+```sh
+officeimo read deployment.yaml --format json
+```
+
+## Validate YAML files
+
+Malformed input throws `YamlException` with a stable `Code`, line and column. `ToDiagnostic()` turns it into an `OfficeDiagnostic`, so failed files can be reported next to the warnings of files that load.
+
+### C#
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Yaml;
+
+foreach (string path in Directory.EnumerateFiles("deploy", "*.yaml", SearchOption.AllDirectories)) {
+    IReadOnlyList<OfficeDiagnostic> diagnostics;
+    try {
+        using YamlDocument document = YamlDocument.Load(path, new YamlLoadOptions { Strict = true });
+        diagnostics = document.Diagnostics;
+    } catch (YamlException exception) {
+        diagnostics = new[] { exception.ToDiagnostic() };
+    }
+
+    foreach (OfficeDiagnostic diagnostic in diagnostics) {
+        Console.WriteLine($"{path}: {diagnostic.Code} {diagnostic.Message}");
+    }
+}
+```
+
+By default the engine reads YAML the way real files use it: flow collections and quoted continuations indented no deeper than their key, merge keys without a `%YAML 1.1` directive, and repeated keys, where the last one wins. Each is a warning in `Diagnostics` with its line and column. `Strict` applies the specification's exact rules instead.
+
+### PowerShell
+
+```powershell
+Get-ChildItem ./deploy -Recurse -Filter *.yaml | Test-OfficeYaml -Detailed |
+    Where-Object { -not $_.IsValid } |
+    Select-Object -Property Path, Line, Column, Code, Message
+```
+
+## Choose a schema and limits
+
+| Options | Used by | Settings |
+|---|---|---|
+| `YamlLoadOptions` | `Load`, `LoadAsync`, `Parse` | `Schema`, `Strict`, `DuplicateKeys`, limits; `UntrustedDefaults` |
+| `YamlReaderOptions` | `YamlReader`, the serializer | `Schema`, `Strict`, `IncludeComments`, limits; `UntrustedDefaults` |
+| `YamlSaveOptions` | `Save`, `SaveAsync` | `Reformat`, `WriterOptions` |
+| `YamlWriterOptions` | `YamlWriter`, the serializer | `MappingIndent`, `SequenceIndent`, `SequenceDashOffset`, `NewLine` |
+| `YamlMergeOptions` | `Merge` | `Sequences`, `NullRemovesKey` |
+
+The default `Core` schema resolves `null`, `true`/`false`, integers and floats. `Yaml11` adds `yes`/`no`/`on`/`off`, `0`-prefixed octals and sexagesimal numbers, and a `%YAML 1.1` directive selects it for that document. `Json` and `Failsafe` are stricter.
+
+### C#
+
+```csharp
+using OfficeIMO.Yaml;
+
+YamlLoadOptions options = YamlLoadOptions.UntrustedDefaults;
+options.Schema = YamlSchema.Yaml11;   // the file comes from a tool that assumes YAML 1.1
+
+using YamlDocument document = YamlDocument.Load("legacy.yaml", options);
+bool enabled = document.Select("feature.enabled")?.GetValue<bool>() ?? false;   // "yes" reads as true
+Console.WriteLine(enabled);
+```
+
+### PowerShell
+
+```powershell
+$document = Open-OfficeYaml -LiteralPath ./uploads/values.yaml -Untrusted -Strict
+Get-OfficeYamlNode -Document $document -Select 'image.tag'
+Close-OfficeYaml -Document $document
+```
+
+Exceeding `MaxDepth`, `MaxNodes`, `MaxAliasExpansion`, `MaxScalarLength` or `MaxInputBytes` throws `YamlLimitExceededException` with the limit's name. The [package README](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Yaml/README.md) covers anchors, tags, schemas and every supported serializer type.

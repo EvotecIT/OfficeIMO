@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.CSV;
 
@@ -724,7 +725,7 @@ internal static partial class CsvWriter
             }
 
             return string.IsNullOrEmpty(dateTimeFormat)
-                ? dateTime.ToString(null, culture)
+                ? OfficeRoundTripText.Format(dateTime)
                 : dateTime.ToString(dateTimeFormat, culture);
         }
 
@@ -736,8 +737,13 @@ internal static partial class CsvWriter
             }
 
             return string.IsNullOrEmpty(dateTimeFormat)
-                ? dateTimeOffset.ToString(null, culture)
+                ? OfficeRoundTripText.Format(dateTimeOffset)
                 : dateTimeOffset.ToString(dateTimeFormat, culture);
+        }
+
+        if (OfficeRoundTripText.TryFormat(value, culture, out string roundTripText))
+        {
+            return roundTripText;
         }
 
         if (value is IFormattable formattable)
@@ -882,7 +888,7 @@ internal static partial class CsvWriter
         if (value is ISpanFormattable spanFormattable)
         {
             Span<char> destination = stackalloc char[128];
-            if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
+            if (TryFormatDefault(spanFormattable, destination, out var charsWritten, culture))
             {
                 var formattedSpan = destination[..charsWritten];
                 var prefixApostrophe = ShouldEscapeFormulaValue(value, formulaInjectionPolicy) && StartsWithFormulaTrigger(formattedSpan);
@@ -950,8 +956,7 @@ internal static partial class CsvWriter
         {
             if (useUtc) dateTime = dateTime.ToUniversalTime();
             Span<char> destination = stackalloc char[128];
-            ReadOnlySpan<char> format = string.IsNullOrEmpty(dateTimeFormat) ? default : dateTimeFormat.AsSpan();
-            if (dateTime.TryFormat(destination, out int written, format, culture))
+            if (TryFormatDate(dateTime, destination, out int written, dateTimeFormat, culture))
             {
                 AppendEscapedSpan(buffer, destination[..written], delimiter,
                     prefixApostrophe: false, quoteMode, forceQuote);
@@ -962,8 +967,9 @@ internal static partial class CsvWriter
         {
             if (useUtc) dateTimeOffset = dateTimeOffset.ToUniversalTime();
             Span<char> destination = stackalloc char[128];
-            ReadOnlySpan<char> format = string.IsNullOrEmpty(dateTimeFormat) ? default : dateTimeFormat.AsSpan();
-            if (dateTimeOffset.TryFormat(destination, out int written, format, culture))
+            if (string.IsNullOrEmpty(dateTimeFormat)
+                    ? TryFormatRoundTrip(dateTimeOffset, destination, out int written)
+                    : dateTimeOffset.TryFormat(destination, out written, dateTimeFormat.AsSpan(), culture))
             {
                 AppendEscapedSpan(buffer, destination[..written], delimiter,
                     prefixApostrophe: false, quoteMode, forceQuote);
@@ -973,7 +979,7 @@ internal static partial class CsvWriter
         else if (value is ISpanFormattable spanFormattable && IsFormulaSafeTypedValue(value))
         {
             Span<char> destination = stackalloc char[128];
-            if (spanFormattable.TryFormat(destination, out int written, default, culture))
+            if (TryFormatDefault(spanFormattable, destination, out int written, culture))
             {
                 AppendEscapedSpan(buffer, destination[..written], delimiter,
                     prefixApostrophe: false, quoteMode, forceQuote);
@@ -1070,7 +1076,7 @@ internal static partial class CsvWriter
         if (value is ISpanFormattable spanFormattable)
         {
             Span<char> destination = stackalloc char[128];
-            if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
+            if (TryFormatDefault(spanFormattable, destination, out var charsWritten, culture))
             {
                 var formatted = destination[..charsWritten];
                 if (delimiter == ',' && ReferenceEquals(culture, CultureInfo.InvariantCulture) && IsKnownCsvSafeSpanFormattedValue(value))
@@ -1118,7 +1124,7 @@ internal static partial class CsvWriter
         if (value is ISpanFormattable spanFormattable)
         {
             Span<char> destination = stackalloc char[128];
-            if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
+            if (TryFormatDefault(spanFormattable, destination, out var charsWritten, culture))
             {
                 var formatted = destination[..charsWritten];
                 if (ReferenceEquals(culture, CultureInfo.InvariantCulture) && IsKnownCsvSafeSpanFormattedValue(value))

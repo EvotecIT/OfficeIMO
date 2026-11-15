@@ -9,7 +9,10 @@ public sealed partial class PdfLoadOptions {
     /// <summary>Creates default read settings with an independent limits graph.</summary>
     internal static PdfLoadOptions Default => new PdfLoadOptions();
 
-    /// <summary>Creates strict parsing settings with bounded budgets for documents from outside.</summary>
+    /// <summary>
+    /// Creates strict parsing settings with bounded budgets for documents from outside. Single-object size and content
+    /// operations and operands keep tighter limits here than the defaults, which are sized for valid real-world files.
+    /// </summary>
     public static PdfLoadOptions UntrustedDefaults => new PdfLoadOptions {
         ParsingMode = PdfParsingMode.Strict,
         Limits = new PdfReadLimits {
@@ -17,7 +20,10 @@ public sealed partial class PdfLoadOptions {
             MaxIndirectObjects = 100_000,
             MaxRawStreamBytes = 32 * 1024 * 1024,
             MaxDecodedStreamBytes = 64 * 1024 * 1024,
-            MaxTotalDecodedStreamBytes = 128L * 1024L * 1024L
+            MaxTotalDecodedStreamBytes = 128L * 1024L * 1024L,
+            MaxObjectCharacters = 1_000_000,
+            MaxContentOperations = 1_000_000,
+            MaxContentOperands = 1_000_000
         }
     };
 

@@ -22,7 +22,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static DateTime DefaultDateTimeOffsetWriteStrategy(DateTimeOffset value) => value.LocalDateTime;
+        /// <summary>Models without a workbook write DateTimeOffset values as ISO 8601 text, keeping the offset.</summary>
+        private static readonly Func<DateTimeOffset, DateTime> DefaultDateTimeOffsetWriteStrategy = CoerceValueHelper.DateTimeOffsetTextStrategy;
+
+        private static readonly Func<DateTimeOffset, DateTime> LocalDateTimeOffsetWriteStrategy = static value => value.LocalDateTime;
+
+        private static Func<DateTimeOffset, DateTime> GetDateTimeOffsetWriteStrategy(ExcelWriterOptions options) =>
+            options.DateTimeOffsetWriteMode == ExcelDateTimeOffsetWriteMode.Serial ? LocalDateTimeOffsetWriteStrategy : DefaultDateTimeOffsetWriteStrategy;
 
         private void RegisterDirectDataSetSaveCandidate(
             DataSet dataSet,
@@ -42,7 +48,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     results,
                     dateSystem: DateSystem);
@@ -88,7 +94,7 @@ namespace OfficeIMO.Excel {
                         includeHeaders,
                         includeAutoFilter,
                         autoFit,
-                        _dateTimeOffsetWriteStrategy,
+                        EffectiveDateTimeOffsetWriteStrategy,
                         CancellationToken.None,
                         dateSystem: DateSystem,
                         omitBlankCells: true);
@@ -113,7 +119,7 @@ namespace OfficeIMO.Excel {
                         includeHeaders,
                         includeAutoFilter,
                         autoFit,
-                        _dateTimeOffsetWriteStrategy,
+                        EffectiveDateTimeOffsetWriteStrategy,
                         CancellationToken.None,
                         results,
                         dateSystem: DateSystem);
@@ -164,7 +170,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     cancellationToken,
                     dateSystem: DateSystem,
                     omitBlankCells: true);
@@ -272,7 +278,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     cancellationToken,
                     useCellValueNumberFormats,
                     DateSystem,
@@ -313,7 +319,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders: false,
                     includeAutoFilter: false,
                     autoFit: false,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     useCellValueNumberFormats: true,
                     DateSystem,
@@ -421,7 +427,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     useCellValueNumberFormats,
                     DateSystem,
@@ -478,7 +484,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     cancellationToken,
                     dateSystem: DateSystem,
                     includeCellReferences: includeCellReferences,
@@ -536,7 +542,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     dateSystem: DateSystem,
                     includeCellReferences: includeCellReferences,
@@ -581,7 +587,7 @@ namespace OfficeIMO.Excel {
                 tableStyle,
                 includeAutoFilter,
                 columnNames,
-                _dateTimeOffsetWriteStrategy,
+                EffectiveDateTimeOffsetWriteStrategy,
                 CancellationToken.None);
             _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
                 candidate.Owner,

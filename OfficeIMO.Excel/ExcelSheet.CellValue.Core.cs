@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
                     CellNumberTextValueCore(row, column, InvariantNumberText.Get(number));
                     return;
                 case long number:
-                    CellNumberTextValueCore(row, column, InvariantNumberText.Get(number));
+                    CellIntegerValueCore(row, column, InvariantNumberText.Get(number), ExcelExactNumber.FitsNumberCell(number));
                     return;
                 case short number:
                     CellNumberTextValueCore(row, column, InvariantNumberText.Get(number));
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
                     CellNumberTextValueCore(row, column, InvariantNumberText.Get(number));
                     return;
                 case ulong number:
-                    CellNumberTextValueCore(row, column, InvariantNumberText.Get(number));
+                    CellIntegerValueCore(row, column, InvariantNumberText.Get(number), ExcelExactNumber.FitsNumberCell(number));
                     return;
                 case ushort number:
                     CellNumberTextValueCore(row, column, InvariantNumberText.Get(number));
@@ -216,12 +216,23 @@ namespace OfficeIMO.Excel {
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
             string text = value.ToString(CultureInfo.InvariantCulture);
+            if (!ExcelExactNumber.FitsNumberCell(value)) {
+                // Excel keeps 15 significant digits; text keeps the exact value.
+                CellStringValueCore(row, column, text);
+                return;
+            }
+
             if (TryStoreNumberText(row, column, text)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             ExcelWorksheetScan.SetValueText(cell, text);
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             CompleteCellValueMutation(row, column);
+        }
+
+        private void CellIntegerValueCore(int row, int column, string text, bool fitsNumberCell) {
+            if (fitsNumberCell) CellNumberTextValueCore(row, column, text);
+            else CellStringValueCore(row, column, text);
         }
 
         private void CellNumberTextValueCore(int row, int column, string text) {
@@ -263,8 +274,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value) =>
+        private bool WritesDateTimeOffsetAsText => _excelDocument.DateTimeOffsetWriteMode == ExcelDateTimeOffsetWriteMode.Text;
+
+        private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value) {
+            if (WritesDateTimeOffsetAsText) {
+                CellStringValueCore(row, column, CoerceValueHelper.FormatDateTimeOffsetText(value));
+                return;
+            }
+
             CellDateTimeOffsetValueCore(row, column, value, ConvertDateTimeOffsetForCell(value));
+        }
 
         private void CellDateTimeOffsetValueCore(int row, int column, DateTimeOffset value, DateTime converted) {
             string? numericText = null;
@@ -292,7 +311,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            string fallbackText = value.ToString("o", CultureInfo.InvariantCulture);
+            string fallbackText = CoerceValueHelper.FormatDateTimeOffsetText(value);
             int sharedStringIndex = _excelDocument.GetSharedStringIndex(fallbackText, validateNewString: true, out bool containsLineBreak);
             var fallbackCell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(fallbackCell);
@@ -365,7 +384,7 @@ namespace OfficeIMO.Excel {
 
         // Core coercion logic shared between sequential and parallel operations
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCell(object? value) {
-            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
+            var dateTimeOffsetStrategy = _excelDocument.EffectiveDateTimeOffsetWriteStrategy;
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
                 s => {

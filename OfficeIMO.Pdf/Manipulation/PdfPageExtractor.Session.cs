@@ -32,6 +32,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>One validated input and catalog snapshot shared by a compound page extraction.</summary>
     internal sealed class ExtractionSession {
         private readonly PdfReadDocument _document;
+        private readonly PdfMutationPlan _plan;
         private PdfDocumentProperties? _metadata;
         private readonly CatalogRewriteState _catalog;
         private readonly PdfFileVersion _fileVersion;
@@ -51,15 +52,14 @@ internal static partial class PdfPageExtractor {
             _cancellationToken = cancellationToken;
             _source = pdf;
             _options = options;
-            PdfMutationPlan plan;
-            (plan, _document) = documentFactory == null
+            (_plan, _document) = documentFactory == null
                 ? PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, options, cancellationToken: cancellationToken)
                 : PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.ExtractPages, documentFactory, options, cancellationToken: cancellationToken);
             _catalog = _document.GetCatalogRewriteState(cancellationToken);
             _fileVersion = GetSourceFileVersion(pdf);
             // The subset catalog writer rebuilds only the catalog entries preflight proved it can copy. Anything else,
             // and every outline tree (whose items must survive individually), stays with the catalog-preserving writer.
-            _preservesCatalog = UsesCatalogPreservingWriter(_document, plan.Preflight.RewriteBlockers);
+            _preservesCatalog = UsesCatalogPreservingWriter(_document, _plan.Preflight.RewriteBlockers);
         }
 
         internal int PageCount => _document.Pages.Count;
@@ -70,16 +70,30 @@ internal static partial class PdfPageExtractor {
             Guard.NotNull(pageNumbers, nameof(pageNumbers));
             if (pageNumbers.Length == 0) throw new ArgumentException("At least one page number must be specified.", nameof(pageNumbers));
             ValidatePageNumbers(pageNumbers, PageCount, nameof(pageNumbers), _cancellationToken);
-            if (_preservesCatalog)
-                return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken, report: report);
+            if (_preservesCatalog) {
+                try {
+                    return PdfTaggedPageOrganizer.Rewrite(_source, _document, pageNumbers, _options, maximumOutputBytes, token: _cancellationToken, report: report);
+                } catch (InvalidOperationException exception) {
+                    // The organizer refuses structure, navigation and form graphs it cannot retarget without losing
+                    // or misattributing content; report that as a blocked mutation rather than an internal failure.
+                    throw PdfMutationBlockedException.PolicyConflict(_plan, "FullRewrite.TaggedPageOrganization", exception.Message);
+                }
+            }
             var objects = new int[pageNumbers.Length];
             for (int index = 0; index < pageNumbers.Length; index++) {
                 _cancellationToken.ThrowIfCancellationRequested();
                 objects[index] = _document.Pages[pageNumbers[index] - 1].ObjectNumber;
             }
-            return ExtractPages(_document.Objects, _metadata ??= _document.GetUncheckedMetadata(_cancellationToken), objects,
-                catalogState: _catalog, fileVersion: _fileVersion, maximumOutputBytes: maximumOutputBytes,
-                cancellationToken: _cancellationToken, report: report);
+            try {
+                return ExtractPages(_document.Objects, _metadata ??= _document.GetUncheckedMetadata(_cancellationToken), objects,
+                    catalogState: _catalog, fileVersion: _fileVersion, maximumOutputBytes: maximumOutputBytes,
+                    cancellationToken: _cancellationToken, report: report);
+            } catch (InvalidOperationException exception) {
+                // A selected page can reach a missing or mismatched object that the page-graph preflight did not visit;
+                // refuse it the same way preflight refuses invalid references.
+                throw PdfMutationBlockedException.PolicyConflict(_plan,
+                    "FullRewrite." + PdfRewriteBlockerKind.InvalidObjectReferences, exception.Message);
+            }
         }
 
         internal byte[] Extract(PdfPageRange[] ranges, ICollection<string>? report = null) {

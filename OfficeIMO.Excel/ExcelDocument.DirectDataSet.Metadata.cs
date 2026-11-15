@@ -359,7 +359,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                var model = candidate.Model.WithAutoFitColumns(sheet.Name, _dateTimeOffsetWriteStrategy, ct);
+                var model = candidate.Model.WithAutoFitColumns(sheet.Name, EffectiveDateTimeOffsetWriteStrategy, ct);
                 ct.ThrowIfCancellationRequested();
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
                     candidate.Owner,
@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     dateSystem: DateSystem,
                     omitBlankCells: true);
@@ -475,7 +475,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     dateSystem: DateSystem,
                     omitBlankCells: true);
@@ -530,7 +530,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     CancellationToken.None,
                     dateSystem: DateSystem,
                     omitBlankCells: true);
@@ -584,7 +584,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                var model = candidate.Model.WithAutoFitColumns(sheet.Name, columnIndexes, _dateTimeOffsetWriteStrategy, ct);
+                var model = candidate.Model.WithAutoFitColumns(sheet.Name, columnIndexes, EffectiveDateTimeOffsetWriteStrategy, ct);
                 ct.ThrowIfCancellationRequested();
                 _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(
                     candidate.Owner,

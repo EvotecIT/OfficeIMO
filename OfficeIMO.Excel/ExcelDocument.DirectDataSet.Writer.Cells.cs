@@ -368,14 +368,19 @@ namespace OfficeIMO.Excel {
 
             internal static void WriteDateTimeOffsetCellValue(TextWriter writer, DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
                 if (!TryGetDateTimeOffsetValue(value, dateTimeOffsetWriteStrategy, out DateTime dateTimeValue)) {
-                    WriteStringCell(writer, value.ToString("o", CultureInfo.InvariantCulture), validateLength: true);
+                    WriteStringCell(writer, CoerceValueHelper.FormatDateTimeOffsetText(value), validateLength: true);
                     return;
                 }
 
                 WriteDateTimeSerialCell(writer, dateTimeValue, dateSystem);
             }
 
-            private static bool TryGetDateTimeOffsetValue(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out DateTime convertedValue) {
+            internal static bool TryGetDateTimeOffsetValue(DateTimeOffset value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, out DateTime convertedValue) {
+                if (CoerceValueHelper.IsTextStrategy(dateTimeOffsetWriteStrategy)) {
+                    convertedValue = default;
+                    return false;
+                }
+
                 try {
                     if (value.UtcDateTime < ExcelMinimumSupportedDateTimeOffset) {
                         convertedValue = default;
@@ -608,6 +613,11 @@ namespace OfficeIMO.Excel {
             }
 
             internal static void WriteRawValueCell(TextWriter writer, decimal value) {
+                if (!ExcelExactNumber.FitsNumberCell(value)) {
+                    WriteStringCell(writer, value.ToString(CultureInfo.InvariantCulture), validateLength: false);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
@@ -628,6 +638,11 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                if (!ExcelExactNumber.FitsNumberCell(value)) {
+                    WriteStringCell(writer, InvariantNumberText.Get(value), validateLength: false);
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
@@ -635,6 +650,11 @@ namespace OfficeIMO.Excel {
 
             internal static void WriteRawValueCell(TextWriter writer, ulong value) {
                 if (TryWriteCachedRawNonNegativeIntegerCell(writer, value)) {
+                    return;
+                }
+
+                if (!ExcelExactNumber.FitsNumberCell(value)) {
+                    WriteStringCell(writer, InvariantNumberText.Get(value), validateLength: false);
                     return;
                 }
 

@@ -150,6 +150,8 @@ internal static class PdfRenderCapabilities {
     internal const string UnsupportedSoftMaskId = "render.resource.soft-mask-unsupported";
     internal const string KnockoutGroupId = "render.resource.knockout-group-simplified";
     internal const string XObjectId = "render.resource.xobject-unsupported";
+    internal const string FormNestingStackId = "render.resource.form-nesting-stack-limit";
+    internal const string RasterWorkLimitId = "render.raster.element-work-limit";
     internal const string SynthesizedAnnotationAppearanceId = "render.annotation.appearance-synthesized";
     internal const string AnnotationAppearanceId = "render.resource.annotation-appearance-missing";
     internal const string UnsupportedImageId = "render.resource.image-unsupported";
@@ -197,6 +199,8 @@ internal static class PdfRenderCapabilities {
             Entry(KnockoutGroupId, "resource", "Knockout transparency groups", PdfRenderSupportLevel.Simplified, "Knockout groups (/K true) are composited as ordinary groups: each element blends with the elements painted before it instead of only with the group's initial backdrop."),
             Entry(UnsupportedSoftMaskId, "resource", "Unsupported ExtGState soft mask", PdfRenderSupportLevel.Unsupported, "The soft mask does not contain a usable transparency-group Form XObject."),
             Entry("render.resource.form-xobject", "resource", "Form XObjects", PdfRenderSupportLevel.Supported, "Form XObjects are recursively projected with bounded nesting."),
+            Entry(FormNestingStackId, "resource", "Form XObjects nested beyond the available call stack", PdfRenderSupportLevel.Unsupported, "A Form XObject or transparency group nested too deeply for the current thread's stack is skipped; the rest of the page renders."),
+            Entry(RasterWorkLimitId, "raster", "Elements beyond the raster coverage-work limit", PdfRenderSupportLevel.Unsupported, "An element whose coverage work exceeds the rasterizer's per-element limit is omitted, or left partly painted; the rest of the page renders."),
             Entry("render.resource.image-xobject", "resource", "Image XObjects and inline images", PdfRenderSupportLevel.Supported, "Decoded image resources are projected through shared Drawing image elements."),
             Entry(UnsupportedImageId, "resource", "Unsupported image encoding", PdfRenderSupportLevel.Unsupported, "The image uses a filter or encoded feature outside the managed decoders, such as JBIG2 halftone or Huffman-coded regions, or its JBIG2 segments are malformed; the image is omitted."),
             Entry("render.resource.shading-pattern", "resource", "Axial and radial shading patterns", PdfRenderSupportLevel.Supported, "Supported axial and radial shadings are projected to shared Drawing gradients."),

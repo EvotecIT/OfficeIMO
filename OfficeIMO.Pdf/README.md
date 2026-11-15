@@ -75,7 +75,7 @@ Console.WriteLine(result.ExtractMarkdown());
 ```
 <!-- /powerforge:code -->
 
-`Read()` returns paragraphs, headings, lists and tables per page. The [reading guide](../Docs/officeimo.pdf-guide.md#load-once-and-build-one-semantic-read-result) covers decoding diagnostics, form values and scanned pages; set [read limits](../Docs/officeimo.pdf-guide.md#deploy) for files from outside your organization.
+`Read()` returns paragraphs, headings, lists and tables per page. The [reading guide](../Docs/officeimo.pdf-guide.md#load-once-and-build-one-semantic-read-result) covers decoding diagnostics, form values and scanned pages; use [`PdfLoadOptions.UntrustedDefaults`](../Docs/officeimo.pdf-guide.md#read-limits) for files from outside your organization.
 
 ### Merge, rotate and split
 

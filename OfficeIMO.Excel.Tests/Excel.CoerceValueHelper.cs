@@ -23,12 +23,16 @@ public class ExcelCoerceValueHelper
     public void Coerce_LargeIntegers_PreservePrecision()
     {
         var (longValue, longType) = CoerceValueHelper.Coerce(long.MaxValue, s => new CellValue(s));
-        Assert.Equal(CellValues.Number, longType);
+        Assert.Equal(CellValues.SharedString, longType);
         Assert.Equal(long.MaxValue.ToString(CultureInfo.InvariantCulture), longValue.Text);
 
         var (ulongValue, ulongType) = CoerceValueHelper.Coerce(ulong.MaxValue, s => new CellValue(s));
-        Assert.Equal(CellValues.Number, ulongType);
+        Assert.Equal(CellValues.SharedString, ulongType);
         Assert.Equal(ulong.MaxValue.ToString(CultureInfo.InvariantCulture), ulongValue.Text);
+
+        var (fifteenDigits, fifteenDigitsType) = CoerceValueHelper.Coerce(999_999_999_999_999L, s => new CellValue(s));
+        Assert.Equal(CellValues.Number, fifteenDigitsType);
+        Assert.Equal("999999999999999", fifteenDigits.Text);
     }
 
     [Fact]
@@ -103,15 +107,14 @@ public class ExcelCoerceValueHelper
     }
 
     [Fact]
-    public void Coerce_DateTimeOffset_UsesLocalStrategyByDefault()
+    public void Coerce_DateTimeOffset_WritesRoundTripTextByDefault()
     {
         var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(5));
-        double expected = offset.LocalDateTime.ToOADate();
 
-        var (value, type) = CoerceValueHelper.Coerce(offset, _ => throw new InvalidOperationException("Should not use shared strings"));
+        var (value, type) = CoerceValueHelper.Coerce(offset, s => new CellValue(s));
 
-        Assert.Equal(CellValues.Number, type);
-        Excel.AssertRoundTripNumericText(expected, value.Text);
+        Assert.Equal(CellValues.SharedString, type);
+        Assert.Equal("2024-01-02T03:04:05.0000000+05:00", value.Text);
     }
 
     [Fact]

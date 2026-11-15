@@ -60,7 +60,7 @@ public sealed partial class PdfReadPage {
         var activeForms = new HashSet<PdfStream>();
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        var textClippingBudget = new PdfTextClippingBudget();
+        var textClippingBudget = new PdfTextClippingBudget(_limits);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         CollectRenderCapabilityDiagnostics(
             GetContentStreamContent(pageContentBudget),
@@ -1328,6 +1328,9 @@ public sealed partial class PdfReadPage {
             PdfDictionary? resources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ?? parentResources;
             string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
             CollectRenderCapabilityDiagnostics(content, resources, diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget, contentNestingDepth, auxiliarySurfaceDepth + 1);
+        } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            // The page render skips content nested this deep; report it once instead of failing the scan.
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FormNestingStackId, "auxiliary surface");
         } finally {
             activeForms.Remove(stream);
         }
@@ -1482,6 +1485,9 @@ public sealed partial class PdfReadPage {
                         invocation.StrokePattern,
                         invocation.StrokePatternBaseColorSpace,
                         formClip);
+                } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+                    // The page render skips this form for the same reason.
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FormNestingStackId, entry.Key);
                 } finally {
                     activeForms.Remove(stream);
                 }
@@ -1614,9 +1620,14 @@ public sealed partial class PdfReadPage {
             if (synthesized) {
                 AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.SynthesizedAnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
             }
-            if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
-                !TryCreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary, out Matrix2D placementTransform) ||
-                !activeForms.Add(appearance)) continue;
+            if (!TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle)) continue;
+            if (!TryCreateAnnotationAppearanceTransform(rectangle, appearance.Dictionary, out Matrix2D placementTransform, out bool malformedPlacement)) {
+                if (malformedPlacement) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.AnnotationAppearanceId, subtype + "[" + i.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
+                }
+                continue;
+            }
+            if (!activeForms.Add(appearance)) continue;
             try {
                 PdfDictionary appearanceResources = ResolveDictionary(appearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
                     ?? pageResources

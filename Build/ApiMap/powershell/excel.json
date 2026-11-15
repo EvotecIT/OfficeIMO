@@ -64,6 +64,12 @@
               "pipeline": "none"
             },
             {
+              "name": "DateTimeOffsetMode",
+              "type": "ExcelDateTimeOffsetWriteMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "SaveOptions",
               "type": "ExcelSaveOptions",
               "mandatory": false,
@@ -133,6 +139,12 @@
             {
               "name": "DateSystem",
               "type": "ExcelDateSystem",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeOffsetMode",
+              "type": "ExcelDateTimeOffsetWriteMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -1300,6 +1312,12 @@
               "pipeline": "none"
             },
             {
+              "name": "DateTimeOffsetMode",
+              "type": "ExcelDateTimeOffsetWriteMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "SaveOptions",
               "type": "ExcelSaveOptions",
               "mandatory": false,
@@ -1500,6 +1518,12 @@
               "pipeline": "none"
             },
             {
+              "name": "DateTimeOffsetMode",
+              "type": "ExcelDateTimeOffsetWriteMode",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "SaveOptions",
               "type": "ExcelSaveOptions",
               "mandatory": false,
@@ -1696,6 +1720,12 @@
             {
               "name": "DateSystem",
               "type": "ExcelDateSystem",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DateTimeOffsetMode",
+              "type": "ExcelDateTimeOffsetWriteMode",
               "mandatory": false,
               "pipeline": "none"
             },

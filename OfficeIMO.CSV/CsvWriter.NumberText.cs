@@ -48,6 +48,11 @@ internal static partial class CsvWriter
             return true;
         }
 
+        if (IsRoundTripDate<T>())
+        {
+            return TryFormatRoundTripDate(value, destination, out written);
+        }
+
         return typeof(TChar) == typeof(byte)
             ? value.TryFormat(MemoryMarshal.Cast<TChar, byte>(destination), out written, default, CultureInfo.InvariantCulture)
             : value.TryFormat(MemoryMarshal.Cast<TChar, char>(destination), out written, default, CultureInfo.InvariantCulture);

@@ -3,6 +3,7 @@ title: "PDF"
 description: "Create, inspect, transform, render, sign, and validate PDF documents with OfficeIMO.Pdf. Includes examples and API links."
 order: 35
 meta.seo_title: "PDF authoring and conversion | OfficeIMO"
+verified: 2026-11-14
 ---
 
 Create, read and change PDF files in .NET with OfficeIMO's own PDF engine — no third-party PDF library, browser or Office installation.
@@ -67,6 +68,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 ## Read text and tables
 
 ```csharp
+using OfficeIMO.Pdf;
+
 PdfDocumentReadResult result = PdfDocument.Load("Service-review.pdf").Read();
 foreach (PdfLogicalPage page in result.Pages) {
     Console.WriteLine($"Page {page.PageNumber}: {page.Paragraphs.Count} paragraphs, {page.Tables.Count} tables");

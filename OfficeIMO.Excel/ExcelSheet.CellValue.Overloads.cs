@@ -130,7 +130,7 @@ namespace OfficeIMO.Excel {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
-                CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
+                CellIntegerValueCore(row, column, InvariantNumberText.Get(value), ExcelExactNumber.FitsNumberCell(value));
                 return;
             }
 
@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
-                CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
+                CellIntegerValueCore(row, column, InvariantNumberText.Get(value), ExcelExactNumber.FitsNumberCell(value));
             } finally {
                 lck.ExitWriteLock();
             }
@@ -316,7 +316,7 @@ namespace OfficeIMO.Excel {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             if (HasCellValueWriteAccess) {
                 MaterializeDeferredDataSetImportIfNeeded();
-                CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
+                CellIntegerValueCore(row, column, InvariantNumberText.Get(value), ExcelExactNumber.FitsNumberCell(value));
                 return;
             }
 
@@ -324,7 +324,7 @@ namespace OfficeIMO.Excel {
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
-                CellNumberTextValueCore(row, column, InvariantNumberText.Get(value));
+                CellIntegerValueCore(row, column, InvariantNumberText.Get(value), ExcelExactNumber.FitsNumberCell(value));
             } finally {
                 lck.ExitWriteLock();
             }

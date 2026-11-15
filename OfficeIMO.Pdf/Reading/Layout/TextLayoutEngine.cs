@@ -569,7 +569,7 @@ internal static partial class TextLayoutEngine {
     private static bool IsWordJoin(string left, string right) {
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
         int a = GetLastScalar(left);
-        int b = char.ConvertToUtf32(right, 0);
+        int b = PdfUnicodeScalarAnalysis.ScalarAt(right, 0);
         bool aWord = PdfUnicodeScalarAnalysis.IsLastLetterOrDigit(left) || a is 0x29 or 0x22 or 0x27 or 0x2019;
         bool bWord = PdfUnicodeScalarAnalysis.IsFirstLetterOrDigit(right) || b is 0x28 or 0x22 or 0x27 or 0x2018;
         return aWord && bWord;
@@ -601,7 +601,7 @@ internal static partial class TextLayoutEngine {
     private static bool ShouldRespectVisibleGap(string left, string right) {
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
         int a = GetLastScalar(left);
-        int b = char.ConvertToUtf32(right, 0);
+        int b = PdfUnicodeScalarAnalysis.ScalarAt(right, 0);
         bool leftBoundary = PdfUnicodeScalarAnalysis.IsLastLetterOrDigit(left) || a is 0x3A or 0x3B or 0x2C or 0x2E or 0x29 or 0x22 or 0x27 or 0x2019;
         bool rightBoundary = PdfUnicodeScalarAnalysis.IsFirstLetterOrDigit(right) || b is 0x28 or 0x22 or 0x27 or 0x2018;
         return leftBoundary && rightBoundary;
@@ -609,7 +609,7 @@ internal static partial class TextLayoutEngine {
     private static int GetLastScalar(string value) {
         int index = value.Length - 1;
         if (index > 0 && char.IsLowSurrogate(value[index]) && char.IsHighSurrogate(value[index - 1])) index--;
-        return char.ConvertToUtf32(value, index);
+        return PdfUnicodeScalarAnalysis.ScalarAt(value, index);
     }
     private static double SafeAvgAdvance(PdfTextSpan span) {
         if (span.LogicalLayoutAdvance <= 0) return span.FontSize * 0.5;

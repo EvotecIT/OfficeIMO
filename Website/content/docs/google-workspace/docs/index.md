@@ -1,15 +1,61 @@
 ---
-title: Word and Google Docs
-description: "Plan, export, import, and safely replace Google Docs with OfficeIMO.Word. Includes examples, safety notes, and package links."
+title: "Export and Import Google Docs"
+description: "Plan a Word-to-Google-Docs export offline, create a Google Doc from a WordDocument, import a Google Doc, and replace an existing one safely."
 order: 20
+packages:
+  - OfficeIMO.Word.GoogleDocs
+  - OfficeIMO.GoogleWorkspace
+cmdlets:
+  - Export-OfficeWordGoogleDocument
+  - New-OfficeWordGoogleDocsOptions
+  - New-OfficeGoogleWorkspaceSession
+limits: "Word comments become unanchored Drive comments, because Google Docs has no equivalent custom anchor."
+search_terms:
+  - word to google docs
+  - docx to google docs
+  - import google doc
+  - google docs api
+verified: 2026-11-14
 ---
 
-Install `OfficeIMO.Word.GoogleDocs`. Build the plan before acquiring credentials when you need a review or strict fidelity gate.
+`OfficeIMO.Word.GoogleDocs` translates a `WordDocument` into Google Docs API requests and imports Google Docs back into a `WordDocument`. Build the plan first when you need a review step or a strict fidelity check: planning needs no credentials.
+
+## Check what an export would change
+
+### C#
 
 ```csharp
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Word;
 using OfficeIMO.Word.GoogleDocs;
+
+using WordDocument document = WordDocument.Load("report.docx");
+
+GoogleDocsTranslationPlan plan = document.BuildGoogleDocsPlan(new GoogleDocsSaveOptions { Title = "Quarterly review" });
+Console.WriteLine($"{plan.ParagraphCount} paragraphs, {plan.TableCount} tables, {plan.ImageCount} images");
+
+foreach (TranslationNotice notice in plan.Report.Notices) {
+    Console.WriteLine($"{notice.Severity} {notice.Code} {notice.Path}: {notice.Message}");
+}
+```
+
+### PowerShell
+
+```powershell
+Export-OfficeWordGoogleDocument -Path .\report.docx -Mode Plan
+```
+
+## Create a Google Doc from Word
+
+### C#
+
+```csharp
+using OfficeIMO.GoogleWorkspace;
+using OfficeIMO.Word;
+using OfficeIMO.Word.GoogleDocs;
+
+using var credentials = GoogleServiceAccountCredentialSource.FromFile("service-account.json");
+var session = new GoogleWorkspaceSession(credentials, new GoogleWorkspaceSessionOptions { DefaultFolderId = "folder-id" });
 
 using WordDocument document = WordDocument.Create();
 document.AddParagraph("Quarterly review").SetStyle(WordParagraphStyles.Heading1);
@@ -20,27 +66,58 @@ var options = new GoogleDocsSaveOptions {
     Tabs = new GoogleDocsTabOptions { Strategy = GoogleDocsTabStrategy.FirstTab },
     Comments = GoogleDocsCommentMode.UnanchoredDriveComments
 };
-GoogleDocsTranslationPlan plan = document.BuildGoogleDocsPlan(options);
+
 GoogleDocumentReference created = await document.ExportToGoogleDocsAsync(session, options);
+Console.WriteLine(created.WebViewLink);
 ```
 
-For a safe replacement, native-import the target and pass the observed revision:
+### PowerShell
+
+```powershell
+$session = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting.json -Scope Documents, DriveFile
+try {
+    $options = New-OfficeWordGoogleDocsOptions -Title 'Quarterly review' -FolderId 'folder-id'
+    Export-OfficeWordGoogleDocument -Path .\report.docx -Session $session -Options $options
+} finally {
+    $session.CredentialSource.Dispose()
+}
+```
+
+## Import a Google Doc and replace it safely
+
+Native import projects supported tabs, body content, styles, lists, tables, links, and images. `DriveExport` mode converts to DOCX and loads it through `OfficeIMO.Word` when you need broader Word fidelity. For a replacement, pass the revision you imported; the export fails if someone changed the document in between.
+
+### C#
 
 ```csharp
+using OfficeIMO.GoogleWorkspace;
+using OfficeIMO.Word;
+using OfficeIMO.Word.GoogleDocs;
+
+using var credentials = GoogleServiceAccountCredentialSource.FromFile("service-account.json");
+var session = new GoogleWorkspaceSession(credentials);
+
 GoogleDocsImportResult current = await session.ImportGoogleDocAsync(
     "document-id",
-    new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native });
+    new GoogleDocsImportOptions { Mode = GoogleWorkspaceImportMode.Native });
 
 using (current.Document) {
+    current.Document.AddParagraph("Reviewed on " + DateTime.Today.ToString("yyyy-MM-dd"));
+
     var replace = new GoogleDocsSaveOptions {
         Location = new GoogleDriveFileLocation { ExistingFileId = current.Source.FileId },
         Replace = new GoogleDocsReplaceOptions { ExpectedRevisionId = current.Source.RevisionId },
         Tabs = new GoogleDocsTabOptions { Strategy = GoogleDocsTabStrategy.ReplaceEveryTab }
     };
-    await document.ExportToGoogleDocsAsync(session, replace);
+    await current.Document.ExportToGoogleDocsAsync(session, replace);
 }
 ```
 
-`FirstTab`, `SelectedTab`, and `ReplaceEveryTab` are explicit. Existing replacement cleans the selected scope, including stale header/footer and named-range structures. `OverwriteLatest` and target-revision merge are deliberate alternatives; neither is silently selected.
+`FirstTab`, `SelectedTab`, and `ReplaceEveryTab` must be chosen explicitly. Replacing clears the selected scope, including stale header, footer, and named-range structures. `OverwriteLatest` and target-revision merge are alternatives you have to select; neither is used silently.
 
-Native import projects supported tabs, body content, styles, lists, tables, links, and images. `DriveExport` converts to DOCX and loads through `OfficeIMO.Word` when broader Word fidelity matters. Word comments can become unanchored Drive comments because Google editors do not expose an equivalent custom anchor contract.
+### PowerShell
+
+```powershell
+$options = New-OfficeWordGoogleDocsOptions -ExistingFileId $fileId -ExpectedRevisionId $revisionId -TabStrategy ReplaceEveryTab
+Export-OfficeWordGoogleDocument -Path .\report.docx -Session $session -Options $options
+```

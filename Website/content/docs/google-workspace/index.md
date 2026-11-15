@@ -1,45 +1,75 @@
 ---
-title: Google Workspace
-description: "Choose and configure the OfficeIMO libraries for Google Docs, Sheets, Slides, Drive, and synchronization. Includes examples and package links."
+title: "Export Office Documents to Google Workspace"
+description: "Export Word, Excel, and PowerPoint documents to Google Docs, Sheets, and Slides, import them back, and work with Drive through one shared session."
 order: 10
+packages:
+  - OfficeIMO.GoogleWorkspace
+  - OfficeIMO.Word.GoogleDocs
+  - OfficeIMO.Excel.GoogleSheets
+  - OfficeIMO.PowerPoint.GoogleSlides
+  - OfficeIMO.GoogleWorkspace.Drive
+cmdlets:
+  - New-OfficeGoogleWorkspaceSession
+  - Export-OfficeWordGoogleDocument
+search_terms:
+  - google docs
+  - google sheets
+  - google slides
+  - google drive api
+  - docx to google docs
+verified: 2026-11-14
 ---
 
-OfficeIMO exposes one shared Google Workspace foundation and format-specific translators. The format libraries remain thin over `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint`; they do not introduce a universal intermediate document model.
+`OfficeIMO.GoogleWorkspace` holds the session, credentials, transport, retries, diagnostics, and fidelity policy. Format packages translate one OfficeIMO document type each: `OfficeIMO.Word.GoogleDocs`, `OfficeIMO.Excel.GoogleSheets`, and `OfficeIMO.PowerPoint.GoogleSlides`. `OfficeIMO.GoogleWorkspace.Drive` covers files and folders, `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` adapts Google client-library credentials, and `OfficeIMO.GoogleWorkspace.Sync` reads change feeds.
 
-## Install the parts you use
+| You want to | Page |
+|---|---|
+| Create a session from a service account, token, or Google APIs credential | [Authenticate to Google Workspace](/docs/google-workspace/authentication/) |
+| Export Word to Google Docs or import a Google Doc | [Export and Import Google Docs](/docs/google-workspace/docs/) |
+| Export Excel to Google Sheets or import a spreadsheet | [Export and Import Google Sheets](/docs/google-workspace/sheets/) |
+| Export PowerPoint to Google Slides | [Export and Import Google Slides](/docs/google-workspace/slides/) |
+| List, upload, download, or share Drive files | [Manage Google Drive Files](/docs/google-workspace/drive/) |
+| Target a shared drive | [Work with Google Shared Drives](/docs/google-workspace/shared-drives/) |
+| Track Drive changes and apply a sync plan | [Track Google Drive Changes](/docs/google-workspace/sync/) |
+| Check what each translator supports | [Google Workspace support matrix](/docs/google-workspace/support/) |
 
-```powershell
-dotnet add package OfficeIMO.GoogleWorkspace
-dotnet add package OfficeIMO.GoogleWorkspace.Drive
-dotnet add package OfficeIMO.Word.GoogleDocs
-dotnet add package OfficeIMO.Excel.GoogleSheets
-dotnet add package OfficeIMO.PowerPoint.GoogleSlides
-```
+## Create a session and export a document
 
-Add `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` for Google client-library credentials, or `OfficeIMO.GoogleWorkspace.Sync` for change feeds and plan/apply orchestration.
+Every translator can build a local plan before it touches Google. `TranslationReport` entries carry a stable code, source path, severity, chosen action, and count, and `GoogleWorkspaceFidelityPolicy` decides whether errors or warnings stop the operation.
 
-## Create a session
+### C#
 
 ```csharp
 using OfficeIMO.GoogleWorkspace;
+using OfficeIMO.Word;
+using OfficeIMO.Word.GoogleDocs;
 
-var session = new GoogleWorkspaceSession(
-    new StaticAccessTokenCredentialSource("<access-token>"),
-    new GoogleWorkspaceSessionOptions {
-        ApplicationName = "Reporting service",
-        DefaultFolderId = "folder-id",
-        DefaultDriveId = "shared-drive-id",
-        MaxRetryCount = 5,
-        DiagnosticSink = entry => Console.WriteLine($"{entry.Severity}: {entry.Message}")
-    });
+using var credentials = GoogleServiceAccountCredentialSource.FromFile("service-account.json");
+var session = new GoogleWorkspaceSession(credentials, new GoogleWorkspaceSessionOptions {
+    ApplicationName = "Reporting service",
+    DefaultFolderId = "folder-id",
+    MaxRetryCount = 5,
+    DiagnosticSink = entry => Console.WriteLine($"{entry.Severity}: {entry.Message}")
+});
+
+using WordDocument document = WordDocument.Load("report.docx");
+GoogleDocumentReference created = await document.ExportToGoogleDocsAsync(session,
+    new GoogleDocsSaveOptions { Title = "Quarterly report" });
+
+Console.WriteLine(created.FileId);
 ```
 
-A raw static token is useful for read-only samples and short-lived jobs. A caller-entered account name or requested scope is not proof of the token's identity or grants, so it cannot authorize mutations. Mutation-capable applications normally use the built-in service-account source or return `GoogleWorkspaceAccessToken.FromVerifiedCredential` from a delegate or optional Google APIs adapter after checking provider-issued token evidence.
+### PowerShell
 
-## Common contract
+```powershell
+$session = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting.json -Scope Documents, DriveFile
+try {
+    Export-OfficeWordGoogleDocument -Path .\report.docx -Session $session
+} finally {
+    $session.CredentialSource.Dispose()
+}
+```
 
-Every translator can build a local plan before it mutates Google. `TranslationReport` entries contain a stable code, source path, severity, selected action, count, and optional target identifier. `GoogleWorkspaceFidelityPolicy` decides whether errors or warnings stop the operation and can accept specific diagnostic codes.
+## Update an existing file safely
 
-For existing files, import or read first, retain `RevisionId` or `DriveVersion`, and pass it back in the format replacement options. Drive change cursors help applications discover work; they do not replace format-specific diff plans or application-owned persistence.
-
-Continue with [Google Docs](/docs/google-workspace/docs/), [Google Sheets](/docs/google-workspace/sheets/), [Google Slides](/docs/google-workspace/slides/), [Drive](/docs/google-workspace/drive/), [authentication](/docs/google-workspace/authentication/), [shared drives](/docs/google-workspace/shared-drives/), [synchronization](/docs/google-workspace/sync/), or [live tests](/docs/google-workspace/live-tests/).
+Import or read the target first, keep its `RevisionId` (Docs, Slides) or `DriveVersion` (Sheets), and pass it back in the replace options. The replacement fails if the file changed in between. Overwrite modes exist, but only as an explicit choice. Drive change feeds tell you what to look at; they do not replace the format-specific replacement checks.

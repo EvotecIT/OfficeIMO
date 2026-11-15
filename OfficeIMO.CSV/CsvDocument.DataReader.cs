@@ -163,6 +163,11 @@ public sealed partial class CsvDocument
         {
             throw new ArgumentOutOfRangeException(nameof(options), "Schema sample size must be greater than zero.");
         }
+
+        if (options?.Parsing.UsesCustomQuoting == true)
+        {
+            throw new NotSupportedException("The asynchronous reader supports only the RFC 4180 double quote; use OpenReader for other quote or escape characters.");
+        }
     }
 #endif
 
@@ -594,7 +599,9 @@ public sealed partial class CsvDocument
     private static bool CanUseUtf8StreamDataReader(CsvReaderOptions options)
     {
         string delimiterText = CsvParser.GetDelimiterText(options);
-        return (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
+        // The UTF-8 reader recognizes only the RFC 4180 double quote.
+        return !options.Parsing.UsesCustomQuoting &&
+            (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
             // Custom replacements can remove a record or introduce CSV syntax during decoding.
             (options.Encoding is null || options.Encoding.DecoderFallback is DecoderExceptionFallback ||
                 options.Encoding.DecoderFallback is DecoderReplacementFallback { DefaultString: "\uFFFD" }) &&

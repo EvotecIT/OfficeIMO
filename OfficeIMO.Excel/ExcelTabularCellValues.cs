@@ -56,9 +56,13 @@ namespace OfficeIMO.Excel {
                     kind = ExcelBufferedCellKind.Int32;
                     bits = number;
                     break;
-                case long number:
+                case long number when ExcelExactNumber.FitsNumberCell(number):
                     kind = ExcelBufferedCellKind.Int64;
                     bits = number;
+                    break;
+                case long number:
+                    kind = ExcelBufferedCellKind.Text;
+                    bits = AddReference(InvariantNumberText.Get(number));
                     break;
                 case DateTime date:
                     kind = ExcelBufferedCellKind.DateTime;

@@ -525,13 +525,15 @@ internal static partial class CsvWriter
     /// <summary>Room a field of <see cref="AppendInvariantRecord{TFields, TChar, TLayout}"/> may need: a delimiter and any invariant scalar.</summary>
     private const int InvariantFieldSpace = 66;
 
-    /// <summary>The runtime's invariant text of a scalar, which never needs quotes after a comma.</summary>
+    /// <summary>The invariant text of a scalar, dates as their round-trip text, which never needs quotes after a comma.</summary>
     private static int FormatRuntimeScalar<T, TChar>(T value, Span<TChar> destination)
         where T : ISpanFormattable, IUtf8SpanFormattable
         where TChar : unmanaged
     {
         int written;
-        bool formatted = typeof(TChar) == typeof(byte)
+        bool formatted = IsRoundTripDate<T>()
+            ? TryFormatRoundTripDate(value, destination, out written)
+            : typeof(TChar) == typeof(byte)
             ? value.TryFormat(MemoryMarshal.Cast<TChar, byte>(destination), out written, default, CultureInfo.InvariantCulture)
             : value.TryFormat(MemoryMarshal.Cast<TChar, char>(destination), out written, default, CultureInfo.InvariantCulture);
         if (!formatted)

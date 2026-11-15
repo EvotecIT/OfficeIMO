@@ -45,7 +45,7 @@ public partial class ExcelDocument {
                     sink.EndRow();
                 }
                 var writer = ExcelTabularRowWriter.Create(sink, headers.Length, _options.IncludeHeaders,
-                    _options.UseCellValueNumberFormats, _options.DateSystem);
+                    _options.UseCellValueNumberFormats, _options.DateSystem, GetDateTimeOffsetWriteStrategy(_options));
                 int maximumRows = (_format == ExcelFileFormat.Xls ? 65_536 : ExcelA1.MaxRows) - (_options.IncludeHeaders ? 1 : 0);
                 int count = await WriteStreamingRowCallbacks(rows, writer, writeRow, maximumRows, ct).ConfigureAwait(false);
                 sink.Complete();

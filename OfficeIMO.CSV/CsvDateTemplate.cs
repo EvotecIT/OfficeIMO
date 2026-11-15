@@ -4,9 +4,13 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvWriter
 {
-    /// <summary>Formats a date with a configured format; simple numeric templates skip the runtime's format parsing.</summary>
+    /// <summary>
+    /// Formats a date with a configured format, or with the round-trip text when there is none; simple numeric
+    /// templates skip the runtime's format parsing.
+    /// </summary>
     internal static bool TryFormatDate(DateTime value, Span<char> destination, out int written, string? format, CultureInfo culture) =>
-        format is not null && CsvDateTemplate.TryFormat(value, format, culture, destination, out written)
+        string.IsNullOrEmpty(format) ? TryFormatRoundTrip(value, destination, out written)
+        : CsvDateTemplate.TryFormat(value, format!, culture, destination, out written)
 #if NET8_0_OR_GREATER
         || value.TryFormat(destination, out written, format, culture);
 #else
@@ -51,15 +55,6 @@ internal sealed class CsvDateTemplate
         _format = format;
         _parts = Parse(format, out _length);
     }
-
-#if !NET8_0_OR_GREATER
-    /// <summary>The invariant culture's general date and time text: its short date and long time patterns.</summary>
-    private static readonly CsvDateTemplate s_invariantGeneral = new("MM/dd/yyyy HH:mm:ss");
-
-    /// <summary>Writes what <c>value.ToString(CultureInfo.InvariantCulture)</c> returns.</summary>
-    internal static bool TryFormatInvariantGeneral(DateTime value, Span<char> destination, out int written) =>
-        s_invariantGeneral.TryWrite(value, destination, out written);
-#endif
 
     /// <summary>Writes <paramref name="value"/> when the format is a supported template; false leaves it to the runtime.</summary>
     internal static bool TryFormat(DateTime value, string format, CultureInfo culture, Span<char> destination, out int written)

@@ -1173,7 +1173,9 @@ internal static partial class ResourceResolver {
 
     private static PdfDictionary? GetInheritedDictionary(PdfDictionary page, string key, Dictionary<int, PdfIndirectObject> objects) {
         PdfDictionary? current = page;
-        while (current is not null) {
+        // A malformed page tree can make /Parent point back into its own chain.
+        var visited = new HashSet<PdfDictionary>();
+        while (current is not null && visited.Add(current)) {
             if (current.Items.TryGetValue(key, out var v)) {
                 var dict = ResolveDict(v, objects);
                 if (dict is not null) return dict;

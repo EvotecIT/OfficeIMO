@@ -72,13 +72,31 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelExecutionPolicy Execution { get; } = new();
 
-        // Default strategy mirrors CoerceValueHelper's behaviour and uses LocalDateTime so that
-        // serial values are aligned with Excel's local time interpretation.
+        // Serial mode uses LocalDateTime unless a caller supplies a strategy, so serial values follow
+        // Excel's local time interpretation.
         private Func<DateTimeOffset, DateTime> _dateTimeOffsetWriteStrategy = static dto => dto.LocalDateTime;
+        private ExcelDateTimeOffsetWriteMode _dateTimeOffsetWriteMode = ExcelDateTimeOffsetWriteMode.Text;
+
+        /// <summary>
+        /// Controls how <see cref="DateTimeOffset"/> values are written to worksheet cells. Defaults to
+        /// <see cref="ExcelDateTimeOffsetWriteMode.Text"/>, which writes ISO 8601 text and keeps the offset.
+        /// <see cref="ExcelDateTimeOffsetWriteMode.Serial"/> writes date serials converted by <see cref="DateTimeOffsetWriteStrategy"/>.
+        /// </summary>
+        public ExcelDateTimeOffsetWriteMode DateTimeOffsetWriteMode {
+            get => _dateTimeOffsetWriteMode;
+            set {
+                if (value != ExcelDateTimeOffsetWriteMode.Text && value != ExcelDateTimeOffsetWriteMode.Serial) {
+                    throw new ArgumentOutOfRangeException(nameof(value));
+                }
+
+                _dateTimeOffsetWriteMode = value;
+            }
+        }
 
         /// <summary>
         /// Controls how <see cref="DateTimeOffset"/> values are converted to <see cref="DateTime"/>
-        /// before being written to worksheet cells. Defaults to <see cref="DateTimeOffset.LocalDateTime"/>.
+        /// when <see cref="DateTimeOffsetWriteMode"/> is <see cref="ExcelDateTimeOffsetWriteMode.Serial"/>.
+        /// Defaults to <see cref="DateTimeOffset.LocalDateTime"/>. Assigning a strategy selects serial mode.
         /// </summary>
         /// <remarks>
         /// The delegate influences the numeric serial value stored in the cell but does not automatically
@@ -86,8 +104,17 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public Func<DateTimeOffset, DateTime> DateTimeOffsetWriteStrategy {
             get => _dateTimeOffsetWriteStrategy;
-            set => _dateTimeOffsetWriteStrategy = value ?? throw new ArgumentNullException(nameof(value));
+            set {
+                _dateTimeOffsetWriteStrategy = value ?? throw new ArgumentNullException(nameof(value));
+                _dateTimeOffsetWriteMode = ExcelDateTimeOffsetWriteMode.Serial;
+            }
         }
+
+        /// <summary>The conversion every write path uses; text mode is the shared marker strategy.</summary>
+        internal Func<DateTimeOffset, DateTime> EffectiveDateTimeOffsetWriteStrategy =>
+            _dateTimeOffsetWriteMode == ExcelDateTimeOffsetWriteMode.Text
+                ? CoerceValueHelper.DateTimeOffsetTextStrategy
+                : _dateTimeOffsetWriteStrategy;
 
         internal ReaderWriterLockSlim EnsureLock() {
             ReaderWriterLockSlim? existing = Volatile.Read(ref _lock);
