@@ -1,3 +1,4 @@
+using System.Text;
 using BenchmarkDotNet.Attributes;
 
 namespace OfficeIMO.Toml.Benchmarks;
@@ -33,6 +34,7 @@ public class TomlParseBenchmarks {
 [MemoryDiagnoser]
 public class TomlLoadBenchmarks {
     private string[] _inputs = Array.Empty<string>();
+    private byte[][] _utf8Inputs = Array.Empty<byte[]>();
 
     [ParamsAllValues]
     public TomlWorkload Workload { get; set; }
@@ -40,6 +42,7 @@ public class TomlLoadBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _inputs = TomlWorkloads.Get(Workload);
+        _utf8Inputs = _inputs.Select(Encoding.UTF8.GetBytes).ToArray();
         TomlWorkloadCheck.Validate(Workload);
     }
 
@@ -54,6 +57,14 @@ public class TomlLoadBenchmarks {
     public int Tomlet() {
         int total = 0;
         foreach (string input in _inputs) total += TomlLibraries.LoadTomlet(input).Entries.Count;
+        return total;
+    }
+
+    /// <summary>CsToml reads UTF-8 bytes, its native input, encoded once during setup.</summary>
+    [Benchmark]
+    public int CsToml() {
+        int total = 0;
+        foreach (byte[] input in _utf8Inputs) total += TomlLibraries.LoadCsToml(input).RootNode.HasValue ? 1 : 0;
         return total;
     }
 
@@ -75,8 +86,8 @@ public class TomlLoadBenchmarks {
 }
 
 /// <summary>
-/// Load and save without edits. OfficeIMO and Tomlyn's syntax tree reproduce the input; Tomlet re-serializes it and
-/// cannot write one corpus key, so its lane reports NA for the Corpus workload.
+/// Load and save without edits. OfficeIMO and Tomlyn's syntax tree reproduce the input, which setup checks. Tomlet only
+/// re-serializes its model, which is not the same work, so it has no lane here.
 /// </summary>
 [MemoryDiagnoser]
 public class TomlLoadAndSaveBenchmarks {
@@ -93,9 +104,6 @@ public class TomlLoadAndSaveBenchmarks {
 
     [Benchmark(Baseline = true)]
     public long TomlynSyntax() => Sum(TomlLibraries.SaveTomlyn);
-
-    [Benchmark]
-    public long TomletReserialized() => Sum(TomlLibraries.SaveTomlet);
 
     [Benchmark]
     public long OfficeIMOToml() => Sum(TomlLibraries.SaveOfficeIMO);

@@ -134,7 +134,7 @@ PowerShell's `Test-Json`. The exact v4 top-level fields are `schemaVersion`,
 `libraries` (strings) and `expectedPlatforms` (strings). Each evidence entry keeps
 the v3 lane, artifact, hash, environment and compatibility fields and adds `area`.
 Area values are only the IDs `pdf`, `excel`, `csv`, `word`, `powerpoint`,
-`markdown`, `html`, `rtf`, `image`, `email`, `epub`, `opendocument` and `zip`.
+`markdown`, `html`, `rtf`, `image`, `email`, `epub`, `opendocument`, `zip`, `yaml` and `toml`.
 Area titles and descriptions come from `Website/data/benchmark_areas.json`;
 comparison titles and library names remain in `comparisons`. Both index copies
 retain quick results without changing their publication flags; templates choose

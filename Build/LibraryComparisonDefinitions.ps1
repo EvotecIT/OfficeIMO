@@ -460,6 +460,248 @@ function Get-LibraryComparisonDefinitions {
                 }
             )
         }
+        yamlparse = [pscustomobject]@{
+            Area = 'yaml'
+            Title = 'YAML parse to events'
+            Libraries = @('OfficeIMO', 'YamlDotNet', 'SharpYaml', 'VYaml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
+            Filter = '*YamlParseEventsBenchmarks*'
+            ComparisonId = "yaml-parse-events-$Framework"
+            Suite = 'OfficeIMO.Yaml.ParseEvents'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
+                    foreach ($engine in @('YamlDotNet', 'SharpYaml', 'OfficeIMOYaml', 'VYaml')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        # VYaml resolves the plain scalar 'infinity' in one corpus file as a float, so setup rejects its ManySmallFiles load.
+        yamlload = [pscustomobject]@{
+            Area = 'yaml'
+            Title = 'YAML load to model'
+            Libraries = @('OfficeIMO', 'YamlDotNet', 'SharpYaml', 'VYaml', 'OneYaml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
+            Filter = '*YamlLoadTreeBenchmarks*'
+            ComparisonId = "yaml-load-$Framework"
+            Suite = 'OfficeIMO.Yaml.Load'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
+                    foreach ($engine in @('OneYaml', 'VYaml', 'YamlDotNet', 'SharpYaml', 'OfficeIMOYaml', 'OfficeIMOYamlWithValues')) {
+                        if ($engine -eq 'VYaml' -and $workload -eq 'ManySmallFiles') { continue }
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        yamlloadsave = [pscustomobject]@{
+            Area = 'yaml'
+            Title = 'YAML unchanged load and save'
+            Libraries = @('OfficeIMO', 'YamlDotNet', 'SharpYaml', 'OneYaml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
+            Filter = '*YamlLoadAndSaveBenchmarks*'
+            ComparisonId = "yaml-load-save-$Framework"
+            Suite = 'OfficeIMO.Yaml.LoadAndSave'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
+                    foreach ($engine in @('YamlDotNet', 'SharpYaml', 'OneYaml', 'OfficeIMOYaml')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        yamledit = [pscustomobject]@{
+            Area = 'yaml'
+            Title = 'YAML single-value edit and save'
+            Libraries = @('OfficeIMO', 'YamlDotNet', 'SharpYaml', 'OneYaml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
+            Filter = '*YamlEditAndSaveBenchmarks*'
+            ComparisonId = "yaml-edit-save-$Framework"
+            Suite = 'OfficeIMO.Yaml.EditAndSave'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
+                    foreach ($engine in @('YamlDotNet', 'SharpYaml', 'OneYaml', 'OfficeIMOYaml')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        yamlemit = [pscustomobject]@{
+            Area = 'yaml'
+            Title = 'YAML emit from events'
+            Libraries = @('OfficeIMO', 'YamlDotNet', 'SharpYaml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
+            Filter = '*YamlEmitBenchmarks*'
+            ComparisonId = "yaml-emit-$Framework"
+            Suite = 'OfficeIMO.Yaml.Emit'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
+                    foreach ($engine in @('YamlDotNet', 'SharpYaml', 'OfficeIMOYaml')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        yamlserialize = [pscustomobject]@{
+            Area = 'yaml'
+            Title = 'YAML object serialization'
+            Libraries = @('OfficeIMO', 'YamlDotNet', 'SharpYaml', 'VYaml', 'OneYaml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
+            Filter = '*YamlSerializeBenchmarks*'
+            ComparisonId = "yaml-serialize-$Framework"
+            Suite = 'OfficeIMO.Yaml.Serialize'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'LargeRecords', 'KubernetesNested')) {
+                    foreach ($engine in @('YamlDotNet', 'SharpYamlGenerated', 'VYamlGenerated', 'OneYamlGenerated', 'OneYamlReflection', 'OneYamlGeneratedUtf8', 'OfficeIMOGenerated', 'OfficeIMOReflection', 'OfficeIMOGeneratedUtf8', 'OfficeIMOGeneratedUtf8Bytes')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        yamldeserialize = [pscustomobject]@{
+            Area = 'yaml'
+            Title = 'YAML object deserialization'
+            Libraries = @('OfficeIMO', 'YamlDotNet', 'SharpYaml', 'VYaml', 'OneYaml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
+            Filter = '*YamlDeserializeBenchmarks*'
+            ComparisonId = "yaml-deserialize-$Framework"
+            Suite = 'OfficeIMO.Yaml.Deserialize'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'LargeRecords', 'KubernetesNested')) {
+                    foreach ($engine in @('YamlDotNet', 'SharpYamlGenerated', 'VYamlGenerated', 'OneYamlGenerated', 'OneYamlReflection', 'OneYamlGeneratedUtf8', 'OfficeIMOGenerated', 'OfficeIMOReflection')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        tomlparse = [pscustomobject]@{
+            Area = 'toml'
+            Title = 'TOML parse without a model'
+            Libraries = @('OfficeIMO', 'Tomlyn')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
+            Filter = '*TomlParseBenchmarks*'
+            ComparisonId = "toml-parse-$Framework"
+            Suite = 'OfficeIMO.Toml.Parse'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'CargoWorkspace', 'LockFile', 'Corpus')) {
+                    foreach ($engine in @('Tomlyn', 'OfficeIMOToml')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        tomlload = [pscustomobject]@{
+            Area = 'toml'
+            Title = 'TOML load to model'
+            Libraries = @('OfficeIMO', 'Tomlyn', 'Tomlet', 'CsToml')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
+            Filter = '*TomlLoadBenchmarks*'
+            ComparisonId = "toml-load-$Framework"
+            Suite = 'OfficeIMO.Toml.Load'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'CargoWorkspace', 'LockFile', 'Corpus')) {
+                    foreach ($engine in @('Tomlyn', 'Tomlet', 'CsToml', 'OfficeIMOToml', 'OfficeIMOTomlWithValues')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        tomlloadsave = [pscustomobject]@{
+            Area = 'toml'
+            Title = 'TOML unchanged load and save'
+            Libraries = @('OfficeIMO', 'Tomlyn')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
+            Filter = '*TomlLoadAndSaveBenchmarks*'
+            ComparisonId = "toml-load-save-$Framework"
+            Suite = 'OfficeIMO.Toml.LoadAndSave'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'CargoWorkspace', 'LockFile', 'Corpus')) {
+                    foreach ($engine in @('TomlynSyntax', 'OfficeIMOToml')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        tomldeserialize = [pscustomobject]@{
+            Area = 'toml'
+            Title = 'TOML model deserialization'
+            Libraries = @('OfficeIMO', 'Tomlyn')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
+            Filter = '*TomlDeserializeBenchmarks*'
+            ComparisonId = "toml-deserialize-$Framework"
+            Suite = 'OfficeIMO.Toml.Deserialize'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'CargoWorkspace', 'LockFile')) {
+                    foreach ($engine in @('Tomlyn', 'TomlynGenerated', 'OfficeIMOToml', 'OfficeIMOTomlGenerated')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
+        tomlserialize = [pscustomobject]@{
+            Area = 'toml'
+            Title = 'TOML model serialization'
+            Libraries = @('OfficeIMO', 'Tomlyn')
+            ExpectedPlatforms = @('windows', 'linux', 'macos')
+            PublishRestriction = 'None'
+            CatalogEligible = $true
+            Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
+            Filter = '*TomlSerializeBenchmarks*'
+            ComparisonId = "toml-serialize-$Framework"
+            Suite = 'OfficeIMO.Toml.Serialize'
+            IdentityVariables = @('workload')
+            ExpectedCases = @(
+                foreach ($workload in @('SmallConfig', 'CargoWorkspace', 'LockFile')) {
+                    foreach ($engine in @('Tomlyn', 'TomlynGenerated', 'OfficeIMOToml', 'OfficeIMOTomlGenerated')) {
+                        "$engine|Workload=$workload"
+                    }
+                }
+            )
+        }
         imagepngdecode = [pscustomobject]@{
             Area = 'image'
             Title = 'PNG decoding'
