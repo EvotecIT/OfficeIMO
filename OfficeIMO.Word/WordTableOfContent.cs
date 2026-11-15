@@ -154,6 +154,7 @@ namespace OfficeIMO.Word {
             this._document = wordDocument ?? throw new ArgumentNullException(nameof(wordDocument));
             this._sdtBlock = sdtBlock ?? throw new ArgumentNullException(nameof(sdtBlock));
             this.Style = style;
+            GetPlaceholderPart();
 
             if (appendToBody) {
                 this._document.AppendBlockToBody(_sdtBlock);

@@ -4,6 +4,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordTableOfContent {
+        private sealed class RetainedPlaceholder {
+            internal RetainedPlaceholder(DocPart part) { Part = part; }
+            internal DocPart Part { get; }
+        }
+
         private string GetPlaceholderText() {
             DocPart? placeholder = GetPlaceholderPart();
             if (placeholder != null) return string.Concat(placeholder.DocPartBody?.Descendants<Text>().Select(text => text.Text) ?? Enumerable.Empty<string>());
@@ -14,9 +19,18 @@ namespace OfficeIMO.Word {
         }
 
         private DocPart? GetPlaceholderPart() {
+            // Query commands can return this wrapper after disposing the document.
+            // Share retained XML through the content block so all wrappers see live writes.
+            if (_document.IsDisposed) return _sdtBlock.Annotation<RetainedPlaceholder>()?.Part;
             string? name = _sdtBlock.SdtProperties?.GetFirstChild<SdtPlaceholder>()?.DocPartReference?.Val?.Value;
-            return name == null ? null : _document._wordprocessingDocument.MainDocumentPart?.GlossaryDocumentPart?
-                .GlossaryDocument?.DocParts?.Elements<DocPart>().FirstOrDefault(part => part.DocPartProperties?.DocPartName?.Val?.Value == name);
+            return RetainPlaceholderPart(name == null ? null : _document._wordprocessingDocument.MainDocumentPart?.GlossaryDocumentPart?
+                .GlossaryDocument?.DocParts?.Elements<DocPart>().FirstOrDefault(part => part.DocPartProperties?.DocPartName?.Val?.Value == name));
+        }
+
+        private DocPart? RetainPlaceholderPart(DocPart? part) {
+            _sdtBlock.RemoveAnnotations<RetainedPlaceholder>();
+            if (part != null) _sdtBlock.AddAnnotation(new RetainedPlaceholder(part));
+            return part;
         }
 
         private void SetPlaceholderText(string value) {
@@ -54,6 +68,7 @@ namespace OfficeIMO.Word {
                 _sdtBlock.SdtProperties.Append(new SdtPlaceholder(new DocPartReference { Val = name }));
             }
             part.DocPartBody = new DocPartBody(new Paragraph(new Run(new Text(value) { Space = SpaceProcessingModeValues.Preserve })));
+            RetainPlaceholderPart(part);
         }
 
         internal void CopyGeneratedRefreshStateTo(WordTableOfContent clone) {

@@ -14,8 +14,10 @@ public sealed class WordTocFieldResultBoundaryTests {
     [InlineData("index", 1)]
     public void CustomEmptyMessageSurvivesRepeatedRefreshAndReopen(string kind, int headings) {
         using var output = new MemoryStream();
+        WordTableOfContent retained;
         using (WordDocument document = WordDocument.Create()) {
             var contents = document.AddTableOfContent();
+            retained = document.TableOfContent!;
             for (int index = 0; index < headings; index++) {
                 document.AddParagraph("Chapter").SetStyle(WordParagraphStyles.Heading1);
                 if (kind == "figures") document.AddParagraph("Figure ")._paragraph.Append(
@@ -37,6 +39,7 @@ public sealed class WordTocFieldResultBoundaryTests {
             contents.TextNoContent = "No chapters available";
             document.Save(output);
         }
+        Assert.Equal("No chapters available", retained.TextNoContent);
         output.Position = 0;
         using var reopened = WordDocument.Load(output);
         Assert.Equal("No chapters available", reopened.TableOfContent!.TextNoContent);
@@ -46,6 +49,9 @@ public sealed class WordTocFieldResultBoundaryTests {
         var field = Assert.Single(reopened.InspectFields(), item => item.FieldType == (kind == "index" ? WordFieldType.Index : WordFieldType.TOC));
         Assert.Contains(headings == 0 ? "No chapters available" : "Chapter", field.ResultText);
         Assert.True(reopened.DocumentIsValid, string.Join("; ", reopened.DocumentValidationErrors));
+        WordTableOfContent detached = reopened.TableOfContent!;
+        reopened.Dispose();
+        Assert.Equal("No chapters available", detached.TextNoContent);
     }
 
     [Theory]
