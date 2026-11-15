@@ -181,11 +181,9 @@ namespace OfficeIMO.Word {
             packageStream.Write(templateBytes, 0, templateBytes.Length);
             packageStream.Position = 0;
             WordprocessingDocument wordDocument;
+            WordZipPackage? zipPackage;
             try {
-                wordDocument = WordprocessingDocument.Open(
-                    packageStream,
-                    true,
-                    new OpenSettings { AutoSave = false });
+                wordDocument = OpenOwnedEditablePackage(packageStream, new OpenSettings { AutoSave = false }, out zipPackage);
             } catch {
                 packageStream.Dispose();
                 throw;
@@ -195,6 +193,7 @@ namespace OfficeIMO.Word {
                 FilePath = filePath,
                 OriginalStream = stream,
                 _ownedPackageStream = packageStream,
+                _ownedZipPackage = zipPackage,
                 _packageContentTypesAdvertiseXmlSignatures = false,
                 _wordprocessingDocument = wordDocument,
                 _document = wordDocument.MainDocumentPart?.Document
@@ -506,7 +505,10 @@ namespace OfficeIMO.Word {
                     readOnly,
                     resolved.PackageSecurity?.MaxPackageBytes ?? int.MaxValue);
 
-                var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
+                WordZipPackage? zipPackage = null;
+                var wordDocument = readOnly
+                    ? WordprocessingDocument.Open(memoryStream, false, effectiveOpenSettings)
+                    : OpenOwnedEditablePackage(memoryStream, effectiveOpenSettings, out zipPackage);
 
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
                 if (applyOverrideStyles) {
@@ -515,6 +517,7 @@ namespace OfficeIMO.Word {
 
                 word.FilePath = filePath;
                 word._ownedPackageStream = memoryStream;
+                word._ownedZipPackage = zipPackage;
                 word._legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly);
@@ -637,11 +640,15 @@ namespace OfficeIMO.Word {
                 readOnly,
                 resolved.PackageSecurity?.MaxPackageBytes ?? int.MaxValue);
 
-            var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
+            WordZipPackage? zipPackage = null;
+            var wordDocument = readOnly
+                ? WordprocessingDocument.Open(memoryStream, false, effectiveOpenSettings)
+                : OpenOwnedEditablePackage(memoryStream, effectiveOpenSettings, out zipPackage);
 
             var word = new WordDocument {
                 FilePath = filePath,
                 _ownedPackageStream = memoryStream,
+                _ownedZipPackage = zipPackage,
                 _legacyValidationEncodedPackageBytes = CaptureLegacyValidationEncodedPackage(
                     sourceBytes,
                     readOnly),
@@ -763,7 +770,9 @@ namespace OfficeIMO.Word {
                     _persistenceMode = resolved.PersistenceMode
                 };
 
-                var wordDocument = WordprocessingDocument.Open(packageStream, !readOnly, effectiveOpenSettings);
+                var wordDocument = readOnly
+                    ? WordprocessingDocument.Open(packageStream, false, effectiveOpenSettings)
+                    : OpenOwnedEditablePackage(packageStream, effectiveOpenSettings, out document._ownedZipPackage);
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
 
                 document._wordprocessingDocument = wordDocument;

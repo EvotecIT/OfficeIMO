@@ -49,10 +49,10 @@ namespace OfficeIMO.Word {
                 }
 
                 // Closing a package held in memory this document owns only rewrites (and recompresses) the archive
-                // into a buffer that is dropped next, so it is left to the garbage collector. The .NET Framework
-                // package can keep large parts in isolated-storage files, so it is still closed there.
+                // into a buffer that is dropped next, so it is left to the garbage collector. A System.IO.Packaging
+                // package on .NET Framework can keep large parts in isolated-storage files, so it is still closed there.
                 bool packageReleased = _ownedPackageStream != null && _legacyValidationLivePackageStream == null
-                    && !OfficeRuntime.IsNetFramework;
+                    && (!OfficeRuntime.IsNetFramework || _ownedZipPackage != null);
                 try {
                     RetainColorContextForInspection();
                 } catch (Exception ex) {
@@ -68,6 +68,7 @@ namespace OfficeIMO.Word {
                 }
 
                 this._wordprocessingDocument = null!;
+                _ownedZipPackage = null;
             }
 
             var ownedPackageStream = _ownedPackageStream;
@@ -131,10 +132,10 @@ namespace OfficeIMO.Word {
                 }
 
                 // Closing a package held in memory this document owns only rewrites (and recompresses) the archive
-                // into a buffer that is dropped next, so it is left to the garbage collector. The .NET Framework
-                // package can keep large parts in isolated-storage files, so it is still closed there.
+                // into a buffer that is dropped next, so it is left to the garbage collector. A System.IO.Packaging
+                // package on .NET Framework can keep large parts in isolated-storage files, so it is still closed there.
                 bool packageReleased = _ownedPackageStream != null && _legacyValidationLivePackageStream == null
-                    && !OfficeRuntime.IsNetFramework;
+                    && (!OfficeRuntime.IsNetFramework || _ownedZipPackage != null);
                 try {
                     RetainColorContextForInspection();
                 } catch (Exception ex) {
@@ -150,6 +151,7 @@ namespace OfficeIMO.Word {
                 }
 
                 this._wordprocessingDocument = null!;
+                _ownedZipPackage = null;
             }
 
             var ownedPackageStream = _ownedPackageStream;

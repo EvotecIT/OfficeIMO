@@ -26,6 +26,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="fileStream">Stream containing the document package.</param>
         public static void NormalizeOpenOfficeRelationships(Stream fileStream) {
+            // An in-memory package rewrites only the relationship parts instead of recompressing every part.
+            if (fileStream is MemoryStream memoryStream && WordZipPackage.TryOpen(memoryStream) is { } zipPackage) {
+                FixPartIfExists(zipPackage, new Uri("/_rels/.rels", UriKind.Relative), false);
+                FixPartIfExists(zipPackage, new Uri("/word/_rels/document.xml.rels", UriKind.Relative), true);
+                zipPackage.Flush();
+                return;
+            }
             using var nonDisposingStream = new NonDisposingStream(fileStream);
             using (Package package = Package.Open(nonDisposingStream, FileMode.Open, FileAccess.ReadWrite)) {
                 // Fix relationships in /_rels/.rels
