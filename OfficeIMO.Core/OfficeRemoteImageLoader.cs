@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
 using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
@@ -10,14 +9,6 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 internal static class OfficeRemoteImageLoader {
     private const int BufferSize = 81920;
-#if NET8_0_OR_GREATER
-    private static readonly HttpClient PublicClient = CreatePinnedClient(
-        allowPrivateNetworkAddresses: false);
-    private static readonly HttpClient PrivateClient = CreatePinnedClient(
-        allowPrivateNetworkAddresses: true);
-#else
-    private static readonly HttpClient LegacyClient = CreateClient();
-#endif
 
     /// <summary>
     /// Asynchronously retrieves an image from an HTTP or HTTPS URL.
@@ -56,23 +47,9 @@ internal static class OfficeRemoteImageLoader {
         Uri current = uri;
         for (int redirectCount = 0; ; redirectCount++) {
             timeout.Token.ThrowIfCancellationRequested();
-            ValidateDestinationPolicy(current, snapshot);
-#if NET8_0_OR_GREATER
-            HttpClient client = snapshot.AllowPrivateNetworkAddresses
-                ? PrivateClient
-                : PublicClient;
-            using var request = new HttpRequestMessage(HttpMethod.Get,
-                current);
-#else
-            IPAddress[] addresses = await ResolveDestinationAsync(current,
-                snapshot.AllowPrivateNetworkAddresses, timeout.Token)
-                .ConfigureAwait(false);
-            HttpClient client = LegacyClient;
-            using HttpRequestMessage request = CreatePinnedRequest(current,
-                addresses[0]);
-#endif
-            using HttpResponseMessage response = await cookies.SendAsync(
-                client, request, current, timeout.Token).ConfigureAwait(false);
+            ValidateAllowedHost(current, snapshot);
+            HttpClient client = OfficeNetworkAddressPolicy.GetClient(snapshot.AllowPrivateNetworkAddresses);
+            using HttpResponseMessage response = await SendAsync(client, current, snapshot, cookies, timeout.Token).ConfigureAwait(false);
 
             if (IsRedirect(response.StatusCode)) {
                 if (redirectCount >= snapshot.MaximumRedirects) {
@@ -102,62 +79,20 @@ internal static class OfficeRemoteImageLoader {
         }
     }
 
-    private static HttpClient CreateClient() {
-        var handler = new HttpClientHandler {
-            AllowAutoRedirect = false,
-            AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
-        };
-        OfficeHttpCookieScope.DisableAutomaticCookies(handler);
-        return new HttpClient(handler, disposeHandler: true) {
-            Timeout = System.Threading.Timeout.InfiniteTimeSpan
-        };
+    private static async Task<HttpResponseMessage> SendAsync(
+        HttpClient client,
+        Uri uri,
+        OfficeRemoteImageLoadOptions.Snapshot options,
+        OfficeHttpCookieScope cookies,
+        CancellationToken cancellationToken) {
+        try {
+            using HttpRequestMessage request = await OfficeNetworkAddressPolicy.CreateRequestAsync(
+                HttpMethod.Get, uri, options.AllowPrivateNetworkAddresses, cancellationToken).ConfigureAwait(false);
+            return await cookies.SendAsync(client, request, uri, cancellationToken).ConfigureAwait(false);
+        } catch (Exception exception) when (OfficeNetworkAddressPolicy.TryGetRejection(exception, out OfficeNetworkAddressException rejection)) {
+            throw new InvalidDataException("Remote images cannot target localhost or non-public network addresses.", rejection);
+        }
     }
-
-#if NET8_0_OR_GREATER
-    private static HttpClient CreatePinnedClient(
-        bool allowPrivateNetworkAddresses) {
-        var handler = new SocketsHttpHandler {
-            AllowAutoRedirect = false,
-            UseCookies = false,
-            AutomaticDecompression = DecompressionMethods.GZip
-                | DecompressionMethods.Deflate,
-            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
-            PooledConnectionLifetime = TimeSpan.FromMinutes(5),
-            UseProxy = false
-        };
-        handler.ConnectCallback = async (context, cancellationToken) => {
-            IPAddress[] addresses = await ResolveDestinationAsync(
-                context.DnsEndPoint.Host, allowPrivateNetworkAddresses,
-                cancellationToken).ConfigureAwait(false);
-            Exception? lastFailure = null;
-            foreach (IPAddress address in addresses) {
-                var socket = new Socket(address.AddressFamily,
-                    SocketType.Stream, ProtocolType.Tcp);
-                try {
-                    await socket.ConnectAsync(address,
-                        context.DnsEndPoint.Port, cancellationToken)
-                        .ConfigureAwait(false);
-                    return new NetworkStream(socket, ownsSocket: true);
-                } catch (Exception exception) when (exception
-                           is SocketException
-                           || exception is IOException) {
-                    lastFailure = exception;
-                    socket.Dispose();
-                } catch {
-                    socket.Dispose();
-                    throw;
-                }
-            }
-
-            throw new HttpRequestException(
-                "No validated remote image address accepted the connection.",
-                lastFailure);
-        };
-        return new HttpClient(handler, disposeHandler: true) {
-            Timeout = System.Threading.Timeout.InfiniteTimeSpan
-        };
-    }
-#endif
 
     private static async Task<byte[]> ReadBoundedAsync(Stream input, long maximumBytes, CancellationToken cancellationToken) {
         using var output = new MemoryStream();
@@ -210,106 +145,13 @@ internal static class OfficeRemoteImageLoader {
         }
     }
 
-    private static void ValidateDestinationPolicy(
+    private static void ValidateAllowedHost(
         Uri uri,
         OfficeRemoteImageLoadOptions.Snapshot options) {
         string host = uri.IdnHost.TrimEnd('.');
         if (options.AllowedHosts.Count > 0 && !options.AllowedHosts.Contains(host)) {
             throw new InvalidDataException("The remote image host is outside the configured allowlist.");
         }
-        if (!options.AllowPrivateNetworkAddresses
-            && (uri.IsLoopback
-            || string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
-            || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))) {
-            throw new InvalidDataException("Remote images cannot target localhost or non-public network addresses.");
-        }
-    }
-
-    private static Task<IPAddress[]> ResolveDestinationAsync(
-        Uri uri,
-        bool allowPrivateNetworkAddresses,
-        CancellationToken cancellationToken) => ResolveDestinationAsync(
-            uri.IdnHost.TrimEnd('.'), allowPrivateNetworkAddresses,
-            cancellationToken);
-
-    private static async Task<IPAddress[]> ResolveDestinationAsync(
-        string host,
-        bool allowPrivateNetworkAddresses,
-        CancellationToken cancellationToken) {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        IPAddress[] addresses;
-        if (IPAddress.TryParse(host, out IPAddress? literal)) {
-            addresses = new[] { literal };
-        } else {
-            Task<IPAddress[]> resolution = Dns.GetHostAddressesAsync(host);
-            Task completed = await Task.WhenAny(
-                resolution,
-                Task.Delay(System.Threading.Timeout.Infinite, cancellationToken)).ConfigureAwait(false);
-            if (completed != resolution) {
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            addresses = await resolution.ConfigureAwait(false);
-        }
-
-        if (addresses.Length == 0
-            || (!allowPrivateNetworkAddresses
-                && addresses.Any(IsNonPublicAddress))) {
-            throw new InvalidDataException("Remote images cannot target localhost or non-public network addresses.");
-        }
-
-        return addresses;
-    }
-
-    internal static HttpRequestMessage CreatePinnedRequest(Uri originalUri, IPAddress address) {
-        ArgumentNullException.ThrowIfNull(originalUri);
-        ArgumentNullException.ThrowIfNull(address);
-
-        var pinned = new UriBuilder(originalUri) { Host = address.ToString() }.Uri;
-        var request = new HttpRequestMessage(HttpMethod.Get, pinned);
-        string host = originalUri.IdnHost;
-        if (host.IndexOf(':') >= 0 && host[0] != '[') {
-            host = "[" + host + "]";
-        }
-        request.Headers.Host = originalUri.IsDefaultPort ? host : host + ":" + originalUri.Port;
-        return request;
-    }
-
-    private static bool IsNonPublicAddress(IPAddress address) {
-        if (address.IsIPv4MappedToIPv6) address = address.MapToIPv4();
-        if (IPAddress.IsLoopback(address)
-            || address.Equals(IPAddress.Any)
-            || address.Equals(IPAddress.IPv6Any)
-            || address.Equals(IPAddress.None)
-            || address.Equals(IPAddress.IPv6None)) {
-            return true;
-        }
-
-        byte[] bytes = address.GetAddressBytes();
-        if (address.AddressFamily == AddressFamily.InterNetwork) {
-            byte first = bytes[0];
-            byte second = bytes[1];
-            byte third = bytes[2];
-            if (first == 0 || first == 10 || first == 127 || first >= 224) return true;
-            if (first == 100 && second >= 64 && second <= 127) return true;
-            if (first == 169 && second == 254) return true;
-            if (first == 172 && second >= 16 && second <= 31) return true;
-            if (first == 192 && second == 168) return true;
-            if (first == 192 && second == 0 && third == 0) return true;
-            if (first == 192 && second == 0 && third == 2) return true;
-            if (first == 198 && (second == 18 || second == 19 || (second == 51 && third == 100))) return true;
-            if (first == 203 && second == 0 && third == 113) return true;
-            return false;
-        }
-
-        if (address.AddressFamily == AddressFamily.InterNetworkV6) {
-            return address.IsIPv6LinkLocal
-                || address.IsIPv6SiteLocal
-                || address.IsIPv6Multicast
-                || (bytes[0] & 0xFE) == 0xFC
-                || (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0D && bytes[3] == 0xB8);
-        }
-        return true;
     }
 
     private static bool IsSameOrigin(Uri left, Uri right) =>

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -93,21 +94,53 @@ public sealed class DrawingRemoteImageTests {
             OfficeRemoteImageLoader.LoadAsync("http://127.0.0.1:1/image.png", cancellationToken: cancellation.Token));
     }
 
-    [Fact]
-    public async Task LoadAsyncRejectsLoopbackBeforeOpeningConnectionByDefault() {
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("[::ffff:127.0.0.1]")]
+    [InlineData("localhost")]
+    public async Task LoadAsyncRefusesLoopbackLiteralAndResolvedNameByDefault(string host) {
+        using var server = new LoopbackImageServer(
+            "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 1\r\nConnection: close\r\n\r\n",
+            new byte[] { 1 });
+
         await Assert.ThrowsAsync<InvalidDataException>(() =>
-            OfficeRemoteImageLoader.LoadAsync("http://127.0.0.1:6553/private.png"));
+            OfficeRemoteImageLoader.LoadAsync($"http://{host}:{server.Port}/private.png"));
+        Assert.Equal(0, server.RequestCount);
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1", false)]
+    [InlineData("10.1.2.3", false)]
+    [InlineData("100.64.0.1", false)]
+    [InlineData("169.254.169.254", false)]
+    [InlineData("172.16.0.1", false)]
+    [InlineData("192.168.1.1", false)]
+    [InlineData("0.0.0.0", false)]
+    [InlineData("::", false)]
+    [InlineData("::1", false)]
+    [InlineData("fe80::1", false)]
+    [InlineData("fd00::1", false)]
+    [InlineData("::ffff:169.254.169.254", false)]
+    [InlineData("::ffff:0:10.0.0.1", false)]
+    [InlineData("64:ff9b::a00:1", false)]
+    [InlineData("2002:c0a8:101::1", false)]
+    [InlineData("93.184.215.14", true)]
+    [InlineData("2606:4700::1111", true)]
+    [InlineData("64:ff9b::808:808", true)]
+    public void NetworkAddressPolicyClassifiesDestinations(string address, bool expectedPublic) {
+        Assert.Equal(expectedPublic, OfficeNetworkAddressPolicy.IsPublic(IPAddress.Parse(address)));
     }
 
     [Fact]
-    public void LegacyPinnedRequestUsesValidatedAddressAndPreservesHostHeader() {
-        using HttpRequestMessage request = OfficeRemoteImageLoader.CreatePinnedRequest(
-            new Uri("https://images.example.test:8443/assets/logo.png?size=2"),
+    public void LegacyPinnedRequestUsesCheckedAddressAndPreservesHostHeader() {
+        using HttpRequestMessage request = OfficeNetworkAddressPolicy.CreatePinnedRequest(
+            HttpMethod.Get,
+            new Uri("http://images.example.test:8080/assets/logo.png?size=2"),
             IPAddress.Parse("203.0.113.8"));
 
         Assert.Equal("203.0.113.8", request.RequestUri!.Host);
         Assert.Equal("/assets/logo.png?size=2", request.RequestUri.PathAndQuery);
-        Assert.Equal("images.example.test:8443", request.Headers.Host);
+        Assert.Equal("images.example.test:8080", request.Headers.Host);
     }
 
     private sealed class LoopbackImageServer : IDisposable {
