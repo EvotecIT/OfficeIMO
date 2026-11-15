@@ -500,7 +500,7 @@ public sealed partial class PdfReadPage {
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             operationCheck: budget.CancellationToken.ThrowIfCancellationRequested,
-            textClippingBudget: new PdfTextClippingBudget(_limits));
+            textClippingBudget: budget.AnalysisClippingBudget);
         return found;
     }
 

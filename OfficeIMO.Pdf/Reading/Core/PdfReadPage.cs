@@ -2682,6 +2682,10 @@ public sealed partial class PdfReadPage {
         internal CancellationToken CancellationToken { get; }
         internal PdfColorFunctionResolutionContext ColorFunctionResolutionContext { get; }
 
+        // Analysis passes parse many nested streams; charging them to one budget keeps clipping work bounded per page.
+        internal PdfTextClippingBudget AnalysisClippingBudget => _analysisClippingBudget ??= new PdfTextClippingBudget(_page._limits);
+        private PdfTextClippingBudget? _analysisClippingBudget;
+
         // The render invocation owns both resource limits and its final text profile.
         // Nested forms and pattern tiles must configure it before measuring glyphs.
         internal void ConfigureDrawing(OfficeDrawing drawing) => _configureDrawing?.Invoke(drawing);
