@@ -160,9 +160,9 @@ namespace OfficeIMO.Word {
 
         private void PreSaving() {
             MoveSectionProperties();
-            RepairEmptyTableStructure();
+            Dictionary<OpenXmlElement, List<Table>> tablesByRoot = RepairEmptyTableStructure();
             // Keep tblGrid consistent for online viewers without changing authoring semantics.
-            NormalizeTablesForOnline();
+            NormalizeTablesForOnline(tablesByRoot);
             SaveNumbering();
             if (AutoUpdateToc && TableOfContent != null) {
                 TableOfContent.Update();
