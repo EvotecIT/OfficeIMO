@@ -175,7 +175,7 @@ public sealed partial class PdfExtractedImage {
         if (_payload is not null) return _payload.Facts;
         PdfExtractedImagePayloadFacts? facts = Volatile.Read(ref _deferredFacts);
         if (facts is not null) return facts;
-        facts = _deferredPayloads!.Get(_deferredPayloadIndex, CancellationToken.None).Facts;
+        facts = _deferredPayloads!.GetFacts(_deferredPayloadIndex, CancellationToken.None);
         Volatile.Write(ref _deferredFacts, facts);
         return facts;
     }

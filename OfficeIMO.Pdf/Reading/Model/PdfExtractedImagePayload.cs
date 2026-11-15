@@ -15,6 +15,11 @@ internal sealed class PdfExtractedImagePayload {
         Facts = new PdfExtractedImagePayloadFacts(fileExtension, mimeType, isImageFile, transparencyMaskKind, transparencyMaskResolved);
     }
 
+    internal PdfExtractedImagePayload(byte[] ownedBytes, PdfExtractedImagePayloadFacts facts) {
+        Bytes = ownedBytes;
+        Facts = facts;
+    }
+
     internal byte[] Bytes { get; }
     internal PdfExtractedImagePayloadFacts Facts { get; }
 }

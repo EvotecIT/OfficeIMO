@@ -823,6 +823,30 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Read_KeepsLaterImagePayloadsAvailableWhenAnEarlierOneExceedsALimit() {
+        string image(int objectNumber, int size) {
+            string samples = string.Concat(Enumerable.Repeat("FF0000", size * size)) + ">";
+            return objectNumber + " 0 obj\n<< /Type /XObject /Subtype /Image /Width " + size + " /Height " + size +
+                " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /ASCIIHexDecode /Length " + samples.Length +
+                " >>\nstream\n" + samples + "\nendstream\nendobj";
+        }
+        byte[] pdf = BuildSinglePagePdf(
+            "q 20 0 0 20 20 80 cm /Im1 Do Q q 20 0 0 20 60 80 cm /Im2 Do Q",
+            "<< /XObject << /Im1 5 0 R /Im2 6 0 R >> >>",
+            image(5, 16),
+            image(6, 1));
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 256 } };
+
+        IReadOnlyList<PdfLogicalImage> read = PdfDocument.Load(new MemoryStream(pdf), options).Read().Images;
+
+        Assert.Equal(2, read.Count);
+        Assert.Equal("image/png", read[1].SourceImage.MimeType);
+        Assert.NotEmpty(read[1].SourceImage.Bytes);
+        Assert.Throws<PdfReadLimitException>(() => read[0].SourceImage.Bytes);
+        Assert.Throws<PdfReadLimitException>(() => read[0].SourceImage.IsImageFile);
+    }
+
+    [Fact]
     public void RenderPage_PreservesClippedFunctionDomainPlateausInShading() {
         byte[] pdf = BuildSinglePagePdf(
             "/Sh1 sh",
