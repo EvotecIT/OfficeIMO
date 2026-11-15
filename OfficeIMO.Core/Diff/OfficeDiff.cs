@@ -104,23 +104,22 @@ public static class OfficeDiff {
 
     private sealed class InternKeyComparer<T> : IEqualityComparer<InternKey<T>> {
         private readonly IEqualityComparer<T> _comparer;
-        private readonly int _nullHash;
+        private int? _nullHash;
 
-        internal InternKeyComparer(IEqualityComparer<T> comparer) {
-            _comparer = comparer;
-            _nullHash = NullHash(comparer);
-        }
+        internal InternKeyComparer(IEqualityComparer<T> comparer) => _comparer = comparer;
 
         public bool Equals(InternKey<T> x, InternKey<T> y) => _comparer.Equals(x.Value, y.Value);
 
-        public int GetHashCode(InternKey<T> obj) => obj.Value is null ? _nullHash : _comparer.GetHashCode(obj.Value);
+        public int GetHashCode(InternKey<T> obj) => obj.Value is null ? _nullHash ??= NullHash(_comparer) : _comparer.GetHashCode(obj.Value);
 
-        // A comparer that equates null with another value must hash both alike. One that rejects null
-        // (such as StringComparer.Ordinal) never equates it with anything, so any fixed hash is safe.
+        // Asked only when a null item is interned. A comparer that equates null with another value must
+        // hash both alike; one that rejects null (StringComparer.Ordinal throws ArgumentNullException,
+        // a comparer that dereferences its argument throws NullReferenceException) never equates it with
+        // anything, so any fixed hash is safe.
         private static int NullHash(IEqualityComparer<T> comparer) {
             try {
                 return comparer.GetHashCode(default!);
-            } catch (ArgumentNullException) {
+            } catch (Exception exception) when (exception is ArgumentNullException or NullReferenceException) {
                 return 0;
             }
         }

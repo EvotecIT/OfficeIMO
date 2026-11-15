@@ -325,6 +325,38 @@ public sealed class OfficeDiffTests {
         Assert.Single(OfficeDiff.Compare(oldItems, newItems, StringComparer.Ordinal).GetChangedRegions());
     }
 
+    [Fact]
+    public void NullIntolerantComparersWorkWhenNoItemIsNull() {
+        var comparer = new NameComparer();
+        var oldItems = new[] { new Named("a"), new Named("b") };
+        var newItems = new[] { new Named("a"), new Named("c") };
+
+        Assert.Single(OfficeDiff.Compare(oldItems, newItems, comparer).GetChangedRegions());
+        Assert.Single(OfficeDiff.Compare(new Named?[] { null, new Named("a") }, new Named?[] { new Named("a") }, comparer!).GetChangedRegions());
+    }
+
+    [Theory]
+    [MemberData(nameof(UnlimitedTimeouts))]
+    public void UnlimitedTimeoutsNeverStopTheAlignment(TimeSpan timeout) {
+        OfficeDiffResult<OfficeTextToken> diff = OfficeDiff.CompareWords("one two three four", "one two 3 four", new OfficeDiffOptions { Timeout = timeout });
+
+        Assert.False(diff.LimitReached);
+        Assert.Single(diff.GetChangedRegions());
+    }
+
+    public static IEnumerable<object[]> UnlimitedTimeouts() {
+        yield return new object[] { TimeSpan.MaxValue };
+        yield return new object[] { System.Threading.Timeout.InfiniteTimeSpan };
+    }
+
+    private sealed record Named(string Name);
+
+    private sealed class NameComparer : IEqualityComparer<Named?> {
+        public bool Equals(Named? x, Named? y) => ReferenceEquals(x, y) || (x is not null && y is not null && x.Name == y.Name);
+
+        public int GetHashCode(Named? obj) => obj!.Name.GetHashCode();
+    }
+
     private sealed class NullAsEmptyComparer : IEqualityComparer<string?> {
         public bool Equals(string? x, string? y) => string.Equals(x ?? string.Empty, y ?? string.Empty, StringComparison.Ordinal);
 

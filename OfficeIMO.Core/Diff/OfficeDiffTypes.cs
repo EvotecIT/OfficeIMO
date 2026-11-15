@@ -98,7 +98,7 @@ public sealed class OfficeDiffOptions {
     /// </summary>
     public long MaxWorkUnits { get; set; } = 50_000_000;
 
-    /// <summary>Maximum time spent aligning before the remaining regions are reported as whole deletions and insertions. Null means no limit.</summary>
+    /// <summary>Maximum time spent aligning before the remaining regions are reported as whole deletions and insertions. Null or <see cref="System.Threading.Timeout.InfiniteTimeSpan"/> means no limit.</summary>
     public TimeSpan? Timeout { get; set; }
 
     /// <summary>Text comparison ignores case when <c>true</c>. Applies to the text helpers only.</summary>

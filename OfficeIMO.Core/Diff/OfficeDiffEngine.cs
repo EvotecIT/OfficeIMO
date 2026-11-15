@@ -26,10 +26,14 @@ internal sealed class OfficeDiffEngine {
         _algorithm = options.Algorithm;
         _maxWorkUnits = options.MaxWorkUnits;
         _cancellationToken = cancellationToken;
-        if (options.Timeout is TimeSpan timeout) {
+        if (options.Timeout is TimeSpan timeout && timeout != System.Threading.Timeout.InfiniteTimeSpan) {
             if (timeout < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(options), "The diff timeout cannot be negative.");
-            _stopwatch = Stopwatch.StartNew();
-            _deadlineTicks = (long)(timeout.TotalSeconds * Stopwatch.Frequency);
+            // A very long timeout overflows the tick count; saturate rather than cast out of range.
+            double ticks = timeout.TotalSeconds * Stopwatch.Frequency;
+            if (ticks < long.MaxValue) {
+                _stopwatch = Stopwatch.StartNew();
+                _deadlineTicks = (long)ticks;
+            }
         }
     }
 
