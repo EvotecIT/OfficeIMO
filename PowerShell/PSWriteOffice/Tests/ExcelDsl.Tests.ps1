@@ -639,6 +639,24 @@ Describe 'Excel DSL surface' {
         ($chartText -match '<c:numCache>') | Should -Be (-not $NoCachedData)
     }
 
+    It 'rejects a table value column whose numbers are formatted as dates' {
+        $path = Join-Path $TestDrive 'DslExcelChartDateFormattedValue.xlsx'
+        $rows = @(
+            [PSCustomObject]@{ Region = 'EU'; Opened = 45000 }
+            [PSCustomObject]@{ Region = 'US'; Opened = 45001 }
+        )
+
+        {
+            New-OfficeExcel -Path $path {
+                Add-OfficeExcelSheet -Name 'Data' -Content {
+                    Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
+                    Set-OfficeExcelColumn -Header Opened -NumberFormat 'yyyy-mm-dd'
+                    Add-OfficeExcelChart -Table Sales -Category Region -Value Opened -Address E1
+                }
+            }
+        } | Should -Throw "*Column 'Opened' contains a blank, nonnumeric or nonfinite value at B2*"
+    }
+
     It 'builds dashboard tables and charts through a thin command' {
         $path = Join-Path $TestDrive 'DslExcelDashboardBuilder.xlsx'
         $rows = @(

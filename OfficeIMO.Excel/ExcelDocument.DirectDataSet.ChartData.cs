@@ -50,9 +50,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads cell texts on <paramref name="sheet"/> from a table whose rows still wait for the direct writer: each as the
         /// text its cell would hold, or null for an empty cell. Returns false when the rows are not deferred, a cell lies
-        /// outside the table, or a value is anything but plain text or a plain number.
+        /// outside the table, or a value is anything but plain text or a plain number. With
+        /// <paramref name="numbersReadAsNumbers"/>, it also returns false for a number in a date-formatted column, which a
+        /// cell value snapshot reads as a date rather than a number.
         /// </summary>
-        internal bool TryReadDeferredTabularCellTexts(ExcelSheet sheet, int count, Func<int, (int Row, int Column)> cellAt, out string?[] texts) {
+        internal bool TryReadDeferredTabularCellTexts(ExcelSheet sheet, int count, Func<int, (int Row, int Column)> cellAt, out string?[] texts,
+            bool numbersReadAsNumbers = false) {
             texts = Array.Empty<string?>();
             var candidate = _directDataSetSaveCandidate;
             if (candidate == null || !candidate.IsValid || !candidate.IsDeferred || candidate.Model.Sheets.Count != 1) {
@@ -93,6 +96,11 @@ namespace OfficeIMO.Excel {
                 if (value is not (double or float or decimal or int or long or short or sbyte or uint or ulong or ushort or byte)) return false;
                 var (cellValue, cellType) = CoerceValueHelper.Coerce(value, static shared => new CellValue(shared), dateSystem: DateSystem);
                 if (cellType != CellValues.Number) return false;
+                if (numbersReadAsNumbers && sheetModel.ColumnNumberFormats is { } formats && columnIndex < formats.Count
+                    && ExcelNumberFormatClassifier.LooksLikeDateFormat(formats[columnIndex])) {
+                    return false;
+                }
+
                 result[i] = cellValue.Text;
             }
 
