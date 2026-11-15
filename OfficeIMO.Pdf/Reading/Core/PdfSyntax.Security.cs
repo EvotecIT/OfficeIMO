@@ -828,11 +828,16 @@ internal static partial class PdfSyntax {
         return relative < 0 ? -1 : start + relative;
 #else
         int lastStart = end - marker.Length;
+        // Markers such as "/Encrypt" start with a delimiter that occurs every few bytes, so the scan
+        // looks for their first letter instead, which leaves far fewer candidates to compare.
+        int anchor = 0;
+        if (marker.Length > 1 && !IsAsciiLetter(marker[0]) && IsAsciiLetter(marker[1])) anchor = 1;
         int index = start;
         while (index <= lastStart) {
-            index = Array.IndexOf(pdf, marker[0], index, lastStart - index + 1);
-            if (index < 0) return -1;
-            int matched = 1;
+            int found = Array.IndexOf(pdf, marker[anchor], index + anchor, lastStart - index + 1);
+            if (found < 0) return -1;
+            index = found - anchor;
+            int matched = 0;
             while (matched < marker.Length && pdf[index + matched] == marker[matched]) matched++;
             if (matched == marker.Length) return index;
             index++;
@@ -840,6 +845,10 @@ internal static partial class PdfSyntax {
         return -1;
 #endif
     }
+
+#if !NET8_0_OR_GREATER
+    private static bool IsAsciiLetter(byte value) => (uint)((value | 0x20) - 'a') <= 'z' - 'a';
+#endif
 
     private static byte[] AsciiMarker(string marker) => System.Text.Encoding.ASCII.GetBytes(marker);
 

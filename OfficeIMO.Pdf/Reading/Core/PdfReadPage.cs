@@ -982,10 +982,29 @@ public sealed partial class PdfReadPage {
             _limits.MaxDecodedTextCharacters);
         textClippingBudget ??= new PdfTextClippingBudget(_limits);
         Dictionary<string, Func<byte[], int, string>>? configuredDecoders = null;
+        // Glyphs of one run are decoded and measured one at a time with the same font name instance,
+        // so the last resolved decoder and width provider are reused instead of hashing the name again.
+        string? lastDecoderFont = null;
+        Func<byte[], int, string>? lastDecoder = null;
+        bool lastDecoderFound = false;
+        string? lastWidthFont = null;
+        Func<byte[], double>? lastWidthProvider = null;
+        bool lastWidthProviderFound = false;
+        string? lastFontName = null;
+        PdfFontResource? lastFont = null;
+        bool lastFontFound = false;
+        bool TryGetFont(string fontRes, out PdfFontResource font) {
+            if (!ReferenceEquals(fontRes, lastFontName)) {
+                lastFontFound = fonts.TryGetValue(fontRes, out lastFont);
+                lastFontName = fontRes;
+            }
+            font = lastFont!;
+            return lastFontFound;
+        }
         string DecodeWithFontWithinLimit(string fontRes, byte[] bytes, int maximumCharacters) {
             try {
                 if (!_preferToUnicode || !_useWinAnsiFallback) {
-                    if (fonts.TryGetValue(fontRes, out PdfFontResource? resource)) {
+                    if (TryGetFont(fontRes, out PdfFontResource? resource)) {
                         configuredDecoders ??= new Dictionary<string, Func<byte[], int, string>>(StringComparer.Ordinal);
                         if (!configuredDecoders.TryGetValue(fontRes, out Func<byte[], int, string>? configured)) {
                             configured = ResourceResolver.CreateBudgetedDecoder(resource, _preferToUnicode, _useWinAnsiFallback);
@@ -996,8 +1015,12 @@ public sealed partial class PdfReadPage {
                     if (!_useWinAnsiFallback) throw new PdfUnsupportedTextMappingException(
                         new PdfFontResource(fontRes, string.Empty, "UnresolvedFont", false));
                 }
-                return decoders.TryGetValue(fontRes, out var dec)
-                    ? dec(bytes, maximumCharacters)
+                if (!ReferenceEquals(fontRes, lastDecoderFont)) {
+                    lastDecoderFound = decoders.TryGetValue(fontRes, out lastDecoder);
+                    lastDecoderFont = fontRes;
+                }
+                return lastDecoderFound
+                    ? lastDecoder!(bytes, maximumCharacters)
                     : PdfWinAnsiEncoding.Decode(bytes, maximumCharacters);
             } catch (PdfReadLimitException exception) when (
                 exception.Kind == PdfReadLimitKind.DecodedTextCharacters
@@ -1009,22 +1032,27 @@ public sealed partial class PdfReadPage {
         }
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             DecodeWithFontWithinLimit(fontRes, bytes, _limits.MaxDecodedTextCharacters);
-        double SumWidth1000(string fontRes, byte[] bytes) =>
-            widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
+        double SumWidth1000(string fontRes, byte[] bytes) {
+            if (!ReferenceEquals(fontRes, lastWidthFont)) {
+                lastWidthProviderFound = widthProviders.TryGetValue(fontRes, out lastWidthProvider);
+                lastWidthFont = fontRes;
+            }
+            return lastWidthProviderFound ? lastWidthProvider!(bytes) : (bytes?.Length ?? 0) * 500.0;
+        }
         string? ResolveBaseFont(string fontRes) =>
-            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.BaseFont : null;
+            TryGetFont(fontRes, out PdfFontResource? font) ? font.BaseFont : null;
         bool IsType3FontResource(string fontRes) =>
-            fonts.TryGetValue(fontRes, out PdfFontResource? font) &&
+            TryGetFont(fontRes, out PdfFontResource? font) &&
             string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal);
         PdfFontResource? ResolveTwoByteFont(string fontRes) =>
-            fonts.TryGetValue(fontRes, out PdfFontResource? font) &&
+            TryGetFont(fontRes, out PdfFontResource? font) &&
             string.Equals(font.FontSubtype, "Type0", StringComparison.Ordinal) &&
             (font.Encoding is "Identity-H" or "Identity-V" || font.PredefinedCMap != null) ? font : null;
         string? ResolveDrawingFontFamily(string fontRes) =>
-            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
+            TryGetFont(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         Dictionary<string, Func<byte, string>>? substitutedGlyphDecoders = null;
         string? DecodeSubstitutedGlyph(string fontRes, byte[] code) {
-            if (code.Length != 1 || !fonts.TryGetValue(fontRes, out PdfFontResource? font) ||
+            if (code.Length != 1 || !TryGetFont(fontRes, out PdfFontResource? font) ||
                 !PaintsSubstitutedEncodingGlyphs(font)) return null;
             if (font.IsSymbolicSubstitute &&
                 font.Differences?.ContainsKey(code[0]) != true) return null;
@@ -1044,15 +1072,15 @@ public sealed partial class PdfReadPage {
             return text.Length > 0 ? text : null;
         }
         bool IsEmptyPaintedGlyph(string fontRes, byte[] code) {
-            if (!fonts.TryGetValue(fontRes, out PdfFontResource? resource) ||
+            if (!TryGetFont(fontRes, out PdfFontResource? resource) ||
                 resource.DrawingProgram is not PdfDrawingFontProgram program || code.Length is < 1 or > 4) return true;
             int glyph = program.GlyphForCodeBytes(code);
             return program.IsEmptyGlyph(glyph);
         }
         int? ResolveFontWeight(string fontRes) =>
-            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontWeight : null;
+            TryGetFont(fontRes, out PdfFontResource? font) ? font.FontWeight : null;
         int? ResolveFontDescriptorFlags(string fontRes) =>
-            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontDescriptorFlags : null;
+            TryGetFont(fontRes, out PdfFontResource? font) ? font.FontDescriptorFlags : null;
         byte[]? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualTextBytes(resources, propertyName);
         int? ResolveMarkedContentMcid(string propertyName) =>
@@ -1150,7 +1178,7 @@ public sealed partial class PdfReadPage {
             textOutputBudget: textOutputBudget,
             textClippingBudget: textClippingBudget,
             decodeWithFontWithinLimit: DecodeWithFontWithinLimit,
-            decodingEvidenceForResource: (fontName, bytes) => fonts.TryGetValue(fontName, out PdfFontResource? resource)
+            decodingEvidenceForResource: (fontName, bytes) => TryGetFont(fontName, out PdfFontResource? resource)
                 ? ResourceResolver.GetDecodingEvidence(resource, bytes, cancellationCheck, _preferToUnicode, _useWinAnsiFallback)
                 : new PdfTextDecodingEvidence(_useWinAnsiFallback ? PdfTextDecodingSource.WinAnsiFallback : PdfTextDecodingSource.Unmappable,
                     failureCode: PdfFontInspectionDiagnosticCode.MissingFontResource),

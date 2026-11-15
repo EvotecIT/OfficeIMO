@@ -133,6 +133,18 @@ public sealed partial class PdfTextSpan {
     // Authored Tf size remains in text space when layout clones expose a page-space FontSize.
     internal double TextSpaceFontSize { get; private set; }
     internal Matrix2D? TextToPageTransform => _hasTextToPageTransform ? _textToPageTransform : null;
+
+    /// <summary>
+    /// Page-space lengths of the text unit along and across the baseline, or 1 without a transform. Layout asks for
+    /// them several times per span, so they are read from the stored matrix without copying it into a nullable.
+    /// </summary>
+    internal void GetTextToPageScales(out double alongScale, out double normalScale) {
+        alongScale = 1D;
+        normalScale = 1D;
+        if (!_hasTextToPageTransform) return;
+        alongScale = Math.Sqrt(_textToPageTransform.A * _textToPageTransform.A + _textToPageTransform.B * _textToPageTransform.B);
+        normalScale = Math.Abs(_textToPageTransform.A * _textToPageTransform.D - _textToPageTransform.B * _textToPageTransform.C) / alongScale;
+    }
     // Unlike paint and clip, the transform differs for each positioned glyph. Kept without Nullable<T>
     // so its flag packs with the other flags instead of padding a separate eight bytes.
     private readonly Matrix2D _textToPageTransform;

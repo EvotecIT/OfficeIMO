@@ -63,6 +63,23 @@ internal static partial class TextContentParser {
         internal PersistentGraphicsStateFlags Flags { get; set; }
     }
 
+    // A graphics state is several hundred bytes. Restoring reads it in place, where Stack<T>.Pop
+    // would copy the whole state out and again into the caller for every Q operator.
+    private sealed class TextGraphicsStateStack {
+        private TextGraphicsState[] _items = new TextGraphicsState[8];
+
+        internal int Count { get; private set; }
+
+        internal void Push(in TextGraphicsState state) {
+            if (Count == _items.Length) Array.Resize(ref _items, _items.Length * 2);
+            _items[Count++] = state;
+        }
+
+        internal ref readonly TextGraphicsState Top => ref _items[Count - 1];
+
+        internal void DiscardTop() => _items[--Count] = default;
+    }
+
     private readonly struct TextGraphicsState {
         public Matrix2D Ctm { get; }
         public string Font { get; }
@@ -581,7 +598,7 @@ internal static partial class TextContentParser {
         Matrix2D lineMatrix = Matrix2D.Identity;
         (PdfUnsupportedTextMappingException Failure, int? Stream)? unknownTextPosition = null;
         // Graphics state (CTM) and stack
-        Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<TextGraphicsState>();
+        Matrix2D ctm = Matrix2D.Identity; var gstack = new TextGraphicsStateStack();
         // Operand buffer for the current operator.
         var args = new PdfContentOperands();
         PdfContentOperands? numericTextArray = null;
@@ -656,7 +673,7 @@ internal static partial class TextContentParser {
                     break;
                 case "Q":
                     if (gstack.Count > 0) {
-                        var state = gstack.Pop();
+                        ref readonly TextGraphicsState state = ref gstack.Top;
                         ctm = state.Ctm;
                         font = state.Font;
                         size = state.Size;
@@ -686,6 +703,7 @@ internal static partial class TextContentParser {
                         strokeLineJoin = state.StrokeLineJoin;
                         miterLimit = state.MiterLimit;
                         strokeDashIdentity = state.StrokeDashIdentity;
+                        gstack.DiscardTop();
                     } else {
                         ctm = Matrix2D.Identity;
                         fillColor = effectiveInitialFillColor;
@@ -1982,8 +2000,9 @@ internal static partial class TextContentParser {
             return scaled;
         }
 
+        // Runs are decoded glyph by glyph, so most calls see one character and no ligature.
         static string NormalizeDecodedGlyphText(string text) =>
-            text.Length == 0
+            !ContainsLatinLigature(text)
                 ? text
                 : text
                     .Replace("\uFB00", "ff")
@@ -1991,6 +2010,13 @@ internal static partial class TextContentParser {
                     .Replace("\uFB02", "fl")
                     .Replace("\uFB03", "ffi")
                     .Replace("\uFB04", "ffl");
+
+        static bool ContainsLatinLigature(string text) {
+            for (int index = 0; index < text.Length; index++) {
+                if (text[index] is >= '\uFB00' and <= '\uFB04') return true;
+            }
+            return false;
+        }
 
         static bool ShouldUseWholeDecodedText(string chunkedText, string wholeDecoded) {
             if (string.IsNullOrEmpty(wholeDecoded)) {
@@ -2301,7 +2327,7 @@ internal static partial class TextContentParser {
         PdfPaintColorSelection? effectiveInitialFillColorSelection = fillColorSelection;
         PdfPaintColorSelection? effectiveInitialStrokeColorSelection = strokeColorSelection;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
-        var gstack = new Stack<TextGraphicsState>();
+        var gstack = new TextGraphicsStateStack();
         var textStateStack = new Stack<PdfTextStateSnapshot>();
         var hiddenContentStack = new Stack<bool>();
         var unsupportedRestampContentStack = new Stack<bool>();
@@ -2320,7 +2346,7 @@ internal static partial class TextContentParser {
                     break;
                 case "Q":
                     if (gstack.Count > 0) {
-                        TextGraphicsState state = gstack.Pop();
+                        ref readonly TextGraphicsState state = ref gstack.Top;
                         ctm = state.Ctm;
                         fillColor = state.FillColor;
                         fillColorSpace = state.FillColorSpace;
@@ -2341,6 +2367,7 @@ internal static partial class TextContentParser {
                         renderingIntent = state.RenderingIntent;
                         fillColorSelection = state.FillColorSelection;
                         strokeColorSelection = state.StrokeColorSelection;
+                        gstack.DiscardTop();
                         textState = textStateStack.Count > 0 ? textStateStack.Pop() : startingTextState;
                     } else {
                         ctm = Matrix2D.Identity;
