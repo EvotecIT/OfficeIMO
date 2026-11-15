@@ -350,6 +350,7 @@ a.imo-studio-state:hover, a.imo-studio-state:focus-visible { background: color-m
 /* Explorer tabs wrap as pills above the panel, so the list never scrolls on its own. */
 .imo-surface-explorer.is-enhanced .imo-surface-explorer__frame { overflow: hidden; border: 1px solid var(--imo-border); border-radius: 14px; background: var(--imo-surface); }
 .imo-surface-explorer__tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px; border-bottom: 1px solid var(--imo-border); background: var(--imo-bg-alt); }
+.imo-surface-explorer__tabs[hidden] { display: none; }
 .imo-surface-explorer__tabs button { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--imo-border); border-radius: 999px; background: var(--imo-surface); color: var(--imo-text-secondary); font: 500 .88rem/1.3 var(--imo-font-body); cursor: pointer; white-space: nowrap; }
 .imo-surface-explorer__tabs button small { color: var(--imo-text-muted); font: 600 .72rem/1 var(--imo-font-mono); font-variant-numeric: tabular-nums; }
 .imo-surface-explorer__tabs button:hover { border-color: color-mix(in srgb, var(--imo-product, var(--imo-accent)) 45%, var(--imo-border)); color: var(--imo-text); }

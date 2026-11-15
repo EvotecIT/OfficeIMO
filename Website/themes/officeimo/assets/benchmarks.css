@@ -145,6 +145,7 @@
 .imo-bench-hub__result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .imo-bench-hub__result > span:not(.imo-bench-rank) { color: var(--imo-text-secondary); font-size: .84rem; }
 .imo-bench-rank { padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--imo-warning) 14%, transparent); font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.imo-bench-rank.is-diagnostic { background: var(--imo-bg-alt); color: var(--imo-text-muted); }
 .imo-bench-rank.is-first { background: color-mix(in srgb, var(--imo-success) 15%, transparent); color: var(--imo-success); }
 /* Benchmark tables sit inside article content; keep the article's table margin and row-header tint out of them. */
 .imo-bench-table-wrap > .imo-bench-table { margin: 0; }

@@ -60,13 +60,16 @@
           {{~ if contender.rank > 0 ~}}{{~ ranked = ranked + 1 ~}}{{~ end ~}}
           {{~ if contender.isSubject && contender.rank > 0 && (subject == null || contender.rank < subject.rank) ~}}{{~ subject = contender ~}}{{~ end ~}}
         {{~ end ~}}
+        {{~ # Compare with the runner-up when OfficeIMO leads, otherwise with the fastest competitor. Contenders are ordered by relative time, so that is the first non-subject. ~}}
+        {{~ rival = null ~}}
+        {{~ for contender in shown.contenders ~}}{{~ if rival == null && !contender.isSubject && contender.rank > 0 ~}}{{~ rival = contender ~}}{{~ end ~}}{{~ end ~}}
         {{~ verdict = null ~}}
-        {{~ if subject ~}}{{~ for versus in shown.headToHead ~}}{{~ if verdict == null && versus.subject == subject.name ~}}{{~ verdict = versus ~}}{{~ end ~}}{{~ end ~}}{{~ end ~}}
+        {{~ if subject && rival ~}}{{~ for versus in shown.headToHead ~}}{{~ if versus.subject == subject.name && versus.other == rival.name ~}}{{~ verdict = versus ~}}{{~ end ~}}{{~ end ~}}{{~ end ~}}
         <tr>
           <th scope="row"><a href="/benchmarks/{{ comparison.area }}/#{{ comparison.id }}">{{ comparison.title }}{{ if comparison.id | string.contains "-net8.0" }} (.NET 8){{ end }}</a></th>
           <td class="imo-bench-hub__libs">{{ for contender in shown.contenders }}{{ contender.name }}{{ if !for.last }}, {{ end }}{{ end }}</td>
           <td>{{ shown.platformLabel }} · {{ if shown.isFull }}full{{ else }}quick{{ end }}{{ if comparison.runs.size > 1 }}<small> + {{ comparison.runs.size - 1 }} more</small>{{ end }}</td>
-          <td>{{~ if subject ~}}<div class="imo-bench-hub__result"><span class="imo-bench-rank{{ if subject.rank == 1 }} is-first{{ end }}">{{ if subject.rank == 1 }}Fastest{{ else }}{{ subject.rank }}{{ if subject.rank == 2 }}nd{{ else if subject.rank == 3 }}rd{{ else }}th{{ end }} of {{ ranked }}{{ end }}</span>{{ if verdict }}<span>{{ verdict.text }}</span>{{ end }}</div>{{~ else ~}}—{{~ end ~}}</td>
+          <td>{{~ if !shown.published ~}}<div class="imo-bench-hub__result"><span class="imo-bench-rank is-diagnostic">Diagnostic only</span><span>Not published for ranking; the measurements are on the workload page.</span></div>{{~ else if subject ~}}<div class="imo-bench-hub__result"><span class="imo-bench-rank{{ if subject.rank == 1 }} is-first{{ end }}">{{ if subject.rank == 1 }}Fastest{{ else }}{{ subject.rank }}{{ if subject.rank == 2 }}nd{{ else if subject.rank == 3 }}rd{{ else }}th{{ end }} of {{ ranked }}{{ end }}</span>{{ if verdict }}<span>{{ verdict.text }}</span>{{ end }}</div>{{~ else ~}}—{{~ end ~}}</td>
         </tr>
         {{~ end ~}}
         {{~ end ~}}
