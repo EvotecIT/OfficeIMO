@@ -28,7 +28,7 @@ The C# rules and PowerShell rules in the [API design](officeimo.api-design.md) a
   await doc.SaveAsync(stream);
   ```
   - `YamlDocument` implements `IDisposable`, so `using` works as it does for every format.
-  - Options are `YamlLoadOptions` (with `UntrustedDefaults`), `YamlSaveOptions`, `YamlReaderOptions` and `YamlWriterOptions`.
+  - Options are `YamlLoadOptions` (with `UntrustedDefaults`), `YamlSaveOptions`, `YamlReaderOptions`, `YamlWriterOptions`, `YamlLintOptions` and `YamlFormatOptions`.
 - **Authoring:** one object model.
   - `Add*` and `Insert*` methods return the node they create.
   - Mutators that configure a node return that node, so calls chain naturally: `mapping.Add("image", "nginx").SetComment("pinned by CI")`.
@@ -197,6 +197,14 @@ baseDoc.Save("values.merged.yaml");
 
   Each option exists because a real convention needs it (Kubernetes, Actions, compose and Helm differ in sequence indentation). Don't add an option without a corpus file that needs it.
 - **Quoting safety:** by default a new string scalar is quoted when *any* supported schema (1.2 Core or 1.1) would read it as something other than a string. That covers `yes`, `no`, `on`, `off`, `y`, `n`, `~`, `null`, `1e3`, `0o17`, `012`, `1:20` and `.inf`. A file written by OfficeIMO therefore means the same thing to YAML 1.1 readers such as PyYAML, Ruby's Psych and older Go libraries. The 1.1 rules are the ones those readers implement (PyYAML and libyaml, go-yaml v2, Psych), not the type repository's looser float pattern, so versions such as `1.29.2` and addresses such as `10.0.0.1` stay plain. That is the most common real-world YAML bug, and we avoid it by default.
+
+### Linting and formatting
+
+- `YamlLinter` adds no parser of its own. Structure rules (indentation, `truthy`, `octal-values`, `key-duplicates`, `empty-values`, `quoted-strings`, `key-ordering`, `document-start`) read the loaded `YamlDocument` and its diagnostics. The comment rule reads the reader's comment events. Line rules read the text, and the reader's scalar ranges keep them out of scalar content: spaces before a line break inside a block scalar are reported, never removed.
+- Rule ids and defaults follow yamllint, so findings read the same in both tools. Defaults report what reads differently between tools (`yes`, `0755`, duplicate keys) or is plainly accidental (trailing spaces, mixed indentation); taste rules start off.
+- A fix is a text edit on the linted source, so it changes only its own lines, the lossless contract applied to linting. `Fix` loads the result again and compares documents, kinds, values, tags and anchors with the input before accepting it; quoting `yes` keeps a Core string a string, and rewriting `on` as `true` keeps a YAML 1.1 boolean a boolean.
+- `YamlFormatter` is `YamlSaveOptions.Reformat` with layout settings, not a second writer. The quote preference is the only addition to the emitter path: a quoted scalar takes the preferred quotes when they can write its value. Formatting is idempotent over the corpus and every valid yaml-test-suite case, with values, tags, anchors and comments unchanged, except comments inside flow collections, which the emitter writes on one line and drops; the tests check both with four layouts. A Unity document is refused, as `Reformat` refuses it, because Unity reads only the layout it writes; `YamlLinter.Fix` repairs those files in place.
+- Layout inference ignores explicit `?` keys and sequences with an anchor or tag on the key line when it votes for indentation, because the emitter indents those whatever the style; otherwise a formatted file would infer a different layout on the next pass.
 
 ### Schemas and versions
 

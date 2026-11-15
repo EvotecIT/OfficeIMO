@@ -12,6 +12,7 @@ using OfficeIMO.Tool.Commands.Query;
 using OfficeIMO.Tool.Commands.Reader;
 using OfficeIMO.Tool.Commands.Tabular;
 using OfficeIMO.Tool.Commands.Workflow;
+using OfficeIMO.Tool.Commands.Yaml;
 
 namespace OfficeIMO.Tool;
 
@@ -379,6 +380,31 @@ internal static class OfficeImoToolCommands {
             ],
             InputFormats = static () => AccessibilityFormats,
             ResultFormats = ["json", "sarif", "text"]
+        },
+        new() {
+            Id = "yaml",
+            Title = "YAML",
+            Summary = "Lint YAML files against yamllint-style rules, apply safe fixes, and format them in one consistent layout.",
+            Synopsis = "<command> [options]",
+            Run = static (args, input, output, error, token) => OfficeImoToolApp.WithWriterAsync(output, writer => YamlCommand.RunAsync(args, input, writer, error, token)),
+            Help = [YamlCommand.Usage],
+            Subcommands = new Dictionary<string, string> {
+                ["lint"] = "Report problems such as inconsistent indentation, trailing spaces, yes/no booleans and duplicate keys; --fix repairs the safe ones.",
+                ["format"] = "Rewrite files in one layout, keeping values, anchors, tags and comments; --check reports files that would change."
+            },
+            KeyOptions = [
+                new("--fix", "Rewrite each file with the safe lint fixes; only repaired lines change."),
+                new("--strict", "Return exit code 1 for warnings as well as errors."),
+                new("--enable", "Turn on rules that are off by default, such as document-start or key-ordering."),
+                new("--disable", "Turn off rules, such as line-length."),
+                new("--indent", "Indentation width that lint expects and format writes.", "1..9"),
+                new("--sequences", "How format indents sequences under a key: preserve, compact or indented."),
+                new("--write", "Rewrite the files in place instead of printing the result."),
+                new("--check", "List the files formatting would change; exit code 1 when there are any.")
+            ],
+            InputFormats = static () => ["yaml", "yml"],
+            OutputFormats = static () => ["yaml", "yml"],
+            ResultFormats = ["text", "json"]
         },
         new() {
             Id = "agent",

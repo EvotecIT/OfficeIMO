@@ -19,4 +19,11 @@ public sealed class YamlSaveOptions {
     /// document itself.
     /// </summary>
     public YamlWriterOptions? WriterOptions { get; set; }
+
+    /// <summary>
+    /// The quotes a reformat gives quoted scalars (<see cref="YamlStyle.SingleQuoted"/> or
+    /// <see cref="YamlStyle.DoubleQuoted"/>), or <see cref="YamlStyle.None"/> to keep each scalar's own.
+    /// <see cref="YamlFormatter"/> sets it.
+    /// </summary>
+    internal YamlStyle QuoteStyle { get; set; }
 }

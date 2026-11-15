@@ -119,7 +119,7 @@ public sealed partial class YamlDocument {
     /// one range covering the whole source; a reformat writes everything through the emitter.
     /// </summary>
     internal List<YamlTextSegment> CollectSegments(YamlSaveOptions? options) {
-        if (options?.Reformat == true) return Reformat(options.WriterOptions ?? WriterOptions);
+        if (options?.Reformat == true) return Reformat(options.WriterOptions ?? WriterOptions, options.QuoteStyle);
         if (!_partsDirty) {
             var whole = new List<YamlTextSegment>(1);
             if (_source.Length > 0) whole.Add(new YamlTextSegment(_source, 0, _source.Length));
@@ -128,12 +128,12 @@ public sealed partial class YamlDocument {
         return new YamlSaveWalk(this).Run();
     }
 
-    private List<YamlTextSegment> Reformat(YamlWriterOptions options) {
+    private List<YamlTextSegment> Reformat(YamlWriterOptions options, YamlStyle quoteStyle) {
         if (Dialect == YamlDialect.Unity) {
             throw new NotSupportedException("A Unity file cannot be reformatted: Unity reads only its own layout. Save it without YamlSaveOptions.Reformat to keep that layout and change only edited lines.");
         }
         var text = new StringWriter(CultureInfo.InvariantCulture);
-        var emitter = new YamlEmitter(text, options);
+        var emitter = new YamlEmitter(text, options) { QuoteOverride = quoteStyle };
         for (int i = 0; i < _parts.Count; i++) YamlModelWriter.WritePart(emitter, _parts[i], marker: _parts[i].HasStartMarker || i > 0);
         if (_parts.Count > 0) emitter.Finish();
         emitter.Release();

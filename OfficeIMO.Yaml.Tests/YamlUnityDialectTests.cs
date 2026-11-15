@@ -131,4 +131,16 @@ public class YamlUnityDialectTests {
             return false;
         }
     }
+
+    [Fact]
+    public void LintFixesUnityFilesInPlaceAndFormattingRefuses() {
+        string untidy = Scene.Replace("m_Name: Main Camera\n", "m_Name: Main Camera   \n");
+        var options = new YamlLintOptions { LoadOptions = Unity };
+
+        IReadOnlyList<YamlLintFinding> findings = YamlLinter.Lint(untidy, options);
+        Assert.Equal(new[] { YamlLintRules.TrailingSpaces }, findings.Select(f => f.RuleId));
+        Assert.Equal(Scene, YamlLinter.Fix(untidy, options).Text);
+
+        Assert.Throws<NotSupportedException>(() => YamlFormatter.Format(Scene, loadOptions: Unity));
+    }
 }

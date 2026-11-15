@@ -38,6 +38,7 @@ $docsUrls = [ordered]@{
     'provenance'  = '/docs/cli/before-sharing/#content-credentials-and-ai-labels'
     'hidden-data' = '/docs/cli/before-sharing/#hidden-data'
     'accessibility' = '/docs/cli/before-sharing/#accessibility'
+    'yaml'        = '/docs/cli/yaml/'
     'agent'       = '/docs/cli/mcp-and-agents/#agent-commands'
     'mcp'         = '/docs/cli/mcp-and-agents/'
 }

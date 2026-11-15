@@ -56,7 +56,12 @@ internal static class YamlModelWriter {
             case YamlScalar scalar: {
                 string value = scalar.Value;
                 YamlStyle quote = node._part?._document.Layout.Quote ?? YamlStyle.SingleQuoted;
-                YamlStyle style = emitter.ChooseStyle(value, scalar._style, quote);
+                YamlStyle requested = scalar._style;
+                if (emitter.QuoteOverride != YamlStyle.None) {
+                    quote = emitter.QuoteOverride;
+                    if (requested is YamlStyle.SingleQuoted or YamlStyle.DoubleQuoted) requested = quote;
+                }
+                YamlStyle style = emitter.ChooseStyle(value, requested, quote);
                 bool block = style is YamlStyle.Literal or YamlStyle.Folded;
                 if (ownComments && block) TrailingComment(emitter, node);
                 emitter.WriteScalar(value, style);
@@ -111,17 +116,33 @@ internal static class YamlModelWriter {
     public static void WritePart(YamlEmitter emitter, YamlDocumentPart part, bool marker) {
         if (part.CommentBefore is { } header) {
             emitter.WriteCommentLines(header);
-            // Without a marker, a blank line keeps the header from becoming the first entry's comment.
-            if (!marker && emitter.Documents == 0) emitter.WriteBlankLine();
+            // Without a marker, a blank line keeps the header from becoming the first entry's comment; when the first
+            // entry already has a blank line above it, that line does it.
+            if (!marker && emitter.Documents == 0 && !(part.RootNode is { } root && StartsWithBlankLine(root))) emitter.WriteBlankLine();
         }
         emitter.StartDocument(marker);
         if (marker && part.Comment is { } comment) emitter.SetTrailingComment(comment);
         if (part.RootNode is not null) {
-            CommentLines(emitter, part.RootNode);
-            WriteNode(emitter, part.RootNode, ownComments: true);
+            YamlNode root = part.RootNode;
+            if (ReferenceEquals(YamlTrivia.Owner(root), root) && (root.SpaceBefore || root.CommentBefore is not null)) {
+                CommentLines(emitter, root);
+                // A scalar, alias or flow collection root would otherwise continue the comment's line.
+                emitter.EndCommentLines();
+            }
+            WriteNode(emitter, root, ownComments: true);
         }
         if (part.CommentAfter is { } footer) emitter.WriteCommentLines(footer);
         if (part.HasEndMarker) emitter.EndDocument();
+    }
+
+    /// <summary>Whether the first entry written for a root is preceded by its own blank line.</summary>
+    private static bool StartsWithBlankLine(YamlNode root) {
+        YamlNode first = root switch {
+            YamlMapping { _count: > 0 } mapping when mapping._style != YamlStyle.Flow => mapping.Entries[0].Key,
+            YamlSequence { _count: > 0 } sequence when sequence._style != YamlStyle.Flow => sequence.Items[0],
+            _ => root
+        };
+        return YamlTrivia.Owner(first).SpaceBefore;
     }
 
     public static string TrimFinalBreak(string text) {

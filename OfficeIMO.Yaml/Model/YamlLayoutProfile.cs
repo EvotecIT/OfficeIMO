@@ -52,11 +52,18 @@ internal sealed class YamlLayoutProfile {
                     if (child.Style != YamlStyle.Block || child.Count == 0) continue;
                     if (child.Kind == YamlRecordKind.Mapping && mappingVote == 0) {
                         int childKey = records[value + 1].Start;
-                        int indent = Column(source, childKey) - keyColumn;
-                        if (indent > 0 && indent <= 9 && YamlTrivia.OnlyBlanksOrIndicators(source, YamlTrivia.LineStart(source, childKey), childKey)) mappingVote = indent;
-                    } else if (child.Kind == YamlRecordKind.Sequence && offsetVote < 0) {
+                        int childLine = YamlTrivia.LineStart(source, childKey);
+                        if (childLine == YamlTrivia.LineStart(source, records[key].Start) || !YamlTrivia.OnlyBlanksOrIndicators(source, childLine, childKey)) continue;
+                        // The entry's line starts at its first indicator: '? ' of an explicit key is part of the entry.
+                        int first = childLine;
+                        while (first < childKey && source[first] == ' ') first++;
+                        int indent = first - childLine - keyColumn;
+                        if (indent > 0 && indent <= 9) mappingVote = indent;
+                    } else if (child.Kind == YamlRecordKind.Sequence && offsetVote < 0 && child.Props < 0) {
+                        // A sequence with an anchor or tag on the key line is indented by writers whatever the style, so it does not vote.
                         int item = records[value + 1].Start;
                         int dash = YamlTrivia.DashPosition(source, item);
+                        if (YamlTrivia.LineStart(source, dash) == YamlTrivia.LineStart(source, records[key].Start)) continue;
                         int offset = Column(source, dash) - keyColumn;
                         int content = Column(source, item) - keyColumn;
                         if (offset >= 0 && offset <= 8 && content >= offset + 2 && content <= 10) {

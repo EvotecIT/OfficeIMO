@@ -399,6 +399,7 @@ All `convert`, `read`, `extract`, `reader` and `agent convert` destinations are 
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.
 - `officeimo markup` parses, validates, emits, previews, and exports OfficeIMO Markup.
+- `officeimo yaml lint` checks YAML files and folders against yamllint-style rules (text or `officeimo.yaml.lint.v1` JSON, exit code 1 on errors), and `--fix` applies the safe fixes, changing only the repaired lines. `officeimo yaml format` rewrites files in one layout (`--indent`, `--sequences`, `--quotes`, `--line-ending`), with `--write` to replace them and `--check` for CI. Files keep their encoding and byte-order mark.
 - `officeimo agent` returns bounded JSON for inspection, search, selected fetch, conversion, and capability discovery.
 - `officeimo mcp serve --stdio` exposes the compact agent operations to MCP clients.
 
