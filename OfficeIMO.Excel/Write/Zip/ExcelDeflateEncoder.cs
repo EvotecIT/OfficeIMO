@@ -1,6 +1,7 @@
-#if NET8_0_OR_GREATER
 using System.Buffers.Binary;
+#if NET8_0_OR_GREATER
 using System.Numerics;
+#endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -159,20 +160,22 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
     }
 
     // A long-running loop per region; skip tiering so the first regions of a process also run optimized code.
+#if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+#endif
     private void EncodeSymbols(int start, int end) {
-        ref byte data = ref MemoryMarshal.GetArrayDataReference(_buffer);
-        ref uint heads = ref MemoryMarshal.GetArrayDataReference(_heads);
-        ref uint literals = ref MemoryMarshal.GetArrayDataReference(FixedCodes.Literals);
-        ref uint lengths = ref MemoryMarshal.GetArrayDataReference(FixedCodes.Lengths);
-        ref uint nearDistances = ref MemoryMarshal.GetArrayDataReference(FixedCodes.NearDistances);
-        ref byte farSymbols = ref MemoryMarshal.GetArrayDataReference(FixedCodes.FarDistanceSymbols);
-        ref uint symbolCodes = ref MemoryMarshal.GetArrayDataReference(FixedCodes.DistanceSymbolCodes);
-        ref int symbolBases = ref MemoryMarshal.GetArrayDataReference(FixedCodes.DistanceBases);
+        ref byte data = ref ArrayStart(_buffer);
+        ref uint heads = ref ArrayStart(_heads);
+        ref uint literals = ref ArrayStart(FixedCodes.Literals);
+        ref uint lengths = ref ArrayStart(FixedCodes.Lengths);
+        ref uint nearDistances = ref ArrayStart(FixedCodes.NearDistances);
+        ref byte farSymbols = ref ArrayStart(FixedCodes.FarDistanceSymbols);
+        ref uint symbolCodes = ref ArrayStart(FixedCodes.DistanceSymbolCodes);
+        ref int symbolBases = ref ArrayStart(FixedCodes.DistanceBases);
         byte[] output = _output;
         if (output.Length < OutputLength || end > _buffer.Length || (long)(end - start) * 9 / 8 + _outputCount + 64 > output.Length)
             throw new InvalidOperationException("The deflate buffers are invalid.");
-        ref byte outputStart = ref MemoryMarshal.GetArrayDataReference(output);
+        ref byte outputStart = ref ArrayStart(output);
         ulong bits = _bits;
         int bitCount = _bitCount;
         int written = _outputCount;
@@ -238,11 +241,35 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         while (length + sizeof(ulong) <= limit) {
             ulong difference = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref data, earlier + length))
                 ^ Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref data, current + length));
-            if (difference != 0) return length + BitOperations.TrailingZeroCount(difference) / 8;
+            if (difference != 0) return length + TrailingZeroBytes(difference);
             length += sizeof(ulong);
         }
         while (length < limit && Unsafe.Add(ref data, earlier + length) == Unsafe.Add(ref data, current + length)) length++;
         return length;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ref T ArrayStart<T>(T[] array) {
+#if NET8_0_OR_GREATER
+        return ref MemoryMarshal.GetArrayDataReference(array);
+#else
+        // Every encoder table and buffer is non-empty.
+        return ref array[0];
+#endif
+    }
+
+    /// <summary>The number of equal low-order bytes before the first difference; <paramref name="difference"/> is not zero.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int TrailingZeroBytes(ulong difference) {
+#if NET8_0_OR_GREATER
+        return BitOperations.TrailingZeroCount(difference) / 8;
+#else
+        int bytes = 0;
+        if ((uint)difference == 0) { bytes = 4; difference >>= 32; }
+        if ((ushort)difference == 0) { bytes += 2; difference >>= 16; }
+        if ((byte)difference == 0) bytes++;
+        return bytes;
+#endif
     }
 
     /// <summary>Encoder buffers; a cached set is always fully cleared.</summary>
@@ -325,4 +352,3 @@ internal sealed class ExcelDeflateEncoder : IDisposable {
         }
     }
 }
-#endif
