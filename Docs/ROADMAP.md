@@ -897,13 +897,13 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 `OfficeIMO.Yaml` is the owned YAML 1.2 engine; the [YAML engine design](officeimo.yaml-engine-design.md) and the [package README](../OfficeIMO.Yaml/README.md) own its current contract. Open work:
 
 - [ ] Finish the [structured-data conversion](officeimo.data-conversions-design.md) routes. JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet conversions ship in `OfficeIMO.Data.Conversions`; remaining: Windows and Linux benchmark evidence alongside macOS.
-- [ ] Publish the comparison results for parse-to-events, load-to-model and the serializer against YamlDotNet and SharpYaml, with Windows, Linux and macOS runs, in the design's [performance section](officeimo.yaml-engine-design.md#performance).
+- [ ] Collect full `yaml` comparison runs on Windows, Linux and macOS (`./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload yamlparse,yamlload,yamlloadsave,yamledit,yamlemit,yamlserialize,yamldeserialize -RunMode full -Publish`), merge them into the catalog and record the results in the design's [measured results](officeimo.yaml-engine-design.md#measured-results).
 
 ## TOML engine
 
 `OfficeIMO.Toml` reads, edits and writes TOML 1.1 losslessly and passes the whole toml-test 2.2.0 suite for TOML 1.1; `OfficeIMO.Reader.Toml` ingests TOML files. The [TOML engine design](officeimo.toml-engine-design.md) owns the architecture. Open work:
 
-- [ ] Windows and Linux benchmark evidence that OfficeIMO.Toml leads Tomlyn on parse and load time and allocation on every workload, alongside the [macOS evidence](officeimo.toml-engine-design.md#performance).
+- [ ] Collect full `toml` comparison runs on Windows, Linux and macOS against Tomlyn 2.11.1, Tomlet and CsToml (`-Workload tomlparse,tomlload,tomlloadsave,tomldeserialize,tomlserialize -RunMode full -Publish`), merge them into the catalog and refresh the design's [performance tables](officeimo.toml-engine-design.md#performance), which were measured on macOS against Tomlyn 2.10.1.
 
 ## Managed complex-script shaping
 

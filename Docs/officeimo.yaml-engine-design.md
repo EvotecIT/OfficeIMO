@@ -300,7 +300,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
   - single-value edit and save;
   - emit a new document;
   - serialize and deserialize.
-- Every lane validates its output. YamlDotNet and SharpYaml v3 run the same workloads.
+- Every lane validates its output. YamlDotNet and SharpYaml v3 run the same workloads; VYaml and OneYaml run the operations they support.
 - Target: lead both reference libraries in elapsed time and allocation on parse-to-events and load-to-model, and stay competitive on serialization. Measurement stays opt-in (`Category=Performance`), outside pull-request correctness gates, per the repository's benchmark rules.
 - Design rules that keep the target reachable:
   - Tokens and events are structs.
@@ -313,9 +313,9 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 
 ### Measured results
 
-<!-- yaml-benchmark-results: comparison tables for the workloads above, with machine, OS, runtime and library versions -->
+No full comparison run is published yet. The seven operations above are declared as the `yaml` area of the [library comparison catalog](../Build/LibraryComparisonBenchmarks.md) against YamlDotNet 18.1.0, SharpYaml 3.17.0, VYaml 1.6.1 and OneYaml 1.2.1, and the [YAML benchmarks page](https://officeimo.com/benchmarks/yaml/) lists Windows, Linux and macOS as missing until a full run for that platform is merged. Each published run records the machine, operating system, runtime and library versions.
 
-The [benchmark README](../OfficeIMO.Yaml.Benchmarks/README.md) explains how to run each suite and how its output is validated. Results recorded here name the machine, operating system, runtime and the YamlDotNet and SharpYaml versions they were measured against.
+The [benchmark README](../OfficeIMO.Yaml.Benchmarks/README.md) explains each suite and how its output is validated, including the cases a library cannot run, such as VYaml's `ManySmallFiles` load.
 
 ## Qualification
 

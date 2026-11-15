@@ -149,7 +149,7 @@ function Get-LibraryComparisonCommands {
     $runnerArguments = @(if ($null -ne $Definition.RunnerArguments) { $Definition.RunnerArguments })
     $arguments = $hostArguments + $buildArguments + @('--') + $runnerArguments + @(
         '--filter', $Definition.Filter, '--artifacts', $ArtifactsPath,
-        '--exporters', 'jsonfull'
+        '--exporters', 'fulljson'
     )
     if ($Definition.Project -like '*Pdf.Benchmarks.Comparisons*') {
         $arguments += @('--buildTimeout', '600')

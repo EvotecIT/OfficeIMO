@@ -10,8 +10,9 @@
   <!-- Reference TOML libraries stay in this opt-in project; OfficeIMO runtime projects do not use them. -->
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="CsToml" Version="1.8.6" />
     <PackageReference Include="Samboy063.Tomlet" Version="6.2.0" />
-    <PackageReference Include="Tomlyn" Version="2.10.1" />
+    <PackageReference Include="Tomlyn" Version="2.11.1" />
   </ItemGroup>
 
   <ItemGroup>
