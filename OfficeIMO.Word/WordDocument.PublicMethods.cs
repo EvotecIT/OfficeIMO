@@ -16,12 +16,12 @@ namespace OfficeIMO.Word {
                 wordParagraph = new WordParagraph(this, newParagraph: true, newRun: false);
             }
 
-            var body = _wordprocessingDocument?.MainDocumentPart?.Document?.Body
+            var body = TryGetBodyRoot()
                 ?? throw new InvalidOperationException("Document body is missing.");
 
             WordParagraph.EnsureParagraphCanBeInserted(this, body, wordParagraph,
                 "append a paragraph to the document body");
-            AppendBlockToBody(wordParagraph._paragraph);
+            AppendBlockToBody(body, wordParagraph._paragraph);
             wordParagraph.Parent = Sections.Count > 0 ? Sections[Sections.Count - 1] : null;
             return wordParagraph;
         }
@@ -33,12 +33,9 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
         public WordParagraph AddParagraph(string text) {
             text ??= string.Empty;
-            if (text.IndexOf('\r') < 0 &&
-                text.IndexOf('\n') < 0 &&
-                text.IndexOf('\t') < 0 &&
-                text.IndexOf('\u2028') < 0) {
+            if (text.IndexOfAny(WordParagraph.SimpleRunUnsupportedCharacters) < 0) {
                 var paragraph = new WordParagraph(this, newParagraph: true, newRun: true);
-                paragraph._run!.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+                paragraph._run!.AppendChild(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
                 return AddParagraph(paragraph);
             }
 

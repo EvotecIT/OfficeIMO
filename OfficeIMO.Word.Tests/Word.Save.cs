@@ -425,6 +425,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Added after loading", paragraphs[count].Text);
         }
 
+        [Fact]
+        public void Test_AddParagraphAfterReplacingBodyThroughOpenXml_AppendsToCurrentBody() {
+            using var document = WordDocument.Create();
+            document.AddParagraph("Before replacement");
+            MainDocumentPart main = document.OpenXmlDocument.MainDocumentPart!;
+
+            main.Document!.Body = new DocumentFormat.OpenXml.Wordprocessing.Body();
+            document.AddParagraph("After body replacement");
+            Assert.Equal(new[] { "After body replacement" },
+                main.Document.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>().Select(paragraph => paragraph.InnerText));
+
+            main.Document = new DocumentFormat.OpenXml.Wordprocessing.Document(new DocumentFormat.OpenXml.Wordprocessing.Body());
+            document.AddParagraph("After document replacement");
+
+            using var reloaded = WordDocument.Load(new MemoryStream(document.ToBytes(), writable: false));
+            Assert.Equal(new[] { "After document replacement" }, reloaded.Paragraphs.Select(paragraph => paragraph.Text));
+        }
+
         /// <summary>Reads each ZIP entry's stored (compressed) bytes through the central directory.</summary>
         private static Dictionary<string, byte[]> ReadStoredZipEntries(byte[] package) {
             int end = package.Length - 22;

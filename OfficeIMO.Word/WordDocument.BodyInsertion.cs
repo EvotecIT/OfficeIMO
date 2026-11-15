@@ -7,14 +7,15 @@ namespace OfficeIMO.Word {
         // appended block only while its current links still prove it is the boundary's predecessor.
         private OpenXmlElement? _lastAppendedBodyBlock;
 
-        internal void AppendBlockToBody(OpenXmlElement element) {
+        internal void AppendBlockToBody(OpenXmlElement element) => AppendBlockToBody(BodyRoot, element);
+
+        private void AppendBlockToBody(Body body, OpenXmlElement element) {
             ArgumentNullException.ThrowIfNull(element);
 
             if (element.Parent != null) {
                 element.Remove();
             }
 
-            var body = BodyRoot;
             var finalSectionProperties = GetFinalSectionPropertiesInsertionBoundary(body);
             if (finalSectionProperties != null) {
                 InsertBodyBlockBefore(body, element, finalSectionProperties);
