@@ -78,13 +78,18 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int MaximumHyperlinkLocationLengthExclusive = 2_084;
         private const int MaximumHyperlinkTooltipLengthExclusive = 256;
 
+        /// <summary>
+        /// Reads an XLSB package. Untrusted sources pass the package security check first
+        /// (see <c>ExcelDocument.LoadXlsbFromNormalFlow</c>); reloads of packages this library
+        /// wrote keep the policy the source was accepted under.
+        /// </summary>
         internal static XlsbWorkbook Load(byte[] packageBytes, XlsbImportOptions? options = null) {
             ArgumentNullException.ThrowIfNull(packageBytes);
             XlsbImportOptions resolved = options ?? new XlsbImportOptions();
             resolved.Validate();
             CancellationToken cancellationToken = resolved.CancellationToken;
 
-            if (!XlsbPackageDetector.TryFindWorkbookPart(packageBytes, out string? workbookPartName)
+            if (!XlsbPackageDetector.TryFindWorkbookPart(packageBytes, int.MaxValue, out string? workbookPartName)
                 || string.IsNullOrWhiteSpace(workbookPartName)) {
                 throw new InvalidDataException("The package does not contain a canonical XLSB workbook part.");
             }

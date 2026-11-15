@@ -78,6 +78,8 @@ Preview.Markdown = string.Empty;
 
 - Hosts the OfficeIMO Markdown shell in a WPF/WebView2 control.
 - Lets host apps choose presets, CSS overrides, renderer options, and link handling.
+- Raises `NavigationRequested` only for `http`, `https`, and `mailto` links; local files,
+  script/data URIs, and custom protocols never reach external navigation.
 - Supports clipboard copy messages from shell actions.
 - Allows advanced hosts to set pre-rendered `BodyHtml` instead of `Markdown`.
 - Implements `IDisposable` so long-lived hosts can release WebView2 resources explicitly.

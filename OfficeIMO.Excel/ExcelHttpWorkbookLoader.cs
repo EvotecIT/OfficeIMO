@@ -187,6 +187,10 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateHost(Uri uri, ExcelLoadOptionsSnapshot options) {
+            if (!string.IsNullOrEmpty(uri.UserInfo)) {
+                throw new NotSupportedException("Remote Excel load URIs cannot contain embedded credentials.");
+            }
+
             if (options.AllowedHosts.Count == 0) {
                 return;
             }

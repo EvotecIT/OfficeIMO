@@ -102,13 +102,27 @@ internal static class MarkdownViewSupport {
             return false;
         }
 
-        if (string.Equals(parsed.Scheme, "about", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(parsed.Scheme, "data", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(parsed.Scheme, "javascript", StringComparison.OrdinalIgnoreCase)) {
+        // Only web and mail links leave the preview. Local files, script/data URIs and
+        // registered custom protocols would otherwise reach the operating-system shell.
+        if (!string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(parsed.Scheme, Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
         navigationUri = parsed;
         return true;
+    }
+
+    /// <summary>
+    /// Returns true when a user-initiated navigation must be cancelled instead of being left to
+    /// the WebView, which would otherwise offer to launch the scheme's registered handler.
+    /// <c>about:</c> stays with the preview shell.
+    /// </summary>
+    internal static bool ShouldCancelUserNavigation(string? rawUri) {
+        if (TryGetExternalNavigationUri(rawUri, out _)) return false;
+        return Uri.TryCreate(rawUri, UriKind.Absolute, out var parsed)
+            && parsed != null
+            && !string.Equals(parsed.Scheme, "about", StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -10,6 +10,36 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Fact]
+    public void XlsbReadersApplyArchiveEntryCountPolicy() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.XlsbEntryCount.{Guid.NewGuid():N}.xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                document.AddSheet("Data").Cell(1, 1).SetValue("Value");
+                File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+            }
+            int entries = OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
+            using (ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update)) {
+                for (int index = 0; index < entries; index++) {
+                    archive.CreateEntry("padding/" + index, CompressionLevel.NoCompression);
+                }
+            }
+
+            Assert.Equal(OfficePackageSecurityRule.PartCount,
+                Assert.Throws<OfficePackageSecurityException>(() => ExcelDocument.OpenReader(path)).Rule);
+            Assert.Equal(OfficePackageSecurityRule.PartCount,
+                Assert.Throws<OfficePackageSecurityException>(() => ExcelDocument.Load(path)).Rule);
+
+            // A caller policy that allows more entries still loads the workbook as XLSB.
+            using ExcelDocument loaded = ExcelDocument.Load(path, new ExcelLoadOptions {
+                PackageSecurity = new OfficePackageSecurityOptions { MaxPartCount = entries * 2 }
+            });
+            Assert.Equal("Data", loaded.Sheets[0].Name);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void XlsbLoadRejectsOversizedWorksheetNameBeforeFormulaExpansion() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.LongXlsbName.{Guid.NewGuid():N}.xlsb");
         File.Copy(GetDataReaderXlsbFixture("basic-values-formula.xlsb"), path);

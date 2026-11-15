@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             return DetectFormat(bytes, filePath) == ExcelFileFormat.Xlsb;
         }
 
-        internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath) {
+        internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath, int? maxPackageEntries = null) {
             ArgumentNullException.ThrowIfNull(bytes);
 
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
@@ -23,7 +23,18 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasZipSignature(bytes)) {
-                return XlsbPackageDetector.TryFindWorkbookPart(bytes, out _)
+                // Reject an oversized directory here: either loader would otherwise open the archive
+                // and materialize every entry before its own checks run.
+                int entryLimit = maxPackageEntries ?? OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
+                OfficeArchiveSafety.ZipCentralDirectoryScanResult directory =
+                    OfficeArchiveSafety.ScanZipCentralDirectory(bytes, entryLimit);
+                if (directory.LimitExceeded) {
+                    throw new OfficePackageSecurityException(OfficePackageSecurityRule.PartCount,
+                        $"ZIP entry count exceeds the configured maximum of {entryLimit} before package parts are opened.",
+                        directory.EntryCount, entryLimit);
+                }
+
+                return XlsbPackageDetector.TryFindWorkbookPart(bytes, entryLimit, out _)
                     ? ExcelFileFormat.Xlsb
                     : ExcelFileFormat.Xlsx;
             }

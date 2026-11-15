@@ -1,3 +1,4 @@
+using OfficeIMO.Core.Internal;
 using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;
@@ -13,24 +14,41 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         private const int MaxRootRelationshipsBytes = 1024 * 1024;
         private const int MaxContentTypesBytes = 1024 * 1024;
 
-        internal static bool TryFindWorkbookPart(byte[] packageBytes, out string? workbookPartName) {
-            return TryFindWorkbookPart(
-                packageBytes,
-                MaxRootRelationshipsBytes,
-                MaxContentTypesBytes,
-                out workbookPartName);
-        }
+        internal static bool TryFindWorkbookPart(byte[] packageBytes, out string? workbookPartName) =>
+            TryFindWorkbookPart(packageBytes, OfficePackageSecurityOptions.SecureDefaults.MaxPartCount, out workbookPartName);
+
+        internal static bool TryFindWorkbookPart(byte[] packageBytes, int maxEntries, out string? workbookPartName) =>
+            TryFindWorkbookPart(packageBytes, MaxRootRelationshipsBytes, MaxContentTypesBytes, maxEntries, out workbookPartName);
 
         internal static bool TryFindWorkbookPart(
             byte[] packageBytes,
             long maxRootRelationshipsBytes,
             long maxContentTypesBytes,
+            out string? workbookPartName) =>
+            TryFindWorkbookPart(packageBytes, maxRootRelationshipsBytes, maxContentTypesBytes,
+                OfficePackageSecurityOptions.SecureDefaults.MaxPartCount, out workbookPartName);
+
+        private static bool TryFindWorkbookPart(
+            byte[] packageBytes,
+            long maxRootRelationshipsBytes,
+            long maxContentTypesBytes,
+            int maxEntries,
             out string? workbookPartName) {
             ArgumentNullException.ThrowIfNull(packageBytes);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxRootRelationshipsBytes);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxContentTypesBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEntries);
 
             try {
+                // Detection can run before any load policy, so it never materializes more
+                // entries than the effective package entry limit allows.
+                OfficeArchiveSafety.ZipCentralDirectoryScanResult directory =
+                    OfficeArchiveSafety.ScanZipCentralDirectory(packageBytes, maxEntries);
+                if (!directory.IsValid || directory.LimitExceeded) {
+                    workbookPartName = null;
+                    return false;
+                }
+
                 using var packageStream = new MemoryStream(packageBytes, writable: false);
                 using var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false);
                 return TryFindWorkbookPart(
