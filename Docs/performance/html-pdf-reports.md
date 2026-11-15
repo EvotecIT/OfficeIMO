@@ -9,8 +9,13 @@ Open product work remains in the [roadmap](../ROADMAP.md#release-wide-quality).
 ## Reuse contracts
 
 Built-in short-text measurements are reused within a conversion, keyed by the
-complete font descriptor and invalidated when font definitions change. Caller
-providers and dynamically selected host fonts keep their existing paths.
+complete font descriptor and invalidated when font definitions change, including
+when installed host fonts may be selected: registering a host family starts a new
+generation, and each family is attempted once per conversion. Caller shaping
+providers keep their existing paths. Layout keeps the face metrics of registered faces until the face
+collection changes, and sends text in a family with no registered candidate
+face straight to the converter's metrics. The layout thread is kept for a short
+time and reused by the next conversion.
 Declaration, border and outline reuse retains its numeric, color, character and
 inherited context; mutable used boxes are resolved for each occurrence.
 

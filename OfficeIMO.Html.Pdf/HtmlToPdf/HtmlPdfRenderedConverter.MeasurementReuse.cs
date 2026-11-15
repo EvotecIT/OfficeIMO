@@ -8,15 +8,16 @@ internal static partial class HtmlPdfRenderedConverter {
     private const int MaximumReusedMeasurementTextLength = 256;
 
     /// <summary>Reuses short built-in measurements within one prepared conversion and font configuration.</summary>
-    /// <remarks>Dynamic host-face selection and caller shaping providers retain their ordinary callback behavior.</remarks>
+    /// <remarks>
+    /// Caller shaping providers retain their ordinary callback behavior. Installed host faces that a
+    /// measurement registers change the measurement fonts, which starts a new generation, and a family
+    /// is attempted at most once per conversion, so a repeated request gives the remembered answer.
+    /// </remarks>
     private static Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, TValue?> ReuseTextMeasurement<TValue>(
         HtmlPdfExportOptions options,
         PdfCore.PdfCreateOptions measurementOptions,
         Func<string, OfficeFontInfo, OfficeFontFaceDescriptor, TValue?> measure) where TValue : struct {
-        if (options.TextShapingProvider != null
-            || options.ResourcePolicy.AllowSystemFontEmbedding && options.ResourcePolicy.AllowDocumentFontEmbedding) {
-            return measure;
-        }
+        if (options.TextShapingProvider != null) return measure;
 
         var results = new Dictionary<(string Text, OfficeFontInfo Font, OfficeFontFaceDescriptor Face), TValue>();
         PdfCore.PdfCreateOptions? fontSnapshot = null;
