@@ -91,8 +91,12 @@ namespace OfficeIMO.Excel {
                     return response;
                 }
 
-                Uri nextUri = ResolveRedirectUri(currentUri, response.Headers.Location);
-                response.Dispose();
+                Uri nextUri;
+                try {
+                    nextUri = ResolveRedirectUri(currentUri, response.Headers.Location);
+                } finally {
+                    response.Dispose();
+                }
 
                 if (redirectCount == MaxRedirects) {
                     throw new HttpRequestException($"Remote workbook request exceeded the maximum of {MaxRedirects} redirects.");

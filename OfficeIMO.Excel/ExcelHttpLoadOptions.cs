@@ -50,7 +50,8 @@ namespace OfficeIMO.Excel {
         /// later the check runs when the connection is made and the socket connects to the checked address. Older
         /// frameworks check the resolved addresses before each request, send HTTP requests to the checked address and
         /// rely on certificate validation to bind HTTPS connections to the host name. While non-public addresses are
-        /// refused, requests connect directly, without a proxy.
+        /// refused, requests connect directly, without a proxy. Browser (WebAssembly) builds cannot resolve names, so
+        /// they screen IP literals and localhost names only.
         /// </remarks>
         public bool AllowPrivateNetworkAddresses { get; set; }
 

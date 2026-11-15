@@ -124,6 +124,8 @@ public sealed class DrawingRemoteImageTests {
     [InlineData("::ffff:0:10.0.0.1", false)]
     [InlineData("64:ff9b::a00:1", false)]
     [InlineData("2002:c0a8:101::1", false)]
+    [InlineData("3fff::1", false)]
+    [InlineData("3fff:1000::1", true)]
     [InlineData("93.184.215.14", true)]
     [InlineData("2606:4700::1111", true)]
     [InlineData("64:ff9b::808:808", true)]

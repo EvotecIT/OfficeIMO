@@ -47,6 +47,37 @@ public sealed class ReaderWebNetworkAddressTests {
         Assert.Equal(0, server.RequestCount);
     }
 
+    [Fact]
+    public async Task WebReaderRefusesCrossOriginRedirectWhenTheClientSendsDefaultCredentials() {
+        var requestedHosts = new List<string>();
+        using var httpClient = new HttpClient(new RecordingHandler(request => {
+            requestedHosts.Add(request.RequestUri!.Host);
+            if (request.RequestUri.Host == "docs.example.test") {
+                var redirect = new HttpResponseMessage(HttpStatusCode.Found);
+                redirect.Headers.Location = new Uri("https://other.example.test/file.txt");
+                return redirect;
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("reached") };
+        }));
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "secret");
+        OfficeDocumentWebReader webReader = OfficeIMO.Reader.Tests.ReaderTestReaders.All.CreateWebReader(httpClient);
+
+        ReaderWebPolicyException refused = await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
+            webReader.ReadDocumentAsync(new Uri("https://docs.example.test/start.txt")));
+
+        Assert.Equal("other.example.test", refused.TargetUri.Host);
+        Assert.Equal(new[] { "docs.example.test" }, requestedHosts);
+    }
+
+    private sealed class RecordingHandler : HttpMessageHandler {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _respond;
+
+        internal RecordingHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) => _respond = respond;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(_respond(request));
+    }
+
     private sealed class RedirectingHandler : HttpMessageHandler {
         private readonly Func<HttpResponseMessage> _respond;
 

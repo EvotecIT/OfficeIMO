@@ -106,6 +106,10 @@ internal static class ReaderWebTransport {
                 throw new ReaderWebPolicyException(next, "Reader Web rejected a redirect from HTTPS to HTTP.");
             }
             ReaderWebUriPolicy.Validate(next, options, screenHostNames: !ownedTransport);
+            if (!ownedTransport && HasDefaultCredentials(httpClient) && !IsSameOrigin(current, next)) {
+                // HttpClient adds its default headers to every request, so they would reach the other origin.
+                throw new ReaderWebPolicyException(next, "Reader Web rejected a cross-origin redirect because the HTTP client sends default credentials.");
+            }
             current = next;
         }
     }
@@ -148,6 +152,18 @@ internal static class ReaderWebTransport {
             request?.Dispose();
         }
     }
+
+    private static bool HasDefaultCredentials(HttpClient httpClient) {
+        HttpRequestHeaders headers = httpClient.DefaultRequestHeaders;
+        return headers.Authorization != null ||
+            headers.Contains("Proxy-Authorization") ||
+            headers.Contains("Cookie");
+    }
+
+    private static bool IsSameOrigin(Uri left, Uri right) =>
+        string.Equals(left.Scheme, right.Scheme, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(left.IdnHost, right.IdnHost, StringComparison.OrdinalIgnoreCase) &&
+        left.Port == right.Port;
 
     private static bool IsRedirect(HttpStatusCode statusCode) =>
         statusCode == HttpStatusCode.Moved ||

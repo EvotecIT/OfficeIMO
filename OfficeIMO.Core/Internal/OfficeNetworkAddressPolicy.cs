@@ -30,7 +30,10 @@ internal sealed class OfficeNetworkAddressException : IOException {
 /// resolves the host when it opens a connection, checks every address and connects to the checked address, so a
 /// second DNS answer cannot move the request to an internal address. Older frameworks have no connect callback:
 /// the host is resolved and checked before the request, plain HTTP is sent to the checked address with the original
-/// Host header, and HTTPS connects by name, where certificate validation binds the connection to that name. Browser
+/// Host header, and HTTPS connects by name. In that HTTPS case a DNS answer that changes between the check and the
+/// connection can still open a TCP connection and TLS handshake to the new address, but no request is sent unless
+/// that endpoint presents a certificate valid for the host name. Pinning HTTPS to an IP address would need a
+/// connect callback those frameworks do not offer. Browser
 /// runtimes cannot resolve names, so only IP literals and localhost names are checked there.
 /// </remarks>
 internal static class OfficeNetworkAddressPolicy {
@@ -146,6 +149,7 @@ internal static class OfficeNetworkAddressPolicy {
         }
         if (b[0] == 0x01 && AllZero(b, 1, 7)) return false;                                // 100::/64 discard only
         if (b[0] == 0x20 && b[1] == 0x01 && b[2] == 0x0D && b[3] == 0xB8) return false;   // 2001:db8::/32 documentation
+        if (b[0] == 0x3F && b[1] == 0xFF && (b[2] & 0xF0) == 0) return false;               // 3fff::/20 documentation
         if (b[0] == 0x20 && b[1] == 0x01 && b[2] < 0x02) return false;                     // 2001::/23 protocol assignments, Teredo
         if (b[0] == 0x20 && b[1] == 0x02) return IsPublicIPv4(b, 2);                      // 2002::/16 6to4 embeds IPv4
         if (b[0] == 0x00 && b[1] == 0x64 && b[2] == 0xFF && b[3] == 0x9B) {
