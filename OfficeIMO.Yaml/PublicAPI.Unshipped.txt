@@ -345,3 +345,8 @@ OfficeIMO.Yaml.YamlPatchReport.Added.get -> System.Collections.Generic.IReadOnly
 OfficeIMO.Yaml.YamlPatchReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
 OfficeIMO.Yaml.YamlPatchReport.Removed.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.Yaml.YamlPatchReport.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlDocument.ToJsonData() -> OfficeIMO.Json.JsonData!
+OfficeIMO.Yaml.YamlDocument.Validate(OfficeIMO.Json.JsonSchema! schema) -> OfficeIMO.Json.JsonSchemaValidationResult!
+OfficeIMO.Yaml.YamlDocumentPart.ToJsonData() -> OfficeIMO.Json.JsonData!
+OfficeIMO.Yaml.YamlDocumentPart.Validate(OfficeIMO.Json.JsonSchema! schema) -> OfficeIMO.Json.JsonSchemaValidationResult!
+OfficeIMO.Yaml.YamlNode.ToJsonData() -> OfficeIMO.Json.JsonData!

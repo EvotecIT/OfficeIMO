@@ -88,6 +88,22 @@ project.Save();
 
 RFC 6901 pointers address tables by key and arrays and arrays of tables by index. A patch is all or nothing: a failed `test`, a pointer to nothing or an edit that cannot be made throws `TomlPatchException` and leaves the document unchanged. Objects become `[header]` tables and arrays of objects `[[header]]` arrays of tables (inline tables inside inline tables and arrays), and an array of tables takes new tables only at its end. TOML has no null, so a null value fails a JSON Patch, while a merge patch null removes the key. `TomlPatchReport` lists the added, replaced and removed paths.
 
+### Validating with JSON Schema
+
+`Validate` checks a document against a JSON Schema (draft 2020-12 or draft 7), such as the published `pyproject.toml` or `Cargo.toml` schemas. Tables are objects, arrays of tables are arrays, and dates and times are their RFC 3339 text, so `"format": "date-time"` checks them. Findings carry the JSON Pointer, line and column of each failing value:
+
+```csharp
+using OfficeIMO.Json;
+
+JsonSchema schema = JsonSchema.Parse(File.ReadAllText("pyproject.schema.json"));
+using var project = TomlDocument.Load("pyproject.toml");
+foreach (JsonSchemaFinding finding in project.Validate(schema).Findings) {
+    Console.WriteLine(finding);   // 3:11 /project/requires-python: Expected string but found number.
+}
+```
+
+`ToJsonData()` on a node or the document returns the converted value. The keywords, formats and limits are described in [JSON Schema validation](../Docs/officeimo.json-schema-design.md).
+
 ## Reading tokens
 
 ```csharp

@@ -129,6 +129,13 @@ public abstract class TomlNode {
     public TomlValue AsValue() => this as TomlValue ?? throw WrongKind("a value");
 
     /// <summary>
+    /// Converts the node to the JSON data model that <see cref="OfficeIMO.Json.JsonSchema"/> validates: tables become
+    /// objects, arrays and arrays of tables become arrays, and dates and times become their RFC 3339 text, which the
+    /// <c>date-time</c>, <c>date</c> and <c>time</c> formats check. Each value records its line, column and source node.
+    /// </summary>
+    public OfficeIMO.Json.JsonData ToJsonData() => TomlJsonData.Convert(this);
+
+    /// <summary>
     /// Returns a value's text: the decoded string of a string, and the TOML spelling of other values as written in the
     /// source (<c>0xFF</c>, <c>1979-05-27</c>, <c>true</c>). Use <see cref="GetValue{T}"/> for typed values.
     /// </summary>
