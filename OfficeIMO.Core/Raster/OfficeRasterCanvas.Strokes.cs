@@ -41,7 +41,7 @@ public sealed partial class OfficeRasterCanvas {
         IReadOnlyList<double>? dashPattern, double dashOffset, Func<double, double, OfficeColor> paint,
         bool resetDashPatternForEachSegment = false, bool hairline = false, bool fillDisjointGroups = false) {
         if (!IsFinite(width) || width <= 0D) return;
-        if (hairline && TryStrokeDeviceHairline(contours, cap, join, miterLimit, dashPattern, dashOffset, OfficeTransform.Identity, paint)) return;
+        if (hairline && TryStrokeDeviceHairline(contours, cap, join, miterLimit, dashPattern, dashOffset, OfficeTransform.Identity, paint, fillDisjointGroups)) return;
         width = AdjustStrokeWidth(width, DevicePixelsPerLogicalUnit, hairline);
         if (TryStrokeAdjustedContours(contours, width, cap, join, miterLimit, dashPattern, OfficeTransform.Identity, paint)) return;
         var outlines = OfficeStrokeGeometry.Create(contours, width, cap, join, miterLimit, dashPattern, dashOffset, 1D,
