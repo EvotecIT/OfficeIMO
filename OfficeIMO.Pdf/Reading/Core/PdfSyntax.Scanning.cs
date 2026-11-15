@@ -91,6 +91,9 @@ internal static partial class PdfSyntax {
                 // structurally bounded delimiter is accepted.
                 endStreamSearchFrom = endStreamIdx + 9;
             }
+
+            // The stream keyword ends the input (or the search window), so no endstream can follow.
+            return -1;
         }
 
         return -1;
@@ -225,7 +228,7 @@ internal static partial class PdfSyntax {
         }
 
         int dictionaryCharacters = dictionaryEnd - dictionaryStart - 2;
-        int maximumDictionaryCharacters = limits?.MaxObjectCharacters ?? 1_000_000;
+        int maximumDictionaryCharacters = limits?.MaxObjectCharacters ?? PdfReadLimits.DefaultMaxObjectCharacters;
         if (dictionaryCharacters > maximumDictionaryCharacters) {
             if (limits != null) {
                 throw PdfReadLimitException.Create(

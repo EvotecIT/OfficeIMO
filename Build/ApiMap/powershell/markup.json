@@ -7000,6 +7000,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -7215,6 +7227,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7444,6 +7468,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -7667,6 +7703,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -7885,6 +7933,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8117,6 +8177,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -8335,6 +8407,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -8524,6 +8608,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8723,6 +8819,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8945,6 +9053,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormat",
               "type": "string",
               "mandatory": false,
@@ -9076,6 +9196,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9218,6 +9350,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormat",
               "type": "string",
               "mandatory": false,
@@ -9351,6 +9495,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9511,6 +9667,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormat",
               "type": "string",
               "mandatory": false,
@@ -9591,6 +9759,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9729,6 +9909,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9920,6 +10112,18 @@
               "pipeline": "none"
             },
             {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "DateTimeFormats",
               "type": "string[]",
               "mandatory": false,
@@ -10097,6 +10301,18 @@
             {
               "name": "NullValue",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "QuoteCharacter",
+              "type": "char",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "EscapeCharacter",
+              "type": "char",
               "mandatory": false,
               "pipeline": "none"
             },

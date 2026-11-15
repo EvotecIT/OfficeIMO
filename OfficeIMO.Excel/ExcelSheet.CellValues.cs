@@ -191,7 +191,7 @@ namespace OfficeIMO.Excel {
         /// Uses <see cref="SharedStringPlanner"/> for string values.
         /// </summary>
         private (CellValue cellValue, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> dataType) CoerceForCellNoDom(object? value, SharedStringPlanner planner) {
-            var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
+            var dateTimeOffsetStrategy = _excelDocument.EffectiveDateTimeOffsetWriteStrategy;
             var (cellValue, cellType) = CoerceValueHelper.Coerce(
                 value,
                 s => {

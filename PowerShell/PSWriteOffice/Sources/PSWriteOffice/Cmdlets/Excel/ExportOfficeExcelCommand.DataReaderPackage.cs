@@ -29,7 +29,8 @@ public sealed partial class ExportOfficeExcelCommand
             IncludeAutoFilter = !NoAutoFilter.IsPresent,
             IncludeCellReferences = false,
             UseSharedStrings = false,
-            DateSystem = DateSystem ?? ExcelDateSystem.NineteenHundred
+            DateSystem = DateSystem ?? ExcelDateSystem.NineteenHundred,
+            DateTimeOffsetWriteMode = DateTimeOffsetMode
         };
         var result = ExcelDocumentService.WriteDataReaderPackage(
             resolvedPath,

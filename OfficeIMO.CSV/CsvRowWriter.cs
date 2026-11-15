@@ -70,8 +70,11 @@ public sealed partial class CsvRowWriter : IDisposable
     /// <param name="leaveOpen">Whether to leave the destination writer open when this writer is disposed.</param>
     public CsvRowWriter(TextWriter writer, CsvSaveOptions? options = null, bool leaveOpen = false)
     {
-        _writer = writer ?? throw new ArgumentNullException(nameof(writer));
+        ArgumentNullException.ThrowIfNull(writer);
         _options = options ?? new CsvSaveOptions();
+        // Other quote or escape characters are applied to the RFC 4180 text the row paths write.
+        _writer = CsvQuotingTextWriter.Wrap(writer, _options, leaveOpen);
+        writer = _writer;
         _quoteFields = CsvWriter.CreateQuoteFieldSet(_options.QuoteFields);
         _delimiter = CsvWriter.GetDelimiterChar(_options);
         _delimiterText = CsvWriter.GetDelimiterText(_options);
@@ -445,7 +448,12 @@ public sealed partial class CsvRowWriter : IDisposable
         }
 
         _disposed = true;
-        if (_leaveOpen)
+        if (_writer is CsvQuotingTextWriter)
+        {
+            // The quoting writer completes its last field and honours leaveOpen itself.
+            _writer.Dispose();
+        }
+        else if (_leaveOpen)
         {
             _writer.Flush();
         }

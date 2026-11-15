@@ -16,13 +16,16 @@ internal static partial class CsvWriter
         bool defaultFormatting = delimiter.Length == 1 && options.NullValue == null
             && options.DateTimeFormat == null && !options.UseUtc
             && options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
-            && options.ResolvedQuoteMode == CsvQuoteMode.AsNeeded && quoteFields == null;
+            && options.ResolvedQuoteMode == CsvQuoteMode.AsNeeded && quoteFields == null && !options.UsesCustomQuoting;
         var buffer = new StringBuilder();
         using var recordWriter = new StringWriter(buffer, CultureInfo.InvariantCulture);
+        // Other quote or escape characters rewrite each completed record into the buffer.
+        TextWriter recordTarget = CsvQuotingTextWriter.Wrap(recordWriter, options, leaveOpen: true);
 
         async Task EmitAsync()
         {
             cancellationToken.ThrowIfCancellationRequested();
+            recordTarget.Flush();
             if (initialSeparator != null)
             {
 #if NET8_0_OR_GREATER
@@ -45,10 +48,10 @@ internal static partial class CsvWriter
         if (options.IncludeHeader && document.Header.Count > 0)
         {
             if (delimiter.Length == 1)
-                WriteRecord(recordWriter, document.Header, delimiter[0], options.NewLine,
+                WriteRecord(recordTarget, document.Header, delimiter[0], options.NewLine,
                     CultureInfo.InvariantCulture, options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header);
             else
-                WriteRecord(recordWriter, document.Header, delimiter, options.NewLine,
+                WriteRecord(recordTarget, document.Header, delimiter, options.NewLine,
                     CultureInfo.InvariantCulture, options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header);
             await EmitAsync().ConfigureAwait(false);
         }
@@ -58,11 +61,18 @@ internal static partial class CsvWriter
             if (defaultFormatting)
                 AppendRecordDefault(buffer, row.Values, delimiter[0], options.NewLine, options.Culture);
             else if (delimiter.Length == 1)
-                WriteRecord(recordWriter, row.Values, delimiter[0], options.NewLine, options.Culture,
+                WriteRecord(recordTarget, row.Values, delimiter[0], options.NewLine, options.Culture,
                     options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
             else
-                WriteRecord(recordWriter, row.Values, delimiter, options.NewLine, options.Culture,
+                WriteRecord(recordTarget, row.Values, delimiter, options.NewLine, options.Culture,
                     options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
+            await EmitAsync().ConfigureAwait(false);
+        }
+
+        if (recordTarget is CsvQuotingTextWriter quoting)
+        {
+            // A last record without a line break leaves its field open until the rewrite completes.
+            quoting.Complete();
             await EmitAsync().ConfigureAwait(false);
         }
 #if NET8_0_OR_GREATER

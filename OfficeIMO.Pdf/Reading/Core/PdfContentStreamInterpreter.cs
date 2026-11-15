@@ -580,7 +580,7 @@ internal static class PdfContentStreamInterpreter {
             int end = start + length;
             int nibbleCount = 0;
             for (int i = start; i < end; i++) {
-                if (!char.IsWhiteSpace(_content[i])) nibbleCount++;
+                if (TryHexNibble(_content[i], out _)) nibbleCount++;
             }
 
             if (nibbleCount == 0) return Array.Empty<byte>();
@@ -590,7 +590,8 @@ internal static class PdfContentStreamInterpreter {
             for (int i = start; i < end; i++) {
                 char ch = _content[i];
                 if (char.IsWhiteSpace(ch)) continue;
-                int nibble = HexNibble(ch);
+                // Viewers skip stray characters in hex strings instead of failing the content stream.
+                if (!TryHexNibble(ch, out int nibble)) continue;
                 if (highNibble < 0) {
                     highNibble = nibble;
                 } else {
@@ -603,7 +604,7 @@ internal static class PdfContentStreamInterpreter {
             return bytes;
         }
 
-        // One pass of DecodeHexBytes: the first invalid character throws the same exception.
+        // One pass of DecodeHexBytes with the same handling of invalid characters.
         private int DecodeHexInto(int start, int length, byte[] bytes, int offset) {
             int end = start + length;
             int highNibble = -1;
@@ -611,7 +612,8 @@ internal static class PdfContentStreamInterpreter {
             for (int i = start; i < end; i++) {
                 char ch = _content[i];
                 if (char.IsWhiteSpace(ch)) continue;
-                int nibble = HexNibble(ch);
+                // Viewers skip stray characters in hex strings instead of failing the content stream.
+                if (!TryHexNibble(ch, out int nibble)) continue;
                 if (highNibble < 0) {
                     highNibble = nibble;
                 } else {
@@ -624,11 +626,15 @@ internal static class PdfContentStreamInterpreter {
             return byteIndex - offset;
         }
 
-        private static int HexNibble(char c) {
-            if (c >= '0' && c <= '9') return c - '0';
-            if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-            if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
-            throw new FormatException($"Invalid hex character '{c}'.");
+        private static bool TryHexNibble(char c, out int nibble) {
+            if (c >= '0' && c <= '9') nibble = c - '0';
+            else if (c >= 'a' && c <= 'f') nibble = 10 + (c - 'a');
+            else if (c >= 'A' && c <= 'F') nibble = 10 + (c - 'A');
+            else {
+                nibble = 0;
+                return false;
+            }
+            return true;
         }
 
         private bool EqualsAt(int start, string value) {

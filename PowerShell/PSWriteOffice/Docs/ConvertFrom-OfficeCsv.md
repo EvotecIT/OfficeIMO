@@ -11,17 +11,17 @@ Converts CSV text into PSCustomObjects, dictionaries, a DataTable, a data reader
 ## SYNTAX
 ### InputObject (Default)
 ```powershell
-ConvertFrom-OfficeCsv [-InputObject] <string[]> [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-Delimiter <string>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-Culture <cultureinfo>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+ConvertFrom-OfficeCsv [-InputObject] <string[]> [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-Delimiter <string>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-Culture <cultureinfo>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### InputObjectDetect
 ```powershell
-ConvertFrom-OfficeCsv [-InputObject] <string[]> -DetectDelimiter [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-DelimiterCandidates <char[]>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-Culture <cultureinfo>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+ConvertFrom-OfficeCsv [-InputObject] <string[]> -DetectDelimiter [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-DelimiterCandidates <char[]>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-Culture <cultureinfo>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ### InputObjectCulture
 ```powershell
-ConvertFrom-OfficeCsv [-InputObject] <string[]> -UseCulture [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-Culture <cultureinfo>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
+ConvertFrom-OfficeCsv [-InputObject] <string[]> -UseCulture [-NoHeader] [-Header <string[]>] [-SkipRows <int>] [-TrimWhitespace] [-AllowEmptyLines] [-NoSkipCommentRowsBeforeHeader] [-SkipCommentRows] [-CommentCharacter <char>] [-NoW3CFieldsHeader] [-ColumnCountMismatchPolicy <CsvColumnCountMismatchPolicy>] [-DuplicateHeaderBehavior <CsvDuplicateHeaderBehavior>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormats <string[]>] [-QuoteParsingMode <CsvQuoteParsingMode>] [-StaticColumns <IDictionary>] [-Culture <cultureinfo>] [-ParseErrorAction <CsvParseErrorAction>] [-CollectParseErrors] [-MaxParseErrors <int>] [-MaxFieldLength <Int32>] [-MaxQuotedFieldLength <Int32>] [-NormalizeQuotes] [-InternStrings] [-InferSchema] [-SchemaSampleRows <int>] [-ColumnType <IDictionary>] [-As <OfficeCsvOutput>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -246,6 +246,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -EscapeCharacter
+Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.
+
+```yaml
+Type: Char
+Parameter Sets: InputObject, InputObjectDetect, InputObjectCulture
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Header
 Explicit header names to use; when provided, the first CSV record is treated as data.
 
@@ -446,6 +462,22 @@ Type: CsvParseErrorAction
 Parameter Sets: InputObject, InputObjectDetect, InputObjectCulture
 Aliases: None
 Possible values: Throw, SkipRow
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -QuoteCharacter
+Character that encloses quoted fields. Defaults to the double quote.
+
+```yaml
+Type: Char
+Parameter Sets: InputObject, InputObjectDetect, InputObjectCulture
+Aliases: None
+Possible values:
 
 Required: False
 Position: named

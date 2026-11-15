@@ -1184,6 +1184,27 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         int depth = 0) {
+        try {
+            return ResolveXObjectPaintChannelsCore(resources, name, invocationState, pageWidth, pageHeight, cache, activeStreams,
+                pageContentBudget, type3GlyphBudget, depth);
+        } catch (PdfReadLimitException exception) when (exception.IsCallStackExhaustion) {
+            // Assume the form may paint both channels, as for other forms that cannot be analysed.
+            pageContentBudget.RecordRenderDegradation(PdfRenderCapabilities.FormNestingStackId, name);
+            return PdfType3PaintChannels.Both;
+        }
+    }
+
+    private PdfType3PaintChannels ResolveXObjectPaintChannelsCore(
+        PdfDictionary? resources,
+        string name,
+        PdfPageXObjectPaintState invocationState,
+        double pageWidth,
+        double pageHeight,
+        Type3PaintChannelCache cache,
+        HashSet<PdfStream> activeStreams,
+        PageContentBudget pageContentBudget,
+        Type3GlyphBudget type3GlyphBudget,
+        int depth) {
         EnsureContentNestingBudget(depth);
         if (TryGetImageXObject(resources, name, out int objectNumber, out int directStreamIdentity, out PdfStream? imageStream)) {
             PdfImagePlacement placement = BuildImagePlacement(
@@ -1359,7 +1380,8 @@ public sealed partial class PdfReadPage {
                 requireExactType3ShadingProjection: true,
                 retainPrimitiveData: false,
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                textClippingBudget: new PdfTextClippingBudget(_limits));
 
             foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                          content,
@@ -1425,7 +1447,8 @@ public sealed partial class PdfReadPage {
                                  depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
                          pageWidth: pageWidth,
-                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
+                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested,
+                         textClippingBudget: new PdfTextClippingBudget(_limits))) {
                 if (invocation.InlineImage != null) {
                     if (!IsInvisibleInlineImageInvocation(
                             invocation,

@@ -87,6 +87,14 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     [Parameter]
     public string? NullValue { get; set; }
 
+    /// <summary>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</summary>
+    [Parameter]
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</summary>
+    [Parameter]
+    public char? EscapeCharacter { get; set; }
+
     /// <summary>Date/time format used for DateTime and DateTimeOffset values.</summary>
     [Parameter]
     public string? DateTimeFormat { get; set; }
@@ -175,7 +183,7 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
     private void EmitCsv(CsvDocument document)
     {
         var options = CreateSaveOptions();
-        using var writer = new CsvPowerShellLineWriter(this, GetDelimiterText(options), options.QuoteMode);
+        using var writer = new CsvPowerShellLineWriter(this, GetDelimiterText(options), options.QuoteMode, CreateRecordQuoting(options));
         writer.Write(document.ToString(options));
     }
 
@@ -304,7 +312,7 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
 
         var options = CreateSaveOptions();
         _objectProjector.UseCsvOptions(options, MaxCollectionItems, MaxNestingDepth);
-        _lineWriter = new CsvPowerShellLineWriter(this, GetDelimiterText(options), options.QuoteMode);
+        _lineWriter = new CsvPowerShellLineWriter(this, GetDelimiterText(options), options.QuoteMode, CreateRecordQuoting(options));
         if (bufferRecords)
         {
             _recordBuffer = new StringWriter(CultureInfo.InvariantCulture);
@@ -327,6 +335,16 @@ public sealed class ConvertToOfficeCsvCommand : PSCmdlet
         _lineWriter = null;
         _recordBuffer = null;
         _objectProjector.Reset();
+    }
+
+    // The row writer writes RFC 4180 text, which the line writer splits into records; other quote or escape
+    // characters are applied to each complete record.
+    private Func<string, string>? CreateRecordQuoting(CsvSaveOptions options)
+    {
+        CsvSaveOptions quoting = options.Clone();
+        quoting.QuoteCharacter = QuoteCharacter;
+        quoting.EscapeCharacter = EscapeCharacter;
+        return quoting.UsesCustomQuoting ? record => CsvQuotingTextWriter.RewriteRecord(record, quoting) : null;
     }
 
     private CsvSaveOptions CreateSaveOptions()

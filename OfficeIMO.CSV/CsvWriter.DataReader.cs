@@ -213,7 +213,7 @@ internal static partial class CsvWriter
         }
         else
         {
-            WriteEscapedDefault(buffer, value.ToString(format, culture), delimiter);
+            WriteEscapedDefault(buffer, FormatDateText(value, format, culture), delimiter);
         }
     }
 
@@ -346,7 +346,7 @@ internal static partial class CsvWriter
             return;
         }
 
-        if (!value.TryFormat(destination, out var charsWritten, default, culture))
+        if (!TryFormatDefault(value, destination, out var charsWritten, culture))
         {
             WriteEscapedDefault(buffer, FormatValue(value, culture), delimiter);
             return;

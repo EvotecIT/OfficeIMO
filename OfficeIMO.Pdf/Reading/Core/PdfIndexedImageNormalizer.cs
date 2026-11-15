@@ -319,21 +319,33 @@ internal static class PdfIndexedImageNormalizer {
                 colorSpaceArray.Items[3],
                 objects,
                 Math.Min(expectedLookupLength, maxDecodedStreamBytes),
-                out lookupBytes) &&
+                out lookupBytes,
+                maxDecodedStreamBytes) &&
             lookupBytes.Length >= expectedLookupLength;
     }
 
+    // Producers often end a lookup table with a newline or padding. Viewers use the leading entries, so a few trailing
+    // bytes beyond the palette are read and dropped instead of rejecting the colour space.
+    private const int IndexedLookupTrailingBytes = 4096;
+
+    /// <summary>
+    /// Reads at most <paramref name="maxLookupBytes"/> leading lookup bytes, ignoring bounded trailing data. Decoding never
+    /// exceeds <paramref name="maxDecodedBytes"/>.
+    /// </summary>
     internal static bool TryReadIndexedLookupBytes(
         PdfObject? lookupObject,
         Dictionary<int, PdfIndirectObject> objects,
         int maxLookupBytes,
-        out byte[] lookupBytes) {
+        out byte[] lookupBytes,
+        int maxDecodedBytes = int.MaxValue) {
         lookupBytes = Array.Empty<byte>();
         if (maxLookupBytes <= 0) return false;
+        int maxReadBytes = Math.Min(maxDecodedBytes,
+            maxLookupBytes > int.MaxValue - IndexedLookupTrailingBytes ? int.MaxValue : maxLookupBytes + IndexedLookupTrailingBytes);
         PdfObject? resolvedLookup = ResolveObject(lookupObject, objects);
         if (resolvedLookup is PdfStringObj lookupString) {
-            if (lookupString.RawBytes.Length > maxLookupBytes) return false;
-            lookupBytes = lookupString.RawBytes;
+            if (lookupString.RawBytes.Length > maxReadBytes) return false;
+            lookupBytes = Truncate(lookupString.RawBytes, maxLookupBytes);
             return true;
         }
 
@@ -343,10 +355,7 @@ internal static class PdfIndexedImageNormalizer {
             }
 
             try {
-                lookupBytes = Filters.StreamDecoder.DecodeRequired(
-                    lookupStream,
-                    objects,
-                    maxLookupBytes);
+                lookupBytes = Truncate(Filters.StreamDecoder.DecodeRequired(lookupStream, objects, maxReadBytes), maxLookupBytes);
                 return lookupBytes.Length > 0;
             } catch (PdfReadLimitException) {
                 throw;
@@ -356,6 +365,13 @@ internal static class PdfIndexedImageNormalizer {
         }
 
         return false;
+    }
+
+    private static byte[] Truncate(byte[] bytes, int length) {
+        if (bytes.Length <= length) return bytes;
+        var leading = new byte[length];
+        Buffer.BlockCopy(bytes, 0, leading, 0, length);
+        return leading;
     }
 
     private static bool TryReadDecodedStreamBytes(

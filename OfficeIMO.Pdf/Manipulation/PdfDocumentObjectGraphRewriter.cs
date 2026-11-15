@@ -95,6 +95,8 @@ internal static class PdfDocumentObjectGraphRewriter {
         int? infoObjectNumber = mutateObjectGraph is null
             ? FindInfoObjectNumber(security, objects)
             : mutateObjectGraph(objects, security);
+        // A trailer Info entry that names an undefined object carries no metadata.
+        if (infoObjectNumber.HasValue && !objects.ContainsKey(infoObjectNumber.Value)) infoObjectNumber = null;
         cancellationToken.ThrowIfCancellationRequested();
         rootObjectNumber = RequireRootObjectNumber(security, objects);
 

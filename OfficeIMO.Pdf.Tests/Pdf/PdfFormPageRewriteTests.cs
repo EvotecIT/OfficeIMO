@@ -212,7 +212,7 @@ public sealed class PdfFormPageRewriteTests {
     [Fact]
     public void RepeatedPageRefusesFieldActionsItCannotRetarget() {
         PdfDocument source = PdfDocument.Load(CreateHierarchicalForm(firstWidgetExtras: "/A << /S /ResetForm /Fields [(Parent.First)] >> "));
-        var error = Assert.Throws<InvalidOperationException>(() => source.Pages.Extract(1, 1));
+        var error = Assert.Throws<PdfMutationBlockedException>(() => source.Pages.Extract(1, 1));
         Assert.Contains("actions", error.Message, StringComparison.Ordinal);
     }
 

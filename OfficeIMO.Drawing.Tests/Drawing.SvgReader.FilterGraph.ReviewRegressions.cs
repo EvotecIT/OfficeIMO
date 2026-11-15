@@ -105,7 +105,7 @@ public partial class DrawingTests {
             new OfficePoint(i % 2 == 0 ? 0.1D : 0.9D, 0.1D + 0.8D * i / 6000D)).ToArray();
         var canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1));
 
-        Assert.Throws<InvalidOperationException>(() => canvas.FillPolygon(points, OfficeColor.Black));
+        Assert.Throws<OfficeRasterWorkLimitException>(() => canvas.FillPolygon(points, OfficeColor.Black));
     }
 
     [Theory]

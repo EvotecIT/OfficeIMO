@@ -100,6 +100,7 @@ internal static partial class CsvFile
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
         options ??= new CsvSaveOptions();
+        CsvQuotingTextWriter.ValidateDialect(options);
         if (append)
         {
             return CreateAppendTextWriter(path, options, bufferSize);

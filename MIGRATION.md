@@ -5346,6 +5346,27 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## PDF read limits open larger valid files by default
+
+`PdfReadLimits` defaults now accept single objects of up to 16,000,000 characters and
+16,000,000 content operations and operands per stream, up from 1,000,000 each, so large
+valid papers and inline-image files open. The clipping-work budget, previously fixed, is
+now `MaxClippingIntersectionWorkPerPage` and stays 1,000,000 by default.
+`PdfLoadOptions.UntrustedDefaults` keeps 1,000,000 for object size, operations and
+operands; load uploads and other files from outside your organization with it, or set
+these limits explicitly if you relied on the previous defaults to reject such files.
+
+Page renders no longer fail for a form nested deeper than the thread's stack allows or an
+element beyond the rasterizer's work limit: the page is drawn without that content and
+`PdfPageRenderResult.CapabilityDiagnostics` reports
+`render.resource.form-nesting-stack-limit` or `render.raster.element-work-limit`.
+Annotations whose appearance has a missing or malformed bounding box are skipped with
+`render.resource.annotation-appearance-missing`. Page extraction refuses a missing or
+mismatched object reference, and structure, navigation and field actions the
+catalog-preserving writer cannot retarget, with `PdfMutationBlockedException` instead of
+`InvalidOperationException`. Stray non-hex characters inside content-stream hex strings
+are skipped, as viewers do, instead of failing with `FormatException`.
+
 ## Grayscale printing sends vector PDF to printers that convert it
 
 Grayscale print jobs for IPP printers and CUPS queues reached over IPP that list
@@ -5393,6 +5414,43 @@ that already failed with `PdfUnsupportedTextMappingException` continue to fail.
 Search redaction cannot use omitted or unmapped paint as proof that searched text is
 absent.
 
+## CSV and Excel keep values exact by default
+
+Writing a table to CSV or Excel and reading it back now returns the same values, as
+SQL Server exports need. Every change below has an opt-out for the previous text.
+
+CSV (`CsvSaveOptions`, `Export-OfficeCsv`, `ConvertTo-OfficeCsv`):
+
+- `DateTime` values are written as ISO 8601 with every non-zero fraction digit, such as
+  `2026-03-14T09:26:53.5897932`, with `Z` for UTC and the offset for local values, whatever
+  the `Culture`. `DateTimeOffset` values keep their offset (`2026-03-14T09:26:53+05:45`),
+  `DateOnly` is `2026-03-14` and `TimeOnly` keeps its fraction. Previously the culture's
+  general date was used (`03/14/2026 09:26:53` for the invariant culture), which dropped
+  fractional seconds. To keep that text, set `DateTimeFormat = "G"` (or another format);
+  in PowerShell add `-DateTimeFormat G`.
+- On .NET Framework and Windows PowerShell 5.1, `double` and `float` values are written with
+  the shortest text that reads back to the same number instead of 15 significant digits,
+  so `double.MaxValue` no longer fails to parse. .NET 8 and PowerShell 7 already wrote this text.
+- Byte arrays written from objects are base64 in every write path (previously `System.Byte[]`
+  from `CsvRowWriter.WriteObject`, and a list of numbers from PSWriteOffice).
+- Typed reads (`CsvSchema`, `-ColumnType`) now convert `DateTimeOffset`, `TimeSpan` and
+  base64 `byte[]` columns.
+
+Excel (`ExcelDocument`, `ExcelWriterOptions`, `Export-OfficeExcel`, `New-OfficeExcel`):
+
+- `DateTimeOffset` values are written as ISO 8601 round-trip text with their offset, such as
+  `2026-03-14T09:26:53.5897932+05:45`, instead of a `LocalDateTime` date serial, in every write
+  path, and `Import-OfficeExcel` returns that text. Set `ExcelDocument.DateTimeOffsetWriteMode`
+  or `ExcelWriterOptions.DateTimeOffsetWriteMode` to `ExcelDateTimeOffsetWriteMode.Serial`, or
+  add `-DateTimeOffsetMode Serial`, for date cells. Assigning
+  `ExcelDocument.DateTimeOffsetWriteStrategy` selects `Serial`, so code that already sets a
+  strategy keeps its date cells.
+- `decimal`, `long` and `ulong` values with more than 15 significant digits (wide `decimal`,
+  `money` or `bigint` columns) are written as text cells holding the exact invariant value,
+  because Excel holds numbers as doubles. Readers return them as text; parse them with
+  `decimal.Parse(text, CultureInfo.InvariantCulture)`. Scripts that sum them in Excel must
+  convert them first. Values with 15 or fewer significant digits stay numeric cells.
+- `byte[]` values are written as base64 text in every write path.
 ## CSV reads .tsv files as tab-separated values
 
 TSV has no quoting: a quote character is ordinary data and every line is one record.

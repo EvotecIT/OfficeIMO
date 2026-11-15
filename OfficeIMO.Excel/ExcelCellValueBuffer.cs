@@ -45,7 +45,9 @@ namespace OfficeIMO.Excel {
             => new ExcelBufferedCell(ExcelBufferedCellKind.Int32, value, null);
 
         internal static ExcelBufferedCell Int64(long value)
-            => new ExcelBufferedCell(ExcelBufferedCellKind.Int64, value, null);
+            => ExcelExactNumber.FitsNumberCell(value)
+                ? new ExcelBufferedCell(ExcelBufferedCellKind.Int64, value, null)
+                : Text(InvariantNumberText.Get(value));
 
         internal static ExcelBufferedCell Boolean(bool value)
             => new ExcelBufferedCell(ExcelBufferedCellKind.Boolean, value ? 1L : 0L, null);

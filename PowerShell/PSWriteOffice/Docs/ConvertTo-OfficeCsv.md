@@ -11,12 +11,12 @@ Converts objects or a CSV document into CSV text.
 ## SYNTAX
 ### InputObject (Default)
 ```powershell
-ConvertTo-OfficeCsv -InputObject <Object> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
+ConvertTo-OfficeCsv -InputObject <Object> [-Delimiter <string>] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
 ```
 
 ### InputObjectCulture
 ```powershell
-ConvertTo-OfficeCsv -InputObject <Object> [-UseCulture] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
+ConvertTo-OfficeCsv -InputObject <Object> [-UseCulture] [-NoHeader] [-NewLine <string>] [-Culture <cultureinfo>] [-FormulaInjectionPolicy <CsvFormulaInjectionPolicy>] [-UseQuotes <CsvQuoteMode>] [-QuoteFields <string[]>] [-NullValue <string>] [-QuoteCharacter <char>] [-EscapeCharacter <Char>] [-DateTimeFormat <string>] [-UseUtc] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -89,6 +89,22 @@ Field delimiter text, including multi-character separators.
 ```yaml
 Type: String
 Parameter Sets: InputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EscapeCharacter
+Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.
+
+```yaml
+Type: Char
+Parameter Sets: InputObject, InputObjectCulture
 Aliases: None
 Possible values:
 
@@ -200,6 +216,22 @@ Token written for null values.
 
 ```yaml
 Type: String
+Parameter Sets: InputObject, InputObjectCulture
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -QuoteCharacter
+Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.
+
+```yaml
+Type: Char
 Parameter Sets: InputObject, InputObjectCulture
 Aliases: None
 Possible values:

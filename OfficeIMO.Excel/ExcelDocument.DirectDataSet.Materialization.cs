@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                     includeHeaders,
                     includeAutoFilter,
                     autoFit,
-                    _dateTimeOffsetWriteStrategy,
+                    EffectiveDateTimeOffsetWriteStrategy,
                     ct,
                     snapshotTables: true,
                     dateSystem: DateSystem);
@@ -572,6 +572,10 @@ namespace OfficeIMO.Excel {
                 case bool boolean:
                     cell.CellValue = new CellValue(boolean ? "1" : "0");
                     cell.DataType = CellValues.Boolean;
+                    break;
+                case decimal or long or ulong when CoerceValueHelper.TryGetWideNumberText(value, out string wideNumberText):
+                    cell.CellValue = new CellValue(wideNumberText);
+                    cell.DataType = CellValues.String;
                     break;
                 case byte number:
                     ApplyCapturedDirectOverlayNumber(cell, number);

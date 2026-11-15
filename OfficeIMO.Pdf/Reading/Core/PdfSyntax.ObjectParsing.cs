@@ -140,16 +140,14 @@ internal static partial class PdfSyntax {
         }
 
         using var tokens = Tokenize(text, first, trimmedLength, effectiveLimits, trackEncodedStringSourceSpans, cancellationToken);
-        char lead = text[first];
-        if (lead == '[' || lead == '(' || lead == '<' && (trimmedLength == 1 || text[first + 1] != '<')) {
+        if (tokens.Count == 0) return null;
+        try {
             var (obj, consumed) = ParseObject(tokens, 0, effectiveLimits, 0, cancellationToken);
             return consumed + 1 == tokens.Count ? obj : null;
+        } catch (FormatException) {
+            // A malformed hex string makes the object unreadable, as it does for dictionaries above.
+            return null;
         }
-        if (tokens.Count > 0) {
-            var (obj0, consumed) = ParseObject(tokens, 0, effectiveLimits, 0, cancellationToken);
-            return consumed + 1 == tokens.Count ? obj0 : null;
-        }
-        return null;
     }
 
     private static bool IsWindow<TText>(TText text, int start, int end, string value) where TText : struct, IPdfContentText {
