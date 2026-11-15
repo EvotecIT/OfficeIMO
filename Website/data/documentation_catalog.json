@@ -2,23 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 356,
-    "productionComponentCount": 169,
+    "projectCount": 360,
+    "productionComponentCount": 173,
     "testProjectCount": 69,
     "benchmarkProjectCount": 43,
     "validationProjectCount": 76,
     "apiReferenceCount": 129,
     "conceptualPageCount": 212,
-    "conceptualWordCount": 119757
+    "conceptualWordCount": 120168
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 35,
       "componentIndexes": [
-        104,
-        105,
-        106,
         107,
         108,
         109,
@@ -50,7 +47,10 @@
         135,
         136,
         137,
-        138
+        138,
+        139,
+        140,
+        141
       ]
     },
     {
@@ -72,10 +72,9 @@
         32,
         33,
         34,
-        57,
-        72,
+        58,
         73,
-        78,
+        74,
         79,
         80,
         81,
@@ -85,19 +84,20 @@
         85,
         86,
         87,
-        100,
-        102,
+        88,
         103,
-        147,
-        148,
-        149,
+        105,
+        106,
+        150,
         151,
         152,
-        163,
-        164,
-        165,
-        166,
-        167
+        154,
+        155,
+        167,
+        168,
+        169,
+        170,
+        171
       ]
     },
     {
@@ -110,30 +110,30 @@
         27,
         28,
         29,
-        68,
         69,
         70,
         71,
-        74,
+        72,
         75,
         76,
-        101,
-        142
+        77,
+        104,
+        145
       ]
     },
     {
       "name": "Google Workspace",
       "componentCount": 4,
       "componentIndexes": [
-        42,
         43,
         44,
-        45
+        45,
+        46
       ]
     },
     {
       "name": "Office documents",
-      "componentCount": 21,
+      "componentCount": 24,
       "componentIndexes": [
         35,
         36,
@@ -142,37 +142,39 @@
         39,
         40,
         41,
-        94,
-        95,
+        42,
         96,
         97,
         98,
         99,
-        153,
-        154,
-        155,
+        100,
+        101,
+        102,
         156,
         157,
         158,
         159,
-        160
+        160,
+        161,
+        162,
+        163,
+        164
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        168
+        172
       ]
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 29,
+      "componentCount": 30,
       "componentIndexes": [
         7,
         8,
         9,
-        46,
         47,
         48,
         49,
@@ -183,30 +185,32 @@
         54,
         55,
         56,
-        59,
+        57,
         60,
         61,
         62,
         63,
         64,
-        88,
+        65,
         89,
         90,
         91,
         92,
         93,
-        139,
-        140,
-        141
+        94,
+        95,
+        142,
+        143,
+        144
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        65,
         66,
-        67
+        67,
+        68
       ]
     },
     {
@@ -224,15 +228,15 @@
         21,
         22,
         23,
-        58,
-        77,
-        143,
-        144,
-        145,
+        59,
+        78,
         146,
-        150,
-        161,
-        162
+        147,
+        148,
+        149,
+        153,
+        165,
+        166
       ]
     }
   ],
@@ -577,7 +581,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1314,
+      "sourceFileCount": 1316,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -740,10 +744,10 @@
       "name": "OfficeIMO.Drawing.CodeGlyphX",
       "packageId": "OfficeIMO.Drawing.CodeGlyphX",
       "category": "Foundations and integrations",
-      "description": "Optional typed bridge from CodeGlyphX symbols to OfficeIMO.Drawing scenes.",
+      "description": "Optional CodeGlyphX bridge: QR code and barcode rendering shared by the OfficeIMO Word, Excel, PowerPoint and PDF adapters, and typed conversion of CodeGlyphX symbols to OfficeIMO.Drawing scenes.",
       "kind": "package",
       "projectPath": "OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj",
-      "sourceFileCount": 1,
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/drawing-code-glyph-x/",
@@ -906,6 +910,25 @@
       ]
     },
     {
+      "name": "OfficeIMO.Excel.CodeGlyphX",
+      "packageId": "OfficeIMO.Excel.CodeGlyphX",
+      "category": "Office documents",
+      "description": "QR codes and barcodes for OfficeIMO.Excel worksheets, rendered by CodeGlyphX as SVG pictures with a PNG fallback.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Excel.CodeGlyphX/OfficeIMO.Excel.CodeGlyphX.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/excel/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.CodeGlyphX",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
       "name": "OfficeIMO.Excel.Csv",
       "packageId": "OfficeIMO.Excel.Csv",
       "category": "Office documents",
@@ -1008,7 +1031,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
       "sourceFileCount": 35,
-      "referencingTestProjectCount": 4,
+      "referencingTestProjectCount": 5,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf",
@@ -1398,7 +1421,7 @@
       "description": "Markdown builder, typed reader/AST, and HTML renderer for .NET with GitHub-like output and an optional portable reader profile.",
       "kind": "package",
       "projectPath": "OfficeIMO.Markdown/OfficeIMO.Markdown.csproj",
-      "sourceFileCount": 390,
+      "sourceFileCount": 391,
       "referencingTestProjectCount": 7,
       "docsUrl": "/docs/markdown/",
       "apiUrl": "/api/markdown/",
@@ -1890,11 +1913,30 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1757,
+      "sourceFileCount": 1764,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Pdf.CodeGlyphX",
+      "packageId": "OfficeIMO.Pdf.CodeGlyphX",
+      "category": "Publishing and conversion",
+      "description": "QR codes and barcodes for OfficeIMO.Pdf, rendered by CodeGlyphX as vector drawings.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Pdf.CodeGlyphX/OfficeIMO.Pdf.CodeGlyphX.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/pdf/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Pdf.CodeGlyphX",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",
@@ -2017,6 +2059,25 @@
       ]
     },
     {
+      "name": "OfficeIMO.PowerPoint.CodeGlyphX",
+      "packageId": "OfficeIMO.PowerPoint.CodeGlyphX",
+      "category": "Office documents",
+      "description": "QR codes and barcodes for OfficeIMO.PowerPoint slides, rendered by CodeGlyphX as SVG pictures with a PNG fallback.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.PowerPoint.CodeGlyphX/OfficeIMO.PowerPoint.CodeGlyphX.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/powerpoint/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.CodeGlyphX",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
       "name": "OfficeIMO.PowerPoint.GoogleSlides",
       "packageId": "OfficeIMO.PowerPoint.GoogleSlides",
       "category": "Office documents",
@@ -2100,7 +2161,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj",
       "sourceFileCount": 23,
-      "referencingTestProjectCount": 5,
+      "referencingTestProjectCount": 6,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/power-point-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Pdf",
@@ -2916,7 +2977,7 @@
       "description": "Optional CMS, S/MIME, RFC 3161, X.509, and XML Digital Signature support for OfficeIMO packages.",
       "kind": "package",
       "projectPath": "OfficeIMO.Security/OfficeIMO.Security.csproj",
-      "sourceFileCount": 20,
+      "sourceFileCount": 22,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/security/",
       "apiUrl": "/api/security/",
@@ -3106,11 +3167,30 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 882,
+      "sourceFileCount": 884,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Word.CodeGlyphX",
+      "packageId": "OfficeIMO.Word.CodeGlyphX",
+      "category": "Office documents",
+      "description": "QR codes and barcodes for OfficeIMO.Word, rendered by CodeGlyphX as SVG pictures with a PNG fallback.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Word.CodeGlyphX/OfficeIMO.Word.CodeGlyphX.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/word/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.CodeGlyphX",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",
@@ -3221,7 +3301,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
       "sourceFileCount": 137,
-      "referencingTestProjectCount": 7,
+      "referencingTestProjectCount": 8,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Pdf",
@@ -3388,7 +3468,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 795,
+      "sourceFileCount": 800,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,

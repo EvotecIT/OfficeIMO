@@ -93,6 +93,10 @@
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.ChartForgeX\OfficeIMO.ChartForgeX.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Word.CodeGlyphX\OfficeIMO.Word.CodeGlyphX.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.CodeGlyphX\OfficeIMO.Excel.CodeGlyphX.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.PowerPoint.CodeGlyphX\OfficeIMO.PowerPoint.CodeGlyphX.csproj" />
+    <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Pdf.CodeGlyphX\OfficeIMO.Pdf.CodeGlyphX.csproj" />
     <ProjectReference Include="$(OfficeIMORoot)\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
   </ItemGroup>
   <ItemGroup>

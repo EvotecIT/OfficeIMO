@@ -336,8 +336,17 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsPdfSupportedWorksheetImage(ExcelImage image, out string reason) {
-            if (!IsPdfSupportedImageContentType(image.ContentType)) {
-                reason = $"content type '{image.ContentType}' is not supported by the first-party PDF image writer.";
+            string contentType = image.ContentType;
+            byte[] bytes = Array.Empty<byte>();
+            // PDF export draws an SVG picture through its raster fallback, so preflight checks the same bytes.
+            bool rasterFallback = false;
+            if (!IsPdfSupportedImageContentType(contentType) && image.TryGetRasterFallback(out byte[] fallback, out string fallbackType)) {
+                bytes = fallback;
+                contentType = fallbackType;
+                rasterFallback = true;
+            }
+            if (!IsPdfSupportedImageContentType(contentType)) {
+                reason = $"content type '{contentType}' is not supported by the first-party PDF image writer.";
                 return false;
             }
 
@@ -346,7 +355,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (!image.TryReadBytes(out byte[] bytes)) {
+            if (!rasterFallback && !image.TryReadBytes(out bytes)) {
                 reason = "image bytes are empty or exceed the PDF preflight source-image limit.";
                 return false;
             }
@@ -356,7 +365,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(image.ContentType, out OfficeImageFormat declaredFormat) &&
+            if (OfficeImagePdfCompatibility.TryGetSupportedContentTypeFormat(contentType, out OfficeImageFormat declaredFormat) &&
                 imageInfo!.Format != declaredFormat) {
                 reason = $"image bytes were declared as {GetPdfImageFormatDisplayName(declaredFormat)} but detected as {imageInfo.Format}.";
                 return false;

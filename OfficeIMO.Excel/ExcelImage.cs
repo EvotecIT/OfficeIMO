@@ -273,12 +273,12 @@ namespace OfficeIMO.Excel {
         public int DrawingOrder => GetDrawingOrder(_anchor, _drawingsPart);
 
         /// <summary>
-        /// Gets the image content type, such as image/png or image/jpeg.
+        /// Gets the image content type, such as image/png or image/jpeg. An SVG picture reports its SVG, not the PNG fallback.
         /// </summary>
         public string ContentType => ImagePart?.ContentType ?? string.Empty;
 
         /// <summary>
-        /// Returns a copy of the image bytes from the worksheet drawing relationship.
+        /// Returns a copy of the image bytes from the worksheet drawing relationship. An SVG picture returns its SVG.
         /// </summary>
         public byte[] ToBytes() {
             ImagePart? imagePart = ImagePart;
@@ -594,18 +594,37 @@ namespace OfficeIMO.Excel {
             return transform;
         }
 
-        private ImagePart? ImagePart {
-            get {
-                string? relationshipId = _picture.BlipFill?.Blip?.Embed?.Value;
-                if (string.IsNullOrWhiteSpace(relationshipId)) {
-                    return null;
-                }
+        // A picture with an SVG extension is that SVG; its ordinary blip is only the raster fallback.
+        private ImagePart? ImagePart => ResolveImagePart(GetSvgRelationshipId()) ?? FallbackImagePart;
 
-                try {
-                    return _drawingsPart.GetPartById(relationshipId!) as ImagePart;
-                } catch (ArgumentOutOfRangeException) {
-                    return null;
-                }
+        private ImagePart? FallbackImagePart => ResolveImagePart(_picture.BlipFill?.Blip?.Embed?.Value);
+
+        private string? GetSvgRelationshipId() =>
+            _picture.BlipFill?.Blip?.Descendants<DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip>()
+                .Select(vector => vector.Embed?.Value).FirstOrDefault(id => !string.IsNullOrEmpty(id));
+
+        /// <summary>Returns the raster fallback of an SVG picture, for renderers that cannot draw its SVG.</summary>
+        internal bool TryGetRasterFallback(out byte[] bytes, out string contentType) {
+            bytes = Array.Empty<byte>();
+            contentType = string.Empty;
+            if (GetSvgRelationshipId() == null || FallbackImagePart is not ImagePart fallback) return false;
+            using Stream source = fallback.GetStream(FileMode.Open, FileAccess.Read);
+            using var destination = new MemoryStream();
+            source.CopyTo(destination);
+            bytes = destination.ToArray();
+            contentType = fallback.ContentType;
+            return bytes.Length > 0;
+        }
+
+        private ImagePart? ResolveImagePart(string? relationshipId) {
+            if (string.IsNullOrWhiteSpace(relationshipId)) {
+                return null;
+            }
+
+            try {
+                return _drawingsPart.GetPartById(relationshipId!) as ImagePart;
+            } catch (ArgumentOutOfRangeException) {
+                return null;
             }
         }
 

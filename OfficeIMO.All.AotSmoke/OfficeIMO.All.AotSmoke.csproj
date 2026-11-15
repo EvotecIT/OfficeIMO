@@ -39,6 +39,10 @@
     <ProjectReference Include="..\OfficeIMO.DjVu.Pdf\OfficeIMO.DjVu.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.DocBook\OfficeIMO.DocBook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.CodeGlyphX\OfficeIMO.Word.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.CodeGlyphX\OfficeIMO.Excel.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.CodeGlyphX\OfficeIMO.PowerPoint.CodeGlyphX.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf.CodeGlyphX\OfficeIMO.Pdf.CodeGlyphX.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
     <ProjectReference Include="..\OfficeIMO.Email.Html\OfficeIMO.Email.Html.csproj" />
@@ -186,6 +190,10 @@
     <TrimmerRootAssembly Include="OfficeIMO.DjVu.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.DocBook" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.CodeGlyphX" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.CodeGlyphX" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.CodeGlyphX" />
+    <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.CodeGlyphX" />
+    <TrimmerRootAssembly Include="OfficeIMO.Pdf.CodeGlyphX" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.HarfBuzz" />
     <TrimmerRootAssembly Include="OfficeIMO.Email" />
     <TrimmerRootAssembly Include="OfficeIMO.Email.Html" />

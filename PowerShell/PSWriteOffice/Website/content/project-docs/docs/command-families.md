@@ -10,15 +10,15 @@ The PSWriteOffice website catalog groups every exported cmdlet into exactly one 
 
 | Family | Exported commands | Guide |
 | --- | ---: | --- |
-| Excel | 103 | [Excel automation](/docs/pswriteoffice/excel/) |
-| Word | 81 | [Word automation](/docs/pswriteoffice/word/) |
-| PDF | 80 | [PDF automation](/docs/pswriteoffice/pdf/) |
+| Excel | 104 | [Excel automation](/docs/pswriteoffice/excel/) |
+| Word | 82 | [Word automation](/docs/pswriteoffice/word/) |
+| PDF | 81 | [PDF automation](/docs/pswriteoffice/pdf/) |
 | Document operations and capabilities | 11 | [Document operations and capabilities](/docs/pswriteoffice/automation-patterns/) |
 | Before sharing | 6 | [Clean files before sharing](/docs/pswriteoffice/before-sharing/) |
 | Project | 20 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | Access | 9 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
 | EPUB | 8 | [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/) |
-| PowerPoint | 53 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
+| PowerPoint | 54 | [PowerPoint automation](/docs/pswriteoffice/powerpoint/) |
 | Markdown | 33 | [Open and text formats](/docs/pswriteoffice/open-text-formats/) |
 | Visio | 20 | [Visio diagrams](/docs/pswriteoffice/visio/) |
 | Reader, extraction, and OCR | 9 | [Reader, extraction, and OCR](/docs/pswriteoffice/reader/) |

@@ -162,6 +162,10 @@
   <Project Path="OfficeIMO.Drawing.CodeGlyphX.Benchmarks/OfficeIMO.Drawing.CodeGlyphX.Benchmarks.csproj" />
   <Project Path="OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj" />
   <Project Path="OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.Excel.CodeGlyphX/OfficeIMO.Excel.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.Pdf.CodeGlyphX/OfficeIMO.Pdf.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.PowerPoint.CodeGlyphX/OfficeIMO.PowerPoint.CodeGlyphX.csproj" />
+  <Project Path="OfficeIMO.Word.CodeGlyphX/OfficeIMO.Word.CodeGlyphX.csproj" />
   <Project Path="OfficeIMO.Drawing.HarfBuzz.Tests/OfficeIMO.Drawing.HarfBuzz.Tests.csproj" />
   <Project Path="OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj" />
   <Project Path="OfficeIMO.Drawing.ImageIO.Tests/OfficeIMO.Drawing.ImageIO.Tests.csproj" />

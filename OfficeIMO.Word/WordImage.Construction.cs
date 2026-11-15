@@ -173,7 +173,7 @@ namespace OfficeIMO.Word {
                 // Office 2016 asvg:svgBlip extension: the SVG part draws in Office, while the ordinary blip
                 // carries a PNG fallback for older Word versions and other consumers.
                 var svgExt = new BlipExtension() {
-                    Uri = "{96DAC541-7B7A-43D3-8B79-8F7C33B92B69}"
+                    Uri = OfficeIMO.Core.Internal.OfficeSvgPictureFallback.BlipExtensionUri
                 };
                 var svgBlip = new OpenXmlUnknownElement(
                     "asvg",
