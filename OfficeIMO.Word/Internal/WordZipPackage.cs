@@ -788,7 +788,7 @@ internal sealed class WordZipPackage : Package {
                 }
             }
             while (true) {
-                if (_length == Capacity) {
+                if (_length == Capacity || _length == int.MaxValue) {
                     // A full buffer usually holds the whole entry already; look for one more byte before growing.
                     int next = source.ReadByte();
                     if (next < 0) return;
@@ -800,7 +800,7 @@ internal sealed class WordZipPackage : Package {
                 }
                 byte[] block = _blocks[_length / BlockSize];
                 int start = _length % BlockSize;
-                int read = source.Read(block, start, block.Length - start);
+                int read = source.Read(block, start, Math.Min(block.Length - start, int.MaxValue - _length));
                 if (read == 0) return;
                 _length += read;
             }
