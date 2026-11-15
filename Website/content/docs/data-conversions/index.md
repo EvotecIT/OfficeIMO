@@ -3,6 +3,7 @@ title: "Data Conversions"
 description: "Convert between JSON, JSON Lines, YAML, TOML, XML, CSV and Excel in .NET, streaming, with exact numbers and a report of anything lost."
 order: 58
 meta.seo_title: "Convert JSON, YAML, TOML, XML, CSV and Excel in C#"
+verified: 2026-11-14
 ---
 
 `OfficeIMO.Data.Conversions` converts between JSON, JSON Lines, YAML, TOML, XML, CSV and TSV. `OfficeIMO.Data.Conversions.Excel` adds worksheets and workbooks. Data flows from each format's own reader to the target's writer as events, so a large file converts with bounded memory, and numbers keep their exact text: `1.10` stays `1.10`, and a 23-digit integer is not rounded through `double`.
@@ -48,6 +49,7 @@ OfficeConverter.Convert("app.yaml", "app.json");
 A worksheet reads with first-row headers, and path headers such as `address.city` rebuild nested objects. Formulas contribute their cached values.
 
 ```csharp
+using System.Text.Json.Nodes;
 using OfficeIMO.Data.Conversions;
 using OfficeIMO.Excel;
 
@@ -63,6 +65,10 @@ JsonNode.Parse(File.ReadAllText("export.json"))!.SaveAsExcel("export.xlsx");
 Every format has limits. TOML has no null, CSV has no nesting, XML attributes have no JSON equivalent, and an Excel cell holds 15 significant digits. Each `To{Target}` method has an overload that returns an `OfficeConversionReport`, and each `SaveAs{Target}` returns one:
 
 ```csharp
+using System.Text.Json.Nodes;
+using OfficeIMO;
+using OfficeIMO.Data.Conversions;
+
 OfficeConversionReport report = JsonNode.Parse(File.ReadAllText("service.json"))!.SaveAsToml("service.toml");
 
 foreach (OfficeDiagnostic diagnostic in report.Diagnostics)
