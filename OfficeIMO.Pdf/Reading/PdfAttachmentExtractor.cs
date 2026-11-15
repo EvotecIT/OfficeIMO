@@ -606,6 +606,10 @@ internal static class PdfAttachmentExtractor {
             Dictionary<int, PdfIndirectObject> objects,
             bool requireSuccessfulDecoding = false) {
             Checkpoint();
+            if (stream.DecodingFailed && string.Equals(stream.DecodingError, PdfStandardSecurityHandler.EmbeddedFileNeedsPasswordMessage, StringComparison.Ordinal)) {
+                throw new PdfPasswordRequiredException(PdfStandardSecurityHandler.EmbeddedFileNeedsPasswordMessage);
+            }
+
             if (_decodedEmbeddedStreams.TryGetValue(stream, out byte[]? cachedBytes) && cachedBytes is not null) {
                 return cachedBytes;
             }

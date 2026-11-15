@@ -1,0 +1,59 @@
+{{~ # One benchmark area. Set benchmark_area_id before including. Server-renders every workload with its platforms; benchmark-area.js draws the charts. ~}}
+{{~ include "benchmark-data" ~}}
+{{~ area = null ~}}
+{{~ for candidate in bench_areas ~}}{{~ if candidate.id == benchmark_area_id ~}}{{~ area = candidate ~}}{{~ end ~}}{{~ end ~}}
+{{~ if area ~}}
+{{~ workloads = bench_stats[area.id].workloads ~}}
+{{~ lookup = bench_stats[area.id].lookup ~}}
+{{~ titles = {} ~}}
+{{~ if bench_index && bench_index.comparisons ~}}{{~ for comparison in bench_index.comparisons ~}}{{~ titles[comparison.comparisonId] = comparison ~}}{{~ end ~}}{{~ end ~}}
+<div class="imo-bench-area-page" data-benchmark-area="{{ area.id }}">
+  <nav class="imo-bench-crumbs" aria-label="Breadcrumb"><a href="/benchmarks/">Benchmarks</a> <span aria-hidden="true">/</span> <span>{{ area.title }}</span></nav>
+  <p class="imo-bench-lead">Each table compares libraries doing the same validated work on one machine and one operating system. Lower is better. Pick another run to switch operating system or run type.</p>
+  {{~ if workloads.size == 0 ~}}
+  <section class="imo-bench-empty">
+    <h2>No published results yet</h2>
+    <p>The suites for this area are part of the benchmark runner. Results appear here after the next measured run on Windows, Linux and macOS.</p>
+    {{~ if bench_index && bench_index.comparisons ~}}
+    <ul class="imo-bench-planned">
+      {{~ for comparison in bench_index.comparisons ~}}{{~ if comparison.area == area.id ~}}
+      <li><strong>{{ comparison.title ?? bench_title(comparison.comparisonId) }}</strong>{{ if comparison.libraries }}<span>compared with {{ comparison.libraries | array.join ", " }}</span>{{ end }}</li>
+      {{~ end ~}}{{~ end ~}}
+    </ul>
+    {{~ end ~}}
+    <p><a href="/docs/capabilities/benchmarks/">Run the suites yourself <span aria-hidden="true">→</span></a></p>
+  </section>
+  {{~ end ~}}
+  {{~ for id in workloads ~}}
+  {{~ workload = lookup[id] ~}}
+  {{~ meta = titles[id] ~}}
+  <section class="imo-bench-workload" id="{{ id }}" aria-labelledby="{{ id }}-title" data-benchmark-workload>
+    <header>
+      {{~ workload_title = (meta && meta.title) ? meta.title : bench_title(id) ~}}
+      <h2 id="{{ id }}-title">{{ workload_title }}</h2>
+      <p class="imo-bench-workload__suite">{{ workload.suite }}{{ if meta && meta.libraries }} · compared with {{ meta.libraries | array.join ", " }}{{ end }}</p>
+    </header>
+    <div class="imo-bench-runs" role="group" aria-label="Runs">
+      {{~ for run in (workload.runs | array.sort "platform") ~}}
+      <button type="button" class="imo-bench-run" data-result="{{ run.resultPath }}" data-platform="{{ run.platform }}" data-mode="{{ run.runMode }}" data-published="{{ run.publish }}" aria-pressed="false">
+        <span>{{ for platform in bench_platforms }}{{ if platform.id == run.platform }}{{ platform.label }}{{ end }}{{ end }}</span>
+        <small>{{ if run.runMode == "full" }}Full run{{ else }}Quick run{{ end }} · {{ run.generatedUtc | string.slice 0 10 }}</small>
+      </button>
+      {{~ end ~}}
+    </div>
+    <div class="imo-bench-chart" data-benchmark-chart aria-live="polite">
+      <ul class="imo-bench-raw">
+        {{~ for run in workload.runs ~}}
+        <li><a href="{{ run.resultPath }}">{{ workload_title }} · {{ run.platform }} · {{ run.runMode }} · {{ run.environment.processorName ?? "unrecorded hardware" }} · {{ run.generatedUtc | string.slice 0 16 }} · result JSON</a></li>
+        {{~ end ~}}
+      </ul>
+    </div>
+  </section>
+  {{~ end ~}}
+  <section class="imo-bench-method">
+    <h2>How to read these results</h2>
+    <p>Full runs are complete BenchmarkDotNet measurements and support comparisons. Quick runs are shorter diagnostic runs, shown for coverage. Each result links to its raw JSON, the source commit and the exact environment. Run the suites on hardware close to yours before deciding.</p>
+    <p><a href="/docs/capabilities/benchmarks/">Benchmark reproduction guide <span aria-hidden="true">→</span></a> · <a href="/benchmarks/archive/">Earlier Excel and CSV measurements <span aria-hidden="true">→</span></a></p>
+  </section>
+</div>
+{{~ end ~}}

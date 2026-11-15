@@ -1,12 +1,6 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    internal static void ThrowIfEncrypted(string trailerRaw) {
-        if (ContainsAnyPdfName(trailerRaw, "Encrypt")) {
-            throw new NotSupportedException("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.");
-        }
-    }
-
     internal static bool HasEncryptionMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 

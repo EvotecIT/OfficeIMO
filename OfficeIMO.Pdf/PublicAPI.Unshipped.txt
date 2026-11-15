@@ -1091,6 +1091,9 @@ OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPl
 OfficeIMO.Pdf.PdfRedactionShareableSummary.RemovedHiddenDataCount.get -> int?
 OfficeIMO.Pdf.PdfRedactionSharingResult.HiddenData.get -> OfficeIMO.OfficeHiddenDataResult!
 OfficeIMO.Pdf.PdfAConversionRefusalReason.EmbeddedFileRequired = 22 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
+OfficeIMO.Pdf.PdfReadLimitKind.GraphicsStateDepth = 55 -> OfficeIMO.Pdf.PdfReadLimitKind
+OfficeIMO.Pdf.PdfReadLimits.MaxGraphicsStateDepth.get -> int
+OfficeIMO.Pdf.PdfReadLimits.MaxGraphicsStateDepth.init -> void
 OfficeIMO.Pdf.PdfTableAggregate
 OfficeIMO.Pdf.PdfTableAggregate.BroughtForwardToken.get -> string!
 OfficeIMO.Pdf.PdfTableAggregate.Column.get -> int
@@ -1127,6 +1130,8 @@ OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.RepeatFooterRows.set -> void
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.get -> bool
 OfficeIMO.Pdf.PdfInvoiceComponent.CarryTotalsAcrossPages.set -> void
+OfficeIMO.Pdf.PdfEncryptedContentIntegrityException
+OfficeIMO.Pdf.PdfEncryptedContentIntegrityException.PdfEncryptedContentIntegrityException(string! message) -> void
 OfficeIMO.Pdf.PdfLoadOptions.PublicKeyDecryption.get -> OfficeIMO.Pdf.PdfPublicKeyDecryptionOptions?
 OfficeIMO.Pdf.PdfLoadOptions.PublicKeyDecryption.init -> void
 OfficeIMO.Pdf.PdfPasswordAuthenticationRole.PublicKeyRecipient = 3 -> OfficeIMO.Pdf.PdfPasswordAuthenticationRole

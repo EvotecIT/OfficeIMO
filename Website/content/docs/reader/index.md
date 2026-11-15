@@ -26,6 +26,14 @@ dotnet add package OfficeIMO.Reader.All
 format-engine dependencies. Word, Excel, PowerPoint, Markdown, Email, PDF, and the other formats are separate adapters
 over their owning OfficeIMO engines.
 
+## Task guides
+
+- [Quick start](/docs/reader/quick-start/): read a document as Markdown or JSON.
+- [Chunk documents for search and AI](/docs/reader/chunking/)
+- [Read whole folders](/docs/reader/folders/)
+- [Extract tables and records](/docs/reader/tables-records/)
+- [Check supported formats](/docs/reader/formats/)
+
 ## Supported formats
 
 Each row is a separate `OfficeIMO.Reader.*` package. Its builder method follows the format name, for example `AddWordHandler()`, `AddPdfHandler()` or `AddNotebookHandler()`; the email package registers all of its handlers through `AddEmailHandlers()`. `AddAllOfficeIMOHandlers()` from `OfficeIMO.Reader.All` registers every row marked ✓ in one isolated builder:

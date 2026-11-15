@@ -183,7 +183,7 @@ officeimo html render report.html --encoder png --output report-pages.zip
 officeimo html render page.html --profile screen-full-page --encoder png --output page.zip
 ```
 
-Local and remote resource reads are disabled by default; data URIs and resources inside MHTML or ZIP input remain available. Use `--stylesheet`, `--base-uri` and the `--font-*` options to supply resources explicitly. `officeimo html --help` lists the profiles, page selection and archive limits.
+Local and remote resource reads are disabled by default; data URIs and resources inside MHTML or ZIP input remain available. Use `--stylesheet`, `--base-uri` and the `--font-*` options to supply resources explicitly. [HTML to PDF and images](/docs/cli/html/) covers profiles, page selection, site bundles, fonts and limits.
 
 ## Spreadsheets and delimited files
 

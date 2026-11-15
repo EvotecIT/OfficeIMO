@@ -862,6 +862,7 @@ public sealed partial class PdfReadPage {
                      content,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                      maxOperands: _limits.MaxContentOperands,
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      cancellationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
@@ -1030,8 +1031,8 @@ public sealed partial class PdfReadPage {
         }
         bool IsEmptyPaintedGlyph(string fontRes, byte[] code) {
             if (!fonts.TryGetValue(fontRes, out PdfFontResource? resource) ||
-                resource.DrawingProgram is not PdfDrawingFontProgram program || code.Length is < 1 or > 2) return true;
-            int glyph = program.GlyphForCode(code.Length == 1 ? code[0] : (code[0] << 8) | code[1]);
+                resource.DrawingProgram is not PdfDrawingFontProgram program || code.Length is < 1 or > 4) return true;
+            int glyph = program.GlyphForCodeBytes(code);
             return program.IsEmptyGlyph(glyph);
         }
         int? ResolveFontWeight(string fontRes) =>
@@ -1128,6 +1129,7 @@ public sealed partial class PdfReadPage {
             includeArtifactText: includeArtifactText,
             maxOperations: _limits.MaxContentOperations,
             maxNestingDepth: _limits.MaxContentNestingDepth,
+            maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: _limits.MaxContentOperands,
             maxActualTextCharacters: _limits.MaxActualTextCharacters,
             maxDecodedTextCharacters: _limits.MaxDecodedTextCharacters,
@@ -1332,6 +1334,7 @@ public sealed partial class PdfReadPage {
                       initialClipPath,
                      maxOperations: _limits.MaxContentOperations,
                      maxNestingDepth: _limits.MaxContentNestingDepth,
+                     maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                      maxOperands: _limits.MaxContentOperands,
                      initialBlendMode: initialBlendMode,
                      initialAuthoredBlendMode: initialAuthoredBlendMode,

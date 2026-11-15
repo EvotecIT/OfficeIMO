@@ -612,9 +612,15 @@ Windows; that target compiles only these lanes, with EPPlus and ClosedXML.
   `Export-OfficeExcel` writes them. The competitors run their `autofit` code.
 - `table-chart`: the table with a clustered column chart over two adjacent columns. ClosedXML
   does not create charts.
+- `table-pivot`: the table with a pivot of average Score and summed TicketCount by Region and
+  Department, each measure with a number format.
+- `report`: the `report-workbook` sheet without its chart: the frozen table, a cell-value rule,
+  a data bar, a color scale and an icon set, a list validation, number formats on two columns
+  and the pivot. The pivot lanes compare with EPPlus.
 
 Each lane first checks the saved package: every row, a table part, a fitted width for every
-column in the fitting lanes and a chart part in the chart lane.
+column in the fitting lanes, a chart part in the chart lane, a pivot cache in the pivot lanes
+and the four rules and the validation in the report lane.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project OfficeIMO.Excel.Benchmarks -- --compare-engine-lanes --rows 5000,10000,25000
@@ -638,6 +644,15 @@ Ryzen 9 9950X3D2 workstation; other builds ran at the same time, so read ratios,
 | autofit | 25000 | 35.9 | 621.1 | 1412.0 | 127.0 | 889.7 | 2361.4 |
 | autofit-writer | 25000 | 140.6 | 634.3 | 1510.1 | 319.0 | 948.5 | 2307.6 |
 | table-chart | 25000 | 513.5 | 537.3 | n/a | 584.2 | 622.8 | n/a |
+
+The pivot lanes, measured the same way later that day (EPPlus only):
+
+| Lane | Rows | .NET 10 OfficeIMO | EPPlus | .NET Framework OfficeIMO | EPPlus |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| table-pivot | 5000 | 9.0 | 514.6 | 33.9 | 158.8 |
+| report | 5000 | 12.4 | 218.8 | 28.4 | 136.5 |
+| table-pivot | 10000 | 18.1 | 439.0 | 58.4 | 329.1 |
+| report | 10000 | 31.0 | 470.1 | 61.0 | 347.2 |
 
 ## Library comparison
 

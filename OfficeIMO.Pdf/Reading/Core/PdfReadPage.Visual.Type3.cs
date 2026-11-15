@@ -1301,6 +1301,7 @@ public sealed partial class PdfReadPage {
                 programState.Transform,
                 maxOperations: _limits.MaxContentOperations,
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
@@ -1329,6 +1330,7 @@ public sealed partial class PdfReadPage {
                 maxOperations: _limits.MaxContentOperations,
                 patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
+                maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                 maxOperands: _limits.MaxContentOperands,
                 strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
                 primitiveVisitor: primitive => {
@@ -1376,6 +1378,7 @@ public sealed partial class PdfReadPage {
                          initialStrokeLineJoin: programState.StrokeLineJoin,
                          maxOperations: _limits.MaxContentOperations,
                          maxNestingDepth: _limits.MaxContentNestingDepth,
+                         maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
                          maxOperands: _limits.MaxContentOperands,
                          fonts: fonts,
                          fontWidthProviders: widthProviders,

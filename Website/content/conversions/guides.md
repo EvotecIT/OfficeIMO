@@ -52,7 +52,7 @@ The extension selects the same first-party Word, Excel, PowerPoint, or Publisher
 
 ## PowerShell routes are documented separately
 
-PSWriteOffice includes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and supports [Publisher to PDF](/convert/publisher-to-pdf/#convert-a-publisher-archive-with-powershell) through `Convert-OfficeDocument`. Start with the [PSWriteOffice product page](/products/pswriteoffice/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).
+PSWriteOffice includes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and supports [Publisher to PDF](/convert/publisher-to-pdf/#convert-a-publisher-archive-with-powershell) through `Convert-OfficeDocument`. Start with the [PSWriteOffice product page](/powershell/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).
 
 ## Conversion is a policy decision
 

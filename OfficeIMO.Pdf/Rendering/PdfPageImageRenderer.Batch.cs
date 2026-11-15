@@ -178,6 +178,7 @@ internal static partial class PdfPageImageRenderer {
                     options.MaxPixelsPerPage,
                     options.TextShapingProvider,
                     options.TextShapingLanguage,
+                    options.RasterEncoding?.Png,
                     cancellationToken);
             } else {
                 if (drawing.PostCompositionColorTransform != null)

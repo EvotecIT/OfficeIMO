@@ -3705,7 +3705,7 @@ public partial class DrawingTests {
         return data;
     }
 
-    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null,
+    internal static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null,
         byte[]? locaData = null, ushort glyphCount = 2) {
         var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
         WriteUInt16(maxp, 4, glyphCount);
@@ -3763,7 +3763,7 @@ public partial class DrawingTests {
         }
     }
 
-    private static void WriteUInt16(byte[] data, int offset, int value) {
+    internal static void WriteUInt16(byte[] data, int offset, int value) {
         data[offset] = (byte)((value >> 8) & 0xFF);
         data[offset + 1] = (byte)(value & 0xFF);
     }

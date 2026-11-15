@@ -77,7 +77,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexOpenActionDictionariesWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexOpenActionDictionariesWithClearUnsupportedDiagnostic() {
         byte[] openActionPdf = BuildComplexOpenActionDictionaryPdf();
 
         static void AssertOpenActions(Action action) {
@@ -85,8 +85,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF open actions are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertOpenActions(() => PdfPageExtractor.ExtractPages(openActionPdf, 1));
-        AssertOpenActions(() => PdfPageExtractor.SplitPages(openActionPdf));
+        AssertExtractionKeepsCatalogStructure(openActionPdf);
         AssertOpenActions(() => PdfMetadataEditor.UpdateMetadata(openActionPdf, title: "Updated"));
         AssertOpenActions(() => PdfMerger.Merge(openActionPdf));
         AssertOpenActions(() => PdfStamper.StampText(openActionPdf, "STAMP"));
