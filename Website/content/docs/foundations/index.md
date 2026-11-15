@@ -1,6 +1,6 @@
 ---
 title: "Charts, Barcodes, OCR and Provenance"
-description: "Place ChartForgeX charts, Mermaid diagrams and CodeGlyphX QR codes and barcodes in documents, recognize text with pluggable OCR engines, and verify C2PA Content Credentials."
+description: "Add ChartForgeX charts, Mermaid diagrams and CodeGlyphX barcodes to documents, recognize text with OCR engines, and verify C2PA Content Credentials."
 order: 57
 meta.seo_title: "Charts, barcodes, OCR and C2PA provenance for .NET documents"
 ---

@@ -11,6 +11,7 @@ dotnet add package OfficeIMO.Pdf.CodeGlyphX
 ## Add a QR code to the content flow
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 
 PdfDocument.Create(pdf => pdf.Content(content => content
@@ -24,6 +25,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 ```csharp
 using CodeGlyphX;
+using OfficeIMO;
 using OfficeIMO.Pdf;
 
 content.AddBarcode(SymbolFormat.Gs1Code128, "(01)09501101530003(17)261231");

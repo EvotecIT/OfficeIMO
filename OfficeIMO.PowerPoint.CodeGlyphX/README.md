@@ -13,6 +13,7 @@ dotnet add package OfficeIMO.PowerPoint.CodeGlyphX
 Give the code a layout box and it takes the largest size that fits, centered in the box:
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
 using var presentation = PowerPointDocument.Create("Talk.pptx");
@@ -35,6 +36,7 @@ Both return the `PowerPointImage` for links, animation and other picture setting
 
 ```csharp
 using CodeGlyphX;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 
 slide.AddBarcode(SymbolFormat.Code128, "TICKET-7781", box);

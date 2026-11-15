@@ -67,6 +67,8 @@ public partial class Excel {
         });
         Assert.Equal("image/svg+xml", image.ContentType);
         Assert.Equal(svg, image.ToBytes());
+        // PDF export draws the picture through its PNG fallback, so preflight must not report it as unsupported.
+        Assert.Empty(document.InspectFeatures().FindFeatures("PDF-unsupported images"));
 
         using var saved = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);
         DrawingsPart drawing = saved.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;

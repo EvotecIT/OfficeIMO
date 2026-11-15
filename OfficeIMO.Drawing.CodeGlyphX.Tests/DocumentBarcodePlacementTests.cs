@@ -96,14 +96,14 @@ public sealed class DocumentBarcodePlacementTests : IDisposable {
     }
 
     [Theory]
-    [InlineData(SymbolFormat.QrCode, "https://evotec.xyz")]
-    [InlineData(SymbolFormat.DataMatrix, "SN-0042-PL")]
-    [InlineData(SymbolFormat.Pdf417, "Boarding pass 0042 seat 12C")]
-    [InlineData(SymbolFormat.Code128, "INV-2026-11-14")]
-    [InlineData(SymbolFormat.Gs1Code128, "(01)09501101530003(17)261231")]
-    [InlineData(SymbolFormat.Ean, "590123412345")]
-    [InlineData(SymbolFormat.UpcA, "03600029145")]
-    public void PdfFlowDrawsEachSymbologyAsScannableVector(SymbolFormat format, string payload) {
+    [InlineData(SymbolFormat.QrCode, "https://evotec.xyz", "https://evotec.xyz")]
+    [InlineData(SymbolFormat.DataMatrix, "SN-0042-PL", "SN-0042-PL")]
+    [InlineData(SymbolFormat.Pdf417, "Boarding pass 0042 seat 12C", "Boarding pass 0042 seat 12C")]
+    [InlineData(SymbolFormat.Code128, "INV-2026-11-14", "INV-2026-11-14")]
+    [InlineData(SymbolFormat.Gs1Code128, "(01)09501101530003(17)261231", "010950110153000317261231")]
+    [InlineData(SymbolFormat.Ean, "590123412345", "5901234123457")]
+    [InlineData(SymbolFormat.UpcA, "03600029145", "036000291452")]
+    public void PdfFlowDrawsEachSymbologyAsScannableVector(SymbolFormat format, string payload, string expected) {
         // A label-sized page keeps the scanned image small.
         byte[] bytes = SavePdf(document => document.Page(page => page
             .Size(OfficeLength.Inches(5), OfficeLength.Inches(4))
@@ -115,7 +115,7 @@ public sealed class DocumentBarcodePlacementTests : IDisposable {
         using PdfDocument pdf = PdfDocument.Load(new MemoryStream(bytes));
         Assert.Empty(pdf.Images.Extract());
         string decoded = ScanSingle(pdf.Render.DisplayPage(1, new PdfPageDisplayOptions { Scale = 2D }).Bytes!, format);
-        Assert.Contains(StripGs1Parentheses(payload), StripGs1Parentheses(decoded));
+        Assert.Equal(expected, NormalizeDecoded(decoded));
     }
 
     [Fact]
@@ -207,7 +207,9 @@ public sealed class DocumentBarcodePlacementTests : IDisposable {
         return symbol.Text;
     }
 
-    private static string StripGs1Parentheses(string value) => value.Replace("(", string.Empty).Replace(")", string.Empty);
+    // GS1 element strings decode with optional parentheses or a symbology identifier; compare the element data.
+    private static string NormalizeDecoded(string value) =>
+        value.StartsWith("]C1", StringComparison.Ordinal) ? value.Substring(3) : value.Replace("(", string.Empty).Replace(")", string.Empty).Replace("\u001d", string.Empty);
 
     private static void AssertLength(OfficeLength expected, OfficeLength actual, double toleranceMillimeters = 0.05) =>
         Assert.InRange(Math.Abs(expected.ToPoints() - actual.ToPoints()) * 25.4 / 72D, 0D, toleranceMillimeters);

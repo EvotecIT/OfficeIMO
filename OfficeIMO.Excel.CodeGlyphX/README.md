@@ -11,6 +11,7 @@ dotnet add package OfficeIMO.Excel.CodeGlyphX
 ## Add a QR code
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("Catalog.xlsx");
@@ -26,6 +27,7 @@ The code is anchored at the given cell, or at a one-based row and column with `A
 
 ```csharp
 using CodeGlyphX;
+using OfficeIMO;
 using OfficeIMO.Excel;
 
 sheet.AddBarcode("C4", SymbolFormat.Ean, "590123412345");

@@ -11,6 +11,7 @@ dotnet add package OfficeIMO.Word.CodeGlyphX
 ## Add a QR code
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("Flyer.docx");
@@ -27,6 +28,7 @@ Pass a CodeGlyphX `SymbolFormat` for any other symbology: `Code128`, `Gs1Code128
 
 ```csharp
 using CodeGlyphX;
+using OfficeIMO;
 using OfficeIMO.Word;
 
 paragraph.AddBarcode(SymbolFormat.Code128, "ORD-2026-0042", options => {
