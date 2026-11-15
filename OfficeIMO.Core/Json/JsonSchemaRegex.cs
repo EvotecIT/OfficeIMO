@@ -12,6 +12,7 @@ namespace OfficeIMO.Json;
 /// ECMA-262 does not have (<c>\a</c>, <c>\z</c>, <c>(?#...)</c>, global <c>(?i)</c> flags) is rejected.
 /// </summary>
 internal static class JsonSchemaRegex {
+    private const string AstralInClass = "Characters outside the Basic Multilingual Plane are not supported in character classes.";
     private const string DigitRanges = "0-9";
     private const string NotDigitRanges = "\\u0000-\\u002F\\u003A-\\uFFFF";
     private const string WordRanges = "0-9A-Za-z_";
@@ -58,6 +59,10 @@ internal static class JsonSchemaRegex {
                 continue;
             }
             if (inClass) {
+                if (char.IsHighSurrogate(c) && char.IsLowSurrogate(At(pattern, i + 1))) {
+                    // A .NET class matches one UTF-16 unit, so an astral member would match half a character.
+                    throw new ArgumentException(AstralInClass);
+                }
                 if (c == ']') inClass = false;
                 text.Append(c == '[' ? "\\[" : c.ToString());
                 i++;
@@ -363,7 +368,7 @@ internal static class JsonSchemaRegex {
             return;
         }
         string pair = char.ConvertFromUtf32(codePoint);
-        if (inClass) throw new ArgumentException("Characters outside the Basic Multilingual Plane are not supported in character classes.");
+        if (inClass) throw new ArgumentException(AstralInClass);
         text.Append("(?:\\u").Append(((int)pair[0]).ToString("X4", CultureInfo.InvariantCulture))
             .Append("\\u").Append(((int)pair[1]).ToString("X4", CultureInfo.InvariantCulture)).Append(')');
     }

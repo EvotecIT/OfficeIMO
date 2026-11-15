@@ -83,6 +83,11 @@ internal static class JsonSchemaUri {
         if (HasScheme(resource) && !IsHierarchical(resource)) return reference;
         // Without an absolute base, a relative reference resolves against the base's own relative path.
         if (resource.Length != 0) {
+            // A query-only reference keeps the base's path (RFC 3986 section 5.2.2).
+            if (reference[0] == '?') {
+                int query = resource.IndexOf('?');
+                return StripEmptyFragment((query < 0 ? resource : resource.Substring(0, query)) + reference);
+            }
             int slash = resource.LastIndexOf('/');
             if (slash >= 0 && reference[0] != '/') return StripEmptyFragment(RemoveDotSegments(resource.Substring(0, slash + 1) + reference));
         }

@@ -59,7 +59,7 @@ public sealed class JsonSchemaOptions {
         set => _maxDepth = value >= 1 ? value : throw new ArgumentOutOfRangeException(nameof(value));
     }
 
-    /// <summary>Gets or sets how many schema evaluations one validation may perform before it stops. The default is ten million.</summary>
+    /// <summary>Gets or sets how many schema evaluations, counting each <c>uniqueItems</c> comparison of items with equal hashes, one validation may perform before it stops. The default is ten million.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>
     public long MaxEvaluationSteps {
         get => _maxEvaluationSteps;

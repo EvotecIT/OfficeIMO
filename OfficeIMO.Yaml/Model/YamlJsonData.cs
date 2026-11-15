@@ -18,8 +18,9 @@ internal sealed class YamlJsonData {
     private JsonData ConvertNode(YamlNode node, int depth, out int height) {
         if (depth > MaxDepth) throw TooDeep();
         YamlNode resolved = node.Resolved;
-        bool shared = resolved.Anchor is not null && resolved is not YamlScalar;
-        // Aliases share one converted value, so alias-heavy documents convert in linear time and memory.
+        bool shared = resolved.Anchor is not null;
+        // Aliases share one converted value, scalars included, so alias-heavy documents convert in linear time and
+        // memory; a shared value keeps the anchored node's position.
         // A cached value still counts its full nesting at the depth it is reused.
         if (shared && _anchored is not null && _anchored.TryGetValue(resolved, out KeyValuePair<JsonData, int> existing)) {
             height = existing.Value;
@@ -28,7 +29,7 @@ internal sealed class YamlJsonData {
         }
         height = 0;
         JsonData value = resolved switch {
-            YamlScalar scalar => ConvertScalar(scalar, Locate(node)),
+            YamlScalar scalar => ConvertScalar(scalar, Locate(shared ? resolved : node)),
             YamlSequence sequence => ConvertSequence(sequence, depth, out height),
             YamlMapping mapping => ConvertMapping(mapping, depth, out height),
             _ => JsonData.CreateNull(Locate(node))
@@ -54,6 +55,8 @@ internal sealed class YamlJsonData {
                 if (scalar.TryGetValue(out bool flag)) return JsonData.CreateBoolean(flag, location);
                 break;
             case YamlScalarKind.Integer:
+                // An explicit !!int tag on text that is not integer syntax, such as 1.5, keeps the text.
+                if (!YamlSchemaResolver.IsInteger(scalar.Value.AsSpan(), scalar.Schema)) break;
                 if (scalar.TryGetValue(out decimal exact)) return JsonData.CreateNumber(exact, location);
                 // Decimal integers beyond decimal range stay exact, as the untyped reader keeps them as BigInteger.
                 if (YamlBigIntegerConverter.TryParse(scalar.Value.AsSpan(), out System.Numerics.BigInteger big)) {

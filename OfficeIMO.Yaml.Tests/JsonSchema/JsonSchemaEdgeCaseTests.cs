@@ -152,6 +152,56 @@ public class JsonSchemaEdgeCaseTests {
     }
 
     [Fact]
+    public void QueryOnlyReferencesKeepTheBasePath() {
+        var requested = new List<string>();
+        var options = new JsonSchemaOptions {
+            BaseUri = "schemas/root.json",
+            ReferenceResolver = uri => {
+                requested.Add(uri);
+                return JsonData.Parse("{\"type\":\"string\"}");
+            }
+        };
+
+        Assert.False(JsonSchema.Parse("{\"$ref\":\"?version=2\"}", options).IsValid(JsonData.CreateNumber(1)));
+        Assert.Equal(new[] { "schemas/root.json?version=2" }, requested);
+    }
+
+    [Theory]
+    [InlineData("^[\uD83D\uDE00]$")]
+    [InlineData("^[\\u{1F600}]$")]
+    public void AstralCharactersInClassesFailToLoad(string pattern) {
+        JsonData schema = JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>("pattern", JsonData.CreateString(pattern)) });
+
+        Assert.Throws<JsonSchemaException>(() => JsonSchema.Load(schema));
+    }
+
+    [Fact]
+    public void UniqueItemsComparisonsCountAgainstTheStepLimit() {
+        JsonSchema schema = JsonSchema.Parse("{\"uniqueItems\":true}", new JsonSchemaOptions { MaxEvaluationSteps = 1 });
+
+        JsonSchemaFinding finding = Assert.Single(schema.Validate(JsonData.Parse("[1,1]")).Findings);
+
+        Assert.Contains("MaxEvaluationSteps", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AliasedScalarsShareTheAnchoredValue() {
+        JsonSchema schema = JsonSchema.Parse("{\"properties\":{\"b\":{\"maximum\":1}}}");
+
+        JsonSchemaFinding finding = Assert.Single(YamlDocument.Parse("a: &x 5\nb: *x\n").Validate(schema).Findings);
+
+        Assert.Equal("/b", finding.InstancePath);
+        Assert.Equal(1, finding.Line);
+    }
+
+    [Fact]
+    public void IntegerTagsOnNonIntegerTextKeepTheText() {
+        JsonSchema schema = JsonSchema.Parse("{\"properties\":{\"n\":{\"const\":\"1.5\"}}}");
+
+        Assert.True(YamlDocument.Parse("n: !!int 1.5\n").Validate(schema).IsValid);
+    }
+
+    [Fact]
     public void AMalformedBaseUriFailsToLoad() {
         JsonSchemaException error = Assert.Throws<JsonSchemaException>(() =>
             JsonSchema.Parse("{\"$ref\":\"child.json\"}", new JsonSchemaOptions { BaseUri = "http://[invalid" }));

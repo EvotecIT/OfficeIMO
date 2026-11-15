@@ -30,9 +30,9 @@ lookups are computed once, and a third format plugs in by building `JsonData` wi
 
 **YAML** follows the document's schema, as typed reads do: under YAML 1.1 `yes` is a boolean and `010` is octal 8;
 under the core schema `yes` is a string. Timestamps, custom-tagged scalars (`!Ref`) and scalars a tag claims but cannot
-hold stay strings. `<<` merge keys apply where the document's schema applies them: the mapping's own keys win, then
-merged mappings in order. Aliases share their anchored value, so an alias-heavy document converts in linear time and
-memory. Collection keys become their flow text. Duplicate keys follow the load's `DuplicateKeys` policy.
+hold stay strings, so `!!int 1.5` is the string `1.5`. `<<` merge keys apply where the document's schema applies them: the mapping's own keys win, then
+merged mappings in order. Aliases share their anchored value, scalars included, so an alias-heavy document converts in
+linear time and memory; a finding at an alias reports the anchored node's line and column. Collection keys become their flow text. Duplicate keys follow the load's `DuplicateKeys` policy.
 
 **TOML** tables become objects; arrays and arrays of tables become arrays; date-times, dates and times become their
 RFC 3339 text. Offset date-times satisfy `date-time` and local dates `date`; local times and local date-times carry no
@@ -66,7 +66,7 @@ require).
 anchors and JSON Pointer fragments. Anything else goes to `JsonSchemaOptions.ReferenceResolver`, once per URI, with the
 resolved URI without its fragment. Nothing is fetched from the network or the file system otherwise. Without
 `BaseUri` or an absolute `$id`, relative references reach the resolver as written, so a caller can map them to files
-next to the schema. Relative references drop `.` and `..` segments, so `./child.json` finds an embedded
+next to the schema. A query-only reference such as `?version=2` keeps the base's path. Relative references drop `.` and `..` segments, so `./child.json` finds an embedded
 `child.json`. A `BaseUri` with a scheme must be a valid absolute URI. A schema value reused under two resources, as a
 YAML alias can do, resolves its references against whichever resource it is reached through. An unresolved reference
 is a finding at the `$ref`, not an exception; inside `not`, `anyOf` and other branch checks it stops validation,
@@ -87,7 +87,8 @@ Patterns are ECMA-262 regular expressions, translated to .NET: `\d`, `\w`, `\s` 
 points even when backtracking, captures keep their ECMA-262 numbers when named and unnamed groups mix or a name repeats across alternatives, a
 backreference to a group that captured nothing matches empty, `(?m:...)` and
 `(?s:...)` groups change `^`, `$` and `.` as ECMA-262 defines, and `\p{Letter}`-style property names map to .NET categories (`Script=` maps to the .NET block of that name). Syntax
-ECMA-262 lacks, such as `\a`, `\z` or `(?#...)`, makes the schema invalid. Every match runs with
+ECMA-262 lacks, such as `\a`, `\z` or `(?#...)`, makes the schema invalid, and so does an astral character
+inside a character class, which .NET would match one UTF-16 unit at a time. Every match runs with
 `JsonSchemaOptions.RegexTimeout`.
 
 ## Limits
@@ -98,7 +99,7 @@ Schemas and documents can be untrusted. Every limit reached is a finding, so a r
 |---|---|---|
 | `MaxErrors` | 100 | Findings per validation; `IsTruncated` reports the stop |
 | `MaxDepth` | 256 | Nested schema evaluation, including followed references; catches `$ref` cycles |
-| `MaxEvaluationSteps` | 10,000,000 | Total subschema evaluations; catches exponential `anyOf`/`oneOf` nesting |
+| `MaxEvaluationSteps` | 10,000,000 | Total subschema evaluations and `uniqueItems` comparisons of items with equal hashes; catches exponential `anyOf`/`oneOf` nesting |
 | `RegexTimeout` | 1 second | Each `pattern` and `patternProperties` match |
 
 `JsonData` values nest at most 1024 levels however they are built, which bounds comparison, hashing, writing and

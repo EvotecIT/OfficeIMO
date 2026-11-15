@@ -108,7 +108,10 @@ public sealed partial class JsonSchema {
 
     /// <summary>Registers embedded resources and anchors, walking only keywords whose values are schemas.</summary>
     private void Discover(JsonData data, JsonSchemaResource resource, int depth) {
-        if (data.Kind != JsonDataKind.Object || depth > JsonDataParser.MaxDepth) return;
+        if (data.Kind != JsonDataKind.Object) return;
+        // Values nest at most JsonData.MaxNesting levels, so this guards against a broken invariant rather than
+        // leaving deeper resources unregistered.
+        if (depth > JsonData.MaxNesting) throw new JsonSchemaException("The schema nests deeper than " + JsonData.MaxNesting.ToString(CultureInfo.InvariantCulture) + " levels.");
         if (!_discovered.Add(new SchemaInResource(data, resource))) return;
         bool hasRef = data.TryGetProperty("$ref", out _);
         if (data.TryGetProperty("$id", out JsonData id) && id.Kind == JsonDataKind.String && !(IsDraft7 && hasRef)) {

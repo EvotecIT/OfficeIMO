@@ -350,9 +350,14 @@ public sealed partial class JsonSchema {
             valid = false;
             if (!report || !cx.Add(ip, Child(sp, "minItems"), "minItems", "Array must have at least " + node.MinItems.ToString(CultureInfo.InvariantCulture) + " items; it has " + count.ToString(CultureInfo.InvariantCulture) + ".", instance)) return false;
         }
-        if (node.UniqueItems && count > 1 && FindDuplicate(items, out int first, out int second)) {
-            valid = false;
-            if (!report || !cx.Add(ip, Child(sp, "uniqueItems"), "uniqueItems", "Items " + first.ToString(CultureInfo.InvariantCulture) + " and " + second.ToString(CultureInfo.InvariantCulture) + " are equal; items must be unique.", instance)) return false;
+        if (node.UniqueItems && count > 1) {
+            if (FindDuplicate(items, cx, out int first, out int second)) {
+                valid = false;
+                if (!report || !cx.Add(ip, Child(sp, "uniqueItems"), "uniqueItems", "Items " + first.ToString(CultureInfo.InvariantCulture) + " and " + second.ToString(CultureInfo.InvariantCulture) + " are equal; items must be unique.", instance)) return false;
+            } else if (cx.Steps > cx.Options.MaxEvaluationSteps) {
+                cx.Abort(ip, Child(sp, "uniqueItems"), "uniqueItems", "Validation stopped after " + cx.Options.MaxEvaluationSteps.ToString(CultureInfo.InvariantCulture) + " schema evaluations and item comparisons (JsonSchemaOptions.MaxEvaluationSteps).", instance);
+                return false;
+            }
         }
         int prefix = 0;
         if (node.PrefixItems is not null) {
@@ -404,13 +409,18 @@ public sealed partial class JsonSchema {
         return valid;
     }
 
-    private static bool FindDuplicate(IReadOnlyList<JsonData> items, out int first, out int second) {
+    /// <summary>Finds two equal items; every comparison of items with equal hashes counts against <see cref="JsonSchemaOptions.MaxEvaluationSteps"/>.</summary>
+    private static bool FindDuplicate(IReadOnlyList<JsonData> items, EvaluationContext cx, out int first, out int second) {
         var buckets = new Dictionary<int, List<int>>();
         var hashes = new Dictionary<JsonData, int>(JsonDataReferenceComparer.Instance);
         for (int i = 0; i < items.Count; i++) {
             int hash = JsonData.DeepHash(items[i], hashes);
             if (buckets.TryGetValue(hash, out List<int>? candidates)) {
                 foreach (int candidate in candidates) {
+                    if (++cx.Steps > cx.Options.MaxEvaluationSteps) {
+                        first = second = -1;
+                        return false;
+                    }
                     if (JsonData.DeepEquals(items[candidate], items[i])) {
                         first = candidate;
                         second = i;
