@@ -423,6 +423,16 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
+        // A run records its usage under one acquisition of the font's usage lock. An observer
+        // keeps the per-glyph route, so caller code never runs inside that lock.
+        if (options.RecordGlyphUsage && observeUsage == null) {
+            lock (font.GlyphUsageLock) return MeasureAdvanceWidth1000Core(text, font, options, null, usageLockHeld: true);
+        }
+        return MeasureAdvanceWidth1000Core(text, font, options, observeUsage, usageLockHeld: false);
+    }
+
+    private static int MeasureAdvanceWidth1000Core(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options,
+        Action<int, string>? observeUsage, bool usageLockHeld) {
         int totalWidth = 0;
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
@@ -431,7 +441,8 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 if (options.RecordGlyphUsage) {
-                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                    if (usageLockHeld) font.RecordGlyphUsageHoldingLock(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                    else font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
                 }
 
                 totalWidth = checked(totalWidth + font.GetGlyphWidth1000(ligatureGlyphId));
@@ -454,7 +465,8 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             }
 
             if (options.RecordGlyphUsage) {
-                font.RecordGlyphUsage(glyphId, scalar);
+                if (usageLockHeld) font.RecordGlyphUsageHoldingLock(glyphId, scalar);
+                else font.RecordGlyphUsage(glyphId, scalar);
             }
 
             totalWidth = checked(totalWidth + font.GetGlyphWidth1000(glyphId));
@@ -473,6 +485,14 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
+        // The whole run records its glyph usage under one acquisition of the font's usage lock.
+        if (options.RecordGlyphUsage) {
+            lock (font.GlyphUsageLock) return EncodeGlyphHexCore(text, font, options, out actualText, out advanceWidth1000);
+        }
+        return EncodeGlyphHexCore(text, font, options, out actualText, out advanceWidth1000);
+    }
+
+    private static string EncodeGlyphHexCore(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText, out int advanceWidth1000) {
         var sb = PdfGlyphRun.RentHexBuilder(text.Length * 4);
         advanceWidth1000 = 0;
         for (int index = 0; index < text.Length;) {
@@ -482,7 +502,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 font.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
                 if (options.RecordGlyphUsage) {
-                    font.RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
+                    font.RecordGlyphUsageHoldingLock(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
                 }
 
                 PdfGlyphRun.AppendGlyphHex(sb, ligatureGlyphId);
@@ -505,7 +525,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             }
 
             if (options.RecordGlyphUsage) {
-                font.RecordGlyphUsage(glyphId, scalar);
+                font.RecordGlyphUsageHoldingLock(glyphId, scalar);
             }
 
             PdfGlyphRun.AppendGlyphHex(sb, glyphId);

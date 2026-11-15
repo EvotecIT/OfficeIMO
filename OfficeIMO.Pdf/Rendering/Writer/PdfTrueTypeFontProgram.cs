@@ -292,27 +292,48 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
 
         lock (_usageLock) {
-            bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
-            // A stored mapping already owns this glyph in the usage set; reset clears both.
-            if (!hasMapping) _usedGlyphIds.Add(glyphId);
-            if (glyphId <= 0) {
-                return;
-            }
-
-            // This is called per glyph occurrence (measurement and drawing). The glyph -> unicode map only
-            // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
-            // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
-            // runs the normal replacement check, so the stored map is unchanged.
-            if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
-                return;
-            }
-
-            string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
-            if (!string.IsNullOrEmpty(unicodeText) &&
-                (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
-                _usedGlyphToUnicode[glyphId] = unicodeText;
-            }
+            RecordGlyphUsageHoldingLock(glyphId, unicodeScalar);
         }
+    }
+
+    /// <summary>Lets a caller that records a whole run enter the usage lock once instead of once per glyph.</summary>
+    internal object GlyphUsageLock => _usageLock;
+
+    /// <summary>Records one glyph occurrence; the caller holds <see cref="GlyphUsageLock"/>.</summary>
+    internal void RecordGlyphUsageHoldingLock(int glyphId, int unicodeScalar) {
+        if (glyphId < 0) {
+            return;
+        }
+
+        bool hasMapping = _usedGlyphToUnicode.TryGetValue(glyphId, out string? existing);
+        // A stored mapping already owns this glyph in the usage set; reset clears both.
+        if (!hasMapping) _usedGlyphIds.Add(glyphId);
+        if (glyphId <= 0) {
+            return;
+        }
+
+        // This is called per glyph occurrence (measurement and drawing). The glyph -> unicode map only
+        // needs the string once per unique glyph, so when the glyph already maps to this exact scalar
+        // the ConvertFromUtf32 allocation is skipped. Any different/longer scalar still materializes and
+        // runs the normal replacement check, so the stored map is unchanged.
+        if (hasMapping && ScalarEqualsText(existing!, unicodeScalar)) {
+            return;
+        }
+
+        string unicodeText = OfficeArabicTextShaper.ToLogicalText(char.ConvertFromUtf32(unicodeScalar));
+        if (!string.IsNullOrEmpty(unicodeText) &&
+            (!hasMapping || ShouldReplaceGlyphUnicodeText(unicodeText, existing!))) {
+            _usedGlyphToUnicode[glyphId] = unicodeText;
+        }
+    }
+
+    /// <summary>Records one ligature or cluster occurrence; the caller holds <see cref="GlyphUsageLock"/>.</summary>
+    internal void RecordGlyphUsageHoldingLock(int glyphId, string unicodeText) {
+        if (glyphId < 0) {
+            return;
+        }
+
+        RecordNormalizedGlyphUsage(glyphId, OfficeArabicTextShaper.ToLogicalText(unicodeText));
     }
 
     private static bool ScalarEqualsText(string text, int unicodeScalar) {
