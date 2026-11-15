@@ -42,7 +42,7 @@ internal static class HtmlExecutionStack {
         // The work sees the caller's cultures and flowed context, as it would on a new thread.
         CultureInfo culture = CultureInfo.CurrentCulture;
         CultureInfo uiCulture = CultureInfo.CurrentUICulture;
-        ExecutionContext? context = ExecutionContext.Capture();
+        ExecutionContext? context = CaptureWithoutSynchronizationContext();
         worker!.Run(() => {
             try {
                 Thread current = Thread.CurrentThread;
@@ -64,6 +64,22 @@ internal static class HtmlExecutionStack {
         failure?.Throw();
         result = completed;
         return true;
+    }
+
+    /// <summary>
+    /// .NET Framework captures the caller's <see cref="SynchronizationContext"/> with the flowed context,
+    /// and a new thread never carried it. The caller blocks while layout runs, so work posted back to it
+    /// would deadlock; capture the flowed values without it, as <see cref="Thread.Start()"/> does.
+    /// </summary>
+    private static ExecutionContext? CaptureWithoutSynchronizationContext() {
+        SynchronizationContext? callerContext = SynchronizationContext.Current;
+        if (callerContext == null) return ExecutionContext.Capture();
+        SynchronizationContext.SetSynchronizationContext(null);
+        try {
+            return ExecutionContext.Capture();
+        } finally {
+            SynchronizationContext.SetSynchronizationContext(callerContext);
+        }
     }
 
     /// <summary>
@@ -101,7 +117,13 @@ internal static class HtmlExecutionStack {
                 Name = "OfficeIMO HTML rendering"
             };
             try {
-                thread.Start();
+                // A worker serves later callers, so it must not keep the first caller's context.
+                // Each job applies its own caller's context instead.
+                if (ExecutionContext.IsFlowSuppressed()) {
+                    thread.Start();
+                } else {
+                    using (ExecutionContext.SuppressFlow()) thread.Start();
+                }
             } catch (Exception exception) when (exception is PlatformNotSupportedException or ThreadStartException or OutOfMemoryException) {
                 created.Dispose();
                 worker = null;
