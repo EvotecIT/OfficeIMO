@@ -1,84 +1,160 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Reader.Web;
 
 internal static class ReaderWebTransport {
     internal const string CapabilityId = "officeimo.reader.web";
     internal const int MaximumInitialBufferCapacity = 64 * 1024;
+    internal const int MaximumRedirects = 10;
 
+    /// <summary>Downloads one response; <paramref name="ownedTransport"/> marks the client from the address policy.</summary>
     internal static async Task<ReaderWebDownload> DownloadAsync(
         HttpClient httpClient,
+        bool ownedTransport,
         Uri uri,
         string? sourceName,
         Func<string, long> resolveMaxResponseBytes,
         ReaderWebOptions options,
         CancellationToken cancellationToken) {
         ArgumentNullException.ThrowIfNull(resolveMaxResponseBytes);
-        ReaderWebUriPolicy.Validate(uri, options);
+        ReaderWebUriPolicy.Validate(uri, options, screenHostNames: !ownedTransport);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.RequestTimeout);
         try {
-            HttpRequestMessage? request = new HttpRequestMessage(HttpMethod.Get, uri);
-            try {
-                Task<HttpResponseMessage> sendOperation = httpClient.SendAsync(
-                    request,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    timeout.Token);
-                HttpResponseMessage response;
+            (HttpResponseMessage response, Uri logicalUri) = await SendWithRedirectsAsync(
+                httpClient,
+                ownedTransport,
+                uri,
+                options,
+                timeout.Token).ConfigureAwait(false);
+            using (response) {
+                // A caller-supplied client may follow redirects itself; the policy client never does.
+                Uri finalUri = ownedTransport ? logicalUri : response.RequestMessage?.RequestUri ?? logicalUri;
+                ReaderWebUriPolicy.Validate(finalUri, options);
+                response.EnsureSuccessStatusCode();
+
+                string logicalSourceName = ResolveSourceName(
+                    sourceName,
+                    finalUri,
+                    response.Content.Headers.ContentDisposition);
+                long maxResponseBytes = resolveMaxResponseBytes(logicalSourceName);
+                long? declaredLength = response.Content.Headers.ContentLength;
+                if (declaredLength.HasValue && declaredLength.Value > maxResponseBytes) {
+                    throw new IOException(
+                        "HTTP response exceeds the effective web input byte limit (" +
+                        declaredLength.Value.ToString(CultureInfo.InvariantCulture) + " > " +
+                        maxResponseBytes.ToString(CultureInfo.InvariantCulture) + ").");
+                }
+
+                MemoryStream content = await ReadBoundedContentAsync(
+                    response.Content,
+                    declaredLength,
+                    maxResponseBytes,
+                    timeout.Token).ConfigureAwait(false);
                 try {
-                    response = await WaitForOperationAsync(
-                        sendOperation,
-                        timeout.Token,
-                        lateResponse => lateResponse.Dispose()).ConfigureAwait(false);
-                } catch (OperationCanceledException) when (!sendOperation.IsCompleted) {
-                    DisposeAfterCompletion(sendOperation, request);
-                    request = null;
+                    return new ReaderWebDownload(
+                        content,
+                        logicalSourceName,
+                        uri,
+                        finalUri,
+                        (int)response.StatusCode,
+                        response.Content.Headers.ContentType?.ToString(),
+                        response.Content.Headers.LastModified?.UtcDateTime);
+                } catch {
+                    content.Dispose();
                     throw;
                 }
-
-                using (response) {
-                    Uri finalUri = response.RequestMessage?.RequestUri ?? uri;
-                    ReaderWebUriPolicy.Validate(finalUri, options);
-                    response.EnsureSuccessStatusCode();
-
-                    string logicalSourceName = ResolveSourceName(
-                        sourceName,
-                        finalUri,
-                        response.Content.Headers.ContentDisposition);
-                    long maxResponseBytes = resolveMaxResponseBytes(logicalSourceName);
-                    long? declaredLength = response.Content.Headers.ContentLength;
-                    if (declaredLength.HasValue && declaredLength.Value > maxResponseBytes) {
-                        throw new IOException(
-                            "HTTP response exceeds the effective web input byte limit (" +
-                            declaredLength.Value.ToString(CultureInfo.InvariantCulture) + " > " +
-                            maxResponseBytes.ToString(CultureInfo.InvariantCulture) + ").");
-                    }
-
-                    MemoryStream content = await ReadBoundedContentAsync(
-                        response.Content,
-                        declaredLength,
-                        maxResponseBytes,
-                        timeout.Token).ConfigureAwait(false);
-                    try {
-                        return new ReaderWebDownload(
-                            content,
-                            logicalSourceName,
-                            uri,
-                            finalUri,
-                            (int)response.StatusCode,
-                            response.Content.Headers.ContentType?.ToString(),
-                            response.Content.Headers.LastModified?.UtcDateTime);
-                    } catch {
-                        content.Dispose();
-                        throw;
-                    }
-                }
-            } finally {
-                request?.Dispose();
             }
         } catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested) {
             throw new TimeoutException("Reader Web request exceeded RequestTimeout.", exception);
         }
     }
+
+    private static async Task<(HttpResponseMessage Response, Uri LogicalUri)> SendWithRedirectsAsync(
+        HttpClient httpClient,
+        bool ownedTransport,
+        Uri uri,
+        ReaderWebOptions options,
+        CancellationToken cancellationToken) {
+        Uri current = uri;
+        for (int redirectCount = 0; ; redirectCount++) {
+            HttpResponseMessage response = await SendOneAsync(
+                httpClient,
+                ownedTransport,
+                current,
+                options,
+                cancellationToken).ConfigureAwait(false);
+            if (!IsRedirect(response.StatusCode)) {
+                return (response, current);
+            }
+
+            Uri? location = response.Headers.Location;
+            response.Dispose();
+            if (redirectCount >= MaximumRedirects) {
+                throw new HttpRequestException(
+                    "Reader Web exceeded the maximum of " +
+                    MaximumRedirects.ToString(CultureInfo.InvariantCulture) + " redirects.");
+            }
+            if (location == null) {
+                throw new HttpRequestException("Reader Web received a redirect without a Location header.");
+            }
+
+            Uri next = location.IsAbsoluteUri ? location : new Uri(current, location);
+            if (string.Equals(current.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(next.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
+                throw new ReaderWebPolicyException(next, "Reader Web rejected a redirect from HTTPS to HTTP.");
+            }
+            ReaderWebUriPolicy.Validate(next, options, screenHostNames: !ownedTransport);
+            current = next;
+        }
+    }
+
+    private static async Task<HttpResponseMessage> SendOneAsync(
+        HttpClient httpClient,
+        bool ownedTransport,
+        Uri uri,
+        ReaderWebOptions options,
+        CancellationToken cancellationToken) {
+        HttpRequestMessage? request = null;
+        try {
+            request = ownedTransport
+                ? await OfficeNetworkAddressPolicy.CreateRequestAsync(
+                    HttpMethod.Get,
+                    uri,
+                    options.AllowPrivateNetworkAddresses,
+                    cancellationToken).ConfigureAwait(false)
+                : new HttpRequestMessage(HttpMethod.Get, uri);
+            Task<HttpResponseMessage> sendOperation = httpClient.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+            try {
+                HttpResponseMessage response = await WaitForOperationAsync(
+                    sendOperation,
+                    cancellationToken,
+                    lateResponse => lateResponse.Dispose()).ConfigureAwait(false);
+                request.Dispose();
+                request = null;
+                return response;
+            } catch (OperationCanceledException) when (!sendOperation.IsCompleted) {
+                DisposeAfterCompletion(sendOperation, request!);
+                request = null;
+                throw;
+            }
+        } catch (Exception exception) when (OfficeNetworkAddressPolicy.TryGetRejection(exception, out OfficeNetworkAddressException rejection)) {
+            throw ReaderWebUriPolicy.Rejected(uri, rejection);
+        } finally {
+            request?.Dispose();
+        }
+    }
+
+    private static bool IsRedirect(HttpStatusCode statusCode) =>
+        statusCode == HttpStatusCode.Moved ||
+        statusCode == HttpStatusCode.Redirect ||
+        statusCode == HttpStatusCode.SeeOther ||
+        statusCode == HttpStatusCode.TemporaryRedirect ||
+        (int)statusCode == 308;
 
     private static async Task<MemoryStream> ReadBoundedContentAsync(
         HttpContent content,

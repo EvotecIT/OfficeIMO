@@ -1,19 +1,36 @@
+using OfficeIMO.Core.Internal;
+
 namespace OfficeIMO.Reader.Web;
 
 /// <summary>
 /// Bounded, thread-safe HTTP transport over a caller-configured <see cref="OfficeDocumentReader"/>.
 /// </summary>
 /// <remarks>
-/// The caller owns the Reader and <see cref="HttpClient"/> lifetimes. This type does not mutate or dispose either.
-/// URI validation provides defense in depth for schemes, allowlists, credentials, and non-public IP literals;
-/// it is not an SSRF isolation boundary. When reading an untrusted URI, configure the caller-owned HTTP handler
-/// to validate resolved addresses at connection time and validate each redirect before sending it.
+/// The caller owns the Reader lifetime. A web reader created without an <see cref="HttpClient"/> uses a shared
+/// transport that refuses loopback, private, link-local and other non-public addresses after name resolution and
+/// on every redirect, unless <see cref="ReaderWebOptions.AllowPrivateNetworkAddresses"/> is set. A caller-supplied
+/// client stays caller-owned; its handler resolves names, connects and may follow redirects itself, so Reader Web
+/// screens only IP literals and localhost names for it.
 /// </remarks>
 public sealed class OfficeDocumentWebReader {
     private readonly OfficeDocumentReader _reader;
     private readonly HttpClient _httpClient;
+    private readonly bool _ownedTransport;
     private readonly ReaderWebOptions _options;
     private readonly SemaphoreSlim _requestGate;
+
+    /// <summary>
+    /// Creates a bounded web reader over an existing Reader that downloads through OfficeIMO's address-checked transport.
+    /// </summary>
+    public OfficeDocumentWebReader(
+        OfficeDocumentReader reader,
+        ReaderWebOptions? options = null) {
+        _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+        _options = (options ?? new ReaderWebOptions()).CloneValidated();
+        _httpClient = OfficeNetworkAddressPolicy.GetClient(_options.AllowPrivateNetworkAddresses);
+        _ownedTransport = true;
+        _requestGate = new SemaphoreSlim(_options.MaxConcurrentRequests, _options.MaxConcurrentRequests);
+    }
 
     /// <summary>Creates a bounded web reader over existing Reader and HTTP client instances.</summary>
     public OfficeDocumentWebReader(
@@ -30,8 +47,8 @@ public sealed class OfficeDocumentWebReader {
     /// Downloads one bounded HTTP(S) response and routes its body through the configured Reader instance.
     /// </summary>
     /// <remarks>
-    /// The URI must be trusted unless the caller-owned HTTP handler enforces connection-time address and
-    /// pre-request redirect policy. Reader Web cannot inspect or override those behaviors on an existing client.
+    /// Reader Web follows and checks redirects that reach it. A caller-supplied handler that follows redirects
+    /// itself sends the redirected request before Reader Web sees it.
     /// </remarks>
     public async Task<OfficeDocumentReadResult> ReadDocumentAsync(
         Uri uri,
@@ -39,12 +56,13 @@ public sealed class OfficeDocumentWebReader {
         ReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(uri);
-        ReaderWebUriPolicy.Validate(uri, _options);
+        ReaderWebUriPolicy.Validate(uri, _options, screenHostNames: !_ownedTransport);
         string? normalizedSourceName = ReaderWebTransport.NormalizeExplicitSourceName(sourceName);
         await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             using ReaderWebDownload download = await ReaderWebTransport.DownloadAsync(
                 _httpClient,
+                _ownedTransport,
                 uri,
                 normalizedSourceName,
                 logicalSourceName => GetEffectiveMaxInputBytes(logicalSourceName, readerOptions),
