@@ -400,6 +400,11 @@ internal static partial class MarkdownReader {
         normalized = currentLine ?? string.Empty;
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 
+        // The indent check is the cheapest and rejects most lines, so it runs before the checks
+        // on the previous line.
+        int currentIndent = CountLeadingIndentColumns(currentLine!);
+        if (currentIndent <= 0 || currentIndent > 4) return false;
+
         var previous = previousLine!;
         if (IsUnorderedListLine(previous) ||
             IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
@@ -407,9 +412,6 @@ internal static partial class MarkdownReader {
         }
 
         if (!LooksLikeParagraphLine(new[] { previous }, 0, options)) return false;
-
-        int currentIndent = CountLeadingIndentColumns(currentLine!);
-        if (currentIndent <= 0 || currentIndent > 4) return false;
 
         var trimmed = currentLine!.TrimStart();
         if (trimmed.Length == 0) return false;

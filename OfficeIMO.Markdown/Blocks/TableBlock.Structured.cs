@@ -329,8 +329,7 @@ public sealed partial class TableBlock {
     }
 
     private static MarkdownReaderState CloneState(MarkdownReaderState state) {
-        var clone = new MarkdownReaderState();
-        clone.ShareDefinitionsWith(state);
+        var clone = MarkdownReaderState.CreateSharingDefinitionsWith(state);
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;
         return clone;

@@ -260,6 +260,8 @@ internal static partial class MarkdownReader {
         end = start;
         label = href = string.Empty;
         if (start < 0 || start >= text.Length) return false;
+        // Plain text reaches here at every f, m, t and x; two characters rule out every scheme.
+        if (!CanStartBareScheme(text, start)) return false;
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
 
@@ -447,6 +449,20 @@ internal static partial class MarkdownReader {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value)) return false;
         if (start < 0 || start + value.Length > text.Length) return false;
         return string.Compare(text, start, value, 0, value.Length, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    // The first two characters of "mailto:", "ftp://", "tel:" or "xmpp:", compared as
+    // StartsWithAutolinkScheme compares them.
+    private static bool CanStartBareScheme(string text, int start) {
+        if (start + 4 > text.Length) return false;
+        char second = char.ToUpperInvariant(text[start + 1]);
+        switch (char.ToUpperInvariant(text[start])) {
+            case 'M': return second == 'A';
+            case 'F': return second == 'T';
+            case 'T': return second == 'E';
+            case 'X': return second == 'M';
+            default: return false;
+        }
     }
 
     private static bool IsBareSchemeAutolinkStartCandidate(char c) {

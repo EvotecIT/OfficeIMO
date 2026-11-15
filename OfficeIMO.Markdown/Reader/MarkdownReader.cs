@@ -235,12 +235,13 @@ internal static partial class MarkdownReader {
         List<MarkdownSyntaxNode>? syntaxNodes = null,
         int lineOffset = 0,
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
-        bool applyDocumentTransforms = true) {
+        bool applyDocumentTransforms = true,
+        string[]? preparedLines = null) {
         var doc = MarkdownDocument.Create();
         state.CaptureSyntaxTree = syntaxNodes != null;
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
         normalizedSourceText = string.Empty;
-        if (string.IsNullOrEmpty(markdown)) return doc;
+        if (preparedLines == null && string.IsNullOrEmpty(markdown)) return doc;
         int previousLineOffset = state.SourceLineOffset;
         var previousSourceTextMap = state.SourceTextMap;
         var previousSyntheticTerminalLine = state.HasSyntheticTerminalLine;
@@ -248,16 +249,24 @@ internal static partial class MarkdownReader {
 
         try {
             bool captureSourceSpans = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans;
-            var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
-            normalizedSourceText = text;
-            state.HasSyntheticTerminalLine = !state.LastInputLineIsContent &&
-                (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal));
-            if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
-                state.SourceTextMap = new MarkdownSourceTextMap(text);
+            string[] lines;
+            if (preparedLines != null) {
+                // TryGetPreparedNestedLines checked that preparing and splitting the joined lines
+                // would return them unchanged, and that the last line is content.
+                lines = preparedLines;
+                state.HasSyntheticTerminalLine = false;
+            } else {
+                var text = PrepareMarkdownForParsing(markdown, options, normalizeLineEndings: captureSourceSpans);
+                normalizedSourceText = text;
+                state.HasSyntheticTerminalLine = !state.LastInputLineIsContent &&
+                    (text.EndsWith("\n", StringComparison.Ordinal) || text.EndsWith("\r", StringComparison.Ordinal));
+                if (captureSourceSpans && (lineOffset == 0 || state.SourceTextMap == null)) {
+                    state.SourceTextMap = new MarkdownSourceTextMap(text);
+                }
+                lines = captureSourceSpans
+                    ? text.Split('\n')
+                    : SplitMarkdownLines(text);
             }
-            var lines = captureSourceSpans
-                ? text.Split('\n')
-                : SplitMarkdownLines(text);
             int i = 0;
 
             // Parsing with syntax capture binds the complete object and source trees together
@@ -285,10 +294,16 @@ internal static partial class MarkdownReader {
                     if (TryConsumeStandaloneGenericAttributeBlock(lines, i, options, state)) { i++; continue; }
                     bool matched = false;
                     var parsers = pipeline.Parsers;
+                    var blockStarts = pipeline.BlockStarts;
+                    char first = GetFirstNonWhiteSpaceCharacter(lines[i]);
                     int previousBlockCount = doc.Blocks.Count;
                     int startIndex = i;
                     int startLine = lineOffset + i;
                     for (int p = 0; p < parsers.Count; p++) {
+                        if (!MayStartBlock(blockStarts[p], lines, i, first, options)) {
+                            continue;
+                        }
+
                         if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
                             matched = true;
                             if (doc.Blocks.Count > previousBlockCount
@@ -305,6 +320,10 @@ internal static partial class MarkdownReader {
                             }
                             break;
                         }
+
+                        // A parser that declines may still have rewritten the line, as an
+                        // extension can, so the next gates read it again.
+                        first = i < lines.Length ? GetFirstNonWhiteSpaceCharacter(lines[i]) : '\0';
                     }
                     if (!matched) i++; // defensive: avoid infinite loop
                 }
@@ -537,34 +556,27 @@ internal static partial class MarkdownReader {
         return current == lineEnd;
     }
 
+    private static readonly char[] LineEndingCharacters = { '\r', '\n' };
+
     private static string[] SplitMarkdownLines(string markdown) {
         if (markdown.IndexOf('\r') < 0) {
             return markdown.Split('\n');
         }
 
         int lineCount = 1;
-        for (int i = 0; i < markdown.Length; i++) {
-            if (markdown[i] == '\r') {
-                lineCount++;
-                if (i + 1 < markdown.Length && markdown[i + 1] == '\n') {
-                    i++;
-                }
-            } else if (markdown[i] == '\n') {
-                lineCount++;
+        for (int i = markdown.IndexOfAny(LineEndingCharacters); i >= 0; i = markdown.IndexOfAny(LineEndingCharacters, i + 1)) {
+            lineCount++;
+            if (markdown[i] == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+                i++;
             }
         }
 
         var lines = new string[lineCount];
         int lineIndex = 0;
         int lineStart = 0;
-        for (int i = 0; i < markdown.Length; i++) {
-            char value = markdown[i];
-            if (value != '\r' && value != '\n') {
-                continue;
-            }
-
+        for (int i = markdown.IndexOfAny(LineEndingCharacters); i >= 0; i = markdown.IndexOfAny(LineEndingCharacters, i + 1)) {
             lines[lineIndex++] = markdown.Substring(lineStart, i - lineStart);
-            if (value == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+            if (markdown[i] == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
                 i++;
             }
 
