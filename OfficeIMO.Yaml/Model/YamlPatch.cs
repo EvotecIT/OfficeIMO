@@ -399,6 +399,12 @@ internal sealed class YamlPatch {
                         && YamlSchemaResolver.TryParseDouble(floatText.AsSpan(), YamlSchema.Core, out double number)
                         && JsonNumbers.IntegerEquals(integer, number);
                 }
+                // Integers beyond 64 bits keep their written digits, so '+0123…' and '123…' are compared by value.
+                if (kind == YamlScalarKind.Integer && otherKind == YamlScalarKind.Integer && text != otherText
+                    && System.Numerics.BigInteger.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out System.Numerics.BigInteger leftValue)
+                    && System.Numerics.BigInteger.TryParse(otherText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out System.Numerics.BigInteger rightValue)) {
+                    return leftValue == rightValue;
+                }
                 return kind == otherKind && text == otherText && tag == otherTag;
             case YamlSequence sequence when right is YamlSequence other:
                 if (sequence._count != other._count) return false;

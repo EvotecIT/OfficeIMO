@@ -303,6 +303,14 @@ public class YamlDocumentPatchTests {
     }
 
     [Fact]
+    public void ATestComparesIntegersBeyond64BitsByValue() {
+        using YamlDocument document = YamlDocument.Parse("n: +0012345678901234567890123\n");
+
+        document.ApplyJsonPatch("""[ { "op": "test", "path": "/n", "value": 12345678901234567890123 } ]""");
+        Assert.Throws<YamlPatchException>(() => document.ApplyJsonPatch("""[ { "op": "test", "path": "/n", "value": 12345678901234567890124 } ]"""));
+    }
+
+    [Fact]
     public void ANumberCopiedFromAnotherSchemaKeepsItsValue() {
         using YamlDocument document = YamlDocument.Parse("name: web\n");
         using YamlDocument patch = YamlDocument.Parse("%YAML 1.1\n---\nmode: 010\nport: 80\n");
