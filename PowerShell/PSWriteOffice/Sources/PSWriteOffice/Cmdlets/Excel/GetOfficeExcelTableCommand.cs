@@ -57,10 +57,14 @@ public sealed class GetOfficeExcelTableCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "Uri")]
     public SwitchParameter AllowHttp { get; set; }
 
+    /// <summary>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</summary>
+    [Parameter(ParameterSetName = "Uri")]
+    public SwitchParameter AllowPrivateNetworkAddresses { get; set; }
+
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
         if (ParameterSetName == "Uri") {
-            using var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, cancellationToken: CancelToken).ConfigureAwait(false);
+            using var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, allowPrivateNetworkAddresses: AllowPrivateNetworkAddresses, cancellationToken: CancelToken).ConfigureAwait(false);
             Query(document);
         } else foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) Query(scope.Document);
     }

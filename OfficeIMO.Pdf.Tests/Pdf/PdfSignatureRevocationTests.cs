@@ -292,7 +292,7 @@ public sealed class PdfSignatureRevocationTests {
     }
 
     private static CertificateRevocationFetcher InternalFetcher() =>
-        new(new CertificateRevocationFetcherOptions { AllowNonPublicAddresses = true });
+        new(new CertificateRevocationFetcherOptions { AllowPrivateNetworkAddresses = true });
 
     private static int SignatureObject(byte[] pdf, IPdfSignatureCryptographyProvider provider) =>
         Assert.Single(PdfDocument.Load(pdf).Security.ValidateSignatures(provider).Signatures).Signature.ObjectNumber;

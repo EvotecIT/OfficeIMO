@@ -331,6 +331,12 @@
               "pipeline": "none"
             },
             {
+              "name": "AllowPrivateNetworkAddresses",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "ReadOnly",
               "type": "switch",
               "mandatory": false,
@@ -854,6 +860,12 @@
               "pipeline": "none"
             },
             {
+              "name": "AllowPrivateNetworkAddresses",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "Sheet",
               "type": "OfficeSheetSelector[]",
               "mandatory": false,
@@ -923,6 +935,12 @@
             },
             {
               "name": "AllowHttp",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowPrivateNetworkAddresses",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -4832,6 +4850,12 @@
             },
             {
               "name": "AllowHttp",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowPrivateNetworkAddresses",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -11405,6 +11429,12 @@
             },
             {
               "name": "AllowHttp",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowPrivateNetworkAddresses",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"

@@ -42,6 +42,20 @@ namespace OfficeIMO.Excel {
         public ISet<string> AllowedHosts { get; private set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Gets or sets whether a remote workbook may be loaded from a loopback, private, link-local or other
+        /// non-public network address. Default: false. Enable it only for trusted internal sources.
+        /// </summary>
+        /// <remarks>
+        /// Every address a host name resolves to is checked, on the first request and on each redirect. On .NET 8 and
+        /// later the check runs when the connection is made and the socket connects to the checked address. Older
+        /// frameworks check the resolved addresses before each request, send HTTP requests to the checked address and
+        /// rely on certificate validation to bind HTTPS connections to the host name. While non-public addresses are
+        /// refused, requests connect directly, without a proxy. Browser (WebAssembly) builds cannot resolve names, so
+        /// they screen IP literals and localhost names only.
+        /// </remarks>
+        public bool AllowPrivateNetworkAddresses { get; set; }
+
+        /// <summary>
         /// Gets or sets whether a download must begin with a ZIP, compound Excel, or supported raw BIFF workbook header.
         /// </summary>
         public bool ValidateZipHeader { get; set; } = true;

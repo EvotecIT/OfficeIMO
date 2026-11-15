@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography.X509Certificates;
+using OfficeIMO.Core.Internal;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Ocsp;
@@ -21,7 +22,7 @@ public sealed class CertificateRevocationFetcherOptions {
     /// Allows loopback, private, link-local and other non-public addresses. Defaults to false, because the
     /// addresses come from certificates inside the document being processed. Enable it only for an internal PKI.
     /// </summary>
-    public bool AllowNonPublicAddresses { get; set; }
+    public bool AllowPrivateNetworkAddresses { get; set; }
 }
 
 /// <summary>
@@ -31,10 +32,11 @@ public sealed class CertificateRevocationFetcherOptions {
 /// <remarks>
 /// OCSP is tried first; CRLs are fetched when no OCSP location returns a status signed by the issuer or its
 /// responder. Responses are cached by the instance until their nextUpdate. Only http and https locations are used
-/// and connections go directly to the server, without a proxy. Non-public addresses are refused unless
-/// <see cref="CertificateRevocationFetcherOptions.AllowNonPublicAddresses"/> is set; on .NET 8 and later the
-/// address is checked when the connection is made, on older frameworks the request is sent to the checked address
-/// and https locations are refused.
+/// and, while non-public addresses are refused, connections go directly to the server without a proxy. Non-public
+/// addresses are refused unless <see cref="CertificateRevocationFetcherOptions.AllowPrivateNetworkAddresses"/> is
+/// set; on .NET 8 and later every address is checked when the connection is made. Older frameworks check the
+/// resolved addresses before each request, send http requests to the checked address and rely on certificate
+/// validation to bind https connections to the host name.
 /// </remarks>
 public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher, IDisposable {
     private const string OcspAccessMethodOid = "1.3.6.1.5.5.7.48.1";
@@ -58,9 +60,11 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         _options = new CertificateRevocationFetcherOptions {
             Timeout = options.Timeout,
             MaxResponseBytes = options.MaxResponseBytes,
-            AllowNonPublicAddresses = options.AllowNonPublicAddresses
+            AllowPrivateNetworkAddresses = options.AllowPrivateNetworkAddresses
         };
-        _client = new HttpClient(CreateHandler(_options.AllowNonPublicAddresses), disposeHandler: true) {
+        _client = new HttpClient(
+            OfficeNetworkAddressPolicy.CreateHandler(_options.AllowPrivateNetworkAddresses, DecompressionMethods.None),
+            disposeHandler: true) {
             Timeout = System.Threading.Timeout.InfiniteTimeSpan
         };
     }
@@ -217,8 +221,7 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         try {
             Uri current = location;
             for (int redirect = 0; ; redirect++) {
-                IPAddress? pinned = await EnsureAllowedAsync(current, timeout.Token).ConfigureAwait(false);
-                using HttpRequestMessage request = CreateRequest(current, pinned, ocspRequest);
+                using HttpRequestMessage request = await CreateRequestAsync(current, ocspRequest, timeout.Token).ConfigureAwait(false);
                 using HttpResponseMessage response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token)
                     .ConfigureAwait(false);
                 int code = (int)response.StatusCode;
@@ -240,19 +243,16 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         }
     }
 
-    private static HttpRequestMessage CreateRequest(Uri location, IPAddress? pinned, byte[]? ocspRequest) {
-        Uri target = location;
-        string? host = null;
-        if (pinned is not null) {
-            // Connect to the checked address and name the original host, so a second name lookup cannot
-            // redirect the request to an internal address.
-            target = new UriBuilder(location) {
-                Host = pinned.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 ? "[" + pinned + "]" : pinned.ToString()
-            }.Uri;
-            host = location.IsDefaultPort ? location.Host : location.Host + ":" + location.Port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private async Task<HttpRequestMessage> CreateRequestAsync(Uri location, byte[]? ocspRequest, CancellationToken cancellationToken) {
+        if (!location.IsAbsoluteUri || (location.Scheme != Uri.UriSchemeHttp && location.Scheme != Uri.UriSchemeHttps)) {
+            throw new HttpRequestException("Only http and https locations are fetched.");
         }
-        var request = new HttpRequestMessage(ocspRequest is null ? HttpMethod.Get : HttpMethod.Post, target);
-        if (host is not null) request.Headers.Host = host;
+        if (!string.IsNullOrEmpty(location.UserInfo)) {
+            throw new HttpRequestException("Locations with user information are not fetched.");
+        }
+        var request = await OfficeNetworkAddressPolicy.CreateRequestAsync(
+            ocspRequest is null ? HttpMethod.Get : HttpMethod.Post, location,
+            _options.AllowPrivateNetworkAddresses, cancellationToken).ConfigureAwait(false);
         if (ocspRequest is not null) {
             request.Content = new ByteArrayContent(ocspRequest);
             request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/ocsp-request");
@@ -289,89 +289,6 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         return buffer.ToArray();
     }
 
-    /// <summary>
-    /// Checks the location and, on frameworks without a connect callback, returns the checked public address
-    /// the request must be sent to. Returns null when the handler checks addresses itself or checks are off.
-    /// </summary>
-    private async Task<IPAddress?> EnsureAllowedAsync(Uri location, CancellationToken cancellationToken) {
-        if (!location.IsAbsoluteUri || (location.Scheme != Uri.UriSchemeHttp && location.Scheme != Uri.UriSchemeHttps)) {
-            throw new HttpRequestException("Only http and https locations are fetched.");
-        }
-        if (!string.IsNullOrEmpty(location.UserInfo)) {
-            throw new HttpRequestException("Locations with user information are not fetched.");
-        }
-        if (_options.AllowNonPublicAddresses) return null;
-        IPAddress[] addresses = IPAddress.TryParse(location.DnsSafeHost, out IPAddress? literal)
-            ? new[] { literal }
-#if NET6_0_OR_GREATER
-            : await Dns.GetHostAddressesAsync(location.DnsSafeHost, cancellationToken).ConfigureAwait(false);
-#else
-            : await Dns.GetHostAddressesAsync(location.DnsSafeHost).ConfigureAwait(false);
-#endif
-        if (addresses.Length == 0) throw new HttpRequestException("The host name did not resolve.");
-        foreach (IPAddress address in addresses) {
-            if (!PublicNetworkAddress.IsPublic(address)) {
-                throw new HttpRequestException("The location resolves to the non-public address " + address + ".");
-            }
-        }
-#if NET8_0_OR_GREATER
-        return null;
-#else
-        if (location.Scheme == Uri.UriSchemeHttps) {
-            throw new HttpRequestException("On this framework an https location cannot be bound to its checked public address, so it is not fetched.");
-        }
-        return addresses[0];
-#endif
-    }
-
-#if NET8_0_OR_GREATER
-    private static SocketsHttpHandler CreateHandler(bool allowNonPublicAddresses) {
-        var handler = new SocketsHttpHandler {
-            AllowAutoRedirect = false,
-            UseProxy = false,
-            UseCookies = false,
-            AutomaticDecompression = DecompressionMethods.None
-        };
-        if (!allowNonPublicAddresses) {
-            handler.ConnectCallback = async (context, cancellationToken) => {
-                IPAddress[] addresses = IPAddress.TryParse(context.DnsEndPoint.Host, out IPAddress? literal)
-                    ? new[] { literal }
-                    : await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, cancellationToken).ConfigureAwait(false);
-                if (addresses.Length == 0 || addresses.Any(candidate => !PublicNetworkAddress.IsPublic(candidate))) {
-                    throw new HttpRequestException("The location resolves to a non-public address.");
-                }
-                Exception? last = null;
-                foreach (IPAddress address in addresses) {
-                    var socket = new System.Net.Sockets.Socket(address.AddressFamily, System.Net.Sockets.SocketType.Stream,
-                        System.Net.Sockets.ProtocolType.Tcp) { NoDelay = true };
-                    try {
-                        await socket.ConnectAsync(new IPEndPoint(address, context.DnsEndPoint.Port), cancellationToken).ConfigureAwait(false);
-                        return new System.Net.Sockets.NetworkStream(socket, ownsSocket: true);
-                    } catch (System.Net.Sockets.SocketException exception) {
-                        socket.Dispose();
-                        last = exception;
-                    } catch {
-                        socket.Dispose();
-                        throw;
-                    }
-                }
-                throw new HttpRequestException("No checked address of the location accepted a connection.", last);
-            };
-        }
-        return handler;
-    }
-#else
-    private static HttpClientHandler CreateHandler(bool allowNonPublicAddresses) {
-        // Older frameworks have no connect callback; requests are sent to the address EnsureAllowedAsync checked.
-        _ = allowNonPublicAddresses;
-        return new HttpClientHandler {
-            AllowAutoRedirect = false,
-            UseProxy = false,
-            UseCookies = false,
-            AutomaticDecompression = DecompressionMethods.None
-        };
-    }
-#endif
     private static byte[] CreateOcspRequest(BcX509Certificate certificate, BcX509Certificate issuer) {
         // SHA-1 CertID is the interoperable choice for lightweight responders (RFC 5019 section 2.1.1).
         var generator = new OcspReqGenerator();
@@ -502,48 +419,4 @@ public sealed class CertificateRevocationFetcher : ICertificateRevocationFetcher
         exception is not StackOverflowException &&
         exception is not AccessViolationException &&
         exception is not OperationCanceledException;
-}
-
-/// <summary>Classifies addresses that a revocation fetcher may contact without explicit permission.</summary>
-internal static class PublicNetworkAddress {
-    internal static bool IsPublic(IPAddress address) {
-        if (address.IsIPv4MappedToIPv6) return IsPublic(address.MapToIPv4());
-        byte[] bytes = address.GetAddressBytes();
-        if (address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) return IsPublicIPv4(bytes);
-        if (address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6 || bytes.Length != 16) return false;
-        if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.IPv6None) || address.Equals(IPAddress.IPv6Any)) return false;
-        if (address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || address.IsIPv6Multicast) return false;
-        if ((bytes[0] & 0xFE) == 0xFC) return false;                                      // fc00::/7 unique local
-        if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0D && bytes[3] == 0xB8) return false; // 2001:db8::/32 documentation
-        if (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] < 0x02) return false;       // 2001::/23 protocol assignments, Teredo
-        if (bytes[0] == 0x01 && bytes[1] == 0x00 && bytes.Skip(2).Take(6).All(static b => b == 0)) return false; // 100::/64 discard
-        if (bytes[0] == 0x20 && bytes[1] == 0x02) {                                       // 2002::/16 6to4 embeds IPv4
-            return IsPublicIPv4(new[] { bytes[2], bytes[3], bytes[4], bytes[5] });
-        }
-        if (bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xFF && bytes[3] == 0x9B && bytes[4] == 0x00 && bytes[5] == 0x01) {
-            return false;                                                                  // 64:ff9b:1::/48 local-use translation
-        }
-        if (bytes[0] == 0x00 && bytes[1] == 0x64 && bytes[2] == 0xFF && bytes[3] == 0x9B &&
-            bytes.Skip(4).Take(8).All(static b => b == 0)) {                              // 64:ff9b::/96 NAT64 embeds IPv4
-            return IsPublicIPv4(new[] { bytes[12], bytes[13], bytes[14], bytes[15] });
-        }
-        return true;
-    }
-
-    private static bool IsPublicIPv4(byte[] b) {
-        if (b.Length != 4) return false;
-        return !(b[0] == 0 ||                                   // 0.0.0.0/8
-            b[0] == 10 ||                                       // 10.0.0.0/8
-            (b[0] == 100 && (b[1] & 0xC0) == 64) ||             // 100.64.0.0/10 shared address space
-            b[0] == 127 ||                                      // loopback
-            (b[0] == 169 && b[1] == 254) ||                     // link-local
-            (b[0] == 172 && (b[1] & 0xF0) == 16) ||             // 172.16.0.0/12
-            (b[0] == 192 && b[1] == 0 && b[2] == 0) ||          // 192.0.0.0/24 protocol assignments
-            (b[0] == 192 && b[1] == 0 && b[2] == 2) ||          // TEST-NET-1
-            (b[0] == 192 && b[1] == 168) ||                     // 192.168.0.0/16
-            (b[0] == 198 && (b[1] & 0xFE) == 18) ||             // 198.18.0.0/15 benchmarking
-            (b[0] == 198 && b[1] == 51 && b[2] == 100) ||       // TEST-NET-2
-            (b[0] == 203 && b[1] == 0 && b[2] == 113) ||        // TEST-NET-3
-            b[0] >= 224);                                       // multicast, reserved, broadcast
-    }
 }

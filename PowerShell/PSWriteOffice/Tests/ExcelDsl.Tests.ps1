@@ -2108,26 +2108,26 @@ Describe 'Excel DSL surface' {
         try {
             $uri = [uri] $server.Url
 
-            $remoteRows = @(Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -Range 'A1:B3')
+            $remoteRows = @(Import-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' -Range 'A1:B3')
             $remoteRows.Count | Should -Be 2
             $remoteRows[1].Name | Should -Be 'Beta'
 
-            $remoteRange = @(Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -Range 'A1:B3')
+            $remoteRange = @(Import-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' -Range 'A1:B3')
             $remoteRange.Count | Should -Be 2
             $remoteRange[0].Value | Should -Be 10
 
-            $remoteUsedRange = Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -As DataTable
+            $remoteUsedRange = Import-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' -As DataTable
             $remoteUsedRange.Rows.Count | Should -Be 6
 
-            $remoteTables = Get-OfficeExcelTable -Uri $uri -AllowHttp | Where-Object Name -eq 'Sales'
-            $remoteTableRows = @(Import-OfficeExcel -Uri $remoteTables.Uri -AllowHttp -Table $remoteTables.Name)
+            $remoteTables = Get-OfficeExcelTable -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses | Where-Object Name -eq 'Sales'
+            $remoteTableRows = @(Import-OfficeExcel -Uri $remoteTables.Uri -AllowHttp -AllowPrivateNetworkAddresses -Table $remoteTables.Name)
             $remoteTableRows.Count | Should -Be 2
 
-            $remoteNamed = Get-OfficeExcelNamedRange -Uri $uri -AllowHttp -Sheet 'Data' | Where-Object Name -eq 'ManualRange'
-            $remoteNamedRows = @(Import-OfficeExcel -Uri $remoteNamed.Uri -AllowHttp -Sheet $remoteNamed.Sheet -Range $remoteNamed.Range)
+            $remoteNamed = Get-OfficeExcelNamedRange -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet 'Data' | Where-Object Name -eq 'ManualRange'
+            $remoteNamedRows = @(Import-OfficeExcel -Uri $remoteNamed.Uri -AllowHttp -AllowPrivateNetworkAddresses -Sheet $remoteNamed.Sheet -Range $remoteNamed.Range)
             $remoteNamedRows.Count | Should -Be 2
 
-            $remoteDoc = Open-OfficeExcel -Uri $uri -AllowHttp -ReadOnly
+            $remoteDoc = Open-OfficeExcel -Uri $uri -AllowHttp -AllowPrivateNetworkAddresses -ReadOnly
             try {
                 $remoteDocRows = @($remoteDoc | Import-OfficeExcel -Sheet 'Data' -Range 'A1:B3')
                 $remoteDocRows.Count | Should -Be 2

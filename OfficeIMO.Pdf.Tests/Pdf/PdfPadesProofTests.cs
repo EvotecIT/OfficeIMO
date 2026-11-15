@@ -56,7 +56,7 @@ public sealed class PdfPadesProofTests {
         using var pki = new PdfTestPki(now);
         using X509Certificate2 signer = pki.IssueSigner("OfficeIMO proof long-term signer", now.AddDays(-1), now.AddDays(30));
         PdfCmsSignatureCryptographyProvider provider = pki.Provider();
-        using var fetcher = new CertificateRevocationFetcher(new CertificateRevocationFetcherOptions { AllowNonPublicAddresses = true });
+        using var fetcher = new CertificateRevocationFetcher(new CertificateRevocationFetcherOptions { AllowPrivateNetworkAddresses = true });
         byte[] signed = pki.Sign(signer, timestampTime: now.AddMinutes(-10));
         pki.ResponderTime = now.AddMinutes(-5);
         int signature = Assert.Single(PdfDocument.Load(signed).Security.ValidateSignatures(provider).Signatures).Signature.ObjectNumber;

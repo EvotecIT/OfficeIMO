@@ -26,7 +26,7 @@ Get-OfficeExcelNamedRange -LiteralPath <string[]> [-Name <string>] [-Sheet <Offi
 
 ### Uri
 ```powershell
-Get-OfficeExcelNamedRange [-Uri] <uri> [-Name <string>] [-Sheet <OfficeSheetSelector>] [-AllowHttp] [<CommonParameters>]
+Get-OfficeExcelNamedRange [-Uri] <uri> [-Name <string>] [-Sheet <OfficeSheetSelector>] [-AllowHttp] [-AllowPrivateNetworkAddresses] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -54,6 +54,22 @@ Lists the defined names that refer to #REF! after sheets were deleted, so they c
 
 ### -AllowHttp
 Allow HTTP workbook downloads in addition to HTTPS.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Uri
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -AllowPrivateNetworkAddresses
+Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.
 
 ```yaml
 Type: SwitchParameter

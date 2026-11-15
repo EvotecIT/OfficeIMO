@@ -583,3 +583,5 @@ OfficeIMO.Excel.ExcelChart.Decorative() -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.IsDecorative.get -> bool
 OfficeIMO.Excel.ExcelChart.SetAltText(string! description, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelImage.IsDecorative.get -> bool
+OfficeIMO.Excel.ExcelLoadOptions.AllowPrivateNetworkAddresses.get -> bool
+OfficeIMO.Excel.ExcelLoadOptions.AllowPrivateNetworkAddresses.set -> void

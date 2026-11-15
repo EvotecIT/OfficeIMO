@@ -31,7 +31,7 @@ Import-OfficeExcel -LiteralPath <string[]> [-Sheet <OfficeSheetSelector[]>] [-No
 
 ### Uri
 ```powershell
-Import-OfficeExcel [-Uri] <uri> [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [-AllowHttp] [<CommonParameters>]
+Import-OfficeExcel [-Uri] <uri> [-Sheet <OfficeSheetSelector[]>] [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-Range <string>] [-AllowHttp] [-AllowPrivateNetworkAddresses] [<CommonParameters>]
 ```
 
 ### LiteralPathTable
@@ -41,7 +41,7 @@ Import-OfficeExcel -Table <string> -LiteralPath <string[]> [-NoHeader] [-As <Exc
 
 ### UriTable
 ```powershell
-Import-OfficeExcel [-Uri] <uri> -Table <string> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-AllowHttp] [<CommonParameters>]
+Import-OfficeExcel [-Uri] <uri> -Table <string> [-NoHeader] [-As <ExcelImportOutput>] [-NumericAsDecimal] [-FormulaMode <OfficeExcelFormulaMode>] [-Culture <cultureinfo>] [-SchemaSampleRows <int>] [-ChunkRows <int>] [-AllowHttp] [-AllowPrivateNetworkAddresses] [<CommonParameters>]
 ```
 
 ### DocumentTable
@@ -95,6 +95,22 @@ Reads every worksheet of each branch workbook (each row carries its WorksheetNam
 
 ### -AllowHttp
 Allow HTTP workbook downloads in addition to HTTPS.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Uri, UriTable
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -AllowPrivateNetworkAddresses
+Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.
 
 ```yaml
 Type: SwitchParameter

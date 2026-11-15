@@ -94,6 +94,7 @@ internal static partial class ExcelDocumentService
         Uri uri,
         bool readOnly,
         bool allowHttp,
+        bool allowPrivateNetworkAddresses,
         string? password = null,
         CancellationToken cancellationToken = default)
     {
@@ -102,7 +103,7 @@ internal static partial class ExcelDocumentService
             throw new NotSupportedException("Encrypted remote workbook loads are not supported.");
         }
 
-        var options = ExcelHttpLoadService.CreateOptions(allowHttp);
+        var options = ExcelHttpLoadService.CreateOptions(allowHttp, allowPrivateNetworkAddresses);
         options.AccessMode = readOnly ? DocumentAccessMode.ReadOnly : DocumentAccessMode.ReadWrite;
         options.PersistenceMode = DocumentPersistenceMode.Explicit;
         return ExcelDocument.LoadAsync(uri, options, cancellationToken);
