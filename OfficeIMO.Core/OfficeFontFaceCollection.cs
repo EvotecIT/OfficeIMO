@@ -538,6 +538,8 @@ public sealed partial class OfficeFontFaceCollection {
         face = null;
         if (string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(familyNames)) return false;
         FallbackSelection selection = GetFallbackSelection(familyNames!.Trim(), descriptor);
+        // Without candidates no text resolves, so there is nothing to look up or remember.
+        if (selection.Candidates.Count == 0) return false;
         bool cacheable = text!.Length <= MaximumCachedPlanLength;
         if (cacheable && selection.FacesForText.TryGetValue(text, out face)) return face != null;
         face = SelectFaceForText(text, selection);
