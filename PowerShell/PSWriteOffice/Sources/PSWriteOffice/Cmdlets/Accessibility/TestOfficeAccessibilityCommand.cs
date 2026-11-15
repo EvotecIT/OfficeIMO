@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Accessibility;
 /// <example>
 ///   <summary>Fail a build when any document in a folder has accessibility errors.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$failed = Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict |
+///   <code>$failed = Get-ChildItem .\Docs -Include *.docx, *.xlsx, *.pptx -Recurse | Test-OfficeAccessibility -Strict -ErrorAction Stop |
 ///     Where-Object { -not $_.IsSuccessful }
 /// if ($failed) { throw "Accessibility errors in $($failed.Count) document(s)." }</code>
 /// </example>

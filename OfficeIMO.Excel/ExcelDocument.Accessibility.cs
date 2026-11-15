@@ -80,24 +80,26 @@ namespace OfficeIMO.Excel {
                     sheetName, address));
             }
 
-            var hyperlinkCells = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            var linkRanges = new List<LinkRange>();
             if (options.CheckMeaningfulLinks && worksheet != null) {
                 foreach (Hyperlink link in worksheet.Elements<Hyperlinks>().SelectMany(list => list.Elements<Hyperlink>())) {
-                    string? reference = FirstCell(link.Reference?.Value);
-                    if (reference != null && !hyperlinkCells.ContainsKey(reference)) hyperlinkCells[reference] = null;
+                    if (LinkRange.TryParse(link.Reference?.Value, out LinkRange? range)) linkRanges.Add(range!);
                 }
             }
 
-            var readHyperlinkCells = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            SheetScan scan = ScanCells(worksheet, context, hyperlinkCells, readHyperlinkCells);
+            // Labels of the linked cells the scan read, keyed by address.
+            var hyperlinkCells = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            SheetScan scan = ScanCells(worksheet, context, linkRanges, hyperlinkCells);
+            // A sheet holding only a chart or picture still has content worth naming and showing.
+            bool hasContent = scan.HasContent || HasDrawings(part);
 
             SheetStateValues? state = sheet.SheetElement.State?.Value;
-            if (options.CheckHiddenSheets && scan.HasContent && state != null && state.Value != SheetStateValues.Visible) {
+            if (options.CheckHiddenSheets && hasContent && state != null && state.Value != SheetStateValues.Visible) {
                 string kind = state.Value == SheetStateValues.VeryHidden ? "very hidden" : "hidden";
                 Add(options.Structural, OfficeDiagnosticCodes.AccessibilityHiddenSheetContent,
-                    "The worksheet is " + kind + " but contains data, so people navigating the visible sheets can miss it.", null);
+                    "The worksheet is " + kind + " but has content, so people navigating the visible sheets can miss it.", null);
             }
-            if (options.CheckDefaultSheetNames && scan.HasContent && DefaultSheetNamePattern.IsMatch(sheetName.Trim())) {
+            if (options.CheckDefaultSheetNames && hasContent && DefaultSheetNamePattern.IsMatch(sheetName.Trim())) {
                 Add(options.Structural, OfficeDiagnosticCodes.AccessibilityDefaultSheetName,
                     "The worksheet keeps the default name '" + sheetName + "', which does not say what it contains.", null);
             }
@@ -124,9 +126,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            // A linked range with no cell record is empty, but only a complete scan can tell; a cell past
+            // MaximumCellCount was never read, so its label is unknown rather than empty.
+            if (!scan.Truncated) {
+                foreach (LinkRange range in linkRanges) {
+                    if (!range.Read && !hyperlinkCells.ContainsKey(range.FirstAddress)) hyperlinkCells[range.FirstAddress] = null;
+                }
+            }
+
             foreach (KeyValuePair<string, string?> link in hyperlinkCells) {
-                // A cell past MaximumCellCount was never read, so its label is unknown rather than empty.
-                if (!readHyperlinkCells.Contains(link.Key)) continue;
                 if (OfficeAccessibilityText.IsMeaningfulLinkLabel(link.Value)) continue;
                 Add(OfficeAccessibilitySeverity.Error, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel,
                     string.IsNullOrWhiteSpace(link.Value)
@@ -212,7 +220,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static SheetScan ScanCells(Worksheet? worksheet, ExcelAccessibilityContext context,
-            Dictionary<string, string?> hyperlinkCells, HashSet<string> readHyperlinkCells) {
+            List<LinkRange> linkRanges, Dictionary<string, string?> hyperlinkCells) {
             var scan = new SheetScan();
             SheetData? data = worksheet?.GetFirstChild<SheetData>();
             if (data == null) return scan;
@@ -238,13 +246,11 @@ namespace OfficeIMO.Excel {
                     previousColumn = column;
                     string address = ExcelA1.CellReference((int)rowIndex, column);
                     string? text = context.CellText(cell);
-                    if (hyperlinkCells.ContainsKey(address)) {
+                    if (MarkLinked(linkRanges, (int)rowIndex, column)) {
                         hyperlinkCells[address] = text;
-                        readHyperlinkCells.Add(address);
                     } else if (context.Options.CheckMeaningfulLinks && TryReadHyperlinkFormula(cell, out string? label)) {
                         // HYPERLINK(location, friendly_name) shows the cached result, or the friendly name when there is none.
                         hyperlinkCells[address] = cell.CellValue?.Text is { Length: > 0 } cached ? cached : label;
-                        readHyperlinkCells.Add(address);
                     }
                     if (string.IsNullOrWhiteSpace(text)) continue;
 
@@ -308,10 +314,54 @@ namespace OfficeIMO.Excel {
             return ExcelA1.CellReference(row + 1, column + 1);
         }
 
-        private static string? FirstCell(string? reference) {
-            if (string.IsNullOrWhiteSpace(reference)) return null;
-            string first = reference!.Split(':')[0].Replace("$", string.Empty).Trim();
-            return first.Length == 0 ? null : first.ToUpperInvariant();
+        private static bool MarkLinked(List<LinkRange> ranges, int row, int column) {
+            bool linked = false;
+            foreach (LinkRange range in ranges) {
+                if (!range.Contains(row, column)) continue;
+                range.Read = true;
+                linked = true;
+            }
+            return linked;
+        }
+
+        private static bool HasDrawings(WorksheetPart part) =>
+            part.DrawingsPart?.WorksheetDrawing?.ChildElements.Any(anchor => anchor is Xdr.TwoCellAnchor or Xdr.OneCellAnchor or Xdr.AbsoluteAnchor) == true;
+
+        /// <summary>The cells one hyperlink covers; a reference can be a single cell or a range.</summary>
+        private sealed class LinkRange {
+            private LinkRange(int firstRow, int firstColumn, int lastRow, int lastColumn) {
+                FirstRow = firstRow;
+                FirstColumn = firstColumn;
+                LastRow = lastRow;
+                LastColumn = lastColumn;
+                FirstAddress = ExcelA1.CellReference(firstRow, firstColumn);
+            }
+
+            internal int FirstRow { get; }
+            internal int FirstColumn { get; }
+            internal int LastRow { get; }
+            internal int LastColumn { get; }
+            internal string FirstAddress { get; }
+
+            /// <summary>Set when the scan read at least one cell record inside the range.</summary>
+            internal bool Read { get; set; }
+
+            internal bool Contains(int row, int column) =>
+                row >= FirstRow && row <= LastRow && column >= FirstColumn && column <= LastColumn;
+
+            internal static bool TryParse(string? reference, out LinkRange? range) {
+                range = null;
+                if (string.IsNullOrWhiteSpace(reference)) return false;
+                string text = reference!.Replace("$", string.Empty).Trim();
+                if (text.IndexOf(':') >= 0) {
+                    if (!ExcelA1.TryParseRange(text, out int r1, out int c1, out int r2, out int c2)) return false;
+                    range = new LinkRange(r1, c1, r2, c2);
+                    return true;
+                }
+                if (!ExcelA1.TryParseCellReferenceCoordinates(text, out int row, out int column)) return false;
+                range = new LinkRange(row, column, row, column);
+                return true;
+            }
         }
 
         private static string SheetLocation(string sheetName, string? address) {

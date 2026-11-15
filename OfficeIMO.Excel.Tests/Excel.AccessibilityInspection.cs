@@ -159,6 +159,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HyperlinkRangesCheckEveryLinkedCellAndAbsentCellsAreEmpty() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Links");
+            sheet.SetHyperlink("A1", "https://officeimo.com", "Documentation");
+            sheet.Cell(2, 1).SetValue("click here");
+            DocumentFormat.OpenXml.Spreadsheet.Hyperlinks links = sheet.WorksheetPart.Worksheet!
+                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Hyperlinks>()!;
+            links.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Hyperlink>()!.Reference = "A1:A2";
+            links.Append(new DocumentFormat.OpenXml.Spreadsheet.Hyperlink { Reference = "C7", Location = "Links!A1" });
+
+            List<OfficeAccessibilityFinding> findings = Findings(document, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel);
+            Assert.Equal(new[] { "Links!A2", "Links!C7" }, findings.Select(finding => finding.Location));
+            Assert.Contains("no visible text", findings[1].Message);
+
+            List<OfficeAccessibilityFinding> truncated = Findings(document, OfficeDiagnosticCodes.AccessibilityUnclearLinkLabel,
+                options: new ExcelAccessibilityOptions { MaximumCellCount = 1 });
+            Assert.Empty(truncated);
+        }
+
+        [Fact]
+        public void SheetsWithOnlyDrawingsCountAsContent() {
+            using ExcelDocument document = ExcelDocument.Create();
+            document.AddSheet("Visible").Cell(1, 1).SetValue("Shown");
+            ExcelSheet drawingOnly = document.AddSheet("Sheet1");
+            drawingOnly.AddImage(2, 2, Png(), new ExcelImageOptions { ContentType = "image/png" }).Decorative();
+            drawingOnly.SetHidden(true);
+
+            Assert.Equal("Sheet1", Assert.Single(Findings(document, OfficeDiagnosticCodes.AccessibilityHiddenSheetContent)).Location);
+            Assert.Equal("Sheet1", Assert.Single(Findings(document, OfficeDiagnosticCodes.AccessibilityDefaultSheetName)).Location);
+        }
+
+        [Fact]
         public void RichTextRunsAreMeasuredWithTheirOwnColour() {
             string path = Path.Combine(Path.GetTempPath(), "officeimo-accessibility-runs-" + Guid.NewGuid().ToString("N") + ".xlsx");
             try {
