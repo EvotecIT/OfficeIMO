@@ -119,12 +119,27 @@ internal static class MarkupCommand {
 
         if (!string.IsNullOrWhiteSpace(options.OutputPath)) {
             var outputPath = NormalizeWritableFilePath(options.OutputPath!, options.Force);
-            await File.WriteAllTextAsync(outputPath, text, cancellationToken).ConfigureAwait(false);
+            await WriteEmittedTextAsync(outputPath, text, options.Force, cancellationToken).ConfigureAwait(false);
         } else {
             await standardOutput.WriteLineAsync(text).ConfigureAwait(false);
         }
 
         return (int)OfficeImoToolExitCode.Success;
+    }
+
+    internal static async Task WriteEmittedTextAsync(
+        string outputPath,
+        string text,
+        bool force,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        // The earlier existence check is advisory; reserve the path atomically here.
+        await using var output = new FileStream(
+            outputPath, force ? FileMode.Create : FileMode.CreateNew,
+            FileAccess.Write, FileShare.Read, bufferSize: 8192, FileOptions.Asynchronous);
+        await using var writer = new StreamWriter(output);
+        await writer.WriteAsync(text.AsMemory(), cancellationToken).ConfigureAwait(false);
+        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<int> ExportAsync(
