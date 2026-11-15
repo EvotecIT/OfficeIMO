@@ -3724,7 +3724,8 @@ public sealed partial class PdfReadPage {
         Group
     }
 
-    private readonly struct PdfPageDrawingElement {
+    // Elements carry a whole visual primitive, so the page's lists sort and replay references instead of copying them.
+    private sealed class PdfPageDrawingElement {
         private PdfPageDrawingElement(
             PdfPageDrawingElementKind kind,
             double paintOrder,

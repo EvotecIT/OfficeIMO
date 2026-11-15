@@ -567,7 +567,7 @@ public sealed partial class PdfReadPage {
             cancellationToken: cancellationToken);
         VisitImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, placements,
             colorizeImageMasks: false, new PageContentBudget(this, cancellationToken), emit,
-            indexedSoftMaskMemo: null, cancellationToken);
+            indexedSoftMaskMemo: null, deferredPayloads: null, cancellationToken);
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
@@ -578,8 +578,16 @@ public sealed partial class PdfReadPage {
         IReadOnlyList<PdfImagePlacement>? imagePlacements, PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo,
         CancellationToken cancellationToken) {
         PrepareOutputIntentRendering(cancellationToken);
-        return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false,
-            new PageContentBudget(this, cancellationToken), indexedSoftMaskMemo, cancellationToken);
+        // The reading model hands images out with their payloads built on first use, so reading a page does not hold
+        // a normalized copy of every image it places.
+        var deferredPayloads = new PdfDeferredImagePayloads(() => {
+            var budget = new PageContentBudget(this, CancellationToken.None);
+            return new PdfDeferredImagePayloads.Budget(budget.TryConsumeColorFunctionEvaluations, budget.ColorFunctionResolutionContext);
+        });
+        var images = new List<PdfExtractedImage>();
+        VisitImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, imagePlacements,
+            colorizeImageMasks: false, pageContentBudget: null, images.Add, indexedSoftMaskMemo, deferredPayloads, cancellationToken);
+        return images.Count == 0 ? Array.Empty<PdfExtractedImage>() : images.AsReadOnly();
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
@@ -611,7 +619,7 @@ public sealed partial class PdfReadPage {
         CancellationToken cancellationToken = default) {
         var images = new List<PdfExtractedImage>();
         VisitImagesForResources(resources, pageNumber, imagePlacements, colorizeImageMasks,
-            pageContentBudget, images.Add, indexedSoftMaskMemo, cancellationToken);
+            pageContentBudget, images.Add, indexedSoftMaskMemo, deferredPayloads: null, cancellationToken);
         return images.Count == 0 ? Array.Empty<PdfExtractedImage>() : images.AsReadOnly();
     }
 
@@ -623,6 +631,7 @@ public sealed partial class PdfReadPage {
         PageContentBudget? pageContentBudget,
         Action<PdfExtractedImage> emit,
         PdfIndexedSoftMaskPngMemo? indexedSoftMaskMemo,
+        PdfDeferredImagePayloads? deferredPayloads,
         CancellationToken cancellationToken) {
         if (!cancellationToken.CanBeCanceled) cancellationToken = pageContentBudget?.CancellationToken ?? default;
         cancellationToken.ThrowIfCancellationRequested();
@@ -637,7 +646,7 @@ public sealed partial class PdfReadPage {
                 _limits,
                 EffectiveOutputIntentColorTransform,
                 pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
-                pageContentBudget?.ColorFunctionResolutionContext, indexedSoftMaskMemo, cancellationToken);
+                pageContentBudget?.ColorFunctionResolutionContext, indexedSoftMaskMemo, deferredPayloads, cancellationToken);
         }
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
@@ -663,7 +672,7 @@ public sealed partial class PdfReadPage {
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
                     pageContentBudget?.ColorFunctionResolutionContext,
                     inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent,
-                    maxImageReferenceSteps: _limits.MaxImageReferenceSteps, cancellationToken: cancellationToken));
+                    maxImageReferenceSteps: _limits.MaxImageReferenceSteps, deferredPayloads: deferredPayloads, cancellationToken: cancellationToken));
             }
         }
     }

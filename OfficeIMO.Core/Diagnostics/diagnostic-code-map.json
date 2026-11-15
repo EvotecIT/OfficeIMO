@@ -11293,6 +11293,86 @@
       "origins": [
         "OfficeIMO.Toml/Model/TomlMerge.cs"
       ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.ImageAltText",
+      "catalogCode": "accessibility-missing-alternative-text",
+      "member": "AccessibilityMissingAlternativeText",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.TableHeaders",
+      "catalogCode": "accessibility-missing-table-header",
+      "member": "AccessibilityMissingTableHeader",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.MergedCells",
+      "catalogCode": "accessibility-merged-cells",
+      "member": "AccessibilityMergedCells",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.HiddenData",
+      "catalogCode": "accessibility-hidden-sheet-content",
+      "member": "AccessibilityHiddenSheetContent",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.DefaultSheetName",
+      "catalogCode": "accessibility-default-sheet-name",
+      "member": "AccessibilityDefaultSheetName",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Excel.Accessibility.BlankCellLayout",
+      "catalogCode": "accessibility-blank-cell-layout",
+      "member": "AccessibilityBlankCellLayout",
+      "origins": [
+        "OfficeIMO.Excel/ExcelDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.LayoutTable",
+      "catalogCode": "accessibility-layout-table",
+      "member": "AccessibilityLayoutTable",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.FloatingObject",
+      "catalogCode": "accessibility-floating-object",
+      "member": "AccessibilityFloatingObject",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.BlankParagraphSpacing",
+      "catalogCode": "accessibility-blank-paragraph-spacing",
+      "member": "AccessibilityBlankParagraphSpacing",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
+    },
+    {
+      "oldCode": "Word.Accessibility.MissingHeadings",
+      "catalogCode": "accessibility-missing-headings",
+      "member": "AccessibilityMissingHeadings",
+      "origins": [
+        "OfficeIMO.Word/WordDocument.Accessibility.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

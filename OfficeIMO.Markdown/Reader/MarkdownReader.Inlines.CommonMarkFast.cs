@@ -18,6 +18,11 @@ internal static partial class MarkdownReader {
         int TargetStart = 0,
         int TargetLength = 0);
 
+    // Characters that can start a simple token or a literal run; every other character is plain text.
+    private static readonly char[] SimpleInlineCandidateCharacters = { '*', '_', '`', '!', '[', '=', '+', '^' };
+    // Characters the validation pass has to look at; every other character is plain text.
+    private static readonly char[] SimpleInlineValidationCharacters = { '*', '_', '`', '[', '!', '\\', '&', '\n', '<', '~', '=', '+', '^' };
+
     private static bool TryParseSimpleCommonMarkInlines(
         string text,
         MarkdownLoadOptions options,
@@ -84,7 +89,9 @@ internal static partial class MarkdownReader {
                     continue;
                 }
 
-                position++;
+                // Nothing but these characters starts a token or a literal run here.
+                int nextCandidate = text.IndexOfAny(SimpleInlineCandidateCharacters, position + 1);
+                position = nextCandidate < 0 ? text.Length : nextCandidate;
                 continue;
             }
 
@@ -197,7 +204,8 @@ internal static partial class MarkdownReader {
                 return false;
             }
 
-            position++;
+            int nextCandidate = text.IndexOfAny(SimpleInlineValidationCharacters, position + 1);
+            position = nextCandidate < 0 ? text.Length : nextCandidate;
         }
 
         return foundToken;

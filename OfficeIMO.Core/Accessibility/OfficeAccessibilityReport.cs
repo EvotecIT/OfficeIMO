@@ -5,7 +5,7 @@ using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO;
 
-/// <summary>Structured accessibility inspection result for a Word or PowerPoint document.</summary>
+/// <summary>Structured accessibility inspection result for a Word document, PowerPoint presentation or Excel workbook.</summary>
 public sealed class OfficeAccessibilityReport {
     internal OfficeAccessibilityReport(string format, OfficeAccessibilityPolicyProfile profile, IList<OfficeAccessibilityFinding> findings) {
         Format = format;
@@ -15,7 +15,7 @@ public sealed class OfficeAccessibilityReport {
 
     /// <summary>Version of the <see cref="ToJson"/> schema.</summary>
     public int SchemaVersion => 2;
-    /// <summary>The inspected format, such as <c>Word</c> or <c>PowerPoint</c>.</summary>
+    /// <summary>The inspected format: <c>Word</c>, <c>PowerPoint</c> or <c>Excel</c>.</summary>
     public string Format { get; }
     /// <summary>Policy profile used for inspection.</summary>
     public OfficeAccessibilityPolicyProfile Profile { get; }
@@ -78,6 +78,22 @@ public sealed class OfficeAccessibilityReport {
         OfficeFileCommit.WriteAllBytes(fullPath, new UTF8Encoding(false).GetBytes(ToJson(indented)));
     }
 
+    /// <summary>Serializes the report as a SARIF 2.1.0 log for code-scanning and CI tools.</summary>
+    /// <param name="artifactPath">Inspected file. A fully qualified path becomes a <c>file://</c> URI; a relative path stays relative. When null, results carry only logical locations.</param>
+    /// <param name="indented">Whether to indent the JSON.</param>
+    /// <remarks>Each distinct finding code becomes a rule. Errors map to <c>error</c>, warnings to <c>warning</c> and information to <c>note</c>;
+    /// the location, object and measured values are kept in each result's property bag.</remarks>
+    public string ToSarif(string? artifactPath = null, bool indented = true) => OfficeAccessibilitySarif.Serialize(this, artifactPath, indented);
+
+    /// <summary>Writes the SARIF 2.1.0 log to disk, creating the destination directory when needed.</summary>
+    public void SaveSarif(string path, string? artifactPath = null, bool indented = true) {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string fullPath = Path.GetFullPath(path);
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);
+        OfficeFileCommit.WriteAllBytes(fullPath, new UTF8Encoding(false).GetBytes(ToSarif(artifactPath, indented)));
+    }
+
     private int Count(OfficeAccessibilitySeverity severity) {
         int count = 0;
         foreach (OfficeAccessibilityFinding finding in Findings) if (finding.Severity == severity) count++;
@@ -90,7 +106,7 @@ public sealed class OfficeAccessibilityReport {
 
     private static string Number(double? value) => value.HasValue ? value.Value.ToString("0.###", CultureInfo.InvariantCulture) : "null";
 
-    private static string Quote(string value) {
+    internal static string Quote(string value) {
         var escaped = new StringBuilder(value.Length + 2).Append('"');
         foreach (char character in value) {
             switch (character) {

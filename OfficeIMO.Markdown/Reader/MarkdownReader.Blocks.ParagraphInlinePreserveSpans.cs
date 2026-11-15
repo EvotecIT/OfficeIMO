@@ -49,7 +49,17 @@ internal static partial class MarkdownReader {
     }
 
     private static bool StartsWithRawInlineHtml(string line) {
-        var text = (line ?? string.Empty).TrimStart(' ', '\t');
+        // Most lines do not start with '<'; answer those before trimming a copy.
+        int first = 0;
+        while (line != null && first < line.Length && line[first] is ' ' or '\t') {
+            first++;
+        }
+
+        if (line == null || first >= line.Length || line[first] != '<') {
+            return false;
+        }
+
+        var text = first == 0 ? line : line.Substring(first);
         return text.Length > 0 && text[0] == '<' &&
             (TryGetRawInlineHtmlConstructEnd(text, 0, out _) ||
              HtmlBlockParser.TryParseHtmlTag(text, out _, out _, out _));
@@ -124,16 +134,17 @@ internal static partial class MarkdownReader {
         endExclusive = 0;
         string? closing = null;
         int contentStart = start;
-        if (text.IndexOf("<!--", start, StringComparison.Ordinal) == start) {
+        // Prefix checks: searching the rest of the text from every '<' made long texts quadratic.
+        if (StartsWithOrdinal(text, start, "<!--")) {
             closing = "-->";
             contentStart += 4;
-        } else if (text.IndexOf("<?", start, StringComparison.Ordinal) == start) {
+        } else if (StartsWithOrdinal(text, start, "<?")) {
             closing = "?>";
             contentStart += 2;
-        } else if (text.IndexOf("<![CDATA[", start, StringComparison.Ordinal) == start) {
+        } else if (StartsWithOrdinal(text, start, "<![CDATA[")) {
             closing = "]]>";
             contentStart += 9;
-        } else if (text.IndexOf("<!", start, StringComparison.Ordinal) == start
+        } else if (StartsWithOrdinal(text, start, "<!")
                    && start + 2 < text.Length
                    && char.IsUpper(text[start + 2])) {
             closing = ">";

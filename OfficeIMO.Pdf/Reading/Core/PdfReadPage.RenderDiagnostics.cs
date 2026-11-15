@@ -1418,42 +1418,10 @@ public sealed partial class PdfReadPage {
             if (states.Count == 0) {
                 states.Add(default);
             }
-            var distinctStates = new HashSet<(
-                string? FillName,
-                bool HasFillTint,
-                PdfPageColorSpace? FillBase,
-                PdfPageTilingPatternResource? FillResource,
-                PdfPageShadingPatternResource? FillShadingResource,
-                Matrix2D FillPaintTransform,
-                PdfPageColorSpace FillColorSpace,
-                string? StrokeName,
-                bool HasStrokeTint,
-                PdfPageColorSpace? StrokeBase,
-                PdfPageTilingPatternResource? StrokeResource,
-                PdfPageShadingPatternResource? StrokeShadingResource,
-                Matrix2D StrokePaintTransform,
-                PdfPageColorSpace StrokeColorSpace,
-                Matrix2D InvocationTransform,
-                PdfPageClipPath? InvocationClip)>();
+            var distinctStates = new HashSet<XObjectInvocationStateKey>();
             for (int stateIndex = 0; stateIndex < states.Count; stateIndex++) {
                 PdfPageXObjectInvocation invocation = states[stateIndex];
-                var stateKey = (
-                    invocation.FillPattern?.Name,
-                    invocation.FillPattern?.Tint.HasValue == true,
-                    invocation.FillPatternBaseColorSpace,
-                    invocation.FillPattern?.TilingPattern,
-                    invocation.FillPattern?.ShadingPattern,
-                    invocation.FillPattern?.PaintTransform ?? Matrix2D.Identity,
-                    invocation.FillColorSpace,
-                    invocation.StrokePattern?.Name,
-                    invocation.StrokePattern?.Tint.HasValue == true,
-                    invocation.StrokePatternBaseColorSpace,
-                    invocation.StrokePattern?.TilingPattern,
-                    invocation.StrokePattern?.ShadingPattern,
-                    invocation.StrokePattern?.PaintTransform ?? Matrix2D.Identity,
-                    invocation.StrokeColorSpace,
-                    invocation.Transform,
-                    invocation.ClipPath);
+                var stateKey = new XObjectInvocationStateKey(invocation);
                 if (!distinctStates.Add(stateKey) || !activeForms.Add(stream)) continue;
                 try {
                     PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject) ? formResourceObject : null) ?? resources;

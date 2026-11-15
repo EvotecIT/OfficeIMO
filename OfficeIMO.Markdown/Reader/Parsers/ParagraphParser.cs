@@ -5,7 +5,8 @@ internal static partial class MarkdownReader {
         public bool TryParse(string[] lines, ref int i, MarkdownLoadOptions options, MarkdownDocument doc, MarkdownReaderState state) {
             if (!options.Paragraphs) return false;
             // Paragraph begins when none of the other block starters match.
-            if (IsAtxHeading(lines[i], out _, out _) ||
+            if (MayStartParagraphInterrupter(GetFirstNonWhiteSpaceCharacter(lines[i]), options)
+                ? IsAtxHeading(lines[i], out _, out _) ||
                 IsCodeFenceOpen(lines[i], out _, out _, out _) ||
                 StartsTable(lines, i, options, state) ||
                 IsParagraphInterruptingThematicBreakLine(lines[i]) ||
@@ -18,11 +19,13 @@ internal static partial class MarkdownReader {
                 (IsReferenceLinkDefinitionStarter(lines, i, options) && !ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(lines, i, options, state)) ||
                 IsAbbreviationDefinitionStarter(lines[i], options) ||
                 IsFootnoteDefinitionStarter(lines[i], options) ||
-                (options.StandaloneImageBlocks && IsImageLine(lines[i]))) return false;
+                (options.StandaloneImageBlocks && IsImageLine(lines[i]))
+                : StartsTable(lines, i, options, state)) return false;
 
             int j = i;
             while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
-                   !IsAtxHeading(lines[j], out _, out _) &&
+                   (MayStartParagraphInterrupter(GetFirstNonWhiteSpaceCharacter(lines[j]), options)
+                   ? !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
                    !StartsTable(lines, j, options, state) &&
                    !IsParagraphInterruptingThematicBreakLine(lines[j]) &&
@@ -35,7 +38,8 @@ internal static partial class MarkdownReader {
                    !IsParagraphTerminatingReferenceLinkDefinition(lines, i, j, options, state) &&
                    !IsAbbreviationDefinitionStarter(lines[j], options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
-                   !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
+                   !(options.StandaloneImageBlocks && IsImageLine(lines[j]))
+                   : !StartsTable(lines, j, options, state))) {
                 j++;
             }
             if (j == i) return false;
@@ -189,6 +193,13 @@ internal static partial class MarkdownReader {
             doc.Add(paragraph);
             i = j; return true;
         }
+
+        // Every block that can interrupt a paragraph, except a table, starts with one of these
+        // characters after white space; a line starting otherwise only needs the table check.
+        private static bool MayStartParagraphInterrupter(char first, MarkdownLoadOptions options) =>
+            first is '#' or '`' or '~' or '-' or '*' or '_' or '+' or ':' or '>' or '<' or '[' or '!'
+            || char.IsDigit(first)
+            || (options.ListExtras && first is >= 'a' and <= 'z' or >= 'A' and <= 'Z');
 
         private static bool ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(
             IReadOnlyList<string> contentLines,

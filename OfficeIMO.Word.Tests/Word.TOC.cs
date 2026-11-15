@@ -259,10 +259,10 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(toc);
 
                 var simpleFields = toc!.SdtBlock.Descendants<SimpleField>().ToList();
-                Assert.NotEmpty(simpleFields);
                 Assert.All(simpleFields, field => Assert.True(field.Dirty is not null && field.Dirty.Value));
 
                 var fieldChars = toc.SdtBlock.Descendants<FieldChar>().ToList();
+                Assert.NotEmpty(fieldChars);
                 Assert.All(fieldChars, fieldChar => Assert.True(fieldChar.Dirty is not null && fieldChar.Dirty.Value));
 
                 Assert.True(document.Settings.UpdateFieldsOnOpen);

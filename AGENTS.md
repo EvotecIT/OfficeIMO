@@ -125,6 +125,8 @@ Edit the source, then regenerate. Never hand-edit the output.
 
 ## Tests and benchmarks
 
+- Before adding or changing tests, apply the shared [test-audit authoring gate](~/.codex/skills/test-audit/SKILL.md#authoring-gate) and [contract-focused proof guidance](~/.codex/skills/contract-focused-tests/SKILL.md). Resolve these paths against `CODEX_HOME` when configured.
+
 - Don't write tests that pin human-written prose (README, roadmap, migration).
   Test Markdown as a format; check generated docs against their generator.
 - Tag measurement-only tests `[Trait("Category", "Performance")]`. CI excludes

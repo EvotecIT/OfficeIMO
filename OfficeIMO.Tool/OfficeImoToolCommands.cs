@@ -1,3 +1,4 @@
+using OfficeIMO.Tool.Commands.Accessibility;
 using OfficeIMO.Tool.Commands.Agent;
 using OfficeIMO.Tool.Commands.Convert;
 using OfficeIMO.Tool.Commands.HiddenData;
@@ -49,6 +50,7 @@ internal sealed record OfficeImoToolKeyOption(string Name, string Description, s
 
 internal static class OfficeImoToolCommands {
     // Removal preserves the input format.
+    private static readonly string[] AccessibilityFormats = ["docx", "docm", "dotx", "dotm", "doc", "dot", "xlsx", "xlsm", "xltx", "xltm", "xls", "xlt", "xlsb", "pptx", "pptm", "potx", "potm", "ppsx", "ppsm", "ppt", "pps", "pot"];
     private static readonly string[] HiddenDataFormats = ["docx", "xlsx", "pptx", "vsdx", "odt", "ods", "odp", "epub", "pdf", "jpeg", "png", "webp", "gif", "tiff"];
 
     internal static IReadOnlyList<OfficeImoToolCommandGroup> Groups { get; } = [
@@ -345,6 +347,22 @@ internal static class OfficeImoToolCommands {
             InputFormats = static () => HiddenDataFormats,
             OutputFormats = static () => HiddenDataFormats,
             ResultFormats = ["json", "text"]
+        },
+        new() {
+            Id = "accessibility",
+            Title = "Accessibility",
+            Summary = "Check a Word, Excel or PowerPoint file for accessibility problems; the input is never changed.",
+            Synopsis = "<input> [options]",
+            Run = static (args, _, output, error, token) => OfficeImoToolApp.WithWriterAsync(output, writer => AccessibilityCommand.RunAsync(args, writer, error, token)),
+            Help = [AccessibilityCommand.Usage],
+            KeyOptions = [
+                new("--format", "Report format: json, sarif or text."),
+                new("--strict", "Turn structural warnings into errors and require a document title."),
+                new("--fail-on-warnings", "Exit with 1 when the report has warnings."),
+                new("--output", "Write the report to a file instead of standard output.")
+            ],
+            InputFormats = static () => AccessibilityFormats,
+            ResultFormats = ["json", "sarif", "text"]
         },
         new() {
             Id = "agent",

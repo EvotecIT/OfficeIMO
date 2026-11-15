@@ -5961,6 +5961,132 @@
       ]
     },
     {
+      "name": "Test-OfficeAccessibility",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Checks Word, Excel and PowerPoint files or open documents for accessibility issues and returns the shared report, SARIF or a Boolean, without changing them.",
+      "outputType": "OfficeAccessibilityFileReport",
+      "outputTypes": [
+        "OfficeAccessibilityFileReport",
+        "string",
+        "bool"
+      ],
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Strict",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Sarif",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Quiet",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "IncludeWarnings",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Strict",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Sarif",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Quiet",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "IncludeWarnings",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString"
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true
+            },
+            {
+              "name": "Strict",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Sarif",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "Quiet",
+              "type": "SwitchParameter"
+            },
+            {
+              "name": "IncludeWarnings",
+              "type": "SwitchParameter"
+            }
+          ]
+        }
+      ],
+      "notes": "Same checks as officeimo accessibility and the officeimo_check_accessibility MCP tool. Word, Excel and PowerPoint share finding codes and severities. Unsupported files write a non-terminating error and the batch continues.",
+      "examples": [
+        {
+          "title": "List the findings of a workbook",
+          "description": "Shows each accessibility finding with its severity, rule code and location.",
+          "code": "(Test-OfficeAccessibility -Path .\\Budget.xlsx).Findings | Format-Table Severity, Code, Location, Message"
+        },
+        {
+          "title": "Write a SARIF log for code scanning",
+          "description": "Saves the strict-profile findings of a presentation as SARIF 2.1.0.",
+          "code": "Test-OfficeAccessibility -Path .\\Deck.pptx -Strict -Sarif | Set-Content .\\Deck.sarif"
+        }
+      ]
+    },
+    {
       "name": "Test-OfficeDocument",
       "alias": null,
       "status": "new",

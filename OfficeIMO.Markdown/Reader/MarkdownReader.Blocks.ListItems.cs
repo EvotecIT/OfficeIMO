@@ -44,6 +44,9 @@ internal static partial class MarkdownReader {
             }
 
             if (k >= lines.Length) { index = k; return; }
+            // Every nested block below, and the attribute line that may precede one, is indented
+            // to the item's content. The next sibling item usually is not, so stop here.
+            if (CountLeadingIndentColumns(lines[k] ?? string.Empty) < continuationIndent) { index = k; return; }
             if (!sawBlankLine && k > 0 && string.IsNullOrWhiteSpace(lines[k - 1])) sawBlankLine = true;
 
             // Nested fenced code block

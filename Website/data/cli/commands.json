@@ -92,6 +92,7 @@
         "fods",
         "fodt",
         "gif",
+        "gz",
         "heic",
         "heif",
         "hif",
@@ -163,7 +164,9 @@
         "srt",
         "svg",
         "tab",
+        "tar",
         "tex",
+        "tgz",
         "tif",
         "tiff",
         "tnef",
@@ -1186,6 +1189,7 @@
         "fods",
         "fodt",
         "gif",
+        "gz",
         "htm",
         "html",
         "ical",
@@ -1250,7 +1254,9 @@
         "slk",
         "srt",
         "svg",
+        "tar",
         "tex",
+        "tgz",
         "tif",
         "tiff",
         "tnef",
@@ -1367,6 +1373,7 @@
         "fods",
         "fodt",
         "gif",
+        "gz",
         "htm",
         "html",
         "ical",
@@ -1431,7 +1438,9 @@
         "slk",
         "srt",
         "svg",
+        "tar",
         "tex",
+        "tgz",
         "tif",
         "tiff",
         "tnef",
@@ -1964,6 +1973,7 @@
         "fods",
         "fodt",
         "gif",
+        "gz",
         "htm",
         "html",
         "ical",
@@ -2028,7 +2038,9 @@
         "slk",
         "srt",
         "svg",
+        "tar",
         "tex",
+        "tgz",
         "tif",
         "tiff",
         "tnef",
@@ -2170,7 +2182,7 @@
           ],
           "summary": "Generate C# or PowerShell code that builds the document.",
           "usage": [
-            "officeimo markup emit <file|-> --target csharp|powershell [--output <file>]"
+            "officeimo markup emit <file|-> --target csharp|powershell [--output <file>] [--force]"
           ],
           "options": [
             {
@@ -2180,6 +2192,10 @@
             {
               "name": "--output",
               "value": "<file>"
+            },
+            {
+              "name": "--force",
+              "value": null
             }
           ]
         },
@@ -2190,9 +2206,9 @@
           ],
           "summary": "Write the markup as a PPTX, XLSX or DOCX file.",
           "usage": [
-            "officeimo markup export <file|-> --target pptx --output <file.pptx>",
-            "officeimo markup export <file|-> --target xlsx --output <file.xlsx>",
-            "officeimo markup export <file|-> --target docx --output <file.docx>"
+            "officeimo markup export <file|-> --target pptx --output <file.pptx> [--force]",
+            "officeimo markup export <file|-> --target xlsx --output <file.xlsx> [--force]",
+            "officeimo markup export <file|-> --target docx --output <file.docx> [--force]"
           ],
           "options": [
             {
@@ -2202,6 +2218,10 @@
             {
               "name": "--output",
               "value": "<file.pptx>"
+            },
+            {
+              "name": "--force",
+              "value": null
             }
           ]
         }
@@ -2256,6 +2276,11 @@
           "name": "--no-mermaid",
           "value": null,
           "description": "Disable Mermaid rendering."
+        },
+        {
+          "name": "--force",
+          "value": null,
+          "description": "Replace an existing output file."
         }
       ],
       "inputFormats": [
@@ -2857,7 +2882,7 @@
           ],
           "summary": "Print a document to a queue or an IPP printer.",
           "usage": [
-            "officeimo workflow print <document> --printer <queue|ipp://uri> [print-plan options; --paper defaults to the printer's media] [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600] [--output-file <new-local-path>] [--format json|text]"
+            "officeimo workflow print <document> --printer <queue|ipp://uri> [print-plan options; --paper defaults to the printer's media] [--copies 1..100] [--duplex default|off|long|short] [--paper-source <id>] [--dpi 72..600] [--raster-grayscale] [--output-file <new-local-path>] [--format json|text]"
           ],
           "options": [
             {
@@ -2879,6 +2904,10 @@
             {
               "name": "--dpi",
               "value": "72..600"
+            },
+            {
+              "name": "--raster-grayscale",
+              "value": null
             },
             {
               "name": "--output-file",
@@ -4101,6 +4130,70 @@
       ]
     },
     {
+      "id": "accessibility",
+      "title": "Accessibility",
+      "summary": "Check a Word, Excel or PowerPoint file for accessibility problems; the input is never changed.",
+      "docsUrl": "/docs/cli/before-sharing/#accessibility",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo accessibility <input> [--format json|sarif|text] [--strict] [--fail-on-warnings] [--output <path>] [--password <password>]"
+      ],
+      "subcommands": [],
+      "keyOptions": [
+        {
+          "name": "--format",
+          "value": "json|sarif|text",
+          "description": "Report format: json, sarif or text."
+        },
+        {
+          "name": "--strict",
+          "value": null,
+          "description": "Turn structural warnings into errors and require a document title."
+        },
+        {
+          "name": "--fail-on-warnings",
+          "value": null,
+          "description": "Exit with 1 when the report has warnings."
+        },
+        {
+          "name": "--output",
+          "value": "<path>",
+          "description": "Write the report to a file instead of standard output."
+        }
+      ],
+      "inputFormats": [
+        "doc",
+        "docm",
+        "docx",
+        "dot",
+        "dotm",
+        "dotx",
+        "pot",
+        "potm",
+        "potx",
+        "pps",
+        "ppsm",
+        "ppsx",
+        "ppt",
+        "pptm",
+        "pptx",
+        "xls",
+        "xlsb",
+        "xlsm",
+        "xlsx",
+        "xlt",
+        "xltm",
+        "xltx"
+      ],
+      "outputFormats": [],
+      "resultFormats": [
+        "json",
+        "sarif",
+        "text"
+      ]
+    },
+    {
       "id": "agent",
       "title": "Agent",
       "summary": "Inspect, search, fetch and convert documents and mailboxes with compact, bounded JSON results.",
@@ -4393,6 +4486,7 @@
         "fods",
         "fodt",
         "gif",
+        "gz",
         "htm",
         "html",
         "ical",
@@ -4457,7 +4551,9 @@
         "slk",
         "srt",
         "svg",
+        "tar",
         "tex",
+        "tgz",
         "tif",
         "tiff",
         "tnef",

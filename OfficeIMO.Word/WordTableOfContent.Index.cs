@@ -148,31 +148,31 @@ namespace OfficeIMO.Word {
         }
 
         private static IEnumerable<string> EnumerateComplexFieldInstructions(Paragraph paragraph) {
-            StringBuilder? instruction = null;
-            int depth = 0;
+            var instructions = new Stack<StringBuilder?>();
             foreach (Run run in paragraph.Descendants<Run>()) {
                 foreach (OpenXmlElement child in run.ChildElements) {
                     if (child is FieldChar fieldChar) {
                         FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
                         if (fieldCharType == FieldCharValues.Begin) {
-                            depth++;
-                            if (depth == 1) {
-                                instruction = new StringBuilder();
-                            }
-                        } else if (fieldCharType == FieldCharValues.End) {
-                            if (depth == 1 && instruction != null) {
+                            instructions.Push(new StringBuilder());
+                        } else if (fieldCharType == FieldCharValues.Separate && instructions.Count > 0) {
+                            StringBuilder? instruction = instructions.Pop();
+                            if (instruction != null) {
                                 yield return instruction.ToString();
-                                instruction = null;
                             }
-
-                            depth = Math.Max(0, depth - 1);
+                            instructions.Push(null);
+                        } else if (fieldCharType == FieldCharValues.End && instructions.Count > 0) {
+                            StringBuilder? instruction = instructions.Pop();
+                            if (instruction != null) {
+                                yield return instruction.ToString();
+                            }
                         }
 
                         continue;
                     }
 
-                    if (depth > 0 && child is FieldCode fieldCode) {
-                        instruction?.Append(fieldCode.Text ?? string.Empty);
+                    if (instructions.Count > 0 && child is FieldCode fieldCode) {
+                        instructions.Peek()?.Append(fieldCode.Text ?? string.Empty);
                     }
                 }
             }
@@ -378,6 +378,7 @@ namespace OfficeIMO.Word {
         }
 
         private void ReplaceIndexContent(string title, IReadOnlyList<IndexEntry> entries, IndexRefreshOptions options) {
+            string noContentText = GetNoContentText("No index entries found.");
             SdtContentBlock content = _sdtBlock.SdtContentBlock
                 ?? throw new InvalidOperationException("Table of contents content block is missing.");
 
@@ -387,19 +388,19 @@ namespace OfficeIMO.Word {
 
             content.RemoveAllChildren();
             content.Append(titleParagraph);
-            content.Append(CreateTocFieldParagraph(CreateIndexInstruction(options), entries.Count == 0 ? "No index entries found." : string.Empty));
-
+            var result = new SdtContentBlock();
             string? previousHeadingKey = null;
             foreach (IndexNode node in BuildIndexTree(entries)) {
                 if (options.HeadingSeparator != null &&
                     options.HeadingSeparator.Value.TryCreateHeading(node.Name, out string headingText, out string headingKey) &&
                     !string.Equals(previousHeadingKey, headingKey, StringComparison.Ordinal)) {
-                    content.Append(CreateIndexHeadingParagraph(headingText));
+                    result.Append(CreateIndexHeadingParagraph(headingText));
                     previousHeadingKey = headingKey;
                 }
 
-                AppendIndexNode(content, node, options.Separators);
+                AppendIndexNode(result, node, options.Separators);
             }
+            AppendGeneratedFieldResult(content, CreateIndexInstruction(options), result.Elements<Paragraph>(), noContentText);
         }
 
         private static void AppendIndexNode(SdtContentBlock content, IndexNode node, IndexSeparators separators) {

@@ -2010,7 +2010,23 @@ internal static partial class PdfPageXObjectInvocationParser {
     }
 }
 
-internal readonly struct PdfPageXObjectPaintState {
+internal readonly struct PdfPageXObjectPaintState : IEquatable<PdfPageXObjectPaintState> {
+    // The state keys Type 3 glyph and form caches; compare it field by field without boxing every field.
+    public bool Equals(PdfPageXObjectPaintState other) =>
+        Transform.Equals(other.Transform) &&
+        StrokeWidth.Equals(other.StrokeWidth) &&
+        Nullable.Equals(FillOpacity, other.FillOpacity) &&
+        Nullable.Equals(StrokeOpacity, other.StrokeOpacity) &&
+        Nullable.Equals(StrokeDashStyle, other.StrokeDashStyle) &&
+        Nullable.Equals(StrokeLineCap, other.StrokeLineCap) &&
+        Nullable.Equals(StrokeLineJoin, other.StrokeLineJoin) &&
+        EqualityComparer<PdfStrokeDashPattern?>.Default.Equals(StrokeDashPattern, other.StrokeDashPattern) &&
+        EqualityComparer<PdfPageClipPath?>.Default.Equals(ClipPath, other.ClipPath);
+
+    public override bool Equals(object? obj) => obj is PdfPageXObjectPaintState other && Equals(other);
+
+    public override int GetHashCode() => unchecked((Transform.GetHashCode() * 31) + Matrix2D.HashComponent(StrokeWidth));
+
     internal PdfPageXObjectPaintState(
         Matrix2D transform,
         PdfPageClipPath? clipPath,

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Core.Internal;
 
-/// <summary>Accessibility text rules shared by the Word and PowerPoint checkers.</summary>
+/// <summary>Accessibility text rules shared by the Word, PowerPoint and Excel checkers.</summary>
 internal static class OfficeAccessibilityText {
     private static readonly string[] VagueLinkLabels = { "click here", "here", "more", "link", "read more" };
 

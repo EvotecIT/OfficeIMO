@@ -35,10 +35,17 @@ internal static partial class MarkdownReader {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
-        var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedOptions = options.FrontMatter
             ? GetSharedOptionsWithoutFrontMatter(options, state)
             : options;
+        // A semantic parse reads the container's lines directly when joining and re-splitting
+        // them would give the same lines back.
+        string[]? preparedLines = state.CaptureSyntaxTree || state.CaptureBlockSourceSpans
+            ? null
+            : TryGetPreparedNestedLines(sourceLines, nestedOptions);
+        var markdown = preparedLines != null
+            ? string.Empty
+            : string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedState = CreateNestedState(state, options);
         nestedState.SuppressBlockGenericAttributes = suppressBlockGenericAttributes;
         nestedState.LastInputLineIsContent = true;
@@ -72,7 +79,7 @@ internal static partial class MarkdownReader {
         List<MarkdownSyntaxNode>? syntaxChildren = state.CaptureSyntaxTree
             ? new List<MarkdownSyntaxNode>()
             : null;
-        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false, preparedLines: preparedLines);
         if (syntaxChildren == null) {
             return (nestedDoc.Blocks, Array.Empty<MarkdownSyntaxNode>());
         }
@@ -83,6 +90,41 @@ internal static partial class MarkdownReader {
         MarkdownObjectTreeBinder.BindDocument(nestedDoc, remappedSyntaxTree);
         return (nestedDoc.Blocks, remappedSyntaxChildren);
     }
+
+    // The lines ParseInternal would split from the joined container text, or null when preparing
+    // that text could change it: tabs are expanded, line endings and a leading BOM are handled,
+    // pre-parse normalization rewrites text, and the limits must report on the joined input.
+    private static string[]? TryGetPreparedNestedLines(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownLoadOptions options) {
+        if (options.MaxNestingDepth < 1
+            || options.InputNormalization?.NormalizeCompactHeadingBoundaries == true
+            || CreatePreParseNormalizationOptions(options.InputNormalization) != null) {
+            return null;
+        }
+
+        var lines = new string[sourceLines.Count];
+        long joinedLength = Math.Max(0, sourceLines.Count - 1);
+        for (int index = 0; index < lines.Length; index++) {
+            string text = sourceLines[index].Text ?? string.Empty;
+            if (text.IndexOfAny(PreparedLineRejectedCharacters) >= 0) {
+                return null;
+            }
+
+            joinedLength += text.Length;
+            lines[index] = text;
+        }
+
+        if (joinedLength == 0
+            || (lines[0].Length > 0 && lines[0][0] == '\uFEFF')
+            || (options.MaxInputCharacters.HasValue && joinedLength > options.MaxInputCharacters.Value)) {
+            return null;
+        }
+
+        return lines;
+    }
+
+    private static readonly char[] PreparedLineRejectedCharacters = { '\t', '\r', '\n' };
 
     private static void EnsureNestingDepthAvailable(
         MarkdownReaderState state,
