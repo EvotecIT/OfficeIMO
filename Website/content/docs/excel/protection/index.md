@@ -2,6 +2,16 @@
 title: Protect Sheets and Workbooks
 description: Protect Excel worksheets and workbook structure, and encrypt workbooks with a password to open, using OfficeIMO.Excel and PSWriteOffice.
 order: 29
+packages:
+  - OfficeIMO.Excel
+cmdlets:
+  - Protect-OfficeDocument
+limits: "In PowerShell, `Get-OfficeDocumentCapability -Protection` lists the protection operations each format supports."
+search_terms:
+  - protect workbook
+  - password excel
+  - lock sheet
+verified: 2026-11-14
 ---
 
 Excel has two different kinds of protection, and they solve different problems:
@@ -88,9 +98,3 @@ Get-ChildItem .\Payroll -Filter *.xlsx |
 ```
 
 `Protect-OfficeDocument -Restriction ReadOnlyRecommended` marks a workbook as read-only recommended without encrypting it.
-
-## Limits and reference
-
-**Limits:** see the [Excel package row](/compatibility/#package-excel). In PowerShell, `Get-OfficeDocumentCapability -Protection` lists the protection operations each format supports.
-
-**Reference:** [OfficeIMO.Excel API](/api/excel/) · [Protect-OfficeDocument](/api/powershell/protect-officedocument/)
