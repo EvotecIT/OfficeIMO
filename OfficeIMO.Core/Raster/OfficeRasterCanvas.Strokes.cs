@@ -39,7 +39,7 @@ public sealed partial class OfficeRasterCanvas {
     internal void StrokeContours(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
         OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit,
         IReadOnlyList<double>? dashPattern, double dashOffset, Func<double, double, OfficeColor> paint,
-        bool resetDashPatternForEachSegment = false, bool hairline = false) {
+        bool resetDashPatternForEachSegment = false, bool hairline = false, bool fillDisjointGroups = false) {
         if (!IsFinite(width) || width <= 0D) return;
         if (hairline && TryStrokeDeviceHairline(contours, cap, join, miterLimit, dashPattern, dashOffset, OfficeTransform.Identity, paint)) return;
         width = AdjustStrokeWidth(width, DevicePixelsPerLogicalUnit, hairline);
@@ -48,7 +48,8 @@ public sealed partial class OfficeRasterCanvas {
             0D, 0D, Width / CoordinateScaleX, Height / CoordinateScaleY, _cancellationToken, resetDashPatternForEachSegment);
         var fillContours = new List<IReadOnlyList<OfficePoint>>(outlines.Count);
         foreach (List<OfficePoint> outline in outlines) fillContours.Add(outline);
-        FillContourPaint(fillContours, OfficeFillRule.NonZero, paint);
+        if (fillDisjointGroups) FillDisjointContourGroups(fillContours, OfficeFillRule.NonZero, paint);
+        else FillContourPaint(fillContours, OfficeFillRule.NonZero, paint);
     }
 
     private void StrokePolyline(IReadOnlyList<OfficePoint> points, OfficeColor color, double width,
