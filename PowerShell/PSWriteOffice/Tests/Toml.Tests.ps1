@@ -241,6 +241,30 @@ Describe 'Update-OfficeToml' {
         }
     }
 
+    It 'keeps a whole-number double a float' {
+        $document = Open-OfficeToml -Text "rate = 0.5`n"
+        try {
+            Update-OfficeToml -Document $document -MergePatch @{ rate = [double]1 }
+            $document.ToString() | Should -BeExactly "rate = 1.0`n"
+        } finally {
+            Close-OfficeToml -Document $document
+        }
+    }
+
+    It 'rejects NaN and infinity and leaves the document unchanged' {
+        $text = "rate = 0.5`n"
+        $document = Open-OfficeToml -Text $text
+        try {
+            foreach ($value in [double]::NaN, [double]::PositiveInfinity) {
+                Update-OfficeToml -Document $document -MergePatch @{ rate = $value } -ErrorAction SilentlyContinue -ErrorVariable failed
+                $failed[0].Exception | Should -BeOfType ([ArgumentException])
+                $document.ToString() | Should -BeExactly $text
+            }
+        } finally {
+            Close-OfficeToml -Document $document
+        }
+    }
+
     It 'writes a toml-patch-failed error and leaves the document unchanged for a null value' {
         $text = "name = `"demo`"`n"
         $document = Open-OfficeToml -Text $text

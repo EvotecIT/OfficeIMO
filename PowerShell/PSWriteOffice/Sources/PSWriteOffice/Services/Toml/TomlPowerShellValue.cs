@@ -105,9 +105,17 @@ internal static class TomlPowerShellValue {
             case long number:
                 json.Append(number.ToString(CultureInfo.InvariantCulture));
                 return;
-            case double number when !double.IsNaN(number) && !double.IsInfinity(number):
-                json.Append(number.ToString("R", CultureInfo.InvariantCulture));
+            case double number: {
+                // JSON has no NaN or infinity, and quoting them would turn a number into a string.
+                if (double.IsNaN(number) || double.IsInfinity(number)) {
+                    throw new ArgumentException("A TOML patch value cannot be NaN or infinity; JSON has no such numbers.");
+                }
+                string digits = number.ToString("R", CultureInfo.InvariantCulture);
+                json.Append(digits);
+                // A whole double keeps a fraction, so the patch writes a float rather than an integer.
+                if (digits.IndexOfAny(FloatMarkers) < 0) json.Append(".0");
                 return;
+            }
             case Dictionary<string, object?> members: {
                 json.Append('{');
                 bool first = true;
@@ -141,6 +149,8 @@ internal static class TomlPowerShellValue {
                 return;
         }
     }
+
+    private static readonly char[] FloatMarkers = { '.', 'e', 'E' };
 
     private static void WriteJsonString(StringBuilder json, string text) {
         json.Append('"');
