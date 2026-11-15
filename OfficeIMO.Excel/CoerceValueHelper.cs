@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel;
 
@@ -153,7 +154,7 @@ internal static class CoerceValueHelper {
         ReferenceEquals(dateTimeOffsetStrategy, DateTimeOffsetTextStrategy);
 
     /// <summary>The text written for a DateTimeOffset kept as text: ISO 8601 with every fractional digit and the offset.</summary>
-    internal static string FormatDateTimeOffsetText(DateTimeOffset value) => value.ToString("o", CultureInfo.InvariantCulture);
+    internal static string FormatDateTimeOffsetText(DateTimeOffset value) => OfficeRoundTripText.FormatRoundTripPattern(value);
 
     /// <summary>Returns the exact text for a decimal or 64-bit integer that has more than 15 significant digits.</summary>
     internal static bool TryGetWideNumberText(object? value, out string text) {

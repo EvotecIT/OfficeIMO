@@ -31,6 +31,7 @@ namespace OfficeIMO.CSV.Benchmarks;
 public class CsvDbatoolsExportBenchmarks {
     private const string DateFormat = "yyyy-MM-dd HH:mm:ss.fffffff";
     private const string ExpectedDate = "2026-07-08 00:00:00.0000000";
+    private const string DefaultDate = "2026-07-08T00:00:00";
     private const int WriteBufferSize = 64 * 1024;
     private static readonly string[] Columns = ["Id", "DisplayName", "Score", "CreatedUtc"];
 
@@ -44,6 +45,9 @@ public class CsvDbatoolsExportBenchmarks {
 
     [GlobalSetup(Targets = [nameof(OfficeIMO_DataReader)])]
     public void SetupOfficeIMO() => SetupWrite(nameof(OfficeIMO_DataReader), OfficeIMO_DataReader);
+
+    [GlobalSetup(Targets = [nameof(OfficeIMO_DataReaderDefaultFormat)])]
+    public void SetupOfficeIMODefaultFormat() => SetupWrite(nameof(OfficeIMO_DataReaderDefaultFormat), OfficeIMO_DataReaderDefaultFormat, DefaultDate);
 
     [GlobalSetup(Targets = [nameof(OfficeIMO_PassThroughDataReader)])]
     public void SetupOfficeIMOPassThrough() => SetupWrite(nameof(OfficeIMO_PassThroughDataReader), OfficeIMO_PassThroughDataReader);
@@ -92,6 +96,18 @@ public class CsvDbatoolsExportBenchmarks {
     [Benchmark(Baseline = true)]
     public long OfficeIMO_DataReader() {
         using (var writer = CsvRowWriter.CreateFile(_writePath, CreateOfficeOptions(), append: false, bufferSize: WriteBufferSize)) {
+            writer.WriteDataReader(new ExportShapeDataReader(RowCount));
+        }
+
+        return new FileInfo(_writePath).Length;
+    }
+
+    /// <summary>The same export with the default round-trip date text instead of the explicit format.</summary>
+    [Benchmark]
+    public long OfficeIMO_DataReaderDefaultFormat() {
+        CsvSaveOptions options = CreateOfficeOptions();
+        options.DateTimeFormat = null;
+        using (var writer = CsvRowWriter.CreateFile(_writePath, options, append: false, bufferSize: WriteBufferSize)) {
             writer.WriteDataReader(new ExportShapeDataReader(RowCount));
         }
 
@@ -239,14 +255,14 @@ public class CsvDbatoolsExportBenchmarks {
         };
     }
 
-    private void SetupWrite(string lane, Func<long> write) {
+    private void SetupWrite(string lane, Func<long> write, string expectedDate = ExpectedDate) {
         Initialize();
         write();
-        ValidateExport(lane, _writePath, RowCount);
+        ValidateExport(lane, _writePath, RowCount, expectedDate);
     }
 
     /// <summary>Applies the DbaClientX export benchmark's file check to every row.</summary>
-    private static void ValidateExport(string lane, string path, int rowCount) {
+    private static void ValidateExport(string lane, string path, int rowCount, string expectedDate) {
         int rows = 0;
         using (var reader = new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true)) {
             string? line;
@@ -259,7 +275,7 @@ public class CsvDbatoolsExportBenchmarks {
                 if (fields[1] != "Row " + fields[0]) throw new InvalidOperationException($"{lane}: row {id} has DisplayName '{fields[1]}'.");
                 string expectedScore = ExportShapeDataReader.Score(id).ToString("0.00", CultureInfo.InvariantCulture);
                 if (fields[2] != expectedScore) throw new InvalidOperationException($"{lane}: row {id} has Score '{fields[2]}', expected '{expectedScore}'.");
-                if (fields[3] != ExpectedDate) throw new InvalidOperationException($"{lane}: row {id} has CreatedUtc '{fields[3]}'.");
+                if (fields[3] != expectedDate) throw new InvalidOperationException($"{lane}: row {id} has CreatedUtc '{fields[3]}'.");
                 rows++;
             }
         }
