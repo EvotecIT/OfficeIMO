@@ -1,3 +1,5 @@
+using System.Text;
+using Microsoft.Extensions.Configuration;
 using OfficeIMO;
 using OfficeIMO.Toml;
 
@@ -54,6 +56,13 @@ try {
     new TomlSerializerOptions().GetTypeInfo(typeof(Manifest));
     throw new InvalidOperationException("Options without a resolver created metadata.");
 } catch (NotSupportedException exception) when (exception.Message.Contains("TomlSerializerContext", StringComparison.Ordinal)) {
+}
+
+// The configuration provider: tables, dotted keys and arrays of tables flattened with ':', numbers written so they bind.
+using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("[Api]\nlimits.max = 0xFF\nStarted = 2024-05-01 08:30:00Z\n[[Api.Hosts]]\nName = \"a\"\n"))) {
+    IConfigurationRoot settings = new ConfigurationBuilder().AddTomlStream(stream).Build();
+    Require(settings["Api:Limits:Max"] == "255" && settings["api:hosts:0:name"] == "a" && settings["Api:Started"] == "2024-05-01T08:30:00Z",
+        "The configuration provider read unexpected values.");
 }
 
 Console.WriteLine("OfficeIMO.Toml NativeAOT smoke passed.");

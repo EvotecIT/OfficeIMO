@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 351,
-    "productionComponentCount": 167,
-    "testProjectCount": 67,
+    "projectCount": 355,
+    "productionComponentCount": 169,
+    "testProjectCount": 69,
     "benchmarkProjectCount": 43,
     "validationProjectCount": 75,
     "apiReferenceCount": 129,
-    "conceptualPageCount": 210,
-    "conceptualWordCount": 118576
+    "conceptualPageCount": 212,
+    "conceptualWordCount": 119374
   },
   "categories": [
     {
@@ -55,7 +55,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 39,
+      "componentCount": 41,
       "componentIndexes": [
         1,
         10,
@@ -90,12 +90,14 @@
         103,
         147,
         148,
-        150,
+        149,
         151,
-        162,
+        152,
         163,
         164,
-        165
+        165,
+        166,
+        167
       ]
     },
     {
@@ -146,21 +148,21 @@
         97,
         98,
         99,
-        152,
         153,
         154,
         155,
         156,
         157,
         158,
-        159
+        159,
+        160
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        166
+        168
       ]
     },
     {
@@ -228,9 +230,9 @@
         144,
         145,
         146,
-        149,
-        160,
-        161
+        150,
+        161,
+        162
       ]
     }
   ],
@@ -1888,7 +1890,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1750,
+      "sourceFileCount": 1755,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -3008,6 +3010,25 @@
       ]
     },
     {
+      "name": "OfficeIMO.Toml.Configuration",
+      "packageId": "OfficeIMO.Toml.Configuration",
+      "category": "Formats and interoperability",
+      "description": "TOML configuration provider for Microsoft.Extensions.Configuration, built on the OfficeIMO.Toml engine: AddTomlFile and AddTomlStream with TOML 1.1 tables, arrays of tables, ISO 8601 date-times and positioned errors.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Toml.Configuration/OfficeIMO.Toml.Configuration.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/toml/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml.Configuration",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
       "name": "OfficeIMO.Toml.SourceGeneration",
       "packageId": "OfficeIMO.Toml.SourceGeneration",
       "category": "Formats and interoperability",
@@ -3318,6 +3339,25 @@
       "docsUrl": "/docs/yaml/",
       "apiUrl": "/api/yaml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Yaml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Yaml.Configuration",
+      "packageId": "OfficeIMO.Yaml.Configuration",
+      "category": "Formats and interoperability",
+      "description": "YAML configuration provider for Microsoft.Extensions.Configuration, built on the OfficeIMO.Yaml engine: AddYamlFile and AddYamlStream with merge keys, aliases and positioned errors.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Yaml.Configuration/OfficeIMO.Yaml.Configuration.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/yaml/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Yaml.Configuration",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",

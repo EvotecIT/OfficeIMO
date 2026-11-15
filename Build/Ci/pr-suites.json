@@ -323,11 +323,13 @@
       "OfficeIMO.Reader.Tests",
       "OfficeIMO.Shared.Tests",
       "OfficeIMO.Tests",
+      "OfficeIMO.Toml.Configuration.Tests",
       "OfficeIMO.Toml.Tests",
       "OfficeIMO.Tool.Tests",
       "OfficeIMO.VerifyTests",
       "OfficeIMO.Visio.Tests",
       "OfficeIMO.Xps.Tests",
+      "OfficeIMO.Yaml.Configuration.Tests",
       "OfficeIMO.Yaml.Tests"
     ]
   },
@@ -477,6 +479,10 @@
       "project": "OfficeIMO.Toml.Tests/OfficeIMO.Toml.Tests.csproj"
     },
     {
+      "name": "Toml-Configuration",
+      "project": "OfficeIMO.Toml.Configuration.Tests/OfficeIMO.Toml.Configuration.Tests.csproj"
+    },
+    {
       "name": "Visio",
       "project": "OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj"
     },
@@ -487,6 +493,10 @@
     {
       "name": "Yaml",
       "project": "OfficeIMO.Yaml.Tests/OfficeIMO.Yaml.Tests.csproj"
+    },
+    {
+      "name": "Yaml-Configuration",
+      "project": "OfficeIMO.Yaml.Configuration.Tests/OfficeIMO.Yaml.Configuration.Tests.csproj"
     }
   ]
 }

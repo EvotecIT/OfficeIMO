@@ -1,3 +1,5 @@
+using System.Text;
+using Microsoft.Extensions.Configuration;
 using OfficeIMO;
 using OfficeIMO.Yaml;
 
@@ -53,6 +55,13 @@ try {
     new YamlSerializerOptions().GetTypeInfo(typeof(ServiceConfig));
     throw new InvalidOperationException("Options without a resolver created metadata.");
 } catch (NotSupportedException exception) when (exception.Message.Contains("YamlSerializerContext", StringComparison.Ordinal)) {
+}
+
+// The configuration provider: keys flattened with ':', merge keys resolved and scalar spellings kept.
+using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("base: &b {Timeout: 30}\nApi:\n  <<: *b\n  Hosts: [a, b]\n  Enabled: TRUE\n"))) {
+    IConfigurationRoot settings = new ConfigurationBuilder().AddYamlStream(stream).Build();
+    Require(settings["Api:Timeout"] == "30" && settings["api:hosts:1"] == "b" && settings["Api:Enabled"] == "TRUE",
+        "The configuration provider read unexpected values.");
 }
 
 Console.WriteLine("OfficeIMO.Yaml NativeAOT smoke passed.");
