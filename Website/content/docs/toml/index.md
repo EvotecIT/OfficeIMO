@@ -15,6 +15,7 @@ cmdlets:
 related:
   - /docs/toml/read-typed/
   - /docs/toml/edit-write/
+  - /docs/toml/configuration/
   - /docs/data-conversions/
   - /docs/yaml/
 limits: TomlLoadOptions bound depth (256), nodes (1,000,000) and string length (16 MiB) by default; UntrustedDefaults lowers them to depth 64, 200,000 nodes, 1 MiB strings and 16 MiB of input.

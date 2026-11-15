@@ -604,7 +604,7 @@ When default managed OpenType shaping accepts a complete run, `PdfDocument.Analy
 
 Canonical font-aware normalization retains each complete original Unicode source cluster once. Arabic mark ordering preserves joining controls and CGJ boundaries; retained nonpainting controls have zero advance and verified blank outlines. Native-compatible composition can use a covered composite across a lower-class intervening mark, which differs from UAX #53's adjacent-only recomposition guidance. Supported positioning can legitimately leave a zero-advance mark at its nominal font position when the font supplies no applicable parent anchor; no anchor is invented.
 
-The static multilingual profile declines cursive attachment, device-dependent or variable anchors, feature variations, variation selectors, Indic and Southeast Asian syllable shaping, and true vertical glyph layout. Keep a full OpenType provider such as the optional `OfficeIMO.Drawing.HarfBuzz` adapter when those operations are needed. These limits are separate from the font loader's broader TrueType, CFF/CFF2 and variation support. Inspect conversion diagnostics and use a strict no-loss policy when approximated fallback is unacceptable.
+The static multilingual profile declines device-dependent or variable anchors, feature variations, variation selectors, Indic and Southeast Asian syllable shaping, and true vertical glyph layout. Keep a full OpenType provider such as the optional `OfficeIMO.Drawing.HarfBuzz` adapter when those operations are needed. These limits are separate from the font loader's broader TrueType, CFF/CFF2 and variation support. Inspect conversion diagnostics and use a strict no-loss policy when approximated fallback is unacceptable.
 
 See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust) for supported substitutions and limits, and the [shared managed shaping contract](../OfficeIMO.Core/README.md#managed-multilingual-shaping) for source-cluster and provider behavior.
 
@@ -1841,7 +1841,21 @@ string text = document.Read().Text;
 
 Reading supports `/SubFilter` `adbe.pkcs7.s3` and `adbe.pkcs7.s4` (RC4, `/V` 1 and 2) and `adbe.pkcs7.s5` with a crypt filter (`/V 4` with RC4 or AESV2, `/V 5` with AESV3), including `/EncryptMetadata false`. Several certificates can be passed; each is tried against every recipient entry. The matched recipient's permission bits become `PdfDocumentSecurityInfo.EncryptionPermissions` and are enforced like user-password permissions, with `PasswordAuthenticationRole` set to `PublicKeyRecipient`. A recipient never has owner authorization, so removing or replacing the encryption is refused.
 
-Failures are typed: `PdfRecipientCertificateRequiredException` when no `PublicKeyDecryption` was supplied, `PdfRecipientNotFoundException` when no certificate matches a recipient, `PdfRecipientDecryptionException` when a matching entry cannot be decrypted (for example, the certificate has no private key), and `PdfUnsupportedEncryptionException` for other sub-filters, `/V` and crypt-method combinations, different crypt filters for streams and strings or for embedded files, crypt filter and document `/Length` values that disagree, AES-GCM (`/V 6`), or recipient data that is not a 20-byte seed plus 4 permission bytes. Writing certificate-encrypted PDFs is not supported yet.
+Failures are typed: `PdfRecipientCertificateRequiredException` when no `PublicKeyDecryption` was supplied, `PdfRecipientNotFoundException` when no certificate matches a recipient, `PdfRecipientDecryptionException` when a matching entry cannot be decrypted (for example, the certificate has no private key), and `PdfUnsupportedEncryptionException` for other sub-filters, `/V` and crypt-method combinations, different crypt filters for streams and strings or for embedded files, crypt filter and document `/Length` values that disagree, AES-GCM (`/V 6`), or recipient data that is not a 20-byte seed plus 4 permission bytes.
+
+To encrypt a PDF for recipients, pass their certificates; only the public keys are needed. Every recipient gets the same permissions, and the file is written as `adbe.pkcs7.s5` with an AES-256 (`AESV3`) crypt filter.
+
+```csharp
+using X509Certificate2 alice = X509CertificateLoader.LoadCertificateFromFile("alice.cer");
+using X509Certificate2 bob = X509CertificateLoader.LoadCertificateFromFile("bob.cer");
+PdfSecurityMutationResult encrypted = PdfDocument.Load("report.pdf").Security.EncryptForRecipients(
+    new PdfPublicKeyEncryptionOptions(OfficeSecurityProvider.Default, new[] { alice, bob }) {
+        AllowedPermissions = PdfStandardPermissions.All & ~PdfStandardPermissions.ModifyContents
+    });
+File.WriteAllBytes("report-for-recipients.pdf", encrypted.Pdf);
+```
+
+`OfficeIMO.Security` builds one CMS EnvelopedData for all recipients; it supports RSA recipient certificates (key transport). The rewrite is checked by reopening it with the seed OfficeIMO generated, so no private key is needed to encrypt. Rewriting a recipient-opened PDF while keeping its recipients is not supported yet.
 
 ### Viewing protected PDFs
 
@@ -1897,7 +1911,50 @@ PdfSignatureValidationReport report = signed.ToDocument().Security.ValidateSigna
 
 Set `SubFilter = PdfExternalSignatureSubFilter.CadesDetached` in the signature options for PAdES B-B. The built-in signer emits signing-certificate-v2 and omits CMS signing-time for that subfilter. Both RSA and ECDSA certificates are supported. For B-T, set `CmsSigningOptions.SignatureTimestampProvider` to an RFC 3161 token provider, such as `Rfc3161TimestampClient.GetTimestamp`; its transport and trust policy belong to the caller. Document timestamps use a separate RFC 3161 signer.
 
-Text appearances require an explicit `PdfVisibleSignatureAppearanceOptions.Font` containing an embedded TrueType font. Image-only appearances do not require it. `PdfLongTermValidationEnricher.EnrichAsync` can merge caller-supplied certificates, OCSP responses and CRLs with an optional caller-owned fetcher. DSS/VRI presence alone does not establish complete trusted B-LT validation.
+Text appearances require an explicit `PdfVisibleSignatureAppearanceOptions.Font` containing an embedded TrueType font. Image-only appearances do not require it.
+
+#### Long-term validation, revocation and PAdES levels
+
+`PdfLongTermValidationEnricher.FetchAndEnrichAsync` turns a B-T signature into B-LT. It builds the signer and signature time-stamp authority paths, fetches an OCSP response (or a CRL when no responder answers) for every issued certificate, and appends the responses and path certificates as a DSS/VRI revision. Adding a document time-stamp afterwards gives B-LTA.
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Security;
+
+var cryptography = new PdfCmsSignatureCryptographyProvider(OfficeSecurityProvider.Default, new CmsVerificationOptions());
+using var fetcher = new CertificateRevocationFetcher();
+
+int signature = PdfDocument.Load(signedPdf).Security.ValidateSignatures(cryptography).Signatures[0].Signature.ObjectNumber;
+PdfLongTermValidationEnrichmentResult longTerm =
+    await PdfLongTermValidationEnricher.FetchAndEnrichAsync(signedPdf, signature, cryptography, fetcher);
+
+foreach (PdfSignatureValidationResult result in longTerm.ValidationAfter.Signatures) {
+    Console.WriteLine($"{result.Signature.FieldName}: {result.PadesLevel}, revocation {result.CryptographicResult?.RevocationStatus}");
+}
+```
+
+`CertificateRevocationFetcher` uses only http and https locations from the certificates' authority information access and CRL distribution points, connects directly without a proxy, limits each exchange to `Timeout` (15 seconds) and `MaxResponseBytes` (32 MiB), and caches each response until its `nextUpdate`. Those locations come from the document being processed, so loopback, private, link-local and other non-public addresses are refused unless `AllowNonPublicAddresses` is set for an internal PKI. On .NET 8 and later the address is checked when the connection is made; on older frameworks the request is sent to the checked address and https locations are refused. Fetch problems are listed in `FetchFindings`. Any `ICertificateRevocationFetcher` can replace it, and `EnrichAsync` still accepts caller-supplied evidence.
+
+Validation reads revocation data from the document. `PdfCmsSignatureCryptographyProvider.RevocationPolicy` chooses the source:
+
+| Policy | Revocation data used |
+| --- | --- |
+| `EmbeddedOnly` (default) | DSS/VRI values and revocation data inside the CMS signature (CMS `crls` and the Adobe revocation-information archival attribute). Never contacts the network. |
+| `EmbeddedThenOnline` | Embedded data first; certificates it does not settle are fetched through `RevocationFetcher`. |
+| `Online` | Freshly fetched data only, through `RevocationFetcher`. |
+
+The signer path is checked at the time of the earliest valid signature time-stamp, so a certificate that expired or was revoked after that time-stamp does not invalidate the signature; revocation before the time-stamp does, even when it happened after signing. Time-stamp authority paths are checked at their generation time. An OCSP response or CRL counts when its signature verifies against the issuer or a delegated OCSP responder, its validity window covers the checked time or it was issued later, and its signer was valid when it was produced. When the OCSP responder or CRL issuer certificate has since expired, the data still counts if a valid document time-stamp covers the revision that holds it. Revocation is reported per certificate as findings; `RevocationStatus` is `Invalid` when a certificate was revoked before the checked time and `Indeterminate`, with the reason, when no usable data exists. Revoked signatures clear `CryptographicTrustVerified`.
+
+`PdfSignatureValidationResult.PadesLevel` reports the PAdES baseline level that validation established:
+
+| Level | Requires |
+| --- | --- |
+| `BaselineB` | `ETSI.CAdES.detached`, valid signature math and digest, ESS signing-certificate-v2 |
+| `BaselineT` | B-B plus a valid signature time-stamp or a valid later document time-stamp |
+| `BaselineLT` | B-T plus valid revocation status for every signer and time-stamp authority certificate, settled by DSS data |
+| `BaselineLTA` | B-LT plus a valid document time-stamp covering the DSS data used |
+
+When a level is not reached, the signature's findings include `pades-baseline-b-not-reached`, `pades-baseline-t-not-reached`, `pades-baseline-lt-not-reached` or `pades-baseline-lta-not-reached` with the reason. Trust anchors come from `CmsVerificationOptions.CertificateValidation`; EU trusted lists are not consulted.
 
 The PDF package owns byte ranges, incremental updates, signature dictionaries, and preservation policy. The optional provider owns CMS, timestamps, and certificate trust. A custom `IPdfExternalSigner` or `IPdfSignatureCryptographyProvider` remains valid without `OfficeIMO.Security`. Authenticated encrypted signing appends a revision while retaining the original bytes and encryption. Signature metadata and visible appearances are encrypted; the detached CMS `/Contents` remains unencrypted as required by the PDF format. The optional appearance image is visual content only; certificate validation remains the source of signer identity. Set `ShowText`, `ShowBackground`, and `ShowBorder` to `false` for an image-only appearance. Existing appearances retain their background and border because both new visibility options default to `true`.
 

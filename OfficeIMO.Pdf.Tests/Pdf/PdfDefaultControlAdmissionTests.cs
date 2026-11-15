@@ -122,15 +122,21 @@ public class PdfDefaultControlAdmissionTests {
     }
 
     [Fact]
-    public void UnqualifiedCarlitoFilteringStillDeclinesCompleteControls() {
+    public void CarlitoMarkAttachmentFilteringAdmitsCompleteControls() {
+        // Carlito's ccmp lookups filter by mark attachment type without a MarkAttachClassDef,
+        // so they skip every mark; the control keeps its own zero-advance blank glyph.
         byte[] data = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
         const string text = "A\u200EA";
-        var font = PdfTrueTypeFontProgram.Parse(data, "Unqualified filtering");
-        Assert.Null(OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
-            text, font.FontName, data, false, font.UnitsPerEm, OfficeTextDirection.Auto, null, default,
-            fontCollectionIndex: null, variationCoordinates: null, cloneFontData: true, applyDefaultLatinLigatures: true)));
-        Assert.Throws<ArgumentException>(() => font.ShapeText(text,
-            PdfTextShapingOptions.ForRendering(font.FontName, PdfTextShapingMode.OpenTypeLigatures)));
+        var font = PdfTrueTypeFontProgram.Parse(data, "Attachment filtering");
+        OfficeTextShapingResult result = Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest(text, font.FontName, data, false, font.UnitsPerEm, OfficeTextDirection.Auto, null, default,
+                fontCollectionIndex: null, variationCoordinates: null, cloneFontData: true, applyDefaultLatinLigatures: true)));
+        Assert.Equal(new[] { 0, 1, 2 }, result.Glyphs.Select(glyph => glyph.TextIndex));
+        Assert.Equal(0, result.Glyphs[1].AdvanceWidth);
+        Assert.Equal(result.Glyphs[0].GlyphId, result.Glyphs[2].GlyphId);
+        PdfGlyphRun run = font.ShapeText(text, PdfTextShapingOptions.ForRendering(font.FontName, PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(result.Glyphs.Select(glyph => glyph.GlyphId), run.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Empty(run.Diagnostics);
     }
 
     [Theory]

@@ -1091,6 +1091,19 @@ OfficeIMO.Pdf.PdfDocumentRedactions.ApplyForSharing(OfficeIMO.Pdf.PdfRedactionPl
 OfficeIMO.Pdf.PdfRedactionShareableSummary.RemovedHiddenDataCount.get -> int?
 OfficeIMO.Pdf.PdfRedactionSharingResult.HiddenData.get -> OfficeIMO.OfficeHiddenDataResult!
 OfficeIMO.Pdf.PdfAConversionRefusalReason.EmbeddedFileRequired = 22 -> OfficeIMO.Pdf.PdfAConversionRefusalReason
+OfficeIMO.Pdf.PdfLongTermValidationEnrichmentResult.FetchFindings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Security.SecurityFinding!>!
+OfficeIMO.Pdf.PdfPadesLevel
+OfficeIMO.Pdf.PdfPadesLevel.BaselineB = 1 -> OfficeIMO.Pdf.PdfPadesLevel
+OfficeIMO.Pdf.PdfPadesLevel.BaselineLT = 3 -> OfficeIMO.Pdf.PdfPadesLevel
+OfficeIMO.Pdf.PdfPadesLevel.BaselineLTA = 4 -> OfficeIMO.Pdf.PdfPadesLevel
+OfficeIMO.Pdf.PdfPadesLevel.BaselineT = 2 -> OfficeIMO.Pdf.PdfPadesLevel
+OfficeIMO.Pdf.PdfPadesLevel.None = 0 -> OfficeIMO.Pdf.PdfPadesLevel
+OfficeIMO.Pdf.PdfSignatureValidationResult.PadesLevel.get -> OfficeIMO.Pdf.PdfPadesLevel
+static OfficeIMO.Pdf.PdfLongTermValidationEnricher.FetchAndEnrichAsync(byte[]! pdf, int signatureObjectNumber, OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider! cryptographyProvider, OfficeIMO.Security.ICertificateRevocationFetcher! fetcher, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Pdf.PdfLongTermValidationEnrichmentResult!>!
+OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider.RevocationFetcher.get -> OfficeIMO.Security.ICertificateRevocationFetcher?
+OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider.RevocationFetcher.init -> void
+OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider.RevocationPolicy.get -> OfficeIMO.Security.CertificateRevocationPolicy
+OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider.RevocationPolicy.init -> void
 OfficeIMO.Pdf.PdfReadLimitKind.GraphicsStateDepth = 55 -> OfficeIMO.Pdf.PdfReadLimitKind
 OfficeIMO.Pdf.PdfReadLimits.MaxGraphicsStateDepth.get -> int
 OfficeIMO.Pdf.PdfReadLimits.MaxGraphicsStateDepth.init -> void
@@ -1145,5 +1158,17 @@ OfficeIMO.Pdf.PdfRecipientDecryptionException
 OfficeIMO.Pdf.PdfRecipientDecryptionException.PdfRecipientDecryptionException(string! message) -> void
 OfficeIMO.Pdf.PdfRecipientNotFoundException
 OfficeIMO.Pdf.PdfRecipientNotFoundException.PdfRecipientNotFoundException(string! message) -> void
+OfficeIMO.Pdf.PdfDocumentSecurity.EncryptForRecipients(OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions! encryption) -> OfficeIMO.Pdf.PdfSecurityMutationResult!
+OfficeIMO.Pdf.PdfDocumentSecurity.EncryptForRecipients(OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions! encryption, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Pdf.PdfSecurityMutationResult!
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.PdfPublicKeyEncryptionOptions(OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Collections.Generic.IEnumerable<System.Security.Cryptography.X509Certificates.X509Certificate2!>! recipientCertificates) -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.PdfPublicKeyEncryptionOptions(OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! recipientCertificate) -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.RecipientCount.get -> int
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AllowedPermissions.get -> OfficeIMO.Pdf.PdfStandardPermissions
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AllowedPermissions.set -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.EncryptMetadata.get -> bool
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.EncryptMetadata.set -> void
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.get -> OfficeIMO.Security.IOfficeAesCryptographyProvider?
+OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.set -> void
 OfficeIMO.Pdf.PdfReadLimits.MaxClippingIntersectionWorkPerPage.get -> long
 OfficeIMO.Pdf.PdfReadLimits.MaxClippingIntersectionWorkPerPage.init -> void

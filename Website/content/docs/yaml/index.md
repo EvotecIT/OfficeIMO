@@ -35,7 +35,7 @@ It has four entry points:
 | `YamlReader` | Read events forward-only, without allocating per event. |
 | `YamlWriter` | Emit YAML forward-only with deterministic output. |
 
-The task guides cover [typed reading](/docs/yaml/read-typed/), [editing and merging](/docs/yaml/edit-merge/) and [writing](/docs/yaml/write/).
+The task guides cover [typed reading](/docs/yaml/read-typed/), [editing and merging](/docs/yaml/edit-merge/), [writing](/docs/yaml/write/) and [YAML configuration files](/docs/yaml/configuration/) for `Microsoft.Extensions.Configuration`.
 
 ## Load a YAML file and read values
 

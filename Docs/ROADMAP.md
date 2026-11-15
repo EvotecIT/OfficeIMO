@@ -629,7 +629,7 @@ Encryption, RAR, 7z/LZMA, XZ, Zstandard, Brotli, split archives and installer ex
 - [ ] Resolve external manifests on request. Follow `c2pa-manifest` references (HTML links, XMP `dcterms:provenance`, HTTP `Link` headers) in .NET and the CLI only behind an explicit option with host, size, redirect and time limits, and describe the fetched store with the same summary. The browser tool stays offline and keeps showing the reference without fetching it.
 - [ ] Keep and add Content Credentials when OfficeIMO changes a file. Today conversion and editing either keep a record untouched or strip it on request. Add an opt-in path that carries the source manifest forward as an ingredient and appends a new manifest (`c2pa.converted`, `c2pa.edited`, `c2pa.redacted`, with OfficeIMO as the software agent) signed with a caller-supplied certificate, starting with PDF and the image owners that already write carriers. Qualify the output with the reference SDK before any surface offers it.
 - [ ] Recognize other documented AI-disclosure signals alongside IPTC digital source types, such as vendor XMP fields and PNG/EXIF text labels, only where the field is publicly specified and can be removed or preserved safely by the format owner. Present each as a declaration, never as detection.
-- [ ] Write PDFs encrypted for certificate recipients (public-key security handler, `adbe.pkcs7.s5` with AESV3, one envelope per permission set) through the `IOfficeSecurityProvider` CMS envelope, and qualify authenticated rewrites of recipient-opened PDFs so they keep the source recipients. Reading is done (`PdfLoadOptions.PublicKeyDecryption`); confirm output against an independent reader such as pyHanko or PDFBox.
+- [ ] Qualify authenticated rewrites of recipient-opened PDFs so they keep the source recipients, and add per-recipient permission sets (one envelope per permission set) to certificate encryption. Confirm `Security.EncryptForRecipients(PdfPublicKeyEncryptionOptions)` output in an independent reader such as pyHanko or PDFBox.
 - [ ] Add legacy encrypted-DOC import and additional legacy ODF encryption profiles only with external producer corpora, explicit password/key and resource policies, dependency-free format ownership, and fail-safe preservation evidence.
 - [ ] Materialize encrypted OneNote revisions only after the producer corpus, key-acquisition contract, dependency-chain semantics, and safe partial-result policy are defined. Until then, any encrypted current revision or dependency must fail closed without older-plaintext fallback.
 - [ ] Extend ODF and EPUB signature interoperability beyond the bounded OfficeIMO XML package-manifest profile only with independent producer corpora, explicit trust policy, mutation/invalidation rules, and deterministic validation evidence.
@@ -898,19 +898,19 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 `OfficeIMO.Yaml` is the owned YAML 1.2 engine; the [YAML engine design](officeimo.yaml-engine-design.md) and the [package README](../OfficeIMO.Yaml/README.md) own its current contract. Open work:
 
 - [ ] Finish the [structured-data conversion](officeimo.data-conversions-design.md) routes. JSON, JSON Lines, YAML, TOML, XML, CSV, TSV and worksheet conversions ship in `OfficeIMO.Data.Conversions`; remaining: Windows and Linux benchmark evidence alongside macOS.
-- [ ] Publish the comparison results for parse-to-events, load-to-model and the serializer against YamlDotNet and SharpYaml, with Windows, Linux and macOS runs, in the design's [performance section](officeimo.yaml-engine-design.md#performance).
+- [ ] Collect full `yaml` comparison runs on Windows, Linux and macOS (`./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload yamlparse,yamlload,yamlloadsave,yamledit,yamlemit,yamlserialize,yamldeserialize -RunMode full -Publish`), merge them into the catalog and record the results in the design's [measured results](officeimo.yaml-engine-design.md#measured-results).
 
 ## TOML engine
 
 `OfficeIMO.Toml` reads, edits and writes TOML 1.1 losslessly and passes the whole toml-test 2.2.0 suite for TOML 1.1; `OfficeIMO.Reader.Toml` ingests TOML files. The [TOML engine design](officeimo.toml-engine-design.md) owns the architecture. Open work:
 
-- [ ] Windows and Linux benchmark evidence that OfficeIMO.Toml leads Tomlyn on parse and load time and allocation on every workload, alongside the [macOS evidence](officeimo.toml-engine-design.md#performance).
+- [ ] Collect full `toml` comparison runs on Windows, Linux and macOS against Tomlyn 2.11.1, Tomlet and CsToml (`-Workload tomlparse,tomlload,tomlloadsave,tomldeserialize,tomlserialize -RunMode full -Publish`), merge them into the catalog and refresh the design's [performance tables](officeimo.toml-engine-design.md#performance), which were measured on macOS against Tomlyn 2.10.1.
 
 ## Managed complex-script shaping
 
 Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and vertical text no longer depend on the optional HarfBuzz adapter. HarfBuzzSharp ships native assets only for Windows, Linux, macOS and WebAssembly, so iOS, Android, trimmed and NativeAOT hosts currently fall back for these scripts. A single managed provider also gives identical glyph output on every platform. `OfficeIMO.Drawing.HarfBuzz` remains the optional provider for AAT and Graphite fonts.
 
-- [ ] Support all GSUB/GPOS lookup flags, including ignore-marks and mark-filtering sets, plus complete mark-to-base, mark-to-ligature and mark-to-mark positioning.
+- [ ] Give nested contextual lookups that match further glyphs (ligatures, nested contexts) their own lookup flags when those differ from the calling lookup, and apply lookup flags on the default Latin ligature path for runs without marks. Both currently decline.
 - [ ] Shape Hebrew, Thai and Lao, then add the Indic shaper, the Universal Shaping Engine, Myanmar and Khmer.
 - [ ] Shape vertical text with `vert`/`vrt2` substitutions and vertical metrics, so Drawing and PDF paint positioned vertical glyphs without the HarfBuzz adapter.
 - [ ] Qualify each script against HarfBuzz glyph IDs, clusters and positions over a provenance-recorded font and text corpus, and remove each script from the managed decline list only after it matches.

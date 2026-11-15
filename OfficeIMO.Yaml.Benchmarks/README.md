@@ -1,6 +1,6 @@
 # OfficeIMO YAML Benchmarks
 
-This opt-in project measures OfficeIMO.Yaml and the reference YAML libraries, YamlDotNet 18.0.0, SharpYaml 3.17.0 and VYaml 1.6.1, against the same conformance data and workloads. The libraries are referenced here only; OfficeIMO runtime projects do not depend on this project.
+This opt-in project measures OfficeIMO.Yaml and the reference YAML libraries, YamlDotNet 18.1.0, SharpYaml 3.17.0, VYaml 1.6.1 and OneYaml 1.2.1, against the same conformance data and workloads. The libraries are referenced here only; OfficeIMO runtime projects do not depend on this project.
 
 ## Conformance comparison
 
@@ -34,14 +34,17 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --vali
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Yaml.Benchmarks -- --filter "*YamlParseEventsBenchmarks*"
 ```
 
-Four benchmark classes cover the document operations, each with YamlDotNet as the baseline:
+Five benchmark classes cover the document operations, each with YamlDotNet as the baseline:
 
 - `YamlParseEventsBenchmarks`: parse to events without building a tree. The OfficeIMO.Yaml lane reads every scalar value, alias name, anchor and tag as a string, matching the reference parsers' events, which carry them.
 - `YamlLoadTreeBenchmarks`: load the representation tree. OfficeIMO.Yaml decodes scalar values on first use, so its tree lane leaves them undecoded; the `OfficeIMOYamlWithValues` lane also reads every scalar value as a string, which the reference trees do while loading.
 - `YamlLoadAndSaveBenchmarks`: load and save without edits. OfficeIMO.Yaml saves an unchanged document by copying its retained source, and setup checks that its output equals the input.
+- `YamlEditAndSaveBenchmarks`: load, change the first scalar mapping value in document order and save. Setup checks that the saved output loads to the same structure and values apart from the edited scalars.
 - `YamlEmitBenchmarks`: emit a new document from events captured before timing.
 
-VYaml runs in the parse and load classes only. It reads UTF-8, so each input is encoded once during setup. Its load lane is dynamic deserialization into dictionaries, lists and resolved scalars, because VYaml has no representation tree; setup checks those values against YamlDotNet. It has no load-and-save lane because it has no document model, and no emit lane because its emitter writes values rather than replaying parser events with their anchors and tags.
+VYaml runs in the parse and load classes only. It reads UTF-8, so each input is encoded once during setup. Its load lane is dynamic deserialization into dictionaries, lists and resolved scalars, because VYaml has no representation tree; setup checks those values against YamlDotNet. VYaml resolves the plain scalar `infinity` in one corpus file as a float, which the YAML 1.2 core schema reads as a string, so its `ManySmallFiles` load fails validation and is not timed.
+
+OneYaml runs in the load, load-and-save and edit-and-save classes. It has no public event parser or event emitter, so it has no parse or emit lane. Its load lane is untyped deserialization of every document from UTF-8 bytes, checked against YamlDotNet like VYaml's; its save lanes parse and write its lossless `YamlDocument`. It has no load-and-save lane because it has no document model, and no emit lane because its emitter writes values rather than replaying parser events with their anchors and tags.
 
 Every class runs these workloads:
 

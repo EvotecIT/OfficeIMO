@@ -12,6 +12,8 @@ dotnet add package OfficeIMO.Yaml
 
 The serializer's source generator ships inside the package, so no second package is needed for trimmed or NativeAOT applications.
 
+To read YAML files through `Microsoft.Extensions.Configuration` (`AddYamlFile`), add [OfficeIMO.Yaml.Configuration](../OfficeIMO.Yaml.Configuration/README.md).
+
 ## Loading a document
 
 ```csharp

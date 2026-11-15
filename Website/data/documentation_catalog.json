@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 356,
-    "productionComponentCount": 171,
-    "testProjectCount": 67,
+    "projectCount": 360,
+    "productionComponentCount": 173,
+    "testProjectCount": 69,
     "benchmarkProjectCount": 43,
     "validationProjectCount": 76,
     "apiReferenceCount": 129,
-    "conceptualPageCount": 210,
-    "conceptualWordCount": 118981
+    "conceptualPageCount": 212,
+    "conceptualWordCount": 119779
   },
   "categories": [
     {
@@ -55,7 +55,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 39,
+      "componentCount": 41,
       "componentIndexes": [
         1,
         10,
@@ -90,12 +90,14 @@
         106,
         150,
         151,
-        153,
+        152,
         154,
-        166,
+        155,
         167,
         168,
-        169
+        169,
+        170,
+        171
       ]
     },
     {
@@ -148,7 +150,6 @@
         100,
         101,
         102,
-        155,
         156,
         157,
         158,
@@ -156,14 +157,15 @@
         160,
         161,
         162,
-        163
+        163,
+        164
       ]
     },
     {
       "name": "PowerShell automation",
       "componentCount": 1,
       "componentIndexes": [
-        170
+        172
       ]
     },
     {
@@ -232,9 +234,9 @@
         147,
         148,
         149,
-        152,
-        164,
-        165
+        153,
+        165,
+        166
       ]
     }
   ],
@@ -579,7 +581,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 1312,
+      "sourceFileCount": 1315,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -1911,7 +1913,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1757,
+      "sourceFileCount": 1761,
       "referencingTestProjectCount": 14,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -2975,7 +2977,7 @@
       "description": "Optional CMS, S/MIME, RFC 3161, X.509, and XML Digital Signature support for OfficeIMO packages.",
       "kind": "package",
       "projectPath": "OfficeIMO.Security/OfficeIMO.Security.csproj",
-      "sourceFileCount": 20,
+      "sourceFileCount": 22,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/security/",
       "apiUrl": "/api/security/",
@@ -3061,6 +3063,25 @@
       "docsUrl": "/docs/toml/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Toml.Configuration",
+      "packageId": "OfficeIMO.Toml.Configuration",
+      "category": "Formats and interoperability",
+      "description": "TOML configuration provider for Microsoft.Extensions.Configuration, built on the OfficeIMO.Toml engine: AddTomlFile and AddTomlStream with TOML 1.1 tables, arrays of tables, ISO 8601 date-times and positioned errors.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Toml.Configuration/OfficeIMO.Toml.Configuration.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/toml/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Toml.Configuration",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",
@@ -3398,6 +3419,25 @@
       "docsUrl": "/docs/yaml/",
       "apiUrl": "/api/yaml/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Yaml",
+      "targetFrameworks": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0",
+        "net472"
+      ]
+    },
+    {
+      "name": "OfficeIMO.Yaml.Configuration",
+      "packageId": "OfficeIMO.Yaml.Configuration",
+      "category": "Formats and interoperability",
+      "description": "YAML configuration provider for Microsoft.Extensions.Configuration, built on the OfficeIMO.Yaml engine: AddYamlFile and AddYamlStream with merge keys, aliases and positioned errors.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Yaml.Configuration/OfficeIMO.Yaml.Configuration.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/yaml/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Yaml.Configuration",
       "targetFrameworks": [
         "netstandard2.0",
         "net8.0",

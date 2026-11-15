@@ -12,7 +12,6 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
         Ensure(lookup + 6, checked(subtableCount * 2));
         int markSet = -1;
         if ((flags & 0x0010) != 0) markSet = U16(lookup + 6 + subtableCount * 2);
-        if (!_filter.SupportsFlags(flags, markSet)) throw new InvalidDataException("Unsupported GPOS mark filtering.");
         var subtables = new List<(int Type, int Offset)>();
         for (int index = 0; index < subtableCount; index++) {
             Charge(); int subtable = Relative(lookup, U16(lookup + 6 + index * 2), 2), effectiveType = type;

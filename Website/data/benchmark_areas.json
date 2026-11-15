@@ -64,6 +64,16 @@
       "id": "zip",
       "title": "ZIP",
       "summary": "Archive reading and writing."
+    },
+    {
+      "id": "yaml",
+      "title": "YAML",
+      "summary": "Parsing, loading, lossless saving and editing, emitting and object serialization."
+    },
+    {
+      "id": "toml",
+      "title": "TOML",
+      "summary": "Parsing, loading, lossless saving and object serialization."
     }
   ],
   "platforms": [

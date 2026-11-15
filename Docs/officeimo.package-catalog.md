@@ -572,6 +572,14 @@ _Dependency footprint:_ BCL compatibility packages only; no third-party CSV pars
 
 _Dependency footprint:_ only `OfficeIMO.Core`, plus `System.Buffers`/`System.Memory` on .NET Standard 2.0 and .NET Framework; no third-party YAML parser.
 
+#### [OfficeIMO.Yaml.Configuration](../OfficeIMO.Yaml.Configuration/README.md)
+
+- [x] `AddYamlFile` and `AddYamlStream` for `Microsoft.Extensions.Configuration`, with the JSON provider's overloads, optional files and reload on change
+- [x] Keys flattened with `:` and sequence indexes; scalars keep their decoded text, nulls become empty strings, aliases and merge keys resolve
+- [x] Duplicate keys (case-insensitive), multi-document streams and malformed YAML rejected with their line
+
+_Dependency footprint:_ `OfficeIMO.Yaml` plus `Microsoft.Extensions.Configuration.FileExtensions`.
+
 #### [OfficeIMO.Toml](../OfficeIMO.Toml/README.md)
 
 - [x] TOML 1.1 pull reader with full syntax checking, positioned errors and no per-token allocation
@@ -582,6 +590,14 @@ _Dependency footprint:_ only `OfficeIMO.Core`, plus `System.Buffers`/`System.Mem
 - [x] All toml-test 1.1.0 valid and invalid cases, and byte-exact round trips of a real-world corpus
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no third-party TOML parser.
+
+#### [OfficeIMO.Toml.Configuration](../OfficeIMO.Toml.Configuration/README.md)
+
+- [x] `AddTomlFile` and `AddTomlStream` for `Microsoft.Extensions.Configuration`, with the JSON provider's overloads, optional files and reload on change
+- [x] Tables, dotted keys, inline tables and arrays of tables flattened with `:` and indexes; date-times as ISO 8601 and integers as decimals so they bind
+- [x] Keys that differ only in case, duplicate keys and malformed TOML rejected with their line
+
+_Dependency footprint:_ `OfficeIMO.Toml` plus `Microsoft.Extensions.Configuration.FileExtensions`.
 
 #### [OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md)
 

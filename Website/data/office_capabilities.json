@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 84,
-    "operationCount": 1544
+    "operationCount": 1550
   },
   "fidelityStates": [
     {
@@ -4519,7 +4519,7 @@
     {
       "id": "OfficeIMO.Pdf",
       "slug": "pdf",
-      "capabilityCount": 22,
+      "capabilityCount": 28,
       "formats": [
         "HEIC",
         "JPEG",
@@ -4556,7 +4556,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -4568,6 +4568,12 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 2
+            },
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
             }
           ]
         },
@@ -4589,7 +4595,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 3
+              "count": 4
             }
           ]
         },
@@ -4611,7 +4617,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 2
+              "count": 3
             }
           ]
         },
@@ -4623,6 +4629,12 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 2
+            },
+            {
+              "id": "Rejected",
+              "label": "Rejected",
+              "description": "The operation deliberately fails to prevent unsafe or misleading output.",
+              "count": 1
             }
           ]
         },
@@ -4639,7 +4651,7 @@
               "id": "NotApplicable",
               "label": "Not applicable",
               "description": "The operation does not apply to this capability.",
-              "count": 1
+              "count": 2
             }
           ]
         }

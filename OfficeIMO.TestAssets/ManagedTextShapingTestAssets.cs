@@ -326,7 +326,7 @@ internal static partial class ManagedTextShapingTestAssets {
         IReadOnlyDictionary<int, int>? glyphLefts = null, byte[]? vdmx = null,
         IReadOnlyList<(string Tag, byte[] Data)>? additionalTables = null,
         IReadOnlyDictionary<int, ushort>? glyphAdvances = null,
-        IReadOnlyCollection<int>? blankGlyphIds = null) {
+        IReadOnlyCollection<int>? blankGlyphIds = null, bool strictHeaders = false) {
         // A zero-contour glyph still carries its header and empty instruction stream.
         // Keep the glyf table present so both drawing and PDF readers can admit the fixture.
         byte[] glyph = emptyGlyphs ? new byte[12] : CreateVisibleGlyph(400);
@@ -349,15 +349,16 @@ internal static partial class ManagedTextShapingTestAssets {
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
         var maxp = new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 };
         WriteUInt16(maxp, 4, checked((ushort)glyphCount));
-        if (math != null) {
-            // The independent MATH oracle also reads maxp while naming covered glyphs.
-            // Supply the complete TrueType 1.0 record for these rectangular fixtures.
+        // Independent oracles (MATH, HarfBuzz) read the complete TrueType 1.0 maxp record;
+        // HarfBuzz also ignores an hhea without its 1.0 version, falling back to default advances.
+        if (math != null || strictHeaders) {
             Array.Resize(ref maxp, 32);
             WriteUInt16(maxp, 6, 4); // maxPoints
             WriteUInt16(maxp, 8, 1); // maxContours
             WriteUInt16(maxp, 14, 1); // maxZones
         }
         byte[] hhea = CreateHheaTable(ascender, descender);
+        if (strictHeaders) WriteUInt16(hhea, 0, 1);
         if (glyphAdvances != null) {
             hmtx = new byte[checked(glyphCount * 4)];
             for (int index = 0; index < glyphCount; index++) {

@@ -68,6 +68,9 @@ public static class TomlLibraries {
 
     public static Tomlet.Models.TomlDocument LoadTomlet(string toml) => new Tomlet.TomlParser().Parse(toml);
 
+    /// <summary>CsToml reads UTF-8 bytes, its native input, into its <c>TomlDocument</c>.</summary>
+    public static CsToml.TomlDocument LoadCsToml(byte[] utf8) => CsToml.CsTomlSerializer.Deserialize<CsToml.TomlDocument>(utf8);
+
     /// <summary>Counts leaf values; OfficeIMO decodes each one, which the reference loaders do while loading.</summary>
     public static long CountOfficeIMO(TomlNode node) {
         switch (node) {
@@ -105,13 +108,20 @@ public static class TomlLibraries {
         _ => 1
     };
 
+    /// <summary>Counts the leaf values of a CsToml document through its own dictionary projection.</summary>
+    public static long CountCsToml(CsToml.TomlDocument document) => CountCsTomlValue(document.ToDictionary<object, object>());
+
+    private static long CountCsTomlValue(object? value) => value switch {
+        System.Collections.IDictionary table => table.Values.Cast<object?>().Sum(CountCsTomlValue),
+        string => 1,
+        System.Collections.IEnumerable array => array.Cast<object?>().Sum(CountCsTomlValue),
+        _ => 1
+    };
+
     // ---- Unchanged load and save ---------------------------------------------------------------------------------
 
     public static string SaveOfficeIMO(string toml) => TomlDocument.Parse(toml).ToString();
 
     /// <summary>Tomlyn's full-fidelity syntax tree, which also reproduces its source.</summary>
     public static string SaveTomlyn(string toml) => Tomlyn.Parsing.SyntaxParser.Parse(toml, null, true).ToString();
-
-    /// <summary>Tomlet re-serializes its model; the output is equivalent TOML, not the source text.</summary>
-    public static string SaveTomlet(string toml) => new Tomlet.TomlParser().Parse(toml).SerializedValue;
 }

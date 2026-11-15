@@ -17,7 +17,9 @@
     "pdf",
     "powerpoint",
     "rtf",
+    "toml",
     "word",
+    "yaml",
     "zip"
   ],
   "comparisons": [
@@ -1223,6 +1225,150 @@
       ]
     },
     {
+      "comparisonId": "toml-deserialize-net10.0",
+      "area": "toml",
+      "title": "TOML model deserialization",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-deserialize-net8.0",
+      "area": "toml",
+      "title": "TOML model deserialization",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-load-net10.0",
+      "area": "toml",
+      "title": "TOML load to model",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn",
+        "Tomlet",
+        "CsToml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-load-net8.0",
+      "area": "toml",
+      "title": "TOML load to model",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn",
+        "Tomlet",
+        "CsToml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-load-save-net10.0",
+      "area": "toml",
+      "title": "TOML unchanged load and save",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-load-save-net8.0",
+      "area": "toml",
+      "title": "TOML unchanged load and save",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-parse-net10.0",
+      "area": "toml",
+      "title": "TOML parse without a model",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-parse-net8.0",
+      "area": "toml",
+      "title": "TOML parse without a model",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-serialize-net10.0",
+      "area": "toml",
+      "title": "TOML model serialization",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "toml-serialize-net8.0",
+      "area": "toml",
+      "title": "TOML model serialization",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
       "comparisonId": "word-docx-create-paragraphs-net10.0",
       "area": "word",
       "title": "DOCX paragraph creation",
@@ -1375,6 +1521,234 @@
         "SpreadCheetah",
         "Sylvan",
         "LargeXlsx"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-deserialize-net10.0",
+      "area": "yaml",
+      "title": "YAML object deserialization",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-deserialize-net8.0",
+      "area": "yaml",
+      "title": "YAML object deserialization",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-edit-save-net10.0",
+      "area": "yaml",
+      "title": "YAML single-value edit and save",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-edit-save-net8.0",
+      "area": "yaml",
+      "title": "YAML single-value edit and save",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-emit-net10.0",
+      "area": "yaml",
+      "title": "YAML emit from events",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-emit-net8.0",
+      "area": "yaml",
+      "title": "YAML emit from events",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-load-net10.0",
+      "area": "yaml",
+      "title": "YAML load to model",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-load-net8.0",
+      "area": "yaml",
+      "title": "YAML load to model",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-load-save-net10.0",
+      "area": "yaml",
+      "title": "YAML unchanged load and save",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-load-save-net8.0",
+      "area": "yaml",
+      "title": "YAML unchanged load and save",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-parse-events-net10.0",
+      "area": "yaml",
+      "title": "YAML parse to events",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-parse-events-net8.0",
+      "area": "yaml",
+      "title": "YAML parse to events",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-serialize-net10.0",
+      "area": "yaml",
+      "title": "YAML object serialization",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "expectedPlatforms": [
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      "comparisonId": "yaml-serialize-net8.0",
+      "area": "yaml",
+      "title": "YAML object serialization",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
       ],
       "expectedPlatforms": [
         "linux",
@@ -5299,6 +5673,246 @@
       "latestUtc": "2026-08-23T19:04:34.7973563+02:00"
     },
     {
+      "comparisonId": "toml-deserialize-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-deserialize-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-deserialize-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-deserialize-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-deserialize-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-deserialize-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-save-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-save-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-save-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-save-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-save-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-load-save-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-parse-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-parse-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-parse-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-parse-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-parse-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-parse-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-serialize-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-serialize-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-serialize-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-serialize-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-serialize-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "toml-serialize-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
       "comparisonId": "word-docx-create-paragraphs-net10.0",
       "runMode": "full",
       "platform": "linux",
@@ -5560,6 +6174,342 @@
     },
     {
       "comparisonId": "xlsx-25k-datareader-write-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-deserialize-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-deserialize-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-deserialize-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-deserialize-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-deserialize-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-deserialize-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-edit-save-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-edit-save-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-edit-save-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-edit-save-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-edit-save-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-edit-save-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-emit-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-emit-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-emit-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-emit-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-emit-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-emit-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-save-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-save-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-save-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-save-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-save-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-load-save-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-parse-events-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-parse-events-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-parse-events-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-parse-events-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-parse-events-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-parse-events-net8.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-serialize-net10.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-serialize-net10.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-serialize-net10.0",
+      "runMode": "full",
+      "platform": "windows",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-serialize-net8.0",
+      "runMode": "full",
+      "platform": "linux",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-serialize-net8.0",
+      "runMode": "full",
+      "platform": "macos",
+      "available": false,
+      "runModes": [],
+      "latestUtc": null
+    },
+    {
+      "comparisonId": "yaml-serialize-net8.0",
       "runMode": "full",
       "platform": "windows",
       "available": false,

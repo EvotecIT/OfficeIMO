@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Independent, exact-artifact checks for the existing PDF compliance proof lane.
 
-pyHanko proves CMS integrity, byte coverage and RFC 3161 signature timestamps
-against ephemeral fixture roots. This is not qualified-signature or full PAdES
+pyHanko proves CMS integrity, byte coverage, RFC 3161 signature timestamps,
+DocMDP certification, and B-LT/B-LTA validation from the file's DSS against
+ephemeral fixture roots. This is not qualified-signature or full PAdES
 certification, and does not consult system trust, a live TSA or revocation feeds.
 """
 
@@ -36,6 +37,7 @@ PROFILES = {
     "invoice-extended-pdfa3u": ("3u",),
     "invoice-pdfa3b-ua1": ("3b", "ua1"),
 }
+SIGNATURE_FIXTURES = ("pades-bb", "pades-bt", "pades-blt", "pades-blta", "certification")
 PROFILE_NAMES = {
     "2a": "PDF/A-2a validation profile",
     "2u": "PDF/A-2u validation profile",
@@ -157,6 +159,112 @@ def check_signature(path, timestamped):
                 "trustScope": "Ephemeral fixture roots; no revocation or public trust qualification"}
 
 
+def check_long_term_signature(path, archival):
+    """PAdES B-LT/B-LTA through ETSI EN 319 102-1 long-term validation.
+
+    Revocation data is required for every certificate and only local knowledge from the
+    file (DSS and embedded values) may be used, so a pass proves the DSS settles revocation.
+    """
+    import asyncio
+
+    from asn1crypto.crl import CertificateList
+    from asn1crypto.ocsp import OCSPResponse
+    from pyhanko.keys import load_certs_from_pemder
+    from pyhanko.pdf_utils.reader import PdfFileReader
+    from pyhanko.sign.ades.report import AdESPassed
+    from pyhanko.sign.diff_analysis import ModificationLevel
+    from pyhanko.sign.validation import DocumentSecurityStore, validate_pdf_signature
+    from pyhanko.sign.validation.ades import ades_lta_validation, ades_with_time_validation
+    from pyhanko.sign.validation.policy_decl import (
+        LocalKnowledge,
+        PdfSignatureValidationSpec,
+        RevinfoOnlineFetchingRule,
+        RevocationInfoGatheringSpec,
+        SignatureValidationSpec,
+    )
+    from pyhanko_certvalidator import ValidationContext
+    from pyhanko_certvalidator.context import CertValidationPolicySpec
+    from pyhanko_certvalidator.policy_decl import REQUIRE_REVINFO, CertRevTrustPolicy
+    from pyhanko_certvalidator.registry import SimpleTrustManager
+    from pyhanko_certvalidator.revinfo.archival import CRLContainer, OCSPContainer
+
+    roots = list(load_certs_from_pemder([str(path.parent / "ltv-root.pem")]))
+    policy = CertValidationPolicySpec(trust_manager=SimpleTrustManager.build(trust_roots=roots),
+                                      revinfo_policy=CertRevTrustPolicy(REQUIRE_REVINFO))
+    local_only = RevocationInfoGatheringSpec(online_fetching_rule=RevinfoOnlineFetchingRule.LOCAL_ONLY)
+    with path.open("rb") as stream:
+        reader = PdfFileReader(stream, strict=True)
+        signatures = reader.embedded_regular_signatures
+        require(len(signatures) == 1, "Expected exactly one approval signature")
+        require(len(reader.embedded_timestamp_signatures) == (1 if archival else 0),
+                "Wrong number of document time-stamps for the PAdES level")
+        signature = signatures[0]
+        require(str(signature.sig_object.get("/SubFilter")) == "/ETSI.CAdES.detached", "Not a PAdES CMS subfilter")
+        dss = DocumentSecurityStore.read_dss(reader)
+        if archival:
+            # The document time-stamp chain is the evidence record (ETSI EN 319 102-1 section 5.6.3).
+            result = asyncio.run(ades_lta_validation(signature, PdfSignatureValidationSpec(
+                SignatureValidationSpec(cert_validation_policy=policy, revinfo_gathering_policy=local_only))))
+            require(result.oldest_evidence_record_timestamp is not None, "No document time-stamp evidence record")
+            timestamp_status = result.signature_timestamp_status
+        else:
+            # Only the file's DSS values are known; fetching is off and revocation data is required.
+            knowledge = LocalKnowledge(
+                known_ocsps=[item for value in dss.ocsps
+                             for item in OCSPContainer.load_multi(OCSPResponse.load(value.get_object().data))],
+                known_crls=[CRLContainer(crl_data=CertificateList.load(value.get_object().data)) for value in dss.crls],
+                known_certs=list(dss.load_certs()))
+            result = asyncio.run(ades_with_time_validation(
+                signature.signed_data,
+                SignatureValidationSpec(cert_validation_policy=policy, revinfo_gathering_policy=local_only,
+                                        local_knowledge=knowledge),
+                raw_digest=signature.compute_digest()))
+            timestamp_status = result
+        require(result.ades_subindic == AdESPassed.OK,
+                f"pyHanko long-term validation returned {result.ades_subindic}: {result.failure_msg}")
+        require(timestamp_status is not None and timestamp_status.ades_subindic == AdESPassed.OK,
+                "Missing or invalid signature time-stamp")
+        # Integrity, coverage and the kind of later revisions come from pyHanko's PDF-level checks.
+        context = ValidationContext(trust_roots=roots, allow_fetching=False, revocation_mode="soft-fail")
+        status = validate_pdf_signature(signature, signer_validation_context=context, ts_validation_context=context)
+        require(status.intact and status.valid and status.trusted, "pyHanko signature validation failed: " + status.summary())
+        require(status.modification_level == ModificationLevel.LTA_UPDATES,
+                "Revisions after the signature are not limited to DSS and document time-stamps")
+        return {"intact": status.intact, "valid": status.valid, "trusted": status.trusted,
+                "adesIndication": result.ades_subindic.status.name,
+                "coverage": status.coverage.name, "modificationLevel": status.modification_level.name,
+                "revocationSource": "DSS", "documentTimestamp": archival, "summary": status.summary(),
+                "trustScope": "Ephemeral fixture root with local OCSP/CRL responders; no public trust qualification"}
+
+
+def check_certification_signature(path):
+    from pyhanko.keys import load_certs_from_pemder
+    from pyhanko.pdf_utils.reader import PdfFileReader
+    from pyhanko.sign.fields import MDPPerm
+    from pyhanko.sign.validation import validate_pdf_signature
+    from pyhanko.sign.validation.status import SignatureCoverageLevel
+    from pyhanko_certvalidator import ValidationContext
+
+    roots = list(load_certs_from_pemder([str(path.parent / "ltv-root.pem")]))
+    context = ValidationContext(trust_roots=roots, allow_fetching=False, revocation_mode="soft-fail")
+    with path.open("rb") as stream:
+        reader = PdfFileReader(stream, strict=True)
+        signatures = reader.embedded_regular_signatures
+        require(len(signatures) == 1, "Expected exactly one certification signature")
+        signature = signatures[0]
+        require(signature.docmdp_level == MDPPerm.FILL_FORMS, "Expected DocMDP permission level 2")
+        status = validate_pdf_signature(signature, signer_validation_context=context,
+                                        ts_validation_context=context)
+        require(status.intact and status.valid and status.trusted and status.bottom_line,
+                "pyHanko certification signature validation failed: " + status.summary())
+        require(status.coverage == SignatureCoverageLevel.ENTIRE_FILE, "Signature does not cover the entire file")
+        require(status.docmdp_ok, "DocMDP permissions are not satisfied")
+        return {"intact": status.intact, "valid": status.valid, "trusted": status.trusted,
+                "coverage": status.coverage.name, "docMdpLevel": int(signature.docmdp_level.value),
+                "docMdpOk": status.docmdp_ok, "summary": status.summary(),
+                "trustScope": "Ephemeral fixture root; no revocation or public trust qualification"}
+
+
 def check_invoice_attachment(path):
     from pyhanko.pdf_utils.reader import PdfFileReader
 
@@ -244,11 +352,24 @@ def main():
             return details, json.dumps(details, indent=2) + "\n"
         record(pdf, "pyHanko", name, signature_check)
 
-    for name in (*PROFILES, "pades-bb", "pades-bt"):
+    for name, archival in (("pades-blt", False), ("pades-blta", True)):
+        pdf = directory / f"{name}.pdf"
+        def long_term_check(p=pdf, a=archival):
+            details = check_long_term_signature(p, a)
+            return details, json.dumps(details, indent=2) + "\n"
+        record(pdf, "pyHanko", name, long_term_check)
+
+    certification = directory / "certification.pdf"
+    def certification_check(p=certification):
+        details = check_certification_signature(p)
+        return details, json.dumps(details, indent=2) + "\n"
+    record(certification, "pyHanko", "certification", certification_check)
+
+    for name in (*PROFILES, *SIGNATURE_FIXTURES):
         pdf = directory / f"{name}.pdf"
         record(pdf, "qpdf", "syntax", lambda p=pdf: external(["qpdf", "--check", str(p)], lambda _: {}))
 
-    for name in ("signer-root.pem", "tsa-root.pem"):
+    for name in ("signer-root.pem", "tsa-root.pem", "ltv-root.pem"):
         artifacts[name] = fingerprint(directory / name)
     manifest = {"schemaVersion": 1, "toolVersions": versions,
                 "artifacts": list(artifacts.values()), "validations": rows,

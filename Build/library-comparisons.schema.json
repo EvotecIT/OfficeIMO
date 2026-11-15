@@ -13,7 +13,7 @@
   },
   "definitions": {
     "id": { "type": "string", "minLength": 1 },
-    "area": { "type": "string", "enum": ["pdf", "excel", "csv", "word", "powerpoint", "markdown", "html", "rtf", "image", "email", "epub", "zip", "opendocument"] },
+    "area": { "type": "string", "enum": ["pdf", "excel", "csv", "word", "powerpoint", "markdown", "html", "rtf", "image", "email", "epub", "zip", "opendocument", "yaml", "toml"] },
     "platform": { "type": "string", "enum": ["windows", "linux", "macos"] },
     "platforms": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/definitions/platform" } },
     "runMode": { "type": "string", "enum": ["quick", "full"] },
