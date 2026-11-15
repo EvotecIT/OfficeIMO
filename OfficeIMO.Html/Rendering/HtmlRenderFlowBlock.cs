@@ -59,58 +59,68 @@ internal sealed partial class HtmlRenderFlowBlock {
         AvoidBreakInside = avoidBreakInside;
         AvoidBreakInsideScope = avoidBreakInside ? HtmlFragmentationScope.All : HtmlFragmentationScope.None;
         Source = source;
-        var offsets = new SortedSet<double> { 0D, PagedPaintExtent };
+        // The block ends are offsets too; zero keeps its own entry when the extent is also zero.
+        var offsets = new List<double>(4) { 0D };
+        if (PagedPaintExtent.CompareTo(0D) != 0) offsets.Add(PagedPaintExtent);
         if (breakOffsets != null) {
             foreach (double offset in breakOffsets) {
                 if (offset > 0D && offset < PagedPaintExtent && !double.IsNaN(offset) && !double.IsInfinity(offset)) offsets.Add(offset);
             }
         }
 
-        BreakOffsets = offsets.ToList().AsReadOnly();
+        BreakOffsets = SortDistinct(offsets);
         SafeBreakRanges = HtmlRenderBreakRange.Normalize(safeBreakRanges ?? Array.Empty<HtmlRenderBreakRange>(), PagedPaintExtent);
-        AvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>(avoidBreakRanges ?? Array.Empty<HtmlRenderAvoidBreakRange>())
-            .Where(range => range.Start >= -0.0001D && range.End <= PagedPaintExtent + 0.0001D && range.End > range.Start + 0.0001D)
-            .ToList()
-            .AsReadOnly();
-        ForcedBreaks = new List<HtmlRenderForcedBreak>(forcedBreaks ?? Array.Empty<HtmlRenderForcedBreak>())
-            .Where(item => item.Target != HtmlPageBreakTarget.None
-                && !double.IsNaN(item.Offset)
-                && !double.IsInfinity(item.Offset)
-                && item.Offset >= -0.0001D
-                && item.Offset <= PagedPaintExtent + 0.0001D)
-            .OrderBy(item => item.Offset)
-            .ToList()
-            .AsReadOnly();
-        var lineOffsets = new SortedSet<double>();
+        AvoidBreakRanges = avoidBreakRanges == null
+            ? Array.Empty<HtmlRenderAvoidBreakRange>()
+            : new List<HtmlRenderAvoidBreakRange>(avoidBreakRanges)
+                .Where(range => range.Start >= -0.0001D && range.End <= PagedPaintExtent + 0.0001D && range.End > range.Start + 0.0001D)
+                .ToList()
+                .AsReadOnly();
+        ForcedBreaks = forcedBreaks == null
+            ? Array.Empty<HtmlRenderForcedBreak>()
+            : new List<HtmlRenderForcedBreak>(forcedBreaks)
+                .Where(item => item.Target != HtmlPageBreakTarget.None
+                    && !double.IsNaN(item.Offset)
+                    && !double.IsInfinity(item.Offset)
+                    && item.Offset >= -0.0001D
+                    && item.Offset <= PagedPaintExtent + 0.0001D)
+                .OrderBy(item => item.Offset)
+                .ToList()
+                .AsReadOnly();
+        List<double>? lineOffsets = null;
         bool hasImplicitFinalLine = false;
         if (lineBreakOffsets != null) {
             foreach (double offset in lineBreakOffsets) {
                 if (offset <= 0D || double.IsNaN(offset) || double.IsInfinity(offset)) continue;
-                if (offset < PagedPaintExtent - 0.0001D) lineOffsets.Add(offset);
+                if (offset < PagedPaintExtent - 0.0001D) (lineOffsets ??= new List<double>()).Add(offset);
                 else if (offset <= PagedPaintExtent + 0.0001D) hasImplicitFinalLine = true;
             }
         }
 
-        IReadOnlyList<double> resolvedLineOffsets = lineOffsets.ToList().AsReadOnly();
+        IReadOnlyList<double> resolvedLineOffsets = lineOffsets == null ? Array.Empty<double>() : SortDistinct(lineOffsets);
         int resolvedOrphans = Math.Max(1, orphans);
         int resolvedWidows = Math.Max(1, widows);
-        var groups = new List<HtmlRenderLineBreakGroup>();
-        if (lineBreakGroups != null) groups.AddRange(lineBreakGroups);
+        var groups = lineBreakGroups == null ? new List<HtmlRenderLineBreakGroup>() : new List<HtmlRenderLineBreakGroup>(lineBreakGroups);
         if (groups.Count == 0 && resolvedLineOffsets.Count > 0) groups.Add(new HtmlRenderLineBreakGroup(
             resolvedLineOffsets, resolvedOrphans, resolvedWidows, hasImplicitFinalLine,
             start: 0D,
             end: hasImplicitFinalLine ? PagedPaintExtent : resolvedLineOffsets[resolvedLineOffsets.Count - 1]));
-        LineBreakGroups = groups.AsReadOnly();
-        IReadOnlyList<HtmlRenderVisual> repeatedVisuals = new List<HtmlRenderVisual>(continuationVisuals ?? Array.Empty<HtmlRenderVisual>()).AsReadOnly();
+        LineBreakGroups = groups.Count == 0 ? Array.Empty<HtmlRenderLineBreakGroup>() : groups.AsReadOnly();
         double repeatedHeight = Math.Max(0D, continuationHeight);
         double repeatedStartsAfter = Math.Max(0D, continuationStartsAfter);
-        var repeatedGroups = new List<HtmlRenderContinuationGroup>(continuationGroups ?? Array.Empty<HtmlRenderContinuationGroup>());
-        if (repeatedGroups.Count == 0 && repeatedVisuals.Count > 0 && repeatedHeight > 0D) {
-            repeatedGroups.Add(new HtmlRenderContinuationGroup(repeatedStartsAfter, height, repeatedHeight, repeatedVisuals));
+        var repeatedGroups = continuationGroups == null ? null : new List<HtmlRenderContinuationGroup>(continuationGroups);
+        if ((repeatedGroups == null || repeatedGroups.Count == 0) && continuationVisuals != null && repeatedHeight > 0D) {
+            IReadOnlyList<HtmlRenderVisual> repeatedVisuals = new List<HtmlRenderVisual>(continuationVisuals).AsReadOnly();
+            if (repeatedVisuals.Count > 0) {
+                (repeatedGroups ??= new List<HtmlRenderContinuationGroup>()).Add(
+                    new HtmlRenderContinuationGroup(repeatedStartsAfter, height, repeatedHeight, repeatedVisuals));
+            }
         }
 
-        ContinuationGroups = repeatedGroups.AsReadOnly();
-        TrailingGroups = new List<HtmlRenderTrailingGroup>(trailingGroups ?? Array.Empty<HtmlRenderTrailingGroup>()).AsReadOnly();
+        ContinuationGroups = repeatedGroups == null || repeatedGroups.Count == 0
+            ? Array.Empty<HtmlRenderContinuationGroup>() : repeatedGroups.AsReadOnly();
+        TrailingGroups = trailingGroups == null
+            ? Array.Empty<HtmlRenderTrailingGroup>() : new List<HtmlRenderTrailingGroup>(trailingGroups).AsReadOnly();
         PageName = pageName == null || string.IsNullOrWhiteSpace(pageName) ? null : pageName.Trim();
         StackingZIndex = stackingZIndex;
         StackingSourceOrder = stackingSourceOrder;
@@ -121,8 +131,12 @@ internal sealed partial class HtmlRenderFlowBlock {
         CollapsibleMarginBottomGroup = collapsibleMarginBottomGroup ?? new HtmlCollapsedMargin(collapsibleMarginBottom);
         OwnerElement = ownerElement;
         CollapsesThrough = collapsesThrough;
-        RunningStringAssignments = new List<HtmlCssRunningStringAssignment>(runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
-        InlineBreakProgress = new List<HtmlInlineBreakProgress>(inlineBreakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
+        RunningStringAssignments = runningStringAssignments == null
+            ? Array.Empty<HtmlCssRunningStringAssignment>()
+            : new List<HtmlCssRunningStringAssignment>(runningStringAssignments).AsReadOnly();
+        InlineBreakProgress = inlineBreakProgress == null
+            ? Array.Empty<HtmlInlineBreakProgress>()
+            : new List<HtmlInlineBreakProgress>(inlineBreakProgress).AsReadOnly();
         InlineContinuationStart = Math.Max(0, inlineContinuationStart);
         SupportsInlineContinuationReflow = supportsInlineContinuationReflow;
         LayoutViewportWidth = layoutViewportWidth;
@@ -132,6 +146,19 @@ internal sealed partial class HtmlRenderFlowBlock {
 
     internal double Width { get; }
     internal double Height { get; }
+    /// <summary>Sorts offsets ascending without duplicates, as a sorted set of the same values would.</summary>
+    private static IReadOnlyList<double> SortDistinct(List<double> values) {
+        if (values.Count > 1) {
+            values.Sort();
+            int write = 1;
+            for (int read = 1; read < values.Count; read++) {
+                if (values[read].CompareTo(values[write - 1]) != 0) values[write++] = values[read];
+            }
+            if (write < values.Count) values.RemoveRange(write, values.Count - write);
+        }
+        return values.AsReadOnly();
+    }
+
     // Fragment allocation remains nonnegative even when normal flow moves back.
     internal double PagedPaintExtent { get; }
     internal double UnclampedHeight { get; }
