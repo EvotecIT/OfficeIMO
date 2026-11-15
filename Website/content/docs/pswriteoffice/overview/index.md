@@ -41,6 +41,6 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 
 ## How the documentation fits together
 
-Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/aba6fcaabf24ea4db7cc3ada8b0e16bbc718fd58/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
+Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/962278eafc52ea40423479b00db6d67452959bcf/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
 
 When a guide and command page appear to disagree, use the current command reference and report the guide mismatch. The catalog validation prevents command totals from drifting, while examples and help remain the executable source for exact syntax.

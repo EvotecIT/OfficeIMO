@@ -90,7 +90,7 @@ To publish an EPUB as PDF or another format, use `Convert-OfficeDocument`; the [
 
 ## Runnable example
 
-The [native document families example](https://github.com/EvotecIT/OfficeIMO/blob/aba6fcaabf24ea4db7cc3ada8b0e16bbc718fd58/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates all three files in one run:
+The [native document families example](https://github.com/EvotecIT/OfficeIMO/blob/962278eafc52ea40423479b00db6d67452959bcf/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates all three files in one run:
 
 ```powershell
 .\Example-NativeDocumentFamilies.ps1 -OutputDirectory .\out

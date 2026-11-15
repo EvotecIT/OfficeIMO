@@ -67917,6 +67917,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -68073,6 +68085,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>CsvParseErrorAction</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -68305,6 +68329,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -68461,6 +68497,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>CsvParseErrorAction</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -68669,6 +68717,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -68825,6 +68885,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>CsvParseErrorAction</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -69081,6 +69153,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>EscapeCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Header</maml:name>
         <maml:description>
@@ -69237,6 +69321,18 @@ Import-OfficeCsv when the source is a file.</maml:para>
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>CsvParseErrorAction</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>QuoteCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -69893,6 +69989,18 @@ nesting accepted (the engine default is 256).</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>FormulaInjectionPolicy</maml:name>
           <maml:description>
             <maml:para>Controls how formula-like values are written.</maml:para>
@@ -69976,6 +70084,18 @@ nesting accepted (the engine default is 256).</maml:para>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -70049,6 +70169,18 @@ nesting accepted (the engine default is 256).</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>FormulaInjectionPolicy</maml:name>
           <maml:description>
             <maml:para>Controls how formula-like values are written.</maml:para>
@@ -70132,6 +70264,18 @@ nesting accepted (the engine default is 256).</maml:para>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -70229,6 +70373,18 @@ nesting accepted (the engine default is 256).</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>EscapeCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>FormulaInjectionPolicy</maml:name>
         <maml:description>
           <maml:para>Controls how formula-like values are written.</maml:para>
@@ -70312,6 +70468,18 @@ nesting accepted (the engine default is 256).</maml:para>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>QuoteCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -75349,6 +75517,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Force</maml:name>
           <maml:description>
             <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
@@ -75480,6 +75660,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -75615,6 +75807,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Force</maml:name>
           <maml:description>
             <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
@@ -75746,6 +75950,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -75905,6 +76121,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Force</maml:name>
           <maml:description>
             <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
@@ -76036,6 +76264,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -76171,6 +76411,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Force</maml:name>
           <maml:description>
             <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
@@ -76302,6 +76554,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
             <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -76461,6 +76725,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>EscapeCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character written before the quote character, and before itself, inside quoted fields, such as a backslash. Leave unset to double the quote character.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Force</maml:name>
         <maml:description>
           <maml:para>Allow overwriting read-only files and appending rows with missing existing columns.</maml:para>
@@ -76604,6 +76880,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>QuoteCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character that encloses quoted fields. Defaults to the double quote; fields that contain it are quoted.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -81606,6 +81894,22 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DateTimeOffsetMode</maml:name>
+          <maml:description>
+            <maml:para>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDateTimeOffsetWriteMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Serial</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>ExcelDateTimeOffsetWriteMode</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Decimals</maml:name>
           <maml:description>
             <maml:para>Decimal places used for decimal, percent, currency, and scientific presets.</maml:para>
@@ -82072,6 +82376,22 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DateTimeOffsetMode</maml:name>
+          <maml:description>
+            <maml:para>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDateTimeOffsetWriteMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Serial</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>ExcelDateTimeOffsetWriteMode</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Decimals</maml:name>
           <maml:description>
             <maml:para>Decimal places used for decimal, percent, currency, and scientific presets.</maml:para>
@@ -82509,6 +82829,22 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>ExcelDateSystem</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DateTimeOffsetMode</maml:name>
+          <maml:description>
+            <maml:para>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDateTimeOffsetWriteMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Serial</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>ExcelDateTimeOffsetWriteMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -82975,6 +83311,22 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>ExcelDateSystem</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>DateTimeOffsetMode</maml:name>
+        <maml:description>
+          <maml:para>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelDateTimeOffsetWriteMode</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Serial</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>ExcelDateTimeOffsetWriteMode</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -109710,6 +110062,18 @@ Select, each document's root is returned.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -109919,6 +110283,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -110193,6 +110569,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -110402,6 +110790,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -110678,6 +111078,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -110887,6 +111299,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -111139,6 +111563,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -111348,6 +111784,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -111588,6 +112036,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -111797,6 +112257,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -112073,6 +112545,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -112282,6 +112766,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -112502,6 +112998,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -112674,6 +113182,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -112894,6 +113414,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -113066,6 +113598,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -113322,6 +113866,18 @@ whole file into memory default to 256 MiB.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>EscapeCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Header</maml:name>
           <maml:description>
@@ -113494,6 +114050,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
             <maml:name>Int32</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>QuoteCharacter</maml:name>
+          <maml:description>
+            <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+          <dev:type>
+            <maml:name>Char</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -113794,6 +114362,18 @@ whole file into memory default to 256 MiB.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>EscapeCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Header</maml:name>
         <maml:description>
@@ -114015,6 +114595,18 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
           <maml:name>Int32</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>QuoteCharacter</maml:name>
+        <maml:description>
+          <maml:para>Character that encloses quoted fields. Defaults to the double quote.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">Char</command:parameterValue>
+        <dev:type>
+          <maml:name>Char</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -126317,6 +126909,22 @@ and require an explicit save. The result reports the actual copied rows and colu
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DateTimeOffsetMode</maml:name>
+          <maml:description>
+            <maml:para>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDateTimeOffsetWriteMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Serial</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>ExcelDateTimeOffsetWriteMode</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>DocumentProperty</maml:name>
           <maml:description>
             <maml:para>Workbook properties such as Title, Author, Subject, Keywords, Company and Manager.</maml:para>
@@ -126427,6 +127035,22 @@ and require an explicit save. The result reports the actual copied rows and colu
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>ExcelDateSystem</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DateTimeOffsetMode</maml:name>
+          <maml:description>
+            <maml:para>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">ExcelDateTimeOffsetWriteMode</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">Serial</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>ExcelDateTimeOffsetWriteMode</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -126590,6 +127214,22 @@ and require an explicit save. The result reports the actual copied rows and colu
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>ExcelDateSystem</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>DateTimeOffsetMode</maml:name>
+        <maml:description>
+          <maml:para>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">ExcelDateTimeOffsetWriteMode</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Text</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">Serial</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>ExcelDateTimeOffsetWriteMode</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
