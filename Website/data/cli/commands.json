@@ -4238,6 +4238,153 @@
       ]
     },
     {
+      "id": "yaml",
+      "title": "YAML",
+      "summary": "Lint YAML files against yamllint-style rules, apply safe fixes, and format them in one consistent layout.",
+      "docsUrl": "/docs/cli/yaml/",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo yaml <command> [options]"
+      ],
+      "subcommands": [
+        {
+          "name": "lint",
+          "names": [
+            "lint"
+          ],
+          "summary": "Report problems such as inconsistent indentation, trailing spaces, yes/no booleans and duplicate keys; --fix repairs the safe ones.",
+          "usage": [
+            "officeimo yaml lint <path|->... [--format text|json] [--fix] [--strict] [--enable <rule>[,<rule>...]] [--disable <rule>[,<rule>...]] [--max-line-length <n>] [--indent <1-9>]"
+          ],
+          "options": [
+            {
+              "name": "--format",
+              "value": "text|json"
+            },
+            {
+              "name": "--fix",
+              "value": null
+            },
+            {
+              "name": "--strict",
+              "value": null
+            },
+            {
+              "name": "--enable",
+              "value": "<rule>"
+            },
+            {
+              "name": "--disable",
+              "value": "<rule>"
+            },
+            {
+              "name": "--max-line-length",
+              "value": "<n>"
+            },
+            {
+              "name": "--indent",
+              "value": "<1-9>"
+            }
+          ]
+        },
+        {
+          "name": "format",
+          "names": [
+            "format"
+          ],
+          "summary": "Rewrite files in one layout, keeping values, anchors, tags and comments; --check reports files that would change.",
+          "usage": [
+            "officeimo yaml format <path|->... [--write|--check] [--indent <1-9>] [--sequences preserve|compact|indented] [--quotes preserve|single|double] [--line-ending preserve|lf|crlf] [--no-final-newline]"
+          ],
+          "options": [
+            {
+              "name": "--write",
+              "value": null
+            },
+            {
+              "name": "--check",
+              "value": null
+            },
+            {
+              "name": "--indent",
+              "value": "<1-9>"
+            },
+            {
+              "name": "--sequences",
+              "value": "preserve|compact|indented"
+            },
+            {
+              "name": "--quotes",
+              "value": "preserve|single|double"
+            },
+            {
+              "name": "--line-ending",
+              "value": "preserve|lf|crlf"
+            },
+            {
+              "name": "--no-final-newline",
+              "value": null
+            }
+          ]
+        }
+      ],
+      "keyOptions": [
+        {
+          "name": "--fix",
+          "value": null,
+          "description": "Rewrite each file with the safe lint fixes; only repaired lines change."
+        },
+        {
+          "name": "--strict",
+          "value": null,
+          "description": "Return exit code 1 for warnings as well as errors."
+        },
+        {
+          "name": "--enable",
+          "value": "<rule>",
+          "description": "Turn on rules that are off by default, such as document-start or key-ordering."
+        },
+        {
+          "name": "--disable",
+          "value": "<rule>",
+          "description": "Turn off rules, such as line-length."
+        },
+        {
+          "name": "--indent",
+          "value": "1..9",
+          "description": "Indentation width that lint expects and format writes."
+        },
+        {
+          "name": "--sequences",
+          "value": "preserve|compact|indented",
+          "description": "How format indents sequences under a key: preserve, compact or indented."
+        },
+        {
+          "name": "--write",
+          "value": null,
+          "description": "Rewrite the files in place instead of printing the result."
+        },
+        {
+          "name": "--check",
+          "value": null,
+          "description": "List the files formatting would change; exit code 1 when there are any."
+        }
+      ],
+      "inputFormats": [
+        "yaml",
+        "yml"
+      ],
+      "outputFormats": [
+        "yaml",
+        "yml"
+      ],
+      "resultFormats": [
+        "text",
+        "json"
+      ]
+    },
+    {
       "id": "agent",
       "title": "Agent",
       "summary": "Inspect, search, fetch and convert documents and mailboxes with compact, bounded JSON results.",

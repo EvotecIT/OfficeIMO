@@ -71,6 +71,7 @@ Commands refuse to replace an existing file or folder, so rerunning a script can
 | `invoice` | Not possible; choose a new path |
 | `workflow job run --report`, `--save-job` | Not possible; choose a new path |
 | `markup emit --output`, `markup export` | Replaced without `--force`; write to a new path to keep the previous file |
+| `yaml lint --fix`, `yaml format --write` | Rewrite the named YAML files in place; that is what they are for. Without those options they write nothing |
 
 Outputs are staged and published atomically. A conversion that fails or is rejected leaves an existing destination unchanged. The MCP `officeimo_convert` tool takes the same permission as an `overwrite` argument.
 

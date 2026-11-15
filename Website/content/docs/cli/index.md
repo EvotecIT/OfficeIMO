@@ -26,6 +26,7 @@ officeimo hidden-data remove proposal.docx
 | [Invoices](/docs/cli/invoices/) | Inspect, validate, edit, convert and render CII and UBL invoices |
 | [HTML to PDF and images](/docs/cli/html/) | Render HTML, MHTML and ZIP site bundles with explicit resources, fonts and limits |
 | [OfficeIMO Markup](/docs/cli/markup/) | Validate markup, generate C# or PowerShell, and export Word, Excel and PowerPoint files |
+| [Lint and format YAML](/docs/cli/yaml/) | yamllint-style rules, safe fixes that change only the affected lines, and one consistent layout |
 | [Scripting and CI](/docs/cli/scripting-and-ci/) | Exit codes, `--force`, standard output versus files, path rules, secrets, limits and GitHub Actions and Azure DevOps recipes |
 | [MCP and agents](/docs/cli/mcp-and-agents/) | The STDIO MCP server, allowed roots and the compact `agent` commands |
 
@@ -43,6 +44,7 @@ officeimo hidden-data remove proposal.docx
 | `hidden-data`, `provenance` | Clean documents before sharing and check them in CI |
 | `invoice` | Electronic invoice workflows |
 | `markup` | Parse, validate and preview OfficeIMO Markup, emit C# or PowerShell, and export Office files |
+| `yaml` | Lint YAML files, apply safe fixes and format them |
 | `mcp` | Start the MCP server over standard input and output |
 
 `officeimo help --format json` lists every area, subcommand, option and exit code of the installed version as JSON; see [Discover commands from the tool](/docs/cli/scripting-and-ci/#discover-commands-from-the-tool).

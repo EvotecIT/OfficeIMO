@@ -1077,6 +1077,11 @@
         "href": "/docs/cli/markup/"
       },
       {
+        "title": "Lint and Format YAML",
+        "path": "cli/yaml/index.md",
+        "href": "/docs/cli/yaml/"
+      },
+      {
         "title": "Scripting and CI",
         "path": "cli/scripting-and-ci/index.md",
         "href": "/docs/cli/scripting-and-ci/"
