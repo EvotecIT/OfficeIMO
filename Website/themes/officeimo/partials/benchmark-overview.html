@@ -43,6 +43,42 @@
   </div>
   {{~ end ~}}
 </section>
+<section class="imo-bench-hub-results" aria-labelledby="bench-results-title">
+  <div class="imo-bench-heading"><h2 id="bench-results-title">Every comparison at a glance</h2><p>One row per measured workload, using its strongest run (a full run where there is one). Open a workload to see every case, every contender and every other run, including quick runs on other operating systems.</p></div>
+  <div class="imo-bench-table-wrap">
+    <table class="imo-bench-table imo-bench-table--hub">
+      <thead><tr><th scope="col">Workload</th><th scope="col">Libraries compared</th><th scope="col">Run shown</th><th scope="col">Result</th></tr></thead>
+      <tbody>
+        {{~ for area_id in data.benchmarks.areas ~}}
+        {{~ for comparison in data.benchmarks.comparisons ~}}
+        {{~ if comparison.area == area_id && comparison.measured ~}}
+        {{~ shown = null ~}}
+        {{~ for run in comparison.runs ~}}{{~ if run.id == comparison.preferredRunId ~}}{{~ shown = run ~}}{{~ end ~}}{{~ end ~}}
+        {{~ subject = null ~}}
+        {{~ ranked = 0 ~}}
+        {{~ for contender in shown.contenders ~}}
+          {{~ if contender.rank > 0 ~}}{{~ ranked = ranked + 1 ~}}{{~ end ~}}
+          {{~ if contender.isSubject && contender.rank > 0 && (subject == null || contender.rank < subject.rank) ~}}{{~ subject = contender ~}}{{~ end ~}}
+        {{~ end ~}}
+        {{~ # Compare with the runner-up when OfficeIMO leads, otherwise with the fastest competitor. Contenders are ordered by relative time, so that is the first non-subject. ~}}
+        {{~ rival = null ~}}
+        {{~ for contender in shown.contenders ~}}{{~ if rival == null && !contender.isSubject && contender.rank > 0 ~}}{{~ rival = contender ~}}{{~ end ~}}{{~ end ~}}
+        {{~ verdict = null ~}}
+        {{~ if subject && rival ~}}{{~ for versus in shown.headToHead ~}}{{~ if versus.subject == subject.name && versus.other == rival.name ~}}{{~ verdict = versus ~}}{{~ end ~}}{{~ end ~}}{{~ end ~}}
+        <tr>
+          <th scope="row"><a href="/benchmarks/{{ comparison.area }}/#{{ comparison.id }}">{{ comparison.title }}{{ if comparison.id | string.contains "-net8.0" }} (.NET 8){{ end }}</a></th>
+          <td class="imo-bench-hub__libs">{{ for contender in shown.contenders }}{{ contender.name }}{{ if !for.last }}, {{ end }}{{ end }}</td>
+          <td>{{ shown.platformLabel }} · {{ if shown.isFull }}full{{ else }}quick{{ end }}{{ if comparison.runs.size > 1 }}<small> + {{ comparison.runs.size - 1 }} more</small>{{ end }}</td>
+          <td>{{~ if !shown.published ~}}<div class="imo-bench-hub__result"><span class="imo-bench-rank is-diagnostic">Diagnostic only</span><span>Not published for ranking; the measurements are on the workload page.</span></div>{{~ else if subject ~}}<div class="imo-bench-hub__result"><span class="imo-bench-rank{{ if subject.rank == 1 }} is-first{{ end }}">{{ if subject.rank == 1 }}Fastest{{ else }}{{ subject.rank }}{{ if subject.rank == 2 }}nd{{ else if subject.rank == 3 }}rd{{ else }}th{{ end }} of {{ ranked }}{{ end }}</span>{{ if verdict }}<span>{{ verdict.text }}</span>{{ end }}</div>{{~ else ~}}—{{~ end ~}}</td>
+        </tr>
+        {{~ end ~}}
+        {{~ end ~}}
+        {{~ end ~}}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 {{~ if machine_order.size > 0 ~}}
 <section class="imo-bench-machines" aria-labelledby="bench-machines-title">
   <div class="imo-bench-heading"><h2 id="bench-machines-title">Test machines</h2><p>Every result records its hardware, operating system, runtime and source commit. Results from different machines or operating systems are never mixed in one ranking.</p></div>

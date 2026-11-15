@@ -46,8 +46,6 @@
 .imo-bench-run[aria-pressed="true"] { border-color: var(--imo-primary); box-shadow: inset 0 0 0 1px var(--imo-primary); background: var(--imo-primary-light); }
 .imo-bench-run:focus-visible { outline: 2px solid var(--imo-primary); outline-offset: 2px; }
 .imo-bench-chart { display: grid; gap: 1rem; min-width: 0; }
-.imo-bench-chart[aria-busy="true"] { opacity: .6; }
-.imo-bench-raw { margin: 0; padding-left: 1.1rem; color: var(--imo-text-secondary); font-size: .88rem; }
 .imo-bench-meta { margin: 0; color: var(--imo-text-secondary); font-size: .86rem; }
 .imo-bench-note { margin: 0; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--imo-warning) 12%, transparent); color: var(--imo-text); font-size: .86rem; }
 .imo-bench-links { margin: 0; color: var(--imo-text-muted); font-size: .82rem; }
@@ -84,3 +82,74 @@
 .imo-bench-planned { display: grid; gap: 6px; margin: .4rem 0; padding: 0; list-style: none; }
 .imo-bench-planned li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 10px 14px; border: 1px solid var(--imo-border); border-radius: 8px; background: var(--imo-surface); }
 .imo-bench-planned span { color: var(--imo-text-muted); font-size: .88rem; }
+
+/* Area page: workload index, contenders and the per-run comparison. */
+.imo-bench-toc { display: flex; flex-wrap: wrap; gap: 6px; }
+.imo-bench-toc a { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 12px; border: 1px solid var(--imo-border); border-radius: 999px; background: var(--imo-surface); color: var(--imo-text); font-size: .88rem; text-decoration: none; }
+.imo-bench-toc a:hover { border-color: var(--imo-primary); }
+.imo-bench-toc small { color: var(--imo-text-muted); font-size: .74rem; }
+.imo-bench-workload__contenders { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: .4rem 0 0; }
+.imo-bench-workload__contenders span { padding: 2px 10px; border: 1px solid var(--imo-border); border-radius: 999px; background: var(--imo-bg-alt); font-size: .85rem; font-weight: 600; }
+.imo-bench-workload__contenders span.is-officeimo { border-color: var(--imo-primary); color: var(--imo-primary); background: var(--imo-primary-light); }
+.imo-bench-workload__contenders i { color: var(--imo-text-muted); font-size: .78rem; font-style: normal; }
+.imo-bench-workload__suite { font-family: var(--imo-font-body); }
+.imo-bench-workload__suite code { font-size: .78rem; background: none; border: 0; padding: 0; color: inherit; }
+.imo-bench-overview-slot:empty { display: none; }
+.imo-bench-glance { margin: 0; }
+.imo-bench-glance figcaption { margin-bottom: .45rem; color: var(--imo-text-secondary); font-size: .86rem; }
+.imo-bench-table--glance { min-width: 0; }
+.imo-bench-table--glance thead th small { display: block; margin-top: 2px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.imo-bench-table td.is-best { color: var(--imo-success); font-weight: 700; }
+.imo-bench-meta strong { color: var(--imo-text); }
+.imo-bench-workload-shape { margin: 0; color: var(--imo-text-secondary); font-size: .86rem; }
+.imo-bench-verdict { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.imo-bench-verdict li { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid var(--imo-border); border-left-width: 4px; border-radius: 8px; background: var(--imo-surface); }
+.imo-bench-verdict li.is-ahead { border-left-color: var(--imo-success); }
+.imo-bench-verdict li.is-behind { border-left-color: var(--imo-warning); }
+.imo-bench-verdict li.is-even { border-left-color: var(--imo-border-strong); }
+.imo-bench-verdict strong { font-size: .95rem; }
+.imo-bench-verdict span { color: var(--imo-text-muted); font-size: .82rem; }
+.imo-bench-table--matrix { min-width: 0; }
+.imo-bench-table--matrix thead th { text-transform: none; letter-spacing: 0; font-size: .8rem; color: var(--imo-text); }
+.imo-bench-table--matrix thead th small { display: block; color: var(--imo-text-muted); font-weight: 500; }
+.imo-bench-table--matrix td { vertical-align: top; }
+.imo-bench-table--matrix td small { display: block; color: var(--imo-text-muted); font-size: .74rem; font-weight: 500; }
+.imo-bench-table--matrix .is-officeimo { background: color-mix(in srgb, var(--imo-primary) 6%, transparent); }
+.imo-bench-table--matrix thead th.is-officeimo { color: var(--imo-primary); }
+.imo-bench-time { font-weight: 600; }
+.imo-bench-table--matrix td.is-best .imo-bench-time { color: var(--imo-success); font-weight: 750; }
+.imo-bench-table--matrix td.is-best small { color: var(--imo-success); }
+.imo-bench-detail summary { width: fit-content; color: var(--imo-accent); font-size: .88rem; font-weight: 650; cursor: pointer; }
+.imo-bench-detail[open] { display: grid; gap: 1rem; }
+.imo-bench-bars { display: grid; gap: 5px; }
+.imo-bench-bars h4 { margin: 0 0 2px; font-size: .86rem; }
+.imo-bench-bars__row { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) 5.5rem; gap: 10px; align-items: center; font-size: .84rem; font-variant-numeric: tabular-nums; }
+.imo-bench-bars__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imo-bench-bars__value { text-align: right; }
+.imo-bench-bars__row.is-officeimo .imo-bench-bars__name { color: var(--imo-primary); font-weight: 650; }
+.imo-bench-bars__row.is-officeimo .imo-bench-bar { background: var(--imo-primary); }
+.imo-bench-planned-section, .imo-bench-snapshots { display: grid; gap: .6rem; }
+.imo-bench-planned-section h2, .imo-bench-snapshots h2 { margin: 0; font-size: 1.3rem; }
+.imo-bench-planned-section > p, .imo-bench-snapshots > p { max-width: 760px; margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
+.imo-bench-planned-section a, .imo-bench-snapshots > p a { color: var(--imo-accent); font-weight: 600; }
+@media (max-width: 640px) { .imo-bench-bars__row { grid-template-columns: minmax(0, 7rem) minmax(0, 1fr) 4.5rem; } }
+.imo-bench-hub-results { margin-top: clamp(2.5rem, 5vw, 3.5rem); }
+.imo-bench-table--hub { min-width: 760px; }
+.imo-bench-table--hub th:first-child { width: 26%; }
+.imo-bench-table--hub td:nth-child(3) { width: 14%; white-space: nowrap; }
+.imo-bench-table--hub th a { color: var(--imo-text); text-decoration: none; }
+.imo-bench-table--hub th a:hover { color: var(--imo-accent); text-decoration: underline; }
+.imo-bench-table--hub td small { color: var(--imo-text-muted); }
+.imo-bench-table--hub td, .imo-bench-table--hub th { white-space: normal; vertical-align: top; }
+.imo-bench-hub__libs { color: var(--imo-text-secondary); max-width: 22rem; }
+.imo-bench-hub__result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.imo-bench-hub__result > span:not(.imo-bench-rank) { color: var(--imo-text-secondary); font-size: .84rem; }
+.imo-bench-rank { padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--imo-warning) 14%, transparent); font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.imo-bench-rank.is-diagnostic { background: var(--imo-bg-alt); color: var(--imo-text-muted); }
+.imo-bench-rank.is-first { background: color-mix(in srgb, var(--imo-success) 15%, transparent); color: var(--imo-success); }
+/* Benchmark tables sit inside article content; keep the article's table margin and row-header tint out of them. */
+.imo-bench-table-wrap > .imo-bench-table { margin: 0; }
+.imo-bench-table tbody th { background: transparent; }
+.imo-bench-run-panel { display: grid; gap: 1rem; min-width: 0; }
+.imo-bench-run-panel[hidden] { display: none; }
+.imo-bench-run-panel + .imo-bench-run-panel { padding-top: 1rem; border-top: 1px dashed var(--imo-border); }

@@ -1,4 +1,5 @@
-// Turns each [data-surface-explorer] list of groups into a tablist with one visible panel.
+// Turns each [data-surface-explorer] list of groups into a tablist with one visible panel,
+// and trims the [data-surface-proof] script to the height of its document.
 // Without this script every group stays listed, so the page is complete at rest.
 (function () {
   "use strict";
@@ -35,6 +36,40 @@
     root.classList.add("is-enhanced");
     select(start, false);
   }
-  function init() { Array.prototype.forEach.call(document.querySelectorAll("[data-surface-explorer]"), enhance); }
+  // The proof script is complete at rest. With script it is trimmed to the height of the document
+  // beside it, and the button expands it in place rather than scrolling inside a box.
+  function enhanceProof(root) {
+    var code = root.querySelector("[data-surface-proof-code]");
+    var toggle = root.querySelector("[data-surface-proof-toggle]");
+    if (!code || !toggle) return;
+    root.classList.add("is-clamped");
+    toggle.hidden = false;
+    toggle.addEventListener("click", function () {
+      var expanded = root.classList.toggle("is-expanded");
+      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+      toggle.textContent = toggle.getAttribute(expanded ? "data-label-less" : "data-label-more");
+      if (!expanded) {
+        var top = root.getBoundingClientRect().top;
+        if (top < 0) root.scrollIntoView({ block: "start" });
+      }
+    });
+  }
+  // Long CLI option lists show the first eight flags until the reader asks for the rest.
+  function enhanceSignature(sig) {
+    var toggle = sig.querySelector(".imo-cli-sig__more");
+    if (!toggle) return;
+    sig.classList.add("is-collapsed");
+    toggle.hidden = false;
+    toggle.addEventListener("click", function () {
+      var collapsed = sig.classList.toggle("is-collapsed");
+      toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      toggle.textContent = toggle.getAttribute(collapsed ? "data-label-more" : "data-label-less");
+    });
+  }
+  function init() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-surface-explorer]"), enhance);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cli-sig-long]"), enhanceSignature);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-surface-proof]"), enhanceProof);
+  }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();

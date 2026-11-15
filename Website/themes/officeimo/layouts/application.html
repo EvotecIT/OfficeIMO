@@ -22,6 +22,8 @@
   <a class="imo-skip-link" href="#content">Skip to main content</a>
   {{ include "header" }}
   {{ app = data.applications[page.meta.application] }}
+  {{~ include "cli-syntax" ~}}
+  {{~ copy_icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' ~}}
   <main id="content" class="imo-main">
     <section class="imo-workbench imo-workbench--app imo-container" data-product="{{ page.meta.application }}" aria-labelledby="application-title">
       <div class="imo-workbench__intro">
@@ -40,7 +42,7 @@
             <a class="imo-btn imo-btn-ghost" href="{{ app.secondaryUrl }}">{{ app.secondaryLabel }}</a>
             {{ end }}
           </div>
-          {{ if app.install && !app.terminal }}<div class="imo-surface-install"><span>Install</span><code>{{ app.install }}</code><button type="button" data-copy="{{ app.install }}" aria-label="Copy the install command">Copy</button></div>{{ end }}
+          {{ if app.install && !app.terminal }}<div class="imo-surface-install"><span>Install</span><code>{{ cli_line(app.install) }}</code><button type="button" data-copy="{{ app.install }}" aria-label="Copy the install command">{{ copy_icon }}</button></div>{{ end }}
           <ul class="imo-workbench__facts">{{ for fact in app.facts }}<li>{{ fact }}</li>{{ end }}</ul>
           <p class="imo-workbench__availability">{{ app.availability }}</p>
         </div>
@@ -65,11 +67,16 @@
       {{ agent_version = data.agent_integrations.pluginVersion }}
       <figure class="imo-workbench__stage imo-workbench__stage--single">
         <div class="imo-terminal imo-terminal--hero">
-          <p class="imo-terminal__bar"><span>{{ app.terminalTitle }}</span><button type="button" data-copy="{{ app.terminal[0].command | string.replace "{version}" agent_version }}" aria-label="Copy the first command">Copy</button></p>
-<pre aria-label="{{ page.title }} commands">{{ for line in app.terminal }}<span class="imo-t-muted"># {{ line.comment }}</span>
-<span class="imo-t-prompt">❯</span> {{ line.command | string.replace "{version}" agent_version }}{{ if !for.last }}
-
-{{ end }}{{ end }}</pre>
+          <p class="imo-terminal__bar"><span class="imo-terminal__dots" aria-hidden="true"><i></i><i></i><i></i></span><span>{{ app.terminalTitle }}</span></p>
+          <ol class="imo-terminal__steps" aria-label="{{ page.title }} commands">
+            {{~ for line in app.terminal ~}}
+            {{~ command = line.command | string.replace "{version}" agent_version ~}}
+            <li>
+              <p class="imo-t-muted"># {{ line.comment }}</p>
+              <div class="imo-terminal__cmd"><code><span class="imo-t-prompt" aria-hidden="true">❯ </span>{{ cli_line(command) }}</code><button type="button" class="imo-terminal__copy" data-copy="{{ command | html.escape }}" aria-label="Copy the command: {{ line.comment }}">{{ copy_icon }}</button></div>
+            </li>
+            {{~ end ~}}
+          </ol>
         </div>
       </figure>
       {{ end }}
