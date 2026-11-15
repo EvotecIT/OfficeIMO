@@ -255,7 +255,7 @@ public sealed class PdfTextFallbackPlan {
                 runs.Add(PdfTextRun.Tab());
                 i++;
             } else if (!char.IsControl(ch)) {
-                string textElement = System.Globalization.StringInfo.GetNextTextElement(text, i);
+                string textElement = OfficeIMO.Drawing.OfficeTextElements.NextTextElement(text, i);
                 runs.Add(CreateStyledLayoutRun(textElement, styleTemplate));
                 i += textElement.Length;
             } else {

@@ -326,7 +326,7 @@ internal static partial class PdfWriter {
             length = 1;
             return true;
         }
-        string textElement = System.Globalization.StringInfo.GetNextTextElement(text, index);
+        string textElement = OfficeIMO.Drawing.OfficeTextElements.NextTextElement(text, index);
         length = textElement.Length;
         if (options != null &&
             options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {

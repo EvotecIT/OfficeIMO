@@ -12,7 +12,7 @@ internal static class OfficeTextElements {
             yield break;
         }
 
-        if (HasOnlySingleCodeUnitElements(value!)) {
+        if (HasOnlyIndependentCodeUnits(value!)) {
             for (int index = 0; index < value!.Length; index++) yield return SingleCodeUnitElement(value[index]);
             yield break;
         }
@@ -51,7 +51,9 @@ internal static class OfficeTextElements {
 
     // Nothing below the combining marks joins its neighbour except CR LF.
     private const char FirstCombiningMark = '\u0300';
-    private static readonly string?[] SingleCodeUnitElements = new string?[FirstCombiningMark];
+    // Independent code units end with the Cyrillic Supplement block.
+    private const char LastIndependentCodeUnit = '\u052F';
+    private static readonly string?[] SingleCodeUnitElements = new string?[LastIndependentCodeUnit + 1];
 
     /// <summary>Recognizes the shared subset that needs no Unicode grapheme segmentation.</summary>
     internal static bool HasOnlySingleCodeUnitElements(string value, System.Threading.CancellationToken cancellationToken = default) {
@@ -64,12 +66,40 @@ internal static class OfficeTextElements {
     }
 
     private static string SingleCodeUnitElement(char value) =>
-        SingleCodeUnitElements[value] ??= value.ToString();
+        value <= LastIndependentCodeUnit ? SingleCodeUnitElements[value] ??= value.ToString() : value.ToString();
+
+    /// <summary>
+    /// Recognizes text in which every code unit is its own grapheme cluster: the single-code-unit subset
+    /// plus Greek and Cyrillic letters. Those blocks hold no combining, prepended or joining characters
+    /// apart from the Cyrillic combining marks U+0483-U+0489, so no rule can join their neighbours.
+    /// </summary>
+    internal static bool HasOnlyIndependentCodeUnits(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (!IsIndependentCodeUnit(value[index])) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Returns the text element starting at <paramref name="index"/>, as <see cref="StringInfo.GetNextTextElement(string, int)"/>
+    /// does, without segmenting when that code unit and the next one are independent.
+    /// </summary>
+    internal static string NextTextElement(string text, int index) {
+        if ((uint)index < (uint)text.Length && IsIndependentCodeUnit(text[index])
+            && (index + 1 == text.Length || IsIndependentCodeUnit(text[index + 1]))) {
+            return SingleCodeUnitElement(text[index]);
+        }
+        return StringInfo.GetNextTextElement(text, index);
+    }
+
+    private static bool IsIndependentCodeUnit(char value) => value < FirstCombiningMark
+        ? value != '\r'
+        : value >= 'Ͱ' && value <= LastIndependentCodeUnit && (value < '҃' || value > '҉');
 
     /// <summary>Counts Unicode grapheme clusters as <see cref="Enumerate"/> yields them, without materializing them for single-code-unit text.</summary>
     internal static int Count(string? value) {
         if (string.IsNullOrEmpty(value)) return 0;
-        if (HasOnlySingleCodeUnitElements(value!)) return value!.Length;
+        if (HasOnlyIndependentCodeUnits(value!)) return value!.Length;
         int count = 0;
         foreach (string _ in Enumerate(value)) count++;
         return count;
