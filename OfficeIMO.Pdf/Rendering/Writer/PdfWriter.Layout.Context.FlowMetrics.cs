@@ -677,9 +677,13 @@ internal static partial class PdfWriter {
                         GetFullPageContentHeight(), minimumOnly: true);
                     return fragment?.Height ?? 0D;
                 }
-                int count = firstVisualOnly ? Math.Min(1, geometry.Rows.Heights.Length) : geometry.Rows.Heights.Length;
-                return ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + GetTableRowsHeight(geometry.Rows.Heights, 0, count, geometry.Gap) +
-                    (firstVisualOnly ? 0D : style.SpacingAfter.ToPoints());
+                bool reserveWhole = firstVisualOnly && style.KeepTogether && style.Position == null;
+                double before = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
+                double rowsHeight = firstVisualOnly && !reserveWhole
+                    ? MeasureTableStartingRows(style, geometry.Rows.Heights, geometry.Gap, before, out _)
+                    : GetTableRowsHeight(geometry.Rows.Heights, 0, geometry.Rows.Heights.Length, geometry.Gap);
+                return before + rowsHeight +
+                    (firstVisualOnly && !reserveWhole ? 0D : style.SpacingAfter.ToPoints());
             }
             int columns = GetTableColumnCount(table);
             if (columns == 0 || table.Rows.Count == 0) {
@@ -713,17 +717,39 @@ internal static partial class PdfWriter {
             }
 
             bool reserveWholeTable = firstVisualOnly && style.KeepTogether && style.Position == null;
+            double leadingHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) : 0D) + captionHeight;
             int measuredRowCount = firstVisualOnly && !reserveWholeTable ? 1 : rowHeights.Length;
             bool completesFirstRow = true;
             double rowHeight = firstVisualOnly && allowTableFragments && !reserveWholeTable
                 ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap, out completesFirstRow)
-                : GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
-            double tableHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) : 0D) + captionHeight + rowHeight;
+                : firstVisualOnly && !reserveWholeTable
+                    ? MeasureTableStartingRows(style, rowHeights, rowGap, leadingHeight, out measuredRowCount)
+                    : GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
+            double tableHeight = leadingHeight + rowHeight;
             if (style.Position != null) return tableHeight;
             if (!firstVisualOnly) return tableHeight + style.SpacingAfter.ToPoints();
-            bool completesTable = reserveWholeTable || table.Rows.Count == 1 && completesFirstRow;
+            bool completesTable = reserveWholeTable || measuredRowCount == table.Rows.Count && completesFirstRow;
             return tableHeight + (reserveWholeTable || completesTable && closingSpace.RequiresFullAdvance ? style.SpacingAfter.ToPoints() : 0D) +
                 (completesTable ? closingSpace.Padding : 0D);
+        }
+
+        private double MeasureTableStartingRows(PdfTableStyle style, double[] heights, double gap, double leadingHeight, out int count) {
+            int rowCount = heights.Length;
+            int bodyRows = Math.Max(0, rowCount - style.HeaderRowCount - style.FooterRowCount);
+            count = style.Position != null ? Math.Min(1, rowCount)
+                : Math.Min(rowCount, Math.Max(1, style.HeaderRowCount + Math.Min(style.MinimumBodyRowsOnFirstPage, bodyRows)));
+            double capacity = count > 1 ? GetMaximumTableContinuationFrameHeight(style, GetFullPageContentHeight()) : double.PositiveInfinity;
+            double height = 0D;
+            for (int row = 0; row < count; row++) {
+                height += heights[row] + GetTableRowGapAfter(row, rowCount, gap);
+                // Starting-row preferences are best effort. Stop at the full-frame limit,
+                // retaining the first-row keep without scanning an oversized preferred group.
+                if (leadingHeight + height > capacity + 0.001D) {
+                    count = Math.Min(1, rowCount);
+                    return GetTableRowsHeight(heights, 0, count, gap);
+                }
+            }
+            return height;
         }
 
         private void ConsumeSpacer(double height) {
