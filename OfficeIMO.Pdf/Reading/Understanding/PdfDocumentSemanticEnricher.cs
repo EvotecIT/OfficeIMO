@@ -53,6 +53,9 @@ internal static partial class PdfDocumentSemanticEnricher {
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyHeadingFontTierEvidence(elements, workBudget);
 
+        IReadOnlyList<PdfContentsEntrySource>[] contentsEntries = BuildContentsSources(
+            document, pageNumbers, pages, elements, tableCandidates, taggedRoles, maxElementsPerPage, workBudget);
+
         Dictionary<int, Dictionary<int, int>?>? paragraphStories =
             !layout.ForceSingleColumn && layout.ReadingDirection == PdfReadingDirection.Auto
                 ? IndexTaggedParagraphStories(document, taggedGraph, workBudget)
@@ -109,7 +112,8 @@ internal static partial class PdfDocumentSemanticEnricher {
                 page.ImagePlacements,
                 RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]),
                 page.MaxWorkUnitsPerPage,
-                BuildTaggedListSources(document.Pages[pageNumbers[pageIndex] - 1], page, taggedRoles, maxElementsPerPage, workBudget), page.TextDecodingDiagnostics);
+                BuildTaggedListSources(document.Pages[pageNumbers[pageIndex] - 1], page, taggedRoles, maxElementsPerPage, workBudget), page.TextDecodingDiagnostics,
+                contentsEntries[pageIndex]);
         }
         return Array.AsReadOnly(result);
     }
@@ -511,7 +515,8 @@ internal static partial class PdfDocumentSemanticEnricher {
                     new MarkedContentKey(reference.ContentStreamObjectNumber, reference.MarkedContentId),
                     binding.Value.Roles,
                     binding.Value.AlternativeText,
-                    binding.Value.ListContent);
+                    binding.Value.ListContent,
+                    binding.Value.ContentsContent);
             }
         }
         return index.IsEmpty ? null : index;
@@ -836,6 +841,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         int listItemDepth = 0;
         int listContainerDepth = 0;
         bool listLabel = false;
+        int? contentsOwner = null;
+        int contentsDepth = 0;
         while (current is not null && visited.Add(current.ObjectNumber)) {
             workBudget.Consume();
             pageObjectNumber ??= current.PageObjectNumber;
@@ -848,6 +855,8 @@ internal static partial class PdfDocumentSemanticEnricher {
                     listOwner ??= current.ObjectNumber;
                     listItemDepth++;
                 }
+                if (string.Equals(candidate, "TOCI", StringComparison.OrdinalIgnoreCase)) contentsOwner ??= current.ObjectNumber;
+                if (string.Equals(candidate, "TOC", StringComparison.OrdinalIgnoreCase)) contentsDepth++;
                 if (!roles.Contains(candidate, StringComparer.OrdinalIgnoreCase)) roles.Add(candidate);
                 if (alternativeText is null &&
                     string.Equals(candidate, "Figure", StringComparison.OrdinalIgnoreCase) &&
@@ -863,7 +872,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         return roles.Count == 0
             ? null
             : new TaggedStructureBinding(roles.AsReadOnly(), pageObjectNumber, alternativeText,
-                listOwner.HasValue ? new TaggedListContent(listOwner.Value, Math.Max(listItemDepth, listContainerDepth), listLabel) : null);
+                listOwner.HasValue ? new TaggedListContent(listOwner.Value, Math.Max(listItemDepth, listContainerDepth), listLabel) : null,
+                contentsOwner.HasValue ? new TaggedContentsContent(contentsOwner.Value, Math.Max(1, contentsDepth)) : null);
     }
 
     private static TaggedRole? TryMapTaggedRole(string role) {
@@ -1019,7 +1029,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         IReadOnlyList<string> Roles,
         int? PageObjectNumber,
         string? AlternativeText,
-        TaggedListContent? ListContent);
+        TaggedListContent? ListContent,
+        TaggedContentsContent? ContentsContent);
 
     private sealed class OutlineLineCandidate {
         internal OutlineLineCandidate(
@@ -1063,8 +1074,10 @@ internal static partial class PdfDocumentSemanticEnricher {
             MarkedContentKey key,
             IReadOnlyList<string> roles,
             string? alternativeText,
-            TaggedListContent? listContent) {
+            TaggedListContent? listContent,
+            TaggedContentsContent? contentsContent) {
             AddListContent(pageNumber, key, listContent);
+            AddContentsContent(pageNumber, key, contentsContent);
             if (!_rolesByPage.TryGetValue(pageNumber, out Dictionary<MarkedContentKey, List<string>>? pageRoles)) {
                 pageRoles = new Dictionary<MarkedContentKey, List<string>>();
                 _rolesByPage.Add(pageNumber, pageRoles);

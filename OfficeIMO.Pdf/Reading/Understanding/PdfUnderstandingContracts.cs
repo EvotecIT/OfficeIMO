@@ -352,7 +352,8 @@ public sealed class PdfUnderstandingPageResult {
         IReadOnlyList<PdfUnderstandingImageRegion>? imageRegions = null,
         long maxWorkUnitsPerPage = 10_000_000,
         IReadOnlyList<PdfTaggedListItemSource>? taggedListItems = null,
-        IReadOnlyList<PdfFontInspectionDiagnostic>? textDecodingDiagnostics = null) {
+        IReadOnlyList<PdfFontInspectionDiagnostic>? textDecodingDiagnostics = null,
+        IReadOnlyList<PdfContentsEntrySource>? contentsEntries = null) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -367,6 +368,7 @@ public sealed class PdfUnderstandingPageResult {
         ImageRegions = imageRegions ?? Array.Empty<PdfUnderstandingImageRegion>();
         MaxWorkUnitsPerPage = maxWorkUnitsPerPage;
         TaggedListItems = taggedListItems ?? Array.Empty<PdfTaggedListItemSource>();
+        ContentsEntries = contentsEntries ?? Array.Empty<PdfContentsEntrySource>();
         TextDecodingDiagnostics = textDecodingDiagnostics ?? Array.Empty<PdfFontInspectionDiagnostic>();
         LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
         RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
@@ -404,6 +406,8 @@ public sealed class PdfUnderstandingPageResult {
     internal long MaxWorkUnitsPerPage { get; }
     /// <summary>Tagged list membership over canonical source runs, independent of paragraph and heading classification.</summary>
     internal IReadOnlyList<PdfTaggedListItemSource> TaggedListItems { get; }
+    /// <summary>Contents entries recognised from TOC/TOCI structure or from the contents-line pattern.</summary>
+    internal IReadOnlyList<PdfContentsEntrySource> ContentsEntries { get; }
     /// <summary>Pre-enrichment line sequence retained by caller-supplied structural stages for logical projection.</summary>
     internal IReadOnlyList<PdfUnderstandingLine> LogicalProjectionLines { get; }
     /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
@@ -432,7 +436,7 @@ public sealed class PdfUnderstandingPageResult {
             ImagePlacements,
             ImageRegions,
             MaxWorkUnitsPerPage,
-            TaggedListItems, TextDecodingDiagnostics);
+            TaggedListItems, TextDecodingDiagnostics, ContentsEntries);
     }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(

@@ -298,7 +298,35 @@ public static class PdfLogicalMarkdownExtensions {
         }
 
         parents.Push((level, indent + marker.Length + 1));
-        return new string(' ', indent) + marker + " " + EscapeInline(item.Text);
+        return new string(' ', indent) + marker + " " + (item.IsContentsEntry ? RenderContentsEntry(item) : EscapeInline(item.Text));
+    }
+
+    private static string RenderContentsEntry(PdfLogicalListItem item) {
+        string title = EscapeInline(item.Text, escapeLinePrefix: false);
+        string? target = item.Link is null ? null : FormatContentsLinkTarget(item.Link);
+        string text = target is null ? title : "[" + title + "](" + target + ")";
+        return string.IsNullOrEmpty(item.TargetPageLabel) ? text : text + " \u2014 " + EscapeInline(item.TargetPageLabel!, escapeLinePrefix: false);
+    }
+
+    // Named destinations and pages use PDF open-parameter fragments, the same form a viewer accepts after the file name.
+    private static string? FormatContentsLinkTarget(PdfLogicalLinkAnnotation link) {
+        if (!string.IsNullOrEmpty(link.Uri)) return IsSafeLinkUri(link.Uri!) ? EscapeLinkTarget(link.Uri!) : null;
+        if (!string.IsNullOrEmpty(link.DestinationName)) return "#" + EscapeContentsFragment(link.DestinationName!);
+        return link.SourceLink.DestinationPageNumber.HasValue
+            ? "#page=" + link.SourceLink.DestinationPageNumber.Value.ToString(CultureInfo.InvariantCulture)
+            : null;
+    }
+
+    private static string EscapeContentsFragment(string name) {
+        var builder = new StringBuilder(name.Length);
+        foreach (char ch in name) {
+            if (char.IsWhiteSpace(ch) || ch is '(' or ')' or '<' or '>' or '[' or ']' or '%') {
+                builder.Append(Uri.EscapeDataString(ch.ToString()));
+            } else {
+                builder.Append(ch);
+            }
+        }
+        return builder.ToString();
     }
 
     private static string FormatListMarker(string marker) {

@@ -655,9 +655,11 @@ public sealed partial class PdfLogicalPage {
         Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
         LogicalTextBlockSourceIndex textBlockSourceIndex,
-        PdfUnderstandingPageResult analysis) {
+        PdfUnderstandingPageResult analysis,
+        IReadOnlyList<PdfLogicalLinkAnnotation> links) {
         var result = new List<PdfLogicalListItem>(Math.Max(listItems.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
+        AddContentsItems(pageNumber, textBlocks, analysis, links, result, represented);
         AddTaggedListItems(pageNumber, textBlocks, semanticByTextBlock, analysis, result, represented);
         var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
