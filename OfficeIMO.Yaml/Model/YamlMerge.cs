@@ -473,8 +473,9 @@ internal sealed class YamlMerge {
                 if (kind == YamlScalarKind.String) return new YamlScalar(value);
                 if (kind == YamlScalarKind.Null && value.Length == 0) return new YamlScalar((string?)null);
                 if (kind is YamlScalarKind.Null or YamlScalarKind.Boolean or YamlScalarKind.Integer or YamlScalarKind.Float
-                    && YamlSchemaResolver.Resolve(value.AsSpan(), baseSchema) != kind) {
-                    // The base schema reads the spelling differently (yes under YAML 1.1 is a string under 1.2): write the value.
+                    && (YamlSchemaResolver.Resolve(value.AsSpan(), baseSchema) != kind || !SameNumber(scalar, kind, baseSchema))) {
+                    // The base schema reads the spelling differently (yes under YAML 1.1 is a string under 1.2, and 010 is
+                    // 8 under 1.1 but 10 under 1.2): write the value.
                     Data(scalar, out _, out string canonical, out _);
                     return new YamlScalar(canonical, YamlStyle.Plain);
                 }
@@ -483,6 +484,23 @@ internal sealed class YamlMerge {
                 // Quoted strings follow the quoting convention of the base.
                 return new YamlScalar(value);
         }
+    }
+
+    /// <summary>Whether a plain number's spelling means the same value under the base schema as under its own.</summary>
+    private static bool SameNumber(YamlScalar scalar, YamlScalarKind kind, YamlSchema baseSchema) {
+        ReadOnlySpan<char> text = scalar.ValueSpan;
+        YamlSchema own = scalar.NumericSchema, target = baseSchema == YamlSchema.Failsafe ? YamlSchema.Core : baseSchema;
+        if (kind == YamlScalarKind.Integer) {
+            bool parsed = YamlSchemaResolver.TryParseInt64(text, own, out long value);
+            bool parsedThere = YamlSchemaResolver.TryParseInt64(text, target, out long valueThere);
+            return parsed == parsedThere && value == valueThere;
+        }
+        if (kind == YamlScalarKind.Float) {
+            bool parsed = YamlSchemaResolver.TryParseDouble(text, own, out double value);
+            bool parsedThere = YamlSchemaResolver.TryParseDouble(text, target, out double valueThere);
+            return parsed == parsedThere && value.Equals(valueThere);
+        }
+        return true;
     }
 
     private YamlSchema BaseSchema => _part?.Schema ?? YamlSchema.Core;

@@ -195,7 +195,7 @@ internal sealed class YamlPatch {
             (existed ? _replaced : _added).Add(Display(YamlPath.Format(root)));
             return;
         }
-        YamlNode parent = Find(tokens, tokens.Length - 1) ?? throw Fail(operation, "The location that would hold '" + operation.Path + "' does not exist.");
+        YamlNode parent = Find(tokens, tokens.Length - 1, forEdit: true) ?? throw Fail(operation, "The location that would hold '" + operation.Path + "' does not exist.");
         string last = tokens[tokens.Length - 1];
         YamlNode container = parent.Resolved;
         string at = ContainerPath(container);
@@ -224,7 +224,7 @@ internal sealed class YamlPatch {
     /// <summary>Removes the value a pointer addresses and returns it, detached.</summary>
     private YamlNode Remove(Operation operation, string[] tokens) {
         if (tokens.Length == 0) throw Fail(operation, "The document root cannot be removed; replace it instead.");
-        YamlNode parent = Find(tokens, tokens.Length - 1) ?? throw Fail(operation, "There is no value to remove at '" + Format(tokens) + "'.");
+        YamlNode parent = Find(tokens, tokens.Length - 1, forEdit: true) ?? throw Fail(operation, "There is no value to remove at '" + Format(tokens) + "'.");
         string last = tokens[tokens.Length - 1];
         YamlNode container = parent.Resolved;
         string at = ContainerPath(container);
@@ -265,8 +265,12 @@ internal sealed class YamlPatch {
         }
     }
 
-    /// <summary>Follows <paramref name="count"/> tokens from the first document's root; <see langword="null"/> when nothing is there.</summary>
-    private YamlNode? Find(string[] tokens, int count) {
+    /// <summary>
+    /// Follows <paramref name="count"/> tokens from the first document's root; <see langword="null"/> when nothing is
+    /// there. With <paramref name="forEdit"/>, a collection that only a <c>&lt;&lt;</c> merge provides is first copied into
+    /// an entry of its own, so the edit below it changes this mapping and never the merged one, which others share.
+    /// </summary>
+    private YamlNode? Find(string[] tokens, int count, bool forEdit = false) {
         if (_document.Documents.Count == 0) return null;
         YamlNode node = _document.Documents[0].Root;
         for (int i = 0; i < count; i++) {
@@ -274,8 +278,16 @@ internal sealed class YamlPatch {
             YamlNode? next = null;
             if (container is YamlMapping mapping) {
                 int own = mapping.IndexOf(tokens[i]);
-                if (own >= 0) next = mapping.EntryAt(own).Value;
-                else if (mapping.TryGetValue(tokens[i], out YamlNode? merged)) next = merged;
+                if (own >= 0) {
+                    next = mapping.EntryAt(own).Value;
+                } else if (mapping.TryGetValue(tokens[i], out YamlNode? merged)) {
+                    next = merged;
+                    if (forEdit && merged!.Resolved is YamlMapping or YamlSequence) {
+                        string at = ContainerPath(mapping);
+                        next = mapping.Set(tokens[i], Copy(merged, mapping._style == YamlStyle.Flow, comments: false, 0));
+                        _added.Add(Display(YamlPath.AppendKey(at, tokens[i])));
+                    }
+                }
             } else if (container is YamlSequence sequence && JsonPointer.TryGetIndex(tokens[i], sequence._count, sequence._count, allowEnd: false, out int index)) {
                 next = sequence.ItemAt(index);
             }
@@ -375,9 +387,11 @@ internal sealed class YamlPatch {
                 YamlMerge.Data(scalar, out YamlScalarKind kind, out string text, out string? tag);
                 YamlMerge.Data(other, out YamlScalarKind otherKind, out string otherText, out string? otherTag);
                 if (kind is YamlScalarKind.Integer or YamlScalarKind.Float && otherKind is YamlScalarKind.Integer or YamlScalarKind.Float && kind != otherKind) {
-                    return YamlSchemaResolver.TryParseDouble(text.AsSpan(), YamlSchema.Core, out double number)
-                        && YamlSchemaResolver.TryParseDouble(otherText.AsSpan(), YamlSchema.Core, out double otherNumber)
-                        && number.Equals(otherNumber);
+                    // Integer text is canonical decimal (or the written digits beyond 64 bits); the float is compared exactly.
+                    string integerText = kind == YamlScalarKind.Integer ? text : otherText, floatText = kind == YamlScalarKind.Integer ? otherText : text;
+                    return System.Numerics.BigInteger.TryParse(integerText, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out System.Numerics.BigInteger integer)
+                        && YamlSchemaResolver.TryParseDouble(floatText.AsSpan(), YamlSchema.Core, out double number)
+                        && JsonNumbers.IntegerEquals(integer, number);
                 }
                 return kind == otherKind && text == otherText && tag == otherTag;
             case YamlSequence sequence when right is YamlSequence other:

@@ -280,6 +280,39 @@ public class YamlDocumentPatchTests {
     }
 
     [Fact]
+    public void EditsBelowAMergedMappingGoToAnOwnCopyAndLeaveTheSharedOneAlone() {
+        const string text = "base: &b\n  settings:\n    retries: 3\njob:\n  <<: *b\nother:\n  <<: *b\n";
+        using YamlDocument document = YamlDocument.Parse(text);
+
+        YamlPatchReport report = document.ApplyJsonPatch("""[ { "op": "replace", "path": "/job/settings/retries", "value": 5 } ]""");
+
+        using YamlDocument saved = YamlDocument.Parse(Save(document));
+        Assert.Equal(5, saved.Select("job.settings.retries")!.GetValue<int>());
+        Assert.Equal(3, saved.Select("base.settings.retries")!.GetValue<int>());
+        Assert.Equal(3, saved.Select("other.settings.retries")!.GetValue<int>());
+        Assert.Equal(new[] { "job.settings" }, report.Added);
+        Assert.Equal(new[] { "job.settings.retries" }, report.Replaced);
+    }
+
+    [Fact]
+    public void ATestComparesLargeIntegersWithFloatsExactly() {
+        using YamlDocument document = YamlDocument.Parse("n: 9007199254740993\nm: 2\n");
+
+        Assert.Throws<YamlPatchException>(() => document.ApplyJsonPatch("""[ { "op": "test", "path": "/n", "value": 9007199254740992.0 } ]"""));
+        document.ApplyJsonPatch("""[ { "op": "test", "path": "/m", "value": 2.0 }, { "op": "test", "path": "/n", "value": 9007199254740993 } ]""");
+    }
+
+    [Fact]
+    public void ANumberCopiedFromAnotherSchemaKeepsItsValue() {
+        using YamlDocument document = YamlDocument.Parse("name: web\n");
+        using YamlDocument patch = YamlDocument.Parse("%YAML 1.1\n---\nmode: 010\nport: 80\n");
+
+        document.ApplyMergePatch(patch);
+
+        Assert.Equal("name: web\nmode: 8\nport: 80\n", Save(document));
+    }
+
+    [Fact]
     public void CopiedValuesExpandAliasesAndMerges() {
         using YamlDocument document = YamlDocument.Parse("base: &base\n  retries: 3\njob:\n  <<: *base\n  name: build\n");
 

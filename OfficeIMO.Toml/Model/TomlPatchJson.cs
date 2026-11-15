@@ -158,7 +158,18 @@ internal sealed class TomlPatchJson {
         }
         string text = _text.Substring(start, _position - start);
         if (integer && long.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out long whole)) return whole;
-        return double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+        double number;
+        try {
+            number = double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
+        } catch (OverflowException) {
+            number = double.PositiveInfinity;
+        }
+        // .NET Framework throws for a number beyond double's range and later runtimes return infinity; both are rejected.
+        if (double.IsInfinity(number)) {
+            _position = start;
+            throw Error("the number is beyond the range of a double");
+        }
+        return number;
     }
 
     private bool Digits() {

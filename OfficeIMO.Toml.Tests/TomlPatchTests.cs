@@ -99,6 +99,30 @@ public class TomlPatchTests {
     }
 
     [Fact]
+    public void RemovingTheLastKeyOrTableKeepsTheContainer() {
+        (string saved, _) = Patch("a.x = 1\nb = 2\n", """[ { "op": "remove", "path": "/a/x" } ]""");
+        using (TomlDocument reloaded = TomlDocument.Parse(saved)) Assert.Empty(reloaded.Select("a")!.AsTable());
+
+        (saved, _) = MergePatch("a.b.x = 1\n", """{ "a": { "b": { "x": null } } }""");
+        using (TomlDocument reloaded = TomlDocument.Parse(saved)) Assert.Empty(reloaded.Select("a.b")!.AsTable());
+
+        (saved, _) = Patch("name = \"lock\"\n\n[[package]]\nname = \"anyio\"\n", """[ { "op": "remove", "path": "/package/0" } ]""");
+        using (TomlDocument reloaded = TomlDocument.Parse(saved)) Assert.Empty(reloaded.Select("package")!.AsArray());
+    }
+
+    [Theory]
+    [InlineData("""[ { "op": "remove", "path": "/missing/x" } ]""")]
+    [InlineData("""[ { "op": "test", "path": "/n", "value": 9007199254740992.0 } ]""")]
+    [InlineData("""[ { "op": "add", "path": "/big", "value": 1e400 } ]""")]
+    public void RejectsMissingParentsInexactNumbersAndOverflow(string patch) {
+        const string Toml = "n = 9007199254740993\n";
+        using TomlDocument document = TomlDocument.Parse(Toml);
+        Assert.Throws<TomlPatchException>(() => document.ApplyJsonPatch(patch));
+        Assert.Equal(Toml, document.ToString());
+        document.ApplyJsonPatch("""[ { "op": "test", "path": "/n", "value": 9007199254740993 } ]""");
+    }
+
+    [Fact]
     public void AMergePatchRemovesWithNullAndMergesTables() {
         const string Toml = "# Settings\ntitle = \"app\"\n\n[server]\nhost = \"localhost\" # local only\nport = 8080\ndebug = true\n\n[cache]\nsize = 10\n";
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Numerics;
 using System.Text;
 
 namespace OfficeIMO.Patching;
@@ -111,4 +112,15 @@ internal static class JsonPatchOperations {
     public static bool NeedsFrom(JsonPatchOperationKind kind) => kind is JsonPatchOperationKind.Move or JsonPatchOperationKind.Copy;
 
     public static bool NeedsValue(JsonPatchOperationKind kind) => kind is JsonPatchOperationKind.Add or JsonPatchOperationKind.Replace or JsonPatchOperationKind.Test;
+}
+
+/// <summary>JSON number equality across integer and floating-point values, without rounding either.</summary>
+internal static class JsonNumbers {
+    /// <summary>
+    /// Returns whether an integer equals a floating-point value exactly: the float is finite, whole and the same number.
+    /// Converting the integer to <see cref="double"/> instead would round integers above 2^53, so 9007199254740993
+    /// would equal 9007199254740992.0.
+    /// </summary>
+    public static bool IntegerEquals(BigInteger integer, double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value) && Math.Floor(value) == value && new BigInteger(value) == integer;
 }

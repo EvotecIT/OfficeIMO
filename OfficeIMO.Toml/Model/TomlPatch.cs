@@ -207,12 +207,12 @@ internal sealed class TomlPatch {
 
     private void Remove(Operation operation, string[] tokens) {
         if (tokens.Length == 0) throw Fail(operation, "The root table cannot be removed; replace it instead.");
-        TomlNode? parent = Find(tokens, tokens.Length - 1);
+        TomlNode parent = Find(tokens, tokens.Length - 1) ?? throw Fail(operation, "There is no value to remove at '" + Format(tokens) + "'.");
         string last = tokens[tokens.Length - 1];
         string at = PathOf(tokens, tokens.Length - 1);
         int index;
         switch (parent) {
-            case TomlTable table when table.Remove(last):
+            case TomlTable table when RemoveKey(table, last):
                 _removed.Add(TomlPath.AppendKey(at, last));
                 return;
             case TomlArray array when JsonPointer.TryGetIndex(last, array.Count, array.Count, allowEnd: false, out index):
@@ -221,11 +221,34 @@ internal sealed class TomlPatch {
                 return;
             case TomlTableArray tables when JsonPointer.TryGetIndex(last, tables.Count, tables.Count, allowEnd: false, out index):
                 tables.RemoveAt(index);
+                // An array of tables with no tables has no text, so the key would vanish on save: it becomes [].
+                if (tables.Count == 0 && tables.Parent is TomlTable owner && tables.Key is { } key) owner.PutNode(key, new TomlArray(_document));
                 _removed.Add(TomlPath.AppendIndex(at, index));
                 return;
             default:
                 throw Fail(operation, "There is no value to remove at '" + Format(tokens) + "'.");
         }
+    }
+
+    /// <summary>
+    /// Removes a key and keeps the tables around it. <see cref="TomlTable.Remove"/> drops a table made only by dotted keys
+    /// or deeper headers once it is empty, since it has no text of its own; a patch removes only the member it names,
+    /// so such a table that lost its last key is added back as an empty <c>[header]</c> table.
+    /// </summary>
+    private static bool RemoveKey(TomlTable table, string key) {
+        // The tables between the root and this one, innermost first.
+        var chain = new List<TomlTable>();
+        for (TomlTable current = table; current.Parent is TomlTable parent; current = parent) chain.Add(current);
+        if (!table.Remove(key)) return false;
+        int top = -1;
+        for (int i = 0; i < chain.Count; i++) {
+            if (chain[i].Parent is null) top = i;
+        }
+        if (top < 0) return true;
+        // The outermost table the removal dropped still knows its parent, which stayed; rebuild the chain below it.
+        var restored = (TomlTable)chain[top]._parent!;
+        for (int i = top; i >= 0; i--) restored = restored.AddTable(chain[i].Key!);
+        return true;
     }
 
     private TomlNode? Find(string[] tokens, int count) {
@@ -291,7 +314,7 @@ internal sealed class TomlPatch {
         foreach (DictionaryEntry member in patch) {
             string key = (string)member.Key;
             if (member.Value is null) {
-                if (table.Remove(key)) _removed.Add(TomlPath.AppendKey(path, key));
+                if (RemoveKey(table, key)) _removed.Add(TomlPath.AppendKey(path, key));
             } else if (member.Value is OrderedDictionary inner && table.TryGetValue(key, out TomlNode? node) && node is TomlTable child) {
                 RemoveNulls(child, inner, TomlPath.AppendKey(path, key), depth + 1);
             }
@@ -399,8 +422,12 @@ internal sealed class TomlPatch {
                 return right is null;
             case long number when right is long otherNumber:
                 return number == otherNumber;
-            case long or double when right is long or double:
-                return Convert.ToDouble(left, CultureInfo.InvariantCulture).Equals(Convert.ToDouble(right, CultureInfo.InvariantCulture));
+            case double number when right is double otherNumber:
+                return number.Equals(otherNumber);
+            case long number when right is double otherNumber:
+                return JsonNumbers.IntegerEquals(number, otherNumber);
+            case double number when right is long otherNumber:
+                return JsonNumbers.IntegerEquals(otherNumber, number);
             case string text:
                 return right is string otherText ? string.Equals(text, otherText, StringComparison.Ordinal) : right is TomlDateTime rightDate && text == rightDate.ToString();
             case TomlDateTime date:
