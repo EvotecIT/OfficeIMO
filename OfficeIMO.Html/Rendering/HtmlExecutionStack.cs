@@ -145,14 +145,21 @@ internal static class HtmlExecutionStack {
                         _start.WaitOne();
                     }
                     if (_stopping) return;
-                    Action job = _job!;
-                    _job = null;
-                    job();
+                    RunPendingJob();
                     _completed.Set();
                 }
             } finally {
                 Dispose();
             }
+        }
+
+        // The job's closure holds the rendered result. Keep it in this frame only, so an idle
+        // worker does not retain the previous document while it waits.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void RunPendingJob() {
+            Action job = _job!;
+            _job = null;
+            job();
         }
 
         private void Dispose() {
