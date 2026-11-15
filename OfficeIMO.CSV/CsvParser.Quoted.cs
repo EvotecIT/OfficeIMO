@@ -263,7 +263,8 @@ internal static partial class CsvParser
             var current = text[index];
             if (state.InQuotes)
             {
-                if (current == escape && escape != quote)
+                if (current == escape && escape != quote && index + 1 < text.Length &&
+                    (text[index + 1] == quote || text[index + 1] == escape))
                 {
                     index++;
                     continue;

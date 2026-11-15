@@ -22,6 +22,7 @@ public sealed partial class CsvDocument
     private static void WritePath(string path, CsvSaveOptions options, Action<TextWriter> write)
     {
         string fullPath = Path.GetFullPath(path);
+        CsvQuotingTextWriter.ValidateDialect(options);
         if (options.NoClobber && File.Exists(fullPath))
         {
             throw new IOException($"The file '{fullPath}' already exists.");
@@ -83,6 +84,7 @@ public sealed partial class CsvDocument
         options = ResolveSaveOptions(options, path);
         cancellationToken.ThrowIfCancellationRequested();
         string fullPath = Path.GetFullPath(path);
+        CsvQuotingTextWriter.ValidateDialect(options);
         if (options.NoClobber && File.Exists(fullPath)) throw new IOException($"The file '{fullPath}' already exists.");
         CsvCompressionType compressionType = CsvFile.ResolveCompression(options.CompressionType, fullPath);
 

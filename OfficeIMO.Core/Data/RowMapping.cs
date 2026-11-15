@@ -533,6 +533,11 @@ internal static class DataValueConverter {
         }
     }
 
+    /// <summary>Whether the text starts with an ISO 8601 date, yyyy-MM-dd.</summary>
+    internal static bool IsIsoDate(string text) =>
+        text.Length >= 10 && text[4] == '-' && text[7] == '-' &&
+        char.IsDigit(text[0]) && char.IsDigit(text[3]) && char.IsDigit(text[5]) && char.IsDigit(text[9]);
+
     private static bool TryConvertFromString(
         string text,
         Type targetType,
@@ -557,9 +562,14 @@ internal static class DataValueConverter {
             else if (targetType == typeof(float) && float.TryParse(text, NumberStyles.Any, culture, out float floatValue)) result = floatValue;
             else if (targetType == typeof(DateTime) && dateTimeFormats is { Count: > 0 } &&
                      DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.RoundtripKind, out DateTime formattedDateTime)) result = formattedDateTime;
+            // ISO 8601 text is Gregorian whatever the culture's calendar, as the CSV writers emit it.
+            else if (targetType == typeof(DateTime) && IsIsoDate(text) &&
+                     DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime isoDateTime)) result = isoDateTime;
             else if (targetType == typeof(DateTime)) result = DateTime.Parse(text, culture, DateTimeStyles.RoundtripKind);
             else if (targetType == typeof(DateTimeOffset) && dateTimeFormats is { Count: > 0 } &&
                      DateTimeOffset.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateTimeOffset formattedOffset)) result = formattedOffset;
+            else if (targetType == typeof(DateTimeOffset) && IsIsoDate(text) &&
+                     DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTimeOffset isoOffset)) result = isoOffset;
             else if (targetType == typeof(DateTimeOffset)) result = DateTimeOffset.Parse(text, culture, DateTimeStyles.None);
             else if (targetType == typeof(TimeSpan) && TimeSpan.TryParseExact(text, "c", CultureInfo.InvariantCulture, out TimeSpan invariantTimeSpan)) result = invariantTimeSpan;
             else if (targetType == typeof(TimeSpan)) result = TimeSpan.Parse(text, culture);
@@ -567,6 +577,8 @@ internal static class DataValueConverter {
 #if NET6_0_OR_GREATER
             else if (targetType == typeof(DateOnly) && dateTimeFormats is { Count: > 0 } &&
                      DateOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out DateOnly formattedDateOnly)) result = formattedDateOnly;
+            else if (targetType == typeof(DateOnly) && IsIsoDate(text) &&
+                     DateOnly.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateOnly isoDate)) result = isoDate;
             else if (targetType == typeof(DateOnly)) result = DateOnly.Parse(text, culture, DateTimeStyles.None);
             else if (targetType == typeof(TimeOnly) && dateTimeFormats is { Count: > 0 } &&
                      TimeOnly.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out TimeOnly formattedTimeOnly)) result = formattedTimeOnly;

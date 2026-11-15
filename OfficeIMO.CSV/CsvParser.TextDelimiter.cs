@@ -72,13 +72,15 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var stringCache = CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader, options);
+        var pendingLines = new Queue<CsvLine>();
 
-        while (lineReader.ReadLine(out var lineSeparator) is { } line)
+        while (ReadLineWithSeparator(lineReader, pendingLines, out var lineSeparator) is { } line)
         {
             ThrowIfCancellationRequested(options);
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (TrySkipTextDelimiterCommentRecordBeforeParsing(
                     lineReader,
+                    pendingLines,
                     startsWithCommentCharacter,
                     line,
                     lineSeparator,
@@ -126,7 +128,7 @@ internal static partial class CsvParser
                     while (state.InQuotes)
                     {
                         ThrowIfCancellationRequested(options);
-                        var next = lineReader.ReadLine(out var nextSeparator);
+                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
                         if (next == null)
                         {
                             throw new CsvParseException("Unterminated quoted field.", lineNumber);
@@ -210,9 +212,9 @@ internal static partial class CsvParser
 
             if (inQuotes)
             {
-                if (c == escape && escape != quote && i + 1 < text.Length)
+                if (c == escape && escape != quote && i + 1 < text.Length && (text[i + 1] == quote || text[i + 1] == escape))
                 {
-                    // An escape character keeps the next character, a quote or the escape itself, as data.
+                    // An escape character keeps the next quote or escape character as data; before anything else it is data itself.
                     i++;
                     buffer.Append(text[i]);
                     bufferIsWhitespaceOnly = false;
@@ -267,6 +269,13 @@ internal static partial class CsvParser
                     continue;
                 }
 
+                // Other quote or escape characters follow the single-character parser, which rejects a quote inside an
+                // unquoted field in strict mode; multi-character delimiters keep the rule their UTF-8 reader shares.
+                if (strictQuotes && !bufferIsWhitespaceOnly && (quote != '"' || escape != '"'))
+                {
+                    throw new CsvParseException("Invalid quoted field.", lineNumber);
+                }
+
                 if (trim && bufferIsWhitespaceOnly)
                 {
                     buffer.Clear();
@@ -312,6 +321,7 @@ internal static partial class CsvParser
 
     private static bool TrySkipTextDelimiterCommentRecordBeforeParsing(
         CsvLineReader reader,
+        Queue<CsvLine> pendingLines,
         bool startsWithCommentCharacter,
         string firstLine,
         string firstLineSeparator,
@@ -336,26 +346,44 @@ internal static partial class CsvParser
             return true;
         }
 
-        var continuationCount = 0;
+        // With other quote or escape characters, a comment whose quote does not close within the limit is one line
+        // and the lines read ahead are replayed, as the single-character parser does. Multi-character delimiters
+        // keep the rule their UTF-8 reader shares: the comment runs to its closing quote.
+        bool bounded = quote != '"' || escape != '"';
+        int continuationLimit = bounded ? options.MaxCommentContinuationLines : int.MaxValue;
+        if (continuationLimit <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxCommentContinuationLines must be greater than zero.");
+        }
+
+        var continuations = new List<CsvLine>();
         var state = new QuotedRecordState();
         UpdateQuotedRecordState(firstLine, delimiter, trim, ref state, quote, escape);
-        while (true)
+        while (continuations.Count < continuationLimit)
         {
             ThrowIfCancellationRequested(options);
-            var next = reader.ReadLine(out _);
+            var next = ReadLineWithSeparator(reader, pendingLines, out var nextSeparator);
             if (next == null)
             {
+                if (bounded)
+                {
+                    EnqueueContinuations(pendingLines, continuations);
+                }
+
                 return true;
             }
 
-            continuationCount++;
+            continuations.Add(new CsvLine(next, nextSeparator, lineNumber + continuations.Count + 1));
             UpdateQuotedRecordState(next, delimiter, trim, ref state, quote, escape);
             if (!state.InQuotes)
             {
-                lineNumber += continuationCount;
+                lineNumber += continuations.Count;
                 return true;
             }
         }
+
+        EnqueueContinuations(pendingLines, continuations);
+        return true;
     }
 
     private static bool LooksLikeDelimitedRawComment(string line, string delimiter) =>

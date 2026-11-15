@@ -783,6 +783,11 @@ internal static partial class PowerShellObjectNormalizer
 
     private static string? NormalizeCellValueToText(object? value, PowerShellObjectNormalizerOptions options)
     {
+        while (value is PSObject wrapped && !ReferenceEquals(value, wrapped.BaseObject))
+        {
+            value = wrapped.BaseObject;
+        }
+
         if (value == null)
         {
             return null;

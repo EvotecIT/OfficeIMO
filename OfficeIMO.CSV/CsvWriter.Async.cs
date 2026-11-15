@@ -68,6 +68,13 @@ internal static partial class CsvWriter
                     options.FormulaInjectionPolicy, options.ResolvedQuoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
             await EmitAsync().ConfigureAwait(false);
         }
+
+        if (recordTarget is CsvQuotingTextWriter quoting)
+        {
+            // A last record without a line break leaves its field open until the rewrite completes.
+            quoting.Complete();
+            await EmitAsync().ConfigureAwait(false);
+        }
 #if NET8_0_OR_GREATER
         await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
 #else

@@ -269,6 +269,12 @@ internal static partial class CsvDataProjectionConverter
             return true;
         }
 
+        // ISO 8601 text, the writers' default, is Gregorian whatever the culture's calendar.
+        if (IsIsoDate(text) && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out dateTime))
+        {
+            return true;
+        }
+
         return DateTime.TryParse(text, culture, DateTimeStyles.RoundtripKind, out dateTime);
     }
 

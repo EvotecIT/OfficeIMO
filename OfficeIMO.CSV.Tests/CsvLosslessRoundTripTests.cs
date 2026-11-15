@@ -145,6 +145,86 @@ public sealed class CsvLosslessRoundTripTests
         Assert.Equal(@"a \ b", reader.GetString(1));
     }
 
+    [Fact]
+    public void EscapeCharacter_KeepsEscapesBeforeOtherCharactersAsText()
+    {
+        const string csv = "Path\n\"C:\\temp\\new\"\n";
+
+        using var reader = CsvDocument.OpenReader(new StringReader(csv), new CsvReaderOptions { EscapeCharacter = '\\' });
+
+        Assert.True(reader.Read());
+        Assert.Equal(@"C:\temp\new", reader.GetString(0));
+    }
+
+    [Fact]
+    public void CustomQuoting_StrictModeRejectsQuoteInsideUnquotedField()
+    {
+        var options = new CsvLoadOptions { EscapeCharacter = '\\', QuoteParsingMode = CsvQuoteParsingMode.Strict };
+
+        Assert.Throws<CsvParseException>(() => CsvDocument.Parse("Name,Value\nab\"cd\",42\n", options));
+    }
+
+    [Fact]
+    public void CustomQuoting_UnclosedCommentStopsAtTheContinuationLimit()
+    {
+        var options = new CsvLoadOptions { QuoteCharacter = '\'', SkipCommentRows = true, MaxCommentContinuationLines = 1 };
+
+        var document = CsvDocument.Parse("#,'unfinished\nName,Value\nAlpha,1\n", options);
+
+        Assert.Equal(new[] { "Name", "Value" }, document.Header);
+        Assert.Equal("Alpha", document.AsEnumerable().Single()[0]);
+    }
+
+    [Fact]
+    public async Task CustomQuoting_SaveAsyncWritesALastRecordWithoutLineBreak()
+    {
+        var document = CsvDocument.Create().WithHeader("Value").AddRow("it's");
+        var options = new CsvSaveOptions { IncludeHeader = false, QuoteCharacter = '\'', NewLine = string.Empty };
+        using var synchronous = new MemoryStream();
+        using var asynchronous = new MemoryStream();
+
+        document.Save(synchronous, options);
+        await document.SaveAsync(asynchronous, options);
+
+        Assert.Equal("'it''s'", Encoding.UTF8.GetString(synchronous.ToArray()));
+        Assert.Equal(synchronous.ToArray(), asynchronous.ToArray());
+    }
+
+    [Fact]
+    public void CustomQuoting_RejectedDialectLeavesTheExistingFile()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-dialect-" + Guid.NewGuid().ToString("N") + ".csv");
+        File.WriteAllText(path, "keep");
+        try
+        {
+            var document = CsvDocument.Create().WithHeader("Value").AddRow("x");
+
+            Assert.Throws<ArgumentException>(() => document.Save(path, new CsvSaveOptions { QuoteCharacter = ',' }));
+            Assert.Throws<ArgumentException>(() => CsvRowWriter.CreateFile(path, new CsvSaveOptions { QuoteCharacter = ',' }));
+            Assert.Equal("keep", File.ReadAllText(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void IsoDates_ReadAsGregorianUnderACultureWithAnotherCalendar()
+    {
+        var culture = new CultureInfo("th-TH");
+        culture.DateTimeFormat.Calendar = new ThaiBuddhistCalendar();
+        var schema = new CsvSchemaBuilder().Column("When").AsDateTime().Column("Offset").AsType(typeof(DateTimeOffset)).Done().Build();
+
+        using var reader = CsvDocument.OpenReader(
+            new StringReader("When,Offset\n2026-01-02T03:04:05.5,2026-01-02T03:04:05+01:00\n"),
+            new CsvReaderOptions { Culture = culture, Schema = schema });
+
+        Assert.True(reader.Read());
+        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5, 500), reader.GetDateTime(0));
+        Assert.Equal(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(1)), reader.GetValue(1));
+    }
+
     private static DataTable CreateTable(bool includeNullRow)
     {
         var table = new DataTable();

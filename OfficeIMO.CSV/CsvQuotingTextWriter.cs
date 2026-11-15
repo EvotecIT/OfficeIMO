@@ -42,8 +42,25 @@ internal sealed class CsvQuotingTextWriter : TextWriter
         _escape = options.EscapeCharacter ?? options.QuoteCharacter;
         _delimiter = CsvWriter.GetDelimiterText(options);
         _recordSeparator = options.NewLine;
-        if (_quote is '\r' or '\n' || _escape is '\r' or '\n' ||
-            _delimiter.IndexOf(_quote) >= 0 || _delimiter.IndexOf(_escape) >= 0)
+        ValidateDialect(options);
+    }
+
+    /// <summary>
+    /// Rejects quote and escape characters that cannot be written unambiguously. Path writers call it before they
+    /// open the destination, so a rejected dialect never truncates an existing file.
+    /// </summary>
+    internal static void ValidateDialect(CsvSaveOptions options)
+    {
+        if (!options.UsesCustomQuoting)
+        {
+            return;
+        }
+
+        char quote = options.QuoteCharacter;
+        char escape = options.EscapeCharacter ?? quote;
+        string delimiter = CsvWriter.GetDelimiterText(options);
+        if (quote is '\r' or '\n' || escape is '\r' or '\n' ||
+            delimiter.IndexOf(quote) >= 0 || delimiter.IndexOf(escape) >= 0)
         {
             throw new ArgumentException("Quote and escape characters cannot be line breaks or part of the delimiter.");
         }
@@ -139,22 +156,28 @@ internal sealed class CsvQuotingTextWriter : TextWriter
         if (disposing && !_completed)
         {
             _completed = true;
-            Complete();
-            if (_leaveOpen)
+            try
             {
-                _inner.Flush();
+                Complete();
+                if (_leaveOpen)
+                {
+                    _inner.Flush();
+                }
             }
-            else
+            finally
             {
-                _inner.Dispose();
+                if (!_leaveOpen)
+                {
+                    _inner.Dispose();
+                }
             }
         }
 
         base.Dispose(disposing);
     }
 
-    /// <summary>Writes a field still open at the end of the output.</summary>
-    private void Complete()
+    /// <summary>Writes a field still open at the end of the output, such as a last record without a line break.</summary>
+    internal void Complete()
     {
         switch (_state)
         {

@@ -103,7 +103,8 @@ namespace OfficeIMO.Excel {
                         sheet.IncludeCellReferences);
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem, TabularStyles, WorkbookStyles);
+                // The widths are measured with the requested strategy; the cells keep the strategy captured with the data.
+                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy, DateSystem, TabularStyles, WorkbookStyles);
             }
 
             internal DirectDataSetWorkbookModel WithTableAutoFilter(string sheetName, bool includeAutoFilter) {
@@ -225,7 +226,8 @@ namespace OfficeIMO.Excel {
                         sheet.IncludeCellReferences);
                 }
 
-                return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem, TabularStyles, WorkbookStyles);
+                // The widths are measured with the requested strategy; the cells keep the strategy captured with the data.
+                return new DirectDataSetWorkbookModel(sheets, Results, DateTimeOffsetWriteStrategy, DateSystem, TabularStyles, WorkbookStyles);
             }
 
             internal DirectDataSetWorkbookModel WithTable(
