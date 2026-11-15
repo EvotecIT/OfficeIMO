@@ -37,7 +37,9 @@
     <Compile Remove="**/*.cs" />
     <Compile Include="WordBenchmarkCorpus.cs" />
     <Compile Include="WordCreateComparisonBenchmarks.cs" />
+    <Compile Include="WordEquivalentPackageParts.cs" />
     <Compile Include="WordReadComparisonBenchmarks.cs" />
+    <Compile Include="WordReaderTextWorkload.cs" />
     <Compile Include="WordReplaceComparisonBenchmarks.cs" />
     <Compile Include="NetFramework/*.cs" />
     <Reference Include="System.IO.Compression" />

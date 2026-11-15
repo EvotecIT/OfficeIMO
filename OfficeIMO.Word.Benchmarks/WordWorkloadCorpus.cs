@@ -65,7 +65,7 @@ internal static class WordWorkloadCorpus {
     /// <summary>The Open XML SDK report output, used as a neutral table-read input.</summary>
     internal static byte[] CreateReportFixture(int rowCount) {
         var benchmark = new WordCreateReportComparisonBenchmarks { RowCount = rowCount };
-        using MemoryStream stream = WordBenchmarkCorpus.CreateEditableStream(benchmark.OpenXmlSdk());
+        using MemoryStream stream = WordBenchmarkCorpus.CreateEditableStream(benchmark.OpenXmlSdkMinimal());
         using (WordprocessingDocument document = WordprocessingDocument.Open(stream, isEditable: true)) {
             // DocX requires a style catalog with a default paragraph style before it can enumerate content.
             document.MainDocumentPart!.AddNewPart<StyleDefinitionsPart>().Styles = new Styles(

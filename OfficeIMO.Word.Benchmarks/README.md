@@ -71,6 +71,16 @@ one-shot application workflow. The Open XML SDK lanes are format-native
 baselines, not claims that low-level code has the same maintenance cost or
 feature surface as a document library.
 
+The creation comparisons have two Open XML SDK lanes. `OpenXmlSdkMinimal`
+writes only the main document (and, for the report, its header and footer).
+`OpenXmlSdkEquivalent` also writes the parts an OfficeIMO document carries:
+styles, settings, web settings, font table, theme, footnote and endnote
+separators, and core and extended properties when present. Setup takes those
+parts from OfficeIMO's output for the same workload and fails when the two
+packages contain different parts; the timed lane feeds them to the SDK as
+serialized XML. Compare OfficeIMO with the equivalent lane for the same
+output, and with the minimal lane for the smallest valid package.
+
 Every OfficeIMO, NPOI, and Open XML SDK output passes Open XML SDK validation.
 The DocX 5.2.0 output is checked independently at ZIP/XML level for the
 complete semantic payload. Its generated `/word/webSettings.xml` currently uses
