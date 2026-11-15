@@ -285,10 +285,16 @@ internal static partial class MarkdownReader {
                     if (TryConsumeStandaloneGenericAttributeBlock(lines, i, options, state)) { i++; continue; }
                     bool matched = false;
                     var parsers = pipeline.Parsers;
+                    var blockStarts = pipeline.BlockStarts;
+                    char first = GetFirstNonWhiteSpaceCharacter(lines[i]);
                     int previousBlockCount = doc.Blocks.Count;
                     int startIndex = i;
                     int startLine = lineOffset + i;
                     for (int p = 0; p < parsers.Count; p++) {
+                        if (!MayStartBlock(blockStarts[p], lines, i, first, options)) {
+                            continue;
+                        }
+
                         if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
                             matched = true;
                             if (doc.Blocks.Count > previousBlockCount
