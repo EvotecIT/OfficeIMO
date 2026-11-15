@@ -1522,6 +1522,9 @@ Validates native document structure, schema, security, accessibility or complian
 ### [Test-OfficeExcelTemplate](Test-OfficeExcelTemplate.md)
 Tests whether supplied values bind every template marker.
 
+### [Test-OfficePdfAccessibility](Test-OfficePdfAccessibility.md)
+Checks a PDF against PDF/UA-1 using the Matterhorn Protocol failure conditions.
+
 ### [Test-OfficePdfRewrite](Test-OfficePdfRewrite.md)
 Creates a proof report for user-visible signals preserved by a PDF rewrite.
 
