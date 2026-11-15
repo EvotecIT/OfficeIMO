@@ -104,7 +104,18 @@ public static partial class OfficePngWriter {
             } else if (layout.Type == 6) {
                 Buffer.BlockCopy(rgba!, source, row, blockStart * 4, (blockEnd - blockStart) * 4);
             } else if (layout.Type == 2) {
-                for (int x = blockStart, target = blockStart * 3; x < blockEnd; x++, source += 4, target += 3) {
+                int x = blockStart, target = blockStart * 3;
+#if NET8_0_OR_GREATER
+                // Copy whole RGBA words; each word's alpha byte lands on the next pixel's red and is
+                // overwritten by it, so only the row's last pixel needs byte copies.
+                ref byte sourceBytes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(rgba!);
+                ref byte targetBytes = ref System.Runtime.InteropServices.MemoryMarshal.GetArrayDataReference(row);
+                for (int wordEnd = Math.Min(blockEnd, width - 1); x < wordEnd; x++, source += 4, target += 3) {
+                    System.Runtime.CompilerServices.Unsafe.WriteUnaligned(ref System.Runtime.CompilerServices.Unsafe.Add(ref targetBytes, target),
+                        System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref System.Runtime.CompilerServices.Unsafe.Add(ref sourceBytes, source)));
+                }
+#endif
+                for (; x < blockEnd; x++, source += 4, target += 3) {
                     row[target] = rgba![source]; row[target + 1] = rgba[source + 1]; row[target + 2] = rgba[source + 2];
                 }
             } else if (layout.Type == 4) {

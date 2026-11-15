@@ -54,6 +54,19 @@ public static partial class OfficePngWriter {
         return true;
     }
 
+    /// <summary>Returns true when <paramref name="key"/> was already present; otherwise records it.</summary>
+    private static bool AddPaletteKey(uint[] keys, bool[] slots, uint key) {
+        int mask = keys.Length - 1;
+        int slot = (int)((key * 2654435761U) >> 23) & mask;
+        while (slots[slot]) {
+            if (keys[slot] == key) return true;
+            slot = (slot + 1) & mask;
+        }
+        slots[slot] = true;
+        keys[slot] = key;
+        return false;
+    }
+
     private static uint RgbaKey(byte[] pixels, int i) =>
         (uint)pixels[i] << 24 | (uint)pixels[i + 1] << 16 | (uint)pixels[i + 2] << 8 | pixels[i + 3];
 
@@ -63,6 +76,10 @@ public static partial class OfficePngWriter {
         bool gray = true, opaque = true;
         int grayDepths = GrayDepthOne | GrayDepthTwo | GrayDepthFour;
         Dictionary<uint, int>? palette = new Dictionary<uint, int>();
+        // Mirrors the palette keys in a small open-addressed table, so each color change costs one probe
+        // instead of a dictionary lookup. It never holds more than the palette's 256 colors.
+        var paletteKeys = new uint[512];
+        var paletteSlots = new bool[512];
         uint lastKey = 0;
         bool hasLastKey = false;
         // Blocks keep the checkpoint after every 4096 bytes. Repeated colors skip the palette
@@ -86,7 +103,7 @@ public static partial class OfficePngWriter {
                 if (palette != null) {
                     uint key = RgbaKey(rgba, i);
                     if (hasLastKey && key == lastKey) continue;
-                    if (!palette.ContainsKey(key)) {
+                    if (!AddPaletteKey(paletteKeys, paletteSlots, key)) {
                         if (palette.Count == 256) palette = null;
                         else palette.Add(key, palette.Count);
                     }
