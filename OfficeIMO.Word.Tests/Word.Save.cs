@@ -392,6 +392,39 @@ namespace OfficeIMO.Tests {
             Assert.Equal(images, reloaded.Images.Count);
         }
 
+        [Fact]
+        public void Test_RepeatedSavesOfLargeBodyKeepOnlyCurrentContent() {
+            // Several hundred kilobytes of body XML, so the main part spans more than one buffer block.
+            const int count = 3000;
+            using var document = WordDocument.Create();
+            for (int index = 0; index < count; index++) {
+                document.AddParagraph("Paragraph " + index + " carries enough text to make the body part large.");
+            }
+            byte[] large = document.ToBytes();
+            foreach (WordParagraph paragraph in document.Paragraphs.Skip(2).ToList()) paragraph.Remove();
+            document.ToBytes();
+            document.AddParagraph("After shrinking");
+            byte[] shrunk = document.ToBytes();
+
+            using (var reloaded = WordDocument.Load(new MemoryStream(shrunk, writable: false))) {
+                Assert.Equal(
+                    new[] { "Paragraph 0 carries enough text to make the body part large.", "Paragraph 1 carries enough text to make the body part large.", "After shrinking" },
+                    reloaded.Paragraphs.Select(paragraph => paragraph.Text));
+            }
+
+            byte[] edited;
+            using (var loaded = WordDocument.Load(new MemoryStream(large, writable: false))) {
+                Assert.Equal(count, loaded.Paragraphs.Count);
+                loaded.AddParagraph("Added after loading");
+                edited = loaded.ToBytes();
+            }
+            using var reloadedEdit = WordDocument.Load(new MemoryStream(edited, writable: false));
+            List<WordParagraph> paragraphs = reloadedEdit.Paragraphs;
+            Assert.Equal(count + 1, paragraphs.Count);
+            Assert.Equal("Paragraph 2999 carries enough text to make the body part large.", paragraphs[count - 1].Text);
+            Assert.Equal("Added after loading", paragraphs[count].Text);
+        }
+
         /// <summary>Reads each ZIP entry's stored (compressed) bytes through the central directory.</summary>
         private static Dictionary<string, byte[]> ReadStoredZipEntries(byte[] package) {
             int end = package.Length - 22;
