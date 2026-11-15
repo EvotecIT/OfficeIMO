@@ -154,6 +154,8 @@ public sealed class TomlConfigurationTests {
     [InlineData("[A]\nx = 1\n[a]\ny = 2\n", "a", 3)]
     [InlineData("\"a:b\" = 1\na = { b = [] }\n", "a:b", 2)]
     [InlineData("a = { b = {} }\n\"a:b\" = 1\n", "a:b", 2)]
+    [InlineData("a = { b = [] }\n\"a:b\" = 1\n", "a:b", 2)]
+    [InlineData("\"a:b\" = 1\na = { b = {} }\n", "a:b", 2)]
     public void RejectsKeysThatDifferOnlyInCase(string toml, string key, int line) {
         FormatException exception = Assert.Throws<FormatException>(() => Load(toml));
         Assert.Equal($"A duplicate key '{key}' was found at line {line}.", exception.Message);
@@ -167,6 +169,14 @@ public sealed class TomlConfigurationTests {
         Assert.Equal("25", data["Port"]);
         Assert.True(data.ContainsKey("Outer:"));
         Assert.Null(data["Outer:"]);
+    }
+
+    [Fact]
+    public void KeepsAnEmptyTableUnderAnEmptyRootKey() {
+        IDictionary<string, string?> data = Load("\"\" = {}\n");
+
+        Assert.True(data.ContainsKey(string.Empty));
+        Assert.Null(data[string.Empty]);
     }
 
     [Fact]
