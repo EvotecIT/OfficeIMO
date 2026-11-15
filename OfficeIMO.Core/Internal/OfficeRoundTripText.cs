@@ -276,7 +276,7 @@ internal static class OfficeRoundTripText
     /// <summary>
     /// Writes the offset of a local value as the runtime's <c>K</c> does. A <see cref="DateTimeOffset"/> takes it from
     /// one snapshot of the time zone data, as <c>K</c> does; on the first and last day of the range, where that
-    /// offset could move the time out of range, the runtime writes it.
+    /// offset could move the time out of range, the runtime's <c>K</c> writes it.
     /// </summary>
 #if NETCOREAPP
     private static int WriteLocalOffset<TChar>(DateTime value, Span<TChar> destination, int position) where TChar : unmanaged
@@ -290,7 +290,8 @@ internal static class OfficeRoundTripText
             return WriteOffset(destination, position, new DateTimeOffset(value).Offset.Ticks);
         }
 
-        string offset = value.ToString("zzz", CultureInfo.InvariantCulture);
+        // "%K", not "zzz": a time-only format takes the current offset for a value on the first day.
+        string offset = value.ToString("%K", CultureInfo.InvariantCulture);
         for (int index = 0; index < offset.Length; index++)
         {
             destination[position + index] = Unit(destination, offset[index]);
