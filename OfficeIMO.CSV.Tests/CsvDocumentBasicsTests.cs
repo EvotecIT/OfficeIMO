@@ -964,20 +964,18 @@ public class CsvDocumentBasicsTests
 
 #if NET6_0_OR_GREATER
     [Fact]
-    public void Default_Writer_Preserves_Long_Culture_Formatted_Dates()
+    public void Default_Writer_Preserves_Long_Custom_Formatted_Dates()
     {
-        var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
-        culture.DateTimeFormat.ShortDatePattern = new string('y', 160);
-        culture.DateTimeFormat.LongTimePattern = "HH:mm:ss";
+        string format = new string('y', 160) + " HH:mm:ss";
         var value = new DateTime(2026, 7, 15, 12, 34, 56);
-        using var writer = new StringWriter(culture);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
 
-        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { Culture = culture, NewLine = "\n" }))
+        using (var csv = new CsvRowWriter(writer, new CsvSaveOptions { DateTimeFormat = format, NewLine = "\n" }))
         {
             csv.WriteRow(new[] { "Value" }, new object?[] { value });
         }
 
-        Assert.Equal("Value\n" + value.ToString(culture) + "\n", writer.ToString());
+        Assert.Equal("Value\n" + value.ToString(format, CultureInfo.InvariantCulture) + "\n", writer.ToString());
     }
 
     [Fact]

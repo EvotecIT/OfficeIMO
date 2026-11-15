@@ -11,12 +11,12 @@ Creates a themed Excel workbook, returning a live workbook or saving a completed
 ## SYNTAX
 ### Live (Default)
 ```powershell
-New-OfficeExcel [[-Path] <string>] [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-MaxDegreeOfParallelism <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeExcel [[-Path] <string>] [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-DateTimeOffsetMode <ExcelDateTimeOffsetWriteMode>] [-MaxDegreeOfParallelism <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Content
 ```powershell
-New-OfficeExcel [-Path] <string> [-Content] <scriptblock> [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-Password <securestring>] [-SaveOptions <ExcelSaveOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-MaxDegreeOfParallelism <Int32>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeExcel [-Path] <string> [-Content] <scriptblock> [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-Password <securestring>] [-SaveOptions <ExcelSaveOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-DateTimeOffsetMode <ExcelDateTimeOffsetWriteMode>] [-MaxDegreeOfParallelism <Int32>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -135,6 +135,22 @@ Type: ExcelDateSystem
 Parameter Sets: Live, Content
 Aliases: None
 Possible values: NineteenHundred, NineteenFour
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DateTimeOffsetMode
+How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.
+
+```yaml
+Type: ExcelDateTimeOffsetWriteMode
+Parameter Sets: Live, Content
+Aliases: None
+Possible values: Text, Serial
 
 Required: False
 Position: named

@@ -38,9 +38,9 @@ namespace OfficeIMO.Excel {
             internal DirectWorkbookCellStyles? WorkbookStyles { get; }
 
             internal static DirectDataSetWorkbookModel CreateStreaming(IReadOnlyList<DirectDataSetSheetModel> sheets,
-                ExcelDateSystem dateSystem, ExcelTabularStylePlan? styles) =>
+                ExcelWriterOptions options, ExcelTabularStylePlan? styles) =>
                 new DirectDataSetWorkbookModel(sheets, Array.Empty<ExcelDataSetImportResult>(),
-                    DefaultDateTimeOffsetWriteStrategy, dateSystem, styles);
+                    GetDateTimeOffsetWriteStrategy(options), options.DateSystem, styles);
 
             internal DirectDataSetWorkbookModel WithDateSystem(ExcelDateSystem dateSystem) {
                 return dateSystem == DateSystem
@@ -103,6 +103,7 @@ namespace OfficeIMO.Excel {
                         sheet.IncludeCellReferences);
                 }
 
+                // Widths are measured with the strategy the cells are then written with.
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem, TabularStyles, WorkbookStyles);
             }
 
@@ -225,6 +226,7 @@ namespace OfficeIMO.Excel {
                         sheet.IncludeCellReferences);
                 }
 
+                // Widths are measured with the strategy the cells are then written with.
                 return new DirectDataSetWorkbookModel(sheets, Results, dateTimeOffsetWriteStrategy ?? DateTimeOffsetWriteStrategy, DateSystem, TabularStyles, WorkbookStyles);
             }
 

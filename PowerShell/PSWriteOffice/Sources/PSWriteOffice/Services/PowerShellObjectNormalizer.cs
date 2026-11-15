@@ -783,6 +783,11 @@ internal static partial class PowerShellObjectNormalizer
 
     private static string? NormalizeCellValueToText(object? value, PowerShellObjectNormalizerOptions options)
     {
+        while (value is PSObject wrapped && !ReferenceEquals(value, wrapped.BaseObject))
+        {
+            value = wrapped.BaseObject;
+        }
+
         if (value == null)
         {
             return null;
@@ -796,6 +801,11 @@ internal static partial class PowerShellObjectNormalizer
         if (value is bool boolValue)
         {
             return boolValue ? "True" : "False";
+        }
+
+        if (options.RoundTripScalarText && OfficeIMO.Core.Internal.OfficeRoundTripText.TryFormat(value, options.Culture, out string roundTripText))
+        {
+            return roundTripText;
         }
 
         if (value is decimal or int or DateTime or double or long or DateTimeOffset or Guid or TimeSpan or float or byte or sbyte or short or ushort or uint or ulong)
@@ -843,7 +853,9 @@ internal static partial class PowerShellObjectNormalizer
         {
             if (options.FormatScalarValuesAsText)
             {
-                normalized = value is IFormattable formattable
+                normalized = options.RoundTripScalarText && OfficeIMO.Core.Internal.OfficeRoundTripText.TryFormat(value, options.Culture, out string roundTripText)
+                    ? roundTripText
+                    : value is IFormattable formattable
                     ? formattable.ToString(null, options.Culture)
                     : value.ToString();
             }

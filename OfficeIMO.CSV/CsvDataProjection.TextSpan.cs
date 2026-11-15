@@ -269,6 +269,12 @@ internal static partial class CsvDataProjectionConverter
             return true;
         }
 
+        // ISO 8601 text, the writers' default, is Gregorian whatever the culture's calendar.
+        if (IsIsoDate(text) && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out dateTime))
+        {
+            return true;
+        }
+
         return DateTime.TryParse(text, culture, DateTimeStyles.RoundtripKind, out dateTime);
     }
 
@@ -351,28 +357,29 @@ internal static partial class CsvDataProjectionConverter
     private static bool TryParseDefaultInvariantDateTime(ReadOnlySpan<char> text, out DateTime dateTime)
     {
         dateTime = default;
-        // This is the round-trip format emitted by CsvSaveOptions for UTC and
-        // unspecified DateTime values. Offset-bearing local values deliberately
-        // retain the framework fallback so RoundtripKind semantics stay authoritative.
-        if ((text.Length == 27 || text.Length == 28) &&
+        // This is the round-trip text the CSV writers emit for UTC and unspecified DateTime values (and the "o"
+        // format): yyyy-MM-ddTHH:mm:ss with an optional fraction of up to seven digits and an optional Z.
+        // Offset-bearing local values deliberately retain the framework fallback so RoundtripKind semantics stay authoritative.
+        bool utc = text.Length > 19 && text[text.Length - 1] == 'Z';
+        int fractionEnd = utc ? text.Length - 1 : text.Length;
+        if (text.Length >= 19 && fractionEnd <= 27 &&
             text[4] == '-' &&
             text[7] == '-' &&
             text[10] == 'T' &&
             text[13] == ':' &&
             text[16] == ':' &&
-            text[19] == '.' &&
-            (text.Length == 27 || text[27] == 'Z') &&
+            (fractionEnd == 19 || (fractionEnd > 20 && text[19] == '.')) &&
             TryParseFourDigits(text, 0, out var roundTripYear) &&
             TryParseTwoDigits(text, 5, out var roundTripMonth) &&
             TryParseTwoDigits(text, 8, out var roundTripDay) &&
             TryParseTwoDigits(text, 11, out var roundTripHour) &&
             TryParseTwoDigits(text, 14, out var roundTripMinute) &&
             TryParseTwoDigits(text, 17, out var roundTripSecond) &&
-            TryParseSevenDigits(text, 20, out var fractionalTicks))
+            TryParseFractionTicks(text, fractionEnd, out var fractionalTicks))
         {
             try
             {
-                var kind = text.Length == 28 ? DateTimeKind.Utc : DateTimeKind.Unspecified;
+                var kind = utc ? DateTimeKind.Utc : DateTimeKind.Unspecified;
                 dateTime = new DateTime(
                     roundTripYear,
                     roundTripMonth,
@@ -468,12 +475,14 @@ internal static partial class CsvDataProjectionConverter
         return true;
     }
 
-    private static bool TryParseSevenDigits(ReadOnlySpan<char> text, int offset, out long value)
+    /// <summary>Reads the fraction digits between position 20 and <paramref name="end"/> as ticks; no fraction is zero ticks.</summary>
+    private static bool TryParseFractionTicks(ReadOnlySpan<char> text, int end, out long value)
     {
         value = 0;
-        for (var index = 0; index < 7; index++)
+        int digits = end - 20;
+        for (var index = 0; index < digits; index++)
         {
-            var digit = text[offset + index] - '0';
+            var digit = text[20 + index] - '0';
             if ((uint)digit > 9)
             {
                 value = 0;
@@ -481,6 +490,11 @@ internal static partial class CsvDataProjectionConverter
             }
 
             value = (value * 10) + digit;
+        }
+
+        for (var index = digits < 0 ? 7 : digits; index < 7; index++)
+        {
+            value *= 10;
         }
 
         return true;

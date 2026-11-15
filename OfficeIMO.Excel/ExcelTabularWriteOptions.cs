@@ -95,6 +95,12 @@ namespace OfficeIMO.Excel {
         public ExcelDateSystem DateSystem { get; set; } = ExcelDateSystem.NineteenHundred;
 
         /// <summary>
+        /// How <see cref="DateTimeOffset"/> values are written. Defaults to <see cref="ExcelDateTimeOffsetWriteMode.Text"/>,
+        /// which keeps the offset; <see cref="ExcelDateTimeOffsetWriteMode.Serial"/> writes local-time date serials.
+        /// </summary>
+        public ExcelDateTimeOffsetWriteMode DateTimeOffsetWriteMode { get; set; }
+
+        /// <summary>
         /// Named complete styles, copied and compiled before reading source rows or preparing the
         /// first row. Styles cannot be registered during a row callback. Memory depends on the
         /// declared catalog and columns.

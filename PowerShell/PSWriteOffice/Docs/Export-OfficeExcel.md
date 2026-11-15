@@ -11,17 +11,17 @@ Exports PowerShell objects to an Excel workbook using an operator-friendly surfa
 ## SYNTAX
 ### Create (Default)
 ```powershell
-Export-OfficeExcel [-Path] <string> [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcel [-Path] <string> [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-DateTimeOffsetMode <ExcelDateTimeOffsetWriteMode>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Append
 ```powershell
-Export-OfficeExcel [-Path] <string> -Append [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcel [-Path] <string> -Append [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-DateTimeOffsetMode <ExcelDateTimeOffsetWriteMode>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### ReplaceSheet
 ```powershell
-Export-OfficeExcel [-Path] <string> -ReplaceSheet [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeExcel [-Path] <string> -ReplaceSheet [-InputObject <Object>] [-Sheet <OfficeSheetSelector>] [-TableName <string>] [-Title <string>] [-Address <string>] [-Theme <OfficeThemeInput>] [-TableStyle <ExcelTableStyle>] [-NoTable] [-NoTableStyle] [-NoHeader] [-NoAutoFilter] [-NoAutoFit] [-NoFreeze] [-FreezeFirstColumn] [-ShowFirstColumn] [-ShowLastColumn] [-ShowColumnStripes] [-NoRowStripes] [-ColumnFormat <hashtable>] [-Decimals <int>] [-Culture <cultureinfo>] [-IgnoreMissingColumnFormat] [-ExcludeProperty <string[]>] [-CollectionSeparator <string>] [-FlattenOptions <OfficeObjectFlattenOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-DateTimeOffsetMode <ExcelDateTimeOffsetWriteMode>] [-SaveOptions <ExcelSaveOptions>] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -160,6 +160,22 @@ Type: ExcelDateSystem
 Parameter Sets: Create, Append, ReplaceSheet
 Aliases: None
 Possible values: NineteenHundred, NineteenFour
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DateTimeOffsetMode
+How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.
+
+```yaml
+Type: ExcelDateTimeOffsetWriteMode
+Parameter Sets: Create, Append, ReplaceSheet
+Aliases: None
+Possible values: Text, Serial
 
 Required: False
 Position: named

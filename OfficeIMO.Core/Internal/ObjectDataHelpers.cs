@@ -503,6 +503,11 @@ internal static partial class ObjectDataHelpers
                 return null;
             }
 
+            if (OfficeRoundTripText.TryFormat(value, culture, out string roundTripText))
+            {
+                return roundTripText;
+            }
+
             if (value is IFormattable formattable)
             {
                 return formattable.ToString(null, culture);

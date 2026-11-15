@@ -759,6 +759,18 @@ var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
 });
 ```
 
+`QuoteCharacter` and `EscapeCharacter` read and write other dialects, such as single quotes
+or MySQL-style backslash escapes inside quoted fields. Without `EscapeCharacter`, a doubled
+quote character is one quote, as in RFC 4180. Use the same settings on both sides;
+`OpenReaderAsync` supports only the double quote.
+
+```csharp
+var dialect = new CsvSaveOptions { QuoteCharacter = '\'', EscapeCharacter = '\\' };
+document.Save("names.csv", dialect); // 'O\'Brien'
+
+var names = CsvDocument.Load("names.csv", new CsvLoadOptions { QuoteCharacter = '\'', EscapeCharacter = '\\' });
+```
+
 Use `DelimiterText` for multi-character delimiters such as `||` or `::`. Quoted fields can still contain the delimiter text:
 
 ```csharp
@@ -793,6 +805,22 @@ Console.WriteLine($"Imported {rowsRead} rows");
 ```
 
 ## Export options
+
+By default every value reads back unchanged, whatever the culture:
+
+| Value | Default text |
+| --- | --- |
+| `DateTime` | ISO 8601 with only the non-zero fraction digits: `2026-03-14T09:26:53.5897932`, `Z` for UTC and the offset for local values |
+| `DateTimeOffset` | ISO 8601 with its offset: `2026-03-14T09:26:53.5897932+05:45` |
+| `DateOnly`, `TimeOnly` | `2026-03-14`, `09:26:53.5897932` |
+| `double`, `float` | the shortest text that parses back to the same number, on .NET Framework too: `0.30000000000000004` |
+| `byte[]` | base64 |
+| null | an empty field, or `NullValue` |
+
+Set `DateTimeFormat` (for example `"G"`) when people read the file and fractional seconds
+do not matter. An empty field reads back as null for typed columns and as empty text for
+string columns, as `Import-Csv` does. To keep null and empty text apart, write and read
+with the same `NullValue`, such as `\N`; text equal to the marker reads back as null.
 
 CSV output supports null tokens, date/time formatting, UTC conversion, append, no-clobber checks, compression, quoting, encoding, and formula escaping. Formula escaping applies to text and configured text tokens; typed negative numeric values remain numeric:
 

@@ -1619,6 +1619,12 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
             return true;
         }
 
+        // ISO 8601 text, the writers' default, is Gregorian whatever the culture's calendar.
+        if (CsvDataProjectionConverter.IsIsoDate(text) && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out dateTime))
+        {
+            return true;
+        }
+
         return DateTime.TryParse(text, _culture, DateTimeStyles.RoundtripKind, out dateTime);
     }
 

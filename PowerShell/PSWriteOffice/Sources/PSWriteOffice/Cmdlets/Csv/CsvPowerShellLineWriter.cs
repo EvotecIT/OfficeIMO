@@ -19,14 +19,20 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
     private bool _pendingQuoteInQuotedField;
     private bool _atFieldStart = true;
     private int _delimiterMatchIndex;
+    private readonly Func<string, string>? _recordTransform;
 
     public CsvPowerShellLineWriter(PSCmdlet cmdlet, char delimiter, CsvQuoteMode quoteMode)
         : this(cmdlet, delimiter.ToString(), quoteMode)
     {
     }
 
-    public CsvPowerShellLineWriter(PSCmdlet cmdlet, string delimiterText, CsvQuoteMode quoteMode)
+    /// <param name="cmdlet">Cmdlet that receives one string per record.</param>
+    /// <param name="delimiterText">Field delimiter of the RFC 4180 text written here.</param>
+    /// <param name="quoteMode">Quote mode of that text.</param>
+    /// <param name="recordTransform">Optional rewrite of each complete record, such as other quote characters.</param>
+    public CsvPowerShellLineWriter(PSCmdlet cmdlet, string delimiterText, CsvQuoteMode quoteMode, Func<string, string>? recordTransform = null)
     {
+        _recordTransform = recordTransform;
         _cmdlet = cmdlet ?? throw new ArgumentNullException(nameof(cmdlet));
         _delimiterText = string.IsNullOrEmpty(delimiterText) ? "," : delimiterText;
         _parseQuotedRecords = quoteMode != CsvQuoteMode.Never;
@@ -152,7 +158,7 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
 
     private void EmitRecord(string record)
     {
-        _cmdlet.WriteObject(record);
+        _cmdlet.WriteObject(_recordTransform is null ? record : _recordTransform(record));
         _atFieldStart = true;
     }
 
@@ -497,7 +503,7 @@ internal sealed class CsvPowerShellLineWriter : TextWriter
 
     private void EmitLine()
     {
-        _cmdlet.WriteObject(_line.ToString());
+        _cmdlet.WriteObject(_recordTransform is null ? _line.ToString() : _recordTransform(_line.ToString()));
         _line.Clear();
         _inQuotes = false;
         _pendingQuoteInQuotedField = false;

@@ -105,6 +105,14 @@ public sealed class ConvertFromOfficeCsvCommand : PSCmdlet {
     [Parameter]
     public string? NullValue { get; set; }
 
+    /// <summary>Character that encloses quoted fields. Defaults to the double quote.</summary>
+    [Parameter]
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>Character that escapes the quote character, or itself, inside quoted fields, such as a backslash. Leave unset to read a doubled quote character as one.</summary>
+    [Parameter]
+    public char? EscapeCharacter { get; set; }
+
     /// <summary>Additional date/time formats used by typed conversions and validation.</summary>
     [Parameter]
     public string[]? DateTimeFormats { get; set; }

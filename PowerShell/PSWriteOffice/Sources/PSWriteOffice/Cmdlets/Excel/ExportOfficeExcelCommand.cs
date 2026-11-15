@@ -169,6 +169,10 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet, IDisposable
     [Parameter()]
     public ExcelDateSystem? DateSystem { get; set; }
 
+    /// <summary>How DateTimeOffset values are written: Text (default) keeps the offset as ISO 8601 text; Serial writes local-time Excel dates.</summary>
+    [Parameter()]
+    public ExcelDateTimeOffsetWriteMode DateTimeOffsetMode { get; set; } = ExcelDateTimeOffsetWriteMode.Text;
+
     /// <summary>Native save options or a hashtable, applied to a completed content block.</summary>
     [Parameter()]
     [OfficeExcelSaveOptionsTransformation]
@@ -284,6 +288,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet, IDisposable
         try
         {
             if (DateSystem.HasValue) document.DateSystem = DateSystem.Value;
+            document.DateTimeOffsetWriteMode = DateTimeOffsetMode;
             if (Theme != null) document.ApplyTheme(Theme.Resolve(OfficeTheme.FromDocument));
             if (Sheet != null && (Sheet.Position.HasValue || Sheet.Sheet != null)) {
                 if (!preserveWorkbook && Sheet.Position == 1) _resolvedSheetName = "Sheet1";

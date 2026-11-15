@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel {
         private string GetTableHeaderValueText(object? value) => CoerceValueHelper.Coerce(
             value,
             text => new CellValue(text),
-            _excelDocument.DateTimeOffsetWriteStrategy,
+            _excelDocument.EffectiveDateTimeOffsetWriteStrategy,
             _excelDocument.DateSystem).cellValue.Text;
 
         private void EnsureTableHeaderWritable(Table table, int index) {

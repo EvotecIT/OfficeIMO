@@ -98,6 +98,15 @@ public sealed class CsvLoadOptions
     /// </summary>
     public CsvEscapeMode EscapeMode { get => Parsing.EscapeMode; set => Parsing.EscapeMode = value; }
 
+    /// <summary>Gets or sets the character that encloses quoted fields. Default is <c>"</c>.</summary>
+    public char QuoteCharacter { get => Parsing.QuoteCharacter; set => Parsing.QuoteCharacter = value; }
+
+    /// <summary>
+    /// Gets or sets the character that escapes the quote character, or itself, inside quoted fields, such as <c>\</c>.
+    /// Leave unset to read a doubled quote character as one, as RFC 4180 does; a doubled quote is also accepted when it is set.
+    /// </summary>
+    public char? EscapeCharacter { get => Parsing.EscapeCharacter; set => Parsing.EscapeCharacter = value; }
+
     /// <summary>
     /// Gets or sets columns appended to every loaded row, useful for source file names, import timestamps, or batch metadata.
     /// </summary>

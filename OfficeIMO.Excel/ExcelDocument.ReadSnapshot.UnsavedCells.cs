@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
         private ExcelPackageReadSnapshot? WriteCellValueBufferSnapshot(ExcelSheet sheet, ExcelCellValueBuffer buffer) {
             DirectWorkbookCellStyles? workbookStyles = buffer.HasCellStyles ? sheet.CreateWorkbookCellStyles() : null;
             var model = DirectDataSetWorkbookModel.CreateFromCellValueBuffers(
-                new[] { (sheet, buffer) }, _dateTimeOffsetWriteStrategy, DateSystem, workbookStyles);
+                new[] { (sheet, buffer) }, EffectiveDateTimeOffsetWriteStrategy, DateSystem, workbookStyles);
             return WriteUnsavedCellsSnapshot(model, workbookStyles != null ? StylesCache.Build(_spreadSheetDocument) : null);
         }
 

@@ -57,11 +57,13 @@ namespace OfficeIMO.Excel {
                 case uint number:
                     return NumberValue(number);
                 case long number:
-                    return NumberValue(number);
+                    return ExcelExactNumber.FitsNumberCell(number) ? NumberValue(number) : FromText(InvariantNumberText.Get(number));
                 case ulong number:
-                    return NumberValue(number);
+                    return ExcelExactNumber.FitsNumberCell(number) ? NumberValue(number) : FromText(InvariantNumberText.Get(number));
                 case decimal number:
-                    return NumberValue((double)number);
+                    return ExcelExactNumber.FitsNumberCell(number)
+                        ? NumberValue((double)number)
+                        : FromText(number.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 default:
                     return new ExcelDirectTabularValue(ExcelDirectTabularValueKind.Unsupported, null, 0D, false);
             }

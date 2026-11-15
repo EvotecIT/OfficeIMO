@@ -3,6 +3,7 @@ using System.Data;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.CSV;
 
@@ -247,7 +248,7 @@ internal static partial class CsvWriter
         }
 
         Span<char> characters = stackalloc char[128];
-        if (!value.TryFormat(characters, out var length, default, culture))
+        if (!TryFormatDefault(value, characters, out var length, culture))
         {
             return false;
         }
@@ -385,22 +386,20 @@ internal static partial class CsvWriter
 
     private static bool AppendRecordScalar(RecordBuffer<char> output, double value, char delimiter, CultureInfo culture, bool invariantComma)
     {
-        AppendScalarText(output, value.ToString(culture).AsSpan(), delimiter, invariantComma);
+        AppendScalarText(output, OfficeRoundTripText.Format(value, culture).AsSpan(), delimiter, invariantComma);
         return true;
     }
 
     private static bool AppendRecordScalar(RecordBuffer<char> output, DateTime value, char delimiter, CultureInfo culture, bool invariantComma)
     {
-        if (ReferenceEquals(culture, CultureInfo.InvariantCulture))
+        // The round-trip date text has no comma, quote or line break, whatever the culture.
+        Span<char> characters = stackalloc char[OfficeRoundTripText.MaximumDateTimeLength];
+        if (!TryFormatRoundTrip(value, characters, out int written))
         {
-            // The invariant general date text has no comma, quote or line break.
-            Span<char> characters = stackalloc char[32];
-            CsvDateTemplate.TryFormatInvariantGeneral(value, characters, out int written);
-            AppendScalarText(output, characters.Slice(0, written), delimiter, invariantComma);
-            return true;
+            return false;
         }
 
-        AppendEscapedRecordText(output, value.ToString(culture).AsSpan(), delimiter);
+        AppendScalarText(output, characters.Slice(0, written), delimiter, invariantComma);
         return true;
     }
 

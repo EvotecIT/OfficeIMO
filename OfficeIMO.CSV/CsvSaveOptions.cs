@@ -111,6 +111,22 @@ public sealed class CsvSaveOptions
     };
 
     /// <summary>
+    /// Gets or sets the character that encloses quoted fields. Default is <c>"</c>. Fields that contain it are quoted.
+    /// </summary>
+    public char QuoteCharacter { get; set; } = '"';
+
+    /// <summary>
+    /// Gets or sets the character written before the quote character, and before itself, inside quoted fields, such
+    /// as <c>\</c>. Leave unset to double the quote character as RFC 4180 does.
+    /// </summary>
+    public char? EscapeCharacter { get; set; }
+
+    /// <summary>Gets whether fields use a quote or escape character other than the RFC 4180 double quote.</summary>
+    internal bool UsesCustomQuoting =>
+        (QuoteCharacter != '"' || (EscapeCharacter is not null && EscapeCharacter != '"'))
+        && ResolvedQuoteMode is CsvQuoteMode.AsNeeded or CsvQuoteMode.Always;
+
+    /// <summary>
     /// Gets or sets field names that should always be quoted when <see cref="QuoteMode"/> is <see cref="CsvQuoteMode.AsNeeded"/>.
     /// </summary>
     public string[]? QuoteFields { get; set; }
