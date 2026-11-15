@@ -46,13 +46,16 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
             OfficeTextShapingResult? variable = ShapeNominalVariableControls(request);
             if (variable != null) return variable;
         }
+        // Cursive attachment moves base glyphs, so only the typography route can shape a run
+        // in a font that selects it; the token route below would silently drop it.
+        bool cursive = !allowDiagnosedFallback && RequiresCursiveAttachment(request);
         if (!allowDiagnosedFallback &&
-            (forcedDirection || controls || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
+            (forcedDirection || controls || cursive || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
             OfficeTextShapingResult? typography = ShapeTypography(request, out bool fontDirected);
             if (typography != null) return typography;
             // A partial font-directed run cannot turn into an undiagnosed approximation.
             // The old length-preserving joining route remains useful for simple fonts.
-            if (forcedDirection || controls || fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
+            if (forcedDirection || controls || cursive || fontDirected || OfficeTextElements.ContainsCombiningMark(request.Text) ||
                 OfficeArabicTextShaper.RequiresLamAlefLigatureShaping(request.Text, request.FeatureSettings)) return null;
         }
         // Legacy visual tokens omit default ignorables. Their useful diagnosed

@@ -320,6 +320,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         internal object? LookupIdentity => (_componentData as GlyphAssociationData)?.LookupIdentity;
         internal GlyphToken WithGlyph(int glyphId) => new GlyphToken(glyphId, UnicodeText, TextIndex, Scalar, IsUnicodeContinuation, ClusterStart,
             _componentData);
+        internal GlyphToken WithClusterStart(int clusterStart) => new GlyphToken(GlyphId, UnicodeText, TextIndex, Scalar,
+            IsUnicodeContinuation, clusterStart, _componentData);
         internal GlyphToken WithLookupOrder(int order, object identity) => new GlyphToken(GlyphId, UnicodeText, TextIndex,
             Scalar, IsUnicodeContinuation, ClusterStart, LigatureComponentTextIndexes, LigatureIdentity, LigatureComponent,
             order, identity);

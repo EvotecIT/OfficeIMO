@@ -237,8 +237,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
     /// <summary>Positions logical substituted tokens before bidi reordering, declining unsupported active GPOS.</summary>
     internal bool TryPositionGlyphRun(IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> logicalTokens,
         string? language, System.Threading.CancellationToken cancellationToken,
-        out OfficeOpenTypeGlyphPositioning[] positions, bool rejectMarkAdjustments = false) =>
-        _kerning.TryPositionRun(logicalTokens, language, cancellationToken, out positions, rejectMarkAdjustments);
+        out OfficeOpenTypeGlyphPositioning[] positions, bool rejectMarkAdjustments = false,
+        OfficeOpenTypePositioningOptions? options = null) =>
+        _kerning.TryPositionRun(logicalTokens, language, cancellationToken, out positions, rejectMarkAdjustments, options);
 
     public double MeasureShapedText(string text, OfficeTextShapingResult result, double fontSize) {
         long advance = GetShapedTextAdvance(text, result);

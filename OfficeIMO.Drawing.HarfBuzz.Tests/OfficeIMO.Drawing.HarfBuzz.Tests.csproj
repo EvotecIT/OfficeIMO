@@ -26,6 +26,7 @@
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TypographyEvidenceCorpus.cs" Link="Shared\TypographyEvidenceCorpus.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.LookupFlags.cs" Link="Shared\ManagedTextShapingTestAssets.LookupFlags.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -37,6 +38,12 @@
           CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf"
           Link="Fonts\SourceSerif4-Regular.otf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\SourceSansPro-Regular.otf"
+          Link="Fonts\SourceSansPro-Regular.otf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\OpenSans-Bold.ttf"
+          Link="Fonts\OpenSans-Bold.ttf"
           CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansDevanagari-Regular.ttf"
           Link="Fonts\NotoSansDevanagari-Regular.ttf"

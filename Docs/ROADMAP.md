@@ -909,7 +909,7 @@ Acceptance: every adopted baseline criterion has decisive evidence, no validated
 
 Extend the managed shaping provider in `OfficeIMO.Core` so complex scripts and vertical text no longer depend on the optional HarfBuzz adapter. HarfBuzzSharp ships native assets only for Windows, Linux, macOS and WebAssembly, so iOS, Android, trimmed and NativeAOT hosts currently fall back for these scripts. A single managed provider also gives identical glyph output on every platform. `OfficeIMO.Drawing.HarfBuzz` remains the optional provider for AAT and Graphite fonts.
 
-- [ ] Support all GSUB/GPOS lookup flags, including ignore-marks and mark-filtering sets, plus complete mark-to-base, mark-to-ligature and mark-to-mark positioning.
+- [ ] Give nested contextual lookups that match further glyphs (ligatures, nested contexts) their own lookup flags when those differ from the calling lookup, and apply lookup flags on the default Latin ligature path for runs without marks. Both currently decline.
 - [ ] Shape Hebrew, Thai and Lao, then add the Indic shaper, the Universal Shaping Engine, Myanmar and Khmer.
 - [ ] Shape vertical text with `vert`/`vrt2` substitutions and vertical metrics, so Drawing and PDF paint positioned vertical glyphs without the HarfBuzz adapter.
 - [ ] Qualify each script against HarfBuzz glyph IDs, clusters and positions over a provenance-recorded font and text corpus, and remove each script from the managed decline list only after it matches.
