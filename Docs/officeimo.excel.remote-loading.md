@@ -29,7 +29,8 @@ There are no synchronous `Load(Uri)` or `Open(Uri)` counterparts. A remote reque
 - The response is downloaded completely before Open XML parsing. XLSX packages require seekable ZIP access; the API does not pretend to stream rows directly from HTTP.
 - `MaxBytes` is checked against `Content-Length`, when present, and against the bytes actually read.
 - Timeout and caller cancellation are both observed.
-- Redirects are followed manually so the target scheme is revalidated at every hop.
+- Loopback, private, link-local and other non-public addresses are refused, for every address a host name resolves to. On .NET 8 and later the check runs when the connection is made and the request goes to the checked address. Older frameworks check the resolved addresses before each request. While these addresses are refused the request connects directly, without a proxy. `AllowPrivateNetworkAddresses` opts in for trusted internal sources.
+- Redirects are followed manually so the target scheme, host allowlist and network address are revalidated at every hop.
 - Custom headers are removed after a redirect to another host.
 - ZIP header validation is enabled by default. Content-type validation is optional because real file hosts often use generic MIME types.
 - Remote loads are detached. They never imply upload or save-back behavior.
@@ -59,6 +60,6 @@ Authentication in this contract is explicit through request headers. Richer tran
 
 - Streaming XLSX row parsing directly from HTTP.
 - Implicit remote save or upload.
-- Browser-session or cookie-jar behavior.
+- Browser-session or persistent cookie-jar behavior. Cookies set during one load's redirects are kept only for that load.
 - Automatic credential discovery.
 - Consumer-side fallback downloaders.

@@ -117,6 +117,11 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "UriTable")]
     public SwitchParameter AllowHttp { get; set; }
 
+    /// <summary>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</summary>
+    [Parameter(ParameterSetName = "Uri")]
+    [Parameter(ParameterSetName = "UriTable")]
+    public SwitchParameter AllowPrivateNetworkAddresses { get; set; }
+
     /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
     [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
     [Parameter(ParameterSetName = "DocumentTable", ValueFromPipeline = true)]
@@ -128,11 +133,11 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
         if (Culture != null && ExcelRuntimePreflight.InspectCurrent().GlobalizationInvariantMode) WriteWarning("Culture-aware Excel parsing is affected by globalization-invariant mode.");
         if (ParameterSetName.StartsWith("Uri", StringComparison.Ordinal)) {
             if (Table != null) {
-                var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, cancellationToken: CancelToken).ConfigureAwait(false);
+                var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, allowPrivateNetworkAddresses: AllowPrivateNetworkAddresses, cancellationToken: CancelToken).ConfigureAwait(false);
                 await ImportDocument(document, ownsDocument: true).ConfigureAwait(false);
             } else {
                 var options = Options();
-                options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
+                options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp, AllowPrivateNetworkAddresses);
                 await Emit(await ExcelDocument.OpenReaderAsync(Uri!, options, CancelToken).ConfigureAwait(false), null).ConfigureAwait(false);
             }
         } else if (ParameterSetName.StartsWith("Document", StringComparison.Ordinal)) {
