@@ -1841,7 +1841,21 @@ string text = document.Read().Text;
 
 Reading supports `/SubFilter` `adbe.pkcs7.s3` and `adbe.pkcs7.s4` (RC4, `/V` 1 and 2) and `adbe.pkcs7.s5` with a crypt filter (`/V 4` with RC4 or AESV2, `/V 5` with AESV3), including `/EncryptMetadata false`. Several certificates can be passed; each is tried against every recipient entry. The matched recipient's permission bits become `PdfDocumentSecurityInfo.EncryptionPermissions` and are enforced like user-password permissions, with `PasswordAuthenticationRole` set to `PublicKeyRecipient`. A recipient never has owner authorization, so removing or replacing the encryption is refused.
 
-Failures are typed: `PdfRecipientCertificateRequiredException` when no `PublicKeyDecryption` was supplied, `PdfRecipientNotFoundException` when no certificate matches a recipient, `PdfRecipientDecryptionException` when a matching entry cannot be decrypted (for example, the certificate has no private key), and `PdfUnsupportedEncryptionException` for other sub-filters, `/V` and crypt-method combinations, different crypt filters for streams and strings or for embedded files, crypt filter and document `/Length` values that disagree, AES-GCM (`/V 6`), or recipient data that is not a 20-byte seed plus 4 permission bytes. Writing certificate-encrypted PDFs is not supported yet.
+Failures are typed: `PdfRecipientCertificateRequiredException` when no `PublicKeyDecryption` was supplied, `PdfRecipientNotFoundException` when no certificate matches a recipient, `PdfRecipientDecryptionException` when a matching entry cannot be decrypted (for example, the certificate has no private key), and `PdfUnsupportedEncryptionException` for other sub-filters, `/V` and crypt-method combinations, different crypt filters for streams and strings or for embedded files, crypt filter and document `/Length` values that disagree, AES-GCM (`/V 6`), or recipient data that is not a 20-byte seed plus 4 permission bytes.
+
+To encrypt a PDF for recipients, pass their certificates; only the public keys are needed. Every recipient gets the same permissions, and the file is written as `adbe.pkcs7.s5` with an AES-256 (`AESV3`) crypt filter.
+
+```csharp
+using X509Certificate2 alice = X509CertificateLoader.LoadCertificateFromFile("alice.cer");
+using X509Certificate2 bob = X509CertificateLoader.LoadCertificateFromFile("bob.cer");
+PdfSecurityMutationResult encrypted = PdfDocument.Load("report.pdf").Security.EncryptForRecipients(
+    new PdfPublicKeyEncryptionOptions(OfficeSecurityProvider.Default, new[] { alice, bob }) {
+        AllowedPermissions = PdfStandardPermissions.All & ~PdfStandardPermissions.ModifyContents
+    });
+File.WriteAllBytes("report-for-recipients.pdf", encrypted.Pdf);
+```
+
+`OfficeIMO.Security` builds one CMS EnvelopedData for all recipients; it supports RSA recipient certificates (key transport). The rewrite is checked by reopening it with the seed OfficeIMO generated, so no private key is needed to encrypt. Rewriting a recipient-opened PDF while keeping its recipients is not supported yet.
 
 ### Viewing protected PDFs
 
