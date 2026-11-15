@@ -1290,6 +1290,16 @@ selectedRanges[1].Save("packet-evidence.pdf");
 
 For document-relative expressions such as `last,1,last`, resolve the immutable `OfficePageSelector` against the inspected source page count. The overload `selector.Resolve(pageCount, maximumPages: 100)` rejects a selection before retaining more than 100 output pages, including repeats. Host workflows use this bound before extraction or OCR and keep the source separate from the output.
 
+Extraction and splitting keep the source's bookmarks, named destinations, link annotations and actions for the pages they keep, including when the source stores its objects in object streams behind cross-reference streams; the output uses a classic cross-reference table. Bookmarks keep their order, nesting, open state and non-navigation actions. A bookmark whose destination page is left out is removed, or kept without a destination when some of its children remain. Named destinations, links and go-to actions that lead to pages left out are removed. Each removal is a sentence in the output's last pipeline step:
+
+```csharp
+using PdfDocument front = source.Pages.Extract("1-3");
+foreach (string change in front.Pipeline.Steps[front.Pipeline.Steps.Count - 1].Diagnostics)
+    Console.WriteLine(change); // Bookmark "Results" was removed because its destination page is not in the output.
+```
+
+Extraction refuses signed, certified and usage-rights documents, XFA forms, encrypted documents without the required permission, sources with unreadable objects and unencrypted sources with inconsistent object references. `PdfMutationBlockedException` carries the plan, whose blockers name each reason; `PlanMutation(PdfMutationOperation.ExtractPages)` returns the same plan without extracting.
+
 To place source pages on printable sheets, use the same page import engine for N-up or duplex booklet output:
 
 ```csharp

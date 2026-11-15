@@ -13,6 +13,7 @@ internal static partial class PdfPageExtractor {
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         long? maximumOutputBytes = null,
         Action<IReadOnlyDictionary<int, int>>? captureObjectNumbers = null,
+        ICollection<string>? report = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
@@ -22,10 +23,12 @@ internal static partial class PdfPageExtractor {
             cancellationToken.ThrowIfCancellationRequested();
             copiedPageObjectIds.Add(pageObjectNumber);
         }
+        CatalogRewriteState sourceCatalogState = catalogState;
         catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers,
             cancellationToken: cancellationToken);
+        if (report is not null) ReportPrunedCatalogNavigation(sourceObjects, sourceCatalogState, catalogState, report, cancellationToken);
         pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides,
-            catalogState, copiedPageObjectIds, cancellationToken);
+            catalogState, copiedPageObjectIds, removedDestinationNames: null, report, cancellationToken);
     
         var collector = new ObjectCollector(sourceObjects, pageOverrides, cancellationToken: cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {

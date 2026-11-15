@@ -36,7 +36,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexViewerPreferencesWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexViewerPreferencesWithClearUnsupportedDiagnostic() {
         byte[] viewerPreferencePdf = BuildComplexViewerPreferencePdf();
 
         static void AssertViewerPreferences(Action action) {
@@ -44,8 +44,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF viewer preferences are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertViewerPreferences(() => PdfPageExtractor.ExtractPages(viewerPreferencePdf, 1));
-        AssertViewerPreferences(() => PdfPageExtractor.SplitPages(viewerPreferencePdf));
+        AssertExtractionKeepsCatalogStructure(viewerPreferencePdf);
         AssertViewerPreferences(() => PdfMetadataEditor.UpdateMetadata(viewerPreferencePdf, title: "Updated"));
         AssertViewerPreferences(() => PdfMerger.Merge(viewerPreferencePdf));
         AssertViewerPreferences(() => PdfStamper.StampText(viewerPreferencePdf, "STAMP"));
@@ -92,7 +91,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexXmpMetadataWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexXmpMetadataWithClearUnsupportedDiagnostic() {
         byte[] xmpMetadataPdf = BuildComplexXmpMetadataPdf();
 
         static void AssertXmpMetadata(Action action) {
@@ -100,8 +99,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF XMP metadata is not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertXmpMetadata(() => PdfPageExtractor.ExtractPages(xmpMetadataPdf, 1));
-        AssertXmpMetadata(() => PdfPageExtractor.SplitPages(xmpMetadataPdf));
+        AssertExtractionKeepsCatalogStructure(xmpMetadataPdf);
         AssertXmpMetadata(() => PdfMetadataEditor.UpdateMetadata(xmpMetadataPdf, title: "Updated"));
         AssertXmpMetadata(() => PdfMerger.Merge(xmpMetadataPdf));
         AssertXmpMetadata(() => PdfStamper.StampText(xmpMetadataPdf, "STAMP"));
@@ -129,7 +127,7 @@ public partial class PdfReadStreamTests {
     }
 
     [Fact]
-    public void RewriteApis_RejectComplexOutputIntentPdfsWithClearUnsupportedDiagnostic() {
+    public void PageExtractionKeepsButOtherRewriteApisRejectComplexOutputIntentPdfsWithClearUnsupportedDiagnostic() {
         byte[] outputIntentPdf = BuildComplexOutputIntentPdf();
 
         static void AssertOutputIntents(Action action) {
@@ -137,8 +135,7 @@ public partial class PdfReadStreamTests {
             Assert.Contains("PDF output intents are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
         }
 
-        AssertOutputIntents(() => PdfPageExtractor.ExtractPages(outputIntentPdf, 1));
-        AssertOutputIntents(() => PdfPageExtractor.SplitPages(outputIntentPdf));
+        AssertExtractionKeepsCatalogStructure(outputIntentPdf);
         AssertOutputIntents(() => PdfMetadataEditor.UpdateMetadata(outputIntentPdf, title: "Updated"));
         AssertOutputIntents(() => PdfMerger.Merge(outputIntentPdf));
         AssertOutputIntents(() => PdfStamper.StampText(outputIntentPdf, "STAMP"));
