@@ -139,6 +139,7 @@ Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message "PDF compliance proof
 $measuredPaths = @(
     'OfficeIMO.Core',
     'OfficeIMO.Pdf',
+    'OfficeIMO.Security',
     'OfficeIMO.Pdf.Tests',
     'OfficeIMO.Html',
     'OfficeIMO.Html.Pdf',
