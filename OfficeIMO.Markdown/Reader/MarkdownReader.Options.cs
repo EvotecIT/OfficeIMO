@@ -235,8 +235,7 @@ internal static partial class MarkdownReader {
     }
 
     private static MarkdownReaderState CloneState(MarkdownReaderState state) {
-        var clone = new MarkdownReaderState();
-        clone.ShareDefinitionsWith(state);
+        var clone = MarkdownReaderState.CreateSharingDefinitionsWith(state);
         clone.ShareParseCacheWith(state);
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;

@@ -115,13 +115,35 @@ public sealed class MarkdownAbbreviationDefinition {
 /// Mutable per-parse state shared across block and inline parsers.
 /// </summary>
 public sealed class MarkdownReaderState {
-    private Dictionary<string, MarkdownReferenceLinkDefinition> _linkRefs = new Dictionary<string, MarkdownReferenceLinkDefinition>(System.StringComparer.OrdinalIgnoreCase);
-    private Dictionary<string, MarkdownAbbreviationDefinition> _abbreviations = new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal);
+    private Dictionary<string, MarkdownReferenceLinkDefinition> _linkRefs;
+    private Dictionary<string, MarkdownAbbreviationDefinition> _abbreviations;
     // Nested parses start from their parent's definitions. Copying them for every nested container
     // made documents with many definitions and many containers quadratic, so states share the
     // dictionaries and whichever side changes them first takes a copy of its own.
     private bool _linkRefsShared;
     private bool _abbreviationsShared;
+
+    /// <summary>Creates an empty parse state.</summary>
+    public MarkdownReaderState()
+        : this(
+            new Dictionary<string, MarkdownReferenceLinkDefinition>(System.StringComparer.OrdinalIgnoreCase),
+            new Dictionary<string, MarkdownAbbreviationDefinition>(System.StringComparer.Ordinal)) {
+    }
+
+    private MarkdownReaderState(
+        Dictionary<string, MarkdownReferenceLinkDefinition> linkRefs,
+        Dictionary<string, MarkdownAbbreviationDefinition> abbreviations) {
+        _linkRefs = linkRefs;
+        _abbreviations = abbreviations;
+    }
+
+    /// <summary>Creates a state that starts from the definitions of <paramref name="source"/> without copying them.</summary>
+    internal static MarkdownReaderState CreateSharingDefinitionsWith(MarkdownReaderState source) {
+        var state = new MarkdownReaderState(source._linkRefs, source._abbreviations);
+        state._linkRefsShared = source._linkRefsShared = true;
+        state._abbreviationsShared = source._abbreviationsShared = true;
+        return state;
+    }
 
     /// <summary>Reference-style link definitions collected while parsing. Change them through <see cref="EditLinkRefs"/>.</summary>
     internal IReadOnlyDictionary<string, MarkdownReferenceLinkDefinition> LinkRefs => _linkRefs;
@@ -155,13 +177,6 @@ public sealed class MarkdownReaderState {
         _parseCache = source.ParseCache;
     }
 
-    /// <summary>Starts this state from the definitions of <paramref name="source"/> without copying them.</summary>
-    internal void ShareDefinitionsWith(MarkdownReaderState source) {
-        _linkRefs = source._linkRefs;
-        _abbreviations = source._abbreviations;
-        _linkRefsShared = source._linkRefsShared = true;
-        _abbreviationsShared = source._abbreviationsShared = true;
-    }
 
     private static Dictionary<string, TValue> CopyDefinitions<TValue>(Dictionary<string, TValue> source, System.StringComparer comparer) {
         // Enumeration order is kept, as copying entry by entry always did.
