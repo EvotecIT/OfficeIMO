@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>Reports whether the current document can be encoded by OfficeIMO's bounded native DOC writer.</summary>
@@ -55,6 +56,15 @@ namespace OfficeIMO.Word {
             clone.SourceFormat = SourceFormat;
             clone.IsWord69Source = IsWord69Source;
             clone.AutoUpdateToc = AutoUpdateToc;
+            if (_generatedTableOfContent != null) {
+                var sourceBlocks = _wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SdtBlock>().ToList();
+                int index = sourceBlocks.IndexOf(_generatedTableOfContent.SdtBlock);
+                if (index >= 0) {
+                    SdtBlock block = clone._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SdtBlock>().ElementAt(index);
+                    clone._generatedTableOfContent = new WordTableOfContent(clone, block, queueUpdateOnOpen: false);
+                    _generatedTableOfContent.CopyGeneratedRefreshStateTo(clone._generatedTableOfContent);
+                }
+            }
             clone._legacyDocImportDiagnostics = _legacyDocImportDiagnostics;
             clone._legacyDocUnsupportedFeatures = _legacyDocUnsupportedFeatures;
             clone._legacyDocPreservedFeatures = _legacyDocPreservedFeatures;
