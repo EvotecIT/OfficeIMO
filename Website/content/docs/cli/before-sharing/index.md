@@ -1,10 +1,10 @@
 ---
 title: "Clean Documents Before Sharing"
-description: "Remove hidden data and metadata with officeimo hidden-data, manage Content Credentials and AI labels, and check files in CI with SARIF."
+description: "Remove hidden data with officeimo hidden-data, manage Content Credentials and AI labels, check accessibility and gate CI with SARIF."
 layout: docs
 ---
 
-Two command areas prepare files for people outside your team. `hidden-data` finds and removes what leaves with a file without being visible: author names, comments, tracked changes, hidden content, speaker notes, scripts and photo locations. `provenance` works on Content Credentials (C2PA), AI-source labels and suspicious Unicode, and can gate a repository in CI. Neither command changes its input.
+Three command areas prepare files for people outside your team. `hidden-data` finds and removes what leaves with a file without being visible: author names, comments, tracked changes, hidden content, speaker notes, scripts and photo locations. `provenance` works on Content Credentials (C2PA), AI-source labels and suspicious Unicode, and can gate a repository in CI. `accessibility` checks Word, Excel and PowerPoint files for problems that block screen readers and keyboard users. None of them changes its input.
 
 ## Hidden data
 
@@ -56,6 +56,18 @@ officeimo provenance batch remove one.docx two.pdf --output-directory cleaned
 ```
 
 JSON results use `officeimo.provenance.capabilities.v2`, `officeimo.provenance.result.v2` and `officeimo.provenance.batch.v2`. Each report includes the SHA-256 of the exact bytes read and explicit check states such as `Completed`, `NotConfigured` or `Unsupported`, so a check that did not run is never reported as clean.
+
+## Accessibility
+
+```shell
+officeimo accessibility proposal.docx
+officeimo accessibility Budget.xlsx --format sarif --output Budget.sarif
+officeimo accessibility deck.pptx --strict --fail-on-warnings --format text
+```
+
+Word, Excel and PowerPoint files return the same report: stable finding codes, severities and locations such as `Paragraph 12`, `Slide 3` or `Data!B3`. `--format` picks JSON (the default), a SARIF 2.1.0 log for code-scanning tools, or one line of text per finding. `--strict` turns structural warnings into errors and requires a document title; heuristic findings stay warnings. The exit code is `0` when no errors were found and `1` when the policy failed, and `--fail-on-warnings` also fails on warnings.
+
+[Check accessibility](/docs/before-sharing/accessibility/) lists the rules for each format.
 
 ## Check working files in CI
 

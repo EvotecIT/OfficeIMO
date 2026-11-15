@@ -18,4 +18,4 @@ Before delivery, verify:
 4. imported slide themes and layouts;
 5. representative rendered slides at the intended aspect ratio.
 
-The [quarterly-review recipe](https://github.com/EvotecIT/OfficeIMO/blob/e71f09178f1e1231bd7901cbda405bd4f6b4718b/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1) includes charts, a table, and speaker notes suitable for this delivery check.
+The [quarterly-review recipe](https://github.com/EvotecIT/OfficeIMO/blob/61b147bb1faf2e23852889e2375f1ffb24ffaaba/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-QuarterlyReview.ps1) includes charts, a table, and speaker notes suitable for this delivery check.

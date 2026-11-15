@@ -132,6 +132,7 @@
     { "name": "officeimo_fetch", "writes": false, "detail": "Fetch one chosen result, a page at a time" },
     { "name": "officeimo_capabilities", "writes": false, "detail": "Which formats and operations are supported" },
     { "name": "officeimo_inspect_hidden_data", "writes": false, "detail": "What would leave with an Office, Visio, OpenDocument, EPUB, PDF or image file: properties, comments, hidden content, scripts, attachments, photo metadata and provenance" },
+    { "name": "officeimo_check_accessibility", "writes": false, "detail": "Check a Word, Excel or PowerPoint file for missing alternative text, table headers, unclear links, low contrast and other accessibility issues, optionally as SARIF" },
     { "name": "officeimo_remove_hidden_data", "writes": true, "detail": "Write a cleaned copy without the chosen categories; provenance is kept unless chosen, and keepProvenance keeps some kinds of record" },
     { "name": "officeimo_convert", "writes": true, "detail": "Write a document as Markdown or Reader JSON, or convert it through a catalog route such as DOCX, ODT, email, EPUB or Visio to PDF" },
     { "name": "officeimo_pdf", "writes": true, "detail": "Extract pages, decrypt with the owner's password, flatten, optimize or sanitize into a new PDF" },

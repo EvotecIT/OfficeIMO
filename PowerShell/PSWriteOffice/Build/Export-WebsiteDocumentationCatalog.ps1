@@ -36,7 +36,7 @@ $familyDefinitions = @(
         id = 'access'; title = 'Access'; description = 'Read native database schemas and rows, and create qualified table databases without ACE or COM.'
         docs = 'project-access-epub'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
         samples = @('New-OfficeAccess', 'Get-OfficeAccessRow', 'Add-OfficeAccessRow', 'Save-OfficeAccess')
-        match = { param($name) $name -match 'OfficeAccess' }
+        match = { param($name) $name -match 'OfficeAccess(?!ibility)' }
     }
     [ordered]@{
         id = 'epub'; title = 'EPUB'; description = 'Read, create, and save EPUB publications from chapters, resources, and metadata.'
@@ -51,10 +51,10 @@ $familyDefinitions = @(
         match = { param($name) $name -match 'OfficeConversion' -or $name -in 'Convert-OfficeDocument', 'Compare-OfficeDocument', 'Get-OfficeDocumentCapability', 'Get-OfficeDocumentInfo', 'Merge-OfficeDocument', 'Split-OfficeDocument', 'Test-OfficeDocument', 'Repair-OfficeDocument', 'Protect-OfficeDocument', 'Unprotect-OfficeDocument' }
     }
     [ordered]@{
-        id = 'before-sharing'; title = 'Before sharing'; description = 'Find and remove comments, authors, hidden content and image metadata, and check Content Credentials and AI labels before a file leaves your team.'
+        id = 'before-sharing'; title = 'Before sharing'; description = 'Find and remove comments, authors, hidden content and image metadata, check Content Credentials and AI labels, and check accessibility before a file leaves your team.'
         docs = 'before-sharing'; api = '/api/powershell/'; examples = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples/Workflows'
         samples = @('Get-OfficeHiddenData', 'Remove-OfficeHiddenData', 'New-OfficeHiddenDataOptions', 'Get-OfficeDocumentProvenance')
-        match = { param($name) $name -match 'OfficeHiddenData|OfficeDocumentProvenance' }
+        match = { param($name) $name -match 'OfficeHiddenData|OfficeDocumentProvenance|OfficeAccessibility' }
     }
     [ordered]@{
         id = 'word'; title = 'Word'; description = 'Create, inspect, update, review, merge, protect, and convert DOC and DOCX documents.'

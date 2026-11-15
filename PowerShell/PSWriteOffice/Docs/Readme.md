@@ -1501,6 +1501,9 @@ Splits PDF files into consecutive groups, selected ranges or top-level bookmarke
 ### [Stop-OfficePrintJob](Stop-OfficePrintJob.md)
 Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards. Requires PowerShell 7.4 or newer.
 
+### [Test-OfficeAccessibility](Test-OfficeAccessibility.md)
+Checks Word, Excel and PowerPoint files for accessibility issues. The input is never changed.
+
 ### [Test-OfficeDocument](Test-OfficeDocument.md)
 Validates native document structure, schema, security, accessibility or compliance without changing the input.
 
