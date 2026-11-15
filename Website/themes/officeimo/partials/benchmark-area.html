@@ -112,7 +112,7 @@
           {{~ end ~}}
         </details>
 
-        <p class="imo-bench-links">{{ if run.sourceCommit != "" }}<a href="https://github.com/EvotecIT/OfficeIMO/tree/{{ run.sourceCommit }}">Source {{ run.sourceCommit | string.slice 0 12 }}</a> · {{ end }}<a href="{{ run.resultPath }}">Raw result JSON with every sample</a></p>
+        <p class="imo-bench-links">{{ if run.sourceCommit != "" }}<a href="https://github.com/EvotecIT/OfficeIMO/tree/{{ run.sourceCommit }}">Source {{ run.sourceCommit | string.slice 0 12 }}</a> · {{ end }}<a href="{{ run.resultPath }}">Raw {{ run.platformLabel }} {{ if run.isFull }}full{{ else }}quick{{ end }}-run result for {{ comparison.title }}{{ if comparison.id | string.contains "-net8.0" }} (.NET 8){{ end }}</a> (JSON, every sample)</p>
       </div>
       {{~ end ~}}
     </div>
