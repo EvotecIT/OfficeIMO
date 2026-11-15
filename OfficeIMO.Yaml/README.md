@@ -71,7 +71,37 @@ Saving copies every untouched part of the source and writes only what changed, s
 - **Removing** an entry removes the comment lines directly above it, its lines and its trailing comment; the neighbors keep theirs. A comment block that a blank line separates from the entry, such as a commented-out example, belongs to no entry and stays. A collection left empty is written as `[]` or `{}`.
 - **Anchors and aliases**: `SetAnchor` renames an anchor together with its aliases, `new YamlAlias(node)` refers to an anchored node, and removing a node that aliases still use fails. Editing a node that aliases share records a diagnostic, because the change shows through every alias. Setting a key that only a `<<` merge provides adds an entry of its own; merged mappings are never edited.
 - **New documents**: `YamlDocument.Create()` starts an empty stream; set `Root`, use path `Set`, or `AddDocument` for multi-document streams.
-- **Reformatting**: `Save(path, new YamlSaveOptions { Reformat = true })` writes the whole document anew through the emitter to normalize its layout, keeping values, anchors, tags and comments.
+- **Reformatting**: `Save(path, new YamlSaveOptions { Reformat = true })` writes the whole document anew through the emitter to normalize its layout, keeping values, anchors, tags and comments outside flow collections. `YamlFormatter` does the same with layout settings; see [Linting and formatting](#linting-and-formatting).
+
+## Linting and formatting
+
+```csharp
+IReadOnlyList<YamlLintFinding> findings = YamlLinter.Lint(File.ReadAllText("values.yaml"));
+foreach (YamlLintFinding finding in findings) Console.WriteLine(finding);   // 12:10 warning Truthy value "yes" ... (truthy)
+
+YamlLintFixResult result = YamlLinter.Fix(text);                            // only the repaired lines change
+string formatted = YamlFormatter.Format(text, new YamlFormatOptions { IndentWidth = 2, SequenceIndentation = YamlSequenceIndentation.Indented });
+```
+
+`YamlLinter` checks text against a rule set modelled on yamllint, with the same rule ids (`YamlLintRules`). Each `YamlLintFinding` has the rule id, severity, line and column, a message, and a `Fix` when the problem can be repaired without changing a value.
+
+| Rule | Default | Fix |
+|---|---|---|
+| `syntax` | Always, error | None; the line rules still run |
+| `key-duplicates` | On, error | None |
+| `indentation` | On: nested mappings use the file's first width; sequences under keys are all `key:\n- item` or all `key:\n  - item` | None; use the formatter |
+| `truthy` | On: `yes`, `no`, `on`, `off` in any case; keys are not checked | Quoted where the value is a string, `true`/`false` under `%YAML 1.1` |
+| `octal-values` | On: `0755`-style integers, which YAML 1.1 and 1.2 readers read differently | None |
+| `trailing-spaces`, `comments`, `empty-lines`, `new-line-at-end-of-file` | On | Removed, padded or added; never inside block scalar content |
+| `line-length` | On, 120, one long word allowed | None |
+| `tabs` | On | None |
+| `document-start`, `empty-values`, `quoted-strings`, `key-ordering` | Off | `---` added; requoted or unquoted |
+
+`YamlLintOptions` turns each rule on or off and sets its severity and settings (`Indentation.Spaces`, `LineLength.Max`, `Truthy.AllowedValues`, `QuotedStrings.QuoteType`, ...); `GetRule(id)` finds a rule by its id. `YamlLinter.Fix` applies the safe fixes as text edits on the original, loads the result again and keeps it only when every value, tag and anchor is the same.
+
+`YamlFormatter.Format` writes the whole document through the emitter `Reformat` uses, so values, spellings, anchors, aliases, tags, comments outside flow collections and blank lines above entries stay, and formatting formatted text returns it unchanged. `YamlFormatOptions` sets the indent width, `SequenceIndentation` (`Preserve`, `Compact`, `Indented`), `Quotes` (`Preserve`, `Single`, `Double`; strings that need escapes stay double-quoted), `LineEnding` and `FinalNewline`; settings left at their defaults follow the document's own conventions. `Format(YamlDocument, options)` formats an edited document without changing it. A document loaded with `YamlDialect.Unity` throws `NotSupportedException`, because Unity reads only the layout it writes; use `YamlLinter.Fix` for those files.
+
+The `officeimo yaml lint` and `officeimo yaml format` commands of [OfficeIMO.Tool](../OfficeIMO.Tool/README.md) run both on files and folders.
 
 ## Merge overlays
 

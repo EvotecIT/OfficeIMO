@@ -100,6 +100,12 @@ internal sealed class YamlEmitter {
     private char[]? _copyScratch;
 #endif
 
+    /// <summary>
+    /// The quotes a model write gives every quoted scalar, or <see cref="YamlStyle.None"/> to keep each scalar's own.
+    /// Double quotes stay where a value needs escapes that single quotes cannot write.
+    /// </summary>
+    public YamlStyle QuoteOverride { get; set; }
+
     public YamlEmitter(TextWriter output, YamlWriterOptions options) {
         _out = output;
         _buffer = output as YamlCharBuffer;
@@ -322,6 +328,9 @@ internal sealed class YamlEmitter {
             start = end + 1;
         }
     }
+
+    /// <summary>Ends the line of the last comment written, so a document root that follows starts on a line of its own.</summary>
+    public void EndCommentLines() => EnsureLineStart();
 
     /// <summary>Writes an empty line before the next entry.</summary>
     public void WriteBlankLine() {
@@ -689,7 +698,9 @@ internal sealed class YamlEmitter {
             case FrameKind.Document:
                 if (top.HasRoot) throw Invalid("The document already has a root node; start a new document first.");
                 top.HasRoot = true;
-                if (top.Marker && (props || shape != Shape.Block)) Write(' ');
+                // An empty root without properties writes nothing after the marker, not even the space. After comment
+                // lines (see EndCommentLines) the root starts its own line.
+                if (top.Marker && _column > 0 && (props || (shape != Shape.Block && !empty))) Write(' ');
                 if (shape == Shape.Block) {
                     WriteProperties(anchor, tag, trailingSpace: false);
                     childIndent = 0;

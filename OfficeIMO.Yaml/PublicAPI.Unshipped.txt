@@ -1,6 +1,152 @@
 #nullable enable
+const OfficeIMO.Yaml.YamlLintRules.Comments = "comments" -> string!
+const OfficeIMO.Yaml.YamlLintRules.DocumentStart = "document-start" -> string!
+const OfficeIMO.Yaml.YamlLintRules.EmptyLines = "empty-lines" -> string!
+const OfficeIMO.Yaml.YamlLintRules.EmptyValues = "empty-values" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Indentation = "indentation" -> string!
+const OfficeIMO.Yaml.YamlLintRules.KeyDuplicates = "key-duplicates" -> string!
+const OfficeIMO.Yaml.YamlLintRules.KeyOrdering = "key-ordering" -> string!
+const OfficeIMO.Yaml.YamlLintRules.LineLength = "line-length" -> string!
+const OfficeIMO.Yaml.YamlLintRules.NewLineAtEndOfFile = "new-line-at-end-of-file" -> string!
+const OfficeIMO.Yaml.YamlLintRules.OctalValues = "octal-values" -> string!
+const OfficeIMO.Yaml.YamlLintRules.QuotedStrings = "quoted-strings" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Syntax = "syntax" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Tabs = "tabs" -> string!
+const OfficeIMO.Yaml.YamlLintRules.TrailingSpaces = "trailing-spaces" -> string!
+const OfficeIMO.Yaml.YamlLintRules.Truthy = "truthy" -> string!
+OfficeIMO.Yaml.YamlFormatOptions
+OfficeIMO.Yaml.YamlFormatOptions.FinalNewline.get -> bool
+OfficeIMO.Yaml.YamlFormatOptions.FinalNewline.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.IndentWidth.get -> int?
+OfficeIMO.Yaml.YamlFormatOptions.IndentWidth.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.LineEnding.get -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlFormatOptions.LineEnding.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.Quotes.get -> OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlFormatOptions.Quotes.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.SequenceIndentation.get -> OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlFormatOptions.SequenceIndentation.set -> void
+OfficeIMO.Yaml.YamlFormatOptions.YamlFormatOptions() -> void
+OfficeIMO.Yaml.YamlFormatter
+OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLineEnding.CrLf = 2 -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLineEnding.Lf = 1 -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLineEnding.Preserve = 0 -> OfficeIMO.Yaml.YamlLineEnding
+OfficeIMO.Yaml.YamlLintCommentsOptions
+OfficeIMO.Yaml.YamlLintCommentsOptions.IgnoreShebangs.get -> bool
+OfficeIMO.Yaml.YamlLintCommentsOptions.IgnoreShebangs.set -> void
+OfficeIMO.Yaml.YamlLintCommentsOptions.MinSpacesFromContent.get -> int
+OfficeIMO.Yaml.YamlLintCommentsOptions.MinSpacesFromContent.set -> void
+OfficeIMO.Yaml.YamlLintCommentsOptions.RequireStartingSpace.get -> bool
+OfficeIMO.Yaml.YamlLintCommentsOptions.RequireStartingSpace.set -> void
+OfficeIMO.Yaml.YamlLintDocumentStartOptions
+OfficeIMO.Yaml.YamlLintDocumentStartOptions.Present.get -> bool
+OfficeIMO.Yaml.YamlLintDocumentStartOptions.Present.set -> void
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.Max.get -> int
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.Max.set -> void
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxEnd.get -> int
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxEnd.set -> void
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxStart.get -> int
+OfficeIMO.Yaml.YamlLintEmptyLinesOptions.MaxStart.set -> void
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockMappings.get -> bool
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockMappings.set -> void
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockSequences.get -> bool
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInBlockSequences.set -> void
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInFlowMappings.get -> bool
+OfficeIMO.Yaml.YamlLintEmptyValuesOptions.ForbidInFlowMappings.set -> void
+OfficeIMO.Yaml.YamlLinter
+OfficeIMO.Yaml.YamlLintFinding
+OfficeIMO.Yaml.YamlLintFinding.Column.get -> int
+OfficeIMO.Yaml.YamlLintFinding.Fix.get -> OfficeIMO.Yaml.YamlLintFix?
+OfficeIMO.Yaml.YamlLintFinding.Line.get -> int
+OfficeIMO.Yaml.YamlLintFinding.Message.get -> string!
+OfficeIMO.Yaml.YamlLintFinding.Position.get -> OfficeIMO.Yaml.YamlPosition
+OfficeIMO.Yaml.YamlLintFinding.RuleId.get -> string!
+OfficeIMO.Yaml.YamlLintFinding.Severity.get -> OfficeIMO.OfficeDiagnosticSeverity
+OfficeIMO.Yaml.YamlLintFix
+OfficeIMO.Yaml.YamlLintFix.Length.get -> int
+OfficeIMO.Yaml.YamlLintFix.Offset.get -> int
+OfficeIMO.Yaml.YamlLintFix.Replacement.get -> string!
+OfficeIMO.Yaml.YamlLintFixResult
+OfficeIMO.Yaml.YamlLintFixResult.Applied.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintFinding!>!
+OfficeIMO.Yaml.YamlLintFixResult.Changed.get -> bool
+OfficeIMO.Yaml.YamlLintFixResult.Remaining.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintFinding!>!
+OfficeIMO.Yaml.YamlLintFixResult.Text.get -> string!
+OfficeIMO.Yaml.YamlLintIndentationOptions
+OfficeIMO.Yaml.YamlLintIndentationOptions.Sequences.get -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintIndentationOptions.Sequences.set -> void
+OfficeIMO.Yaml.YamlLintIndentationOptions.Spaces.get -> int?
+OfficeIMO.Yaml.YamlLintIndentationOptions.Spaces.set -> void
+OfficeIMO.Yaml.YamlLintLineLengthOptions
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableInlineMappings.get -> bool
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableInlineMappings.set -> void
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableWords.get -> bool
+OfficeIMO.Yaml.YamlLintLineLengthOptions.AllowNonBreakableWords.set -> void
+OfficeIMO.Yaml.YamlLintLineLengthOptions.Max.get -> int
+OfficeIMO.Yaml.YamlLintLineLengthOptions.Max.set -> void
+OfficeIMO.Yaml.YamlLintOctalValuesOptions
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidExplicitOctal.get -> bool
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidExplicitOctal.set -> void
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidImplicitOctal.get -> bool
+OfficeIMO.Yaml.YamlLintOctalValuesOptions.ForbidImplicitOctal.set -> void
+OfficeIMO.Yaml.YamlLintOptions
+OfficeIMO.Yaml.YamlLintOptions.Comments.get -> OfficeIMO.Yaml.YamlLintCommentsOptions!
+OfficeIMO.Yaml.YamlLintOptions.DocumentStart.get -> OfficeIMO.Yaml.YamlLintDocumentStartOptions!
+OfficeIMO.Yaml.YamlLintOptions.EmptyLines.get -> OfficeIMO.Yaml.YamlLintEmptyLinesOptions!
+OfficeIMO.Yaml.YamlLintOptions.EmptyValues.get -> OfficeIMO.Yaml.YamlLintEmptyValuesOptions!
+OfficeIMO.Yaml.YamlLintOptions.GetRule(string! ruleId) -> OfficeIMO.Yaml.YamlLintRuleOptions?
+OfficeIMO.Yaml.YamlLintOptions.Indentation.get -> OfficeIMO.Yaml.YamlLintIndentationOptions!
+OfficeIMO.Yaml.YamlLintOptions.KeyDuplicates.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.KeyOrdering.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.LineLength.get -> OfficeIMO.Yaml.YamlLintLineLengthOptions!
+OfficeIMO.Yaml.YamlLintOptions.LoadOptions.get -> OfficeIMO.Yaml.YamlLoadOptions?
+OfficeIMO.Yaml.YamlLintOptions.LoadOptions.set -> void
+OfficeIMO.Yaml.YamlLintOptions.NewLineAtEndOfFile.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.OctalValues.get -> OfficeIMO.Yaml.YamlLintOctalValuesOptions!
+OfficeIMO.Yaml.YamlLintOptions.QuotedStrings.get -> OfficeIMO.Yaml.YamlLintQuotedStringsOptions!
+OfficeIMO.Yaml.YamlLintOptions.Rules.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintRuleOptions!>!
+OfficeIMO.Yaml.YamlLintOptions.Tabs.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.TrailingSpaces.get -> OfficeIMO.Yaml.YamlLintRuleOptions!
+OfficeIMO.Yaml.YamlLintOptions.Truthy.get -> OfficeIMO.Yaml.YamlLintTruthyOptions!
+OfficeIMO.Yaml.YamlLintOptions.YamlLintOptions() -> void
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.CheckKeys.get -> bool
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.CheckKeys.set -> void
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.QuoteType.get -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.QuoteType.set -> void
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.Required.get -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuotedStringsOptions.Required.set -> void
+OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteRequirement.Always = 0 -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteRequirement.OnlyWhenNeeded = 2 -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteRequirement.Optional = 1 -> OfficeIMO.Yaml.YamlLintQuoteRequirement
+OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuoteType.Any = 0 -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuoteType.Double = 2 -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintQuoteType.Single = 1 -> OfficeIMO.Yaml.YamlLintQuoteType
+OfficeIMO.Yaml.YamlLintRuleOptions
+OfficeIMO.Yaml.YamlLintRuleOptions.Enabled.get -> bool
+OfficeIMO.Yaml.YamlLintRuleOptions.Enabled.set -> void
+OfficeIMO.Yaml.YamlLintRuleOptions.Id.get -> string!
+OfficeIMO.Yaml.YamlLintRuleOptions.Severity.get -> OfficeIMO.OfficeDiagnosticSeverity
+OfficeIMO.Yaml.YamlLintRuleOptions.Severity.set -> void
+OfficeIMO.Yaml.YamlLintRules
+OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.Any = 3 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.Consistent = 0 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.Indented = 1 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintSequenceIndentation.NotIndented = 2 -> OfficeIMO.Yaml.YamlLintSequenceIndentation
+OfficeIMO.Yaml.YamlLintTruthyOptions
+OfficeIMO.Yaml.YamlLintTruthyOptions.AllowedValues.get -> System.Collections.Generic.ISet<string!>!
+OfficeIMO.Yaml.YamlLintTruthyOptions.CheckKeys.get -> bool
+OfficeIMO.Yaml.YamlLintTruthyOptions.CheckKeys.set -> void
 OfficeIMO.Yaml.YamlLoadOptions.Strict.get -> bool
 OfficeIMO.Yaml.YamlLoadOptions.Strict.set -> void
+OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlQuoteStyle.Double = 2 -> OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlQuoteStyle.Preserve = 0 -> OfficeIMO.Yaml.YamlQuoteStyle
+OfficeIMO.Yaml.YamlQuoteStyle.Single = 1 -> OfficeIMO.Yaml.YamlQuoteStyle
 OfficeIMO.Yaml.YamlReader.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
 OfficeIMO.Yaml.YamlReaderOptions.Strict.get -> bool
 OfficeIMO.Yaml.YamlReaderOptions.Strict.set -> void
@@ -18,7 +164,16 @@ OfficeIMO.Yaml.YamlMergeReport.Added.get -> System.Collections.Generic.IReadOnly
 OfficeIMO.Yaml.YamlMergeReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
 OfficeIMO.Yaml.YamlMergeReport.Removed.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.Yaml.YamlMergeReport.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlSequenceIndentation.Compact = 1 -> OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlSequenceIndentation.Indented = 2 -> OfficeIMO.Yaml.YamlSequenceIndentation
+OfficeIMO.Yaml.YamlSequenceIndentation.Preserve = 0 -> OfficeIMO.Yaml.YamlSequenceIndentation
 OfficeIMO.Yaml.YamlSequenceMerge
+override OfficeIMO.Yaml.YamlLintFinding.ToString() -> string!
+static OfficeIMO.Yaml.YamlFormatter.Format(OfficeIMO.Yaml.YamlDocument! document, OfficeIMO.Yaml.YamlFormatOptions? options) -> string!
+static OfficeIMO.Yaml.YamlFormatter.Format(string! yaml, OfficeIMO.Yaml.YamlFormatOptions? options = null, OfficeIMO.Yaml.YamlLoadOptions? loadOptions = null) -> string!
+static OfficeIMO.Yaml.YamlLinter.Fix(string! yaml, OfficeIMO.Yaml.YamlLintOptions? options = null) -> OfficeIMO.Yaml.YamlLintFixResult!
+static OfficeIMO.Yaml.YamlLinter.Lint(string! yaml, OfficeIMO.Yaml.YamlLintOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlLintFinding!>!
 static OfficeIMO.Yaml.YamlSequenceMerge.Append.get -> OfficeIMO.Yaml.YamlSequenceMerge!
 static OfficeIMO.Yaml.YamlSequenceMerge.MergeByKey(string! keyName) -> OfficeIMO.Yaml.YamlSequenceMerge!
 static OfficeIMO.Yaml.YamlSequenceMerge.Replace.get -> OfficeIMO.Yaml.YamlSequenceMerge!
