@@ -235,7 +235,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     semantic.ColumnSpan,
                     semantic.RowSpan,
                     semantic.HeaderScope,
-                    structureElementKey: semantic.StructureElementKey, alternativeText: semantic.AlternativeText, mathMlSource: semantic.MathMlSource, logicalOrder: semantic.LogicalOrder, listStyleType: semantic.ListStyleType));
+                    structureElementKey: semantic.StructureElementKey, alternativeText: semantic.AlternativeText, mathMlSource: semantic.MathMlSource, logicalOrder: semantic.LogicalOrder, listStyleType: semantic.ListStyleType,
+                    tableRowGroup: semantic.TableRowGroup));
                 continue;
             }
             if (visual is HtmlRenderLogicalTextGroup logical) {

@@ -58,6 +58,30 @@ public enum HtmlRenderTableHeaderScope {
     Both
 }
 
+/// <summary>Kind of table row group that owns a row.</summary>
+internal enum HtmlRenderTableRowGroupKind {
+    Head,
+    Body,
+    Foot
+}
+
+/// <summary>The thead, tbody or tfoot that owns a semantic table row, identified across page fragments.</summary>
+internal sealed class HtmlRenderTableRowGroup {
+    internal HtmlRenderTableRowGroup(HtmlRenderTableRowGroupKind kind, string structureElementKey, int? sourceOrder) {
+        Kind = kind;
+        StructureElementKey = structureElementKey;
+        // Head, body and foot groups keep that order; groups of one kind follow the source.
+        LogicalOrder = ((long)kind << 32) + Math.Max(0, sourceOrder ?? 0);
+    }
+
+    internal HtmlRenderTableRowGroupKind Kind { get; }
+
+    internal string StructureElementKey { get; }
+
+    /// <summary>Order among the table's row groups, independent of the page on which each group first appears.</summary>
+    internal long LogicalOrder { get; }
+}
+
 /// <summary>Paint-neutral semantic group retained by the shared HTML render model.</summary>
 public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     private ReadOnlyCollection<HtmlRenderVisual>? _visuals;
@@ -82,9 +106,11 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double? layoutHeight = null,
         string? alternativeText = null,
         HtmlMathMlSource? mathMlSource = null,
-        int? logicalOrder = null, string? listStyleType = null)
+        int? logicalOrder = null, string? listStyleType = null,
+        HtmlRenderTableRowGroup? tableRowGroup = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight, allowZeroWidth: true) {
         Role = role;
+        TableRowGroup = tableRowGroup;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
@@ -113,9 +139,10 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         double layoutHeight,
         string? alternativeText,
         HtmlMathMlSource? mathMlSource,
-        int? logicalOrder, string? listStyleType, ReadOnlyCollection<HtmlRenderVisual>? ownVisuals = null)
+        int? logicalOrder, string? listStyleType, HtmlRenderTableRowGroup? tableRowGroup, ReadOnlyCollection<HtmlRenderVisual>? ownVisuals = null)
         : base(HtmlRenderVisualKind.SemanticGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight, allowZeroWidth: true) {
         Role = role;
+        TableRowGroup = tableRowGroup;
         AlternativeText = alternativeText;
         MathMlSource = mathMlSource;
         StructureElementKey = structureElementKey;
@@ -144,6 +171,9 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
 
     /// <summary>Sibling source order, independent of fragment arrival and CSS paint order.</summary>
     internal int? LogicalOrder { get; }
+
+    /// <summary>Row group (thead, tbody or tfoot) that owns a table row, or null for other groups.</summary>
+    internal HtmlRenderTableRowGroup? TableRowGroup { get; }
 
     /// <summary>Table column span, or one for non-cell groups.</summary>
     public int ColumnSpan { get; }
@@ -186,7 +216,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     /// and numbered by position when read. The caller passes a list it no longer changes.
     /// </summary>
     internal HtmlRenderSemanticGroup WithPendingChildren(IReadOnlyList<HtmlRenderVisual> sourceChildren, HtmlRenderOffset[] offsets) =>
-        new(Role, X, Y, Width, Height, new PendingVisuals(sourceChildren, offsets), PaintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+        new(Role, X, Y, Width, Height, new PendingVisuals(sourceChildren, offsets), PaintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType, TableRowGroup);
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         TranslateThroughCore(new[] { new HtmlRenderOffset(offsetX, offsetY, paintOnly: false) }, paintOrder);
@@ -208,7 +238,7 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
         PendingVisuals pending = Volatile.Read(ref _pending) is { } own
             ? new PendingVisuals(own.Source, HtmlRenderOffset.Append(own.Offsets, offsets))
             : new PendingVisuals(Volatile.Read(ref _visuals)!, offsets);
-        return new HtmlRenderSemanticGroup(Role, x, y, Width, Height, pending, paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, layoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+        return new HtmlRenderSemanticGroup(Role, x, y, Width, Height, pending, paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, layoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType, TableRowGroup);
     }
 
     private ReadOnlyCollection<HtmlRenderVisual> MaterializeVisuals() {
@@ -252,11 +282,11 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
             if (ordered) {
                 return new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, null,
                     paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey,
-                    LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType, ownVisuals: ownVisuals);
+                    LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType, TableRowGroup, ownVisuals: ownVisuals);
             }
         }
         return new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, visuals,
-            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType);
+            paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight, AlternativeText, MathMlSource, LogicalOrder, ListStyleType, TableRowGroup);
     }
 
     private static ReadOnlyCollection<HtmlRenderVisual> OrderVisuals(IEnumerable<HtmlRenderVisual> visuals) {

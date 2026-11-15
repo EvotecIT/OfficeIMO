@@ -357,7 +357,7 @@ internal static partial class PdfTextDiagnostics {
         PdfTrueTypeFontProgram fontProgram,
         PdfTextShapingMode shapingMode,
         out int length, PdfTextShapingOptions? managedCoverage = null) {
-        string textElement = StringInfo.GetNextTextElement(text, index);
+        string textElement = OfficeTextElements.NextTextElement(text, index);
         length = textElement.Length;
         if (managedCoverage.HasValue && TryAnalyzeCompleteManagedRun(textElement, fontProgram,
                 managedCoverage.Value, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete))
@@ -383,7 +383,7 @@ internal static partial class PdfTextDiagnostics {
         PdfOpenTypeCffFontProgram fontProgram,
         PdfTextShapingMode shapingMode,
         out int length, PdfTextShapingOptions? managedCoverage = null) {
-        string textElement = StringInfo.GetNextTextElement(text, index);
+        string textElement = OfficeTextElements.NextTextElement(text, index);
         length = textElement.Length;
         if (managedCoverage.HasValue && TryAnalyzeCompleteManagedRun(textElement, fontProgram,
                 managedCoverage.Value, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete))
@@ -804,7 +804,7 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static bool TryGetWinAnsiCoveredTextElementLength(string text, int index, out int length) {
-        string textElement = StringInfo.GetNextTextElement(text, index);
+        string textElement = OfficeTextElements.NextTextElement(text, index);
         length = textElement.Length;
         return PdfWinAnsiEncoding.CanEncode(textElement, out _);
     }
@@ -1062,7 +1062,7 @@ internal static partial class PdfTextDiagnostics {
             }
         }
 
-        string textElement = StringInfo.GetNextTextElement(text, textIndex);
+        string textElement = OfficeTextElements.NextTextElement(text, textIndex);
         int elementLength = textElement.Length;
         int endIndex = textIndex;
         int scalar = ReadScalar(text, ref endIndex);
