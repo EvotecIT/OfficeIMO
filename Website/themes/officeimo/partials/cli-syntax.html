@@ -1,0 +1,42 @@
+{{~ # Server-side highlighting for command lines, so terminal and usage blocks are colored without script. ~}}
+{{~ # Regex replacements only: Scriban counts loop iterations across the page, and the CLI catalog has thousands of tokens. ~}}
+{{~ # cli_line(line) colors one command a person types; cli_signature(usage) splits a usage line from data/cli/commands.json into the command with its operands and the optional flags. ~}}
+{{~ func cli_words(out)
+  # The command and the plain words that follow it, up to the first operand, flag or file name.
+  ret out | regex.replace "^(\\S+)((?: [A-Za-z][\\w|-]*(?=\\s|$))*)" "<span class=\"imo-t-cmd\">$1</span><span class=\"imo-t-sub\">$2</span>"
+end ~}}
+{{~ func cli_flags(out)
+  ret out | regex.replace "(^|\\s)(--?[A-Za-z][\\w-]*)" "$1<span class=\"imo-t-flag\">$2</span>"
+end ~}}
+{{~ func cli_line(line)
+  out = line | html.escape
+  out = out | regex.replace "(?<=\\s)([^\\s<>&]*[/\\\\@][^\\s<>&]*|[^\\s<>&-][^\\s<>&]*\\.[A-Za-z0-9]{1,6})(?=\\s|$)" "<span class=\"imo-t-path\">$1</span>"
+  out = cli_flags(out)
+  ret cli_words(out)
+end ~}}
+{{~ func cli_option(text)
+  # "--name <value>", "--name a|b" or "--a <x> --b <y>": values first, then flags, so neither matches inside the other's markup.
+  out = text | html.escape | regex.replace "(^|\\s)([^-\\s]\\S*)" "$1<span class=\"imo-t-arg\">$2</span>"
+  ret cli_flags(out)
+end ~}}
+{{~ func cli_signature(usage)
+  optional_pattern = "\\[(-[^\\]]*)\\]"
+  count = (usage | regex.matches optional_pattern).size
+  head = usage | regex.replace "\\s*\\[-[^\\]]*\\]" "" | html.escape
+  head = head | regex.replace "(\\[[^\\]]*\\])" "<span class=\"imo-t-opt\">$1</span>"
+  head = head | regex.replace "(&lt;.*?&gt;)" "<span class=\"imo-t-arg\">$1</span>"
+  head = cli_flags(head)
+  head = cli_words(head)
+  options = ""
+  if count > 0
+    # Keep only the optional flag groups, then turn each into a list item.
+    marked = usage | regex.replace optional_pattern "⟦$1⟧"
+    marked = marked | regex.replace "⟧[^⟦]*⟦" "⟧⟦" | regex.replace "^[^⟦]*⟦" "⟦" | regex.replace "⟧[^⟧]*$" "⟧"
+    options = marked | regex.replace "⟦([^⟧]*)⟧" "⟪$1⟫"
+    options = options | html.escape
+    options = options | regex.replace "(?<=⟪|\\s)([^-\\s⟪⟫][^\\s⟫]*)" "<span class=\"imo-t-arg\">$1</span>"
+    options = options | regex.replace "(?<=⟪|\\s)(--?[A-Za-z][\\w-]*)" "<span class=\"imo-t-flag\">$1</span>"
+    options = options | string.replace "⟪" "<li><code>" | string.replace "⟫" "</code></li>"
+  end
+  ret { head: head, options: options, count: count }
+end ~}}
