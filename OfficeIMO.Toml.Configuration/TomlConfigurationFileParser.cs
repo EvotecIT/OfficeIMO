@@ -24,7 +24,7 @@ internal sealed class TomlConfigurationFileParser {
 
         using (document) {
             var parser = new TomlConfigurationFileParser();
-            parser.VisitTable(document.Root, string.Empty);
+            parser.VisitTable(document.Root, path: null);
             return parser._data;
         }
     }
@@ -36,26 +36,26 @@ internal sealed class TomlConfigurationFileParser {
                 break;
             case TomlTableArray tables:
                 if (tables.Count == 0) {
-                    _data[path] = null;
+                    Set(path, null, tables);
                     break;
                 }
                 for (int i = 0; i < tables.Count; i++) VisitTable(tables[i], Combine(path, i));
                 break;
             case TomlArray array:
                 if (array.Count == 0) {
-                    _data[path] = null;
+                    Set(path, null, array);
                     break;
                 }
                 for (int i = 0; i < array.Count; i++) VisitNode(array[i], Combine(path, i));
                 break;
             case TomlValue value:
-                if (_data.ContainsKey(path)) throw Duplicate(path, value);
-                _data[path] = GetText(value);
+                Set(path, GetText(value), value);
                 break;
         }
     }
 
-    private void VisitTable(TomlTable table, string path) {
+    // The root table has no path; an empty quoted key ("") is a real segment, so a null path marks the root.
+    private void VisitTable(TomlTable table, string? path) {
         // TOML keys are case-sensitive and the document already rejects exact duplicates; configuration keys are not, so
         // keys that differ only in case would silently overwrite each other.
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -64,7 +64,13 @@ internal sealed class TomlConfigurationFileParser {
             if (!keys.Add(entry.Key)) throw Duplicate(key, entry.Value);
             VisitNode(entry.Value, key);
         }
-        if (keys.Count == 0 && path.Length > 0) _data[path] = null;
+        if (keys.Count == 0 && path is not null) Set(path, null, table);
+    }
+
+    // Different TOML keys can flatten to one configuration key ("a:b" = 1 beside a = { b = [] }), so every write checks.
+    private void Set(string path, string? value, TomlNode node) {
+        if (_data.ContainsKey(path)) throw Duplicate(path, node);
+        _data[path] = value;
     }
 
     // Strings keep their decoded text. Numbers keep their spelling where .NET parses it (decimal digits, exponents) and are
@@ -100,9 +106,9 @@ internal sealed class TomlConfigurationFileParser {
         return text.Length > start;
     }
 
-    private static string Combine(string path, int index) => Combine(path, index.ToString(CultureInfo.InvariantCulture));
+    private static string Combine(string? path, int index) => Combine(path, index.ToString(CultureInfo.InvariantCulture));
 
-    private static string Combine(string path, string key) => path.Length == 0 ? key : path + ConfigurationPath.KeyDelimiter + key;
+    private static string Combine(string? path, string key) => path is null ? key : path + ConfigurationPath.KeyDelimiter + key;
 
     private static FormatException Duplicate(string key, TomlNode node) {
         int line = node.KeyStart.Line > 0 ? node.KeyStart.Line : node.Start.Line;

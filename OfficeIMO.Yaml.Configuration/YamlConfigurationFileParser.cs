@@ -40,7 +40,7 @@ internal sealed class YamlConfigurationFileParser {
 
         YamlNode root = Resolve(parts[0].Root);
         if (root is YamlMapping mapping) {
-            VisitMapping(mapping, string.Empty);
+            VisitMapping(mapping, path: null);
         } else if (!root.IsNull) {
             throw new FormatException(string.Format(CultureInfo.InvariantCulture,
                 "The root of a YAML configuration file must be a mapping, but line {0} starts {1}.", root.Start.Line, Describe(root)));
@@ -55,7 +55,7 @@ internal sealed class YamlConfigurationFileParser {
                 break;
             case YamlSequence sequence:
                 if (sequence.Count == 0) {
-                    _data[path] = null;
+                    Set(path, null, sequence);
                     break;
                 }
                 for (int i = 0; i < sequence.Count; i++) {
@@ -63,21 +63,27 @@ internal sealed class YamlConfigurationFileParser {
                 }
                 break;
             default:
-                if (_data.ContainsKey(path)) throw Duplicate(path, node);
-                _data[path] = node.IsNull ? string.Empty : node.AsString();
+                Set(path, node.IsNull ? string.Empty : node.AsString(), node);
                 break;
         }
     }
 
-    private void VisitMapping(YamlMapping mapping, string path) {
+    // The root mapping has no path; an empty key ("") is a real segment, so a null path marks the root.
+    private void VisitMapping(YamlMapping mapping, string? path) {
         var resolved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         VisitEntries(mapping, path, resolved, merged: false);
-        if (resolved.Count == 0 && path.Length > 0) _data[path] = null;
+        if (resolved.Count == 0 && path is not null) Set(path, null, mapping);
+    }
+
+    // Different YAML paths can flatten to one configuration key ("a:b": 1 beside a: {b: []}), so every write checks.
+    private void Set(string path, string? value, YamlNode node) {
+        if (_data.ContainsKey(path)) throw Duplicate(path, node);
+        _data[path] = value;
     }
 
     // A mapping's own keys win over the keys merged into it, and earlier merged mappings win over later ones, so every key
     // is taken from the first mapping that sets it. Duplicates within one mapping are errors wherever the mapping is used.
-    private void VisitEntries(YamlMapping mapping, string path, HashSet<string> resolved, bool merged) {
+    private void VisitEntries(YamlMapping mapping, string? path, HashSet<string> resolved, bool merged) {
         HashSet<string>? own = merged ? new HashSet<string>(StringComparer.OrdinalIgnoreCase) : null;
         bool hasMerges = false;
         foreach (YamlMappingEntry entry in mapping) {
@@ -121,7 +127,7 @@ internal sealed class YamlConfigurationFileParser {
         return node;
     }
 
-    private static string Combine(string path, string key) => path.Length == 0 ? key : path + ConfigurationPath.KeyDelimiter + key;
+    private static string Combine(string? path, string key) => path is null ? key : path + ConfigurationPath.KeyDelimiter + key;
 
     private static string Describe(YamlNode node) => node switch {
         YamlMapping => "a mapping",

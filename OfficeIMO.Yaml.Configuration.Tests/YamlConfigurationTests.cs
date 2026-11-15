@@ -129,6 +129,16 @@ public sealed class YamlConfigurationTests {
     }
 
     [Fact]
+    public void KeepsAnEmptyKeyApartFromTheRoot() {
+        IDictionary<string, string?> data = Load("\"\":\n  Name: nested\nName: root\nOuter:\n  \"\": {}\n");
+
+        Assert.Equal("nested", data[":Name"]);
+        Assert.Equal("root", data["Name"]);
+        Assert.True(data.ContainsKey("Outer:"));
+        Assert.Null(data["Outer:"]);
+    }
+
+    [Fact]
     public void RejectsMoreThanOneDocument() {
         FormatException exception = Assert.Throws<FormatException>(() => Load("""
             Name: first
@@ -169,6 +179,8 @@ public sealed class YamlConfigurationTests {
     [InlineData("Server:\n  Port: 1\n  Port: 2\n", "Server:Port", 3)]
     [InlineData("Server:\n  Port: 1\n  port: 2\n", "Server:port", 3)]
     [InlineData("a:b: 1\na:\n  b: 2\n", "a:b", 3)]
+    [InlineData("\"a:b\": 1\na:\n  b: []\n", "a:b", 3)]
+    [InlineData("a:\n  b: {}\n\"a:b\": 1\n", "a:b", 3)]
     public void RejectsDuplicateKeysWithTheirLine(string yaml, string key, int line) {
         FormatException exception = Assert.Throws<FormatException>(() => Load(yaml));
         Assert.Equal($"A duplicate key '{key}' was found at line {line}.", exception.Message);
