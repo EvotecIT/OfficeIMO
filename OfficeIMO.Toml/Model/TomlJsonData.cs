@@ -8,23 +8,29 @@ namespace OfficeIMO.Toml;
 /// source position and node.
 /// </summary>
 internal static class TomlJsonData {
-    public static JsonData Convert(TomlNode node) {
+    private const int MaxDepth = 512;
+
+    public static JsonData Convert(TomlNode node) => Convert(node, 0);
+
+    // Edited documents can nest deeper than the reader allows, so the depth is checked here too.
+    private static JsonData Convert(TomlNode node, int depth) {
+        if (depth > MaxDepth) throw new InvalidOperationException("The TOML value nests deeper than " + MaxDepth.ToString(System.Globalization.CultureInfo.InvariantCulture) + " levels.");
         TomlPosition start = node.Start;
         var location = new JsonDataLocation(start.Line, start.Column, node);
         switch (node) {
             case TomlTable table: {
                 var properties = new List<KeyValuePair<string, JsonData>>(table.Count);
-                foreach (KeyValuePair<string, TomlNode> entry in table) properties.Add(new KeyValuePair<string, JsonData>(entry.Key, Convert(entry.Value)));
+                foreach (KeyValuePair<string, TomlNode> entry in table) properties.Add(new KeyValuePair<string, JsonData>(entry.Key, Convert(entry.Value, depth + 1)));
                 return JsonData.CreateObject(properties, location);
             }
             case TomlTableArray tables: {
                 var items = new List<JsonData>(tables.Count);
-                foreach (TomlTable item in tables) items.Add(Convert(item));
+                foreach (TomlTable item in tables) items.Add(Convert(item, depth + 1));
                 return JsonData.CreateArray(items, location);
             }
             case TomlArray array: {
                 var items = new List<JsonData>(array.Count);
-                foreach (TomlNode item in array) items.Add(Convert(item));
+                foreach (TomlNode item in array) items.Add(Convert(item, depth + 1));
                 return JsonData.CreateArray(items, location);
             }
             default: {

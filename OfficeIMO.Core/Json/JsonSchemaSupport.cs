@@ -79,7 +79,8 @@ internal static class JsonSchemaUri {
         if (resource.Length != 0 && IsHierarchical(resource) && Uri.TryCreate(new Uri(resource, UriKind.Absolute), reference, out Uri? resolved)) {
             return StripEmptyFragment(resolved.AbsoluteUri);
         }
-        if (resource.Length != 0 && !IsHierarchical(resource)) return reference;
+        // An opaque base such as a URN has no path to resolve against.
+        if (HasScheme(resource) && !IsHierarchical(resource)) return reference;
         // Without an absolute base, a relative reference resolves against the base's own relative path.
         if (resource.Length != 0) {
             int slash = resource.LastIndexOf('/');

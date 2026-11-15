@@ -57,4 +57,35 @@ public class TomlJsonSchemaTests {
                 Assert.Equal("required", path.Keyword);
             });
     }
+
+    [Fact]
+    public void OnlyOffsetDateTimesAndLocalDatesMatchDateFormats() {
+        JsonSchema schema = JsonSchema.Parse("""
+            {
+              "properties": {
+                "offset": { "format": "date-time" },
+                "day": { "format": "date" },
+                "local": { "format": "date-time" },
+                "clock": { "format": "time" }
+              }
+            }
+            """);
+        TomlDocument document = TomlDocument.Parse("""
+            offset = 1979-05-27T07:32:00Z
+            day = 1979-05-27
+            local = 1979-05-27T07:32:00
+            clock = 07:32:00
+            """);
+
+        Assert.Equal(new[] { "/local", "/clock" }, document.Validate(schema).Findings.Select(f => f.InstancePath));
+    }
+
+    [Fact]
+    public void DeeplyNestedEditedArraysFailToConvert() {
+        TomlDocument document = TomlDocument.Create();
+        TomlArray array = document.Root.AddArray("deep");
+        for (int i = 0; i < 600; i++) array = array.AddArray();
+
+        Assert.Throws<InvalidOperationException>(() => document.ToJsonData());
+    }
 }

@@ -5,9 +5,10 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Json;
 
 /// <summary>
-/// Translates ECMA-262 regular expressions, the dialect JSON Schema patterns use, to .NET: <c>\d</c>, <c>\w</c> and
-/// <c>\s</c> keep their ECMA-262 character sets, <c>$</c> matches only at the end, <c>.</c> and literal astral
-/// characters match whole code points, <c>\p{Letter}</c>-style property names map to .NET categories, and syntax
+/// Translates ECMA-262 regular expressions, the dialect JSON Schema patterns use, to .NET: <c>\d</c>, <c>\w</c>,
+/// <c>\s</c> and <c>\b</c> keep their ECMA-262 character sets, <c>$</c> matches only at the end, <c>.</c> and literal
+/// astral characters match whole code points, captures keep their ECMA-262 numbers, <c>(?m:...)</c> and
+/// <c>(?s:...)</c> groups change how <c>^</c>, <c>$</c> and <c>.</c> match, <c>\p{Letter}</c>-style property names map to .NET categories, and syntax
 /// ECMA-262 does not have (<c>\a</c>, <c>\z</c>, <c>(?#...)</c>, global <c>(?i)</c> flags) is rejected.
 /// </summary>
 internal static class JsonSchemaRegex {
@@ -17,7 +18,16 @@ internal static class JsonSchemaRegex {
     private const string NotWordRanges = "\\u0000-\\u002F\\u003A-\\u0040\\u005B-\\u005E\\u0060\\u007B-\\uFFFF";
     private const string SpaceRanges = "\\u0009-\\u000D\\u0020\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF";
     private const string NotSpaceRanges = "\\u0000-\\u0008\\u000E-\\u001F\\u0021-\\u009F\\u00A1-\\u167F\\u1681-\\u1FFF\\u200B-\\u2027\\u202A-\\u202E\\u2030-\\u205E\\u2060-\\u2FFF\\u3001-\\uFEFE\\uFF00-\\uFFFF";
-    private const string AnyCodePoint = "(?:[\\uD800-\\uDBFF][\\uDC00-\\uDFFF]|[^\\n\\r\\u2028\\u2029])";
+    private const string Pair = "[\\uD800-\\uDBFF][\\uDC00-\\uDFFF]";
+    // One UTF-16 unit that is not half of a surrogate pair, so backtracking cannot split a pair between two dots.
+    private const string LoneUnit = "(?!" + Pair + ")(?!(?<=[\\uD800-\\uDBFF])[\\uDC00-\\uDFFF])";
+    private const string LineTerminators = "\\n\\r\\u2028\\u2029";
+    private const string AnyCodePoint = "(?:" + Pair + "|" + LoneUnit + "[^" + LineTerminators + "])";
+    private const string AnyCodePointDotAll = "(?:" + Pair + "|" + LoneUnit + "[\\s\\S])";
+    private const string LineStart = "(?<![^" + LineTerminators + "])";
+    private const string LineEnd = "(?![^" + LineTerminators + "])";
+    private const string WordBoundary = "(?:(?<=[" + WordRanges + "])(?![" + WordRanges + "])|(?<![" + WordRanges + "])(?=[" + WordRanges + "]))";
+    private const string NotWordBoundary = "(?:(?<=[" + WordRanges + "])(?=[" + WordRanges + "])|(?<![" + WordRanges + "])(?![" + WordRanges + "]))";
 
     private static readonly Dictionary<string, string> Properties = new Dictionary<string, string>(StringComparer.Ordinal) {
         ["Letter"] = "L", ["Uppercase_Letter"] = "Lu", ["Lowercase_Letter"] = "Ll", ["Titlecase_Letter"] = "Lt",
@@ -37,13 +47,14 @@ internal static class JsonSchemaRegex {
     public static Regex Create(string pattern, TimeSpan timeout) => new Regex(Translate(pattern), RegexOptions.CultureInvariant, timeout);
 
     public static string Translate(string pattern) {
-        var text = new StringBuilder(pattern.Length + 16);
+        var state = new State(pattern);
+        StringBuilder text = state.Text;
         bool inClass = false;
         int i = 0;
         while (i < pattern.Length) {
             char c = pattern[i];
             if (c == '\\') {
-                i = TranslateEscape(pattern, i, inClass, text);
+                i = TranslateEscape(pattern, i, inClass, state);
                 continue;
             }
             if (inClass) {
@@ -73,13 +84,20 @@ internal static class JsonSchemaRegex {
                     }
                     continue;
                 case '(':
-                    i = TranslateGroup(pattern, i, text);
+                    i = TranslateGroup(pattern, i, state);
                     continue;
+                case ')':
+                    state.Close();
+                    text.Append(')');
+                    break;
+                case '^':
+                    text.Append(state.Multiline ? LineStart : "\\A");
+                    break;
                 case '$':
-                    text.Append("\\z");
+                    text.Append(state.Multiline ? LineEnd : "\\z");
                     break;
                 case '.':
-                    text.Append(AnyCodePoint);
+                    text.Append(state.DotAll ? AnyCodePointDotAll : AnyCodePoint);
                     break;
                 default:
                     if (char.IsHighSurrogate(c) && char.IsLowSurrogate(At(pattern, i + 1))) {
@@ -96,36 +114,58 @@ internal static class JsonSchemaRegex {
         return text.ToString();
     }
 
-    private static int TranslateGroup(string pattern, int i, StringBuilder text) {
+    private static int TranslateGroup(string pattern, int i, State state) {
+        StringBuilder text = state.Text;
         if (At(pattern, i + 1) != '?') {
-            text.Append('(');
+            // Every capture gets its ECMA-262 number explicitly: .NET would number named groups after unnamed ones.
+            state.Open(state.Multiline, state.DotAll);
+            text.Append("(?<").Append((++state.Captures).ToString(CultureInfo.InvariantCulture)).Append('>');
             return i + 1;
         }
         char kind = At(pattern, i + 2);
         if (kind is ':' or '=' or '!') {
+            state.Open(state.Multiline, state.DotAll);
             text.Append(pattern, i, 3);
             return i + 3;
         }
         if (kind == '<') {
             char next = At(pattern, i + 3);
+            state.Open(state.Multiline, state.DotAll);
             if (next is '=' or '!') {
                 text.Append(pattern, i, 4);
                 return i + 4;
             }
-            text.Append("(?<");
-            return i + 3;
+            int close = pattern.IndexOf('>', i + 3);
+            if (close < 0) throw new ArgumentException("The group name is not closed.");
+            string name = pattern.Substring(i + 3, close - i - 3);
+            state.Captures++;
+            text.Append("(?<").Append(state.Names[name].ToString(CultureInfo.InvariantCulture)).Append('>');
+            return close + 1;
         }
-        // Modifier groups such as (?i:...) scope flags to the group; global (?i) flags are not ECMA-262.
+        // Modifier groups such as (?i:...) scope flags to the group; global (?i) flags are not ECMA-262. .NET has no
+        // equivalent for the ECMA-262 meaning of m and s, so they change how ^, $ and . translate inside the group.
         int j = i + 2;
-        while (j < pattern.Length && (pattern[j] is 'i' or 'm' or 's' or '-')) j++;
+        bool removing = false, multiline = state.Multiline, dotAll = state.DotAll;
+        string ignoreCase = string.Empty;
+        while (j < pattern.Length && (pattern[j] is 'i' or 'm' or 's' or '-')) {
+            switch (pattern[j]) {
+                case '-': removing = true; break;
+                case 'm': multiline = !removing; break;
+                case 's': dotAll = !removing; break;
+                default: ignoreCase = removing ? "-i" : "i"; break;
+            }
+            j++;
+        }
         if (j > i + 2 && At(pattern, j) == ':') {
-            text.Append(pattern, i, j - i + 1);
+            state.Open(multiline, dotAll);
+            text.Append("(?").Append(ignoreCase).Append(':');
             return j + 1;
         }
         throw new ArgumentException("'(?" + kind + "' is not ECMA-262 group syntax.");
     }
 
-    private static int TranslateEscape(string pattern, int i, bool inClass, StringBuilder text) {
+    private static int TranslateEscape(string pattern, int i, bool inClass, State state) {
+        StringBuilder text = state.Text;
         if (i + 1 >= pattern.Length) throw new ArgumentException("The pattern ends with a backslash.");
         char n = pattern[i + 1];
         switch (n) {
@@ -170,16 +210,22 @@ internal static class JsonSchemaRegex {
                 text.Append(pattern, i, 3);
                 return i + 3;
             case 'b':
-                text.Append(inClass ? "\\u0008" : "\\b");
+                // Word boundaries use the same ASCII word set as \w; .NET's \b would use Unicode letters.
+                text.Append(inClass ? "\\u0008" : WordBoundary);
+                return i + 2;
+            case 'B':
+                if (inClass) throw new ArgumentException("\\B is not valid in a character class.");
+                text.Append(NotWordBoundary);
                 return i + 2;
             case 'k': {
                 if (At(pattern, i + 2) != '<') throw new ArgumentException("\\k needs a group name.");
                 int close = pattern.IndexOf('>', i + 3);
                 if (close < 0) throw new ArgumentException("\\k needs a group name.");
-                text.Append(pattern, i, close - i + 1);
+                string name = pattern.Substring(i + 3, close - i - 3);
+                if (!state.Names.TryGetValue(name, out int number)) throw new ArgumentException("\\k<" + name + "> names no group.");
+                text.Append("\\k<").Append(number.ToString(CultureInfo.InvariantCulture)).Append('>');
                 return close + 1;
             }
-            case 'B':
             case 't':
             case 'n':
             case 'v':
@@ -198,6 +244,62 @@ internal static class JsonSchemaRegex {
                 if (IsAsciiLetter(n)) throw new ArgumentException("\\" + n + " is not an ECMA-262 escape.");
                 text.Append('\\').Append(n);
                 return i + 2;
+        }
+    }
+
+    /// <summary>Translation state: the output, the m and s flags of each open group, and capture numbers by name.</summary>
+    private sealed class State {
+        private readonly Stack<bool> _scopes = new Stack<bool>();
+
+        public State(string pattern) {
+            Text = new StringBuilder(pattern.Length + 16);
+            Names = NumberNamedGroups(pattern);
+        }
+
+        public StringBuilder Text { get; }
+        public Dictionary<string, int> Names { get; }
+        public int Captures { get; set; }
+        public bool Multiline { get; private set; }
+        public bool DotAll { get; private set; }
+
+        public void Open(bool multiline, bool dotAll) {
+            _scopes.Push(Multiline);
+            _scopes.Push(DotAll);
+            Multiline = multiline;
+            DotAll = dotAll;
+        }
+
+        public void Close() {
+            if (_scopes.Count == 0) return;
+            DotAll = _scopes.Pop();
+            Multiline = _scopes.Pop();
+        }
+
+        /// <summary>Gives each group name its ECMA-262 capture number: groups count left to right, named or not.</summary>
+        private static Dictionary<string, int> NumberNamedGroups(string pattern) {
+            var names = new Dictionary<string, int>(StringComparer.Ordinal);
+            int captures = 0;
+            bool inClass = false;
+            for (int i = 0; i < pattern.Length; i++) {
+                char c = pattern[i];
+                if (c == '\\') {
+                    i++;
+                } else if (inClass) {
+                    if (c == ']') inClass = false;
+                } else if (c == '[') {
+                    inClass = true;
+                } else if (c == '(') {
+                    if (At(pattern, i + 1) != '?') {
+                        captures++;
+                    } else if (At(pattern, i + 2) == '<' && At(pattern, i + 3) is not ('=' or '!')) {
+                        captures++;
+                        int close = pattern.IndexOf('>', i + 3);
+                        // A name repeated in other alternatives shares the first group's number, as .NET allows.
+                        if (close > 0 && !names.ContainsKey(pattern.Substring(i + 3, close - i - 3))) names.Add(pattern.Substring(i + 3, close - i - 3), captures);
+                    }
+                }
+            }
+            return names;
         }
     }
 

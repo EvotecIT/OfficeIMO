@@ -90,7 +90,7 @@ RFC 6901 pointers address tables by key and arrays and arrays of tables by index
 
 ### Validating with JSON Schema
 
-`Validate` checks a document against a JSON Schema (draft 2020-12 or draft 7), such as the published `pyproject.toml` or `Cargo.toml` schemas. Tables are objects, arrays of tables are arrays, and dates and times are their RFC 3339 text, so `"format": "date-time"` checks them. Findings carry the JSON Pointer, line and column of each failing value:
+`Validate` checks a document against a JSON Schema (draft 2020-12 or draft 7), such as the published `pyproject.toml` or `Cargo.toml` schemas. Tables are objects, arrays of tables are arrays, and dates and times are their RFC 3339 text. Offset date-times satisfy `"format": "date-time"` and local dates satisfy `"format": "date"`; local times and local date-times have no offset, so `time` and `date-time` reject them. Findings carry the JSON Pointer, line and column of each failing value:
 
 ```csharp
 using OfficeIMO.Json;

@@ -14,7 +14,15 @@ internal static class JsonSchemaHostnames {
     public static bool IsHostname(string value) => IsName(value, new[] { '.' }, international: false);
 
     /// <summary>Checks an internationalized host name after the UTS 46 mapping, approximated as removing ignored code points, NFKC and lowercasing.</summary>
-    public static bool IsIdnHostname(string value) => IsName(MapUts46(value), IdnSeparators, international: true);
+    public static bool IsIdnHostname(string value) => !HasUnpairedSurrogate(value) && IsName(MapUts46(value), IdnSeparators, international: true);
+
+    private static bool HasUnpairedSurrogate(string value) {
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsHighSurrogate(value[i]) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1])) i++;
+            else if (char.IsSurrogate(value[i])) return true;
+        }
+        return false;
+    }
 
     private static string MapUts46(string value) {
         var text = new StringBuilder(value.Length);
@@ -22,11 +30,7 @@ internal static class JsonSchemaHostnames {
             if (c is '\u00AD' or '\u034F' or '\u200B' or '\u2060' or '\uFEFF' || c >= '\u180B' && c <= '\u180F' || c >= '\uFE00' && c <= '\uFE0F') continue;
             text.Append(c);
         }
-        try {
-            return text.ToString().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
-        } catch (ArgumentException) {
-            return value; // Unpaired surrogates: validate as written, which rejects them.
-        }
+        return text.ToString().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
     }
 
     private static bool IsName(string value, char[] separators, bool international) {

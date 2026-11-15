@@ -10,25 +10,35 @@ namespace OfficeIMO.Yaml;
 /// </summary>
 internal sealed class YamlJsonData {
     private const int MaxDepth = 512;
-    private Dictionary<YamlNode, JsonData>? _anchored;
+    private Dictionary<YamlNode, KeyValuePair<JsonData, int>>? _anchored;
 
-    public static JsonData Convert(YamlNode? node) => node is null ? JsonData.CreateNull() : new YamlJsonData().ConvertNode(node, 0);
+    public static JsonData Convert(YamlNode? node) => node is null ? JsonData.CreateNull() : new YamlJsonData().ConvertNode(node, 0, out _);
 
-    private JsonData ConvertNode(YamlNode node, int depth) {
-        if (depth > MaxDepth) throw new InvalidOperationException("The YAML value nests deeper than " + MaxDepth.ToString(CultureInfo.InvariantCulture) + " levels, or an alias refers to a node that contains it.");
+    /// <summary>Converts a node at <paramref name="depth"/>; <paramref name="height"/> is how many levels its value nests below it.</summary>
+    private JsonData ConvertNode(YamlNode node, int depth, out int height) {
+        if (depth > MaxDepth) throw TooDeep();
         YamlNode resolved = node.Resolved;
         bool shared = resolved.Anchor is not null && resolved is not YamlScalar;
         // Aliases share one converted value, so alias-heavy documents convert in linear time and memory.
-        if (shared && _anchored is not null && _anchored.TryGetValue(resolved, out JsonData? existing)) return existing;
+        // A cached value still counts its full nesting at the depth it is reused.
+        if (shared && _anchored is not null && _anchored.TryGetValue(resolved, out KeyValuePair<JsonData, int> existing)) {
+            height = existing.Value;
+            if (depth + height > MaxDepth) throw TooDeep();
+            return existing.Key;
+        }
+        height = 0;
         JsonData value = resolved switch {
             YamlScalar scalar => ConvertScalar(scalar, Locate(node)),
-            YamlSequence sequence => ConvertSequence(sequence, depth),
-            YamlMapping mapping => ConvertMapping(mapping, depth),
+            YamlSequence sequence => ConvertSequence(sequence, depth, out height),
+            YamlMapping mapping => ConvertMapping(mapping, depth, out height),
             _ => JsonData.CreateNull(Locate(node))
         };
-        if (shared) (_anchored ??= new Dictionary<YamlNode, JsonData>(ReferenceComparer.Instance))[resolved] = value;
+        if (shared) (_anchored ??= new Dictionary<YamlNode, KeyValuePair<JsonData, int>>(ReferenceComparer.Instance))[resolved] = new KeyValuePair<JsonData, int>(value, height);
         return value;
     }
+
+    private static InvalidOperationException TooDeep() =>
+        new InvalidOperationException("The YAML value nests deeper than " + MaxDepth.ToString(CultureInfo.InvariantCulture) + " levels, or an alias refers to a node that contains it.");
 
     private static JsonDataLocation Locate(YamlNode node) {
         YamlPosition start = node.Start;
@@ -55,13 +65,18 @@ internal sealed class YamlJsonData {
         return JsonData.CreateString(scalar.Value, location);
     }
 
-    private JsonData ConvertSequence(YamlSequence sequence, int depth) {
+    private JsonData ConvertSequence(YamlSequence sequence, int depth, out int height) {
         var items = new JsonData[sequence.Count];
-        for (int i = 0; i < items.Length; i++) items[i] = ConvertNode(sequence[i], depth + 1);
+        height = 1;
+        for (int i = 0; i < items.Length; i++) {
+            items[i] = ConvertNode(sequence[i], depth + 1, out int child);
+            height = Math.Max(height, child + 1);
+        }
         return JsonData.CreateArray(items, Locate(sequence));
     }
 
-    private JsonData ConvertMapping(YamlMapping mapping, int depth) {
+    private JsonData ConvertMapping(YamlMapping mapping, int depth, out int height) {
+        height = 1;
         var properties = new List<KeyValuePair<string, JsonData>>(mapping.Count);
         var seen = new Dictionary<string, int>(StringComparer.Ordinal);
         bool firstWins = mapping.Document?.DuplicateKeys == YamlDuplicateKeyPolicy.FirstWins;
@@ -74,26 +89,32 @@ internal sealed class YamlJsonData {
             YamlMappingEntry entry = mapping[i];
             string key = KeyText(entry.Key);
             if (seen.TryGetValue(key, out int index)) {
-                if (!firstWins) properties[index] = new KeyValuePair<string, JsonData>(key, ConvertNode(entry.Value, depth + 1));
+                if (!firstWins) properties[index] = new KeyValuePair<string, JsonData>(key, ConvertChild(entry.Value, depth, ref height));
                 continue;
             }
             seen.Add(key, properties.Count);
-            properties.Add(new KeyValuePair<string, JsonData>(key, ConvertNode(entry.Value, depth + 1)));
+            properties.Add(new KeyValuePair<string, JsonData>(key, ConvertChild(entry.Value, depth, ref height)));
         }
         if (merges is not null) {
             // The mapping's own keys win, then merged mappings in order.
             foreach (YamlNode merge in merges) {
                 YamlNode source = merge.Resolved;
                 if (source is YamlMapping merged) {
-                    AddMerged(properties, seen, ConvertNode(merge, depth + 1));
+                    AddMerged(properties, seen, ConvertChild(merge, depth, ref height));
                 } else if (source is YamlSequence list) {
                     foreach (YamlNode item in list) {
-                        if (item.Resolved is YamlMapping) AddMerged(properties, seen, ConvertNode(item, depth + 1));
+                        if (item.Resolved is YamlMapping) AddMerged(properties, seen, ConvertChild(item, depth, ref height));
                     }
                 }
             }
         }
         return JsonData.CreateObject(properties, Locate(mapping));
+    }
+
+    private JsonData ConvertChild(YamlNode node, int depth, ref int height) {
+        JsonData value = ConvertNode(node, depth + 1, out int child);
+        height = Math.Max(height, child + 1);
+        return value;
     }
 
     private static void AddMerged(List<KeyValuePair<string, JsonData>> properties, Dictionary<string, int> seen, JsonData merged) {

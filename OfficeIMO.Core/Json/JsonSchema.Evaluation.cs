@@ -259,10 +259,7 @@ public sealed partial class JsonSchema {
     }
 
     private static bool IsMultipleOf(JsonData value, JsonData divisor) {
-        if (value.HasExact && divisor.HasExact) {
-            bool? exact = JsonExactNumber.IsMultipleOf(value.Exact, divisor.Exact);
-            if (exact is not null) return exact.Value;
-        }
+        if (value.HasExact && divisor.HasExact) return JsonExactNumber.IsMultipleOf(value.Exact, divisor.Exact);
         double quotient = value.DoubleValue / divisor.DoubleValue;
         if (double.IsInfinity(quotient) || double.IsNaN(quotient)) return false;
         return Math.Floor(quotient) == quotient;
@@ -397,8 +394,9 @@ public sealed partial class JsonSchema {
 
     private static bool FindDuplicate(IReadOnlyList<JsonData> items, out int first, out int second) {
         var buckets = new Dictionary<int, List<int>>();
+        var hashes = new Dictionary<JsonData, int>(JsonDataReferenceComparer.Instance);
         for (int i = 0; i < items.Count; i++) {
-            int hash = JsonData.DeepHash(items[i]);
+            int hash = JsonData.DeepHash(items[i], hashes);
             if (buckets.TryGetValue(hash, out List<int>? candidates)) {
                 foreach (int candidate in candidates) {
                     if (JsonData.DeepEquals(items[candidate], items[i])) {
@@ -636,10 +634,7 @@ public sealed partial class JsonSchema {
         return text.ToString();
     }
 
-    private static string Preview(JsonData value) {
-        string text = value.ToString();
-        return text.Length <= 80 ? text : text.Substring(0, 77) + "...";
-    }
+    private static string Preview(JsonData value) => value.ToString(80);
 
     #endregion
 }

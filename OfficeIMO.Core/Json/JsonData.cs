@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
 using System.Runtime.CompilerServices;
@@ -33,6 +34,8 @@ public enum JsonDataKind : byte {
 public sealed class JsonData {
     private static readonly JsonData[] NoItems = Array.Empty<JsonData>();
     private static readonly KeyValuePair<string, JsonData>[] NoProperties = Array.Empty<KeyValuePair<string, JsonData>>();
+    private static readonly ReadOnlyCollection<JsonData> NoItemsView = new ReadOnlyCollection<JsonData>(NoItems);
+    private static readonly ReadOnlyCollection<KeyValuePair<string, JsonData>> NoPropertiesView = new ReadOnlyCollection<KeyValuePair<string, JsonData>>(NoProperties);
     private const int LinearLookupLimit = 8;
 
     private readonly bool _boolean;
@@ -42,6 +45,9 @@ public sealed class JsonData {
     private readonly bool _hasExact;
     private readonly JsonData[] _items;
     private readonly KeyValuePair<string, JsonData>[] _properties;
+    // Read-only views, so callers cannot cast Items or Properties back to the arrays and change them.
+    private readonly ReadOnlyCollection<JsonData> _itemsView;
+    private readonly ReadOnlyCollection<KeyValuePair<string, JsonData>> _propertiesView;
     private Dictionary<string, int>? _index;
 
     private JsonData(JsonDataKind kind, JsonDataLocation location) {
@@ -51,6 +57,8 @@ public sealed class JsonData {
         Source = location.Source;
         _items = NoItems;
         _properties = NoProperties;
+        _itemsView = NoItemsView;
+        _propertiesView = NoPropertiesView;
     }
 
     private JsonData(bool value, JsonDataLocation location) : this(JsonDataKind.Boolean, location) => _boolean = value;
@@ -63,9 +71,15 @@ public sealed class JsonData {
         _hasExact = hasExact;
     }
 
-    private JsonData(JsonData[] items, JsonDataLocation location) : this(JsonDataKind.Array, location) => _items = items;
+    private JsonData(JsonData[] items, JsonDataLocation location) : this(JsonDataKind.Array, location) {
+        _items = items;
+        if (items.Length != 0) _itemsView = new ReadOnlyCollection<JsonData>(items);
+    }
 
-    private JsonData(KeyValuePair<string, JsonData>[] properties, JsonDataLocation location) : this(JsonDataKind.Object, location) => _properties = properties;
+    private JsonData(KeyValuePair<string, JsonData>[] properties, JsonDataLocation location) : this(JsonDataKind.Object, location) {
+        _properties = properties;
+        if (properties.Length != 0) _propertiesView = new ReadOnlyCollection<KeyValuePair<string, JsonData>>(properties);
+    }
 
     /// <summary>Gets the kind of value.</summary>
     public JsonDataKind Kind { get; }
@@ -86,10 +100,10 @@ public sealed class JsonData {
     public bool IsInteger => Kind == JsonDataKind.Number && (_hasExact ? _exact.IsInteger : !double.IsInfinity(_double) && !double.IsNaN(_double) && Math.Floor(_double) == _double);
 
     /// <summary>Gets the items of an array, or an empty list for other kinds.</summary>
-    public IReadOnlyList<JsonData> Items => _items;
+    public IReadOnlyList<JsonData> Items => _itemsView;
 
     /// <summary>Gets the properties of an object in source order, or an empty list for other kinds.</summary>
-    public IReadOnlyList<KeyValuePair<string, JsonData>> Properties => _properties;
+    public IReadOnlyList<KeyValuePair<string, JsonData>> Properties => _propertiesView;
 
     /// <summary>Creates the null value.</summary>
     public static JsonData CreateNull(JsonDataLocation location = default) => new JsonData(JsonDataKind.Null, location);
@@ -135,7 +149,9 @@ public sealed class JsonData {
     /// <exception cref="FormatException"><paramref name="text"/> is not a number.</exception>
     public static JsonData ParseNumber(string text, JsonDataLocation location = default) {
         if (text is null) throw new ArgumentNullException(nameof(text));
-        if (!TryParseNumber(text, out double value, out JsonExactNumber exact, out bool hasExact)) throw new FormatException("'" + text + "' is not a number.");
+        if (!TryParseNumber(text, out double value, out JsonExactNumber exact, out bool hasExact)) {
+            throw new FormatException("'" + text + "' is not a number, or its exponent is outside the supported range of nine digits.");
+        }
         return new JsonData(value, exact, hasExact, location);
     }
 
@@ -207,55 +223,87 @@ public sealed class JsonData {
     /// <summary>Writes the value as compact JSON. Infinite and NaN numbers, which JSON cannot hold, are written as strings.</summary>
     public override string ToString() {
         var text = new StringBuilder();
-        Write(text, this, 0);
+        Write(text, this, int.MaxValue);
         return text.ToString();
     }
 
+    /// <summary>Writes the value as compact JSON, cut to <paramref name="limit"/> characters with an ellipsis, without writing the rest.</summary>
+    internal string ToString(int limit) {
+        var text = new StringBuilder();
+        if (Write(text, this, limit)) return text.ToString();
+        text.Length = limit - 3;
+        return text.Append("...").ToString();
+    }
+
     /// <summary>Returns whether two values are equal in the JSON data model: numbers by value, objects regardless of property order.</summary>
-    public static bool DeepEquals(JsonData? left, JsonData? right) {
+    public static bool DeepEquals(JsonData? left, JsonData? right) => DeepEquals(left, right, null);
+
+    // Values can share subtrees, as YAML aliases do; remembering container pairs already found equal keeps the
+    // comparison linear in the number of distinct nodes.
+    private static bool DeepEquals(JsonData? left, JsonData? right, HashSet<KeyValuePair<JsonData, JsonData>>? equal) {
         if (ReferenceEquals(left, right)) return true;
         if (left is null || right is null || left.Kind != right.Kind) return false;
+        if (left.Kind is JsonDataKind.Array or JsonDataKind.Object) {
+            equal ??= new HashSet<KeyValuePair<JsonData, JsonData>>(PairComparer.Instance);
+            if (equal.Contains(new KeyValuePair<JsonData, JsonData>(left, right))) return true;
+            if (!ContainersEqual(left, right, equal)) return false;
+            equal.Add(new KeyValuePair<JsonData, JsonData>(left, right));
+            return true;
+        }
         switch (left.Kind) {
             case JsonDataKind.Null: return true;
             case JsonDataKind.Boolean: return left._boolean == right._boolean;
             case JsonDataKind.String: return string.Equals(left._string, right._string, StringComparison.Ordinal);
-            case JsonDataKind.Number: return CompareNumbers(left, right) == 0;
-            case JsonDataKind.Array:
-                if (left._items.Length != right._items.Length) return false;
-                for (int i = 0; i < left._items.Length; i++) {
-                    if (!DeepEquals(left._items[i], right._items[i])) return false;
-                }
-                return true;
-            default:
-                if (left._properties.Length != right._properties.Length) return false;
-                foreach (KeyValuePair<string, JsonData> property in left._properties) {
-                    if (!right.TryGetProperty(property.Key, out JsonData other) || !DeepEquals(property.Value, other)) return false;
-                }
-                return true;
+            default: return CompareNumbers(left, right) == 0;
         }
     }
 
-    /// <summary>A hash consistent with <see cref="DeepEquals"/>.</summary>
-    internal static int DeepHash(JsonData value) {
+    private static bool ContainersEqual(JsonData left, JsonData right, HashSet<KeyValuePair<JsonData, JsonData>> equal) {
+        if (left.Kind == JsonDataKind.Array) {
+            if (left._items.Length != right._items.Length) return false;
+            for (int i = 0; i < left._items.Length; i++) {
+                if (!DeepEquals(left._items[i], right._items[i], equal)) return false;
+            }
+            return true;
+        }
+        if (left._properties.Length != right._properties.Length) return false;
+        foreach (KeyValuePair<string, JsonData> property in left._properties) {
+            if (!right.TryGetProperty(property.Key, out JsonData other) || !DeepEquals(property.Value, other, equal)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// A hash consistent with <see cref="DeepEquals(JsonData?, JsonData?)"/>. Pass the same <paramref name="hashes"/>
+    /// for several values so shared subtrees are hashed once.
+    /// </summary>
+    internal static int DeepHash(JsonData value, Dictionary<JsonData, int> hashes) {
+        if (value.Kind is not (JsonDataKind.Array or JsonDataKind.Object)) return ShallowHash(value);
+        if (hashes.TryGetValue(value, out int known)) return known;
+        int hash;
+        unchecked {
+            if (value.Kind == JsonDataKind.Array) {
+                hash = 17;
+                foreach (JsonData item in value._items) hash = hash * 31 + DeepHash(item, hashes);
+            } else {
+                hash = 19;
+                // Order-independent combination, as property order does not matter.
+                foreach (KeyValuePair<string, JsonData> property in value._properties) hash += StringComparer.Ordinal.GetHashCode(property.Key) ^ DeepHash(property.Value, hashes) * 7;
+            }
+        }
+        hashes[value] = hash;
+        return hash;
+    }
+
+    private static int ShallowHash(JsonData value) {
         unchecked {
             switch (value.Kind) {
                 case JsonDataKind.Null: return 1;
                 case JsonDataKind.Boolean: return value._boolean ? 3 : 2;
                 case JsonDataKind.String: return StringComparer.Ordinal.GetHashCode(value._string!);
-                case JsonDataKind.Number:
+                default:
                     // Exact numbers are normalized, so equal values have equal fields.
                     return value._hasExact ? value._exact.Mantissa.GetHashCode() ^ value._exact.Exponent * 397 : value._double.GetHashCode();
-                case JsonDataKind.Array: {
-                    int hash = 17;
-                    foreach (JsonData item in value._items) hash = hash * 31 + DeepHash(item);
-                    return hash;
-                }
-                default: {
-                    int hash = 19;
-                    // Order-independent combination, as property order does not matter.
-                    foreach (KeyValuePair<string, JsonData> property in value._properties) hash += StringComparer.Ordinal.GetHashCode(property.Key) ^ DeepHash(property.Value) * 7;
-                    return hash;
-                }
             }
         }
     }
@@ -263,6 +311,13 @@ public sealed class JsonData {
     /// <summary>Compares two numbers exactly when both are finite, otherwise as doubles.</summary>
     internal static int CompareNumbers(JsonData left, JsonData right) {
         if (left._hasExact && right._hasExact) return JsonExactNumber.Compare(left._exact, right._exact);
+        if (left._hasExact != right._hasExact) {
+            // A finite number is below positive infinity and above negative infinity and NaN, even when its double
+            // approximation overflows.
+            double other = left._hasExact ? right._double : left._double;
+            int exactVersusOther = double.IsPositiveInfinity(other) ? -1 : 1;
+            return left._hasExact ? exactVersusOther : -exactVersusOther;
+        }
         return left._double.CompareTo(right._double);
     }
 
@@ -289,13 +344,19 @@ public sealed class JsonData {
 
     internal static bool TryParseNumber(string text, out double value, out JsonExactNumber exact, out bool hasExact) {
         hasExact = JsonExactNumber.TryParse(text, out exact);
-        if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return true;
+        bool parsed = double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
         if (hasExact) {
             // .NET Framework reports overflow instead of returning infinity.
-            value = exact.Mantissa.Sign < 0 ? double.NegativeInfinity : double.PositiveInfinity;
+            if (!parsed) value = exact.Mantissa.Sign < 0 ? double.NegativeInfinity : double.PositiveInfinity;
             return true;
         }
-        return false;
+        // Number text the exact parser rejects has an exponent beyond its range; a double would silently turn it into
+        // infinity or zero. Only the words for infinity and NaN stay inexact.
+        if (!parsed || !(double.IsNaN(value) || double.IsInfinity(value))) return false;
+        foreach (char c in text) {
+            if (c >= '0' && c <= '9') return false;
+        }
+        return true;
     }
 
     private InvalidOperationException WrongKind(JsonDataKind expected) =>
@@ -310,7 +371,9 @@ public sealed class JsonData {
         _ => "an object"
     };
 
-    internal static void Write(StringBuilder text, JsonData value, int depth) {
+    /// <summary>Appends the value as compact JSON; stops and returns false once the text exceeds <paramref name="limit"/> characters.</summary>
+    internal static bool Write(StringBuilder text, JsonData value, int limit) {
+        if (text.Length > limit) return false;
         switch (value.Kind) {
             case JsonDataKind.Null: text.Append("null"); break;
             case JsonDataKind.Boolean: text.Append(value._boolean ? "true" : "false"); break;
@@ -324,7 +387,7 @@ public sealed class JsonData {
                 text.Append('[');
                 for (int i = 0; i < value._items.Length; i++) {
                     if (i > 0) text.Append(',');
-                    Write(text, value._items[i], depth + 1);
+                    if (!Write(text, value._items[i], limit)) return false;
                 }
                 text.Append(']');
                 break;
@@ -334,11 +397,12 @@ public sealed class JsonData {
                     if (i > 0) text.Append(',');
                     WriteString(text, value._properties[i].Key);
                     text.Append(':');
-                    Write(text, value._properties[i].Value, depth + 1);
+                    if (!Write(text, value._properties[i].Value, limit)) return false;
                 }
                 text.Append('}');
                 break;
         }
+        return text.Length <= limit;
     }
 
     internal static void WriteString(StringBuilder text, string value) {
@@ -379,6 +443,13 @@ public readonly struct JsonDataLocation {
 
     /// <summary>Gets the source node, such as a <c>YamlNode</c> or <c>TomlNode</c>, or null.</summary>
     public object? Source { get; }
+}
+
+/// <summary>Compares pairs of <see cref="JsonData"/> instances by reference.</summary>
+internal sealed class PairComparer : IEqualityComparer<KeyValuePair<JsonData, JsonData>> {
+    public static readonly PairComparer Instance = new PairComparer();
+    public bool Equals(KeyValuePair<JsonData, JsonData> x, KeyValuePair<JsonData, JsonData> y) => ReferenceEquals(x.Key, y.Key) && ReferenceEquals(x.Value, y.Value);
+    public int GetHashCode(KeyValuePair<JsonData, JsonData> obj) => unchecked(RuntimeHelpers.GetHashCode(obj.Key) * 397 ^ RuntimeHelpers.GetHashCode(obj.Value));
 }
 
 /// <summary>Compares <see cref="JsonData"/> instances by reference, for caches keyed by schema node.</summary>

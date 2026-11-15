@@ -35,6 +35,8 @@ public sealed partial class JsonSchema {
     private readonly Dictionary<JsonData, JsonSchemaResource> _resourceOf = new Dictionary<JsonData, JsonSchemaResource>(JsonDataReferenceComparer.Instance);
     private readonly Dictionary<JsonData, JsonSchemaNode> _compiled = new Dictionary<JsonData, JsonSchemaNode>(JsonDataReferenceComparer.Instance);
     private readonly JsonSchemaNode _root;
+    private List<JsonData>? _compiling;
+    private int _compileDepth;
 
     private JsonSchema(JsonData schema, JsonSchemaOptions options) {
         _options = options;
@@ -177,9 +179,35 @@ public sealed partial class JsonSchema {
 
     private JsonSchemaNode Compile(JsonData data, JsonSchemaResource fallback) {
         if (_compiled.TryGetValue(data, out JsonSchemaNode? existing)) return existing;
+        if (_compiling is not null) {
+            if (_compileDepth > JsonDataParser.MaxDepth) throw Invalid(data, "The schema nests deeper than " + JsonDataParser.MaxDepth.ToString(CultureInfo.InvariantCulture) + " levels");
+            _compileDepth++;
+            try {
+                return CompileNode(data, fallback);
+            } finally {
+                _compileDepth--;
+            }
+        }
+        // An outermost call: if any part fails, forget every node it cached, so a later validation that reaches the
+        // same schema fails the same way instead of using a half-compiled node.
+        var compiling = new List<JsonData>();
+        _compiling = compiling;
+        try {
+            return CompileNode(data, fallback);
+        } catch {
+            foreach (JsonData added in compiling) _compiled.Remove(added);
+            throw;
+        } finally {
+            _compiling = null;
+            _compileDepth = 0;
+        }
+    }
+
+    private JsonSchemaNode CompileNode(JsonData data, JsonSchemaResource fallback) {
         JsonSchemaResource resource = _resourceOf.TryGetValue(data, out JsonSchemaResource? owner) ? owner : fallback;
         var node = new JsonSchemaNode(data, resource);
         _compiled[data] = node;
+        _compiling!.Add(data);
         if (data.Kind == JsonDataKind.Boolean) {
             node.Boolean = data.GetBoolean();
             return node;
@@ -205,7 +233,7 @@ public sealed partial class JsonSchema {
                 case "const": node.Const = value; break;
                 case "multipleOf":
                     node.MultipleOf = ReadNumber(value, keyword);
-                    if (node.MultipleOf.DoubleValue <= 0) throw Invalid(value, "'multipleOf' must be greater than 0");
+                    if (node.MultipleOf.HasExact ? node.MultipleOf.Exact.Mantissa.Sign <= 0 : !(node.MultipleOf.DoubleValue > 0)) throw Invalid(value, "'multipleOf' must be greater than 0");
                     break;
                 case "maximum": node.Maximum = ReadNumber(value, keyword); break;
                 case "minimum": node.Minimum = ReadNumber(value, keyword); break;

@@ -10,8 +10,6 @@ namespace OfficeIMO.Json;
 /// <see cref="double"/> precision without loss.
 /// </summary>
 internal readonly struct JsonExactNumber {
-    /// <summary>Exponent alignments above this many digits fall back to binary floating point.</summary>
-    private const int MaxAlignment = 10_000;
     private const int MaxExponentDigits = 9;
 
     private JsonExactNumber(BigInteger mantissa, int exponent, int digits) {
@@ -94,16 +92,33 @@ internal readonly struct JsonExactNumber {
         return a.CompareTo(b);
     }
 
-    /// <summary>Returns whether the value is an integer multiple of the divisor, or null when aligning them would be too large.</summary>
-    public static bool? IsMultipleOf(JsonExactNumber value, JsonExactNumber divisor) {
-        if (divisor.Mantissa.IsZero) return null;
+    /// <summary>
+    /// Returns whether the value is an integer multiple of a non-zero divisor, exactly, without building powers of ten
+    /// as large as the gap between their exponents.
+    /// </summary>
+    public static bool IsMultipleOf(JsonExactNumber value, JsonExactNumber divisor) {
+        if (divisor.Mantissa.IsZero) throw new ArgumentOutOfRangeException(nameof(divisor));
         if (value.Mantissa.IsZero) return true;
-        int exponent = Math.Min(value.Exponent, divisor.Exponent);
-        long valueShift = (long)value.Exponent - exponent, divisorShift = (long)divisor.Exponent - exponent;
-        if (valueShift > MaxAlignment || divisorShift > MaxAlignment) return null;
-        BigInteger a = value.Mantissa * BigInteger.Pow(10, (int)valueShift);
-        BigInteger b = divisor.Mantissa * BigInteger.Pow(10, (int)divisorShift);
-        return (a % b).IsZero;
+        BigInteger a = BigInteger.Abs(value.Mantissa), b = BigInteger.Abs(divisor.Mantissa);
+        long gap = (long)value.Exponent - divisor.Exponent;
+        if (gap < 0) {
+            // b × 10^-gap must divide a; it cannot when it has more digits than a.
+            if (-gap >= value.Digits) return false;
+            return (a % (b * BigInteger.Pow(10, (int)-gap))).IsZero;
+        }
+        // b must divide a × 10^gap: what b keeps after removing common factors with a may hold only 2s and 5s, each at
+        // most gap times.
+        BigInteger rest = b / BigInteger.GreatestCommonDivisor(a, b);
+        long twos = 0, fives = 0;
+        while (rest.IsEven) {
+            rest /= 2;
+            twos++;
+        }
+        while ((rest % 5).IsZero) {
+            rest /= 5;
+            fives++;
+        }
+        return rest.IsOne && twos <= gap && fives <= gap;
     }
 
     public bool TryToDecimal(out decimal value) {

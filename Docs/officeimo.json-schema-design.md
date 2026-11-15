@@ -35,11 +35,13 @@ merged mappings in order. Aliases share their anchored value, so an alias-heavy 
 memory. Collection keys become their flow text. Duplicate keys follow the load's `DuplicateKeys` policy.
 
 **TOML** tables become objects; arrays and arrays of tables become arrays; date-times, dates and times become their
-RFC 3339 text, so the `date-time`, `date` and `time` formats check them.
+RFC 3339 text. Offset date-times satisfy `date-time` and local dates `date`; local times and local date-times carry no
+offset, so `time` and `date-time` reject them rather than assume a timezone.
 
 **Numbers** keep their exact decimal value at any precision (an internal mantissa and exponent), so `0.1`,
 `multipleOf: 0.01` and integers beyond `decimal` range compare exactly. Doubles from YAML and TOML keep the exact value
-of their shortest round-trip text. Only infinities and NaN are inexact.
+of their shortest round-trip text. Only infinities and NaN are inexact, and a finite number never equals one. Number
+text with an exponent beyond nine digits is rejected rather than rounded to infinity or zero.
 
 ## Dialects and keywords
 
@@ -76,9 +78,10 @@ UTS 46 mapping are approximated from Unicode categories and script ranges rather
 
 ## Patterns
 
-Patterns are ECMA-262 regular expressions, translated to .NET: `\d`, `\w` and `\s` keep their ECMA-262 sets (`\d`
-matches only ASCII digits), `$` matches only at the end, `.` and literal astral characters match whole code points,
-and `\p{Letter}`-style property names map to .NET categories (`Script=` maps to the .NET block of that name). Syntax
+Patterns are ECMA-262 regular expressions, translated to .NET: `\d`, `\w`, `\s` and `\b` keep their ECMA-262 sets
+(`\d` matches only ASCII digits), `$` matches only at the end, `.` and literal astral characters match whole code
+points even when backtracking, captures keep their ECMA-262 numbers when named and unnamed groups mix, `(?m:...)` and
+`(?s:...)` groups change `^`, `$` and `.` as ECMA-262 defines, and `\p{Letter}`-style property names map to .NET categories (`Script=` maps to the .NET block of that name). Syntax
 ECMA-262 lacks, such as `\a`, `\z` or `(?#...)`, makes the schema invalid. Every match runs with
 `JsonSchemaOptions.RegexTimeout`.
 
@@ -93,14 +96,16 @@ Schemas and documents can be untrusted. Every limit reached is a finding, so a r
 | `MaxEvaluationSteps` | 10,000,000 | Total subschema evaluations; catches exponential `anyOf`/`oneOf` nesting |
 | `RegexTimeout` | 1 second | Each `pattern` and `patternProperties` match |
 
-`JsonData.Parse` and the YAML conversion stop at 512 levels of nesting. Exact numbers align exponents only up to
-10,000 digits for `multipleOf`, falling back to binary floating point beyond that.
+`JsonData.Parse`, schema compilation and the YAML and TOML conversions stop at 512 levels of nesting; YAML aliases
+count the full depth of the value they reuse. `multipleOf` stays exact at any exponent gap. Values that share subtrees,
+as YAML aliases do, are compared, hashed for `uniqueItems` and previewed in findings without expanding them.
 
 ## Errors
 
 A schema whose keyword has the wrong type (`"minLength": "two"`) or whose pattern is not valid ECMA-262 throws
-`JsonSchemaException` at load, with the schema line and column when the schema came from text. Validation findings
-never throw.
+`JsonSchemaException` at load, with the schema line and column when the schema came from text. A schema that the
+`ReferenceResolver` returns is compiled when a validation first reaches it; if it is invalid, that validation and every
+later one that reaches it throw the same way. Validation findings otherwise never throw.
 
 ## Qualification
 

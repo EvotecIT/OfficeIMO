@@ -130,9 +130,12 @@ public abstract class TomlNode {
 
     /// <summary>
     /// Converts the node to the JSON data model that <see cref="OfficeIMO.Json.JsonSchema"/> validates: tables become
-    /// objects, arrays and arrays of tables become arrays, and dates and times become their RFC 3339 text, which the
-    /// <c>date-time</c>, <c>date</c> and <c>time</c> formats check. Each value records its line, column and source node.
+    /// objects, arrays and arrays of tables become arrays, and dates and times become their RFC 3339 text. Offset
+    /// date-times satisfy the <c>date-time</c> format and local dates the <c>date</c> format; local times and local
+    /// date-times have no offset, so they stay strings that the <c>time</c> and <c>date-time</c> formats reject. Each
+    /// value records its line, column and source node.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The value nests deeper than 512 levels.</exception>
     public OfficeIMO.Json.JsonData ToJsonData() => TomlJsonData.Convert(this);
 
     /// <summary>
