@@ -570,6 +570,11 @@
         "title": "Write YAML Files",
         "path": "yaml/write/index.md",
         "href": "/docs/yaml/write/"
+      },
+      {
+        "title": "YAML Configuration Files",
+        "path": "yaml/configuration/index.md",
+        "href": "/docs/yaml/configuration/"
       }
     ]
   },
@@ -665,6 +670,11 @@
         "title": "Edit and Write TOML Files",
         "path": "toml/edit-write/index.md",
         "href": "/docs/toml/edit-write/"
+      },
+      {
+        "title": "TOML Configuration Files",
+        "path": "toml/configuration/index.md",
+        "href": "/docs/toml/configuration/"
       },
       {
         "title": "Data Conversions",

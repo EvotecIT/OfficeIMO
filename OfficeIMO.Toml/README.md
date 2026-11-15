@@ -4,6 +4,8 @@ OfficeIMO's own TOML 1.1 engine. It reads, edits and writes TOML without changin
 
 The package provides `TomlDocument`, a lossless editable model, `TomlReader`, a forward-only pull reader, `TomlWriter`, a forward-only emitter, and `TomlSerializer`, which maps .NET objects to TOML with a NativeAOT source generator.
 
+To read TOML files through `Microsoft.Extensions.Configuration` (`AddTomlFile`), add [OfficeIMO.Toml.Configuration](../OfficeIMO.Toml.Configuration/README.md).
+
 ## Loading and editing a document
 
 ```csharp
