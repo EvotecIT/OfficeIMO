@@ -36,16 +36,20 @@ public sealed partial class PdfLogicalPage {
         foreach (PdfContentsEntrySource entry in analysis.ContentsEntries) {
             Consume();
             if (!blocksByEntry.TryGetValue(entry, out List<PdfLogicalTextBlock>? blocks)) continue;
+            // Caller-supplied stages can retain only part of an entry; keep the title within the projected lines.
+            var retained = new HashSet<PdfTextSpan>(blocks.SelectMany(static block => block.Spans));
+            PdfUnderstandingWord[] titleWords = entry.Title.Where(word => word.SourceRuns.All(retained.Contains)).ToArray();
             var runs = new List<PdfLogicalTextRun>();
             var words = new List<string>();
-            for (int index = 0; index < entry.Title.Count; index++) {
-                PdfUnderstandingWord word = entry.Title[index];
-                string text = index == entry.Title.Count - 1 ? PdfDocumentSemanticEnricher.TrimContentsLeader(word.Text) : word.Text.Trim();
+            for (int index = 0; index < titleWords.Length; index++) {
+                PdfUnderstandingWord word = titleWords[index];
+                string text = index == titleWords.Length - 1 ? PdfDocumentSemanticEnricher.TrimContentsLeader(word.Text) : word.Text.Trim();
                 if (text.Length == 0) continue;
                 if (runs.Count > 0) runs.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
                 runs.Add(new PdfLogicalTextRun(text, word.SourceRuns.Count > 0 ? word.SourceRuns[0] : null));
                 words.Add(text);
             }
+            if (words.Count == 0) continue;
             string title = string.Join(" ", words);
             string[] lineTexts = blocks.Select((_, index) => index == 0 ? title : string.Empty).ToArray();
             result.Add(new PdfLogicalListItem(pageNumber, entry.Level, string.Empty, title, blocks, lineTexts, 0.97D,

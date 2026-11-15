@@ -633,6 +633,9 @@ public static partial class PdfHtmlConverterExtensions {
                 builder.Append(Math.Max(1, listItem.Level).ToString(CultureInfo.InvariantCulture));
                 builder.Append("\"><li>");
                 AppendHtmlText(builder, listItem.Text);
+                if (listItem.IsContentsEntry && !string.IsNullOrEmpty(listItem.TargetPageLabel)) {
+                    AppendHtmlText(builder, " \u2014 " + listItem.TargetPageLabel);
+                }
                 builder.Append("</li></ul>");
             });
             AddHtmlItem(items, new HtmlItem(listItem.Line.BaselineY, listItem.Line.XStart, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.ListItem, i)), options, ref retainedHtmlCharacters);

@@ -1,3 +1,6 @@
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -77,6 +80,22 @@ public class PdfTableOfContentsReadbackTests {
             .Select(static item => (item.Text, item.Level, item.TargetPageLabel, item.Link?.DestinationName)).ToArray();
 
         Assert.Equal(Read(tagged: true), Read(tagged: false));
+    }
+
+    [Fact]
+    public void ContentsEntries_KeepTheirPageNumbersInWordHtmlAndRtf() {
+        byte[] bytes = CreateContents(Options(tagged: true), NestedSections, startOnNewPage: true);
+        string expected = "Scope — 3";
+
+        using (OfficeIMO.Word.WordDocument word = PdfDocument.Load(bytes).ToWord(new PdfWordExportOptions()))
+        using (var docx = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(new System.IO.MemoryStream(word.ToBytes()), false)) {
+            Assert.Contains(docx.MainDocumentPart!.Document!.Body!.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>(),
+                paragraph => paragraph.ParagraphProperties?.NumberingProperties is not null && paragraph.InnerText == expected);
+        }
+        string html = System.Net.WebUtility.HtmlDecode(PdfDocument.Load(bytes).ToHtml(new PdfHtmlExportOptions()));
+        Assert.Contains("<li>" + expected + "</li>", html, StringComparison.Ordinal);
+        OfficeIMO.Rtf.RtfDocument rtf = PdfDocument.Load(bytes).Read().ToRtf(new PdfRtfExportOptions());
+        Assert.Contains(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == expected);
     }
 
     [Theory]
