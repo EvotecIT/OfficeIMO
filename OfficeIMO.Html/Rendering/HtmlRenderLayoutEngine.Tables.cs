@@ -334,7 +334,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 structureElementKey: row.StructureKey ?? GetTableStructureElementKey(row.Element),
                 tableRowGroup: semanticRow && row.GroupElement != null ? new HtmlRenderTableRowGroup(
                     row.IsHeader ? HtmlRenderTableRowGroupKind.Head : row.IsFooter ? HtmlRenderTableRowGroupKind.Foot : HtmlRenderTableRowGroupKind.Body,
-                    GetTableStructureElementKey(row.GroupElement)) : null));
+                    GetTableStructureElementKey(row.GroupElement), GetSemanticSourceOrder(row.GroupElement)) : null));
 
             bool rowIndependent = !row.IsHeader
                 && !row.IsFooter

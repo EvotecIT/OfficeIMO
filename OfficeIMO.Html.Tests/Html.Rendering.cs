@@ -3328,10 +3328,11 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_TagsRowGroupsOnceAcrossPagesAndKeepsCellTextInTheCell() {
-        string bodyRows = string.Concat(Enumerable.Range(1, 90).Select(index =>
+        string Rows(int first) => string.Concat(Enumerable.Range(first, 45).Select(index =>
             "<tr><td>Row " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "</td><td><p>Value</p></td></tr>"));
-        string html = "<html lang='en'><body><table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>" + bodyRows
-            + "</tbody><tfoot><tr><td>Total</td><td>90</td></tr></tfoot></table></body></html>";
+        // Two body groups: the second starts after the repeated footer has already been painted on page one.
+        string html = "<html lang='en'><body><table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>" + Rows(1)
+            + "</tbody><tbody>" + Rows(46) + "</tbody><tfoot><tr><td>Total</td><td>90</td></tr></tfoot></table></body></html>";
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
@@ -3342,14 +3343,17 @@ public sealed partial class HtmlRenderingTests {
             element.ChildElementObjectNumbers.Select(number => byNumber[number].StructureType);
 
         PdfCore.PdfStructureElementInfo table = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
-        Assert.Equal(new[] { "THead", "TBody", "TFoot" }, ChildTypes(table));
+        Assert.Equal(new[] { "THead", "TBody", "TBody", "TFoot" }, ChildTypes(table));
         PdfCore.PdfStructureElementInfo head = byNumber[table.ChildElementObjectNumbers[0]];
         PdfCore.PdfStructureElementInfo body = byNumber[table.ChildElementObjectNumbers[1]];
-        PdfCore.PdfStructureElementInfo foot = byNumber[table.ChildElementObjectNumbers[2]];
-        // The header repeated on every page is one row of one THead; body rows from all pages share one TBody.
+        PdfCore.PdfStructureElementInfo secondBody = byNumber[table.ChildElementObjectNumbers[2]];
+        PdfCore.PdfStructureElementInfo foot = byNumber[table.ChildElementObjectNumbers[3]];
+        // The header repeated on every page is one row of one THead; each body keeps its rows from every page.
         Assert.Equal(new[] { "TR" }, ChildTypes(head));
-        Assert.Equal(Enumerable.Repeat("TR", 90), ChildTypes(body));
+        Assert.Equal(Enumerable.Repeat("TR", 45), ChildTypes(body));
+        Assert.Equal(Enumerable.Repeat("TR", 45), ChildTypes(secondBody));
         Assert.Equal(new[] { "TR" }, ChildTypes(foot));
+        Assert.Contains("Row 46", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(HtmlPdfAccessibilityValidator.Validate(pdf).Issues);
 
         // Loose cell text is the cell's own content; an authored paragraph stays a P inside the cell.

@@ -84,6 +84,7 @@ internal static partial class HtmlPdfRenderedConverter {
             // Rows of one thead, tbody or tfoot share a keyed group element across page fragments.
             canvas.Structure(PdfCore.PdfCanvasStructureRole.TableBody, AddGroup, new PdfCore.PdfCanvasStructureOptions {
                 StructureElementKey = rowGroup.StructureElementKey,
+                LogicalOrder = rowGroup.LogicalOrder,
                 TableRowGroupType = rowGroup.Kind switch {
                     HtmlRenderTableRowGroupKind.Head => "THead",
                     HtmlRenderTableRowGroupKind.Foot => "TFoot",

@@ -67,14 +67,19 @@ internal enum HtmlRenderTableRowGroupKind {
 
 /// <summary>The thead, tbody or tfoot that owns a semantic table row, identified across page fragments.</summary>
 internal sealed class HtmlRenderTableRowGroup {
-    internal HtmlRenderTableRowGroup(HtmlRenderTableRowGroupKind kind, string structureElementKey) {
+    internal HtmlRenderTableRowGroup(HtmlRenderTableRowGroupKind kind, string structureElementKey, int? sourceOrder) {
         Kind = kind;
         StructureElementKey = structureElementKey;
+        // Head, body and foot groups keep that order; groups of one kind follow the source.
+        LogicalOrder = ((long)kind << 32) + Math.Max(0, sourceOrder ?? 0);
     }
 
     internal HtmlRenderTableRowGroupKind Kind { get; }
 
     internal string StructureElementKey { get; }
+
+    /// <summary>Order among the table's row groups, independent of the page on which each group first appears.</summary>
+    internal long LogicalOrder { get; }
 }
 
 /// <summary>Paint-neutral semantic group retained by the shared HTML render model.</summary>
