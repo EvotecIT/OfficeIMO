@@ -10,15 +10,15 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Fact]
-    public void XlsbReaderRejectsArchiveEntryCountBeforeOpeningParts() {
+    public void XlsbReadersApplyArchiveEntryCountPolicy() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.XlsbEntryCount.{Guid.NewGuid():N}.xlsb");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 document.AddSheet("Data").Cell(1, 1).SetValue("Value");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
+            int entries = OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
             using (ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update)) {
-                int entries = OfficePackageSecurityOptions.SecureDefaults.MaxPartCount;
                 for (int index = 0; index < entries; index++) {
                     archive.CreateEntry("padding/" + index, CompressionLevel.NoCompression);
                 }
@@ -26,8 +26,13 @@ public partial class Excel {
 
             OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(
                 () => ExcelDocument.OpenReader(path));
-
             Assert.Equal(OfficePackageSecurityRule.PartCount, exception.Rule);
+
+            // A caller policy that allows more entries still loads the workbook as XLSB.
+            using ExcelDocument loaded = ExcelDocument.Load(path, new ExcelLoadOptions {
+                PackageSecurity = new OfficePackageSecurityOptions { MaxPartCount = entries * 2 }
+            });
+            Assert.Equal("Data", loaded.Sheets[0].Name);
         } finally {
             File.Delete(path);
         }

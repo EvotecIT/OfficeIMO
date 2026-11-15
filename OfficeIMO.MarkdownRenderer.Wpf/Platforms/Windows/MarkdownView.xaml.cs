@@ -358,7 +358,12 @@ public partial class MarkdownView : UserControl, IDisposable {
     }
 
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e) {
-        if (!e.IsUserInitiated || !MarkdownViewSupport.TryGetExternalNavigationUri(e.Uri, out var navigationUri)) {
+        if (!e.IsUserInitiated) {
+            return;
+        }
+
+        if (!MarkdownViewSupport.TryGetExternalNavigationUri(e.Uri, out var navigationUri)) {
+            e.Cancel = MarkdownViewSupport.ShouldCancelUserNavigation(e.Uri);
             return;
         }
 

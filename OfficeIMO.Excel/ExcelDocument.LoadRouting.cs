@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
             return DetectFormat(bytes, filePath) == ExcelFileFormat.Xlsb;
         }
 
-        internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath) {
+        internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath, int? maxPackageEntries = null) {
             ArgumentNullException.ThrowIfNull(bytes);
 
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
@@ -23,7 +23,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (HasZipSignature(bytes)) {
-                return XlsbPackageDetector.TryFindWorkbookPart(bytes, out _)
+                return XlsbPackageDetector.TryFindWorkbookPart(bytes,
+                        maxPackageEntries ?? OfficePackageSecurityOptions.SecureDefaults.MaxPartCount, out _)
                     ? ExcelFileFormat.Xlsb
                     : ExcelFileFormat.Xlsx;
             }

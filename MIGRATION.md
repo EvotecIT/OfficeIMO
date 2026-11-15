@@ -5351,18 +5351,18 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 `VisioAssets.ListMasters`, `LoadMasterContents` and `LoadVisualContext`, and the
 stencil and master imports built on them, now check a stencil or template against
 `OfficePackageSecurityOptions.SecureDefaults` before reading any part: at most
-10,000 ZIP entries, 256 MiB per part, 1 GiB in total, a 1,000:1 compression ratio and
+512 MiB per package, 10,000 ZIP entries, 256 MiB per part, 1 GiB in total, a 1,000:1 compression ratio and
 safe, unique part names. XLSB loads and `ExcelDocument.OpenReader` apply the same
 limits to `.xlsb` workbooks; when `ExcelLoadOptions.PackageSecurity` is set,
 `ExcelDocument.Load` applies that policy instead. A package that breaks a limit throws
 `OfficePackageSecurityException` (an `IOException`) with the failing `Rule`; XLSB
 part-name problems that used to throw `InvalidDataException` now throw this exception
 too, so catch both if you handle them. Format detection no longer treats a ZIP with
-more than 10,000 entries as XLSB.
+more entries than that limit allows as XLSB.
 
 `MarkdownView` in OfficeIMO.MarkdownRenderer.Wpf now raises `NavigationRequested`, and
 opens links externally, only for `http`, `https` and `mailto` links. `file:` links
-and custom protocols such as `ms-settings:` are no longer handed to the shell.
+and custom protocols such as `ms-settings:` are cancelled instead of being handed to the shell.
 
 Remote Excel loads reject a URI with embedded credentials (`https://user:pass@host/...`)
 with `NotSupportedException` before sending a request; pass credentials through

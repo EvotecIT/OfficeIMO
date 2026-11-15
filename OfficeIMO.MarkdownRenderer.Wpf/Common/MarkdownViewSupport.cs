@@ -113,4 +113,16 @@ internal static class MarkdownViewSupport {
         navigationUri = parsed;
         return true;
     }
+
+    /// <summary>
+    /// Returns true when a user-initiated navigation must be cancelled instead of being left to
+    /// the WebView, which would otherwise offer to launch the scheme's registered handler.
+    /// <c>about:</c> stays with the preview shell.
+    /// </summary>
+    internal static bool ShouldCancelUserNavigation(string? rawUri) {
+        if (TryGetExternalNavigationUri(rawUri, out _)) return false;
+        return Uri.TryCreate(rawUri, UriKind.Absolute, out var parsed)
+            && parsed != null
+            && !string.Equals(parsed.Scheme, "about", StringComparison.OrdinalIgnoreCase);
+    }
 }

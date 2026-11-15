@@ -57,6 +57,15 @@ public class MarkdownViewSupportTests {
         }
     }
 
+    [Theory]
+    [InlineData("file:///C:/Windows/System32/calc.exe", true)]
+    [InlineData("ms-settings:privacy", true)]
+    [InlineData("about:blank#section", false)]
+    [InlineData("https://example.com/readme", false)]
+    public void ShouldCancelUserNavigation_BlocksSchemesThatAreNotOpenedExternally(string rawUri, bool expected) {
+        Assert.Equal(expected, MarkdownViewSupport.ShouldCancelUserNavigation(rawUri));
+    }
+
     [Fact]
     public void TryGetClipboardText_ReturnsCopyPayload() {
         bool success = MarkdownViewSupport.TryGetClipboardText("""{"type":"omd.copy","text":"copied value"}""", out string clipboardText);
