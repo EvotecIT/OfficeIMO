@@ -1225,3 +1225,56 @@ OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.get -> Offic
 OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.set -> void
 OfficeIMO.Pdf.PdfReadLimits.MaxClippingIntersectionWorkPerPage.get -> long
 OfficeIMO.Pdf.PdfReadLimits.MaxClippingIntersectionWorkPerPage.init -> void
+OfficeIMO.Pdf.PdfAccessibilityCondition
+OfficeIMO.Pdf.PdfAccessibilityCondition.Checkpoint.get -> string!
+OfficeIMO.Pdf.PdfAccessibilityCondition.ConditionId.get -> string!
+OfficeIMO.Pdf.PdfAccessibilityCondition.Coverage.get -> OfficeIMO.Pdf.PdfAccessibilityCoverage
+OfficeIMO.Pdf.PdfAccessibilityCondition.Description.get -> string!
+OfficeIMO.Pdf.PdfAccessibilityCondition.IsMatterhornCondition.get -> bool
+OfficeIMO.Pdf.PdfAccessibilityCondition.PdfUa2Rules.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Pdf.PdfAccessibilityCondition.PdfUaClause.get -> string!
+OfficeIMO.Pdf.PdfAccessibilityCondition.VeraPdfRules.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Pdf.PdfAccessibilityConditionResult
+OfficeIMO.Pdf.PdfAccessibilityConditionResult.Condition.get -> OfficeIMO.Pdf.PdfAccessibilityCondition!
+OfficeIMO.Pdf.PdfAccessibilityConditionResult.OccurrenceCount.get -> int
+OfficeIMO.Pdf.PdfAccessibilityConditionResult.Status.get -> OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditionStatus.Failed = 1 -> OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditionStatus.Indeterminate = 4 -> OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditionStatus.NeedsReview = 2 -> OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditionStatus.NotApplicable = 3 -> OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditionStatus.NotChecked = 5 -> OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditionStatus.Passed = 0 -> OfficeIMO.Pdf.PdfAccessibilityConditionStatus
+OfficeIMO.Pdf.PdfAccessibilityConditions
+OfficeIMO.Pdf.PdfAccessibilityCoverage
+OfficeIMO.Pdf.PdfAccessibilityCoverage.Automatic = 0 -> OfficeIMO.Pdf.PdfAccessibilityCoverage
+OfficeIMO.Pdf.PdfAccessibilityCoverage.ManualReview = 1 -> OfficeIMO.Pdf.PdfAccessibilityCoverage
+OfficeIMO.Pdf.PdfAccessibilityCoverage.NotChecked = 2 -> OfficeIMO.Pdf.PdfAccessibilityCoverage
+OfficeIMO.Pdf.PdfAccessibilityFinding
+OfficeIMO.Pdf.PdfAccessibilityFinding.Checkpoint.get -> string!
+OfficeIMO.Pdf.PdfAccessibilityFinding.ConditionId.get -> string!
+OfficeIMO.Pdf.PdfAccessibilityFinding.Message.get -> string!
+OfficeIMO.Pdf.PdfAccessibilityFinding.ObjectNumber.get -> int?
+OfficeIMO.Pdf.PdfAccessibilityFinding.PageNumber.get -> int?
+OfficeIMO.Pdf.PdfAccessibilityFinding.RequiresHumanReview.get -> bool
+OfficeIMO.Pdf.PdfAccessibilityFinding.Severity.get -> OfficeIMO.Pdf.PdfAccessibilityFindingSeverity
+OfficeIMO.Pdf.PdfAccessibilityFinding.StructureElementObjectNumber.get -> int?
+OfficeIMO.Pdf.PdfAccessibilityFinding.StructureType.get -> string?
+OfficeIMO.Pdf.PdfAccessibilityFinding.VeraPdfRule.get -> string?
+OfficeIMO.Pdf.PdfAccessibilityFindingSeverity
+OfficeIMO.Pdf.PdfAccessibilityFindingSeverity.Error = 0 -> OfficeIMO.Pdf.PdfAccessibilityFindingSeverity
+OfficeIMO.Pdf.PdfAccessibilityFindingSeverity.Indeterminate = 2 -> OfficeIMO.Pdf.PdfAccessibilityFindingSeverity
+OfficeIMO.Pdf.PdfAccessibilityFindingSeverity.Review = 1 -> OfficeIMO.Pdf.PdfAccessibilityFindingSeverity
+OfficeIMO.Pdf.PdfAccessibilityReport
+OfficeIMO.Pdf.PdfAccessibilityReport.Conditions.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAccessibilityConditionResult!>!
+OfficeIMO.Pdf.PdfAccessibilityReport.DeclaredPdfUaPart.get -> int?
+OfficeIMO.Pdf.PdfAccessibilityReport.FailedConditions.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAccessibilityConditionResult!>!
+OfficeIMO.Pdf.PdfAccessibilityReport.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAccessibilityFinding!>!
+OfficeIMO.Pdf.PdfAccessibilityReport.HasFailures.get -> bool
+OfficeIMO.Pdf.PdfAccessibilityReport.ManualReviewConditions.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAccessibilityConditionResult!>!
+OfficeIMO.Pdf.PdfAccessibilityReport.PageCount.get -> int
+OfficeIMO.Pdf.PdfAccessibilityReport.PassesAutomaticChecks.get -> bool
+OfficeIMO.Pdf.PdfAccessibilityReport.SourceSha256.get -> string!
+OfficeIMO.Pdf.PdfDocumentProof.CheckAccessibility(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfAccessibilityReport!
+static OfficeIMO.Pdf.PdfAccessibilityConditions.All.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAccessibilityCondition!>!
+static OfficeIMO.Pdf.PdfAccessibilityConditions.Get(string! conditionId) -> OfficeIMO.Pdf.PdfAccessibilityCondition!
