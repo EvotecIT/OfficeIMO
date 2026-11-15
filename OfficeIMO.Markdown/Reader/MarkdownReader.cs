@@ -320,6 +320,10 @@ internal static partial class MarkdownReader {
                             }
                             break;
                         }
+
+                        // A parser that declines may still have rewritten the line, as an
+                        // extension can, so the next gates read it again.
+                        first = i < lines.Length ? GetFirstNonWhiteSpaceCharacter(lines[i]) : '\0';
                     }
                     if (!matched) i++; // defensive: avoid infinite loop
                 }

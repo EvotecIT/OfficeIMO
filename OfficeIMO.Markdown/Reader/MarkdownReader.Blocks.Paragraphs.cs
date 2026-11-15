@@ -38,6 +38,9 @@ internal static partial class MarkdownReader {
                         }
                         break;
                     }
+
+                    // A parser that declines may still have rewritten the line.
+                    first = i < lines.Length ? GetFirstNonWhiteSpaceCharacter(lines[i]) : '\0';
                 }
                 if (!matched) i++;
             }
