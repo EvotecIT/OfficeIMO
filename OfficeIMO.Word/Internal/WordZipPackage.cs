@@ -170,18 +170,18 @@ internal sealed class WordZipPackage : Package {
         if (_abandoned || !HasChanges()) return;
 
         byte[]? contentTypesXml = _contentTypesChanged ? SerializeContentTypes() : null;
-        // Copied entries keep their compressed size, and a rewritten entry is stored when Deflate does not shrink it,
-        // so this bounds the archive; the slack covers Deflate's block overhead before that fallback.
+        // Copied entries keep their compressed size; rewritten XML usually deflates to well under a quarter, and the
+        // stream grows if a part compresses worse. Reserving the uncompressed size would over-allocate large documents.
         long capacity = 22;
         foreach (Entry entry in _entries) {
             capacity += 76 + 2L * entry.NameBytes.Length;
             if (ReferenceEquals(entry, _contentTypes)) {
                 capacity += contentTypesXml?.Length ?? entry.CompressedSize;
             } else {
-                capacity += entry.Part!.IsUnchanged ? entry.CompressedSize : entry.Part.Length + entry.Part.Length / 1000 + 64;
+                capacity += entry.Part!.IsUnchanged ? entry.CompressedSize : entry.Part.Length / 4 + 64;
             }
         }
-        if (capacity > int.MaxValue) throw new IOException("A Word package held in memory cannot exceed 2 GB.");
+        capacity = Math.Min(capacity, int.MaxValue);
 
         // The new archive is written over the old one, so the bytes it copies from are set aside first.
         int previousLength = checked((int)_container.Length);
