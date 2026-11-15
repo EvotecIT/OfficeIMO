@@ -543,34 +543,27 @@ internal static partial class MarkdownReader {
         return current == lineEnd;
     }
 
+    private static readonly char[] LineEndingCharacters = { '\r', '\n' };
+
     private static string[] SplitMarkdownLines(string markdown) {
         if (markdown.IndexOf('\r') < 0) {
             return markdown.Split('\n');
         }
 
         int lineCount = 1;
-        for (int i = 0; i < markdown.Length; i++) {
-            if (markdown[i] == '\r') {
-                lineCount++;
-                if (i + 1 < markdown.Length && markdown[i + 1] == '\n') {
-                    i++;
-                }
-            } else if (markdown[i] == '\n') {
-                lineCount++;
+        for (int i = markdown.IndexOfAny(LineEndingCharacters); i >= 0; i = markdown.IndexOfAny(LineEndingCharacters, i + 1)) {
+            lineCount++;
+            if (markdown[i] == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+                i++;
             }
         }
 
         var lines = new string[lineCount];
         int lineIndex = 0;
         int lineStart = 0;
-        for (int i = 0; i < markdown.Length; i++) {
-            char value = markdown[i];
-            if (value != '\r' && value != '\n') {
-                continue;
-            }
-
+        for (int i = markdown.IndexOfAny(LineEndingCharacters); i >= 0; i = markdown.IndexOfAny(LineEndingCharacters, i + 1)) {
             lines[lineIndex++] = markdown.Substring(lineStart, i - lineStart);
-            if (value == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
+            if (markdown[i] == '\r' && i + 1 < markdown.Length && markdown[i + 1] == '\n') {
                 i++;
             }
 
