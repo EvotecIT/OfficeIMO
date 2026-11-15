@@ -312,7 +312,8 @@ internal static partial class PdfWriter {
         }
 
         private PageStructElement? ResolveCanvasStructure(PdfCanvasStructureRole role, PdfCanvasStructureOptions options) {
-            string structureType = MapCanvasStructureType(role);
+            string structureType = role == PdfCanvasStructureRole.TableBody && options.TableRowGroupType != null
+                ? options.TableRowGroupType : MapCanvasStructureType(role);
             string headerScope = MapCanvasTableHeaderScope(options.HeaderScope);
             string alternativeText = options.AlternativeText ?? string.Empty;
             string? language = options.Language ?? _canvasStructureParentElement?.Language ?? currentOpts.Language;
@@ -335,6 +336,7 @@ internal static partial class PdfWriter {
                     structureElement.LogicalOrder = options.LogicalOrder;
                     structureElement.ListNumbering = options.ListNumbering;
                     structureElement.StructureElementKey = options.StructureElementKey;
+                    structureElement.IsAnonymousBlock = options.IsAnonymousBlock && structureType == "P";
                 }
                 if (options.StructureElementKey != null && structureElement != null) {
                     canvasStructureElements[structureKey] = structureElement;
@@ -436,6 +438,7 @@ internal static partial class PdfWriter {
             double bottomY = topY - item.Height;
             string? structureType = _suppressCanvasAccessibilityWrappers ? null : MapCanvasTextStructureType(item.StructureRole);
             int? markedContentId = structureType == null ? null : RegisterTextStructureElement(structureType, _canvasStructureParentElement, logicalOrder: item.LogicalOrder);
+            if (markedContentId.HasValue && structureType == "Span") currentPage!.StructElements[currentPage.StructElements.Count - 1].IsPlainCanvasTextSpan = true;
             ReportRichPaintDiagnostics(PaintDiagnosticCodes.CanvasText, "PdfCanvasText", block, lines, lineHeights,
                 item.PreservePositionedText ? topY - size : FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), size, topY),
                 size, leading, item.X, width, new TableCellContentFrame(item.X, topY + item.PositionedClipTopOverflow, width, item.Height + item.PositionedClipTopOverflow),

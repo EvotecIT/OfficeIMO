@@ -3313,7 +3313,10 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<PdfCore.PdfStructureElementInfo> rows = tagged.StructureElements.Where(element => element.StructureType == "TR").ToList();
         Assert.Equal(2, rows.Count);
         Assert.Contains(caption.ObjectNumber, table.ChildElementObjectNumbers);
-        Assert.All(rows, row => Assert.Contains(row.ObjectNumber, table.ChildElementObjectNumbers));
+        // The parser's implied tbody owns the rows.
+        PdfCore.PdfStructureElementInfo body = Assert.Single(tagged.StructureElements, element => element.StructureType == "TBody");
+        Assert.Contains(body.ObjectNumber, table.ChildElementObjectNumbers);
+        Assert.Equal(rows.Select(row => row.ObjectNumber), body.ChildElementObjectNumbers);
         Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "TH"));
         Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "TD"));
         string raw = Encoding.ASCII.GetString(pdf);
@@ -3321,6 +3324,44 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("/ColSpan 2", raw, StringComparison.Ordinal);
         Assert.Contains("/RowSpan 2", raw, StringComparison.Ordinal);
         Assert.Contains("Quarterly status", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_TagsRowGroupsOnceAcrossPagesAndKeepsCellTextInTheCell() {
+        string bodyRows = string.Concat(Enumerable.Range(1, 90).Select(index =>
+            "<tr><td>Row " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "</td><td><p>Value</p></td></tr>"));
+        string html = "<table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>" + bodyRows
+            + "</tbody><tfoot><tr><td>Total</td><td>90</td></tr></tfoot></table>";
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions()).ToBytes();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        Assert.True(info.PageCount > 1);
+        PdfCore.PdfTaggedContentInfo tagged = Assert.IsType<PdfCore.PdfTaggedContentInfo>(info.TaggedContent);
+        var byNumber = tagged.StructureElements.ToDictionary(element => element.ObjectNumber);
+        IEnumerable<string?> ChildTypes(PdfCore.PdfStructureElementInfo element) =>
+            element.ChildElementObjectNumbers.Select(number => byNumber[number].StructureType);
+
+        PdfCore.PdfStructureElementInfo table = Assert.Single(tagged.StructureElements, element => element.StructureType == "Table");
+        Assert.Equal(new[] { "THead", "TBody", "TFoot" }, ChildTypes(table));
+        PdfCore.PdfStructureElementInfo head = byNumber[table.ChildElementObjectNumbers[0]];
+        PdfCore.PdfStructureElementInfo body = byNumber[table.ChildElementObjectNumbers[1]];
+        PdfCore.PdfStructureElementInfo foot = byNumber[table.ChildElementObjectNumbers[2]];
+        // The header repeated on every page is one row of one THead; body rows from all pages share one TBody.
+        Assert.Equal(new[] { "TR" }, ChildTypes(head));
+        Assert.Equal(Enumerable.Repeat("TR", 90), ChildTypes(body));
+        Assert.Equal(new[] { "TR" }, ChildTypes(foot));
+        Assert.Empty(HtmlPdfAccessibilityValidator.Validate(pdf).Issues);
+
+        // Loose cell text is the cell's own content; an authored paragraph stays a P inside the cell.
+        PdfCore.PdfStructureElementInfo firstRow = byNumber[body.ChildElementObjectNumbers[0]];
+        PdfCore.PdfStructureElementInfo nameCell = byNumber[firstRow.ChildElementObjectNumbers[0]];
+        PdfCore.PdfStructureElementInfo valueCell = byNumber[firstRow.ChildElementObjectNumbers[1]];
+        Assert.Empty(nameCell.ChildElementObjectNumbers);
+        Assert.Equal(1, nameCell.MarkedContentReferenceCount);
+        PdfCore.PdfStructureElementInfo paragraph = byNumber[Assert.Single(valueCell.ChildElementObjectNumbers)];
+        Assert.Equal("P", paragraph.StructureType);
+        Assert.Equal(1, paragraph.MarkedContentReferenceCount);
+        Assert.Empty(paragraph.ChildElementObjectNumbers);
     }
 
     [Fact]

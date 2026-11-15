@@ -14,6 +14,10 @@ public sealed class PdfCanvasStructureOptions {
     private long _totalAssociatedFileBytes;
 
     internal string? StructureElementKey { get; set; }
+    /// <summary>THead, TBody or TFoot for a <see cref="PdfCanvasStructureRole.TableBody"/> row group; null keeps TBody.</summary>
+    internal string? TableRowGroupType { get; set; }
+    /// <summary>Marks a paragraph the adapter generated around loose text rather than an authored paragraph.</summary>
+    internal bool IsAnonymousBlock { get; set; }
     /// <summary>Explicit sibling order supplied by an owning source adapter; null retains arrival order.</summary>
     internal long? LogicalOrder { get; set; }
 
@@ -136,6 +140,8 @@ public sealed class PdfCanvasStructureOptions {
             MaxTotalAssociatedFileBytes = MaxTotalAssociatedFileBytes,
             _totalAssociatedFileBytes = _totalAssociatedFileBytes,
             StructureElementKey = StructureElementKey,
+            TableRowGroupType = TableRowGroupType,
+            IsAnonymousBlock = IsAnonymousBlock,
             LogicalOrder = LogicalOrder,
             ListNumbering = ListNumbering,
             _associatedFiles = _associatedFiles == null ? null : new List<PdfEmbeddedFile>(_associatedFiles)

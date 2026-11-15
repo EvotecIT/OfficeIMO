@@ -75,11 +75,22 @@ internal static partial class HtmlPdfRenderedConverter {
             canvas.AddItems(content.Items);
             return;
         }
-        canvas.Structure(MapSemanticGroupRole(group.Role), nested => {
+        void AddGroup(PdfCore.PdfPageCanvas target) => target.Structure(MapSemanticGroupRole(group.Role), nested => {
             if (printableText is { Length: > 0 } actualText)
-                nested.ActualText(actualText, target => target.AddItems(content.Items));
+                nested.ActualText(actualText, logical => logical.AddItems(content.Items));
             else nested.AddItems(content.Items);
         }, options);
+        if (group.Role == HtmlRenderSemanticGroupRole.TableRow && group.TableRowGroup is { } rowGroup) {
+            // Rows of one thead, tbody or tfoot share a keyed group element across page fragments.
+            canvas.Structure(PdfCore.PdfCanvasStructureRole.TableBody, AddGroup, new PdfCore.PdfCanvasStructureOptions {
+                StructureElementKey = rowGroup.StructureElementKey,
+                TableRowGroupType = rowGroup.Kind switch {
+                    HtmlRenderTableRowGroupKind.Head => "THead",
+                    HtmlRenderTableRowGroupKind.Foot => "TFoot",
+                    _ => "TBody"
+                }
+            });
+        } else AddGroup(canvas);
     }
 
     private static PdfCore.PdfListNumbering MapListNumbering(string? style) => style switch {

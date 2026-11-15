@@ -12,12 +12,17 @@ internal static partial class PdfWriter {
         int documentStructElementId = ReserveObject(objects);
         var documentChildren = new List<PageStructElement>();
         var parentTreeEntries = new List<PdfStructTreeRootDictionaryBuilder.ParentTreeEntry>();
+        StructureLeafMerges? merges = StructureLeafMerges.Plan(pages);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
-                page.StructElements[elementIndex].ObjectId = ReserveObject(objects);
+                PageStructElement element = page.StructElements[elementIndex];
+                if (merges?.IsMerged(element) != true) element.ObjectId = ReserveObject(objects);
             }
         }
+        // A merged leaf keeps its identity for parent-tree, destination and outline lookups
+        // through the object of the element that now owns its content.
+        merges?.AliasMergedObjectIds();
 
         int? namespaceId = pdf20 ? AddObject(objects, "<< /Type /Namespace /NS (http://iso.org/pdf2/ssn) >>\n") : null;
         var structureParents = BuildStructureParents(pages);
@@ -32,10 +37,15 @@ internal static partial class PdfWriter {
 
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
-                int? contentStreamObjectId = element.MarkedContentId.HasValue
-                    ? FindMarkedContentStreamObjectId(page, element.MarkedContentId.Value)
+                if (merges?.IsMerged(element) == true) continue;
+                // An element that absorbed its only leaf owns that leaf's marked content.
+                PageStructElement content = merges?.ContentOwner(element) ?? element;
+                int? markedContentId = content.MarkedContentId;
+                List<int>? additionalMarkedContentIds = content.AdditionalMarkedContentIds;
+                int? contentStreamObjectId = markedContentId.HasValue
+                    ? FindMarkedContentStreamObjectId(page, markedContentId.Value)
                     : null;
-                List<int?>? additionalContentStreamObjectIds = element.AdditionalMarkedContentIds?
+                List<int?>? additionalContentStreamObjectIds = additionalMarkedContentIds?
                     .Select(id => FindMarkedContentStreamObjectId(page, id))
                     .ToList();
                 int parentObjectId = element.ParentElement != null
@@ -62,13 +72,13 @@ internal static partial class PdfWriter {
                         contentStreamObjectId,
                         additionalContentStreamObjectIds,
                         childElementIds: structureChildren.GetChildren(page, element, elementIndex));
-                } else if (element.MarkedContentId.HasValue) {
+                } else if (markedContentId.HasValue) {
                     if (string.Equals(element.StructureType, "Figure", StringComparison.Ordinal)) {
                         PdfStructTreeRootDictionaryBuilder.AppendFigureStructElementBody(
                             elementText,
                             parentObjectId,
                             pageIds[pageIndex],
-                            element.MarkedContentId.Value,
+                            markedContentId.Value,
                             element.AlternativeText,
                             contentStreamObjectId);
                     } else {
@@ -77,11 +87,11 @@ internal static partial class PdfWriter {
                             parentObjectId,
                             pageIds[pageIndex],
                             element.StructureType,
-                            element.MarkedContentId.Value,
+                            markedContentId.Value,
                             element.TableHeaderScope,
                             element.TableColumnSpan,
                             element.TableRowSpan,
-                            element.AdditionalMarkedContentIds,
+                            additionalMarkedContentIds,
                             contentStreamObjectId,
                             additionalContentStreamObjectIds, tableHeaders: headers);
                     }

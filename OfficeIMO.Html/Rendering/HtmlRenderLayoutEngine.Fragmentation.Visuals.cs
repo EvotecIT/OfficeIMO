@@ -124,7 +124,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             semanticGroup.RowSpan,
                             semanticGroup.HeaderScope,
                             semanticGroup.LayoutY - start,
-                            semanticGroup.StructureElementKey, alternativeText: semanticGroup.AlternativeText, mathMlSource: semanticGroup.MathMlSource, logicalOrder: semanticGroup.LogicalOrder, listStyleType: semanticGroup.ListStyleType));
+                            semanticGroup.StructureElementKey, alternativeText: semanticGroup.AlternativeText, mathMlSource: semanticGroup.MathMlSource, logicalOrder: semanticGroup.LogicalOrder, listStyleType: semanticGroup.ListStyleType,
+                            tableRowGroup: semanticGroup.TableRowGroup));
                     }
                     continue;
                 }

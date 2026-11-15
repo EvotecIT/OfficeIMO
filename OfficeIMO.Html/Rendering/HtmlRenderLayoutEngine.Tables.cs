@@ -321,8 +321,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     structureElementKey: cell.StructureKey ?? GetTableStructureElementKey(cell.Element)));
             }
 
+            bool semanticRow = formatting.SemanticTable && (row.Anonymous || HasRowSemantics(row.Element));
             visuals.Add(new HtmlRenderSemanticGroup(
-                formatting.SemanticTable && (row.Anonymous || HasRowSemantics(row.Element)) ? HtmlRenderSemanticGroupRole.TableRow : HtmlRenderSemanticGroupRole.Division,
+                semanticRow ? HtmlRenderSemanticGroupRole.TableRow : HtmlRenderSemanticGroupRole.Division,
                 contentX,
                 rowY,
                 contentWidth,
@@ -330,7 +331,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 rowVisuals,
                 visuals.Count,
                 HtmlRenderStyleResolver.DescribeSource(row.Element),
-                structureElementKey: row.StructureKey ?? GetTableStructureElementKey(row.Element)));
+                structureElementKey: row.StructureKey ?? GetTableStructureElementKey(row.Element),
+                tableRowGroup: semanticRow && row.GroupElement != null ? new HtmlRenderTableRowGroup(
+                    row.IsHeader ? HtmlRenderTableRowGroupKind.Head : row.IsFooter ? HtmlRenderTableRowGroupKind.Foot : HtmlRenderTableRowGroupKind.Body,
+                    GetTableStructureElementKey(row.GroupElement)) : null));
 
             bool rowIndependent = !row.IsHeader
                 && !row.IsFooter

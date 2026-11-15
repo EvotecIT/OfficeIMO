@@ -428,6 +428,11 @@ internal static partial class PdfWriter {
         public int? AnnotationStructParentIndex { get; set; }
         public System.Collections.Generic.List<int>? AdditionalAnnotationStructParentIndexes { get; set; }
         public bool SpansPages { get; set; }
+        // A canvas text Span carries no attributes of its own; as the only child of a text
+        // container its content can belong to that container directly.
+        public bool IsPlainCanvasTextSpan { get; set; }
+        // A paragraph the source adapter generated for loose text in a table cell, not an authored paragraph.
+        public bool IsAnonymousBlock { get; set; }
         public int ObjectId { get; set; }
         public IReadOnlyList<PdfEmbeddedFile> AssociatedFiles { get; set; } = Array.Empty<PdfEmbeddedFile>();
         public IReadOnlyList<int> AssociatedFileIds { get; set; } = Array.Empty<int>();

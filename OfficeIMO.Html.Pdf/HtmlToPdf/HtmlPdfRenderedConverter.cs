@@ -534,7 +534,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 interactiveFormControls, cancellationToken, textAsSpan: true, activeClip, logicalTextOwned, pagePaint);
             if (HasCanvasContent(anonymousContent.Items))
                 canvas.Structure(PdfCore.PdfCanvasStructureRole.Paragraph, nested => nested.AddItems(anonymousContent.Items),
-                    new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder });
+                    new PdfCore.PdfCanvasStructureOptions { LogicalOrder = visual.SemanticSourceOrder, IsAnonymousBlock = true });
             else canvas.AddItems(anonymousContent.Items);
             return;
         }
