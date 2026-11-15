@@ -52,6 +52,15 @@ public class YamlUnityDialectTests {
     }
 
     [Fact]
+    public void PatchesApplyToUnityFiles() {
+        using YamlDocument document = YamlDocument.Parse(Scene, Unity);
+
+        document.ApplyJsonPatch("""[ { "op": "replace", "path": "/OcclusionCullingSettings/m_ObjectHideFlags", "value": 1 } ]""");
+
+        Assert.Equal(Scene.Replace("m_ObjectHideFlags: 0", "m_ObjectHideFlags: 1"), document.ToString());
+    }
+
+    [Fact]
     public void EditsChangeOnlyTheirLinesAndKeepTheStrippedMarker() {
         using YamlDocument document = YamlDocument.Parse(Scene, Unity);
         document.Documents[1].Root.AsMapping()["GameObject"].AsMapping().Set("m_Name", "Camera 2");
