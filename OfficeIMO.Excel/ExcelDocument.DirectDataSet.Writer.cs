@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Data;
 using System.IO.Compression;
 using System.Text;
+using Xs = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -111,8 +112,70 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            internal static void WriteExtendedStyles(ExcelPackageArchive archive, ExtendedDirectWritePlan plan, OfficeTheme? theme) {
-                WriteStyles(archive, plan.StylePlan, theme);
+            internal static void WriteExtendedStyles(ExcelPackageArchive archive, string stylesXml) {
+                WriteTextEntry(archive, "xl/styles.xml", "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + stylesXml);
+            }
+
+            /// <summary>
+            /// Builds the direct stylesheet with the workbook's differential formats and custom number formats added,
+            /// since conditional formats and pivots refer to them by id. Direct number formats whose id the workbook
+            /// uses for another code move to a free id; only the direct cell formats refer to them. Returns null when
+            /// both stylesheets define differential formats.
+            /// </summary>
+            internal static string? CreateExtendedStylesXml(DirectStylePlan stylePlan, Xs.Stylesheet? workbookStyles, OfficeTheme? theme) {
+                string stylesXml = CreateStylesXml(stylePlan, theme);
+                var differentialFormats = workbookStyles?.DifferentialFormats;
+                bool hasDifferentialFormats = differentialFormats?.HasChildren == true;
+                var workbookFormats = new Dictionary<uint, string>();
+                foreach (var format in workbookStyles?.NumberingFormats?.Elements<Xs.NumberingFormat>() ?? Enumerable.Empty<Xs.NumberingFormat>()) {
+                    if (format.NumberFormatId?.Value is uint id) workbookFormats[id] = format.FormatCode?.Value ?? string.Empty;
+                }
+
+                if (!hasDifferentialFormats && workbookFormats.Count == 0) {
+                    return stylesXml;
+                }
+
+                var stylesheet = new Xs.Stylesheet(stylesXml);
+                if (hasDifferentialFormats && stylesheet.DifferentialFormats?.HasChildren == true) {
+                    return null;
+                }
+
+                var directFormats = stylesheet.NumberingFormats?.Elements<Xs.NumberingFormat>().ToList() ?? new List<Xs.NumberingFormat>();
+                uint nextId = Math.Max(164U, Math.Max(
+                    workbookFormats.Count == 0 ? 0U : workbookFormats.Keys.Max(),
+                    directFormats.Count == 0 ? 0U : directFormats.Max(format => format.NumberFormatId?.Value ?? 0U)) + 1U);
+                var moved = new Dictionary<uint, uint>();
+                var merged = new SortedDictionary<uint, string>(workbookFormats);
+                foreach (var format in directFormats) {
+                    uint id = format.NumberFormatId?.Value ?? 0U;
+                    string code = format.FormatCode?.Value ?? string.Empty;
+                    if (!workbookFormats.TryGetValue(id, out string? workbookCode)) {
+                        merged[id] = code;
+                    } else if (!string.Equals(workbookCode, code, StringComparison.Ordinal)) {
+                        uint target = workbookFormats.FirstOrDefault(pair => string.Equals(pair.Value, code, StringComparison.Ordinal)).Key;
+                        if (target == 0U) {
+                            target = nextId++;
+                            merged[target] = code;
+                        }
+
+                        moved[id] = target;
+                    }
+                }
+
+                var numberingFormats = new Xs.NumberingFormats { Count = (uint)merged.Count };
+                foreach (var pair in merged) numberingFormats.Append(new Xs.NumberingFormat { NumberFormatId = pair.Key, FormatCode = pair.Value });
+                stylesheet.NumberingFormats = numberingFormats;
+                if (moved.Count != 0) {
+                    foreach (var cellFormat in stylesheet.Descendants<Xs.CellFormat>()) {
+                        if (cellFormat.NumberFormatId?.Value is uint id && moved.TryGetValue(id, out uint target)) cellFormat.NumberFormatId = target;
+                    }
+                }
+
+                if (hasDifferentialFormats) {
+                    stylesheet.DifferentialFormats = (Xs.DifferentialFormats)differentialFormats!.CloneNode(true);
+                }
+
+                return stylesheet.OuterXml;
             }
 
             internal static void WriteExtendedSharedStrings(ExcelPackageArchive archive, ExtendedDirectWritePlan plan) {

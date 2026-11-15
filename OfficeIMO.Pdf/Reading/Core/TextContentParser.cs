@@ -460,7 +460,8 @@ internal static partial class TextContentParser {
         int initialStrokeLineCap = 0,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
         bool retainEditingEvidence = true,
-        FormInvocationCollector? formInvocations = null) {
+        FormInvocationCollector? formInvocations = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
 
@@ -1001,7 +1002,7 @@ internal static partial class TextContentParser {
                     break;
                 default: args.Clear(); break;
             }
-        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args);
+        }, inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands, inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: args, maxGraphicsStateDepth: maxGraphicsStateDepth);
         ApplyPendingTextClippingPath();
         return spans;
 
@@ -1187,7 +1188,7 @@ internal static partial class TextContentParser {
             // advance or a prefix decodes as ordinary text. Other callers retain the heuristic.
             PdfFontResource? twoByteFont = twoByteFontForResource?.Invoke(font);
             bool twoByte = twoByteFont is not null;
-            if (twoByteFont is not null && (bytes.Length & 1) != 0 &&
+            if (twoByteFont is not null && !twoByteFont.HasCompleteCompositeCodes(bytes, 0, bytes.Length) &&
                 onUnmappableText is not null && useLogicalTextFilters && !requireMappedText) {
                 // The width provider also serves prefix probes. An actual truncated
                 // text operand has an unknown advance even if its prefix is decodable.
@@ -1239,9 +1240,15 @@ internal static partial class TextContentParser {
             bool usedVisualEncoding = false;
             for (int idx = 0; idx < bytes.Length;) {
                 cancellationCheck?.Invoke();
-                int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
+                // Predefined CMaps mix one- to four-byte codes; other composite fonts use two bytes.
+                int step = twoByteFont is not null
+                    ? Math.Min(twoByteFont.GetCompositeCodeLength(bytes, idx), bytes.Length - idx)
+                    : twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g;
-                if (retainGlyphAndPaintEvidence) {
+                if (step > 2) {
+                    g = new byte[step];
+                    Buffer.BlockCopy(bytes, idx, g, 0, step);
+                } else if (retainGlyphAndPaintEvidence) {
                     g = step == 1 ? SingleByteGlyphCodes[bytes[idx]] : GetTwoByteGlyphCode(bytes[idx], bytes[idx + 1]);
                 } else if (step == 1) {
                     g = reusableSingleByteCode ??= new byte[1];
@@ -1766,7 +1773,8 @@ internal static partial class TextContentParser {
             const double MaximumRestampTightening1000 = 200D;
             const double MaximumRestampLoosening1000 = 60D;
             bool restampable = true;
-            bool requireCompleteOperands = onUnmappableText is not null && twoByteFontForResource?.Invoke(font) is not null;
+            PdfFontResource? compositeFont = onUnmappableText is not null ? twoByteFontForResource?.Invoke(font) : null;
+            bool requireCompleteOperands = compositeFont is not null;
             int strings = 0, totalBytes = 0, first = -1, last = -1;
             for (int index = 0; index < list.Count; index++) {
                 if (list.IsString(index)) {
@@ -1774,7 +1782,7 @@ internal static partial class TextContentParser {
                     if (length == 0) continue;
                     // Keep incomplete codes in their own operands instead of
                     // manufacturing a code from bytes of two adjacent strings.
-                    if (requireCompleteOperands && (length & 1) != 0) return false;
+                    if (requireCompleteOperands && compositeFont!.PredefinedCMap is null && (length & 1) != 0) return false;
                     strings++;
                     totalBytes = checked(totalBytes + length);
                     if (first < 0) first = index;
@@ -1810,6 +1818,8 @@ internal static partial class TextContentParser {
                     if (offset > 0) kerning[offset - 1] += pending;
                     pending = 0D;
                     list.CopyStringTo(index, bytes, offset);
+                    if (requireCompleteOperands && compositeFont!.PredefinedCMap is not null &&
+                        !compositeFont.HasCompleteCompositeCodes(bytes, offset, length)) return false;
                     offset += length;
                 } else if (list.TryGetNumber(index, out double number)) {
                     pending += -number / 1000.0 * size;
@@ -2155,7 +2165,8 @@ internal static partial class TextContentParser {
         Action? cancellationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
-        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0) {
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         FormInvocationCollector collector = CreateFormInvocationCollector(
             optionalContentVisibility: optionalContentVisibility,
             paintOrderBase: paintOrderBase,
@@ -2195,7 +2206,8 @@ internal static partial class TextContentParser {
             initialStrokeLineCap: initialStrokeLineCap);
         PdfContentStreamInterpreter.Interpret(content, maxOperations, collector.VisitBorrowed,
             inlineImageComponentCount: inlineImageComponentCount, maxNestingDepth: maxNestingDepth, maxOperands: maxOperands,
-            inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: collector.Operands);
+            inlineImageArrayComponentCount: inlineImageArrayComponentCount, operandBuffer: collector.Operands,
+            maxGraphicsStateDepth: maxGraphicsStateDepth);
         return collector.Invocations;
     }
 

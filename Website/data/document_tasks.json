@@ -44,7 +44,7 @@
         },
         {
           "label": "CLI conversion",
-          "url": "/tool/",
+          "url": "/cli/",
           "surface": "cli"
         },
         {
@@ -96,7 +96,7 @@
         },
         {
           "label": "CLI and MCP",
-          "url": "/tool/",
+          "url": "/cli/",
           "surface": "cli"
         },
         {
@@ -117,7 +117,7 @@
       "paths": [
         {
           "label": "Install PSWriteOffice",
-          "url": "/products/pswriteoffice/",
+          "url": "/powershell/",
           "surface": "powershell"
         },
         {

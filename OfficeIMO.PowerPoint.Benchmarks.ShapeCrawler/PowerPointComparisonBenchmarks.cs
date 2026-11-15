@@ -128,8 +128,8 @@ public class PowerPointReadComparisonBenchmarks : PowerPointFixtureBenchmarks {
         foreach (PowerPointSlide slide in presentation.Slides) {
             foreach (PowerPointTextBox textBox in slide.TextBoxes) observation = observation.Add(textBox.Text);
             foreach (PowerPointTable table in slide.Tables) {
-                int rows = table.Rows;
-                int columns = table.Columns;
+                int rows = table.Rows.Count;
+                int columns = table.Columns.Count;
                 for (int row = 0; row < rows; row++) {
                     for (int column = 0; column < columns; column++) {
                         observation = observation.Add(table.GetCell(row, column).Text);

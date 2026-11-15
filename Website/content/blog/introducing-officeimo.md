@@ -69,4 +69,4 @@ Star the repository on GitHub, open an issue if something is missing, and help s
 - [OfficeIMO.Word](/products/word/) if you want to start with document generation.
 - [OfficeIMO.Excel](/products/excel/) for workbook automation and reporting scenarios.
 - [OfficeIMO.Reader](/products/reader/) for indexing, search, and AI-oriented extraction workflows.
-- [PSWriteOffice](/products/pswriteoffice/) if your entry point is PowerShell rather than C#.
+- [PSWriteOffice](/powershell/) if your entry point is PowerShell rather than C#.

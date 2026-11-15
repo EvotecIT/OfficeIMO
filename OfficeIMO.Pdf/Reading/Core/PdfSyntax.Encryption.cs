@@ -9,7 +9,7 @@ internal static partial class PdfSyntax {
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         decryptor = null;
-        PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", options?.Limits, cancellationToken);
+        PdfReference? encryptReference = FindEncryptReference(map, trailerRaw, options?.Limits, cancellationToken);
         if (encryptReference is null) {
             return false;
         }
@@ -27,13 +27,49 @@ internal static partial class PdfSyntax {
             options?.Password,
             supplied,
             options?.AesCryptographyProvider,
+            options?.PublicKeyDecryption,
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return true;
     }
 
+    /// <summary>
+    /// The trailer's /Encrypt reference, or, when the trailer chain cannot be recovered, the one /Encrypt reference
+    /// that the document's cross-reference streams agree on.
+    /// </summary>
+    internal static PdfReference? FindEncryptReference(
+        Dictionary<int, PdfIndirectObject> map,
+        string trailerRaw,
+        PdfReadLimits? limits,
+        CancellationToken cancellationToken) {
+        PdfReference? reference = ReadTrailerReference(trailerRaw, "Encrypt", limits, cancellationToken);
+        if (reference is not null || TrailerDeclaresKey(trailerRaw, "Encrypt", limits, cancellationToken)) return reference;
+        PdfReference? found = null;
+        foreach (PdfIndirectObject indirect in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (IsUnbuiltWithOtherType(indirect, "XRef") ||
+                indirect.Value is not PdfStream stream ||
+                stream.Dictionary.Get<PdfName>("Type")?.Name != "XRef" ||
+                stream.Dictionary.Get<PdfReference>("Encrypt") is not PdfReference candidate) {
+                continue;
+            }
+
+            if (found is not null && (found.ObjectNumber != candidate.ObjectNumber || found.Generation != candidate.Generation)) {
+                return null;
+            }
+
+            found = candidate;
+        }
+
+        return found;
+    }
+
     private static byte[] ReadFirstFileId(Dictionary<int, PdfIndirectObject> map, string trailerRaw,
         CancellationToken cancellationToken) {
+        // The active trailer (or the active cross-reference stream it was built from) owns the file identifier;
+        // other cross-reference streams are a fallback for files whose trailer chain was not recovered.
+        byte[] trailerId = ReadFirstFileId(trailerRaw, cancellationToken);
+        if (trailerId.Length > 0) return trailerId;
         foreach (PdfIndirectObject indirect in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             if (indirect.Value is PdfStream stream &&
@@ -43,7 +79,7 @@ internal static partial class PdfSyntax {
             }
         }
 
-        return ReadFirstFileId(trailerRaw, cancellationToken);
+        return trailerId;
     }
 
     private static bool TryReadFirstFileId(PdfDictionary dictionary, out byte[] fileId) {
@@ -86,6 +122,8 @@ internal static partial class PdfSyntax {
         PdfStandardSecurityHandler decryptor,
         int encryptObjectNumber, CancellationToken cancellationToken) {
         var replacements = new List<PdfIndirectObject>();
+        decryptor.ReferenceResolver = reference =>
+            PdfObjectLookup.TryGet(map, reference, out PdfIndirectObject? target) ? target.Value : null;
         foreach (PdfIndirectObject indirect in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
             if (indirect.ObjectNumber == encryptObjectNumber) {

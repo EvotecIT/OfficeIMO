@@ -98,12 +98,13 @@ internal static partial class PdfPageXObjectInvocationParser {
         Func<string, int?>? mcidForProperty = null,
         Action? operationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
-        Action<string>? operatorVisitor = null) {
+        Action<string>? operatorVisitor = null,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         if (content.IsNullOrEmpty) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialAuthoredBlendMode, initialHasUnsupportedBlendMode, initialHasUnsupportedPaintState, initialHasUnsupportedImagePaintEffect, initialImagePaintEffectState, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor, initialStrokeDashPattern, mcidForProperty, operationCheck);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialAuthoredBlendMode, initialHasUnsupportedBlendMode, initialHasUnsupportedPaintState, initialHasUnsupportedImagePaintEffect, initialImagePaintEffectState, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor, initialStrokeDashPattern, mcidForProperty, operationCheck, maxGraphicsStateDepth);
         parser.InitializeTextState(initialTextState ?? PdfTextStateSnapshot.Default);
         parser.OperatorVisitor = operatorVisitor;
         return parser.Parse();
@@ -168,6 +169,7 @@ internal static partial class PdfPageXObjectInvocationParser {
         private PdfContentInlineImage? _currentInlineImage;
         private readonly int _maxOperations;
         private readonly int _maxNestingDepth;
+        private readonly int _maxGraphicsStateDepth;
         private readonly int _maxOperands;
         private readonly IReadOnlyDictionary<string, PdfFontResource>? _fonts;
         private readonly IReadOnlyDictionary<string, Func<byte[], double>>? _fontWidthProviders;
@@ -292,7 +294,8 @@ internal static partial class PdfPageXObjectInvocationParser {
             Action<string>? visibleColorSpaceVisitor,
             PdfStrokeDashPattern? initialStrokeDashPattern,
             Func<string, int?>? mcidForProperty,
-            Action? operationCheck) {
+            Action? operationCheck,
+            int maxGraphicsStateDepth) {
             _workspace = ParserWorkspace.Rent();
             _args = _workspace.Args;
             _stack = _workspace.Stack;
@@ -363,6 +366,7 @@ internal static partial class PdfPageXObjectInvocationParser {
             _paintOrderOffset = paintOrderOffset;
             _maxOperations = maxOperations;
             _maxNestingDepth = maxNestingDepth;
+            _maxGraphicsStateDepth = maxGraphicsStateDepth;
             _maxOperands = maxOperands;
             _fonts = fonts;
             _fontWidthProviders = fontWidthProviders;
@@ -418,7 +422,8 @@ internal static partial class PdfPageXObjectInvocationParser {
                 _maxNestingDepth,
                 _maxOperands,
                 inlineImageArrayComponentCount: _inlineImageArrayComponentCount,
-                operandBuffer: _args);
+                operandBuffer: _args,
+                maxGraphicsStateDepth: _maxGraphicsStateDepth);
 
             ApplyPendingTextClippingPath();
 

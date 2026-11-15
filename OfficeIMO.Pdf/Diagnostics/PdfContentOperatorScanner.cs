@@ -7,7 +7,8 @@ internal static class PdfContentOperatorScanner {
         int maximum,
         ref bool truncated,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
-        int maxOperands = PdfReadLimits.DefaultMaxContentOperands) {
+        int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
+        int maxGraphicsStateDepth = PdfReadLimits.DefaultMaxGraphicsStateDepth) {
         if (destination.Count >= maximum) {
             truncated = true;
             return;
@@ -39,7 +40,8 @@ internal static class PdfContentOperatorScanner {
                 }
             },
             maxNestingDepth: maxNestingDepth,
-            maxOperands: maxOperands);
+            maxOperands: maxOperands,
+            maxGraphicsStateDepth: maxGraphicsStateDepth);
         if (!complete) {
             truncated = true;
         }

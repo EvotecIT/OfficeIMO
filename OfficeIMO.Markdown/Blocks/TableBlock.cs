@@ -263,51 +263,53 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     private void AppendHtml(StringBuilder sb) {
         bool[] numericColumns = ResolveNumericColumns();
         sb.Append("<table").Append(MarkdownHtmlAttributes.Render(Attributes, null)).Append(">");
-        AppendColumnGroupHtml(sb, GetEffectiveColumnCount());
-        var headerCells = HeaderCells;
-        var rowCells = RowCells;
-        var headerInlines = BuildHeaderInlines();
-        var rowInlines = BuildRowInlines();
+        int columnCount = GetEffectiveColumnCount();
+        AppendColumnGroupHtml(sb, columnCount);
+        // The cell text is hashed once for the whole render.
+        int contentSignature = ComputeContentSignature();
+        EnsureRealizedCells(contentSignature, columnCount);
+        var headerCells = _cachedHeaderCells ?? Array.Empty<TableCell>();
+        var rowCells = _cachedRowCells ?? Array.Empty<IReadOnlyList<TableCell>>();
+        bool structuredCellsAreCurrent = StructuredContentSignature.HasValue && StructuredContentSignature.Value == contentSignature;
+        // Parsed cell inlines are a fallback for a row without typed cells, so they are built only then.
+        IReadOnlyList<IReadOnlyList<InlineSequence>>? rowInlines = null;
         if (Headers.Count > 0) {
             sb.Append("<thead><tr>");
-            int columnCount = GetEffectiveColumnCount();
-            var preparedHeaders = PrepareRowCells(Headers, columnCount);
-            var currentStructuredHeaders = GetCurrentStructuredHeaders();
-            var preparedStructuredHeaders = PrepareStructuredRowHtmlCells(currentStructuredHeaders, columnCount, UseHeaderColumnCountForRendering)
-                ?? PrepareStructuredRowCells(headerCells, columnCount);
-            var preparedParsedHeaders = PrepareParsedRowCells(headerInlines, columnCount);
-            int headerRenderCount = GetHtmlRenderCellCount(preparedHeaders.Count, preparedStructuredHeaders);
+            var currentStructuredHeaders = structuredCellsAreCurrent ? StructuredHeaders : null;
+            var htmlHeaders = GetHtmlRowCells(currentStructuredHeaders, columnCount, UseHeaderColumnCountForRendering)
+                ?? GetHtmlRowCells(headerCells, columnCount);
+            int headerRenderCount = Math.Min(GetPreparedCellCount(Headers, columnCount), htmlHeaders.Count);
             for (int i = 0; i < headerRenderCount; i++) {
-                var h = preparedHeaders[i];
-                var style = GetHtmlAlignment(i, numericColumns);
-                TableCell? structuredCell = preparedStructuredHeaders?[i];
-                sb.Append($"<th{RenderCellAttributes(structuredCell, style)}>");
-                sb.Append(RenderCellHtml(h, structuredCell, preparedParsedHeaders?[i]));
-                sb.Append("</th>");
+                AppendCellHtml(sb, "th", htmlHeaders[i], GetHtmlAlignment(i, numericColumns));
             }
             sb.Append("</tr></thead>");
         }
         if (Rows.Count > 0) {
             sb.Append("<tbody>");
-            int bodyColumnCount = GetEffectiveColumnCount();
             for (int rowIndex = 0; rowIndex < Rows.Count; rowIndex++) {
                 var row = Rows[rowIndex];
-                var cells = PrepareRowCells(row, bodyColumnCount);
-                var currentStructuredRow = GetCurrentStructuredRow(rowIndex);
-                var structuredCells = PrepareStructuredRowHtmlCells(currentStructuredRow, bodyColumnCount, UseHeaderColumnCountForRendering)
-                    ?? (rowIndex < rowCells.Count ? PrepareStructuredRowCells(rowCells[rowIndex], bodyColumnCount) : null);
-                var parsedCells = rowIndex < rowInlines.Count
-                    ? PrepareParsedRowCells(rowInlines[rowIndex], bodyColumnCount)
+                var currentStructuredRow = structuredCellsAreCurrent && StructuredRows != null && rowIndex < StructuredRows.Count
+                    ? StructuredRows[rowIndex]
                     : null;
+                var structuredCells = GetHtmlRowCells(currentStructuredRow, columnCount, UseHeaderColumnCountForRendering)
+                    ?? (rowIndex < rowCells.Count ? GetHtmlRowCells(rowCells[rowIndex], columnCount) : null);
                 sb.Append("<tr>");
-                int renderCellCount = GetHtmlRenderCellCount(cells.Count, structuredCells);
-                for (int i = 0; i < renderCellCount; i++) {
-                    var cell = cells[i];
-                    var style = GetHtmlAlignment(i, numericColumns);
-                    TableCell? structuredCell = structuredCells?[i];
-                    sb.Append($"<td{RenderCellAttributes(structuredCell, style)}>");
-                    sb.Append(RenderCellHtml(cell, structuredCell, parsedCells?[i]));
-                    sb.Append("</td>");
+                if (structuredCells != null) {
+                    int renderCellCount = Math.Min(GetPreparedCellCount(row, columnCount), structuredCells.Count);
+                    for (int i = 0; i < renderCellCount; i++) {
+                        AppendCellHtml(sb, "td", structuredCells[i], GetHtmlAlignment(i, numericColumns));
+                    }
+                } else {
+                    var cells = PrepareRowCells(row, columnCount);
+                    rowInlines ??= BuildRowInlines(contentSignature, columnCount);
+                    var parsedCells = rowIndex < rowInlines.Count
+                        ? PrepareParsedRowCells(rowInlines[rowIndex], columnCount)
+                        : null;
+                    for (int i = 0; i < cells.Count; i++) {
+                        sb.Append("<td").Append(RenderCellAttributes(null, GetHtmlAlignment(i, numericColumns))).Append('>');
+                        sb.Append(RenderCellHtml(cells[i], null, parsedCells?[i]));
+                        sb.Append("</td>");
+                    }
                 }
                 sb.Append("</tr>");
             }
@@ -316,36 +318,87 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         sb.Append("</table>");
     }
 
+    private static void AppendCellHtml(StringBuilder sb, string tag, TableCell cell, MarkdownColumnAlignment alignment) {
+        sb.Append('<').Append(tag).Append(RenderCellAttributes(cell, alignment)).Append('>');
+        cell.AppendHtml(sb);
+        sb.Append("</").Append(tag).Append('>');
+    }
+
+    // Number of cells PrepareRowCells would give the row.
+    private static int GetPreparedCellCount(IReadOnlyList<string>? row, int columnCount) =>
+        columnCount > 0 ? columnCount : row?.Count ?? 0;
+
+    // The cells one HTML row shows: the row padded or cut to
+    // the column count, with missing cells empty. Rendering only reads the cells, so the row's own cells
+    // are used instead of copies.
+    private static IReadOnlyList<TableCell> GetHtmlRowCells(IReadOnlyList<TableCell>? row, int columnCount) {
+        int rowCount = row?.Count ?? 0;
+        int count = columnCount > 0 ? columnCount : rowCount;
+        if (count == 0) {
+            return Array.Empty<TableCell>();
+        }
+
+        if (rowCount == count && !ContainsNullCell(row!)) {
+            return row!;
+        }
+
+        var cells = new TableCell[count];
+        for (int i = 0; i < count; i++) {
+            cells[i] = i < rowCount ? row![i] ?? new TableCell() : new TableCell();
+        }
+
+        return cells;
+    }
+
+    // The cells one HTML row shows without padding: spans past the last
+    // column are cut. Only a cell whose span is cut is copied.
+    private static IReadOnlyList<TableCell>? GetHtmlRowCells(IReadOnlyList<TableCell>? row, int maxLogicalColumnCount, bool padToLogicalColumnCount) {
+        if (row == null) {
+            return null;
+        }
+
+        if (padToLogicalColumnCount) {
+            return GetHtmlRowCells(row, maxLogicalColumnCount);
+        }
+
+        if (row.Count == 0 || maxLogicalColumnCount <= 0) {
+            return Array.Empty<TableCell>();
+        }
+
+        var cells = new List<TableCell>(Math.Min(row.Count, maxLogicalColumnCount));
+        int remainingColumns = maxLogicalColumnCount;
+        for (int i = 0; i < row.Count && remainingColumns > 0; i++) {
+            TableCell cell = row[i] ?? new TableCell();
+            int columnSpan = Math.Max(1, cell.ColumnSpan);
+            if (columnSpan > remainingColumns) {
+                cell = CloneStructuredCell(cell);
+                cell.ColumnSpan = remainingColumns;
+                columnSpan = remainingColumns;
+            }
+
+            cells.Add(cell);
+            remainingColumns -= columnSpan;
+        }
+
+        return cells;
+    }
+
+    private static bool ContainsNullCell(IReadOnlyList<TableCell> row) {
+        for (int i = 0; i < row.Count; i++) {
+            if (row[i] == null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void AppendTableAttributesToFirstCell(IList<string> cells) {
         if (Attributes.IsEmpty || cells == null || cells.Count == 0) {
             return;
         }
 
         cells[0] = (cells[0] ?? string.Empty) + EscapeRenderedMarkdownCell(MarkdownAttributeBlockRenderer.RenderTrailing(Attributes));
-    }
-
-    private IReadOnlyList<TableCell>? GetCurrentStructuredHeaders() {
-        return StructuredContentSignature.HasValue && StructuredContentSignature.Value == ComputeContentSignature()
-            ? StructuredHeaders
-            : null;
-    }
-
-    private IReadOnlyList<TableCell>? GetCurrentStructuredRow(int rowIndex) {
-        return StructuredContentSignature.HasValue &&
-            StructuredContentSignature.Value == ComputeContentSignature() &&
-            StructuredRows != null &&
-            rowIndex >= 0 &&
-            rowIndex < StructuredRows.Count
-            ? StructuredRows[rowIndex]
-            : null;
-    }
-
-    private static int GetHtmlRenderCellCount(int preparedCount, IReadOnlyList<TableCell>? structuredCells) {
-        if (structuredCells == null) {
-            return preparedCount;
-        }
-
-        return Math.Min(preparedCount, structuredCells.Count);
     }
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;

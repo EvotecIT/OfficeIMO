@@ -8,6 +8,74 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<ExcelTableInfo> GetTables() => GetTables(null);
 
+        /// <summary>
+        /// Describes the table of a pending direct table on <paramref name="sheet"/> as loading its rows would leave it,
+        /// so reading table metadata does not load the rows into the worksheet.
+        /// </summary>
+        internal bool TryGetDirectTabularSaveCandidateTable(ExcelSheet sheet, WorksheetPart worksheetPart, out ExcelTableInfo? table) {
+            table = null;
+            var candidate = _directDataSetSaveCandidate;
+            if (!ReferenceEquals(sheet.Document, this)
+                || candidate == null
+                || !candidate.IsValid
+                || !candidate.IsDeferred
+                || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (!sheetModel.HasTable
+                || string.IsNullOrWhiteSpace(sheetModel.TableName)
+                || string.IsNullOrWhiteSpace(sheetModel.Range)
+                || !string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            // The worksheet may already hold this table's part; any other table needs the full listing.
+            foreach (var tablePart in worksheetPart.TableDefinitionParts) {
+                if (!string.Equals(tablePart.Table?.Name?.Value, sheetModel.TableName, StringComparison.OrdinalIgnoreCase)) {
+                    return false;
+                }
+            }
+
+            int sheetIndex = -1;
+            var sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+            for (int i = 0; i < sheets.Count; i++) {
+                if (string.Equals(sheets[i].Name?.Value, sheetModel.SheetName, StringComparison.OrdinalIgnoreCase)) {
+                    sheetIndex = i;
+                    break;
+                }
+            }
+
+            var columns = new List<ExcelTableColumnInfo>(sheetModel.Table.ColumnCount);
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i < sheetModel.Table.ColumnCount; i++) {
+                string name = sheetModel.Table.GetColumnName(i);
+                if (string.IsNullOrWhiteSpace(name) || !names.Add(name)) {
+                    return false;
+                }
+
+                columns.Add(new ExcelTableColumnInfo(i + 1, name));
+            }
+
+            table = new ExcelTableInfo(
+                sheetModel.TableName!,
+                sheetModel.TableName!,
+                sheetModel.Range,
+                sheetModel.SheetName,
+                sheetIndex,
+                sheetModel.TableStyle == ExcelTableStyle.None ? null : sheetModel.TableStyle.ToString(),
+                sheetModel.IncludeHeaders,
+                totalsRowShown: false,
+                hasAutoFilter: sheetModel.IncludeAutoFilter && sheetModel.IncludeHeaders,
+                sheetModel.ShowFirstColumn,
+                sheetModel.ShowLastColumn,
+                sheetModel.ShowRowStripes,
+                sheetModel.ShowColumnStripes,
+                columns);
+            return true;
+        }
+
         internal IReadOnlyList<ExcelTableInfo> GetTables(WorksheetPart? selectedWorksheet) {
             return ExecuteReadAfterMaterializing(() => {
                 var result = new List<ExcelTableInfo>();

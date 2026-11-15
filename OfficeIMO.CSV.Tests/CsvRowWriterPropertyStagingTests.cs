@@ -6,6 +6,27 @@ namespace OfficeIMO.CSV.Tests;
 
 public class CsvRowWriterPropertyStagingTests
 {
+    [Fact]
+    public void WriteObject_UsesTheCurrentNewLineForEveryStreamRow()
+    {
+        using var output = new MemoryStream();
+        var options = new CsvSaveOptions { NewLine = "\n" };
+        using (var writer = CsvRowWriter.CreateStream(output, options, leaveOpen: true))
+        {
+            writer.WriteObject(new PlainRow { Id = 1, Name = "a" });
+            options.NewLine = "\r\n";
+            writer.WriteObject(new PlainRow { Id = 2, Name = "b" });
+        }
+
+        Assert.Equal("Id,Name\n1,a\n2,b\r\n", Encoding.UTF8.GetString(output.ToArray()));
+    }
+
+    private sealed class PlainRow
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -108,6 +129,49 @@ public class CsvRowWriterPropertyStagingTests
             + string.Join(",", new[] { wide.A, wide.B, wide.C, wide.D, wide.E, wide.F, wide.G, wide.H })
             + ",79228162514264337593543950335\nnext,b,c,d,e,f,g,h,1\n";
         Assert.Equal(expected, Encoding.UTF8.GetString(output.ToArray()));
+    }
+
+    [Theory]
+    [InlineData("zażółć", "plain")]
+    [InlineData("a,ż \"quoted\"", "x\ny")]
+    [InlineData("lone \ud800 high", "lone \udc00 low\ud800")]
+    [InlineData("\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\"\" long, quoted ASCII past the short escape",
+        "🙂 emoji, quoted")]
+    public void WriteObject_Utf8StreamWritesTheEncodedTextOutput(string first, string second)
+    {
+        var options = new CsvSaveOptions { NewLine = "\r\n" };
+        var rows = new[]
+        {
+            new { Id = 1, First = first, Ratio = 0.1, Second = second, Amount = -12.50m },
+            new { Id = -2, First = second, Ratio = 1e300, Second = first, Amount = 0m },
+        };
+        using var output = new MemoryStream();
+        using (var writer = CsvRowWriter.CreateStream(output, options, leaveOpen: true))
+        {
+            foreach (var row in rows) writer.WriteObject(row);
+        }
+        var text = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(text, options, leaveOpen: true))
+        {
+            foreach (var row in rows) writer.WriteObject(row);
+        }
+
+        Assert.Equal(new UTF8Encoding(false).GetBytes(text.ToString()), output.ToArray());
+
+        // Rows of text alone take the same staging.
+        var textRows = new[] { new { First = first, Second = (string?)second }, new { First = second, Second = (string?)null } };
+        output.SetLength(0);
+        using (var writer = CsvRowWriter.CreateStream(output, options, leaveOpen: true))
+        {
+            foreach (var row in textRows) writer.WriteObject(row);
+        }
+        text = new StringWriter(CultureInfo.InvariantCulture);
+        using (var writer = new CsvRowWriter(text, options, leaveOpen: true))
+        {
+            foreach (var row in textRows) writer.WriteObject(row);
+        }
+
+        Assert.Equal(new UTF8Encoding(false).GetBytes(text.ToString()), output.ToArray());
     }
 
     private sealed class RowContext(CsvSaveOptions options)

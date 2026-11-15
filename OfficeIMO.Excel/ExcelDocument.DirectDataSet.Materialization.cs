@@ -152,7 +152,11 @@ namespace OfficeIMO.Excel {
             Locking.ExecuteWrite(EnsureLock(), () => MaterializeDeferredDataSetImportLocked(ct));
         }
 
-        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct) {
+        /// <param name="ct">Cancels materialization.</param>
+        /// <param name="preserveFastSaveModel">
+        /// Keeps the rows on the direct worksheet writer at save, as a read leaves them unchanged.
+        /// </param>
+        private void MaterializeDeferredDataSetImportLocked(CancellationToken ct, bool preserveFastSaveModel = false) {
             ct.ThrowIfCancellationRequested();
             if (_materializingDeferredDataSetImport) {
                 return;
@@ -169,11 +173,22 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            DirectDataSetWorkbookModel? fastSaveModel = null;
+            if (preserveFastSaveModel
+                && TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel? packageModel, out _, allowDrawings: true)) {
+                fastSaveModel = packageModel;
+            }
+
             _directDataSetSaveCandidate = null;
             _materializingDeferredDataSetImport = true;
             try {
                 MaterializeDirectDataSetModel(candidate.Model, cancellationToken: ct);
                 candidate.Dispose();
+                if (fastSaveModel != null) {
+                    _materializedDirectDataSetFastSaveModel = fastSaveModel;
+                    // A read changes nothing, so the next edit must still drop the model.
+                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = true;
+                }
             } catch {
                 if (_directDataSetSaveCandidate == null) {
                     _directDataSetSaveCandidate = candidate;
@@ -627,32 +642,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            MaterializePendingDirectCellValueSheetIfNeeded();
-
-            var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsDeferred) {
+            if (_directDataSetSaveCandidate?.IsDeferred != true && !HasPendingDirectCellValues) {
                 return;
             }
 
-            DirectDataSetWorkbookModel? fastSaveModel = null;
-            if (TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel? packageModel, out _, allowDrawings: true)) {
-                fastSaveModel = packageModel;
-            }
-
-            _directDataSetSaveCandidate = null;
-            candidate.Dispose();
-
-            _materializingDeferredDataSetImport = true;
-            try {
-                MaterializeDirectDataSetModel(candidate.Model);
-                if (fastSaveModel != null) {
-                    _materializedDirectDataSetFastSaveModel = fastSaveModel;
-                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = true;
-                    _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
-                }
-            } finally {
-                _materializingDeferredDataSetImport = false;
-            }
+            MaterializeDeferredDataSetImportLocked(CancellationToken.None, preserveFastSaveModel: true);
         }
 
         private static void InsertWorksheetMetadataElement(Worksheet worksheet, DocumentFormat.OpenXml.OpenXmlElement element, params Type[] beforeTypes) {

@@ -376,6 +376,7 @@ namespace OfficeIMO.Excel {
                 ClosePackageForReload();
                 ReplaceTargetFile(temporaryPath, targetPath);
                 temporaryPath = string.Empty;
+                ReleaseWrittenDirectDataSetFastSaveModel();
                 ReloadFromBytes(packageBytes, simplePackageContentKnown: true);
 
                 FilePath = targetPath;

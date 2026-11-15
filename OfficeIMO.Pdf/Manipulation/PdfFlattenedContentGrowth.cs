@@ -96,7 +96,7 @@ internal sealed class PdfFlattenedContentGrowth {
                     value => PdfObjectLookup.ResolveChainCancellable(_objects, value, _cancellationToken), 1D, 1D)) return;
                 invoked.Add((stream, _firstGeneratedObject.HasValue && xObject is PdfReference reference &&
                     reference.ObjectNumber >= _firstGeneratedObject.Value));
-            }, maxNestingDepth: _limits.MaxContentNestingDepth,
+            }, maxNestingDepth: _limits.MaxContentNestingDepth, maxGraphicsStateDepth: _limits.MaxGraphicsStateDepth,
             maxOperands: generated ? Math.Max(1, content.Length) : _limits.MaxContentOperands);
         if (generated) {
             operations = checked(operations + localOperations);

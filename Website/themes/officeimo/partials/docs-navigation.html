@@ -2,7 +2,25 @@
 {{~ api_by_product = {} ~}}
 {{~ for product in data.products ~}}{{~ product_by_docs[product.secondary_url] = product ~}}{{~ end ~}}
 {{~ for component in data.documentation_catalog.components ~}}{{~ if component.apiUrl ~}}{{~ api_by_product[component.name] = component.apiUrl ~}}{{~ end ~}}{{~ end ~}}
+{{~ # Docs are organised by surface (data/docs_surfaces.json): the surface owning the current path shows its own groups; .NET shows everything else. ~}}
+{{~ surfaces = data.docs_surfaces ? data.docs_surfaces.surfaces : [] ~}}
+{{~ current_surface = null ~}}
+{{~ default_surface = null ~}}
+{{~ group_owner = {} ~}}
+{{~ for surface in surfaces ~}}
+  {{~ if surface.tocGroup ~}}{{~ group_owner[surface.tocGroup] = surface.id ~}}{{~ end ~}}
+  {{~ if surface.pathPrefixes.size == 0 ~}}{{~ default_surface = surface ~}}{{~ end ~}}
+  {{~ for prefix in surface.pathPrefixes ~}}{{~ if current_path | string.starts_with prefix ~}}{{~ current_surface = surface ~}}{{~ end ~}}{{~ end ~}}
+{{~ end ~}}
+{{~ if current_surface == null ~}}{{~ current_surface = default_surface ~}}{{~ end ~}}
 <nav class="imo-docs__nav" aria-label="Documentation">
+  {{~ if surfaces.size > 0 ~}}
+  <div class="imo-docs__surfaces" aria-label="Documentation for">
+    {{~ for surface in surfaces ~}}
+    <a href="{{ surface.url }}" class="imo-docs__surface" data-surface="{{ surface.id }}" aria-label="{{ surface.label }} documentation"{{ if current_surface && surface.id == current_surface.id }} aria-current="true"{{ end }}>{{ surface.label }}</a>
+    {{~ end ~}}
+  </div>
+  {{~ end ~}}
   <div class="imo-docs__nav-intro">
     <a href="/docs/"><strong>Documentation home</strong></a>
     <a href="/api/"><strong>All API references</strong></a>
@@ -14,27 +32,38 @@
     {{ for menu in navigation.menus }}
       {{ if menu.name == "docs" }}
         {{ for item in menu.items }}
+          {{~ owner = group_owner[item.title] ~}}
+          {{~ visible = current_surface == null || (owner == null && current_surface.id == default_surface.id) || owner == current_surface.id ~}}
+          {{~ if visible ~}}
           {{ if item.items && item.items.size > 0 }}
-            {{~ is_open = false ~}}
-            {{~ for child in item.items ~}}{{~ if current_path == child.url ~}}{{~ is_open = true ~}}{{~ end ~}}{{~ end ~}}
-            <details class="imo-docs__group"{{ if is_open }} open data-current="true"{{ end }}>
-              <summary class="imo-docs__group-title"><span>{{ item.title }}</span><small>{{ item.items.size }}</small></summary>
-              <ul class="imo-docs__list">
-                {{ for child in item.items }}<li><a href="{{ child.url }}" class="imo-docs__link{{ if current_path == child.url }} active{{ end }}"{{ if current_path == child.url }} aria-current="page"{{ end }}>{{ child.title }}</a></li>{{ end }}
-                {{ for child in item.items }}
-                {{ related_product = product_by_docs[child.url] }}
-                {{ if related_product }}
-                  <li><a href="{{ related_product.url }}" class="imo-docs__link">{{ related_product.title }} library</a></li>
-                  {{ if api_by_product[related_product.title] }}<li><a href="{{ api_by_product[related_product.title] }}" class="imo-docs__link" data-reference-root>{{ related_product.title }} API</a></li>{{ end }}
-                  {{ related_workflow = data.browser_workflows[related_product.title] }}
-                  {{ if related_workflow }}<li><a href="{{ related_workflow.url }}" class="imo-docs__link">{{ related_workflow.label }}</a></li>{{ end }}
-                {{ end }}
-                {{ end }}
-              </ul>
-            </details>
+            {{~ if owner && current_surface.sections ~}}
+              {{~ section_of = {} ~}}
+              {{~ section_items = [] ~}}
+              {{~ for section in current_surface.sections ~}}
+                {{~ section_items = section_items | array.add [] ~}}
+                {{~ section_index = for.index ~}}
+                {{~ for slug in section.slugs ~}}{{~ section_of[slug] = section_index ~}}{{~ end ~}}
+              {{~ end ~}}
+              {{~ other_items = [] ~}}
+              {{~ for child in item.items ~}}
+                {{~ slug = child.url | string.replace current_surface.basePath "" | string.replace "/" "" ~}}
+                {{~ target = section_of[slug] ~}}
+                {{~ if target == null ~}}{{~ other_items = other_items | array.add child ~}}{{~ else ~}}{{~ section_items[target] = section_items[target] | array.add child ~}}{{~ end ~}}
+              {{~ end ~}}
+              {{~ for section in current_surface.sections ~}}
+                {{~ group_title = section.title; group_items = section_items[for.index]; group_related = false; group_open = false ~}}
+                {{ include "docs-navigation-group" }}
+              {{~ end ~}}
+              {{~ group_title = current_surface.otherTitle ?? "More"; group_items = other_items; group_related = false; group_open = false ~}}
+              {{ include "docs-navigation-group" }}
+            {{~ else ~}}
+              {{~ group_title = item.title; group_items = item.items; group_related = true; group_open = owner != null ~}}
+              {{ include "docs-navigation-group" }}
+            {{~ end ~}}
           {{ else if item.url != "/docs/" }}
             <a href="{{ item.url }}" class="imo-docs__link imo-docs__link--top{{ if current_path == item.url }} active{{ end }}"{{ if current_path == item.url }} aria-current="page"{{ end }}>{{ item.title }}</a>
           {{ end }}
+          {{~ end ~}}
         {{ end }}
       {{ end }}
     {{ end }}

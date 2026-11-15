@@ -12,7 +12,9 @@ public class CsvEscapingRegressionTests {
     [InlineData(",", CsvQuoteMode.Always)]
     [InlineData("||", CsvQuoteMode.Always)]
     [InlineData("\t", CsvQuoteMode.Never)]
-    public void TextAndObjectWritersPreserveEscapingAcrossLongSegments(string delimiter, CsvQuoteMode mode) {
+    [InlineData(",", CsvQuoteMode.AsNeeded, false)]
+    [InlineData(";", CsvQuoteMode.AsNeeded, false)]
+    public void TextAndObjectWritersPreserveEscapingAcrossLongSegments(string delimiter, CsvQuoteMode mode, bool escapeFormulas = true) {
         string[] values = Values().ToArray();
         var options = new CsvSaveOptions {
             DelimiterText = delimiter,
@@ -21,7 +23,8 @@ public class CsvEscapingRegressionTests {
             QuoteMode = mode,
             // Unquoted output must encode the corpus' tabs and line breaks.
             EscapeMode = mode == CsvQuoteMode.Never ? CsvEscapeMode.Backslash : CsvEscapeMode.None,
-            FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
+            // Preserved formulas keep text rows on the default writer path.
+            FormulaInjectionPolicy = escapeFormulas ? CsvFormulaInjectionPolicy.Escape : CsvFormulaInjectionPolicy.Preserve
         };
         var document = CsvDocument.Create().WithHeader("Notes");
         using var textOutput = new StringWriter();
@@ -34,7 +37,7 @@ public class CsvEscapingRegressionTests {
                 objectWriter.WriteRow(new[] { "Notes" }, new object?[] { value });
             }
         }
-        string expected = string.Concat(values.Select(value => Quote(value, delimiter, mode) + "\n"));
+        string expected = string.Concat(values.Select(value => Quote(value, delimiter, mode, escapeFormulas) + "\n"));
         Assert.Equal(expected, document.ToString(options));
         Assert.Equal(expected, textOutput.ToString());
         Assert.Equal(expected, objectOutput.ToString());
@@ -48,6 +51,7 @@ public class CsvEscapingRegressionTests {
         yield return "  =SUM(1;2), \"quoted\"";
         yield return "Łódź 😀,;||\r\n\t";
         yield return new string('a', 4096) + ";tail";
+        yield return new string('a', 100) + ",tail";
         yield return new string('a', 4096) + "\ttail";
         yield return new string('a', 4096) + "\rtail";
         yield return new string('a', 4096) + "\ntail";
@@ -60,10 +64,10 @@ public class CsvEscapingRegressionTests {
         }
     }
 
-    private static string Quote(string value, string delimiter, CsvQuoteMode mode) {
+    private static string Quote(string value, string delimiter, CsvQuoteMode mode, bool escapeFormulas) {
         // The corpus has one formula-leading value; its escaped text remains quoted
         // according to the same public mode as every other value.
-        if (value.StartsWith("  =", StringComparison.Ordinal)) value = "'" + value;
+        if (escapeFormulas && value.StartsWith("  =", StringComparison.Ordinal)) value = "'" + value;
         if (mode == CsvQuoteMode.Never)
             return value.Replace("\\", "\\\\").Replace("\t", "\\t").Replace("\r", "\\r").Replace("\n", "\\n");
         bool quoted = mode == CsvQuoteMode.Always || mode == CsvQuoteMode.AsNeeded &&

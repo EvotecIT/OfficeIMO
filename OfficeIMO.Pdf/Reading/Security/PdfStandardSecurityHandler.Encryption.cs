@@ -25,12 +25,12 @@ internal sealed partial class PdfStandardSecurityHandler {
         }
 
         if (value is PdfStream stream) {
-            bool skipData = ShouldSkipStreamData(stream.Dictionary);
+            PdfCryptMethod method = ResolveOutputStreamMethod(stream.Dictionary);
             PdfDictionary encryptedDictionary = EncryptDictionary(objectNumber, generation, stream.Dictionary, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] encryptedData = skipData
+            byte[] encryptedData = method == PdfCryptMethod.Identity
                 ? stream.Data
-                : EncryptData(objectNumber, generation, stream.Data, _streamMethod);
+                : EncryptData(objectNumber, generation, stream.Data, method);
             return new PdfStream(encryptedDictionary, encryptedData, stream.DecodingFailed, stream.DecodingError) {
                 HasIncompleteSyntax = stream.HasIncompleteSyntax
             };
@@ -58,6 +58,10 @@ internal sealed partial class PdfStandardSecurityHandler {
 
         if (method == PdfCryptMethod.AesV3) {
             return EncryptAesCbc(_fileKey, data);
+        }
+
+        if (method == PdfCryptMethod.AesV4) {
+            throw new PdfUnsupportedEncryptionException("OfficeIMO.Pdf does not write AES-GCM (/AESV4) content, so revision 7 files cannot receive incremental updates.");
         }
 
         byte[] objectKey = ComputeObjectKey(objectNumber, generation, method == PdfCryptMethod.AesV2);

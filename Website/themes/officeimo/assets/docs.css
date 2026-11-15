@@ -149,3 +149,12 @@
 .imo-pdf-guides__dot--secure, .imo-pdf-guide--secure { --g: var(--imo-pdf); }
 .imo-pdf-guide--convert { --g: var(--imo-p-dotnet); }
 @media (prefers-reduced-motion: reduce) { .imo-pdf-guide { transition: none; } .imo-pdf-guide:hover { transform: none; } }
+/* Language tabs built by docs-language-tabs.js from "### C#" / "### PowerShell" / "### CLI" sections. */
+.imo-lang-tabs{margin:1.25rem 0 1.5rem;border:1px solid var(--imo-border);border-radius:10px;background:var(--imo-surface);overflow:hidden}
+.imo-lang-tabs__list{display:flex;gap:2px;padding:0 8px;border-bottom:1px solid var(--imo-border);background:var(--imo-bg-alt);overflow-x:auto}
+.imo-lang-tabs__list button{padding:9px 12px;border:0;border-bottom:2px solid transparent;background:none;color:var(--imo-text-muted);font:600 13px/1.2 var(--imo-font-body);cursor:pointer;white-space:nowrap}
+.imo-lang-tabs__list button[aria-selected="true"]{color:var(--imo-text);border-bottom-color:var(--imo-primary)}
+.imo-lang-tabs__list button:focus-visible{outline:2px solid var(--imo-primary);outline-offset:-2px}
+.imo-lang-tabs__panel{padding:4px 16px 2px}
+.imo-lang-tabs__panel>:last-child{margin-bottom:12px}
+.imo-lang-tabs__heading{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

@@ -10,7 +10,10 @@ internal static class EmailProtectionProjection {
                 : EmailProtectionKind.None;
         document.Protection.Kind = kind;
         document.Protection.MessageClass = document.MessageClass;
-        if (kind == EmailProtectionKind.None) return;
+        if (kind == EmailProtectionKind.None) {
+            document.Protection.InlinePgp = MimePgpExtractor.DetectInline(document.Body.Text);
+            return;
+        }
 
         EmailAttachment? payload = document.Attachments.FirstOrDefault(IsProtectedPayload);
         document.Protection.PayloadAttachment = payload;

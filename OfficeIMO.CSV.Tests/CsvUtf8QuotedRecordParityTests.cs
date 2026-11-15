@@ -49,21 +49,26 @@ public sealed class CsvUtf8QuotedRecordParityTests {
     }
 
     [Theory]
-    [InlineData(CsvQuoteParsingMode.Strict, false)]
-    [InlineData(CsvQuoteParsingMode.None, false)]
-    [InlineData(CsvQuoteParsingMode.Strict, true)]
-    public void SingleLineRecordsCrossingBatchesAndRefillsKeepTheirText(CsvQuoteParsingMode quoting, bool asciiWithoutEscapes) {
+    [InlineData(CsvQuoteParsingMode.Strict, false, false)]
+    [InlineData(CsvQuoteParsingMode.None, false, false)]
+    [InlineData(CsvQuoteParsingMode.Strict, true, false)]
+    [InlineData(CsvQuoteParsingMode.Lenient, false, true)]
+    [InlineData(CsvQuoteParsingMode.Lenient, true, true)]
+    public void SingleLineRecordsCrossingBatchesAndRefillsKeepTheirText(CsvQuoteParsingMode quoting, bool asciiWithoutEscapes, bool trim) {
         // Single-line records are read from a batch index; they cross index windows and buffer
         // refills, split CRLF pairs, and include records longer than a window. Without quoting,
         // the quoted-looking fields are plain text whose comma splits them. ASCII batches without
-        // escaped quotes take quoted values straight from the index.
+        // escaped quotes take quoted values straight from the index. Trimmed fields carry
+        // whitespace on either side, including whitespace-only fields and non-ASCII whitespace.
         var random = new Random(20261111);
         string[] separators = { "\n", "\r\n", "\r" };
+        string[] padding = { "", "", " ", "  ", "\t", " \t " };
         var text = new StringBuilder();
         for (int row = 0; row < 20_000; row++) {
             int fields = random.Next(10) == 0 ? random.Next(1, 80) : 9;
             for (int field = 0; field < fields; field++) {
                 if (field > 0) text.Append(',');
+                if (trim) text.Append(random.Next(300) == 0 ? " " : padding[random.Next(padding.Length)]);
                 switch (random.Next(12)) {
                     case 0 when asciiWithoutEscapes: text.Append("\"q,").Append(row).Append(" x\""); break;
                     case 0: text.Append("\"q,").Append(row).Append(" \"\"x\"\"\""); break;
@@ -73,14 +78,15 @@ public sealed class CsvUtf8QuotedRecordParityTests {
                     case 3 when random.Next(200) == 0: text.Append('w', random.Next(5_000, 9_000)); break;
                     default: text.Append((char)('a' + field % 26), random.Next(1, 14)); break;
                 }
+                if (trim) text.Append(random.Next(300) == 0 ? " " : padding[random.Next(padding.Length)]);
             }
             text.Append(separators[random.Next(separators.Length)]);
         }
         string input = text.ToString();
-        string expected = new QuotingModel(input, strict: true, skip: false, allowEmpty: false, trim: false,
+        string expected = new QuotingModel(input, strict: quoting != CsvQuoteParsingMode.Lenient, skip: false, allowEmpty: false, trim: trim,
             quotesAreData: quoting == CsvQuoteParsingMode.None).Run();
-        Assert.Equal(expected, Observe(input, quoting, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 0));
-        Assert.Equal(expected, Observe(input, quoting, CsvParseErrorAction.Throw, allowEmpty: false, trim: false, chunk: 4_093));
+        Assert.Equal(expected, Observe(input, quoting, CsvParseErrorAction.Throw, allowEmpty: false, trim: trim, chunk: 0));
+        Assert.Equal(expected, Observe(input, quoting, CsvParseErrorAction.Throw, allowEmpty: false, trim: trim, chunk: 4_093));
     }
 
     private static string RandomPieces(Random random) {

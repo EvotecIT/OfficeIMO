@@ -705,7 +705,7 @@ public sealed partial class CsvDocument
 
         var fileLength = new FileInfo(path).Length;
         return fileLength <= MemoryBackedCsvFileLimit &&
-            fileLength <= options.MaxInputBytes &&
+            fileLength <= options.EffectiveInputLimit &&
             (options.MaxDecompressedBytes is null || fileLength <= options.MaxDecompressedBytes.Value);
     }
 #endif

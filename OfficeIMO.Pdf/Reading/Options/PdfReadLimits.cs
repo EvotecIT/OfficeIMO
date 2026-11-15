@@ -7,6 +7,7 @@ public sealed partial class PdfReadLimits {
     internal const int DefaultMaxContentOperations = 1_000_000;
     internal const int DefaultMaxContentOperands = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
+    internal const int DefaultMaxGraphicsStateDepth = 1_024;
     internal const int DefaultMaxPageContentBytes = 256 * 1024 * 1024;
     internal const long DefaultMaxRetainedContentBytes = 512L * 1024L * 1024L;
     internal const int DefaultMaxActualTextCharacters = 1_000_000;
@@ -146,6 +147,16 @@ public sealed partial class PdfReadLimits {
     /// <summary>Maximum nested lexical arrays/dictionaries, marked-content scopes, or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
+    /// <summary>Maximum graphics states saved with <c>q</c> and not yet restored with <c>Q</c> in one content stream:
+    /// page contents, a form XObject, a pattern, a Type 3 glyph or an annotation appearance. Default: 1,024.</summary>
+    /// <remarks>
+    /// The count includes the save the reader adds when it positions or clips that content for drawing, and a stream
+    /// interpreted while another is still open adds to the open stream's count. ISO 32000 leaves the depth to
+    /// implementations, and the PDF 1.7 reference lists 28 for Acrobat. The default leaves wide room above that for
+    /// documents that save without restoring, while bounding the state kept for them.
+    /// </remarks>
+    public int MaxGraphicsStateDepth { get; init; } = DefaultMaxGraphicsStateDepth;
+
     /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>
     public int MaxType3GlyphInvocationsPerPage { get; init; } = DefaultMaxType3GlyphInvocationsPerPage;
 
@@ -223,6 +234,8 @@ public sealed partial class PdfReadLimits {
             MaxContentOperations = SaturatingAdd(MaxContentOperations, growth.AdditionalContentOperations),
             MaxContentOperands = SaturatingAdd(MaxContentOperands, growth.AdditionalContentOperands),
             MaxContentNestingDepth = SaturatingAdd(MaxContentNestingDepth, growth.AdditionalContentNestingDepth),
+            // Generated wrappers save one graphics state around each content level they add.
+            MaxGraphicsStateDepth = SaturatingAdd(MaxGraphicsStateDepth, growth.AdditionalContentNestingDepth),
             MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
             MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
@@ -286,6 +299,7 @@ public sealed partial class PdfReadLimits {
             MaxContentOperations = sources.Max(static limits => limits.MaxContentOperations),
             MaxContentOperands = sources.Max(static limits => limits.MaxContentOperands),
             MaxContentNestingDepth = sources.Max(static limits => limits.MaxContentNestingDepth),
+            MaxGraphicsStateDepth = sources.Max(static limits => limits.MaxGraphicsStateDepth),
             MaxPositionedTextCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextCharactersPerPage),
             MaxPositionedTextWorkCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextWorkCharactersPerPage),
             MaxPositionedTextProjectionCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextProjectionCharactersPerPage),
@@ -391,6 +405,7 @@ public sealed partial class PdfReadLimits {
             MaxContentOperations = MaxContentOperations,
             MaxContentOperands = MaxContentOperands,
             MaxContentNestingDepth = MaxContentNestingDepth,
+            MaxGraphicsStateDepth = MaxGraphicsStateDepth,
             MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
             MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
@@ -475,6 +490,7 @@ public sealed partial class PdfReadLimits {
         ValidatePositive(MaxContentOperations, nameof(MaxContentOperations), "Maximum content operations must be positive.");
         ValidatePositive(MaxContentOperands, nameof(MaxContentOperands), "Maximum content operands must be positive.");
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
+        ValidatePositive(MaxGraphicsStateDepth, nameof(MaxGraphicsStateDepth), "Maximum graphics-state depth must be positive.");
         ValidatePositive(MaxPositionedTextCharactersPerPage, nameof(MaxPositionedTextCharactersPerPage), "Maximum positioned text characters per page must be positive.");
         ValidatePositive(MaxPositionedTextWorkCharactersPerPage, nameof(MaxPositionedTextWorkCharactersPerPage), "Maximum positioned text work characters per page must be positive.");
         ValidatePositive(MaxPositionedTextProjectionCharactersPerPage, nameof(MaxPositionedTextProjectionCharactersPerPage), "Maximum positioned text projection characters per page must be positive.");

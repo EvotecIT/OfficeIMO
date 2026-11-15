@@ -205,6 +205,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var fontSizes = new Dictionary<IElement, double>();
             for (int index = 0; index < count; index++) {
                 IElement current = htmlElements[index];
+                if (current.LocalName.Equals("a", StringComparison.OrdinalIgnoreCase)) {
+                    foreach (XAttribute href in svgElements[index].Attributes().Where(attribute => attribute.Name.LocalName == "href").ToArray()) {
+                        if (href.Value.TrimStart().StartsWith("#", StringComparison.Ordinal)) continue;
+                        string? link = ResolveSafeLink(href.Value, current);
+                        if (link == null) href.Remove();
+                        else href.Value = link;
+                    }
+                }
                 double inheritedFontSize = current.ParentElement != null && fontSizes.TryGetValue(current.ParentElement, out double parentSize)
                     ? parentSize : resolvedRootFontSize;
                 if (!_computedStyles.Elements.TryGetValue(current, out HtmlComputedStyle? computed)) {
