@@ -93,7 +93,9 @@ public sealed partial class OfficeRasterCanvas {
             int edgeCount = workspace.EdgeCount;
             ContourEdge[] edges = workspace.Edges;
             double[] edgeLows = workspace.EdgeLows;
-            Array.Sort(edgeLows, edges, 0, edgeCount);
+            // Sort indices rather than the edges themselves; the permutation is the same, without moving each edge.
+            int[] edgeOrder = workspace.EdgeOrder(edgeCount);
+            Array.Sort(edgeLows, edgeOrder, 0, edgeCount);
             int[]? clipWindings = intersectionClips != null ? workspace.RentClipWindings(intersectionClips.Count) : null;
             int nextEdge = 0, activeCount = 0, boundaryIndex = 0;
             int scanlineCount = 0, rowCrossingCount = 0;
@@ -120,11 +122,13 @@ public sealed partial class OfficeRasterCanvas {
                     double low = rowBoundaries[index - 1], high = rowBoundaries[index];
                     if (high <= low) continue;
                     double sample = (low + high) / 2D;
+                    int firstNew = activeCount;
                     while (nextEdge < edgeCount && edgeLows[nextEdge] <= sample) {
                         ContourCrossing[] grown = workspace.ActiveCrossings(activeCount + 1);
-                        grown[activeCount++] = new ContourCrossing(double.NegativeInfinity, nextEdge++);
+                        grown[activeCount++] = new ContourCrossing(0D, edgeOrder[nextEdge++]);
                     }
-                    activeCount = UpdateActiveCrossings(edges, workspace.Active, activeCount, sample);
+                    activeCount = UpdateActiveCrossings(edges, workspace.Active, activeCount, firstNew, sample,
+                        workspace.AddedCrossings(activeCount - firstNew));
                     ContourCrossing[] crossings = workspace.Active;
                     if (activeCount >= 2) {
                         if (activeCount > MaximumRetainedContourCrossings - retainedCrossings) {
@@ -251,34 +255,62 @@ public sealed partial class OfficeRasterCanvas {
 #endif
     }
 
-    // Retire edges that end at or below the sample, compute the remaining crossings, and keep
-    // them ordered by position. Consecutive samples change the order only slightly.
-    private static int UpdateActiveCrossings(ContourEdge[] edges, ContourCrossing[] active, int activeCount, double sample) {
+    // Retire edges that end at or below the sample, compute the remaining crossings, and keep them
+    // ordered by position. Consecutive samples change the order only slightly, so a pass that finds
+    // the existing crossings still in order skips sorting them. Edges activated for this sample (from
+    // firstNew on) are sorted among themselves and merged in, instead of each walking the whole list.
+    // Crossings at equal positions may end up in a different order; coverage only depends on positions.
+    private static int UpdateActiveCrossings(ContourEdge[] edges, ContourCrossing[] active, int activeCount, int firstNew,
+        double sample, ContourCrossing[] added) {
+        int count = ComputeCrossings(edges, active, 0, firstNew, active, sample);
+        if (firstNew == activeCount) return count;
+        int addedCount = ComputeCrossings(edges, active, firstNew, activeCount, added, sample);
+        // Merge from the back so each existing crossing moves at most once.
+        int existing = count - 1, next = addedCount - 1, target = count + addedCount - 1;
+        while (next >= 0) {
+            if (existing >= 0 && active[existing].X > added[next].X) active[target--] = active[existing--];
+            else active[target--] = added[next--];
+        }
+        return count + addedCount;
+    }
+
+    // Writes the crossings of the still-active edges among source[start, end) to the front of target, sorted.
+    private static int ComputeCrossings(ContourEdge[] edges, ContourCrossing[] source, int start, int end,
+        ContourCrossing[] target, double sample) {
         int count = 0;
-        for (int index = 0; index < activeCount; index++) {
-            int edgeIndex = active[index].Edge;
+        bool ordered = true;
+        double previous = double.NegativeInfinity;
+        for (int index = start; index < end; index++) {
+            int edgeIndex = source[index].Edge;
             ref readonly ContourEdge edge = ref edges[edgeIndex];
             if (edge.High <= sample) continue;
-            active[count++] = new ContourCrossing(edge.StartX + (sample - edge.StartY) * edge.DeltaX / edge.DeltaY, edgeIndex);
+            double x = edge.StartX + (sample - edge.StartY) * edge.DeltaX / edge.DeltaY;
+            target[count++] = new ContourCrossing(x, edgeIndex);
+            if (x < previous) ordered = false;
+            previous = x;
         }
         // Positions never contain NaN: every term is finite and the edge height is non-zero.
+        if (!ordered) InsertionSortCrossings(target, count);
+        return count;
+    }
+
+    private static void InsertionSortCrossings(ContourCrossing[] crossings, int count) {
         int moves = 0, moveBudget = 8 * count + 64;
         for (int index = 1; index < count; index++) {
-            ContourCrossing item = active[index];
+            ContourCrossing item = crossings[index];
             int target = index - 1;
-            if (active[target].X <= item.X) continue;
-            while (target >= 0 && active[target].X > item.X) {
-                active[target + 1] = active[target];
+            if (crossings[target].X <= item.X) continue;
+            while (target >= 0 && crossings[target].X > item.X) {
+                crossings[target + 1] = crossings[target];
                 target--;
                 moves++;
             }
-            active[target + 1] = item;
+            crossings[target + 1] = item;
             if (moves > moveBudget) {
-                SortCrossings(active, count);
+                SortCrossings(crossings, count);
                 break;
             }
         }
-        return count;
     }
 
     private static void SortCrossings(ContourCrossing[] crossings, int count) {
