@@ -72,6 +72,18 @@ public sealed class PdfSignatureCryptographicResult {
     /// <summary>Provider findings mapped into the aggregate PDF validation report.</summary>
     public IReadOnlyList<PdfSignatureCryptographicFinding> Findings { get; }
 
+    /// <summary>True when the provider reported the PAdES evidence facts below.</summary>
+    internal bool ReportsPadesEvidence { get; set; }
+
+    /// <summary>True when the CMS signer carries ESS signing-certificate or signing-certificate-v2.</summary>
+    internal bool HasSigningCertificateAttribute { get; set; }
+
+    /// <summary>True when Document Security Store data settled revocation for every certificate checked.</summary>
+    internal bool RevocationSettledByDocument { get; set; }
+
+    /// <summary>True when every DSS value used to settle revocation is covered by a valid document time-stamp.</summary>
+    internal bool RevocationEvidenceHasProofOfExistence { get; set; }
+
     /// <summary>True when signature math and signed-content digest both validated.</summary>
     public bool IsMathematicallyValid =>
         MathematicalSignatureStatus == PdfCryptographicValidationStatus.Valid &&

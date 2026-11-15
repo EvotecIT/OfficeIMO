@@ -139,6 +139,7 @@ Assert-Condition -Condition ($LASTEXITCODE -eq 0) -Message "PDF compliance proof
 $measuredPaths = @(
     'OfficeIMO.Core',
     'OfficeIMO.Pdf',
+    'OfficeIMO.Security',
     'OfficeIMO.Pdf.Tests',
     'OfficeIMO.Html',
     'OfficeIMO.Html.Pdf',
@@ -371,10 +372,11 @@ foreach ($name in $standardsProfiles.Keys) {
         $expectedStandardsRows.Add("$name.pdf|pyHanko|attachment")
     }
 }
-foreach ($name in @($standardsProfiles.Keys) + @('pades-bb', 'pades-bt')) {
+$signatureFixtures = @('pades-bb', 'pades-bt', 'pades-blt', 'pades-blta', 'certification')
+foreach ($name in @($standardsProfiles.Keys) + $signatureFixtures) {
     $expectedStandardsRows.Add("$name.pdf|qpdf|syntax")
 }
-foreach ($name in @('pades-bb', 'pades-bt')) { $expectedStandardsRows.Add("$name.pdf|pyHanko|$name") }
+foreach ($name in $signatureFixtures) { $expectedStandardsRows.Add("$name.pdf|pyHanko|$name") }
 Assert-Condition (@($standards.validations).Count -eq $expectedStandardsRows.Count) 'Standards proof validation matrix is incomplete.'
 
 function Assert-StandardsFile {
@@ -387,8 +389,8 @@ function Assert-StandardsFile {
 }
 
 $expectedStandardsFiles = @($standardsProfiles.Keys | ForEach-Object { "$_.pdf" }) +
-    @($standardsProfiles.Keys | Where-Object { $_.StartsWith('invoice-') } | ForEach-Object { "$_.xml" }) + @(
-    'pades-bb.pdf', 'pades-bt.pdf', 'signer-root.pem', 'tsa-root.pem')
+    @($standardsProfiles.Keys | Where-Object { $_.StartsWith('invoice-') } | ForEach-Object { "$_.xml" }) +
+    @($signatureFixtures | ForEach-Object { "$_.pdf" }) + @('signer-root.pem', 'tsa-root.pem', 'ltv-root.pem')
 Assert-Condition (@($standards.artifacts).Count -eq $expectedStandardsFiles.Count) 'Wrong standards artifact count.'
 foreach ($name in $expectedStandardsFiles) {
     $entries = @($standards.artifacts | Where-Object { $_.file -eq $name })
@@ -418,6 +420,15 @@ foreach ($key in $expectedStandardsRows) {
         Assert-Condition ($row.details.coverage -eq 'ENTIRE_FILE' -and $row.details.baselineAttributesPresent -eq $true) "Signature coverage or baseline attributes failed: $key."
         Assert-Condition ($row.details.cmsSigningTimeAbsent -eq $true) "PAdES contains the prohibited CMS signing_time attribute: $key."
         Assert-Condition ($row.details.signatureTimestampValid -eq ($row.profile -eq 'pades-bt')) "Signature timestamp result is wrong: $key."
+    }
+    if ($row.validator -eq 'pyHanko' -and $row.profile -in @('pades-blt', 'pades-blta')) {
+        Assert-Condition ($row.details.intact -eq $true -and $row.details.valid -eq $true -and $row.details.trusted -eq $true) "Long-term signature integrity or synthetic trust failed: $key."
+        Assert-Condition ($row.details.revocationSource -eq 'DSS' -and $row.details.modificationLevel -eq 'LTA_UPDATES') "Long-term validation data or later revisions are wrong: $key."
+        Assert-Condition ($row.details.documentTimestamp -eq ($row.profile -eq 'pades-blta')) "Document time-stamp result is wrong: $key."
+    }
+    if ($row.validator -eq 'pyHanko' -and $row.profile -eq 'certification') {
+        Assert-Condition ($row.details.intact -eq $true -and $row.details.valid -eq $true -and $row.details.trusted -eq $true) "Certification signature integrity or synthetic trust failed: $key."
+        Assert-Condition ($row.details.coverage -eq 'ENTIRE_FILE' -and $row.details.docMdpLevel -eq 2 -and $row.details.docMdpOk -eq $true) "Certification DocMDP permissions are wrong: $key."
     }
 }
 

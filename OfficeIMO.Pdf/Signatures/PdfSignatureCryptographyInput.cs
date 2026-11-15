@@ -10,13 +10,18 @@ public sealed class PdfSignatureCryptographyInput {
         byte[] signedContent,
         byte[] signatureContents,
         long documentLength,
-        PdfDocumentDssInfo documentSecurityStore) {
+        PdfDocumentDssInfo documentSecurityStore,
+        PdfDocumentValidationData? validationData = null) {
         Signature = signature;
         _signedContent = (byte[])signedContent.Clone();
         _signatureContents = (byte[])signatureContents.Clone();
         DocumentLength = documentLength;
         DocumentSecurityStore = documentSecurityStore;
+        ValidationData = validationData ?? PdfDocumentValidationData.Empty;
     }
+
+    /// <summary>Decoded DSS certificates, OCSP responses and CRLs, with proof-of-existence times from document time-stamps.</summary>
+    internal PdfDocumentValidationData ValidationData { get; }
 
     /// <summary>PDF signature dictionary and field metadata.</summary>
     public PdfSignatureInfo Signature { get; }

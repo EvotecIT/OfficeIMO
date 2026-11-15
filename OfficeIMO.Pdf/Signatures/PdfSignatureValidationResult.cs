@@ -13,7 +13,9 @@ public sealed class PdfSignatureValidationResult {
         long? unsignedByteCount,
         double? byteRangeCoverageRatio,
         PdfSignatureCryptographicResult? cryptographicResult,
+        PdfPadesLevel padesLevel,
         IReadOnlyList<PdfSignatureValidationFinding> findings) {
+        PadesLevel = padesLevel;
         Signature = signature;
         HasCompleteByteRangeShape = hasCompleteByteRangeShape;
         ByteRangeSegmentsAreOrdered = byteRangeSegmentsAreOrdered;
@@ -26,6 +28,13 @@ public sealed class PdfSignatureValidationResult {
         CryptographicResult = cryptographicResult;
         Findings = findings;
     }
+
+    /// <summary>
+    /// PAdES baseline level established by cryptographic validation. <see cref="PdfPadesLevel.None"/> for document
+    /// time-stamps and for signatures validated without a cryptography provider. When a level is not reached, a
+    /// <c>pades-baseline-*-not-reached</c> finding explains why.
+    /// </summary>
+    public PdfPadesLevel PadesLevel { get; }
 
     /// <summary>Signature metadata read from the PDF.</summary>
     public PdfSignatureInfo Signature { get; }
