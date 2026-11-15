@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
@@ -54,6 +53,7 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
         return _current = new PartStream(this, part);
     }
 
+#if NET8_0_OR_GREATER
     /// <summary>
     /// Deflates the bytes <paramref name="write"/> produces, as a <see cref="CompressionLevel.Fastest"/> entry would be,
     /// without touching an archive, so several parts can be prepared at once and appended in order.
@@ -142,6 +142,8 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
     }
+
+#endif
 
     /// <summary>Writes the central directory once every entry has completed. A faulted archive stays unfinished.</summary>
     public override void Dispose() {
@@ -290,7 +292,13 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
             Level = level;
             Method = level == CompressionLevel.NoCompression ? Stored : Deflated;
             // Bits 1-2 record the deflate option; bit 11 marks a UTF-8 name.
-            Flags = level switch { CompressionLevel.Fastest => 0x0006, CompressionLevel.SmallestSize => 0x0002, _ => 0 };
+            Flags = level switch {
+                CompressionLevel.Fastest => 0x0006,
+#if NET6_0_OR_GREATER
+                CompressionLevel.SmallestSize => 0x0002,
+#endif
+                _ => 0
+            };
             if (Name.Length != name.Length) Flags |= Utf8NameFlag;
         }
 
@@ -311,10 +319,12 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
             owner._destination.Write(buffer, offset, count);
             owner._offset += count;
         }
+#if NET8_0_OR_GREATER
         public override void Write(ReadOnlySpan<byte> buffer) {
             owner._destination.Write(buffer);
             owner._offset += buffer.Length;
         }
+#endif
         public override void Flush() => owner._destination.Flush();
         public override bool CanRead => false;
         public override bool CanSeek => false;
@@ -336,6 +346,7 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
         private bool _failed;
         private bool _disposed;
 
+#if NET8_0_OR_GREATER
         public override void Write(byte[] buffer, int offset, int count) {
             ValidateBufferArguments(buffer, offset, count);
             Write(new ReadOnlySpan<byte>(buffer, offset, count));
@@ -355,6 +366,24 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
                 throw;
             }
         }
+#else
+        public override void Write(byte[] buffer, int offset, int count) {
+            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+            if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
+            if (_disposed) throw new ObjectDisposedException(nameof(PartStream));
+            try {
+                Start();
+                _crc = OfficePngCrc32.Append(_crc, buffer, offset, count);
+                _size += count;
+                if (_encoder != null) _encoder.Write(new ReadOnlySpan<byte>(buffer, offset, count));
+                else if (_deflate != null) _deflate.Write(buffer, offset, count);
+                else owner._sink.Write(buffer, offset, count);
+            } catch {
+                _failed = true;
+                throw;
+            }
+        }
+#endif
 
         private void Start() {
             if (part.HeaderOffset >= 0) return;
@@ -400,4 +429,3 @@ internal sealed class ExcelZipWriter : ExcelPackageArchive {
         public override void SetLength(long value) => throw new NotSupportedException();
     }
 }
-#endif

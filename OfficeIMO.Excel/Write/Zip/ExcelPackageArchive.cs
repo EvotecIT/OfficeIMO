@@ -4,15 +4,13 @@ namespace OfficeIMO.Excel;
 
 /// <summary>Writes the parts of a new package one after another; dispose writes the central directory.</summary>
 /// <remarks>Package writers share this surface whether the bytes go through <see cref="ZipArchive"/> or through
-/// the owned <c>ExcelZipWriter</c> (.NET 8 or later), which handles <see cref="CompressionLevel.Fastest"/> with its own deflate encoder.</remarks>
+/// the owned <c>ExcelZipWriter</c> on little-endian hosts, which handles <see cref="CompressionLevel.Fastest"/> with its own deflate encoder.</remarks>
 internal abstract class ExcelPackageArchive : IDisposable {
     /// <summary>Creates a package over <paramref name="output"/>, using the owned writer where it is available.</summary>
     /// <param name="output">The destination; it is not disposed.</param>
     /// <param name="modified">A fixed entry timestamp, or <see langword="null"/> for the time the package is created.</param>
     internal static ExcelPackageArchive Create(Stream output, DateTime? modified = null) {
-#if NET8_0_OR_GREATER
         if (BitConverter.IsLittleEndian) return new ExcelZipWriter(output, modified ?? DateTime.Now);
-#endif
         return new PlatformArchive(output, modified);
     }
 
