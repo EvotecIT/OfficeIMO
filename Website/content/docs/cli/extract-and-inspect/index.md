@@ -1,6 +1,6 @@
 ---
 title: "Extract and Inspect Documents"
-description: "Extract Markdown or JSON from documents and folders with officeimo read, inspect files as JSON and read workbook schemas."
+description: "Extract Markdown or JSON from documents and folders with officeimo read, inspect files as JSON, read workbook schemas and query YAML, JSON and TOML."
 layout: docs
 ---
 
@@ -95,6 +95,19 @@ officeimo tabular schema export.csv --delimiter ';'
 ```
 
 `sheets` prints one sheet name per line. `schema` prints a tab-separated `ordinal`, `name` and `type` table for each column, with types such as `string`, `integer`, `number`, `boolean` and `datetime`. Names escape backslashes and control characters as `\\`, `\t`, `\r`, `\n` or `\uXXXX`, so each stays on one line and is safe to split in a script.
+
+## Query YAML, JSON and TOML
+
+```shell
+officeimo query deployment.yaml 'spec.template.spec.containers[*].image'
+officeimo query values.json '..image'
+officeimo query Cargo.lock "package[?(@.name == 'serde')].version" --input-format toml
+officeimo query manifests.yaml '$[?(@.kind == "Service")].metadata.name' --format json
+```
+
+One query grammar reads all three formats. A path such as `spec.replicas` or `package[0].name` selects one value; `*` and `[*]` select every value or item, `..name` finds a key at any depth, `[-1]` counts from the end, and `[?(...)]` keeps the items whose condition holds: `==`, `!=`, `<`, `<=`, `>`, `>=` between `@` paths and literals, a bare `@.key` to test that a key exists, and `&&`, `||`, `!` and parentheses. Numbers compare as numbers, so `@.port == 8080` matches `port: 8080` but not `port: "8080"`. In a multi-document YAML stream, `$[*]` or `$[?(...)]` picks documents.
+
+The text output has one line per match: the path, the `line:column` where the value starts, and the value, with collections as compact JSON. `--format json` writes an array of `path`, `line`, `column`, `kind` and `value`. Every path selects the same node again with `YamlDocument.Select` or `TomlDocument.Select`. The format follows the extension (`.yaml`, `.yml`, `.json`, `.toml`); `--input-format` overrides it.
 
 ## Mail data
 

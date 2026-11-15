@@ -31,6 +31,7 @@ $docsUrls = [ordered]@{
     'reader'      = '/docs/cli/extract-and-inspect/'
     'markup'      = '/docs/cli/markup/'
     'tabular'     = '/docs/cli/convert/#spreadsheets-and-delimited-files'
+    'query'       = '/docs/cli/extract-and-inspect/#query-yaml-json-and-toml'
     'workflow'    = '/docs/cli/batch-and-jobs/'
     'invoice'     = '/docs/cli/invoices/'
     'pdf'         = '/docs/cli/pdf/'

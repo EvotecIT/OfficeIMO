@@ -117,6 +117,17 @@ public sealed partial class YamlDocument : IDisposable {
     public YamlNode? Select(string path) => YamlPath.Select(this, path);
 
     /// <summary>
+    /// Returns every node a query selects, in document order, with the path of each from the document root. JSON loads
+    /// as YAML, so the same queries read JSON files. With several documents, a leading <c>$[n]</c>, <c>$[-n]</c>,
+    /// <c>$[*]</c> or <c>$[?(condition)]</c> picks documents (<c>$[?(@.kind == 'Service')].metadata.name</c>), and other
+    /// queries start at the first document, as <see cref="Select"/> paths do. See <see cref="YamlNode.Query"/> for the
+    /// grammar.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="query"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="query"/> is malformed.</exception>
+    public IReadOnlyList<YamlQueryMatch> Query(string query) => YamlQuery.Query(this, query);
+
+    /// <summary>
     /// Sets the value at a path, creating missing mappings on the way (and a sequence where the next step is an index),
     /// in the layout of their neighbors. The last step sets a mapping value as <see cref="YamlMapping.Set"/> does, replaces
     /// a sequence item, or appends when the index equals the sequence's count. <c>$</c> or an empty path sets the root.

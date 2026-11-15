@@ -8,6 +8,7 @@ using OfficeIMO.Tool.Commands.Markup;
 using OfficeIMO.Tool.Commands.Mcp;
 using OfficeIMO.Tool.Commands.Pdf;
 using OfficeIMO.Tool.Commands.Provenance;
+using OfficeIMO.Tool.Commands.Query;
 using OfficeIMO.Tool.Commands.Reader;
 using OfficeIMO.Tool.Commands.Tabular;
 using OfficeIMO.Tool.Commands.Workflow;
@@ -169,6 +170,20 @@ internal static class OfficeImoToolCommands {
             InputFormats = static () => ["md"],
             OutputFormats = static () => ["docx", "xlsx", "pptx", "cs", "ps1"],
             ResultFormats = ["json", "text"]
+        },
+        new() {
+            Id = "query",
+            Title = "Query",
+            Summary = "Select values from YAML, JSON and TOML files with one path query: wildcards, recursive descent and filters.",
+            Synopsis = "<file> <query> [options]",
+            Run = static (args, _, output, error, token) => OfficeImoToolApp.WithWriterAsync(output, writer => QueryCommand.RunAsync(args, writer, error, token)),
+            Help = [QueryCommand.Usage],
+            KeyOptions = [
+                new("--format", "Result format: text lines or a JSON array."),
+                new("--input-format", "Read the file as YAML, JSON or TOML instead of by extension.")
+            ],
+            InputFormats = QueryCommand.SupportedExtensions,
+            ResultFormats = ["text", "json"]
         },
         new() {
             Id = "tabular",

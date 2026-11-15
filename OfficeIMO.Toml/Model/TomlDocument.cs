@@ -62,6 +62,14 @@ public sealed partial class TomlDocument : IDisposable {
     public TomlNode? Select(string path) => _root.Select(path);
 
     /// <summary>
+    /// Returns every node a query selects from the root, in document order, with the path of each. See
+    /// <see cref="TomlNode.Query"/> for the grammar; <c>dependencies.*</c> and <c>..version</c> are typical queries.
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="query"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="query"/> is malformed.</exception>
+    public IReadOnlyList<TomlQueryMatch> Query(string query) => _root.Query(query);
+
+    /// <summary>
     /// Sets the value a path addresses and returns the node now there. The last step must be a key or an array index;
     /// missing tables on the way are added with <see cref="TomlTable.AddTable"/>, so
     /// <c>Set("tool.ruff.line-length", 100)</c> works on a file without a <c>[tool.ruff]</c> table. An index equal to its

@@ -217,13 +217,37 @@ public abstract class YamlNode {
     /// <c>["[a, b]"]</c> for <c>[a, b]: x</c>. Keys with equal text resolve as lookups do, by the duplicate-key policy
     /// (by default the last); enumerate <see cref="YamlMapping"/> entries to reach the others, such as <c>1</c> next to
     /// <c>"1"</c>.</para>
-    /// <para>Paths address nodes; they do not evaluate expressions or wildcards. <see cref="GetPath"/> returns the path
+    /// <para>Paths address one node; <see cref="Query"/> adds wildcards, recursive descent and filters. <see cref="GetPath"/> returns the path
     /// of a node, and <see cref="YamlDocument.Set"/>, <see cref="YamlDocument.Add"/> and <see cref="YamlDocument.Remove"/>
     /// edit by the same paths.</para>
     /// </summary>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="path"/> is malformed.</exception>
     public YamlNode? Select(string path) => YamlPath.Select(this, path, 0);
+
+    /// <summary>
+    /// Returns every node a query selects, in document order, with the path of each. Queries extend the
+    /// <see cref="Select"/> grammar, so every path is also a query that selects at most one node:
+    /// <list type="bullet">
+    /// <item><description><c>*</c> as a step (<c>.*</c>, <c>[*]</c>) selects every mapping value or sequence item; a
+    /// key named <c>*</c> is <c>["*"]</c>.</description></item>
+    /// <item><description><c>..</c> before a step applies it to this node and every descendant: <c>..image</c>,
+    /// <c>..*</c>, <c>..[0]</c>.</description></item>
+    /// <item><description><c>[-n]</c> counts from the end of a sequence.</description></item>
+    /// <item><description><c>[?(condition)]</c> (or <c>[?condition]</c>) selects the mapping values or sequence items
+    /// for which the condition holds. Conditions compare <c>@</c> paths (<c>@</c>, <c>@.name</c>, <c>@["a.b"][0]</c>)
+    /// and literals (<c>'text'</c>, <c>"text"</c>, numbers, <c>true</c>, <c>false</c>, <c>null</c>) with
+    /// <c>==</c>, <c>!=</c>, <c>&lt;</c>, <c>&lt;=</c>, <c>&gt;</c> and <c>&gt;=</c>, test that a <c>@</c> path exists,
+    /// and combine with <c>&amp;&amp;</c>, <c>||</c>, <c>!</c> and parentheses.</description></item>
+    /// <item><description><c>["key"]</c> and <c>['key']</c> both select keys.</description></item>
+    /// </list>
+    /// <para>Scalars compare by what they resolve to under the schema: <c>8080</c> equals <c>8080.0</c>, <c>true</c> is a boolean and <c>'8080'</c> a string; values of different types are never equal and only numbers or strings order. Wildcards and filters see merged keys as key steps do and leave out the <c>&lt;&lt;</c> keys; <c>..</c> walks the nodes as written and does not descend into aliases, so recursive data stays finite. Paths are relative to this node.</para>
+    /// <para>The same grammar queries TOML through <c>OfficeIMO.Toml</c>, so one query reads YAML, JSON and TOML
+    /// configuration alike.</para>
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="query"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="query"/> is malformed.</exception>
+    public IReadOnlyList<YamlQueryMatch> Query(string query) => YamlQuery.Query(this, query);
 
     /// <summary>Returns the path of this node from its document root, in the grammar <see cref="Select"/> reads.</summary>
     /// <remarks>Keys that are not plain names (empty, starting with <c>$</c>, or containing dots, brackets, quotes,

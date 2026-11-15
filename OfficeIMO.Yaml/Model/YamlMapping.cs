@@ -119,7 +119,7 @@ public sealed class YamlMapping : YamlNode, IReadOnlyList<YamlMappingEntry> {
         return false;
     }
 
-    private bool IsMergeKeyAt(int index) {
+    internal bool IsMergeKeyAt(int index) {
         if (!IsLoaded(index)) return Table.IsMergeKey(_slots![index], _part!.MergeKeys);
         return EntryAt(index).Key is YamlScalar key && key.IsMergeKey();
     }

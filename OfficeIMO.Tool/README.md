@@ -329,6 +329,10 @@ officeimo tabular convert input.csv output.xlsx
 officeimo tabular convert workbook.xlsb output.tsv --sheet Data
 officeimo tabular convert pipe-delimited.csv output.csv --delimiter '|' --output-delimiter ','
 
+# Query YAML, JSON and TOML with one path grammar
+officeimo query deployment.yaml 'spec.template.spec.containers[*].image'
+officeimo query Cargo.lock "package[?(@.name == 'serde')].version" --input-format toml --format json
+
 # Analyze embedded Word images without writing a file
 officeimo workflow optimize-images input.docx --analyze
 
@@ -386,6 +390,7 @@ All `convert`, `read`, `extract`, `reader` and `agent convert` destinations are 
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
+- `officeimo query` selects values from YAML, JSON, or TOML files with wildcards, recursive descent, and filters, and prints each match's path and line and column as text or JSON.
 - `officeimo workflow` exports PDF pages, assembles mixed document sources, and creates deterministic print-sheet plans.
 - `officeimo pdf redact` plans, applies, verifies, and batch-runs source-bound PDF redaction recipes with privacy-safe JSON evidence. `batch --request` accepts the strict `officeimo.pdf.redaction.batch-request.v1` file-set contract, preserves deterministic relative-path ordering, and supports atomic-all or continue-per-item publication. Framework-dependent tool builds load optional provider assemblies only from explicit `--ocr-provider-assembly` paths and select one with `--ocr-provider`; NativeAOT hosts must register a statically linked provider through `OcrEngineCatalog`. The default tool still includes no OCR runtime or model. Use `--ocr-language`, `--ocr-min-confidence`, and repeated `--ocr-option key=value` values for non-secret configuration. Passwords are accepted only through named environment variables, and provider credentials should remain behind environment or secret-store references. Output, evidence, and manifests can never replace the PDF, recipe, decisions, or batch-request input, even with `--force`; zero-area verification of re-encrypted output accepts `--expected-output-sha256` from prior apply evidence. Signing a derivative remains an API-host responsibility because the CLI does not construct external signers.
 - `officeimo provenance` discovers format owners and runs bounded inspect, assess, selective-remove, and batch workflows with versioned JSON or readable text output.
