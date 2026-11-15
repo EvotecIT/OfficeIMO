@@ -316,9 +316,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void PerformanceReview_RangeChartCacheFromDeferredRowsMatchesTheWrittenCells(bool separateRanges) {
+        [InlineData("range")]
+        [InlineData("ranges")]
+        [InlineData("table")]
+        public void PerformanceReview_RangeChartCacheFromDeferredRowsMatchesTheWrittenCells(string source) {
             var table = new DataTable();
             table.Columns.Add("Region", typeof(object));
             table.Columns.Add("Score", typeof(object));
@@ -337,15 +338,21 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(stream)) {
                     var sheet = document.AddSheet("Data");
                     sheet.AddTable(table, new ExcelTableOptions { Name = "Scores", AutoFit = false }, row: 1, column: 1);
-                    if (writeRowsFirst) sheet.Cell(1, 10).SetValue("note");
-                    if (separateRanges) {
+                    if (writeRowsFirst) {
+                        sheet.Cell(1, 10).SetValue("note");
+                        // A cell read loads the rows into the worksheet, so the chart reads the written cells.
+                        Assert.True(sheet.TryGetCellText(2, 1, out _));
+                    }
+                    if (source == "ranges") {
                         sheet.AddChartFromRanges(OfficeChartType.ColumnClustered, new[] {
                             new ExcelChartSeriesRange("Score", "A2:A6", "B2:B6"),
                             new ExcelChartSeriesRange("Count", "A2:A6", "C2:C6")
                         }, new ExcelChartOptions { Row = 2, Column = 6 });
                     } else {
-                        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C6", new ExcelChartOptions { Row = 2, Column = 6 });
+                        sheet.AddChart(OfficeChartType.ColumnClustered, source == "table" ? "Scores" : "A1:C6", new ExcelChartOptions { Row = 2, Column = 6 });
                     }
+                    // Reading the cache must leave the rows for the direct writer.
+                    Assert.Equal(!writeRowsFirst, document.HasUnmaterializedDirectDataSetRows);
                     if (!writeRowsFirst) sheet.Cell(1, 10).SetValue("note");
                     document.Save(stream);
                 }
@@ -362,6 +369,31 @@ namespace OfficeIMO.Tests {
             string deferred = ChartXml(writeRowsFirst: false);
             Assert.Contains("EU &amp; UK", deferred);
             Assert.Equal(ChartXml(writeRowsFirst: true), deferred);
+        }
+
+        [Fact]
+        public void PerformanceReview_ChartedTableSavesItsRowsWithoutLoadingThemIntoTheWorksheet() {
+            var table = new DataTable();
+            table.Columns.Add("Region", typeof(object));
+            table.Columns.Add("Score", typeof(object));
+            table.Rows.Add("NA", 1.5);
+            table.Rows.Add("EU", 2.5);
+
+            using var stream = new MemoryStream();
+            using (var document = ExcelDocument.Create(stream)) {
+                var sheet = document.AddSheet("Data");
+                sheet.AddTable(table, new ExcelTableOptions { Name = "Scores", AutoFit = false }, row: 1, column: 1);
+                sheet.AddChart(OfficeChartType.ColumnClustered, "Scores", new ExcelChartOptions { Row = 2, Column = 4 });
+                Assert.True(document.HasWorksheets);
+                document.Save(stream);
+                // Neither the worksheet check nor the save's look for a drawing may load the rows into the worksheet.
+                Assert.True(document.HasUnmaterializedDirectDataSetRows);
+            }
+
+            using var saved = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
+            Assert.True(saved["Data"].TryGetCellText(3, 1, out string region));
+            Assert.Equal("EU", region);
+            Assert.Single(saved["Data"].Charts);
         }
 
         [Fact]

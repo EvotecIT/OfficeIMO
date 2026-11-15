@@ -130,7 +130,7 @@ public sealed class NewOfficeExcelCommand : OfficeNewLifecycleCmdlet<ExcelDocume
                 return document;
             } catch { document.Dispose(); throw; }
         }, (document, path, allowLoss) => {
-            if (document.Sheets.Count == 0) document.AddSheet("Sheet1");
+            if (!document.HasWorksheets) document.AddSheet("Sheet1");
             document.Save(path, ExcelDocumentService.NativeSaveOptions(SaveOptions,
                 MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss)) ? allowLoss : (bool?)null,
                 Password, MyInvocation.BoundParameters.ContainsKey(nameof(Password))));

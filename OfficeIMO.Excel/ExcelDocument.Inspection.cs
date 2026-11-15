@@ -5,6 +5,15 @@ using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>
+        /// Whether the workbook has a worksheet. Unlike <see cref="Sheets"/>, it leaves rows waiting for the direct writer
+        /// out of the worksheets, so a save that follows keeps them on that writer.
+        /// </summary>
+        internal bool HasWorksheets => ExecuteReadWithoutMaterializing(() =>
+            _directDataSetSaveCandidate?.Model.Sheets.Count > 0
+            || _materializedDirectDataSetFastSaveModel?.Sheets.Count > 0
+            || ReadSheetElements().Any(sheet => sheet.Id?.Value is string id && WorkbookPartRoot.GetPartById(id) is WorksheetPart));
+
         /// <summary>Counts all workbook sheet entries, including chart sheets, for source-level inspection.</summary>
         internal int GetWorkbookSheetCount(CancellationToken cancellationToken) {
             MaterializeDeferredDataSetImport(cancellationToken);

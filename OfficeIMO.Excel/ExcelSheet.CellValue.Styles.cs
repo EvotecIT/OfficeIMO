@@ -263,6 +263,16 @@ namespace OfficeIMO.Excel {
             return snapshots;
         }
 
+        /// <summary>
+        /// Reads one column's cell texts from a table whose rows still wait for the direct writer, so they stay on it: each
+        /// as <see cref="TryGetCellText(int, int, out string)"/> reads it once written, or null for an empty cell. Returns
+        /// false when the rows cannot answer, and the caller reads the cells. With <paramref name="numbersReadAsNumbers"/>,
+        /// a number that <see cref="GetCellValueSnapshots"/> would read as a date also returns false.
+        /// </summary>
+        internal bool TryReadDeferredColumnTexts(int column, int firstRow, int lastRow, bool numbersReadAsNumbers, out string?[] texts) =>
+            _excelDocument.TryReadDeferredTabularCellTexts(this, lastRow - firstRow + 1, index => (firstRow + index, column), out texts,
+                numbersReadAsNumbers);
+
         private void MaterializeDeferredDataSetImportForReading() {
             if (_excelDocument.IsMaterializingDeferredDataSetImport) return;
             if (_excelDocument.HasDeferredDirectDataSetImport) {

@@ -127,16 +127,26 @@ public sealed partial class AddOfficeExcelChartCommand {
 
     private static OfficeChartData ReadData(ExcelSheet sheet, int firstRow, int lastRow, int categoryColumn,
         int[] valueColumns, string[] seriesNames) {
-        int count = lastRow - firstRow + 1;
-        var categories = Enumerable.Range(firstRow, count).Select(row => CategoryText(ReadText(sheet, row, categoryColumn))).ToArray();
+        var categories = ReadTexts(sheet, firstRow, lastRow, categoryColumn).Select(CategoryText).ToArray();
         var series = valueColumns.Select((column, index) => new OfficeSeries(seriesNames[index],
             ReadNumbers(sheet, firstRow, lastRow, column).Select((value, offset) => value
                 ?? throw new PSArgumentException($"Column '{seriesNames[index]}' contains a blank, nonnumeric or nonfinite value at {ExcelA1.CellReference(firstRow + offset, column)}.", nameof(Value))))).ToArray();
         return new OfficeChartData(categories, series);
     }
 
-    /// <summary>Reads one column of numbers in a single pass; a blank, nonnumeric or nonfinite cell reads as null.</summary>
+    /// <summary>
+    /// Reads one column of numbers in a single pass; a blank, nonnumeric or nonfinite cell reads as null. A table whose
+    /// rows still wait for the direct writer answers from those rows, so charting it leaves them there.
+    /// </summary>
     private static double?[] ReadNumbers(ExcelSheet sheet, int firstRow, int lastRow, int column) {
+        if (sheet.TryReadDeferredColumnTexts(column, firstRow, lastRow, numbersReadAsNumbers: true, out string?[] texts)) {
+            var numbers = new double?[texts.Length];
+            for (int i = 0; i < numbers.Length; i++) {
+                if (TryNumber(texts[i], out double number)) numbers[i] = number;
+            }
+            return numbers;
+        }
+
         var cells = sheet.GetCellValueSnapshots(column, firstRow, lastRow);
         var values = new double?[cells.Count];
         for (int i = 0; i < values.Length; i++) {
@@ -173,7 +183,17 @@ public sealed partial class AddOfficeExcelChartCommand {
     private static double RequireNumber(object value, string name) => TryNumber(value, out double number)
         ? number : throw new PSArgumentException($"Column '{name}' contains a blank, nonnumeric or nonfinite value.", nameof(Value));
 
-    private static string ReadText(ExcelSheet sheet, int row, int column) => sheet.TryGetCellText(row, column, out string text) ? text : string.Empty;
+    private static string ReadText(ExcelSheet sheet, int row, int column) => ReadTexts(sheet, row, row, column)[0];
+
+    /// <summary>Reads one column's cell texts, from the rows of a table still waiting for the direct writer when they hold them.</summary>
+    private static string[] ReadTexts(ExcelSheet sheet, int firstRow, int lastRow, int column) {
+        if (sheet.TryReadDeferredColumnTexts(column, firstRow, lastRow, numbersReadAsNumbers: false, out string?[] deferred)) {
+            return deferred.Select(text => text ?? string.Empty).ToArray();
+        }
+
+        return Enumerable.Range(firstRow, lastRow - firstRow + 1)
+            .Select(row => sheet.TryGetCellText(row, column, out string text) ? text : string.Empty).ToArray();
+    }
 
     private static string CategoryText(object value) {
         string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;

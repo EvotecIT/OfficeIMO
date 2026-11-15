@@ -181,7 +181,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 ExcelSheet? sheet = TryGetExistingSheet(sheetModel.SheetName);
-                if (sheet?.WorksheetPart.DrawingsPart != null) {
+                // Checking for a drawing must not write the model's rows into the worksheet.
+                if (sheet?.DeferredMetadataWorksheetPart.DrawingsPart != null) {
                     return false;
                 }
             }

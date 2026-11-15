@@ -143,6 +143,15 @@ namespace OfficeIMO.Excel {
                         DirectDataSetWorkbookWriter.DirectStylePlan.Create(model.DirectDataSetModel), GetWorkbookStylesheet(model), defaultFontTheme) != null;
             }
 
+            /// <summary>
+            /// Whether every sheet of the direct-save model is written from that model, with its table part, so rows that
+            /// are only in the model reach the package without first being written into the worksheets.
+            /// </summary>
+            internal static bool WritesEveryDirectWorksheet(ExtendedWorkbookPackageModel model) =>
+                (CanUseMixedDirectWorksheetEntries(model) || CanUseDirectWorksheetEntries(model))
+                && model.DirectWorksheetModels.All(pair => !pair.Value.HasTable
+                    || (pair.Key as WorksheetPart)?.TableDefinitionParts.Any() == true);
+
             private static bool CanUseDirectWorksheetEntries(ExtendedWorkbookPackageModel model) {
                 if (model.DirectDataSetModel == null
                     || model.DirectDataSetModel.Sheets.Count == 0

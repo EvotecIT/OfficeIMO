@@ -137,6 +137,20 @@ namespace OfficeIMO.Excel {
             }
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.CreateModel");
 
+            // Rows that are only in the direct-save model go into the worksheets first when the writer cannot write
+            // every model sheet itself, such as a table whose part is created only with its rows.
+            if (_materializedDirectDataSetFastSaveModel != null
+                && !_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet
+                && !ExtendedWorkbookPackageWriter.WritesEveryDirectWorksheet(model)) {
+                MaterializeDirectDataSetFastSaveModelIfNeeded(ct);
+                if (!ExtendedWorkbookPackageModel.TryCreate(_spreadSheetDocument, _materializedDirectDataSetFastSaveModel, out model, out modelSkipReason)) {
+                    skipReason = modelSkipReason ?? "Workbook contains parts outside the extended package writer surface.";
+                    return false;
+                }
+
+                ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.MaterializeDirectData");
+            }
+
             if ((ShouldMaterializeMixedDirectWorkbookGlobalParts(model)
                     || !ExtendedWorkbookPackageWriter.CanWriteDirectStyles(model, _defaultFontTheme))
                 && _materializedDirectDataSetFastSaveModel != null) {
