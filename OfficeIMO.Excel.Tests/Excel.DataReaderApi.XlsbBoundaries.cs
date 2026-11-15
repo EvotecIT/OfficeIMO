@@ -24,9 +24,10 @@ public partial class Excel {
                 }
             }
 
-            OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(
-                () => ExcelDocument.OpenReader(path));
-            Assert.Equal(OfficePackageSecurityRule.PartCount, exception.Rule);
+            Assert.Equal(OfficePackageSecurityRule.PartCount,
+                Assert.Throws<OfficePackageSecurityException>(() => ExcelDocument.OpenReader(path)).Rule);
+            Assert.Equal(OfficePackageSecurityRule.PartCount,
+                Assert.Throws<OfficePackageSecurityException>(() => ExcelDocument.Load(path)).Rule);
 
             // A caller policy that allows more entries still loads the workbook as XLSB.
             using ExcelDocument loaded = ExcelDocument.Load(path, new ExcelLoadOptions {

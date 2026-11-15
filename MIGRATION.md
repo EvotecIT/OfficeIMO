@@ -5357,8 +5357,10 @@ limits to `.xlsb` workbooks; when `ExcelLoadOptions.PackageSecurity` is set,
 `ExcelDocument.Load` applies that policy instead. A package that breaks a limit throws
 `OfficePackageSecurityException` (an `IOException`) with the failing `Rule`; XLSB
 part-name problems that used to throw `InvalidDataException` now throw this exception
-too, so catch both if you handle them. Format detection no longer treats a ZIP with
-more entries than that limit allows as XLSB.
+too, so catch both if you handle them. `ExcelDocument.Load`, and `ExcelDocument.OpenReader`
+for bytes and streams, also reject any workbook ZIP, XLSX included, whose central
+directory lists more than 10,000 entries (or `PackageSecurity.MaxPartCount`) before
+opening it.
 
 `MarkdownView` in OfficeIMO.MarkdownRenderer.Wpf now raises `NavigationRequested`, and
 opens links externally, only for `http`, `https` and `mailto` links. `file:` links
