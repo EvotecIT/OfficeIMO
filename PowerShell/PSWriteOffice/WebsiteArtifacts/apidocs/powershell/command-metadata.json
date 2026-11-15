@@ -736,8 +736,8 @@
         "PdfTable"
       ],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTableCommand.cs",
-      "sourceLine": 31,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTableCommand.cs#L31"
+      "sourceLine": 45,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfTableCommand.cs#L45"
     },
     {
       "name": "Add-OfficePdfText",
@@ -4372,6 +4372,14 @@
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/StopOfficePrintJobCommand.cs",
       "sourceLine": 16,
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/StopOfficePrintJobCommand.cs#L16"
+    },
+    {
+      "name": "Test-OfficeAccessibility",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Accessibility/TestOfficeAccessibilityCommand.cs",
+      "sourceLine": 34,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Accessibility/TestOfficeAccessibilityCommand.cs#L34"
     },
     {
       "name": "Test-OfficeDocument",
