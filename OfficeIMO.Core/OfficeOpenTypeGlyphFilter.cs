@@ -36,31 +36,36 @@ internal sealed class OfficeOpenTypeGlyphFilter {
         return isLigature ? 2 : 1;
     }
 
-    internal bool SupportsFlags(ushort flags, int markFilteringSet) {
-        if ((flags & 0x00E0) != 0) return false;
-        if ((flags & 0xFF00) != 0 && _attachmentClasses == 0) return false;
-        if ((flags & 0x0010) == 0) return true;
-        if (_markSets == 0 || U16(_markSets) != 1) return false;
-        int count = U16(_markSets + 2);
-        Ensure(_markSets + 4, checked(count * 4));
-        return markFilteringSet >= 0 && markFilteringSet < count;
-    }
-
+    /// <summary>Applies the lookup flags that filter glyphs from matching.</summary>
+    /// <remarks>
+    /// A missing MarkAttachClassDef gives every mark attachment class 0, and a missing or
+    /// out-of-range mark glyph set covers no glyph, so those lookups skip every mark, as the
+    /// reference shaper does. Reserved bits 5 to 7 carry no behaviour. RightToLeft affects
+    /// only cursive attachment, which reads it directly.
+    /// </remarks>
     internal bool IsIgnored(OfficeOpenTypeSubstitution.GlyphToken token, ushort flags,
         int markFilteringSet, Action charge) {
         charge();
-        if (!SupportsFlags(flags, markFilteringSet)) throw new InvalidDataException("Unsupported OpenType glyph-filter flags.");
+        if ((flags & 0xFF1E) == 0) return false;
         int glyphClass = GetGlyphClass(token.GlyphId, token.Scalar, token.LigatureComponentTextIndexes?.Count > 1, charge);
         if (glyphClass == 1 && (flags & 0x0002) != 0 || glyphClass == 2 && (flags & 0x0004) != 0) return true;
         if (glyphClass != 3) return false;
         if ((flags & 0x0008) != 0) return true;
         // UseMarkFilteringSet takes precedence over MarkAttachmentType.
-        if ((flags & 0x0010) != 0) {
-            int coverage = Relative(_markSets, U32(_markSets + 4 + markFilteringSet * 4), 4);
-            return Coverage(coverage, token.GlyphId, charge) < 0;
-        }
+        if ((flags & 0x0010) != 0) return !MarkSetCovers(markFilteringSet, token.GlyphId, charge);
         int attachmentType = flags >> 8;
-        return attachmentType != 0 && Class(_attachmentClasses, token.GlyphId, charge) != attachmentType;
+        if (attachmentType == 0) return false;
+        int glyphAttachmentType = _attachmentClasses == 0 ? 0 : Class(_attachmentClasses, token.GlyphId, charge);
+        return glyphAttachmentType != attachmentType;
+    }
+
+    private bool MarkSetCovers(int markFilteringSet, int glyphId, Action charge) {
+        if (_markSets == 0 || markFilteringSet < 0 || U16(_markSets) != 1) return false;
+        int count = U16(_markSets + 2);
+        if (markFilteringSet >= count) return false;
+        Ensure(_markSets + 4, checked(count * 4));
+        int coverage = Relative(_markSets, U32(_markSets + 4 + markFilteringSet * 4), 4);
+        return Coverage(coverage, glyphId, charge) >= 0;
     }
 
     internal static bool IsUnicodeMark(int scalar) {

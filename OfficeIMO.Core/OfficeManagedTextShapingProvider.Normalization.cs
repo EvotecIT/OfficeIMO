@@ -61,13 +61,17 @@ public sealed partial class OfficeManagedTextShapingProvider {
         }
         if (arabic) {
             ReorderArabicMarks(sequence, request);
-            ComposeArabicGlyphSequence(sequence, font, request);
+            ComposeGlyphSequence(sequence, ArabicRenderClasses(sequence, request), font, request);
         } else {
             string composed;
             try { composed = original.Normalize(NormalizationForm.FormC); }
             catch (ArgumentException) { return null; }
             var nfc = new List<int>(OfficeUnicodeBidi.ToScalars(composed, out _));
             if (CanMapNormalizedScalars(nfc, font, request)) return nfc;
+            // When the complete composition is missing from the font, compose each mark
+            // onto its starter only where the font covers the canonical composite. The
+            // reference shaper keeps Å + acute for a font without Ǻ, so its anchors match.
+            ComposeGlyphSequence(sequence, CanonicalClasses(sequence, request), font, request);
         }
         return CanMapNormalizedScalars(sequence, font, request) ? sequence : null;
     }
@@ -119,14 +123,15 @@ public sealed partial class OfficeManagedTextShapingProvider {
         }
     }
 
-    // Font-directed composition follows the reference shaper's Arabic render classes:
-    // a lower-class intervening mark does not block a covered canonical composite.
-    // This deliberately differs from UAX #53's adjacent-only recomposition guidance;
-    // it is native-compatible Arabic normalization, not complete AMTRA conformance.
+    // Font-directed composition follows the reference shaper's recomposition: a mark
+    // composes with its starter when no intervening mark of the same or higher class
+    // blocks it and the font covers the canonical composite. Arabic uses render classes,
+    // so a lower-class intervening mark does not block a covered composite. This
+    // deliberately differs from UAX #53's adjacent-only recomposition guidance;
+    // it is native-compatible normalization, not complete AMTRA conformance.
     // https://github.com/harfbuzz/harfbuzz/blob/14.2.1/src/hb-ot-shape-normalize.cc
-    private static void ComposeArabicGlyphSequence(List<int> sequence, IOfficeFontProgram font,
+    private static void ComposeGlyphSequence(List<int> sequence, List<byte> renderClasses, IOfficeFontProgram font,
         OfficeTextShapingRequest request) {
-        List<byte> renderClasses = ArabicRenderClasses(sequence, request);
         int starter = -1;
         for (int index = 0; index < sequence.Count;) {
             request.CancellationToken.ThrowIfCancellationRequested();
@@ -149,6 +154,15 @@ public sealed partial class OfficeManagedTextShapingProvider {
             sequence.RemoveAt(index);
             renderClasses.RemoveAt(index);
         }
+    }
+
+    private static List<byte> CanonicalClasses(List<int> sequence, OfficeTextShapingRequest request) {
+        var classes = new List<byte>(sequence.Count);
+        foreach (int scalar in sequence) {
+            request.CancellationToken.ThrowIfCancellationRequested();
+            classes.Add(OfficeUnicodeTextData.GetCanonicalCombiningClass(scalar));
+        }
+        return classes;
     }
 
     // These are rendering-only classes. The generated canonical Unicode data remains

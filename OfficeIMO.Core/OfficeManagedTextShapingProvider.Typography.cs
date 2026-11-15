@@ -30,22 +30,38 @@ public sealed partial class OfficeManagedTextShapingProvider {
                 out List<OfficeOpenTypeSubstitution.GlyphToken> tokens)) return null;
             if (tokens.Count == 0 || cached.Substitution != null && HasReversedLatinTypography(tokens, starts, levels, request)) return null;
             if (!ApplyTypographySubstitutions(cached.Substitution, font, tokens, request, starts, levels)) return null;
+            MergeLigatureClusters(tokens, request.CancellationToken);
             if (!FinalTypographyControlsAreBlank(request, font, reader, tokens)) return null;
             if (!OfficeOpenTypeMarkPositioning.TryGetAttachments(request.FontDataForShaping, tokens,
                 request.Language, request.FeatureSettings, request.CancellationToken, out OfficeOpenTypeMarkAttachment[] attachments)) return null;
             List<int> visual = ResolveTypographyVisualOrder(request, tokens, attachments, starts, levels, out int[] logicalClusters);
             OfficeOpenTypeGlyphPositioning[] positions;
-            if (request.FeatureSettings.TryGetValue("kern", out int kern) && kern == 0)
-                positions = new OfficeOpenTypeGlyphPositioning[tokens.Count];
-            else if (cached.Substitution == null && !attachments.Any(item => item.IsMark)) {
+            bool kerning = !request.FeatureSettings.TryGetValue("kern", out int kern) || kern != 0;
+            bool cursive = !request.FeatureSettings.TryGetValue("curs", out int curs) || curs != 0;
+            var rightToLeft = new bool[tokens.Count];
+            for (int index = 0; index < tokens.Count; index++)
+                rightToLeft[index] = (TypographyLevel(tokens[index].TextIndex, starts, levels) & 1) == 1;
+            var options = new OfficeOpenTypePositioningOptions(kerning, cursive, rightToLeft);
+            if (cached.Substitution == null && !attachments.Any(item => item.IsMark) && kerning) {
                 // Preserve the established simple-font visual positioning route;
                 // source controls now remain explicit zero-advance glyphs.
                 if (!TryPositionVisualTypography(font, tokens, visual, request, out positions)) return null;
-            } else if (!TryPositionTypography(font, tokens, request, out positions)) return null;
+                // That route reads pair kerning only. A font with cursive attachment
+                // takes the logical GPOS route, which owns curs alongside kern.
+                if (cursive && cached.HasCursiveFeature
+                    && !TryPositionTypography(font, tokens, request, out positions, options)) return null;
+            } else if (!TryPositionTypography(font, tokens, request, out positions, options)) return null;
             return CompleteTypography(request, reader, tokens, attachments, positions, logicalClusters, visual,
                 (paragraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
         } catch (Exception exception) when (exception is InvalidDataException or OverflowException or
             ArgumentOutOfRangeException or IndexOutOfRangeException) { return null; }
+    }
+
+    private static bool RequiresCursiveAttachment(OfficeTextShapingRequest request) {
+        if (request.FeatureSettings.TryGetValue("curs", out int curs) && curs == 0) return false;
+        object key = request.FontProgramCacheKeyForShaping ?? request.FontDataForShaping;
+        TypographyFont cached = TypographyFonts.GetValue(key, _ => new TypographyFont(request));
+        return cached.HasCursiveFeature;
     }
 
     private static bool ApplyTypographySubstitutions(OfficeOpenTypeSubstitution? substitution,
@@ -93,13 +109,30 @@ public sealed partial class OfficeManagedTextShapingProvider {
         return true;
     }
 
+    // A ligature that consumed a later grapheme's base owns that grapheme's cluster, so
+    // the grapheme's remaining marks join the ligature's cluster, as reference shaping
+    // merges clusters over a ligature's source span.
+    private static void MergeLigatureClusters(List<OfficeOpenTypeSubstitution.GlyphToken> tokens,
+        CancellationToken cancellationToken) {
+        int ownerCluster = -1, ownerEnd = -1;
+        for (int index = 0; index < tokens.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
+            if (ownerCluster >= 0 && token.ClusterStart > ownerCluster && token.ClusterStart < ownerEnd)
+                tokens[index] = token = token.WithClusterStart(ownerCluster);
+            int end = token.TextIndex + token.UnicodeText.Length;
+            if (token.ClusterStart != ownerCluster) { ownerCluster = token.ClusterStart; ownerEnd = end; }
+            else ownerEnd = Math.Max(ownerEnd, end);
+        }
+    }
+
     private static bool TryPositionTypography(IOfficeFontProgram font,
         IReadOnlyList<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeTextShapingRequest request,
-        out OfficeOpenTypeGlyphPositioning[] positions) {
+        out OfficeOpenTypeGlyphPositioning[] positions, OfficeOpenTypePositioningOptions? options = null) {
         if (font is OfficeTrueTypeFont trueType)
-            return trueType.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true);
+            return trueType.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true, options);
         if (font is OfficeOpenTypeCffFont cff)
-            return cff.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true);
+            return cff.TryPositionGlyphRun(tokens, request.Language, request.CancellationToken, out positions, rejectMarkAdjustments: true, options);
         positions = Array.Empty<OfficeOpenTypeGlyphPositioning>();
         return false;
     }
@@ -158,8 +191,10 @@ public sealed partial class OfficeManagedTextShapingProvider {
             Reader = OfficeOpenTypeReader.TryCreate(request.FontDataForShaping);
             Font = LoadShapingFont(request);
             Substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
+            HasCursiveFeature = Reader != null && OfficeOpenTypeLayoutFeatures.HasFeature(Reader, "GPOS", "curs");
         }
         internal OfficeOpenTypeReader? Reader { get; }
+        internal bool HasCursiveFeature { get; }
         internal IOfficeFontProgram? Font { get; }
         internal OfficeOpenTypeSubstitution? Substitution { get; }
     }
