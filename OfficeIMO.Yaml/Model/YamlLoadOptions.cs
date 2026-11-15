@@ -42,6 +42,7 @@ public sealed class YamlLoadOptions {
     internal YamlLoadOptions Clone() => new YamlLoadOptions {
         Schema = Schema,
         Strict = Strict,
+        Dialect = Dialect,
         DuplicateKeys = DuplicateKeys,
         MaxDepth = MaxDepth,
         MaxNodes = MaxNodes,
@@ -78,6 +79,16 @@ public sealed class YamlLoadOptions {
     public bool Strict {
         get => _reader.Strict;
         set => _reader.Strict = value;
+    }
+
+    /// <summary>
+    /// Gets or sets the YAML variant to accept. <see cref="YamlDialect.Standard"/> (the default) reads YAML as the
+    /// specification defines it; <see cref="YamlDialect.Unity"/> also reads Unity's scene, prefab and asset files,
+    /// whose documents keep their bytes on save. Reformatting a Unity file is not supported.
+    /// </summary>
+    public YamlDialect Dialect {
+        get => _reader.Dialect;
+        set => _reader.Dialect = value;
     }
 
     /// <summary>

@@ -38,7 +38,9 @@ internal enum YamlTokenFlags : byte {
     /// <summary>The tag is verbatim (<c>!&lt;...&gt;</c>).</summary>
     Verbatim = 4,
     /// <summary>The tag suffix contains percent escapes.</summary>
-    PercentEscapes = 8
+    PercentEscapes = 8,
+    /// <summary>Unity dialect: the anchor is followed by the word <c>stripped</c>, which the token's span includes.</summary>
+    Stripped = 16
 }
 
 /// <summary>Block scalar chomping indicator.</summary>

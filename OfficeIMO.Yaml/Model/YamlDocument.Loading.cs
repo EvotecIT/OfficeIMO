@@ -118,7 +118,7 @@ public sealed partial class YamlDocument {
     }
 
     private static YamlDocument Build(string text, YamlTextEncoding encoding, bool byteOrderMark, YamlLoadOptions options, CancellationToken cancellationToken) {
-        var document = new YamlDocument(text, encoding, byteOrderMark, options.EffectiveDuplicateKeys, options.Strict);
+        var document = new YamlDocument(text, encoding, byteOrderMark, options.EffectiveDuplicateKeys, options.Strict) { Dialect = options.Dialect };
         var table = new YamlNodeTable(text);
         document._table = table;
         bool built = false;

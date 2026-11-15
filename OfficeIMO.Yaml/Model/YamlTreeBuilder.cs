@@ -84,9 +84,11 @@ internal sealed class YamlTreeBuilder {
         while (reader.Read()) {
             if (reader.LenientFindings is { } findings && findings.Count > _findingsTaken) TakeFindings(findings);
             ref readonly YamlEvent ev = ref reader.CurrentEvent;
+            if (ev.Stripped) _part!.IsStripped = true;
             switch (ev.Type) {
                 case YamlTokenType.DocumentStart:
                     _part = new YamlDocumentPart(_document, reader.DocumentSchema, reader.DocumentVersion, reader.CopyTagDirectives(), !ev.Implicit, ev.Start, ev.End);
+                    if (_document.Dialect == YamlDialect.Unity) _part._activeTagDirectives = reader.CopyActiveTagDirectives();
                     if (_anchorCount > 0) {
                         Array.Clear(_anchors, 0, _anchorSlots);
                         _anchorCount = 0;

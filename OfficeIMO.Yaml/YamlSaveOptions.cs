@@ -9,7 +9,7 @@ public sealed class YamlSaveOptions {
     /// Gets or sets whether to write the whole document anew through the emitter instead of copying untouched text, to
     /// normalize indentation. Values, scalar spellings and styles, anchors, tags, comments and the blank lines above
     /// entries are kept; multi-line plain and folded scalars are laid out again, and comments inside flow collections
-    /// are dropped.
+    /// are dropped. Documents loaded with <see cref="YamlDialect.Unity"/> cannot be reformatted.
     /// Defaults to <see langword="false"/>.
     /// </summary>
     public bool Reformat { get; set; }

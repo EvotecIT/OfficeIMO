@@ -7,6 +7,8 @@ public sealed partial class YamlReader {
     private int _depth;
     private bool _implicitDocumentAllowed = true;
     private YamlTagDirective[] _tagDirectives = Array.Empty<YamlTagDirective>();
+    /// <summary>Unity dialect: the active directives were declared by an earlier document, not by the current one.</summary>
+    private bool _tagDirectivesInherited;
     private int _tagDirectiveCount;
     private YamlSchema _documentSchema = YamlSchema.Core;
     private int _versionMajor = -1;
@@ -381,11 +383,17 @@ public sealed partial class YamlReader {
             _state = YamlParserState.End;
             return;
         }
-        _tagDirectiveCount = 0;
+        bool unity = _options.Dialect == YamlDialect.Unity;
+        if (unity) {
+            // Unity declares %YAML and %TAG once for the whole file; later documents keep using them.
+            _tagDirectivesInherited = _tagDirectiveCount > 0;
+        } else {
+            _tagDirectiveCount = 0;
+        }
         _versionMajor = _versionMinor = -1;
         bool version11 = false;
         if (implicitAllowed && token.Kind is not (YamlTokenKind.VersionDirective or YamlTokenKind.TagDirective or YamlTokenKind.ReservedDirective or YamlTokenKind.DocumentStart)) {
-            _documentSchema = _options.Schema ?? YamlSchema.Core;
+            _documentSchema = _options.Schema ?? (unity ? YamlSchema.Yaml11 : YamlSchema.Core);
             ev.Type = YamlTokenType.DocumentStart;
             ev.Implicit = true;
             SetPoint(ref ev, token.Start, token.StartLine, token.StartColumn);
@@ -405,6 +413,10 @@ public sealed partial class YamlReader {
                 _versionMajor = token.Extra;
                 _versionMinor = token.Extra2;
             } else if (token.Kind == YamlTokenKind.TagDirective) {
+                if (_tagDirectivesInherited) {
+                    _tagDirectiveCount = 0;
+                    _tagDirectivesInherited = false;
+                }
                 AddTagDirective(scanner.Text, in token);
             }
             Consume(ref scanner, ref token);
@@ -413,7 +425,7 @@ public sealed partial class YamlReader {
         if (token.Kind != YamlTokenKind.DocumentStart) {
             throw ParseError(YamlErrorCodes.InvalidDocument, "Expected a document start marker ('---').", in token);
         }
-        _documentSchema = _options.Schema ?? (version11 ? YamlSchema.Yaml11 : YamlSchema.Core);
+        _documentSchema = _options.Schema ?? (version11 || unity ? YamlSchema.Yaml11 : YamlSchema.Core);
         ev.Type = YamlTokenType.DocumentStart;
         ev.Start = start;
         ev.StartLine = startLine;
@@ -458,6 +470,7 @@ public sealed partial class YamlReader {
                 hasAnchor = true;
                 ev.AnchorStart = token.ValueStart;
                 ev.AnchorEnd = token.ValueEnd;
+                ev.Stripped = (token.Flags & YamlTokenFlags.Stripped) != 0;
             } else if (token.Kind == YamlTokenKind.Tag && !ev.HasTag) {
                 ResolveTag(scanner.Text, ref ev, in token);
             } else {

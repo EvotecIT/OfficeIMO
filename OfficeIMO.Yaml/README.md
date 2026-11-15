@@ -244,6 +244,25 @@ Set `Strict` on `YamlReaderOptions` or `YamlLoadOptions` for the specification's
 
 Saving copies accepted text that an edit does not own unchanged. New and edited text is always written in the valid form.
 
+### Unity files
+
+Unity's scenes, prefabs, assets and `.meta` files are YAML 1.1 with two departures from the specification: `%TAG !u! tag:unity3d.com,2011:` is declared once for the whole file, and a prefab placeholder ends its `---` line with `stripped`. Load them with `YamlDialect.Unity`:
+
+```csharp
+using YamlDocument scene = YamlDocument.Load("Main.unity", new YamlLoadOptions { Dialect = YamlDialect.Unity });
+foreach (YamlDocumentPart part in scene.Documents) {
+    // part.Root.Tag is "tag:unity3d.com,2011:1" for a GameObject; part.Root.Anchor is its fileID.
+    if (part.IsStripped) continue;
+    if (part.Root.AsMapping().TryGetValue("GameObject", out YamlNode? node) && node is YamlMapping gameObject
+        && gameObject["m_Name"].AsString() == "Main Camera") {
+        gameObject.Set("m_Name", "Player Camera");
+    }
+}
+scene.Save();   // only the edited line changes
+```
+
+Every document reads with the YAML 1.1 schema unless `Schema` is set, a document without `%TAG` directives resolves tags with the ones before it (its `TagDirectives` stays empty, as in the file), and `IsStripped` on `YamlDocumentPart` and `YamlReader` reports the placeholder marker. Saving keeps both departures: edits change only their lines, and an edited tag or anchor on a `---` line keeps the `!u!` handle, its order and `stripped`. Reformatting a Unity file throws `NotSupportedException`, because Unity reads only its own layout. The `Standard` dialect still rejects these files.
+
 ## Reading events
 
 ```csharp
