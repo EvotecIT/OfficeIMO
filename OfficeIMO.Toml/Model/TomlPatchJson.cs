@@ -125,18 +125,42 @@ internal sealed class TomlPatchJson {
                 case 'r': text.Append('\r'); break;
                 case 't': text.Append('\t'); break;
                 case 'u':
-                    if (_position + 4 > _text.Length
-                        || !int.TryParse(_text.Substring(_position, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int code)) {
-                        throw Error("'\\u' is followed by four hexadecimal digits");
+                    int escapeStart = _position - 2;
+                    char unit = ReadCodeUnit();
+                    if (char.IsLowSurrogate(unit)) {
+                        _position = escapeStart;
+                        throw Error("a low surrogate escape follows a high surrogate escape");
                     }
-                    text.Append((char)code);
-                    _position += 4;
+                    if (char.IsHighSurrogate(unit)) {
+                        char low = '\0';
+                        if (string.CompareOrdinal(_text, _position, "\\u", 0, 2) == 0) {
+                            _position += 2;
+                            low = ReadCodeUnit();
+                        }
+                        if (!char.IsLowSurrogate(low)) {
+                            _position = escapeStart;
+                            throw Error("a high surrogate escape is followed by a low surrogate escape");
+                        }
+                        text.Append(unit);
+                        unit = low;
+                    }
+                    text.Append(unit);
                     break;
                 default:
                     _position--;
                     throw Error("'\\" + escape + "' is not a JSON escape");
             }
         }
+    }
+
+    /// <summary>Reads the four hexadecimal digits after <c>\\u</c>.</summary>
+    private char ReadCodeUnit() {
+        if (_position + 4 > _text.Length
+            || !int.TryParse(_text.Substring(_position, 4), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out int code)) {
+            throw Error("'\\u' is followed by four hexadecimal digits");
+        }
+        _position += 4;
+        return (char)code;
     }
 
     private object ReadNumber() {

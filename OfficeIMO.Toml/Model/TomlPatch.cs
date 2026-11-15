@@ -59,8 +59,29 @@ internal sealed class TomlPatch {
     /// <summary>Runs a patch on a copy of the document, then on the document, so a failure changes nothing.</summary>
     private static TomlPatchReport Atomically(TomlDocument document, Func<TomlDocument, TomlPatchReport> apply) {
         var options = new TomlLoadOptions { MaxDepth = int.MaxValue, MaxNodes = int.MaxValue, MaxStringLength = int.MaxValue };
-        using (TomlDocument copy = TomlDocument.Parse(document.ToString(), options)) apply(copy);
+        using (TomlDocument copy = TomlDocument.Parse(document.ToString(), options)) {
+            AddEmptyTableArrays(document.Root, copy.Root);
+            apply(copy);
+        }
         return apply(document);
+    }
+
+    /// <summary>
+    /// Gives the copy the arrays of tables that hold no tables yet: they have no text, so reloading the saved text drops
+    /// them, and a patch that reads them (a test of their parent) would pass on the copy and fail on the document.
+    /// </summary>
+    private static void AddEmptyTableArrays(TomlTable live, TomlTable copy) {
+        foreach (KeyValuePair<string, TomlNode> member in live) {
+            if (member.Value is TomlTableArray array) {
+                if (!copy.TryGetValue(member.Key, out TomlNode? copied)) {
+                    if (array.Count == 0) copy.AddTableArray(member.Key);
+                } else if (copied is TomlTableArray copiedArray && copiedArray.Count == array.Count) {
+                    for (int i = 0; i < array.Count; i++) AddEmptyTableArrays(array[i], copiedArray[i]);
+                }
+            } else if (member.Value is TomlTable table && copy.TryGetValue(member.Key, out TomlNode? copiedTable) && copiedTable is TomlTable copyTable) {
+                AddEmptyTableArrays(table, copyTable);
+            }
+        }
     }
 
     private TomlPatchReport Report() => new TomlPatchReport(_added, _replaced, _removed, _diagnostics);

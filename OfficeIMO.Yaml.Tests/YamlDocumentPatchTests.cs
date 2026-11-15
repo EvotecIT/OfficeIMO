@@ -410,4 +410,30 @@ public class YamlDocumentPatchTests {
         Assert.Empty(report.Replaced);
         Assert.Empty(report.Removed);
     }
+
+    [Fact]
+    public void APartAddedInCodeIsPatchedUnderItsOwnSchema() {
+        // A part added in code reads as core, even in a document loaded under YAML 1.1, so 010 is 10 there.
+        using YamlDocument document = YamlDocument.Parse("", new YamlLoadOptions { Schema = YamlSchema.Yaml11 });
+        var root = new YamlMapping();
+        root.Set("n", new YamlScalar("010", YamlStyle.Plain));
+        document.AddDocument(root);
+
+        document.ApplyJsonPatch("""[ { "op": "add", "path": "/changed", "value": true }, { "op": "test", "path": "/n", "value": 10 } ]""");
+
+        Assert.True(document.Root!.AsMapping()["changed"].GetValue<bool>());
+    }
+
+    [Fact]
+    public void AMergePatchKeepsNumbersReadUnderYaml11() {
+        var yaml11 = new YamlLoadOptions { Schema = YamlSchema.Yaml11 };
+        using YamlDocument document = YamlDocument.Parse("count: 0\nn: 1\n", yaml11);
+        using YamlDocument patch = YamlDocument.Parse("count: 010\nn: 2\n", yaml11);
+
+        document.ApplyMergePatch(patch);
+
+        // 010 is 8 under YAML 1.1, and the key n is false there, matching the target's own n.
+        Assert.Equal("count: 8\nn: 2\n", document.ToString());
+        Assert.Equal(8, document.Root!.AsMapping()["count"].GetValue<long>());
+    }
 }

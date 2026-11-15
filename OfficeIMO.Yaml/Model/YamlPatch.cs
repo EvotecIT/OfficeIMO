@@ -320,9 +320,15 @@ internal sealed class YamlPatch {
             else _document.Documents[0].Root = target;
             (root is null ? _added : _replaced).Add(Display(YamlPath.Format(target)));
         }
-        // The patch is read as a JSON value: a block-layout copy of its typed view, so JSON text adds block mappings.
+        // The patch is read as a JSON value: a block-layout copy of its typed view, so JSON text adds block mappings. The
+        // copy is written for this document's schema and held in a document read under it, so the merge reads every key
+        // and value (010 or yes under YAML 1.1) as this document will.
         var overlay = (YamlMapping)Copy(patchMapping, flow: false, comments: true, 0);
-        YamlMergeReport merged = YamlMerge.Merge(target, overlay, new YamlMergeOptions { NullRemovesKey = true, MergePatch = true });
+        YamlMergeReport merged;
+        using (YamlDocument holder = YamlDocument.Parse("{}\n", new YamlLoadOptions { Schema = Schema })) {
+            holder.Documents[0].Root = overlay;
+            merged = YamlMerge.Merge(target, overlay, new YamlMergeOptions { NullRemovesKey = true, MergePatch = true });
+        }
         if (target._count == 0) target._style = YamlStyle.Flow;
         _added.AddRange(merged.Added);
         _replaced.AddRange(merged.Replaced);

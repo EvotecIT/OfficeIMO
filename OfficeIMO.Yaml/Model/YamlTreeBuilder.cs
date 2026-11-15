@@ -58,8 +58,13 @@ internal sealed class YamlTreeBuilder {
         public bool MergeKey;
     }
 
-    public YamlTreeBuilder(YamlDocument document, YamlLoadOptions options, YamlNodeTable table) {
+    /// <summary>The schema of each part, in order, when the parts must read as another document's do rather than as the text declares.</summary>
+    private readonly IReadOnlyList<YamlSchema>? _partSchemas;
+    private int _partIndex;
+
+    public YamlTreeBuilder(YamlDocument document, YamlLoadOptions options, YamlNodeTable table, IReadOnlyList<YamlSchema>? partSchemas = null) {
         _document = document;
+        _partSchemas = partSchemas;
         _options = options;
         _table = table;
         _source = document._source;
@@ -87,7 +92,9 @@ internal sealed class YamlTreeBuilder {
             if (ev.Stripped) _part!.IsStripped = true;
             switch (ev.Type) {
                 case YamlTokenType.DocumentStart:
-                    _part = new YamlDocumentPart(_document, reader.DocumentSchema, reader.DocumentVersion, reader.CopyTagDirectives(), !ev.Implicit, ev.Start, ev.End);
+                    YamlSchema partSchema = _partSchemas is { } schemas && _partIndex < schemas.Count ? schemas[_partIndex] : reader.DocumentSchema;
+                    _partIndex++;
+                    _part = new YamlDocumentPart(_document, partSchema, reader.DocumentVersion, reader.CopyTagDirectives(), !ev.Implicit, ev.Start, ev.End);
                     if (_document.Dialect == YamlDialect.Unity) _part._activeTagDirectives = reader.CopyActiveTagDirectives();
                     if (_anchorCount > 0) {
                         Array.Clear(_anchors, 0, _anchorSlots);

@@ -159,4 +159,29 @@ public class TomlPatchTests {
         Assert.Throws<TomlPatchException>(() => document.ApplyMergePatch(patch));
         Assert.Equal(Toml, document.ToString());
     }
+
+    [Fact]
+    public void AnEmptyArrayOfTablesTakesPartInTheAtomicCheck() {
+        // An array of tables with no tables has no text, but a test of its parent still sees it.
+        using TomlDocument document = TomlDocument.Parse("version = 1\n");
+        document.Root.AddTableArray("pending");
+
+        Assert.Throws<TomlPatchException>(() => document.ApplyJsonPatch("""[ { "op": "replace", "path": "/version", "value": 2 }, { "op": "test", "path": "", "value": { "version": 2 } } ]"""));
+
+        Assert.Equal(1, document.Select("version")!.GetValue<int>());
+    }
+
+    [Theory]
+    [InlineData("\\uD800")]
+    [InlineData("\\uDC00")]
+    [InlineData("\\uD800x")]
+    [InlineData("\\uD800\\u0041")]
+    public void UnpairedSurrogateEscapesAreRejected(string escape) {
+        using TomlDocument document = TomlDocument.Parse("a = 1\n");
+        Assert.Throws<TomlPatchException>(() => document.ApplyMergePatch("{ \"s\": \"" + escape + "\" }"));
+        Assert.Equal("a = 1\n", document.ToString());
+
+        document.ApplyMergePatch("{ \"s\": \"\\uD83D\\uDE00\" }");
+        Assert.Equal("\U0001F600", document.Select("s")!.AsString());
+    }
 }

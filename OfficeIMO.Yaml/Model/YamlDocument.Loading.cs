@@ -117,7 +117,7 @@ public sealed partial class YamlDocument {
         return document;
     }
 
-    private static YamlDocument Build(string text, YamlTextEncoding encoding, bool byteOrderMark, YamlLoadOptions options, CancellationToken cancellationToken) {
+    private static YamlDocument Build(string text, YamlTextEncoding encoding, bool byteOrderMark, YamlLoadOptions options, CancellationToken cancellationToken, IReadOnlyList<YamlSchema>? partSchemas = null) {
         var document = new YamlDocument(text, encoding, byteOrderMark, options.EffectiveDuplicateKeys, options.Strict) { Dialect = options.Dialect };
         document._loadSchema = options.Schema;
         var table = new YamlNodeTable(text);
@@ -125,7 +125,7 @@ public sealed partial class YamlDocument {
         bool built = false;
         try {
             using var reader = new YamlReader(text.AsMemory(), options.ReaderOptions, cancellationToken);
-            new YamlTreeBuilder(document, options, table).Run(reader);
+            new YamlTreeBuilder(document, options, table, partSchemas).Run(reader);
             built = true;
         } catch (YamlException exception) when (exception.AttachSource(text)) {
             throw;
@@ -136,7 +136,8 @@ public sealed partial class YamlDocument {
     }
 
     /// <summary>
-    /// Loads a second document from this one's saved text, read as this one was, for an edit that must succeed as a whole:
+    /// Loads a second document from this one's saved text, each part read under the schema of this one's part (a part
+    /// added in code reads as core even in a document loaded under YAML 1.1), for an edit that must succeed as a whole:
     /// the edit runs on the copy first, so a failure leaves this document unchanged. Limits do not apply, since the text
     /// already loaded once.
     /// </summary>
@@ -151,7 +152,9 @@ public sealed partial class YamlDocument {
             MaxAliasExpansion = int.MaxValue,
             MaxScalarLength = int.MaxValue
         };
-        return Build(ToString(), YamlTextEncoding.Utf8, byteOrderMark: false, options, CancellationToken.None);
+        var schemas = new YamlSchema[_parts.Count];
+        for (int i = 0; i < schemas.Length; i++) schemas[i] = _parts[i].Schema;
+        return Build(ToString(), YamlTextEncoding.Utf8, byteOrderMark: false, options, CancellationToken.None, schemas);
     }
 
     private static void RequireReadable(Stream stream) {
