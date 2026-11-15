@@ -333,3 +333,15 @@ OfficeIMO.Yaml.YamlQueryMatch
 OfficeIMO.Yaml.YamlQueryMatch.Node.get -> OfficeIMO.Yaml.YamlNode!
 OfficeIMO.Yaml.YamlQueryMatch.Path.get -> string!
 override OfficeIMO.Yaml.YamlQueryMatch.ToString() -> string!
+OfficeIMO.Yaml.YamlDocument.ApplyJsonPatch(OfficeIMO.Yaml.YamlDocument! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlDocument.ApplyJsonPatch(string! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlDocument.ApplyMergePatch(OfficeIMO.Yaml.YamlDocument! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlDocument.ApplyMergePatch(string! patch) -> OfficeIMO.Yaml.YamlPatchReport!
+OfficeIMO.Yaml.YamlPatchException
+OfficeIMO.Yaml.YamlPatchException.OperationIndex.get -> int
+OfficeIMO.Yaml.YamlPatchException.Path.get -> string?
+OfficeIMO.Yaml.YamlPatchReport
+OfficeIMO.Yaml.YamlPatchReport.Added.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlPatchReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.Yaml.YamlPatchReport.Removed.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.Yaml.YamlPatchReport.Replaced.get -> System.Collections.Generic.IReadOnlyList<string!>!

@@ -59,4 +59,10 @@ public sealed class TomlMergeOptions {
         get => _arrays;
         set => _arrays = value ?? throw new ArgumentNullException(nameof(value));
     }
+
+    /// <summary>
+    /// Merges the null-free part of an RFC 7386 merge patch, for <see cref="TomlDocument.ApplyMergePatch(string)"/>: a
+    /// change of kind is what the patch asks for, not a conflict to report.
+    /// </summary>
+    internal bool MergePatch { get; set; }
 }

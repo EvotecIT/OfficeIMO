@@ -71,6 +71,23 @@ config.Save();
 
 `TomlMergeOptions.Arrays` chooses how arrays combine: `TomlArrayMerge.Replace` (the default), `Append`, or `MergeByKey("name")` to match `[[package]]` tables of a lock file by name and append the rest. When a value changes kind, such as a table over a string, the overlay wins and `report.Diagnostics` lists a `toml-merge-kind-conflict` warning. TOML has no null, so where tables merge an overlay cannot remove a key; only a replaced array drops the items, and keys of table items, that the overlay's array lacks.
 
+`ApplyJsonPatch` applies an [RFC 6902](https://www.rfc-editor.org/rfc/rfc6902) JSON Patch and `ApplyMergePatch` an [RFC 7386](https://www.rfc-editor.org/rfc/rfc7386) JSON Merge Patch, both given as JSON text, through the same editing operations, so only the patched lines change:
+
+```csharp
+using var project = TomlDocument.Load("pyproject.toml");
+TomlPatchReport report = project.ApplyJsonPatch("""
+    [
+      { "op": "test", "path": "/project/version", "value": "1.4.0" },
+      { "op": "replace", "path": "/project/version", "value": "1.5.0" },
+      { "op": "add", "path": "/project/dependencies/-", "value": "click" }
+    ]
+    """);
+project.ApplyMergePatch("""{ "tool": { "ruff": { "line-length": 100, "exclude": null } } }""");
+project.Save();
+```
+
+RFC 6901 pointers address tables by key and arrays and arrays of tables by index. A patch is all or nothing: a failed `test`, a pointer to nothing or an edit that cannot be made throws `TomlPatchException` and leaves the document unchanged. Objects become `[header]` tables and arrays of objects `[[header]]` arrays of tables (inline tables inside inline tables and arrays), and an array of tables takes new tables only at its end. TOML has no null, so a null value fails a JSON Patch, while a merge patch null removes the key. `TomlPatchReport` lists the added, replaced and removed paths.
+
 ## Reading tokens
 
 ```csharp

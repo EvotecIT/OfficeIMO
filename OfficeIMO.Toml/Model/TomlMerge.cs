@@ -40,6 +40,12 @@ internal sealed class TomlMerge {
         return new TomlMergeReport(merge._added, merge._replaced, merge._diagnostics);
     }
 
+    /// <summary>
+    /// Copies a node of another document into new nodes of <paramref name="document"/>, in the syntax its new place
+    /// allows, as a merge copies overlay nodes.
+    /// </summary>
+    internal static TomlNode CopyNode(TomlDocument document, TomlNode node, bool inline) => new TomlMerge(document, null).Copy(node, inline);
+
     // ------------------------------------------------------------------ deep merge
 
     private void MergeTables(TomlTable target, TomlTable overlay, string path) {
@@ -330,6 +336,7 @@ internal sealed class TomlMerge {
     private static bool SameValue(TomlValue a, TomlValue b) => a._kind == b._kind && TomlValueConverter.ScalarEquals(a.Value, b.Value);
 
     private void Conflict(string path, TomlNode current, TomlNode incoming) {
+        if (_options.MergePatch) return;
         string? location = current.IsSource ? current.Start.ToString() : null;
         _diagnostics.Add(new OfficeDiagnostic(OfficeDiagnosticCodes.TomlMergeKindConflict, OfficeDiagnosticSeverity.Warning,
             "The overlay replaces " + TomlNode.Describe(current.Kind) + " at '" + path + "' with " + TomlNode.Describe(incoming.Kind) + ".",

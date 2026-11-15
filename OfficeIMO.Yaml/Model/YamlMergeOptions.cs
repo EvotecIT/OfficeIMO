@@ -60,4 +60,11 @@ public sealed class YamlMergeOptions {
     /// nothing when this is on.
     /// </summary>
     public bool NullRemovesKey { get; set; }
+
+    /// <summary>
+    /// Merges as an RFC 7386 merge patch, for <see cref="YamlDocument.ApplyMergePatch(YamlDocument)"/>: a mapping copied
+    /// from the patch leaves out its null entries, a change of kind is not a conflict, and an edit the merge cannot make
+    /// fails instead of being reported.
+    /// </summary>
+    internal bool MergePatch { get; set; }
 }

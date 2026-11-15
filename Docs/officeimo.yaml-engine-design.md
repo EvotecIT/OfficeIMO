@@ -184,6 +184,19 @@ baseDoc.Save("values.merged.yaml");
 - **`YamlMergeReport`** lists every added, replaced and removed path, plus diagnostics for conflicts (`yaml-merge-kind-conflict`), alias edits (`yaml-aliased-node-edited`) and renamed anchors (`yaml-merge-anchor-renamed`). `Merge-OfficeDocument -PassThruReport` writes it to the pipeline.
 - **Qualification:** committed base and overlay pairs (`OfficeIMO.TestAssets/Yaml/Merge`) must change only the lines the report accounts for, load in YamlDotNet to the result of an independent Helm-rules merge of YamlDotNet-loaded data, load alike in SharpYaml, and merge to the same bytes every time.
 
+### Patching
+
+`YamlDocument.ApplyJsonPatch` (RFC 6902) and `ApplyMergePatch` (RFC 7386) give the standard patch formats the same minimal-diff guarantee as merging, because both run through the editing operations.
+
+- **Input:** JSON text, YAML text or a loaded `YamlDocument`. JSON is parsed by the YAML reader (JSON is YAML), so the engine takes no JSON dependency; patch text loads with `DuplicateKeys = Error`, since RFC 6902 gives an operation with a repeated member no meaning.
+- **Addressing:** RFC 6901 pointers start at the first document of the stream and walk the typed view, as `Select` does: aliases are followed and keys that `<<` merges provide are found. `-` appends to a sequence; indexes are `0` or digits without a leading zero.
+- **All or nothing:** the patch runs first on a copy loaded from the document's saved text (with its schema, strictness and duplicate-key policy, without limits). Only when every operation succeeds there does it run on the document, so a failed `test`, a pointer to nothing or a refused edit throws `YamlPatchException` and changes nothing. The cost is one extra load and patch of the document.
+- **Values** are copied as their typed view (aliases expanded, merges flattened, anchors dropped), so a JSON patch and the same patch in YAML agree. New collections are block, or flow inside a flow collection; strings take the document's quoting. `move` moves the node itself and keeps its comments and spelling; `copy` writes a fresh copy.
+- **Aliases and merge keys** keep the editing rules: a patch through an alias edits the anchored node and is reported as `yaml-aliased-node-edited`; setting a key that only a merge provides adds an own entry; removing such a key, or a merge patch null for it, fails, because merged mappings are never edited. Removing or replacing a node that aliases use fails, and a `move` that leaves an alias before its anchor fails.
+- **`test`** compares as JSON: mappings by their typed view regardless of order, sequences item by item, numbers by value (`2` equals `2.0`), other scalars by kind and value, so `"10"` does not equal `10`.
+- **Merge patch** delegates to `YamlMerge` with `NullRemovesKey` and an internal merge-patch mode: copied patch objects drop their null members, kind changes are not reported as conflicts, and an edit the merge would only report fails instead. A patch object over a root that is not a mapping replaces it first; a patch that is not an object replaces the root unless equal.
+- **`YamlPatchReport`** has the shape of `YamlMergeReport`: added, replaced and removed paths in the `Select` grammar, and the diagnostics the edits recorded.
+
 ### Writer
 
 - `YamlWriter` is the forward-only emitter, modeled on `Utf8JsonWriter`. It has `WriteStartMapping`/`WriteEndMapping`, `WriteStartSequence`, `WriteKey`, `WriteScalar(value, style)`, `WriteComment`, `WriteAlias`, anchors, tags and document markers. It writes UTF-8 through the shared `PooledUtf8TextWriter` or to a `TextWriter`.

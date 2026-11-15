@@ -17,6 +17,7 @@ Tomlyn (BSD-2, TOML 1.1, with a trivia-preserving syntax tree) is the main .NET 
 - **Lifecycle:** `TomlDocument.Create()`, `Create(path)`, `Load(path|stream, options)`, `LoadAsync`, `Parse(text, options)`, `Save()`, `Save(path|stream)`, `SaveAsync`, `ToString()`. `Save(path)` replaces the file atomically and makes it the document's `FilePath`, as `YamlDocument.Save(path)` does. `TomlDocument` implements `IDisposable` so `using` works as for every format. Options are `TomlLoadOptions` (with `UntrustedDefaults`), `TomlReaderOptions` and `TomlWriterOptions`; there is no save options type until a save setting has a scenario.
 - **Authoring:** one object model. `Add`, `AddTable`, `AddInlineTable`, `AddArray`, `AddTableArray`, `Insert` and `Set` return the node they create or change, and `SetComment` returns its node, so calls chain.
 - **Merging:** `TomlDocument.Merge(overlay, TomlMergeOptions)` deep-merges a layered configuration file into the document through the editing operations and returns a `TomlMergeReport` (added and replaced paths, kind conflicts as diagnostics), as `YamlDocument.Merge` does. `TomlMergeOptions.Arrays` is the only setting; see [Merging](#merging).
+- **Patching:** `TomlDocument.ApplyJsonPatch` (RFC 6902) and `ApplyMergePatch` (RFC 7386) take JSON text and return a `TomlPatchReport` (added, replaced and removed paths), as the YAML engine does; see [Patching](#patching).
 - **Paths:** `Select`, `Set` and `Remove` take the same grammar as YAML paths and as the paths `OfficeIMO.Reader.Toml` reports, so a Reader row's path edits the same value.
 - **Errors:** `TomlException` carries a stable `TomlErrorCodes` code and a position, and `ToDiagnostic()` returns it as an error `OfficeDiagnostic` whose code follows the catalog's `Toml.{area}.{rule}` → `toml-{area}-{rule}` pattern, as `YamlException.ToDiagnostic()` does. TOML has no recoverable findings, so there are no load diagnostics; every rule violation fails the load, as the specification requires.
 - **Positions:** 0-based offsets, 1-based lines and columns, like YAML. Nodes report `Start` and `End`, and `KeyStart` and `KeyEnd` for the key segment that names them, so a host such as Markdown front matter locates keys without reading the text again.
@@ -87,6 +88,16 @@ Saving visits a table's children before inserting the table's own new lines and 
 - **Removal:** TOML has no null, so where tables merge an overlay cannot delete a key and there is no option for it; `Remove` deletes keys explicitly. Replacing an array removes what the overlay's array lacks: base items beyond its length, and keys of a replaced table item that the overlay's item does not have.
 
 Each document key holds one node, so a merge cannot define a key twice, and the editing layer places every new line and section where it keeps its meaning; the merged text always reloads to the merged model. Merging a file onto itself changes nothing, byte for byte, across the corpus.
+
+### Patching
+
+`ApplyJsonPatch` and `ApplyMergePatch` run through the same editing operations, so a patch saves as a minimal diff.
+
+- **Input:** JSON text, read by a small internal reader into plain values; the engine references no JSON library. A repeated member name fails.
+- **Addressing:** RFC 6901 pointers address tables by key and arrays and arrays of tables by index; `-` appends. The empty pointer is the root table, so it takes only an object.
+- **All or nothing:** the patch runs first on a copy loaded from the saved text; only when every operation succeeds there does it run on the document. Failures throw `TomlPatchException` with the operation index and path.
+- **Values:** objects are built as `[header]` tables and non-empty arrays of objects as `[[header]]` arrays of tables, then copied in with the merge's copy rules (inline inside inline tables and arrays). Other values go through `Set`, `Insert` and array `Set`, so an equal value keeps its spelling. An array of tables takes new tables only at its end, since `[[x]]` sections cannot be inserted between others. TOML has no null: a null in a JSON Patch value fails. `move` and `copy` carry the value, date-times included; `test` compares as JSON and matches a date-time with its RFC 3339 text.
+- **Merge patch:** nulls remove keys first, following objects into tables; the remaining members, with nulls left out of nested objects, merge as an overlay through `TomlMerge` with `Replace` arrays and no kind-conflict warnings. A merge patch for TOML is an object, since the root is a table.
 
 ### Serializer
 
