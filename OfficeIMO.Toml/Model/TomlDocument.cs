@@ -124,6 +124,54 @@ public sealed partial class TomlDocument : IDisposable {
     /// <exception cref="ArgumentException"><paramref name="overlay"/> is this document.</exception>
     public TomlMergeReport Merge(TomlDocument overlay, TomlMergeOptions? options = null) => TomlMerge.Merge(this, overlay, options);
 
+    /// <summary>
+    /// Applies an RFC 6902 JSON Patch given as JSON text: an array of <c>add</c>, <c>remove</c>, <c>replace</c>,
+    /// <c>move</c>, <c>copy</c> and <c>test</c> operations whose RFC 6901 pointers address tables by key and arrays and
+    /// arrays of tables by index. The patch is all or nothing, and saving writes only what it touched.
+    /// </summary>
+    /// <remarks>
+    /// <para>Values are written through the editing methods: an equal value keeps its spelling, strings follow their
+    /// neighbors' quoting, objects become <c>[header]</c> tables and arrays of objects <c>[[header]]</c> arrays of tables
+    /// (inline tables inside inline tables and arrays). An array of tables takes new tables only at its end. TOML has no
+    /// null, so a null value fails the patch. <c>move</c> and <c>copy</c> carry the value, date-times included, and
+    /// <c>test</c> compares a date-time with a string by its RFC 3339 text.</para>
+    /// <para>The patch runs on a copy loaded from the document's saved text first, so a failed <c>test</c>, a pointer to
+    /// nothing or a refused edit throws <see cref="TomlPatchException"/> and leaves the document unchanged.</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// using var project = TomlDocument.Load("pyproject.toml");
+    /// project.ApplyJsonPatch("""
+    ///     [
+    ///       { "op": "test", "path": "/project/version", "value": "1.4.0" },
+    ///       { "op": "replace", "path": "/project/version", "value": "1.5.0" },
+    ///       { "op": "add", "path": "/project/dependencies/-", "value": "httpx>=0.27" }
+    ///     ]
+    ///     """);
+    /// project.Save();
+    /// </code>
+    /// </example>
+    /// <returns>The added, replaced and removed paths.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="patch"/> is null.</exception>
+    /// <exception cref="TomlPatchException">The patch is not valid JSON, is malformed, or an operation fails; the document is unchanged.</exception>
+    public TomlPatchReport ApplyJsonPatch(string patch) => TomlPatch.ApplyJsonPatch(this, patch);
+
+    /// <summary>
+    /// Applies an RFC 7386 JSON Merge Patch given as JSON text: an object whose members merge into the root table, where
+    /// a null removes the key, an object merges into a table, and any other value, arrays included, replaces. Saving
+    /// writes only what the patch touched.
+    /// </summary>
+    /// <remarks>
+    /// The non-null part merges as <see cref="Merge"/> does: an equal value keeps the document's spelling and a replaced
+    /// array changes only the items that differ. The patch is an object, since the root of a TOML document is a table,
+    /// and nulls inside arrays fail, since TOML has no null. A failure throws <see cref="TomlPatchException"/> and leaves
+    /// the document unchanged.
+    /// </remarks>
+    /// <returns>The added, replaced and removed paths.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="patch"/> is null.</exception>
+    /// <exception cref="TomlPatchException">The patch is not a valid JSON object or cannot be applied; the document is unchanged.</exception>
+    public TomlPatchReport ApplyMergePatch(string patch) => TomlPatch.ApplyMergePatch(this, patch);
+
     /// <summary>Releases nothing; a document holds only managed memory. It exists so <c>using</c> works as for every OfficeIMO document.</summary>
     public void Dispose() {
     }
