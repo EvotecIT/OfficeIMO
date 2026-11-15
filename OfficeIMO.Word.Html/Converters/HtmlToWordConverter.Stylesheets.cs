@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Html {
             } catch (OperationCanceledException) {
                 throw;
             } catch (HtmlResourcePolicyException ex) {
-                AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its redirect destination is not allowed by the current stylesheet policy.", url.Href, ex);
+                AddDiagnostic(_options, "stylesheet-resource-rejected-by-policy", "Stylesheet resource was skipped because its address or redirect destination is not allowed by the current stylesheet policy.", url.Href, ex);
             } catch (HttpRequestException ex) {
                 AddDiagnostic(_options, "stylesheet-transport-failed", "Stylesheet resource could not be fetched and was skipped.", url.Href, ex);
             } catch (HtmlConversionLimitException) {

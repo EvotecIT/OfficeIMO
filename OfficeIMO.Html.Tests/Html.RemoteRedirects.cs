@@ -31,6 +31,7 @@ public partial class Html {
 
         var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
+            AllowPrivateNetworkAddresses = true,
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             ResourceTimeout = TimeSpan.FromSeconds(8)
         };
@@ -75,6 +76,47 @@ public partial class Html {
     }
 
     [Theory]
+    [InlineData(false, "127.0.0.1")]
+    [InlineData(false, "localhost")]
+    [InlineData(true, "127.0.0.1")]
+    [InlineData(true, "localhost")]
+    public async Task HtmlToWord_BuiltInHttpClientRefusesLoopbackResourcesUnlessAllowed(bool stylesheet, string host) {
+        byte[] payload = stylesheet
+            ? Encoding.UTF8.GetBytes("p { color:#123456; }")
+            : Convert.FromBase64String(RedirectTestPngBase64);
+        using var server = new RedirectTestServer();
+        string source = $"http://{host}:{server.Port}/resource.{(stylesheet ? "css" : "png")}";
+        string html = stylesheet
+            ? $"<link rel='stylesheet' href='{source}'><p>Body text</p>"
+            : $"<p><img src='{source}' alt='Image fallback'></p>";
+        HtmlWordExportOptions CreateOptions(bool allowPrivate) => new() {
+            AllowDocumentStylesheetLinks = true,
+            AllowPrivateNetworkAddresses = allowPrivate,
+            ImageProcessing = WordHtmlImageProcessingMode.Embed,
+            ResourceTimeout = TimeSpan.FromSeconds(8)
+        };
+
+        HtmlToWordResult refused = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidenceAsync(CreateOptions(false));
+        using (WordDocument document = refused.Value) {
+            Assert.False(server.WasRequested);
+            string code = stylesheet ? "stylesheet-resource-rejected-by-policy" : "image-resource-rejected-by-policy";
+            Assert.Contains(refused.Report.NativeDiagnostics, diagnostic => diagnostic.Code == code);
+        }
+
+        Task response = server.SendAsync($"200 OK\r\nContent-Type: {(stylesheet ? "text/css" : "image/png")}", payload);
+        HtmlToWordResult allowed = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidenceAsync(CreateOptions(true));
+        using WordDocument trusted = allowed.Value;
+        server.Dispose();
+        await response;
+        Assert.True(server.WasRequested);
+        if (stylesheet) {
+            Assert.True(trusted.Paragraphs.First().GetRuns().First().Color == OfficeColor.Parse("123456"));
+        } else {
+            Assert.Single(trusted.Images);
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
 #if NETFRAMEWORK
     [InlineData(true)]
@@ -100,6 +142,7 @@ public partial class Html {
 
         var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
+            AllowPrivateNetworkAddresses = true,
             ImageProcessing = WordHtmlImageProcessingMode.Embed,
             ResourceTimeout = TimeSpan.FromSeconds(8)
         };

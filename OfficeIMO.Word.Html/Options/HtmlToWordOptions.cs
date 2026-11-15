@@ -168,6 +168,18 @@ namespace OfficeIMO.Word.Html {
         public HttpClient? HttpClient { get; set; }
 
         /// <summary>
+        /// Allows remote images and stylesheets from loopback, private, link-local and other non-public network
+        /// addresses. Default: false. Enable it only when the HTML and the hosts it names are trusted.
+        /// </summary>
+        /// <remarks>
+        /// The built-in client checks every address a host name resolves to, on the first request and on each
+        /// redirect; on .NET 8 and later it checks them when the connection is made and connects to the checked
+        /// address. A supplied <see cref="HttpClient"/> resolves names itself, so only IP literals and localhost names
+        /// are screened for it. Browser runtimes cannot resolve names, so the same screening applies there.
+        /// </remarks>
+        public bool AllowPrivateNetworkAddresses { get; set; }
+
+        /// <summary>
         /// Optional timeout applied when downloading remote resources.
         /// </summary>
         public TimeSpan? ResourceTimeout { get; set; }
@@ -438,6 +450,7 @@ namespace OfficeIMO.Word.Html {
                 ResourceUrlPolicy = ResourceUrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateOfficeIMOProfile(),
                 ImageProcessing = ImageProcessing,
                 HttpClient = HttpClient,
+                AllowPrivateNetworkAddresses = AllowPrivateNetworkAddresses,
                 ResourceTimeout = ResourceTimeout,
                 MaxConcurrentResourceLoads = MaxConcurrentResourceLoads,
                 TextBackgroundMode = TextBackgroundMode,
