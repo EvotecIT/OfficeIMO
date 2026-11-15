@@ -33,16 +33,23 @@ public sealed partial class JsonSchema {
     private readonly JsonSchemaOptions _options;
     private readonly Dictionary<string, JsonSchemaResource?> _resources = new Dictionary<string, JsonSchemaResource?>(StringComparer.Ordinal);
     private readonly Dictionary<JsonData, JsonSchemaResource> _resourceOf = new Dictionary<JsonData, JsonSchemaResource>(JsonDataReferenceComparer.Instance);
-    private readonly Dictionary<JsonData, JsonSchemaNode> _compiled = new Dictionary<JsonData, JsonSchemaNode>(JsonDataReferenceComparer.Instance);
+    // Values found under more than one resource, which a YAML alias or a reused JsonData can cause: each occurrence
+    // takes its base URI from the resource it is reached through.
+    private readonly HashSet<JsonData> _shared = new HashSet<JsonData>(JsonDataReferenceComparer.Instance);
+    private readonly HashSet<SchemaInResource> _discovered = new HashSet<SchemaInResource>(SchemaInResource.Comparer);
+    private readonly Dictionary<SchemaInResource, JsonSchemaNode> _compiled = new Dictionary<SchemaInResource, JsonSchemaNode>(SchemaInResource.Comparer);
     private readonly JsonSchemaNode _root;
-    private List<JsonData>? _compiling;
-    private int _compileDepth;
+    private List<SchemaInResource>? _compiling;
 
     private JsonSchema(JsonData schema, JsonSchemaOptions options) {
         _options = options;
         Root = schema;
         Draft = options.Draft ?? DetectDraft(schema);
-        var resource = new JsonSchemaResource(JsonSchemaUri.ResourcePart(options.BaseUri ?? string.Empty), schema);
+        string baseUri = options.BaseUri ?? string.Empty;
+        if (JsonSchemaUri.HasScheme(baseUri) && !Uri.TryCreate(baseUri, UriKind.Absolute, out _)) {
+            throw new JsonSchemaException("JsonSchemaOptions.BaseUri '" + baseUri + "' is not a valid absolute URI.");
+        }
+        var resource = new JsonSchemaResource(JsonSchemaUri.ResourcePart(baseUri), schema);
         _resources[resource.Uri] = resource;
         Discover(schema, resource, 0);
         _root = Compile(schema, resource);
@@ -61,7 +68,7 @@ public sealed partial class JsonSchema {
 
     /// <summary>Loads a schema from a JSON value, such as one converted from a YAML document.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="schema"/> is null.</exception>
-    /// <exception cref="JsonSchemaException">The schema is not an object or boolean, or a keyword has a value of the wrong type.</exception>
+    /// <exception cref="JsonSchemaException">The schema is not an object or boolean, a keyword has a value of the wrong type, or <see cref="JsonSchemaOptions.BaseUri"/> is not a valid URI.</exception>
     public static JsonSchema Load(JsonData schema, JsonSchemaOptions? options = null) {
         if (schema is null) throw new ArgumentNullException(nameof(schema));
         if (schema.Kind is not (JsonDataKind.Object or JsonDataKind.Boolean)) throw new JsonSchemaException("A schema must be an object or a boolean, not " + JsonData.Describe(schema.Kind) + ".");
@@ -102,7 +109,7 @@ public sealed partial class JsonSchema {
     /// <summary>Registers embedded resources and anchors, walking only keywords whose values are schemas.</summary>
     private void Discover(JsonData data, JsonSchemaResource resource, int depth) {
         if (data.Kind != JsonDataKind.Object || depth > JsonDataParser.MaxDepth) return;
-        if (_resourceOf.ContainsKey(data)) return;
+        if (!_discovered.Add(new SchemaInResource(data, resource))) return;
         bool hasRef = data.TryGetProperty("$ref", out _);
         if (data.TryGetProperty("$id", out JsonData id) && id.Kind == JsonDataKind.String && !(IsDraft7 && hasRef)) {
             string text = id.GetString();
@@ -126,7 +133,8 @@ public sealed partial class JsonSchema {
                 (resource.DynamicAnchors ??= new Dictionary<string, JsonData>(StringComparer.Ordinal))[dynamicName.GetString()] = data;
             }
         }
-        _resourceOf[data] = resource;
+        if (_resourceOf.TryGetValue(data, out JsonSchemaResource? earlier) && !ReferenceEquals(earlier, resource)) _shared.Add(data);
+        else _resourceOf[data] = resource;
         foreach (KeyValuePair<string, JsonData> property in data.Properties) {
             JsonData value = property.Value;
             switch (property.Key) {
@@ -177,37 +185,33 @@ public sealed partial class JsonSchema {
 
     #region Compilation
 
+    /// <summary>Compiles a schema value reached through <paramref name="fallback"/>, the resource enclosing it.</summary>
     private JsonSchemaNode Compile(JsonData data, JsonSchemaResource fallback) {
-        if (_compiled.TryGetValue(data, out JsonSchemaNode? existing)) return existing;
-        if (_compiling is not null) {
-            if (_compileDepth > JsonDataParser.MaxDepth) throw Invalid(data, "The schema nests deeper than " + JsonDataParser.MaxDepth.ToString(CultureInfo.InvariantCulture) + " levels");
-            _compileDepth++;
-            try {
-                return CompileNode(data, fallback);
-            } finally {
-                _compileDepth--;
-            }
-        }
+        JsonSchemaResource resource = !_shared.Contains(data) && _resourceOf.TryGetValue(data, out JsonSchemaResource? owner) ? owner : fallback;
+        var key = new SchemaInResource(data, resource);
+        if (_compiled.TryGetValue(key, out JsonSchemaNode? existing)) return existing;
+        // Schema values nest at most JsonData.MaxNesting levels, which bounds this recursion.
+        if (_compiling is not null) return CompileNode(key);
         // An outermost call: if any part fails, forget every node it cached, so a later validation that reaches the
         // same schema fails the same way instead of using a half-compiled node.
-        var compiling = new List<JsonData>();
+        var compiling = new List<SchemaInResource>();
         _compiling = compiling;
         try {
-            return CompileNode(data, fallback);
+            return CompileNode(key);
         } catch {
-            foreach (JsonData added in compiling) _compiled.Remove(added);
+            foreach (SchemaInResource added in compiling) _compiled.Remove(added);
             throw;
         } finally {
             _compiling = null;
-            _compileDepth = 0;
         }
     }
 
-    private JsonSchemaNode CompileNode(JsonData data, JsonSchemaResource fallback) {
-        JsonSchemaResource resource = _resourceOf.TryGetValue(data, out JsonSchemaResource? owner) ? owner : fallback;
+    private JsonSchemaNode CompileNode(SchemaInResource key) {
+        JsonData data = key.Schema;
+        JsonSchemaResource resource = key.Resource;
         var node = new JsonSchemaNode(data, resource);
-        _compiled[data] = node;
-        _compiling!.Add(data);
+        _compiled[key] = node;
+        _compiling!.Add(key);
         if (data.Kind == JsonDataKind.Boolean) {
             node.Boolean = data.GetBoolean();
             return node;
@@ -512,4 +516,23 @@ public sealed partial class JsonSchema {
     }
 
     #endregion
+}
+
+/// <summary>A schema value together with the resource whose base URI applies to it.</summary>
+internal readonly struct SchemaInResource {
+    public static readonly IEqualityComparer<SchemaInResource> Comparer = new ReferenceComparer();
+
+    public SchemaInResource(JsonData schema, JsonSchemaResource resource) {
+        Schema = schema;
+        Resource = resource;
+    }
+
+    public JsonData Schema { get; }
+    public JsonSchemaResource Resource { get; }
+
+    private sealed class ReferenceComparer : IEqualityComparer<SchemaInResource> {
+        public bool Equals(SchemaInResource x, SchemaInResource y) => ReferenceEquals(x.Schema, y.Schema) && ReferenceEquals(x.Resource, y.Resource);
+        public int GetHashCode(SchemaInResource obj) =>
+            unchecked(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Schema) * 397 ^ System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj.Resource));
+    }
 }

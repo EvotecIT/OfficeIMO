@@ -76,7 +76,7 @@ internal static class JsonSchemaUri {
         if (HasScheme(reference)) return Normalize(reference);
         if (reference[0] == '#') return ResourcePart(baseUri) + reference;
         string resource = ResourcePart(baseUri);
-        if (resource.Length != 0 && IsHierarchical(resource) && Uri.TryCreate(new Uri(resource, UriKind.Absolute), reference, out Uri? resolved)) {
+        if (resource.Length != 0 && IsHierarchical(resource) && Uri.TryCreate(resource, UriKind.Absolute, out Uri? absolute) && Uri.TryCreate(absolute, reference, out Uri? resolved)) {
             return StripEmptyFragment(resolved.AbsoluteUri);
         }
         // An opaque base such as a URN has no path to resolve against.
@@ -84,9 +84,38 @@ internal static class JsonSchemaUri {
         // Without an absolute base, a relative reference resolves against the base's own relative path.
         if (resource.Length != 0) {
             int slash = resource.LastIndexOf('/');
-            if (slash >= 0 && reference[0] != '/') return StripEmptyFragment(resource.Substring(0, slash + 1) + reference);
+            if (slash >= 0 && reference[0] != '/') return StripEmptyFragment(RemoveDotSegments(resource.Substring(0, slash + 1) + reference));
         }
-        return StripEmptyFragment(reference);
+        return StripEmptyFragment(RemoveDotSegments(reference));
+    }
+
+    /// <summary>
+    /// Removes <c>.</c> and <c>..</c> path segments (RFC 3986 section 5.2.4) from a relative reference, so
+    /// <c>./child.json</c> and <c>child.json</c> name the same resource. Leading <c>..</c> segments that have nothing
+    /// to remove stay, as a relative path cannot climb above its unknown base.
+    /// </summary>
+    internal static string RemoveDotSegments(string reference) {
+        int end = reference.IndexOfAny(new[] { '?', '#' });
+        string path = end < 0 ? reference : reference.Substring(0, end);
+        string rest = end < 0 ? string.Empty : reference.Substring(end);
+        if (path.IndexOf('.') < 0) return reference;
+        string[] segments = path.Split('/');
+        var kept = new List<string>(segments.Length);
+        bool rooted = path.Length > 0 && path[0] == '/';
+        for (int i = rooted ? 1 : 0; i < segments.Length; i++) {
+            string segment = segments[i];
+            bool last = i == segments.Length - 1;
+            if (segment == ".") {
+                if (last) kept.Add(string.Empty);
+            } else if (segment == "..") {
+                if (kept.Count > 0 && kept[kept.Count - 1] != "..") kept.RemoveAt(kept.Count - 1);
+                else if (!rooted) kept.Add("..");
+                if (last) kept.Add(string.Empty);
+            } else {
+                kept.Add(segment);
+            }
+        }
+        return (rooted ? "/" : string.Empty) + string.Join("/", kept) + rest;
     }
 
     public static string ResourcePart(string uri) {

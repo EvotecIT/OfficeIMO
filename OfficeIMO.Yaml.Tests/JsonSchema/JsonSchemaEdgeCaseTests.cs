@@ -102,11 +102,81 @@ public class JsonSchemaEdgeCaseTests {
     }
 
     [Fact]
-    public void DeepSchemasFailToLoadInsteadOfOverflowingTheStack() {
-        JsonData schema = JsonData.CreateBoolean(true);
-        for (int i = 0; i < 100_000; i++) schema = JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>("not", schema) });
+    public void ValuesCannotBeBuiltDeeperThanTheNestingLimit() {
+        JsonData value = JsonData.CreateNumber(1);
+        for (int i = 0; i < 1024; i++) value = JsonData.CreateArray(new[] { value });
+
+        Assert.Throws<ArgumentException>(() => JsonData.CreateArray(new[] { value }));
+        Assert.Throws<ArgumentException>(() => JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>("a", value) }));
+    }
+
+    [Fact]
+    public void UnresolvedReferencesFailInsideNot() {
+        JsonSchema schema = JsonSchema.Parse("{\"not\":{\"$ref\":\"missing.json\"}}");
+
+        JsonSchemaValidationResult result = schema.Validate(JsonData.CreateNumber(1));
+
+        Assert.False(result.IsValid);
+        Assert.Equal("$ref", Assert.Single(result.Findings).Keyword);
+    }
+
+    [Fact]
+    public void ASchemaValueSharedByTwoResourcesResolvesAgainstEach() {
+        JsonData shared = JsonData.Parse("{\"$ref\":\"child.json\"}");
+        JsonData Resource(string id) => JsonData.CreateObject(new[] {
+            new KeyValuePair<string, JsonData>("$id", JsonData.CreateString(id)),
+            new KeyValuePair<string, JsonData>("properties", JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>("v", shared) }))
+        });
+        JsonData root = JsonData.CreateObject(new[] {
+            new KeyValuePair<string, JsonData>("$defs", JsonData.CreateObject(new[] {
+                new KeyValuePair<string, JsonData>("a", Resource("https://example.test/a/")),
+                new KeyValuePair<string, JsonData>("b", Resource("https://example.test/b/"))
+            })),
+            new KeyValuePair<string, JsonData>("$ref", JsonData.CreateString("https://example.test/b/"))
+        });
+        var options = new JsonSchemaOptions {
+            ReferenceResolver = uri => JsonData.Parse(uri == "https://example.test/a/child.json" ? "{\"type\":\"string\"}" : "{\"type\":\"number\"}")
+        };
+
+        Assert.True(JsonSchema.Load(root, options).IsValid(JsonData.Parse("{\"v\":1}")));
+    }
+
+    [Theory]
+    [InlineData("(?<>a)")]
+    [InlineData("(?<1a>a)")]
+    [InlineData("(?<a>a)\\k<>")]
+    public void PatternsWithInvalidGroupNamesFailToLoad(string pattern) {
+        JsonData schema = JsonData.CreateObject(new[] { new KeyValuePair<string, JsonData>("pattern", JsonData.CreateString(pattern)) });
 
         Assert.Throws<JsonSchemaException>(() => JsonSchema.Load(schema));
+    }
+
+    [Fact]
+    public void AMalformedBaseUriFailsToLoad() {
+        JsonSchemaException error = Assert.Throws<JsonSchemaException>(() =>
+            JsonSchema.Parse("{\"$ref\":\"child.json\"}", new JsonSchemaOptions { BaseUri = "http://[invalid" }));
+
+        Assert.Contains("BaseUri", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("schemas/root.json")]
+    [InlineData(null)]
+    public void DotSegmentsInRelativeReferencesFindEmbeddedResources(string? baseUri) {
+        JsonSchema schema = JsonSchema.Parse("{\"$ref\":\"./sub/../child.json\",\"$defs\":{\"c\":{\"$id\":\"child.json\",\"type\":\"string\"}}}",
+            new JsonSchemaOptions { BaseUri = baseUri });
+
+        JsonSchemaValidationResult result = schema.Validate(JsonData.CreateNumber(1));
+
+        Assert.Equal("type", Assert.Single(result.Findings).Keyword);
+    }
+
+    [Fact]
+    public void YamlIntegersBeyondDecimalRangeStayExact() {
+        JsonSchema schema = JsonSchema.Parse("{\"properties\":{\"n\":{\"const\":79228162514264337593543950337}}}");
+
+        Assert.True(YamlDocument.Parse("n: 79228162514264337593543950337\n").Validate(schema).IsValid);
+        Assert.False(YamlDocument.Parse("n: 79228162514264337593543950338\n").Validate(schema).IsValid);
     }
 
     [Fact]

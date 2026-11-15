@@ -66,7 +66,11 @@ require).
 anchors and JSON Pointer fragments. Anything else goes to `JsonSchemaOptions.ReferenceResolver`, once per URI, with the
 resolved URI without its fragment. Nothing is fetched from the network or the file system otherwise. Without
 `BaseUri` or an absolute `$id`, relative references reach the resolver as written, so a caller can map them to files
-next to the schema. An unresolved reference is a finding at the `$ref`, not an exception.
+next to the schema. Relative references drop `.` and `..` segments, so `./child.json` finds an embedded
+`child.json`. A `BaseUri` with a scheme must be a valid absolute URI. A schema value reused under two resources, as a
+YAML alias can do, resolves its references against whichever resource it is reached through. An unresolved reference
+is a finding at the `$ref`, not an exception; inside `not`, `anyOf` and other branch checks it stops validation,
+because a broken reference cannot count as a mismatch that turns into a pass.
 
 ## Formats
 
@@ -97,7 +101,8 @@ Schemas and documents can be untrusted. Every limit reached is a finding, so a r
 | `MaxEvaluationSteps` | 10,000,000 | Total subschema evaluations; catches exponential `anyOf`/`oneOf` nesting |
 | `RegexTimeout` | 1 second | Each `pattern` and `patternProperties` match |
 
-`JsonData.Parse`, schema compilation and the YAML and TOML conversions stop at 512 levels of nesting; YAML aliases
+`JsonData` values nest at most 1024 levels however they are built, which bounds comparison, hashing, writing and
+schema compilation. `JsonData.Parse` and the YAML and TOML conversions stop earlier, at 512 levels; YAML aliases
 count the full depth of the value they reuse. `multipleOf` stays exact at any exponent gap. Values that share subtrees,
 as YAML aliases do, are compared, hashed for `uniqueItems` and previewed in findings without expanding them.
 

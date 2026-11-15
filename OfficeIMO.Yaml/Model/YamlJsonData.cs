@@ -55,6 +55,10 @@ internal sealed class YamlJsonData {
                 break;
             case YamlScalarKind.Integer:
                 if (scalar.TryGetValue(out decimal exact)) return JsonData.CreateNumber(exact, location);
+                // Decimal integers beyond decimal range stay exact, as the untyped reader keeps them as BigInteger.
+                if (YamlBigIntegerConverter.TryParse(scalar.Value.AsSpan(), out System.Numerics.BigInteger big)) {
+                    return JsonData.ParseNumber(big.ToString(CultureInfo.InvariantCulture), location);
+                }
                 if (scalar.TryGetValue(out double large)) return JsonData.CreateNumber(large, location);
                 break;
             case YamlScalarKind.Float:

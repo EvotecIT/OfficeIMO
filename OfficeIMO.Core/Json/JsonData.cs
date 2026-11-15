@@ -29,7 +29,8 @@ public enum JsonDataKind : byte {
 /// <remarks>
 /// Numbers keep their exact decimal value at any precision, so <c>0.1</c>, <c>multipleOf</c> and numbers beyond
 /// <see cref="decimal"/> or <see cref="double"/> range compare exactly; only infinities and NaN are inexact. Objects
-/// keep their properties in source order; a repeated name keeps its first position and its last value.
+/// keep their properties in source order; a repeated name keeps its first position and its last value. Values nest at
+/// most 1024 levels deep.
 /// </remarks>
 public sealed class JsonData {
     private static readonly JsonData[] NoItems = Array.Empty<JsonData>();
@@ -37,6 +38,8 @@ public sealed class JsonData {
     private static readonly ReadOnlyCollection<JsonData> NoItemsView = new ReadOnlyCollection<JsonData>(NoItems);
     private static readonly ReadOnlyCollection<KeyValuePair<string, JsonData>> NoPropertiesView = new ReadOnlyCollection<KeyValuePair<string, JsonData>>(NoProperties);
     private const int LinearLookupLimit = 8;
+    /// <summary>The deepest nesting a value may have, so comparing, hashing and writing it never exhaust the stack.</summary>
+    internal const int MaxNesting = 1024;
 
     private readonly bool _boolean;
     private readonly string? _string;
@@ -49,6 +52,7 @@ public sealed class JsonData {
     private readonly ReadOnlyCollection<JsonData> _itemsView;
     private readonly ReadOnlyCollection<KeyValuePair<string, JsonData>> _propertiesView;
     private Dictionary<string, int>? _index;
+    private readonly int _height;
 
     private JsonData(JsonDataKind kind, JsonDataLocation location) {
         Kind = kind;
@@ -73,13 +77,30 @@ public sealed class JsonData {
 
     private JsonData(JsonData[] items, JsonDataLocation location) : this(JsonDataKind.Array, location) {
         _items = items;
+        _height = HeightOf(items);
         if (items.Length != 0) _itemsView = new ReadOnlyCollection<JsonData>(items);
     }
 
     private JsonData(KeyValuePair<string, JsonData>[] properties, JsonDataLocation location) : this(JsonDataKind.Object, location) {
         _properties = properties;
+        _height = HeightOf(properties);
         if (properties.Length != 0) _propertiesView = new ReadOnlyCollection<KeyValuePair<string, JsonData>>(properties);
     }
+
+    private static int HeightOf(JsonData[] items) {
+        int height = 0;
+        foreach (JsonData item in items) height = Math.Max(height, item._height);
+        return CheckHeight(height + 1);
+    }
+
+    private static int HeightOf(KeyValuePair<string, JsonData>[] properties) {
+        int height = 0;
+        foreach (KeyValuePair<string, JsonData> property in properties) height = Math.Max(height, property.Value._height);
+        return CheckHeight(height + 1);
+    }
+
+    private static int CheckHeight(int height) => height <= MaxNesting ? height
+        : throw new ArgumentException("The value nests deeper than " + MaxNesting.ToString(CultureInfo.InvariantCulture) + " levels.");
 
     /// <summary>Gets the kind of value.</summary>
     public JsonDataKind Kind { get; }
@@ -157,6 +178,7 @@ public sealed class JsonData {
 
     /// <summary>Creates an array from its items.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="items"/> or one of its items is null.</exception>
+    /// <exception cref="ArgumentException">The value would nest deeper than 1024 levels.</exception>
     public static JsonData CreateArray(IEnumerable<JsonData> items, JsonDataLocation location = default) {
         if (items is null) throw new ArgumentNullException(nameof(items));
         JsonData[] array = items.ToArray();
@@ -168,6 +190,7 @@ public sealed class JsonData {
 
     /// <summary>Creates an object from its properties. A repeated name keeps its first position and its last value.</summary>
     /// <exception cref="ArgumentNullException"><paramref name="properties"/>, a name or a value is null.</exception>
+    /// <exception cref="ArgumentException">The value would nest deeper than 1024 levels.</exception>
     public static JsonData CreateObject(IEnumerable<KeyValuePair<string, JsonData>> properties, JsonDataLocation location = default) {
         if (properties is null) throw new ArgumentNullException(nameof(properties));
         var list = new List<KeyValuePair<string, JsonData>>();

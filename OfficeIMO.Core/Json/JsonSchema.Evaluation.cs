@@ -88,7 +88,13 @@ public sealed partial class JsonSchema {
             JsonSchemaNode? target = GetRefTarget(node, out string? error);
             if (target is null) {
                 valid = false;
-                if (!report || !cx.Add(ip, Child(sp, "$ref"), "$ref", error!, instance)) return false;
+                // An unresolvable reference is a broken schema, not a failed assertion: inside a probe such as 'not' it
+                // stops validation rather than counting as a mismatch that the probe could turn into success.
+                if (!report) {
+                    cx.Abort(ip, Child(sp, "$ref"), "$ref", error!, instance);
+                    return false;
+                }
+                if (!cx.Add(ip, Child(sp, "$ref"), "$ref", error!, instance)) return false;
             } else if (!Evaluate(target, instance, ip, Child(sp, "$ref"), report, local, scope, depth + 1, cx)) {
                 valid = false;
                 if (!report || cx.Aborted) return false;
@@ -99,7 +105,13 @@ public sealed partial class JsonSchema {
             JsonSchemaNode? target = GetDynamicRefTarget(node, scope, out string? error);
             if (target is null) {
                 valid = false;
-                if (!report || !cx.Add(ip, Child(sp, "$dynamicRef"), "$dynamicRef", error!, instance)) return false;
+                // An unresolvable reference is a broken schema, not a failed assertion: inside a probe such as 'not' it
+                // stops validation rather than counting as a mismatch that the probe could turn into success.
+                if (!report) {
+                    cx.Abort(ip, Child(sp, "$dynamicRef"), "$dynamicRef", error!, instance);
+                    return false;
+                }
+                if (!cx.Add(ip, Child(sp, "$dynamicRef"), "$dynamicRef", error!, instance)) return false;
             } else if (!Evaluate(target, instance, ip, Child(sp, "$dynamicRef"), report, local, scope, depth + 1, cx)) {
                 valid = false;
                 if (!report || cx.Aborted) return false;

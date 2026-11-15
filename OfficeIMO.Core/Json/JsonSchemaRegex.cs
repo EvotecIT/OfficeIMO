@@ -137,7 +137,7 @@ internal static class JsonSchemaRegex {
             }
             int close = pattern.IndexOf('>', i + 3);
             if (close < 0) throw new ArgumentException("The group name is not closed.");
-            string name = pattern.Substring(i + 3, close - i - 3);
+            RequireGroupName(pattern.Substring(i + 3, close - i - 3));
             text.Append("(?<").Append((++state.Captures).ToString(CultureInfo.InvariantCulture)).Append('>');
             return close + 1;
         }
@@ -220,7 +220,7 @@ internal static class JsonSchemaRegex {
                 if (At(pattern, i + 2) != '<') throw new ArgumentException("\\k needs a group name.");
                 int close = pattern.IndexOf('>', i + 3);
                 if (close < 0) throw new ArgumentException("\\k needs a group name.");
-                string name = pattern.Substring(i + 3, close - i - 3);
+                string name = RequireGroupName(pattern.Substring(i + 3, close - i - 3));
                 if (!state.Names.TryGetValue(name, out List<int>? numbers)) throw new ArgumentException("\\k<" + name + "> names no group.");
                 AppendBackreference(text, numbers);
                 return close + 1;
@@ -247,6 +247,24 @@ internal static class JsonSchemaRegex {
                 text.Append('\\').Append(n);
                 return i + 2;
         }
+    }
+
+    /// <summary>
+    /// Checks a group name against the ECMA-262 identifier grammar: a letter, <c>$</c> or <c>_</c>, then letters,
+    /// digits, marks, connector punctuation, <c>$</c>, ZWNJ or ZWJ.
+    /// </summary>
+    private static string RequireGroupName(string name) {
+        if (name.Length == 0) throw new ArgumentException("A capture group needs a name.");
+        for (int i = 0; i < name.Length; i++) {
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(name, i);
+            bool start = category is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter
+                or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter or UnicodeCategory.LetterNumber || name[i] is '$' or '_';
+            bool part = start || category is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark
+                or UnicodeCategory.DecimalDigitNumber or UnicodeCategory.ConnectorPunctuation || name[i] is '\u200C' or '\u200D';
+            if (!(i == 0 ? start : part)) throw new ArgumentException("'" + name + "' is not a valid capture group name.");
+            if (char.IsHighSurrogate(name[i]) && i + 1 < name.Length && char.IsLowSurrogate(name[i + 1])) i++;
+        }
+        return name;
     }
 
     /// <summary>
