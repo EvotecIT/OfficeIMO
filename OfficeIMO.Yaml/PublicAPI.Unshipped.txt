@@ -172,3 +172,9 @@ OfficeIMO.Yaml.YamlLoadOptions.Dialect.set -> void
 OfficeIMO.Yaml.YamlReader.IsStripped.get -> bool
 OfficeIMO.Yaml.YamlReaderOptions.Dialect.get -> OfficeIMO.Yaml.YamlDialect
 OfficeIMO.Yaml.YamlReaderOptions.Dialect.set -> void
+OfficeIMO.Yaml.YamlDocument.Query(string! query) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlQueryMatch!>!
+OfficeIMO.Yaml.YamlNode.Query(string! query) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Yaml.YamlQueryMatch!>!
+OfficeIMO.Yaml.YamlQueryMatch
+OfficeIMO.Yaml.YamlQueryMatch.Node.get -> OfficeIMO.Yaml.YamlNode!
+OfficeIMO.Yaml.YamlQueryMatch.Path.get -> string!
+override OfficeIMO.Yaml.YamlQueryMatch.ToString() -> string!

@@ -313,7 +313,7 @@ internal static class YamlPath {
         return quoted.Append('"').ToString();
     }
 
-    private static YamlNode? Key(YamlNode? node, string key) {
+    internal static YamlNode? Key(YamlNode? node, string key) {
         if (node?.Resolved is not YamlMapping mapping) return null;
         if (mapping.TryGetValue(key, out YamlNode? value)) return value;
         int index = mapping.IndexOfCollectionKey(key);

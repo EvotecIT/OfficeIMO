@@ -74,6 +74,8 @@
     <Compile Include="..\OfficeIMO.SharedSource\IO\PooledUtf8TextWriter*.cs" Link="SharedSource\IO\%(Filename)%(Extension)" />
     <!-- The reflection shape rules TomlSerializer applies too. -->
     <Compile Include="..\OfficeIMO.SharedSource\Serialization\*.cs" Link="SharedSource\Serialization\%(Filename)%(Extension)" />
+    <!-- The query engine TomlDocument.Query uses too. -->
+    <Compile Include="..\OfficeIMO.SharedSource\Query\*.cs" Link="SharedSource\Query\%(Filename)%(Extension)" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
 

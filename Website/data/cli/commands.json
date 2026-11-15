@@ -2299,6 +2299,41 @@
       ]
     },
     {
+      "id": "query",
+      "title": "Query",
+      "summary": "Select values from YAML, JSON and TOML files with one path query: wildcards, recursive descent and filters.",
+      "docsUrl": "/docs/cli/extract-and-inspect/#query-yaml-json-and-toml",
+      "aliases": [],
+      "shortcutFor": null,
+      "usage": [
+        "officeimo query <file> <query> [--format text|json] [--input-format yaml|json|toml]"
+      ],
+      "subcommands": [],
+      "keyOptions": [
+        {
+          "name": "--format",
+          "value": "text|json",
+          "description": "Result format: text lines or a JSON array."
+        },
+        {
+          "name": "--input-format",
+          "value": "yaml|json|toml",
+          "description": "Read the file as YAML, JSON or TOML instead of by extension."
+        }
+      ],
+      "inputFormats": [
+        "json",
+        "toml",
+        "yaml",
+        "yml"
+      ],
+      "outputFormats": [],
+      "resultFormats": [
+        "text",
+        "json"
+      ]
+    },
+    {
       "id": "tabular",
       "title": "Tabular",
       "summary": "List worksheets, report column schemas and convert between CSV, TSV and workbook formats.",

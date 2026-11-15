@@ -181,6 +181,30 @@ public abstract class TomlNode {
     public TomlNode? Select(string path) => TomlPath.Select(this, path);
 
     /// <summary>
+    /// Returns every node a query selects, in document order, with the path of each. Queries extend the
+    /// <see cref="Select"/> grammar, so every path is also a query that selects at most one node:
+    /// <list type="bullet">
+    /// <item><description><c>*</c> as a step (<c>.*</c>, <c>[*]</c>) selects every mapping value or sequence item; a
+    /// key named <c>*</c> is <c>["*"]</c>.</description></item>
+    /// <item><description><c>..</c> before a step applies it to this node and every descendant: <c>..image</c>,
+    /// <c>..*</c>, <c>..[0]</c>.</description></item>
+    /// <item><description><c>[-n]</c> counts from the end of a sequence.</description></item>
+    /// <item><description><c>[?(condition)]</c> (or <c>[?condition]</c>) selects the mapping values or sequence items
+    /// for which the condition holds. Conditions compare <c>@</c> paths (<c>@</c>, <c>@.name</c>, <c>@["a.b"][0]</c>)
+    /// and literals (<c>'text'</c>, <c>"text"</c>, numbers, <c>true</c>, <c>false</c>, <c>null</c>) with
+    /// <c>==</c>, <c>!=</c>, <c>&lt;</c>, <c>&lt;=</c>, <c>&gt;</c> and <c>&gt;=</c>, test that a <c>@</c> path exists,
+    /// and combine with <c>&amp;&amp;</c>, <c>||</c>, <c>!</c> and parentheses.</description></item>
+    /// <item><description><c>["key"]</c> and <c>['key']</c> both select keys.</description></item>
+    /// </list>
+    /// <para>Integers and floats compare as numbers, strings and booleans as themselves, and date-times by their TOML text; values of different types are never equal and only numbers or strings order. Arrays and arrays of tables are both sequences (<c>package[?(@.name == 'serde')].version</c>). Paths are relative to this node.</para>
+    /// <para>The same grammar queries YAML and JSON through <c>OfficeIMO.Yaml</c>, so one query reads YAML, JSON and
+    /// TOML configuration alike.</para>
+    /// </summary>
+    /// <exception cref="ArgumentNullException"><paramref name="query"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="query"/> is malformed.</exception>
+    public IReadOnlyList<TomlQueryMatch> Query(string query) => TomlQuery.Query(this, query);
+
+    /// <summary>
     /// Gets the comments on the lines directly above the node (no blank line between), in source order, as the text after
     /// <c>#</c>. Nodes added by editing have none.
     /// </summary>
