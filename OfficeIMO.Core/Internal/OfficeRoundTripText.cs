@@ -1,5 +1,8 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 #if NETCOREAPP
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using CharBuffer = System.Span<char>;
 #else
 using CharBuffer = char[];
@@ -70,14 +73,28 @@ internal static class OfficeRoundTripText
     internal static string Format(DateTime value)
     {
         char[] buffer = Buffer;
-        return new string(buffer, 0, Write(value, buffer));
+        CharBuffer target = buffer;
+        return new string(buffer, 0, Write(value, target, 0));
     }
 
     /// <summary>Formats a date, time and offset as <see cref="DateTimeOffsetFormat"/> text.</summary>
     internal static string Format(DateTimeOffset value)
     {
         char[] buffer = Buffer;
-        return new string(buffer, 0, Write(value, buffer));
+        CharBuffer target = buffer;
+        return new string(buffer, 0, Write(value, target, 0));
+    }
+
+    /// <summary>
+    /// Formats a date, time and offset as the runtime's "o" text: every one of the seven fraction digits and the
+    /// offset, <c>+00:00</c> included.
+    /// </summary>
+    internal static string FormatRoundTripPattern(DateTimeOffset value)
+    {
+        char[] buffer = Buffer;
+        CharBuffer target = buffer;
+        int position = WriteDateAndTime(target, 0, value.Ticks, trimFraction: false);
+        return new string(buffer, 0, WriteOffset(target, position, value.Offset.Ticks));
     }
 
     /// <summary>
@@ -122,94 +139,251 @@ internal static class OfficeRoundTripText
     /// <summary>A per-thread buffer of <see cref="MaximumDateTimeLength"/> characters for the writers below.</summary>
     internal static char[] Buffer => t_buffer ??= new char[MaximumDateTimeLength];
 
-    /// <summary>
-    /// Writes <see cref="DateTimeFormat"/> text into at least <see cref="MaximumDateTimeLength"/> characters without
-    /// parsing the format and returns its length. Local values take the runtime's text, which looks up the offset.
-    /// </summary>
-    internal static int Write(DateTime value, CharBuffer destination)
-    {
-        if (value.Kind == DateTimeKind.Local)
-        {
-            string text = value.ToString(DateTimeFormat, CultureInfo.InvariantCulture);
+    // The writers below put the text at start in at least MaximumDateTimeLength units and return the position after
+    // it: UTF-16 or UTF-8 units on .NET, characters in an array elsewhere. The ASCII text is composed eight
+    // characters at a time in a 64-bit word, character i in byte i, and stored at once; a store may run past the
+    // returned position, never past MaximumDateTimeLength units.
+
 #if NETCOREAPP
-            text.AsSpan().CopyTo(destination);
+    /// <summary>Writes <see cref="DateTimeFormat"/> text; a local value takes the offset the runtime's <c>K</c> writes.</summary>
+    internal static int Write<TChar>(DateTime value, Span<TChar> destination, int start) where TChar : unmanaged
 #else
-            text.CopyTo(0, destination, 0, text.Length);
+    /// <summary>Writes <see cref="DateTimeFormat"/> text; a local value takes the offset the runtime's <c>K</c> writes.</summary>
+    internal static int Write(DateTime value, char[] destination, int start)
 #endif
-            return text.Length;
-        }
-
-        int position = WriteDateAndTime(value.Ticks, destination);
-        if (value.Kind == DateTimeKind.Utc)
+    {
+        EnsureRoom(destination, start);
+        int position = WriteDateAndTime(destination, start, value.Ticks, trimFraction: true);
+        switch (value.Kind)
         {
-            destination[position++] = 'Z';
+            case DateTimeKind.Utc:
+                destination[position] = Unit(destination, 'Z');
+                return position + 1;
+            case DateTimeKind.Local:
+                return WriteOffset(destination, position, TimeZoneInfo.Local.GetUtcOffset(value).Ticks);
+            default:
+                return position;
         }
-
-        return position;
     }
 
-    /// <summary>Writes <see cref="DateTimeOffsetFormat"/> text into at least <see cref="MaximumDateTimeLength"/> characters and returns its length.</summary>
-    internal static int Write(DateTimeOffset value, CharBuffer destination)
+#if NETCOREAPP
+    /// <summary>Writes <see cref="DateTimeOffsetFormat"/> text.</summary>
+    internal static int Write<TChar>(DateTimeOffset value, Span<TChar> destination, int start) where TChar : unmanaged
+#else
+    /// <summary>Writes <see cref="DateTimeOffsetFormat"/> text.</summary>
+    internal static int Write(DateTimeOffset value, char[] destination, int start)
+#endif
     {
-        int position = WriteDateAndTime(value.Ticks, destination);
-        int offsetMinutes = (int)(value.Offset.Ticks / TimeSpan.TicksPerMinute);
-        destination[position++] = offsetMinutes < 0 ? '-' : '+';
-        offsetMinutes = Math.Abs(offsetMinutes);
-        WriteTwoDigits(destination, position, offsetMinutes / 60);
-        destination[position + 2] = ':';
-        WriteTwoDigits(destination, position + 3, offsetMinutes % 60);
-        return position + 5;
+        EnsureRoom(destination, start);
+        int position = WriteDateAndTime(destination, start, value.Ticks, trimFraction: true);
+        return WriteOffset(destination, position, value.Offset.Ticks);
     }
 
-    /// <summary>Writes yyyy-MM-ddTHH:mm:ss and, when the second has a fraction, a point and its digits without trailing zeros.</summary>
-    private static int WriteDateAndTime(long ticks, CharBuffer destination)
+    /// <summary>
+    /// Writes yyyy-MM-ddTHH:mm:ss and the point and fraction digits: all seven, or, when trimmed, none for a whole
+    /// second and no trailing zeros otherwise.
+    /// </summary>
+#if NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int WriteDateAndTime<TChar>(Span<TChar> destination, int start, long ticks, bool trimFraction) where TChar : unmanaged
+#else
+    private static int WriteDateAndTime(char[] destination, int start, long ticks, bool trimFraction)
+#endif
     {
-        var date = new DateTime(ticks);
+        // Ticks of the day fit in 40 bits, so the clock is split with unsigned constant divisions.
+        ulong dayNumber = (ulong)ticks / TimeSpan.TicksPerDay;
+        ulong dayTicks = (ulong)ticks - dayNumber * TimeSpan.TicksPerDay;
+
+        // Rows often repeat a day, so the text of the last one is kept: "yyyy-MM-" and "dd".
+        ref DayText last = ref t_lastDay;
+        if (last.Number != dayNumber + 1)
+        {
+            var date = new DateTime(ticks);
 #if NET8_0_OR_GREATER
-        date.Deconstruct(out int year, out int month, out int day);
+            date.Deconstruct(out int year, out int month, out int day);
 #else
-        int year = date.Year, month = date.Month, day = date.Day;
+            int year = date.Year, month = date.Month, day = date.Day;
 #endif
-        WriteTwoDigits(destination, 0, year / 100);
-        WriteTwoDigits(destination, 2, year % 100);
-        destination[4] = '-';
-        WriteTwoDigits(destination, 5, month);
-        destination[7] = '-';
-        WriteTwoDigits(destination, 8, day);
-        destination[10] = 'T';
-        long dayTicks = ticks % TimeSpan.TicksPerDay;
-        int seconds = (int)(dayTicks / TimeSpan.TicksPerSecond);
-        WriteTwoDigits(destination, 11, seconds / 3600);
-        destination[13] = ':';
-        WriteTwoDigits(destination, 14, seconds / 60 % 60);
-        destination[16] = ':';
-        WriteTwoDigits(destination, 17, seconds % 60);
-        int fraction = (int)(dayTicks % TimeSpan.TicksPerSecond);
-        if (fraction == 0)
-        {
-            return 19;
+            uint century = (uint)year / 100;
+            last.YearAndMonth = TwoDigits(century) | (ulong)TwoDigits((uint)year - century * 100) << 16 | (ulong)'-' << 32 |
+                (ulong)TwoDigits((uint)month) << 40 | (ulong)'-' << 56;
+            last.Day = TwoDigits((uint)day) | (uint)'T' << 16;
+            last.Number = dayNumber + 1;
         }
 
-        destination[19] = '.';
-        int digits = 7;
+        Store8(destination, start, last.YearAndMonth);
+        if (dayTicks == 0)
+        {
+            // "ddT00:00" and ":00".
+            Store8(destination, start + 8, last.Day | MidnightClock);
+            Store4(destination, start + 16, ':' | (uint)'0' << 8 | (uint)'0' << 16);
+            if (trimFraction)
+            {
+                return start + 19;
+            }
+        }
+
+        uint seconds = (uint)(dayTicks / TimeSpan.TicksPerSecond);
+        uint fraction = (uint)(dayTicks - seconds * (ulong)TimeSpan.TicksPerSecond);
+        uint minutes = seconds / 60;
+        uint hours = minutes / 60;
+
+        // "ddTHH:mm".
+        Store8(destination, start + 8, last.Day | (ulong)TwoDigits(hours) << 24 | (ulong)':' << 40 |
+            (ulong)TwoDigits(minutes - hours * 60) << 48);
+        ulong secondText = ':' | (ulong)TwoDigits(seconds - minutes * 60) << 8;
+        if (trimFraction && fraction == 0)
+        {
+            Store4(destination, start + 16, (uint)secondText);
+            return start + 19;
+        }
+
+        // ":ss.ffff" and "fff".
+        uint high = fraction / 1_000;
+        uint low = fraction - high * 1_000;
+        uint lowHundreds = low / 100;
+        Store8(destination, start + 16, secondText | (ulong)'.' << 24 | (ulong)TwoDigits(high / 100) << 32 |
+            (ulong)TwoDigits(high % 100) << 48);
+        Store4(destination, start + 24, '0' + lowHundreds | TwoDigits(low - lowHundreds * 100) << 8);
+        if (!trimFraction)
+        {
+            return start + 27;
+        }
+
+        int end = start + 27;
         while (fraction % 10 == 0)
         {
             fraction /= 10;
-            digits--;
+            end--;
         }
 
-        for (int index = 19 + digits; index > 19; index--)
-        {
-            destination[index] = (char)('0' + fraction % 10);
-            fraction /= 10;
-        }
-
-        return 20 + digits;
+        return end;
     }
 
-    private static void WriteTwoDigits(CharBuffer destination, int position, int value)
+    /// <summary>Writes an offset as +hh:mm or -hh:mm, as the runtime's <c>zzz</c> and <c>K</c> do.</summary>
+#if NETCOREAPP
+    private static int WriteOffset<TChar>(Span<TChar> destination, int position, long offsetTicks) where TChar : unmanaged
+#else
+    private static int WriteOffset(char[] destination, int position, long offsetTicks)
+#endif
     {
-        destination[position] = (char)('0' + value / 10);
-        destination[position + 1] = (char)('0' + value % 10);
+        int offsetMinutes = (int)(offsetTicks / TimeSpan.TicksPerMinute);
+        uint sign = offsetMinutes < 0 ? '-' : '+';
+        uint magnitude = (uint)Math.Abs(offsetMinutes);
+        uint offsetHours = magnitude / 60;
+        Store4(destination, position, sign | TwoDigits(offsetHours) << 8 | (uint)':' << 24);
+        uint minuteText = TwoDigits(magnitude - offsetHours * 60);
+        destination[position + 4] = Unit(destination, (char)(minuteText & 0xFF));
+        destination[position + 5] = Unit(destination, (char)(minuteText >> 8));
+        return position + 6;
     }
+
+    /// <summary>"00:00" after "ddT", in the bytes of the second eight characters.</summary>
+    private const ulong MidnightClock = (ulong)'0' << 24 | (ulong)'0' << 32 | (ulong)':' << 40 | (ulong)'0' << 48 | (ulong)'0' << 56;
+
+    /// <summary>The text of a day: its number plus one (zero when none was written on this thread), "yyyy-MM-", and "dd" and 'T'.</summary>
+    private struct DayText
+    {
+        public ulong Number;
+        public ulong YearAndMonth;
+        public uint Day;
+    }
+
+    [ThreadStatic]
+    private static DayText t_lastDay;
+
+    /// <summary>The two ASCII digits of a value below 100, the first in the low byte.</summary>
+    private static uint TwoDigits(uint value)
+    {
+        uint tens = value / 10;
+        return '0' + tens | ('0' + value - tens * 10) << 8;
+    }
+
+#if NETCOREAPP
+    private static void EnsureRoom<TChar>(Span<TChar> destination, int start) where TChar : unmanaged
+    {
+        if ((uint)start > (uint)destination.Length || destination.Length - start < MaximumDateTimeLength)
+        {
+            throw new ArgumentException("The destination is too short for the date text.", nameof(destination));
+        }
+    }
+
+    /// <summary>The unit of an ASCII character; the span only selects the unit type.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static TChar Unit<TChar>(Span<TChar> _, char character) where TChar : unmanaged =>
+        typeof(TChar) == typeof(byte) ? ByteUnit<TChar>((byte)character) : Unsafe.As<char, TChar>(ref character);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static TChar ByteUnit<TChar>(byte value) where TChar : unmanaged => Unsafe.As<byte, TChar>(ref value);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Store8<TChar>(Span<TChar> destination, int position, ulong text) where TChar : unmanaged
+    {
+        ref TChar target = ref Unsafe.Add(ref MemoryMarshal.GetReference(destination), position);
+        if (!BitConverter.IsLittleEndian)
+        {
+            for (int index = 0; index < 8; index++)
+            {
+                Unsafe.Add(ref target, index) = Unit(destination, (char)(byte)(text >> (index * 8)));
+            }
+        }
+        else if (typeof(TChar) == typeof(byte))
+        {
+            Unsafe.WriteUnaligned(ref Unsafe.As<TChar, byte>(ref target), text);
+        }
+        else
+        {
+            Vector128.WidenLower(Vector128.CreateScalarUnsafe(text).AsByte())
+                .StoreUnsafe(ref Unsafe.As<TChar, ushort>(ref target));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void Store4<TChar>(Span<TChar> destination, int position, uint text) where TChar : unmanaged
+    {
+        ref TChar target = ref Unsafe.Add(ref MemoryMarshal.GetReference(destination), position);
+        if (!BitConverter.IsLittleEndian)
+        {
+            for (int index = 0; index < 4; index++)
+            {
+                Unsafe.Add(ref target, index) = Unit(destination, (char)(byte)(text >> (index * 8)));
+            }
+        }
+        else if (typeof(TChar) == typeof(byte))
+        {
+            Unsafe.WriteUnaligned(ref Unsafe.As<TChar, byte>(ref target), text);
+        }
+        else
+        {
+            ulong wide = (text & 0xFF) | (ulong)(text & 0xFF00) << 8 | (ulong)(text & 0xFF0000) << 16 | (ulong)(text & 0xFF000000) << 24;
+            Unsafe.WriteUnaligned(ref Unsafe.As<TChar, byte>(ref target), wide);
+        }
+    }
+#else
+    private static void EnsureRoom(char[] destination, int start)
+    {
+        if ((uint)start > (uint)destination.Length || destination.Length - start < MaximumDateTimeLength)
+        {
+            throw new ArgumentException("The destination is too short for the date text.", nameof(destination));
+        }
+    }
+
+    private static char Unit(char[] _, char character) => character;
+
+    private static void Store8(char[] destination, int position, ulong text)
+    {
+        for (int index = 0; index < 8; index++)
+        {
+            destination[position + index] = (char)(byte)(text >> (index * 8));
+        }
+    }
+
+    private static void Store4(char[] destination, int position, uint text)
+    {
+        for (int index = 0; index < 4; index++)
+        {
+            destination[position + index] = (char)(byte)(text >> (index * 8));
+        }
+    }
+#endif
 }

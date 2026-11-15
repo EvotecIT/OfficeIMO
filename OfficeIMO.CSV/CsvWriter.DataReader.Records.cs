@@ -392,14 +392,17 @@ internal static partial class CsvWriter
 
     private static bool AppendRecordScalar(RecordBuffer<char> output, DateTime value, char delimiter, CultureInfo culture, bool invariantComma)
     {
-        // The round-trip date text has no comma, quote or line break, whatever the culture.
-        Span<char> characters = stackalloc char[OfficeRoundTripText.MaximumDateTimeLength];
-        if (!TryFormatRoundTrip(value, characters, out int written))
+        // The round-trip date text has no comma, quote or line break, whatever the culture, so comma output takes
+        // it straight into the buffer.
+        if (invariantComma)
         {
-            return false;
+            output.GetSpan(OfficeRoundTripText.MaximumDateTimeLength);
+            output.Length = OfficeRoundTripText.Write(value, output.Units, output.Length);
+            return true;
         }
 
-        AppendScalarText(output, characters.Slice(0, written), delimiter, invariantComma);
+        char[] buffer = OfficeRoundTripText.Buffer;
+        AppendEscapedRecordText(output, buffer.AsSpan(0, OfficeRoundTripText.Write(value, buffer, 0)), delimiter);
         return true;
     }
 
