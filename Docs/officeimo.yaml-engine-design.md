@@ -63,7 +63,7 @@ The PowerShell commands follow the C# API. Any capability they need that the lib
 
 ## Non-goals
 
-- Unity's YAML dialect and other formats that only look like YAML. They need a concrete consumer and a separate decision.
+- Formats that only look like YAML beyond the opt-in Unity dialect (`YamlDialect.Unity`: stream-wide `%TAG`, `stripped` placeholders, lossless editing, no reformatting). Each needs a concrete consumer and a separate decision.
 - Arbitrary type activation from tags (`!!python/object`, `!<tag:...>` mapped to CLR types). Tags map only to types the caller registers.
 - A YAML-to-anything conversion zoo. Conversions go through Workflows routes when a consumer needs them.
 

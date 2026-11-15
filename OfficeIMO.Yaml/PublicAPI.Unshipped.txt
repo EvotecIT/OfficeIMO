@@ -163,3 +163,12 @@ OfficeIMO.Yaml.YamlDocumentPart.Comment.get -> string?
 OfficeIMO.Yaml.YamlDocumentPart.SetComment(string? text) -> OfficeIMO.Yaml.YamlDocumentPart!
 OfficeIMO.Yaml.YamlDocument.FilePath.get -> string?
 static OfficeIMO.Yaml.YamlDocument.Create(string! path) -> OfficeIMO.Yaml.YamlDocument!
+OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlDialect.Standard = 0 -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlDialect.Unity = 1 -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlDocumentPart.IsStripped.get -> bool
+OfficeIMO.Yaml.YamlLoadOptions.Dialect.get -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlLoadOptions.Dialect.set -> void
+OfficeIMO.Yaml.YamlReader.IsStripped.get -> bool
+OfficeIMO.Yaml.YamlReaderOptions.Dialect.get -> OfficeIMO.Yaml.YamlDialect
+OfficeIMO.Yaml.YamlReaderOptions.Dialect.set -> void

@@ -24,6 +24,8 @@ internal struct YamlEvent {
     public int AnchorStart;
     public int AnchorEnd;
     public bool HasTag;
+    /// <summary>Unity dialect: the node's anchor is followed by <c>stripped</c>.</summary>
+    public bool Stripped;
     public YamlTokenFlags TagFlags;
     public string? TagPrefix;
     public int TagSuffixStart;

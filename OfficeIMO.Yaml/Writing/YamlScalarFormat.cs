@@ -487,6 +487,14 @@ internal static class YamlScalarFormat {
         return "!<" + Escape(tag, 0, shorthand: false) + ">";
     }
 
+    /// <summary>Whether the tag's characters from <paramref name="start"/> can follow a handle without escapes.</summary>
+    public static bool IsShorthandSuffix(string tag, int start) {
+        for (int i = start; i < tag.Length; i++) {
+            if (!YamlChars.IsTagChar(tag[i])) return false;
+        }
+        return true;
+    }
+
     private static string Escape(string tag, int start, bool shorthand) {
         bool clean = true;
         for (int i = start; i < tag.Length && clean; i++) clean = shorthand ? YamlChars.IsTagChar(tag[i]) : YamlChars.IsUri(tag[i]) || tag[i] == '!';

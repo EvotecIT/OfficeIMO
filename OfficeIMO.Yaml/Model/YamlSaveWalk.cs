@@ -435,11 +435,28 @@ internal sealed class YamlSaveWalk {
         Insert(start, properties + _newLine + new string(' ', Column(start)));
     }
 
-    private static string PropertiesText(YamlNode node) {
-        string text = string.Empty;
-        if (node.Anchor is { } anchor) text = "&" + anchor;
-        if (node.Tag is { } tag) text += (text.Length > 0 ? " " : string.Empty) + YamlScalarFormat.FormatTag(tag, node._part?.RedefinesSecondaryHandle ?? false);
-        return text;
+    private string PropertiesText(YamlNode node) {
+        string? anchor = node.Anchor is { } name ? "&" + name : null;
+        string? tag = node.Tag is { } value ? FormatTag(node, value) : null;
+        if (anchor is null) return tag ?? string.Empty;
+        if (tag is null) return anchor;
+        // Keep the source's order, so a Unity '--- !u!1 &5' line stays tag first.
+        bool tagFirst = node.HasSourceSpan && node._start < _source.Length && _source[node._start] == '!';
+        return tagFirst ? tag + " " + anchor : anchor + " " + tag;
+    }
+
+    /// <summary>Writes a tag with a <c>%TAG</c> handle of its document when one covers it, otherwise in its standard form.</summary>
+    private static string FormatTag(YamlNode node, string tag) {
+        if (node._part is { } part) {
+            foreach (YamlTagDirective directive in part.ShorthandDirectives) {
+                if (directive.Handle is "!" or "!!" || directive.Prefix.Length == 0) continue;
+                if (tag.Length > directive.Prefix.Length && tag.StartsWith(directive.Prefix, StringComparison.Ordinal)
+                    && YamlScalarFormat.IsShorthandSuffix(tag, directive.Prefix.Length)) {
+                    return directive.Handle + tag.Substring(directive.Prefix.Length);
+                }
+            }
+        }
+        return YamlScalarFormat.FormatTag(tag, node._part?.RedefinesSecondaryHandle ?? false);
     }
 
     // ------------------------------------------------------------------ comments

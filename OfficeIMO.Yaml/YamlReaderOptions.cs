@@ -45,6 +45,12 @@ public sealed class YamlReaderOptions {
     public bool Strict { get; set; }
 
     /// <summary>
+    /// Gets or sets the YAML variant to accept. <see cref="YamlDialect.Standard"/> (the default) reads YAML as the
+    /// specification defines it; <see cref="YamlDialect.Unity"/> also reads Unity's scene, prefab and asset files.
+    /// </summary>
+    public YamlDialect Dialect { get; set; }
+
+    /// <summary>
     /// Gets or sets whether the reader reports <see cref="YamlTokenType.Comment"/> events, in source order.
     /// Off by default; when off, comments cost nothing beyond skipping them.
     /// </summary>

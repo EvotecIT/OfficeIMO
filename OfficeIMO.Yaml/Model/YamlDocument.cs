@@ -78,6 +78,9 @@ public sealed partial class YamlDocument : IDisposable {
     /// <summary>Gets whether the document was loaded with <see cref="YamlLoadOptions.Strict"/>; without it, merge keys also apply under the core schema.</summary>
     internal bool Strict { get; }
 
+    /// <summary>Gets the dialect the document was loaded with.</summary>
+    internal YamlDialect Dialect { get; set; }
+
     /// <summary>Gets the documents of the stream in source order. An empty or comment-only stream has none.</summary>
     public IReadOnlyList<YamlDocumentPart> Documents => _parts;
 

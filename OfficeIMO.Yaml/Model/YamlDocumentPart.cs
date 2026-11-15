@@ -24,6 +24,11 @@ public sealed class YamlDocumentPart {
     internal bool _commentSet;
     internal string? _comment;
     private readonly YamlTagDirective[] _tagDirectives;
+    /// <summary>Unity dialect: the directives that resolve this document's tags, its own or inherited ones; otherwise <see langword="null"/>.</summary>
+    internal YamlTagDirective[]? _activeTagDirectives;
+
+    /// <summary>The directives edited tags may be written with.</summary>
+    internal YamlTagDirective[] ShorthandDirectives => _activeTagDirectives ?? _tagDirectives;
 
     internal YamlDocumentPart(YamlDocument document, YamlSchema schema, string? version, YamlTagDirective[] tagDirectives, bool hasStartMarker, int start, int markerEnd) {
         _document = document;
@@ -85,6 +90,13 @@ public sealed class YamlDocumentPart {
 
     /// <summary>Gets whether the document ends with an explicit <c>...</c> marker.</summary>
     public bool HasEndMarker { get; internal set; }
+
+    /// <summary>
+    /// Gets whether the document's <c>---</c> line marks it <c>stripped</c> after its anchor, as Unity writes for prefab
+    /// placeholders (<c>--- !u!1 &amp;700001 stripped</c>). Only a load with <see cref="YamlDialect.Unity"/> reads it;
+    /// saving keeps the marker.
+    /// </summary>
+    public bool IsStripped { get; internal set; }
 
     /// <summary>
     /// Gets the document's header comments, such as a license, joined with line breaks and without their <c>#</c> and one

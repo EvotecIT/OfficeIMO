@@ -102,6 +102,13 @@ public sealed partial class YamlReader : IDisposable {
     /// </summary>
     public bool IsImplicit => _event.Implicit;
 
+    /// <summary>
+    /// Gets whether the current node's anchor is followed by the word <c>stripped</c>, which Unity writes on the
+    /// <c>---</c> line of a prefab placeholder. Only <see cref="YamlDialect.Unity"/> reads it; it is always
+    /// <see langword="false"/> otherwise.
+    /// </summary>
+    public bool IsStripped => _event.Stripped;
+
     /// <summary>Gets where the current event starts. Node events start at their first property (anchor or tag).</summary>
     public YamlPosition Start => new YamlPosition(_event.Start, _event.StartLine + 1, _event.StartColumn + 1);
 
@@ -246,9 +253,17 @@ public sealed partial class YamlReader : IDisposable {
         ? null
         : _versionMajor.ToString(CultureInfo.InvariantCulture) + "." + _versionMinor.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Copies the directives that resolve the current document's tags, including ones a Unity document inherits.</summary>
+    internal YamlTagDirective[] CopyActiveTagDirectives() {
+        if (_tagDirectiveCount == 0) return Array.Empty<YamlTagDirective>();
+        var copy = new YamlTagDirective[_tagDirectiveCount];
+        Array.Copy(_tagDirectives, copy, _tagDirectiveCount);
+        return copy;
+    }
+
     /// <summary>Copies the current document's <c>%TAG</c> directives, or returns an empty array.</summary>
     internal YamlTagDirective[] CopyTagDirectives() {
-        if (_tagDirectiveCount == 0) return Array.Empty<YamlTagDirective>();
+        if (_tagDirectiveCount == 0 || _tagDirectivesInherited) return Array.Empty<YamlTagDirective>();
         var copy = new YamlTagDirective[_tagDirectiveCount];
         Array.Copy(_tagDirectives, copy, _tagDirectiveCount);
         return copy;

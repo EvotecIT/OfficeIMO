@@ -63,6 +63,10 @@ internal sealed class YamlScanContext {
     // Leniency. A finding is recorded once per outermost flow collection and once per quoted scalar.
     public bool Strict;
     public bool FlowLenientReported;
+
+    // Unity dialect: the line of the last '---' marker, where 'stripped' may follow a document's anchor.
+    public bool Unity;
+    public int DocumentStartLine = -1;
     public List<YamlLenientFinding>? Findings;
 
     // Limits.
@@ -95,6 +99,7 @@ internal sealed class YamlScanContext {
         MaxScalarLength = options.MaxScalarLength;
         IncludeComments = options.IncludeComments;
         Strict = options.Strict;
+        Unity = options.Dialect == YamlDialect.Unity;
         Cancellation = cancellationToken;
         ScanArrays? spare = t_spare;
         if (spare is not null) {

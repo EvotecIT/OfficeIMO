@@ -790,6 +790,7 @@ internal ref partial struct YamlScanner {
             SkipToLineEnd("a document end marker", YamlErrorCodes.InvalidDocument);
         } else {
             c.InDocument = true;
+            c.DocumentStartLine = line;
             Finish(ref token);
         }
     }
@@ -891,7 +892,37 @@ internal ref partial struct YamlScanner {
         c.SimpleKeyAllowed = false;
         c.AdjacentValue = false;
         YamlToken token = ScanAnchor(kind);
+        if (kind == YamlTokenKind.Anchor && c.Unity && c.FlowLevel == 0 && token.StartLine == c.DocumentStartLine && SkipUnityStripped()) {
+            token.Flags |= YamlTokenFlags.Stripped;
+            token.End = Absolute(c.Pos);
+            token.EndLine = c.Line;
+            token.EndColumn = c.Column;
+        }
         Finish(ref token);
+    }
+
+    /// <summary>
+    /// Unity dialect: consumes <c> stripped</c> when it ends the <c>---</c> line after a document's anchor, as Unity
+    /// writes for prefab placeholders. Returns <see langword="false"/> and consumes nothing otherwise.
+    /// </summary>
+    private bool SkipUnityStripped() {
+        YamlScanContext c = _c;
+        const string word = "stripped";
+        int p = c.Pos;
+        int blanks = 0;
+        while (At(p + blanks) is ' ' or '\t') blanks++;
+        if (blanks == 0) return false;
+        for (int i = 0; i < word.Length; i++) {
+            if (At(p + blanks + i) != word[i]) return false;
+        }
+        int after = p + blanks + word.Length;
+        char next = At(after);
+        int tail = after;
+        while (At(tail) is ' ' or '\t') tail++;
+        if (!(At(tail) is '\n' or '\r' or '\0' || (At(tail) == '#' && tail > after))) return false;
+        if (!YamlChars.IsBlankOrBreakOrNul(next)) return false;
+        Advance(blanks + word.Length);
+        return true;
     }
 
     /// <summary>Scans an anchor or alias at the current '&amp;' or '*' into a token with its name as the value.</summary>
