@@ -235,7 +235,8 @@ internal static class MarkdownObjectTreeBinder {
 
     // Sealed types that never hold child objects.
     private static bool IsLeafObject(MarkdownObject node) =>
-        node is MarkdownTextRun or CodeSpanInline or SoftBreakInline or HardBreakInline or CodeBlock;
+        node is MarkdownTextRun or CodeSpanInline or SoftBreakInline or HardBreakInline or CodeBlock
+            or ImageInline or HtmlRawInline or HorizontalRuleBlock or HtmlRawBlock;
 
     private static bool TryCollectKnownChildren(MarkdownObject parent, List<MarkdownObject> output) {
         switch (parent) {
@@ -286,6 +287,11 @@ internal static class MarkdownObjectTreeBinder {
                 CollectChildren(parent, leadingChild: null, cell.ChildBlocks, output);
                 return true;
 
+            // Implements only IChildMarkdownBlockContainer among the child-bearing interfaces.
+            case QuoteBlock quote:
+                CollectChildren(parent, leadingChild: null, ((IChildMarkdownBlockContainer)quote).ChildBlocks, output);
+                return true;
+
             case IInlineSyntaxMarkdownBlock inlineBlock:
                 CollectOnlyChild(parent, inlineBlock.SyntaxInlines, output);
                 return true;
@@ -308,6 +314,89 @@ internal static class MarkdownObjectTreeBinder {
         output.Add(child);
     }
 
+    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<IMarkdownInline> children, List<MarkdownObject> output) {
+        // A non-generic copy per element type: shared generic code over reference types looks up
+        // its type arguments at run time, which made this the binder's hottest path.
+        MarkdownObject? previousSibling = null;
+        MarkdownObject? pendingChild = leadingChild;
+        int childIndex = leadingChild == null ? 0 : 1;
+        int count = children.Count;
+        var list = children as List<IMarkdownInline>;
+
+        for (int i = 0; i < count; i++) {
+            if ((list != null ? list[i] : children[i]) is not MarkdownObject child) {
+                continue;
+            }
+
+            if (pendingChild != null) {
+                pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, child);
+                output.Add(pendingChild);
+                previousSibling = pendingChild;
+            }
+
+            pendingChild = child;
+            childIndex++;
+        }
+
+        if (pendingChild != null) {
+            pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, nextSibling: null);
+            output.Add(pendingChild);
+        }
+    }
+    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<IMarkdownBlock> children, List<MarkdownObject> output) {
+        MarkdownObject? previousSibling = null;
+        MarkdownObject? pendingChild = leadingChild;
+        int childIndex = leadingChild == null ? 0 : 1;
+        int count = children.Count;
+        var list = children as List<IMarkdownBlock>;
+
+        for (int i = 0; i < count; i++) {
+            if ((list != null ? list[i] : children[i]) is not MarkdownObject child) {
+                continue;
+            }
+
+            if (pendingChild != null) {
+                pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, child);
+                output.Add(pendingChild);
+                previousSibling = pendingChild;
+            }
+
+            pendingChild = child;
+            childIndex++;
+        }
+
+        if (pendingChild != null) {
+            pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, nextSibling: null);
+            output.Add(pendingChild);
+        }
+    }
+    private static void CollectChildren(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<ListItem> children, List<MarkdownObject> output) {
+        MarkdownObject? previousSibling = null;
+        MarkdownObject? pendingChild = leadingChild;
+        int childIndex = leadingChild == null ? 0 : 1;
+        int count = children.Count;
+        var list = children as List<ListItem>;
+
+        for (int i = 0; i < count; i++) {
+            if ((list != null ? list[i] : children[i]) is not MarkdownObject child) {
+                continue;
+            }
+
+            if (pendingChild != null) {
+                pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, child);
+                output.Add(pendingChild);
+                previousSibling = pendingChild;
+            }
+
+            pendingChild = child;
+            childIndex++;
+        }
+
+        if (pendingChild != null) {
+            pendingChild.SetTreePosition(parent, childIndex - 1, previousSibling, nextSibling: null);
+            output.Add(pendingChild);
+        }
+    }
     private static void CollectChildren<T>(MarkdownObject parent, MarkdownObject? leadingChild, IReadOnlyList<T> children, List<MarkdownObject> output) {
         MarkdownObject? previousSibling = null;
         MarkdownObject? pendingChild = leadingChild;
