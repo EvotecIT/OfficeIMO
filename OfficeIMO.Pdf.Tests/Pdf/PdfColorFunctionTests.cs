@@ -795,6 +795,34 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+    public void Read_BuildsImagePayloadsOnDemandAgainstTheBudgetAnEagerReadWouldLeave() {
+        string program = "{ " + string.Concat(Enumerable.Repeat("dup pop ", 100)) + "dup dup }";
+        string image(int objectNumber) =>
+            objectNumber + " 0 obj\n<< /Type /XObject /Subtype /Image /Width 4 /Height 4 /ColorSpace [/Separation /Brand /DeviceRGB 6 0 R] " +
+            "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 33 >>\nstream\n" + string.Concat(Enumerable.Repeat("80", 16)) + ">\nendstream\nendobj";
+        byte[] pdf = BuildSinglePagePdf(
+            "q 20 0 0 20 20 80 cm /Im1 Do Q q 20 0 0 20 60 80 cm /Im2 Do Q",
+            "<< /XObject << /Im1 5 0 R /Im2 7 0 R >> >>",
+            image(5),
+            CalculatorStreamObject(6, program),
+            image(7));
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperations = 5000 } };
+        IReadOnlyList<PdfExtractedImage> eager = PdfReadDocument.Open(pdf, options).Pages[0].GetImages();
+        // The page's tint budget covers one image, so the image built second keeps its raw samples.
+        Assert.Equal(new[] { true, false }, eager.Select(static image => image.IsImageFile));
+
+        IReadOnlyList<PdfLogicalImage> read = PdfDocument.Load(new MemoryStream(pdf), options).Read().Images;
+
+        Assert.Equal(2, read.Count);
+        for (int index = read.Count - 1; index >= 0; index--) {
+            PdfExtractedImage deferred = read[index].SourceImage;
+            Assert.Equal(eager[index].IsImageFile, deferred.IsImageFile);
+            Assert.Equal(eager[index].MimeType, deferred.MimeType);
+            Assert.Equal(eager[index].Bytes, deferred.Bytes);
+        }
+    }
+
+    [Fact]
     public void RenderPage_PreservesClippedFunctionDomainPlateausInShading() {
         byte[] pdf = BuildSinglePagePdf(
             "/Sh1 sh",
