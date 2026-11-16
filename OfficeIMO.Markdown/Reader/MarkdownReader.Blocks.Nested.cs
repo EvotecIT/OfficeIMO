@@ -450,7 +450,7 @@ internal static partial class MarkdownReader {
         var collectedSourceLines = new List<MarkdownSourceLineSlice>();
         bool sawQuotedLine = false;
         string? lastQuoteContent = null;
-        var nestedQuoteOptions = GetNestedListQuoteOptions(options);
+        var nestedQuoteOptions = GetNestedListQuoteOptions(options, state);
         var literalBlock = new QuotedLiteralBlockState(state);
         while (j < lines.Length) {
             string raw = lines[j] ?? string.Empty;
@@ -529,15 +529,17 @@ internal static partial class MarkdownReader {
         return false;
     }
 
-    private static MarkdownLoadOptions GetNestedListQuoteOptions(MarkdownLoadOptions options) {
+    private static MarkdownLoadOptions GetNestedListQuoteOptions(MarkdownLoadOptions options, MarkdownReaderState state) {
         if (!options.Callouts
             || options.CalloutTitleMode != MarkdownCalloutTitleMode.MarkdigCompatible) {
             return options;
         }
 
-        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
-        nestedOptions.Callouts = false;
-        return nestedOptions;
+        return GetSharedDerivedOptions(options, state, MarkdownReaderDerivedOptions.ListItemQuote, static source => {
+            var nestedOptions = CloneOptionsWithoutFrontMatter(source);
+            nestedOptions.Callouts = false;
+            return nestedOptions;
+        });
     }
 
     private static bool IsNestedListLineForParentItem(string line, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options) {
@@ -705,6 +707,8 @@ internal static partial class MarkdownReader {
 
         string line = lines[index] ?? string.Empty;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        // A table row has at least one pipe.
+        if (line.IndexOf('|') < 0) return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
         if (!LooksLikeTableRow(slice.TrimStart())) return false;
 
@@ -772,6 +776,7 @@ internal static partial class MarkdownReader {
 
         string line = lines[index] ?? string.Empty;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        if (FirstNonWhiteSpaceCharacter(line) != '<') return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
         string sliceTrim = slice.TrimStart();
         if (!sliceTrim.StartsWith("<", StringComparison.Ordinal)) return false;

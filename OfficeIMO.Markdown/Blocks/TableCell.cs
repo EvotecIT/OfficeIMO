@@ -10,7 +10,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     private int _rowSpan = 1;
 
     /// <summary>Structured child blocks owned by this table cell.</summary>
-    public List<IMarkdownBlock> ChildBlocks { get; } = new List<IMarkdownBlock>();
+    public List<IMarkdownBlock> ChildBlocks { get; }
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); set => WriteSourceInformation(ref field, value); }
     /// <summary>Whether this cell belongs to the header row.</summary>
@@ -57,6 +57,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     }
     /// <summary>Creates a typed table cell.</summary>
     public TableCell(IEnumerable<IMarkdownBlock>? blocks = null) {
+        ChildBlocks = new List<IMarkdownBlock>();
         if (blocks == null) {
             return;
         }
@@ -66,6 +67,12 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
                 ChildBlocks.Add(block);
             }
         }
+    }
+
+    // A parsed cell is usually one paragraph. The list starts with the capacity adding one block
+    // to an empty list gives it.
+    internal TableCell(IMarkdownBlock block) {
+        ChildBlocks = new List<IMarkdownBlock>(4) { block };
     }
 
     /// <summary>Markdown representation of the full cell body.</summary>

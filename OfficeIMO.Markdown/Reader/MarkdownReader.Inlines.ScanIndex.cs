@@ -34,7 +34,9 @@ internal static partial class MarkdownReader {
                 Clear(t_backtickIndexes);
                 Clear(t_forwardSearches);
                 Clear(t_wrapperIndexes);
-                t_lineVerdict = null;
+                if (t_lineVerdict != null) {
+                    t_lineVerdict.Text = null;
+                }
             }
         }
 
@@ -160,25 +162,19 @@ internal static partial class MarkdownReader {
 
         [ThreadStatic] private static LineVerdict? t_lineVerdict;
 
+        // One verdict per thread, overwritten by each new line instead of allocated per line.
         private sealed class LineVerdict {
-            internal LineVerdict(string text, int lineStart, int lineEnd, bool verdict) {
-                Text = text;
-                LineStart = lineStart;
-                LineEnd = lineEnd;
-                Verdict = verdict;
-            }
-
-            internal string Text { get; }
-            internal int LineStart { get; }
-            internal int LineEnd { get; }
-            internal bool Verdict { get; }
+            internal string? Text;
+            internal int LineStart;
+            internal int LineEnd;
+            internal bool Verdict;
         }
 
         // A position between a line's start and its terminating '\n' (or the text end) has the
         // same line bounds, so a verdict about the line can be reused for any of them.
         internal static bool TryGetLineVerdict(string text, int position, out bool verdict) {
             var entry = t_scopeDepth == 0 ? null : t_lineVerdict;
-            if (entry != null && ReferenceEquals(entry.Text, text) && position >= entry.LineStart && position <= entry.LineEnd) {
+            if (entry != null && entry.Text != null && ReferenceEquals(entry.Text, text) && position >= entry.LineStart && position <= entry.LineEnd) {
                 verdict = entry.Verdict;
                 return true;
             }
@@ -189,7 +185,11 @@ internal static partial class MarkdownReader {
 
         internal static void SetLineVerdict(string text, int lineStart, int lineEnd, bool verdict) {
             if (t_scopeDepth != 0) {
-                t_lineVerdict = new LineVerdict(text, lineStart, lineEnd, verdict);
+                var entry = t_lineVerdict ??= new LineVerdict();
+                entry.Text = text;
+                entry.LineStart = lineStart;
+                entry.LineEnd = lineEnd;
+                entry.Verdict = verdict;
             }
         }
 
@@ -321,13 +321,14 @@ internal static partial class MarkdownReader {
         [ThreadStatic] private static Stack<int>? t_openSlots;
     }
 
-    // Positions of maximal backtick runs grouped by run length, in text order.
+    // Positions of maximal backtick runs ordered by run length and then by position, packed as
+    // (length << 32) | start so one binary search finds the first run of a length after a position.
     private sealed class BacktickRunIndex {
-        private readonly Dictionary<int, List<int>> _runsByLength;
+        private readonly long[] _runs;
 
-        private BacktickRunIndex(string text, Dictionary<int, List<int>> runsByLength) {
+        private BacktickRunIndex(string text, long[] runs) {
             Text = text;
-            _runsByLength = runsByLength;
+            _runs = runs;
         }
 
         internal string Text { get; }
@@ -335,39 +336,48 @@ internal static partial class MarkdownReader {
         // Returns the start of the first maximal run of exactly <paramref name="length"/> backticks
         // starting at or after <paramref name="from"/>, which must not be inside a run.
         internal int FindRun(int from, int length) {
-            if (!_runsByLength.TryGetValue(length, out var runs)) {
-                return -1;
-            }
-
-            int slot = runs.BinarySearch(from);
+            long key = ((long)length << 32) | (uint)Math.Max(0, from);
+            int slot = Array.BinarySearch(_runs, key);
             if (slot < 0) {
                 slot = ~slot;
             }
 
-            return slot < runs.Count ? runs[slot] : -1;
+            if (slot >= _runs.Length || (int)(_runs[slot] >> 32) != length) {
+                return -1;
+            }
+
+            return (int)(_runs[slot] & 0xFFFFFFFF);
         }
 
         internal static BacktickRunIndex Build(string text) {
-            var runsByLength = new Dictionary<int, List<int>>();
+            int count = 0;
+            for (int i = text.IndexOf('`'); i >= 0 && i < text.Length; i = text.IndexOf('`', i)) {
+                while (i < text.Length && text[i] == '`') {
+                    i++;
+                }
+
+                count++;
+                if (i >= text.Length) {
+                    break;
+                }
+            }
+
+            var runs = new long[count];
+            int index = 0;
             for (int i = text.IndexOf('`'); i >= 0 && i < text.Length; i = text.IndexOf('`', i)) {
                 int start = i;
                 while (i < text.Length && text[i] == '`') {
                     i++;
                 }
 
-                int length = i - start;
-                if (!runsByLength.TryGetValue(length, out var runs)) {
-                    runs = new List<int>();
-                    runsByLength[length] = runs;
-                }
-
-                runs.Add(start);
+                runs[index++] = ((long)(i - start) << 32) | (uint)start;
                 if (i >= text.Length) {
                     break;
                 }
             }
 
-            return new BacktickRunIndex(text, runsByLength);
+            Array.Sort(runs);
+            return new BacktickRunIndex(text, runs);
         }
     }
 }

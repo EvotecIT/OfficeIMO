@@ -11,6 +11,28 @@ internal static partial class MarkdownReader {
         return i;
     }
 
+    // The first character after leading spaces and tabs, or '\0' when there is none. Probes for
+    // nested blocks read it before cutting the indentation off the line.
+    private static char FirstCharacterAfterIndent(string line) {
+        for (int i = 0; i < line.Length; i++) {
+            if (line[i] != ' ' && line[i] != '\t') {
+                return line[i];
+            }
+        }
+
+        return '\0';
+    }
+
+    private static char FirstNonWhiteSpaceCharacter(string line) {
+        for (int i = 0; i < line.Length; i++) {
+            if (!char.IsWhiteSpace(line[i])) {
+                return line[i];
+            }
+        }
+
+        return '\0';
+    }
+
     private static int CountLeadingIndentColumns(string line) {
         if (string.IsNullOrEmpty(line)) return 0;
 
