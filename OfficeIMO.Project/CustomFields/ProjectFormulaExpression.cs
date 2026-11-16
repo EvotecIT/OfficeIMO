@@ -81,7 +81,7 @@ internal sealed partial class ProjectFormulaExpression {
             "*" => left.NumberIn(_culture) * right.NumberIn(_culture), "/" => left.NumberIn(_culture) / right.NumberIn(_culture),
             "\\" => decimal.Truncate(decimal.Round(left.NumberIn(_culture), 0, MidpointRounding.ToEven) / decimal.Round(right.NumberIn(_culture), 0, MidpointRounding.ToEven)),
             "mod" => decimal.Round(left.NumberIn(_culture), 0, MidpointRounding.ToEven) % decimal.Round(right.NumberIn(_culture), 0, MidpointRounding.ToEven),
-            "^" => (decimal)Math.Pow((double)left.NumberIn(_culture), (double)right.NumberIn(_culture)),
+            "^" => ProjectNumber.ToDecimal(Math.Pow((double)left.NumberIn(_culture), (double)right.NumberIn(_culture))),
             "&" => Join(left.TextIn(_culture), right.TextIn(_culture)),
             "=" => ProjectFormulaValue.Compare(left, right, _culture) == 0, "<>" => ProjectFormulaValue.Compare(left, right, _culture) != 0,
             "<" => ProjectFormulaValue.Compare(left, right, _culture) < 0, ">" => ProjectFormulaValue.Compare(left, right, _culture) > 0,
