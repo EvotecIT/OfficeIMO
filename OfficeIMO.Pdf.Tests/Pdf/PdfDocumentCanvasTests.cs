@@ -406,7 +406,10 @@ public class PdfDocumentCanvasTests {
         PdfStructureElementInfo paragraph = Assert.Single(tagged.StructureElements, element => element.StructureType == "P");
         Assert.Contains(heading.ObjectNumber, section.ChildElementObjectNumbers);
         Assert.Contains(paragraph.ObjectNumber, section.ChildElementObjectNumbers);
-        Assert.Equal(2, tagged.StructureElements.Count(element => element.StructureType == "Span"));
+        // A plain Span that is the only child of its heading or paragraph gives that element its content.
+        Assert.DoesNotContain(tagged.StructureElements, element => element.StructureType == "Span");
+        Assert.Equal(1, heading.MarkedContentReferenceCount);
+        Assert.Equal(1, paragraph.MarkedContentReferenceCount);
     }
 
     [Fact]

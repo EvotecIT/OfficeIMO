@@ -257,6 +257,15 @@ public abstract class YamlNode {
     public string GetPath() => YamlPath.Format(this);
 
     /// <summary>
+    /// Converts the node to the JSON data model that <see cref="OfficeIMO.Json.JsonSchema"/> validates. Scalars take
+    /// the type their document's schema resolves, so <c>yes</c> is a boolean under YAML 1.1 and a string under the core
+    /// schema; timestamps and custom-tagged scalars stay strings. Merge keys apply, aliases share their anchored value,
+    /// and collection keys become their flow text. Each value records its line, column and source node.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The value nests deeper than 512 levels.</exception>
+    public OfficeIMO.Json.JsonData ToJsonData() => YamlJsonData.Convert(this);
+
+    /// <summary>
     /// Gets the comment lines above the node's entry, joined with line breaks, without their <c>#</c> and one following
     /// space; <see langword="null"/> when there are none.
     /// </summary>

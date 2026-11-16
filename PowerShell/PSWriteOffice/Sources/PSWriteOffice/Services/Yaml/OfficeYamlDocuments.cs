@@ -36,6 +36,7 @@ internal static class OfficeYamlDocuments {
     /// <summary>Reports a YAML failure with the diagnostic code of <see cref="YamlException.ToDiagnostic"/> as the error ID.</summary>
     internal static ErrorRecord Error(Exception exception, object? input) => exception switch {
         YamlException yaml => OfficeError.Create(yaml, yaml.ToDiagnostic().Code, input, ErrorCategory.InvalidData),
+        YamlPatchException => OfficeError.Create(exception, "yaml-patch-failed", input, ErrorCategory.InvalidOperation),
         InvalidDataException => OfficeError.Create(exception, "yaml-multiple-documents", input, ErrorCategory.InvalidData),
         ItemNotFoundException => OfficeError.Create(exception, "yaml-node-not-found", input, ErrorCategory.ObjectNotFound),
         _ => OfficeError.Create(exception, "yaml-failed", input)

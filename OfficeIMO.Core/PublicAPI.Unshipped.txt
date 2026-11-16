@@ -156,6 +156,75 @@ static OfficeIMO.Diff.OfficeTextTokenizer.Lines(string? text) -> System.Collecti
 static OfficeIMO.Diff.OfficeTextTokenizer.Words(string? text) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Diff.OfficeTextToken>!
 static OfficeIMO.Diff.OfficeUnifiedDiff.Create(string? oldText, string? newText, string! oldName = "a", string! newName = "b", int contextLines = 3, OfficeIMO.Diff.OfficeDiffOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
 static OfficeIMO.Diff.OfficeUnifiedDiff.Format(OfficeIMO.Diff.OfficeDiffResult<OfficeIMO.Diff.OfficeTextToken>! lineDiff, string! oldName = "a", string! newName = "b", int contextLines = 3) -> string!
+OfficeIMO.Json.JsonData
+OfficeIMO.Json.JsonData.Column.get -> int
+OfficeIMO.Json.JsonData.GetBoolean() -> bool
+OfficeIMO.Json.JsonData.GetDouble() -> double
+OfficeIMO.Json.JsonData.GetString() -> string!
+OfficeIMO.Json.JsonData.IsInteger.get -> bool
+OfficeIMO.Json.JsonData.Items.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Json.JsonData!>!
+OfficeIMO.Json.JsonData.Kind.get -> OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonData.Line.get -> int
+OfficeIMO.Json.JsonData.Location.get -> OfficeIMO.Json.JsonDataLocation
+OfficeIMO.Json.JsonData.Properties.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, OfficeIMO.Json.JsonData!>>!
+OfficeIMO.Json.JsonData.Source.get -> object?
+OfficeIMO.Json.JsonData.TryGetDecimal(out decimal value) -> bool
+OfficeIMO.Json.JsonData.TryGetProperty(string! name, out OfficeIMO.Json.JsonData! value) -> bool
+OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonDataKind.Array = 4 -> OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonDataKind.Boolean = 1 -> OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonDataKind.Null = 0 -> OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonDataKind.Number = 2 -> OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonDataKind.Object = 5 -> OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonDataKind.String = 3 -> OfficeIMO.Json.JsonDataKind
+OfficeIMO.Json.JsonDataLocation
+OfficeIMO.Json.JsonDataLocation.Column.get -> int
+OfficeIMO.Json.JsonDataLocation.JsonDataLocation() -> void
+OfficeIMO.Json.JsonDataLocation.JsonDataLocation(int line, int column, object? source = null) -> void
+OfficeIMO.Json.JsonDataLocation.Line.get -> int
+OfficeIMO.Json.JsonDataLocation.Source.get -> object?
+OfficeIMO.Json.JsonSchema
+OfficeIMO.Json.JsonSchema.Draft.get -> OfficeIMO.Json.JsonSchemaDraft
+OfficeIMO.Json.JsonSchema.IsValid(OfficeIMO.Json.JsonData! instance) -> bool
+OfficeIMO.Json.JsonSchema.Root.get -> OfficeIMO.Json.JsonData!
+OfficeIMO.Json.JsonSchema.Validate(OfficeIMO.Json.JsonData! instance) -> OfficeIMO.Json.JsonSchemaValidationResult!
+OfficeIMO.Json.JsonSchemaDraft
+OfficeIMO.Json.JsonSchemaDraft.Draft202012 = 0 -> OfficeIMO.Json.JsonSchemaDraft
+OfficeIMO.Json.JsonSchemaDraft.Draft7 = 1 -> OfficeIMO.Json.JsonSchemaDraft
+OfficeIMO.Json.JsonSchemaException
+OfficeIMO.Json.JsonSchemaException.JsonSchemaException(string! message) -> void
+OfficeIMO.Json.JsonSchemaException.JsonSchemaException(string! message, System.Exception! innerException) -> void
+OfficeIMO.Json.JsonSchemaFinding
+OfficeIMO.Json.JsonSchemaFinding.Column.get -> int
+OfficeIMO.Json.JsonSchemaFinding.InstancePath.get -> string!
+OfficeIMO.Json.JsonSchemaFinding.Keyword.get -> string!
+OfficeIMO.Json.JsonSchemaFinding.Line.get -> int
+OfficeIMO.Json.JsonSchemaFinding.Message.get -> string!
+OfficeIMO.Json.JsonSchemaFinding.SchemaPath.get -> string!
+OfficeIMO.Json.JsonSchemaFinding.Source.get -> object?
+OfficeIMO.Json.JsonSchemaOptions
+OfficeIMO.Json.JsonSchemaOptions.BaseUri.get -> string?
+OfficeIMO.Json.JsonSchemaOptions.BaseUri.set -> void
+OfficeIMO.Json.JsonSchemaOptions.Draft.get -> OfficeIMO.Json.JsonSchemaDraft?
+OfficeIMO.Json.JsonSchemaOptions.Draft.set -> void
+OfficeIMO.Json.JsonSchemaOptions.JsonSchemaOptions() -> void
+OfficeIMO.Json.JsonSchemaOptions.MaxDepth.get -> int
+OfficeIMO.Json.JsonSchemaOptions.MaxDepth.set -> void
+OfficeIMO.Json.JsonSchemaOptions.MaxErrors.get -> int
+OfficeIMO.Json.JsonSchemaOptions.MaxErrors.set -> void
+OfficeIMO.Json.JsonSchemaOptions.MaxEvaluationSteps.get -> long
+OfficeIMO.Json.JsonSchemaOptions.MaxEvaluationSteps.set -> void
+OfficeIMO.Json.JsonSchemaOptions.ReferenceResolver.get -> System.Func<string!, OfficeIMO.Json.JsonData?>?
+OfficeIMO.Json.JsonSchemaOptions.ReferenceResolver.set -> void
+OfficeIMO.Json.JsonSchemaOptions.RegexTimeout.get -> System.TimeSpan
+OfficeIMO.Json.JsonSchemaOptions.RegexTimeout.set -> void
+OfficeIMO.Json.JsonSchemaOptions.ValidateFormats.get -> bool
+OfficeIMO.Json.JsonSchemaOptions.ValidateFormats.set -> void
+OfficeIMO.Json.JsonSchemaValidationResult
+OfficeIMO.Json.JsonSchemaValidationResult.Findings.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Json.JsonSchemaFinding!>!
+OfficeIMO.Json.JsonSchemaValidationResult.IsTruncated.get -> bool
+OfficeIMO.Json.JsonSchemaValidationResult.IsValid.get -> bool
+OfficeIMO.Json.JsonSchemaValidationResult.UncheckedFormats.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.OfficeAccessibilityException
 OfficeIMO.OfficeAccessibilityException.IncludedWarnings.get -> bool
 OfficeIMO.OfficeAccessibilityException.Report.get -> OfficeIMO.OfficeAccessibilityReport!
@@ -188,6 +257,8 @@ OfficeIMO.OfficeAccessibilitySeverity
 OfficeIMO.OfficeAccessibilitySeverity.Error = 2 -> OfficeIMO.OfficeAccessibilitySeverity
 OfficeIMO.OfficeAccessibilitySeverity.Info = 0 -> OfficeIMO.OfficeAccessibilitySeverity
 OfficeIMO.OfficeAccessibilitySeverity.Warning = 1 -> OfficeIMO.OfficeAccessibilitySeverity
+override OfficeIMO.Json.JsonData.ToString() -> string!
+override OfficeIMO.Json.JsonSchemaFinding.ToString() -> string!
 override OfficeIMO.OfficeAccessibilityFinding.ToString() -> string!
 OfficeIMO.Drawing.OfficeChartTrendline
 OfficeIMO.Drawing.OfficeChartTrendline.Color.get -> OfficeIMO.OfficeColor?
@@ -286,6 +357,22 @@ override OfficeIMO.OfficeCompatibilityReport.HasLoss.get -> bool
 override OfficeIMO.OfficeLegacyImportReport.HasLoss.get -> bool
 *REMOVED*static OfficeIMO.Drawing.OfficeDrawingPortableExporter.TryExportJson(OfficeIMO.Drawing.OfficeDrawing! drawing, OfficeIMO.Drawing.OfficeDrawingPortableOptions! options, out string? json, out System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>! diagnostics) -> bool
 static OfficeIMO.Drawing.OfficeDrawingPortableExporter.TryExportJson(OfficeIMO.Drawing.OfficeDrawing! drawing, OfficeIMO.Drawing.OfficeDrawingPortableOptions! options, out string? json, out System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>! diagnostics) -> bool
+static OfficeIMO.Json.JsonData.CreateArray(System.Collections.Generic.IEnumerable<OfficeIMO.Json.JsonData!>! items, OfficeIMO.Json.JsonDataLocation location = default(OfficeIMO.Json.JsonDataLocation)) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateBoolean(bool value, OfficeIMO.Json.JsonDataLocation location = default(OfficeIMO.Json.JsonDataLocation)) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateNull(OfficeIMO.Json.JsonDataLocation location = default(OfficeIMO.Json.JsonDataLocation)) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateNumber(decimal value) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateNumber(decimal value, OfficeIMO.Json.JsonDataLocation location) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateNumber(double value) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateNumber(double value, OfficeIMO.Json.JsonDataLocation location) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateNumber(long value) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateNumber(long value, OfficeIMO.Json.JsonDataLocation location) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateObject(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, OfficeIMO.Json.JsonData!>>! properties, OfficeIMO.Json.JsonDataLocation location = default(OfficeIMO.Json.JsonDataLocation)) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.CreateString(string! value, OfficeIMO.Json.JsonDataLocation location = default(OfficeIMO.Json.JsonDataLocation)) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.DeepEquals(OfficeIMO.Json.JsonData? left, OfficeIMO.Json.JsonData? right) -> bool
+static OfficeIMO.Json.JsonData.Parse(string! json) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonData.ParseNumber(string! text, OfficeIMO.Json.JsonDataLocation location = default(OfficeIMO.Json.JsonDataLocation)) -> OfficeIMO.Json.JsonData!
+static OfficeIMO.Json.JsonSchema.Load(OfficeIMO.Json.JsonData! schema, OfficeIMO.Json.JsonSchemaOptions? options = null) -> OfficeIMO.Json.JsonSchema!
+static OfficeIMO.Json.JsonSchema.Parse(string! json, OfficeIMO.Json.JsonSchemaOptions? options = null) -> OfficeIMO.Json.JsonSchema!
 static OfficeIMO.OfficeTheme.FromDocument(string! path) -> OfficeIMO.OfficeTheme!
 virtual OfficeIMO.OfficeConversionReport.CreateLossException() -> OfficeIMO.OfficeConversionException!
 virtual OfficeIMO.OfficeConversionReport.GetDiagnostics() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!

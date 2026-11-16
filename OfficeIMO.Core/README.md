@@ -90,6 +90,22 @@ keeps each format's native drawing defaults.
 
 `YamlSerializer` (`OfficeIMO.Yaml`) and `TomlSerializer` (`OfficeIMO.Toml`) read one set of mapping attributes, so a model type maps to both formats the same way: `[OfficePropertyName]`, `[OfficeIgnore]` with `OfficeIgnoreCondition`, `[OfficeRequired]`, `[OfficeConstructor]`, `[OfficeDerivedType]` and `[OfficePolymorphic]`. `OfficeNamingPolicy` (`CamelCase`, `SnakeCaseLower`, `KebabCaseLower`) converts property names for both serializers' options.
 
+## JSON data and JSON Schema
+
+`OfficeIMO.Json` holds a format-neutral JSON data model and a JSON Schema validator (draft 2020-12 and draft 7) with no dependencies. `JsonData` values carry the line, column and source node they came from; `JsonData.Parse` reads JSON text, and `OfficeIMO.Yaml` and `OfficeIMO.Toml` convert their documents with `ToJsonData()`. Numbers keep their exact decimal value at any precision.
+
+```csharp
+using OfficeIMO.Json;
+
+JsonSchema schema = JsonSchema.Parse("""{ "type": "object", "required": ["name"], "properties": { "port": { "type": "integer", "maximum": 65535 } } }""");
+JsonSchemaValidationResult result = schema.Validate(JsonData.Parse("""{ "port": 70000 }"""));
+foreach (JsonSchemaFinding finding in result.Findings) Console.WriteLine(finding);
+// 1:1 (root): Required property 'name' is missing.
+// 1:11 /port: Value must be at most 65535.
+```
+
+References outside the schema resolve only through `JsonSchemaOptions.ReferenceResolver`. `MaxErrors`, `MaxDepth`, `MaxEvaluationSteps` and `RegexTimeout` bound the work an untrusted schema can cause. [JSON Schema validation](../Docs/officeimo.json-schema-design.md) lists the keywords, formats and limits.
+
 ## Conversion diagnostics
 
 `OfficeConversionReport` records a completed conversion's `Source`, `Target`,

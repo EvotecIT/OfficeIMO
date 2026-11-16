@@ -152,6 +152,13 @@ internal static class YamlSchemaResolver {
 
     // ------------------------------------------------------------ integers
 
+    /// <summary>Returns whether <paramref name="s"/> is integer syntax under <paramref name="schema"/>; the failsafe schema uses the core syntax.</summary>
+    public static bool IsInteger(ReadOnlySpan<char> s, YamlSchema schema) => schema switch {
+        YamlSchema.Json => IsJsonInteger(s),
+        YamlSchema.Yaml11 => IsInteger11(s),
+        _ => IsIntegerCore(s)
+    };
+
     /// <summary><c>-?(0|[1-9][0-9]*)</c></summary>
     private static bool IsJsonInteger(ReadOnlySpan<char> s) {
         int i = 0;

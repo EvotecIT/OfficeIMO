@@ -1558,6 +1558,9 @@ Replaces text in the selected slide or document, including tables by default.
 ### [Update-OfficeRtfText](Update-OfficeRtfText.md)
 Applies lossless text and metadata edits to an RTF document.
 
+### [Update-OfficeToml](Update-OfficeToml.md)
+Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live TOML document.
+
 ### [Update-OfficeWordField](Update-OfficeWordField.md)
 Updates fields in a Word document.
 
@@ -1566,6 +1569,9 @@ Updates the table of contents in a Word document.
 
 ### [Update-OfficeWordText](Update-OfficeWordText.md)
 Replaces text in a Word document.
+
+### [Update-OfficeYaml](Update-OfficeYaml.md)
+Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live YAML document.
 
 ## About Topics
 

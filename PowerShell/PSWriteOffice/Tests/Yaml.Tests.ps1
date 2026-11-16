@@ -304,3 +304,64 @@ Describe 'YAML validation' {
         Test-OfficeYaml -Text $lenient -Strict | Should -BeFalse
     }
 }
+
+Describe 'Update-OfficeYaml' {
+    It 'applies a JSON Patch of hashtables in an Open block and changes only the patched lines' {
+        $path = Join-Path $TestDrive 'deployment.yaml'
+        $lines = @(
+            '# Web tier'
+            'spec:'
+            '  replicas: 2 # scaled by hand'
+            '  labels:'
+            '    app: web'
+        )
+        [IO.File]::WriteAllText($path, (Join-YamlLines "`n" $lines))
+
+        Open-OfficeYaml -Path $path {
+            Update-OfficeYaml -JsonPatch @(
+                @{ op = 'test'; path = '/spec/replicas'; value = 2 }
+                @{ op = 'replace'; path = '/spec/replicas'; value = 3 }
+                @{ op = 'add'; path = '/spec/labels/env'; value = 'prod' }
+            )
+        }
+
+        [IO.File]::ReadAllText($path) | Should -BeExactly (Join-YamlLines "`n" @(
+                '# Web tier'
+                'spec:'
+                '  replicas: 3 # scaled by hand'
+                '  labels:'
+                '    app: web'
+                '    env: prod'
+            ))
+    }
+
+    It 'applies JSON text and a merge patch hashtable whose nulls remove keys, and returns the report' {
+        $document = Open-OfficeYaml -Text (Join-YamlLines "`n" @('image:', '  tag: "1.25"', 'podAnnotations: {}', 'replicas: 1'))
+        try {
+            $report = Update-OfficeYaml -Document $document -JsonPatch '[{ "op": "replace", "path": "/replicas", "value": 2 }]' -PassThru
+            $report.Replaced | Should -Be @('replicas')
+
+            $report = Update-OfficeYaml -Document $document -MergePatch ([ordered]@{ image = @{ tag = '1.27' }; podAnnotations = $null }) -PassThru
+            $report.Removed | Should -Be @('podAnnotations')
+            $document.ToString() | Should -BeExactly (Join-YamlLines "`n" @('image:', '  tag: "1.27"', 'replicas: 2'))
+        } finally {
+            Close-OfficeYaml -Document $document
+        }
+    }
+
+    It 'writes a yaml-patch-failed error and leaves the document unchanged when a test fails' {
+        $text = Join-YamlLines "`n" @('name: web', 'replicas: 2')
+        $document = Open-OfficeYaml -Text $text
+        try {
+            Update-OfficeYaml -Document $document -JsonPatch @(
+                @{ op = 'replace'; path = '/replicas'; value = 5 }
+                @{ op = 'test'; path = '/name'; value = 'api' }
+            ) -ErrorAction SilentlyContinue -ErrorVariable failed
+            $failed[0].FullyQualifiedErrorId | Should -Match '^yaml-patch-failed'
+            $failed[0].Exception.OperationIndex | Should -Be 1
+            $document.ToString() | Should -BeExactly $text
+        } finally {
+            Close-OfficeYaml -Document $document
+        }
+    }
+}

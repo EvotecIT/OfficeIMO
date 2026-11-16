@@ -128,7 +128,7 @@ Exceeding a limit throws `TomlLimitExceededException` with the limit's name. Loa
 
 | Package | Depends on | Owns |
 |---|---|---|
-| `OfficeIMO.Toml` | `OfficeIMO.Core` | Reader, writer, model, editing, serializer, generator (built from `OfficeIMO.Toml.SourceGeneration`, packed as an analyzer) |
+| `OfficeIMO.Toml` | `OfficeIMO.Core` | Reader, writer, model, editing, serializer, generator (built from `OfficeIMO.Toml.SourceGeneration`, packed as an analyzer), and the conversion of documents to `JsonData` for [JSON Schema validation](officeimo.json-schema-design.md) |
 | `OfficeIMO.Reader.Toml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Toml` | Path/type/value chunks and Markdown projection |
 | `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml`, `OfficeIMO.Toml` | `+++` front matter read, edited and saved through `TomlDocument` on the same `FrontMatterBlock` as YAML front matter |
 

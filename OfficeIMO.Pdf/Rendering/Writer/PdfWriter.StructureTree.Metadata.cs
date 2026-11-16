@@ -29,8 +29,10 @@ internal static partial class PdfWriter {
     }
 
     private static Dictionary<PageStructElement, IReadOnlyList<string>> BuildTableHeaderAssociations(IReadOnlyList<LayoutResult.Page> pages, IReadOnlyDictionary<PageStructElement, PageStructElement?> parents) {
-        var children = new Dictionary<PageStructElement, List<PageStructElement>>();
         var all = pages.SelectMany(page => page.StructElements).ToArray();
+        // Only header cells produce associations; documents without them need no child index.
+        if (!all.Any(element => element.StructureType == "TH")) return new Dictionary<PageStructElement, IReadOnlyList<string>>();
+        var children = new Dictionary<PageStructElement, List<PageStructElement>>();
         foreach (var pair in parents) {
             if (pair.Value == null) continue;
             if (!children.TryGetValue(pair.Value, out var siblings)) children[pair.Value] = siblings = new();

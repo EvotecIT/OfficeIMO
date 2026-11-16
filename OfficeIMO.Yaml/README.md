@@ -162,6 +162,25 @@ deployment.Save();
 
 `YamlPatchReport` lists the added, replaced and removed paths in the grammar `Select` reads, with the same `Diagnostics` as a merge.
 
+## Validating with JSON Schema
+
+`Validate` checks a document against a JSON Schema (draft 2020-12 or draft 7), the schemas Kubernetes, GitHub Actions and docker-compose tooling publish. Each finding has the JSON Pointer of the failing value, the schema path of the keyword, a message, and the value's line and column:
+
+```csharp
+using OfficeIMO.Json;
+using OfficeIMO.Yaml;
+
+JsonSchema schema = JsonSchema.Parse(File.ReadAllText("deployment.schema.json"));
+using var manifest = YamlDocument.Load("deployment.yaml");
+foreach (YamlDocumentPart part in manifest.Documents) {
+    foreach (JsonSchemaFinding finding in part.Validate(schema).Findings) {
+        Console.WriteLine(finding);   // 7:15 /spec/replicas: Expected integer but found string.
+    }
+}
+```
+
+Values take the type the document's schema resolves, so `enabled: yes` is a boolean under `%YAML 1.1` and a string under the default core schema. Merge keys apply, aliases share their anchored value, and timestamps and custom-tagged scalars stay strings. `ToJsonData()` on a node, document part or document returns the converted value; a schema written in YAML loads with `JsonSchema.Load(schemaDocument.ToJsonData())`. References outside the schema resolve only through `JsonSchemaOptions.ReferenceResolver`. The keywords, formats and limits are described in [JSON Schema validation](../Docs/officeimo.json-schema-design.md).
+
 ## Writing YAML
 
 ```csharp

@@ -65,6 +65,7 @@ internal static class OfficeTomlDocuments {
 
     internal static ErrorRecord Error(Exception exception, object? input) => exception switch {
         TomlException toml => OfficeError.Create(exception, "toml-" + toml.Code, input, ErrorCategory.InvalidData),
+        TomlPatchException => OfficeError.Create(exception, "toml-patch-failed", input, ErrorCategory.InvalidOperation),
         ItemNotFoundException => OfficeError.Create(exception, "toml-node-not-found", input, ErrorCategory.ObjectNotFound),
         _ => OfficeError.Create(exception, "toml-failed", input)
     };

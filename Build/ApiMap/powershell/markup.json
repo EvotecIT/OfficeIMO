@@ -10978,6 +10978,78 @@
       ]
     },
     {
+      "name": "Update-OfficeYaml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a YamlDocument.",
+      "outputType": "OfficeIMO.Yaml.YamlPatchReport",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "JsonPatch",
+          "default": true,
+          "parameters": [
+            {
+              "name": "JsonPatch",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        },
+        {
+          "name": "MergePatch",
+          "default": false,
+          "parameters": [
+            {
+              "name": "MergePatch",
+              "type": "object",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "YamlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Takes JSON or YAML text, a YamlDocument, or hashtables and objects. Only the patched lines change. A patch is all or nothing: a failed test, a missing path or a refused edit writes a non-terminating yaml-patch-failed error and leaves the document unchanged.",
+      "examples": [
+        {
+          "title": "Scale only when the count is as expected",
+          "description": "Tests the replica count before replacing it inside an editing block.",
+          "code": "Open-OfficeYaml -Path .\\Deploy\\deployment.yaml {\n    Update-OfficeYaml -JsonPatch @(\n        @{ op = 'test'; path = '/spec/replicas'; value = 2 }\n        @{ op = 'replace'; path = '/spec/replicas'; value = 3 }\n    )\n}"
+        },
+        {
+          "title": "Override values with a merge patch",
+          "description": "Changes the image tag and removes the annotations; $null removes a key.",
+          "code": "Update-OfficeYaml -Document $doc -MergePatch @{ image = @{ tag = '1.27.2' }; podAnnotations = $null } -PassThru"
+        }
+      ]
+    },
+    {
       "name": "ConvertFrom-OfficeYaml",
       "alias": null,
       "status": "new",
@@ -11932,6 +12004,78 @@
           "title": "Remove a table when it is there",
           "description": "Removes the second [[bin]] table and ignores a manifest that has only one.",
           "code": "Remove-OfficeTomlNode -Document $doc -Select 'bin[1]' -ErrorAction SilentlyContinue"
+        }
+      ]
+    },
+    {
+      "name": "Update-OfficeToml",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a TomlDocument.",
+      "outputType": "OfficeIMO.Toml.TomlPatchReport",
+      "shouldProcess": false,
+      "parameterSets": [
+        {
+          "name": "JsonPatch",
+          "default": true,
+          "parameters": [
+            {
+              "name": "JsonPatch",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        },
+        {
+          "name": "MergePatch",
+          "default": false,
+          "parameters": [
+            {
+              "name": "MergePatch",
+              "type": "object",
+              "mandatory": true,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Document",
+              "type": "TomlDocument",
+              "mandatory": false,
+              "pipeline": "byValue"
+            }
+          ]
+        }
+      ],
+      "notes": "Takes JSON text, or hashtables and objects. Only the patched lines change; objects become [header] tables. TOML has no null, so a null value in a JSON Patch fails, while a merge patch null removes the key. A failure writes a non-terminating toml-patch-failed error and leaves the document unchanged.",
+      "examples": [
+        {
+          "title": "Bump a version only when it is the expected one",
+          "description": "Tests and replaces the version and appends a dependency inside an editing block.",
+          "code": "Open-OfficeToml -Path .\\pyproject.toml {\n    Update-OfficeToml -JsonPatch @(\n        @{ op = 'test'; path = '/project/version'; value = '1.4.0' }\n        @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }\n        @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }\n    )\n}"
+        },
+        {
+          "title": "Change and remove settings with a merge patch",
+          "description": "Sets the line length and removes the exclude list.",
+          "code": "Update-OfficeToml -Document $doc -MergePatch @{ tool = @{ ruff = @{ 'line-length' = 100; exclude = $null } } }"
         }
       ]
     },

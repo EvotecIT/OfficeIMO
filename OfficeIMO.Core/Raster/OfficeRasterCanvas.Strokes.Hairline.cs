@@ -3,7 +3,7 @@ namespace OfficeIMO.Drawing;
 public sealed partial class OfficeRasterCanvas {
     private bool TryStrokeDeviceHairline(IReadOnlyList<OfficeFlattenedPathContour> contours,
         OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, IReadOnlyList<double>? pattern,
-        double offset, OfficeTransform transform, Func<double, double, OfficeColor> paint) {
+        double offset, OfficeTransform transform, Func<double, double, OfficeColor> paint, bool fillDisjointGroups = false) {
         OfficeTransform device = ScaleCoordinates(transform);
         if (!device.TryInvert(out OfficeTransform inverse)) return false;
         if (StrokeAdjustment && !(pattern is { Count: > 0 })) {
@@ -26,7 +26,8 @@ public sealed partial class OfficeRasterCanvas {
                 outline[index] = new OfficePoint(outline[index].X / CoordinateScaleX, outline[index].Y / CoordinateScaleY);
             logical.Add(outline);
         }
-        FillContourPaint(logical, OfficeFillRule.NonZero, paint);
+        if (fillDisjointGroups) FillDisjointContourGroups(logical, OfficeFillRule.NonZero, paint);
+        else FillContourPaint(logical, OfficeFillRule.NonZero, paint);
         return true;
     }
 }

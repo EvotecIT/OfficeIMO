@@ -304,7 +304,7 @@ Exceeding a limit throws `YamlLimitExceededException` with the limit's name and 
 
 | Package | Depends on | Owns |
 |---|---|---|
-| `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO, serializer attributes) | Scanner, reader, writer, model, schemas, serializer, generator (built from `OfficeIMO.Yaml.SourceGeneration`, packed as an analyzer) |
+| `OfficeIMO.Yaml` | `OfficeIMO.Core` (diagnostics, shared IO, serializer attributes, JSON Schema) | Scanner, reader, writer, model, schemas, serializer, generator (built from `OfficeIMO.Yaml.SourceGeneration`, packed as an analyzer), and the conversion of documents to `JsonData` for [JSON Schema validation](officeimo.json-schema-design.md) |
 | `OfficeIMO.Reader.Yaml` | `OfficeIMO.Reader.Core`, `OfficeIMO.Yaml` | Chunking and Markdown projection only |
 | `OfficeIMO.Markdown` | `OfficeIMO.Core`, `OfficeIMO.Yaml`, `OfficeIMO.Toml` | YAML front matter parsed and written through `YamlDocument`, TOML front matter through `TomlDocument` |
 

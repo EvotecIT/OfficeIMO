@@ -167,4 +167,16 @@ public sealed class YamlDocumentPart {
             return false;
         }
     }
+
+    /// <summary>Converts this document's root to the JSON data model, with source positions. See <see cref="YamlNode.ToJsonData"/>.</summary>
+    /// <exception cref="InvalidOperationException">The value nests deeper than 512 levels.</exception>
+    public OfficeIMO.Json.JsonData ToJsonData() => YamlJsonData.Convert(Root);
+
+    /// <summary>Validates this document's root against a JSON Schema; findings carry the JSON Pointer, line and column of each failing value.</summary>
+    /// <exception cref="ArgumentNullException"><paramref name="schema"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">The value nests deeper than 512 levels.</exception>
+    public OfficeIMO.Json.JsonSchemaValidationResult Validate(OfficeIMO.Json.JsonSchema schema) {
+        if (schema is null) throw new ArgumentNullException(nameof(schema));
+        return schema.Validate(ToJsonData());
+    }
 }
