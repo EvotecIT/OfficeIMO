@@ -1,6 +1,6 @@
 # Third-party notices
 
-OfficeIMO.IWork is an original implementation informed by publicly documented iWork package and IWA structures. Its interoperability corpus includes unmodified fixtures under the licenses reproduced below.
+OfficeIMO.IWork is an original implementation informed by publicly documented iWork package and IWA structures. This interoperability corpus includes unmodified fixtures under the licenses reproduced below. The fixtures are test data and are not part of any OfficeIMO package.
 
 ## nim-iwork
 
@@ -51,4 +51,4 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-Source revisions and fixture provenance are recorded in `OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md`.
+Source revisions and fixture provenance are recorded in [README.md](README.md).

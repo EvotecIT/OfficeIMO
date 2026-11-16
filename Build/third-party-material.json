@@ -1,0 +1,263 @@
+{
+  "$comment": "Every piece of third-party code or data that ships in an OfficeIMO NuGet package. Build/validate_third_party_notices.py checks this file against the sources, the project files and built packages. See AGENTS.md, 'Third-party material'.",
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "polyfill-argument-guards",
+      "title": "Polyfill argument guards",
+      "kind": "code",
+      "license": "MIT",
+      "source": "https://github.com/SimonCropp/Polyfill",
+      "project": "*",
+      "files": ["OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/*.cs"],
+      "licenseFiles": {"OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/LICENSE.txt": "Licenses/Polyfill-LICENSE.txt"},
+      "replacement": "Pending a decision: replace with OfficeIMO's own guard helpers."
+    },
+    {
+      "id": "core-unicode-character-database",
+      "title": "Unicode Character Database",
+      "kind": "data",
+      "license": "Unicode-3.0",
+      "source": "https://www.unicode.org/Public/17.0.0/ucd/",
+      "project": "OfficeIMO.Core",
+      "files": [
+        "OfficeIMO.Core/OfficeUnicodeTextData.Generated.cs",
+        "OfficeIMO.Core/OfficeUnicodeTextData.Combining.Generated.cs",
+        "OfficeIMO.Core/TextAnalysis/UnicodeSegmentationData.Generated.cs",
+        "OfficeIMO.Core/TextAnalysis/UnicodeTextSegmenter.cs",
+        "OfficeIMO.Core/OfficeBidiMirroring.cs",
+        "OfficeIMO.Core/OfficeOpenTypeSubstitution.LatinScript.cs"
+      ],
+      "licenseFiles": {"OfficeIMO.Core/Licenses/Unicode-LICENSE.txt": "Licenses/Unicode-LICENSE.txt"}
+    },
+    {
+      "id": "core-windows-1257-mapping",
+      "title": "Windows-1257 mapping data",
+      "kind": "data",
+      "license": "Unicode-3.0",
+      "source": "https://www.unicode.org/Public/MAPPINGS/VENDORS/MICSFT/WindowsBestFit/bestfit1257.txt",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Internal/OfficeLegacySingleByteEncoding.cs"],
+      "licenseFiles": {"OfficeIMO.Core/Licenses/Unicode-LICENSE.txt": "Licenses/Unicode-LICENSE.txt"}
+    },
+    {
+      "id": "core-hyphenation-patterns",
+      "title": "Hyphenation patterns",
+      "kind": "data",
+      "license": "FSFAP-no-warranty-disclaimer AND MIT",
+      "source": "https://github.com/hyphenation/tex-hyphen/tree/5684c0f51c0b81133db2efbe60a408b4155a3ff5",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Typography/Hyphenation/*.patterns", "OfficeIMO.Core/Typography/Hyphenation/manifest.json"],
+      "licenseFiles": {
+        "OfficeIMO.Core/Licenses/hyphenation-en-us-LICENSE.txt": "Licenses/hyphenation-en-us-LICENSE.txt",
+        "OfficeIMO.Core/Licenses/hyphenation-de-1996-LICENSE.txt": "Licenses/hyphenation-de-1996-LICENSE.txt"
+      }
+    },
+    {
+      "id": "core-adobe-core14-afm",
+      "title": "Adobe Core 14 font metrics",
+      "kind": "data",
+      "license": "APAFML",
+      "source": "Adobe Core 14 AFM files (AFM 4.1)",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Fonts/OfficeStandardFontMetrics.Data.cs"],
+      "licenseFiles": {"OfficeIMO.Core/Licenses/Adobe-Core14-AFM-LICENSE.txt": "Licenses/Adobe-Core14-AFM-LICENSE.txt"}
+    },
+    {
+      "id": "core-aom-av1-data",
+      "title": "AV1 reference data",
+      "kind": "data",
+      "license": "BSD-2-Clause",
+      "source": "https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1",
+      "project": "OfficeIMO.Core",
+      "files": [
+        "OfficeIMO.Core/Raster/Avif/*.Cdfs*.cs",
+        "OfficeIMO.Core/Raster/Avif/*.Generated.cs",
+        "OfficeIMO.Core/Raster/Avif/OfficeAv1QuantizerMatrices.bin"
+      ],
+      "licenseFiles": {
+        "OfficeIMO.Core/Licenses/aom-LICENSE.txt": "Licenses/aom-LICENSE.txt",
+        "OfficeIMO.Core/Licenses/aom-PATENTS.txt": "Licenses/aom-PATENTS.txt"
+      }
+    },
+    {
+      "id": "core-webm-vp8-reference-data",
+      "title": "WebM VP8 reference data",
+      "kind": "data",
+      "license": "BSD-3-Clause",
+      "source": "https://www.rfc-editor.org/rfc/rfc6386",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Raster/Webp/OfficeVp8Tables.cs"],
+      "licenseFiles": {
+        "OfficeIMO.Core/Licenses/libvpx-LICENSE.txt": "Licenses/libvpx-LICENSE.txt",
+        "OfficeIMO.Core/Licenses/libvpx-PATENTS.txt": "Licenses/libvpx-PATENTS.txt"
+      }
+    },
+    {
+      "id": "core-libvpx-forward-transform",
+      "title": "WebM libvpx forward transform",
+      "kind": "code",
+      "license": "BSD-3-Clause",
+      "source": "https://chromium.googlesource.com/webm/libvpx",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Raster/Webp/OfficeVp8Encoder.Transform.cs"],
+      "licenseFiles": {
+        "OfficeIMO.Core/Licenses/libvpx-LICENSE.txt": "Licenses/libvpx-LICENSE.txt",
+        "OfficeIMO.Core/Licenses/libvpx-PATENTS.txt": "Licenses/libvpx-PATENTS.txt"
+      },
+      "replacement": "Pending a decision: replace with OfficeIMO's own forward transform."
+    },
+    {
+      "id": "core-codeglyphx-vp8-encoder",
+      "title": "CodeGlyphX VP8 encoder",
+      "kind": "code",
+      "license": "Apache-2.0",
+      "source": "https://github.com/EvotecIT/CodeGlyphX/tree/3c9103da07623e15804450ec0bca284bfcbf4a2c/CodeGlyphX/Rendering/Webp",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Raster/Webp/OfficeVp8Encoder*.cs", "OfficeIMO.Core/Raster/Webp/OfficeVp8BoolEncoder.cs"],
+      "licenseFiles": {"OfficeIMO.Core/Licenses/CodeGlyphX-LICENSE.txt": "Licenses/CodeGlyphX-LICENSE.txt"},
+      "replacement": "Pending a decision: relicense under MIT by its author, as was done for the VP8 decoder."
+    },
+    {
+      "id": "core-codeglyphx-vp8-decoder",
+      "title": "CodeGlyphX VP8 decoder",
+      "kind": "code",
+      "license": "MIT",
+      "source": "https://github.com/EvotecIT/CodeGlyphX (relicensed under MIT by its author)",
+      "project": "OfficeIMO.Core",
+      "files": [
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Decoder*.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8BoolDecoder.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Prediction.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Transform.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Types.cs"
+      ],
+      "licenseFiles": {}
+    },
+    {
+      "id": "core-bouncy-castle-aes",
+      "title": "Bouncy Castle C# AES implementation",
+      "kind": "code",
+      "license": "MIT",
+      "source": "https://github.com/bcgit/bc-csharp/blob/release-2.7.0/crypto/src/crypto/engines/AesLightEngine.cs",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Security/ManagedAesBlockCipher.cs"],
+      "licenseFiles": {},
+      "replacement": "Pending a decision: replace with OfficeIMO's own AES implementation written from FIPS 197."
+    },
+    {
+      "id": "core-imageplayground-heif",
+      "title": "ImagePlayground HEIF container metadata",
+      "kind": "code",
+      "license": "MIT",
+      "source": "https://github.com/EvotecIT/ImagePlayground",
+      "project": "OfficeIMO.Core",
+      "files": ["OfficeIMO.Core/Raster/Heif/OfficeHeifMetadataReader*.cs", "OfficeIMO.Core/Raster/Heif/OfficeHeifImageInfo.cs"],
+      "licenseFiles": {"OfficeIMO.Core/Licenses/ImagePlayground-LICENSE.txt": "Licenses/ImagePlayground-LICENSE.txt"}
+    },
+    {
+      "id": "pdf-adobe-cmaps",
+      "title": "Adobe predefined character maps",
+      "kind": "data",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/adobe-type-tools/cmap-resources/tree/f5cf3bca7fdfeaceb77aa82847e974f2306c20b4",
+      "project": "OfficeIMO.Pdf",
+      "files": ["OfficeIMO.Pdf/Resources/AdobeCMaps/Adobe-*.bin", "OfficeIMO.Pdf/Resources/AdobeCMaps/source.json", "OfficeIMO.Pdf/Reading/Font/PdfPredefinedCMap.Catalog.Generated.cs"],
+      "licenseFiles": {
+        "OfficeIMO.Pdf/Resources/AdobeCMaps/LICENSE.md": "licenses/AdobeCMaps/LICENSE.md",
+        "OfficeIMO.Pdf/Resources/AdobeCMaps/LICENSE.txt": "licenses/AdobeCMaps/LICENSE.txt"
+      }
+    },
+    {
+      "id": "pdf-srgb-icc-profile",
+      "title": "sRGB ICC profile",
+      "kind": "data",
+      "license": "LicenseRef-ICC-Profile",
+      "source": "https://registry.color.org/rgb-registry/black_scaled_2009_srgb",
+      "project": "OfficeIMO.Pdf",
+      "files": ["OfficeIMO.Pdf/Resources/sRGB_IEC61966-2-1_no_black_scaling.icc"],
+      "licenseFiles": {"OfficeIMO.Pdf/Resources/sRGB-LICENSE.txt": "licenses/sRGB-LICENSE.txt"}
+    },
+    {
+      "id": "pdf-adobe-core14-afm",
+      "title": "Adobe Core 14 font metrics",
+      "kind": "data",
+      "license": "APAFML",
+      "source": "Adobe Core 14 AFM files (AFM 4.1)",
+      "project": "OfficeIMO.Pdf",
+      "files": ["OfficeIMO.Pdf/Rendering/Writer/PdfStandardFontWidths.*.cs"],
+      "licenseFiles": {"OfficeIMO.Pdf/Resources/Adobe-Core14-AFM-LICENSE.txt": "licenses/Adobe-Core14-AFM-LICENSE.txt"}
+    },
+    {
+      "id": "adf-atlassian-schema",
+      "title": "Atlassian ADF schema",
+      "kind": "data",
+      "license": "Apache-2.0",
+      "source": "https://registry.npmjs.org/@atlaskit/adf-schema/-/adf-schema-57.6.21.tgz",
+      "project": "OfficeIMO.Adf",
+      "files": ["OfficeIMO.Adf/Schema/adf-schema.json"],
+      "licenseFiles": {
+        "OfficeIMO.Adf/Schema/UPSTREAM-LICENSE.txt": "Schema/UPSTREAM-LICENSE.txt",
+        "OfficeIMO.Adf/Schema/LICENSE-APACHE-2.0.txt": "Schema/LICENSE-APACHE-2.0.txt"
+      }
+    },
+    {
+      "id": "bibliography-csl-locales",
+      "title": "CSL locales",
+      "kind": "data",
+      "license": "CC-BY-SA-3.0",
+      "source": "https://github.com/citation-style-language/locales/tree/a89adece41013402236e2c9020972d7e931fbab8",
+      "project": "OfficeIMO.Bibliography",
+      "files": ["OfficeIMO.Bibliography/Citations/Locales/locales-*.xml", "OfficeIMO.Bibliography/Citations/Locales/locales.json"],
+      "licenseFiles": {"OfficeIMO.Bibliography/Citations/Locales/NOTICE.txt": "licenses/csl-locales/NOTICE.txt"}
+    },
+    {
+      "id": "bibliography-csl-stop-words",
+      "title": "CSL title-case stop words",
+      "kind": "data",
+      "license": "MIT",
+      "source": "https://github.com/citation-style-language/schema/tree/v1.0.2/schemas/styles",
+      "project": "OfficeIMO.Bibliography",
+      "files": ["OfficeIMO.Bibliography/Citations/Data/stop-words.json"],
+      "licenseFiles": {
+        "OfficeIMO.Bibliography/Citations/Data/LICENSE.txt": "licenses/csl-schema/LICENSE.txt",
+        "OfficeIMO.Bibliography/Citations/Data/NOTICE.txt": "licenses/csl-schema/NOTICE.txt"
+      }
+    },
+    {
+      "id": "ksef-schemas",
+      "title": "KSeF authentication and UPO schemas",
+      "kind": "data",
+      "license": "MIT",
+      "source": "https://github.com/CIRFMF/ksef-api/tree/c50f855ef3ae550396c6a272594047506e220498",
+      "project": "OfficeIMO.Invoicing.KSeF",
+      "files": ["OfficeIMO.Invoicing.KSeF/Schemas/*.xsd"],
+      "licenseFiles": {"OfficeIMO.Invoicing.KSeF/Schemas/LICENSE.txt": "Schemas/LICENSE.txt"}
+    },
+    {
+      "id": "validation-iso-schematron",
+      "title": "ISO Schematron compiler stylesheets",
+      "kind": "code",
+      "license": "MIT",
+      "source": "https://github.com/Schematron/schematron/tree/master/trunk/schematron/code",
+      "project": "OfficeIMO.Invoicing.Validation",
+      "files": ["OfficeIMO.Invoicing.Validation/Compiler/*.xsl"],
+      "licenseFiles": {},
+      "noticeInFiles": true
+    }
+  ],
+  "dependencyLicenses": [
+    {
+      "path": "OfficeIMO.Studio/Licenses/ThirdParty/",
+      "reason": "Licenses of the NuGet packages the Studio app redistributes, recorded in Build/Studio/Apple/third-party-notices.json. They are package dependencies, not material compiled into an OfficeIMO package."
+    }
+  ],
+  "notices": {
+    "OfficeIMO.Core": {"path": "OfficeIMO.Core/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
+    "OfficeIMO.Pdf": {"path": "OfficeIMO.Pdf/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
+    "OfficeIMO.Adf": {"path": "OfficeIMO.Adf/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
+    "OfficeIMO.Bibliography": {"path": "OfficeIMO.Bibliography/THIRD-PARTY-NOTICES.md", "packagePath": "THIRD-PARTY-NOTICES.md"},
+    "OfficeIMO.Invoicing.KSeF": {"path": "OfficeIMO.Invoicing.KSeF/ThirdPartyNotices.txt", "packagePath": "ThirdPartyNotices.txt"},
+    "OfficeIMO.Invoicing.Validation": {"path": "OfficeIMO.Invoicing.Validation/ThirdPartyNotices.txt", "packagePath": "ThirdPartyNotices.txt"}
+  }
+}
