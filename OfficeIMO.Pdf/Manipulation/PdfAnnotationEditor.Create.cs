@@ -81,7 +81,9 @@ internal static partial class PdfAnnotationEditor {
         var annotation = new PdfDictionary(); annotation.Items["Type"] = new PdfName("Annot"); annotation.Items["Subtype"] = new PdfName(options.Subtype); annotation.Items["P"] = new PdfReference(pageObjectNumber, pageIndirect.Generation);
         int pageRotation = ReadInheritedPageRotation(objects, page);
         // Free text on a rotated page is written turned with the page, so it reads upright where it is viewed.
-        if (options.Subtype == "FreeText" && pageRotation != 0) annotation.Items["Rotate"] = new PdfNumber(pageRotation);
+        // NoRotate annotations already stay upright, so they keep an unturned appearance.
+        const int NoRotateFlag = 16;
+        if (options.Subtype == "FreeText" && pageRotation != 0 && (options.Flags & NoRotateFlag) == 0) annotation.Items["Rotate"] = new PdfNumber(pageRotation);
         objects[annotationObjectNumber] = new PdfIndirectObject(annotationObjectNumber, 0, annotation);
 
         int? popupObjectNumber = null;

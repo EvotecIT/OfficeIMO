@@ -529,9 +529,10 @@ internal static partial class PdfAnnotationFlattener {
         }
         if (ResolveObject(objects, annotation.Items.TryGetValue("RD", out PdfObject? differencesValue) ? differencesValue : null) is PdfArray differences &&
             differences.Items.Count == 4) {
-            // /RD lists left, bottom, right and top insets; each frame side shows the rectangle side a quarter turn on.
+            // /RD lists left, top, right and bottom insets. Turned a quarter counter-clockwise, the frame's left side lies
+            // along the rectangle's bottom, its top along the rectangle's left, and so on.
             var mapped = new PdfArray();
-            for (int index = 0; index < 4; index++) mapped.Items.Add(differences.Items[(index + degrees / 90) % 4]);
+            for (int index = 0; index < 4; index++) mapped.Items.Add(differences.Items[(index - degrees / 90 + 4) % 4]);
             framed.Items["RD"] = mapped;
         }
         return framed;

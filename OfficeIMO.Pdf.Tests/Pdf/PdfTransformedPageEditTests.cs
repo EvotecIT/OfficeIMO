@@ -16,9 +16,7 @@ public class PdfTransformedPageEditTests {
         var data = new TheoryData<string, ContentShape, int, BoxShape>();
         foreach (string operation in PdfTransformedPageEditOperations.AppendingOperations)
             foreach (ContentShape shape in Enum.GetValues(typeof(ContentShape)))
-                // Redaction chooses what to remove from the reader's geometry, which still lets a surplus Q undo the page
-                // transformation; Docs/ROADMAP.md tracks reading such pages the way viewers draw them.
-                if (shape != ContentShape.Balanced && !(operation == "Redaction" && shape == ContentShape.RepeatedExtraRestores)) {
+                if (shape != ContentShape.Balanced) {
                     data.Add(operation, shape, 0, BoxShape.Origin);
                     data.Add(operation, shape, 90, BoxShape.OffsetMediaBox);
                 }
@@ -137,7 +135,7 @@ public class PdfTransformedPageEditTests {
     [InlineData(270)]
     public void TurnedFreeTextKeepsItsCalloutWhereItWasDeclared(int rotation) {
         // No appearance stream, so flattening builds one from /Rotate, /CL, /RD and /C. /Rect encloses the callout and
-        // /RD insets the text box to [100 100 260 180].
+        // /RD (left, top, right, bottom) insets the text box to [100 20 260 100].
         byte[] pdf = Serialize(new[] {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
@@ -153,6 +151,43 @@ public class PdfTransformedPageEditTests {
         Assert.False(Find(after, Ink.Red, 34, 254, 46, 266).IsEmpty, "The callout does not start where /CL declares it.");
         // Its midpoint, user (70, 80), is drawn too: the line runs between the declared points.
         Assert.False(Find(after, Ink.Red, 64, 214, 76, 226).IsEmpty, "The callout does not run between its declared points.");
+        // The text box border runs along its left edge at user x 100, displayed y 200..280, and nowhere near the box a
+        // misread /RD would give ([20 100 180 180], left edge displayed at y 120..200).
+        Assert.False(Find(after, Ink.Red, 97, 225, 103, 255).IsEmpty, "The text box is not where /RD places it.");
+        Assert.True(Find(after, Ink.Red, 16, 130, 24, 190).IsEmpty, "A text box border is drawn where /RD does not place it.");
+    }
+
+    [Fact]
+    public void FreeTextWithNoRotateKeepsAnUnturnedAppearanceOnRotatedPages() {
+        var fixture = new Fixture(ContentShape.Balanced, 90, BoxShape.Origin);
+
+        byte[] annotated = PdfDocument.Load(fixture.Bytes).Annotations.Add(new PdfAnnotationCreateOptions {
+            PageNumber = 1, Subtype = "FreeText", Contents = "NOTEMARK", Flags = 4 | 16,
+            Rectangle = new double[] { 100, 100, 260, 140 }, GenerateAppearance = true
+        }).Bytes;
+
+        PdfAnnotation annotation = Assert.Single(PdfReadDocument.Open(annotated).Pages[0].GetAnnotations());
+        Assert.True(annotation.IsNoRotate);
+        PdfDictionary freeText = Assert.Single(PdfSyntax.ParseObjects(annotated, null).Map.Values
+            .Select(item => item.Value).OfType<PdfDictionary>()
+            .Where(dictionary => dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) && subtype is PdfName { Name: "FreeText" }));
+        Assert.False(freeText.Items.ContainsKey("Rotate"));
+    }
+
+    [Fact]
+    public void IsolationLeavesStreamsWithInlineImagesUnchanged() {
+        // The image's RGB data contains a Q token; reading it as a surplus restore would corrupt the pixels.
+        const string content = "Q\nq 3 0 0 1 10 10 cm\nBI /W 3 /H 1 /BPC 8 /CS /CS0 ID abc Q xyz EI\nQ\n";
+        byte[] pdf = Serialize(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /ColorSpace << /CS0 /DeviceRGB >> >> /Contents 4 0 R >>",
+            "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream"
+        });
+
+        byte[] stamped = PdfStamper.StampText(pdf, "EDITMARK", new PdfTextStampOptions { Color = Red });
+
+        Assert.Contains("ID abc Q xyz EI", PdfTestContentText.ReadDecoded(stamped), StringComparison.Ordinal);
     }
 
     [Fact]

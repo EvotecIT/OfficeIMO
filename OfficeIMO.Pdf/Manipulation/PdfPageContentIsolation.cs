@@ -10,7 +10,7 @@ namespace OfficeIMO.Pdf;
 /// wrapper it restores the wrapper's state instead, so the original content escapes the wrapper and edits pick up what it
 /// changes afterwards. Wrappers therefore close every state the original content leaves open, and streams that restore
 /// more states than they saved are replaced by copies whose surplus <c>Q</c> operators are blanked, which keeps the
-/// original page drawing exactly as before.
+/// original page drawing exactly as before. Streams with inline images are kept as they are.
 /// </remarks>
 internal static class PdfPageContentIsolation {
     /// <summary>The original content entries to wrap, and the restores that close them.</summary>
@@ -110,11 +110,15 @@ internal static class PdfPageContentIsolation {
         try {
             for (int index = 0; index < entries.Count; index++) {
                 List<int>? surplus = null;
+                bool hasInlineImage = false;
                 PdfContentStreamInterpreter.InterpretUntil(
                     PdfContentSource.FromBytes(decodedEntries[index]),
                     int.MaxValue,
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
+                        // Inline image data ends where its colour space says; without the page resources an aliased
+                        // colour space can misplace that end, so a stream with inline images is never rewritten.
+                        if (operation.Name == "BI") hasInlineImage = true;
                         if (operation.Name == "q") {
                             depth++;
                         } else if (operation.Name == "Q") {
@@ -124,7 +128,7 @@ internal static class PdfPageContentIsolation {
                         return true;
                     },
                     maxGraphicsStateDepth: int.MaxValue);
-                surplusRestores[index] = surplus!;
+                surplusRestores[index] = hasInlineImage ? null! : surplus!;
             }
         } catch (Exception exception) when (exception is InvalidDataException or PdfReadLimitException or FormatException) {
             return new Wrapping(entries, 1);
