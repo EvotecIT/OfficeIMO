@@ -69,6 +69,7 @@ public sealed class StudioStartGalleryTests {
                 Assert.Equal(StudioWorkspaceMode.PdfWorkspace, model.WorkspaceMode);
                 Assert.Equal(StudioDocumentMode.Protect, model.DocumentMode);
                 Assert.True(model.IsCertificateSignatureSectionExpanded);
+                Assert.True(model.DocumentViewState.Panes[StudioDocumentMode.Protect].Inspector);
                 Assert.True(model.HasSignatureValidationSummary);
 
                 // Workbenches keep their own screen.

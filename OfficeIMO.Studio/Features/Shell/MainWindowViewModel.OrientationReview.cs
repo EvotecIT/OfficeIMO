@@ -83,6 +83,8 @@ public sealed partial class MainWindowViewModel {
         SelectedOrientationChoice = OrientationChoices.FirstOrDefault();
         OnPropertyChanged(nameof(HasOrientationReview)); OnPropertyChanged(nameof(CanApplyOrientationReview));
         ShowPagesModeCommand.Execute(null);
+        // The choices and Apply live in the inspector, which Pages mode otherwise keeps closed.
+        ShowDocumentProperties();
     }
 
     [RelayCommand]

@@ -170,8 +170,10 @@ public sealed partial class MainWindowViewModel {
         using var notifications = BeginNotificationScope();
         if (_workspace is null) return;
         // Validation results appear in the certificate signature section, so show it wherever validation started.
-        ShowProtectMode();
+        // An active Protect panel keeps its chosen signing page.
+        if (DocumentMode != StudioDocumentMode.Protect) ShowProtectMode();
         IsCertificateSignatureSectionExpanded = true;
+        ShowDocumentProperties();
         PdfSignatureValidationReport? report = null;
         bool succeeded = await RunStandaloneAsync(
             async token => report = await _workspace.ValidateSignaturesAsync(token).ConfigureAwait(true),

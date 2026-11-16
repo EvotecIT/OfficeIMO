@@ -67,6 +67,37 @@ public sealed class PageOrientationReviewTests {
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task ReviewWithoutASelectionCoversEveryPageAndShowsTheInspector() {
+        using var files = new TextEditingReviewTests.Files();
+        PdfDocument.Create(compose => {
+            for (int page = 0; page < 2; page++) compose.Page(value => value.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Orientation review")));
+        }).Save(files.Source);
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            var engine = new DelegateOcrEngine("orientation-start", (_, _) => Task.FromResult(new OcrResult {
+                Orientation = new() { ClockwiseRotationDegrees = 90, Confidence = .95 }
+            }), new OcrEngineCapabilities { SupportsOrientationDetection = true });
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null),
+                orientationEngineFactory: _ => Task.FromResult<IOcrEngine>(engine));
+            var view = new DocumentWorkspaceView { DataContext = model };
+            var window = new Window { Content = view, Width = 1280, Height = 720 };
+            try {
+                window.Show(); await model.OpenDocumentAsync(files.Source);
+                view.ApplyResponsiveLayout(1280, 720);
+                Assert.False(model.HasOrganizerSelection);
+                Assert.True(model.Commands["DetectPageOrientation"].IsAvailable);
+                await model.Commands["DetectPageOrientation"].ExecuteAsync();
+                window.UpdateLayout();
+                Assert.False(model.HasError, model.ErrorMessage);
+                Assert.Equal(2, model.OrientationChoices.Count);
+                Assert.Equal(StudioDocumentMode.Pages, model.DocumentMode);
+                Assert.True(view.FindControl<Control>("InspectorPane")!.IsVisible);
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
     private static void Capture(Window window, int width, string state = "preview") {
         using var frame = window.CaptureRenderedFrame(); Assert.NotNull(frame);
         string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
