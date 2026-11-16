@@ -82,6 +82,34 @@ public class PdfTableOfContentsReadbackTests {
         Assert.Equal(Read(tagged: true), Read(tagged: false));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ContentsTitles_KeepPunctuationThatIsNotTheLeader(bool tagged) {
+        (string, int)[] sections = { ("Past ... Present", 1), ("Wait … what", 1), ("Release 2", 1) };
+        PdfLogicalListItem[] entries = PdfDocument.Load(CreateContents(Options(tagged), sections, startOnNewPage: true))
+            .Read().Pages[0].ListItems.Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.Equal(sections.Select(static section => section.Item1), entries.Select(static entry => entry.Text));
+        Assert.Equal(new[] { "2", "3", "4" }, entries.Select(static entry => entry.TargetPageLabel));
+    }
+
+    [Fact]
+    public void UntaggedContentsInTwoColumns_KeepEachColumnsEntriesApart() {
+        PdfDocument document = PdfDocument.Create(Options(tagged: false)).Meta(title: "Columns");
+        document.Columns(columns => columns.TableOfContents(), new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(24) });
+        string[] titles = Enumerable.Range(1, 8).Select(static index => "Part " + (char)('A' + index - 1)).ToArray();
+        foreach (string title in titles) {
+            document.Section(title, section => section.AddParagraph(title + " body."), new PdfSectionOptions { StartOnNewPage = true });
+        }
+
+        PdfLogicalPage page = PdfDocument.Load(document.ToBytes()).Read().Pages[0];
+        PdfLogicalListItem[] entries = page.ListItems.Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.Equal(titles.OrderBy(static title => title), entries.Select(static entry => entry.Text).OrderBy(static title => title));
+        Assert.All(entries, entry => Assert.Equal((Array.IndexOf(titles, entry.Text) + 2).ToString(System.Globalization.CultureInfo.InvariantCulture), entry.TargetPageLabel));
+    }
+
     [Fact]
     public void ContentsEntries_KeepTheirPageNumbersInWordHtmlAndRtf() {
         byte[] bytes = CreateContents(Options(tagged: true), NestedSections, startOnNewPage: true);

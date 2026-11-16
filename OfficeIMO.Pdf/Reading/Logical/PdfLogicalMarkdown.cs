@@ -302,8 +302,9 @@ public static class PdfLogicalMarkdownExtensions {
     }
 
     private static string RenderContentsEntry(PdfLogicalListItem item) {
-        string title = EscapeInline(item.Text, escapeLinePrefix: false);
         string? target = item.Link is null ? null : FormatContentsLinkTarget(item.Link);
+        // Inside link brackets a title cannot start a block; on its own, "1. Intro" or "# Intro" would.
+        string title = EscapeInline(item.Text, escapeLinePrefix: target is null);
         string text = target is null ? title : "[" + title + "](" + target + ")";
         return string.IsNullOrEmpty(item.TargetPageLabel) ? text : text + " \u2014 " + EscapeInline(item.TargetPageLabel!, escapeLinePrefix: false);
     }
@@ -320,7 +321,7 @@ public static class PdfLogicalMarkdownExtensions {
     private static string EscapeContentsFragment(string name) {
         var builder = new StringBuilder(name.Length);
         foreach (char ch in name) {
-            if (char.IsWhiteSpace(ch) || ch is '(' or ')' or '<' or '>' or '[' or ']' or '%') {
+            if (char.IsWhiteSpace(ch) || char.IsControl(ch) || ch is '(' or ')' or '<' or '>' or '[' or ']' or '%' or '&' or '\\' or '`') {
                 builder.Append(Uri.EscapeDataString(ch.ToString()));
             } else {
                 builder.Append(ch);
