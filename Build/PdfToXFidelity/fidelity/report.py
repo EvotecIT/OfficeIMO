@@ -80,7 +80,7 @@ def _table(card, metrics, title):
             for metric in metrics:
                 mean, n = m.get(metric, (math.nan, 0))
                 cells.append(_fmt(mean) if metric != "docs" else str(n))
-            if all(c == "–" for c in cells[1:]) and metrics[0] != "docs":
+            if all(c == "–" for c in cells) and metrics[0] != "docs":
                 continue
             lines.append(f"| {target} | {tool} | " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"

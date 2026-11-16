@@ -64,6 +64,7 @@ def _external(url: str) -> bool:
 class _WordStyles:
     def __init__(self, z: zipfile.ZipFile):
         self.styles: dict[str, ET.Element] = {}
+        self.default_paragraph: str | None = None
         self.default_size: float | None = None
         root = _xml(z, "word/styles.xml")
         if root is not None:
@@ -72,6 +73,8 @@ class _WordStyles:
                 self.default_size = int(sz.get(W + "val", "20")) / 2
             for style in root.findall(f"{W}style"):
                 self.styles[style.get(W + "styleId")] = style
+                if style.get(W + "type") == "paragraph" and _on(style, W + "default") and style.get(W + "default"):
+                    self.default_paragraph = style.get(W + "styleId")
         self.formats: dict[tuple[str, int], str] = {}
         num = _xml(z, "word/numbering.xml")
         if num is not None:
@@ -214,8 +217,8 @@ class _DocxReader:
                 for link in tc.iter(f"{W}hyperlink"):
                     self._link(link)
                 col += span
-            if row:
-                table.rows.append(row)
+            # A row made only of vertical-merge continuations still occupies a grid row.
+            table.rows.append(row)
         return table
 
     def _link(self, el):
@@ -232,6 +235,7 @@ class _DocxReader:
         segments: list[tuple[str, bool, bool, float | None]] = []
         ppr = p.find(f"{W}pPr")
         pstyle = ppr.find(f"{W}pStyle").get(W + "val") if ppr is not None and ppr.find(f"{W}pStyle") is not None else None
+        pstyle = pstyle or self.st.default_paragraph  # paragraphs without pStyle use the default paragraph style
 
         def walk(el):
             for child in el:
@@ -427,7 +431,8 @@ def read_xlsx(path: str) -> Document:
                 elif t == "e":
                     cell = SheetCell(r, col, raw or "", "error")
                 elif t == "d":
-                    cell = SheetCell(r, col, raw or "", "date")
+                    serial = _iso_to_serial(raw or "")
+                    cell = SheetCell(r, col, raw or "", "date", serial)
                 elif raw is not None:
                     value = float(raw)
                     if is_date:
@@ -467,6 +472,15 @@ def read_xlsx(path: str) -> Document:
 
 _MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
                 "November", "December"]
+
+
+def _iso_to_serial(value: str) -> float | None:
+    import datetime as dt
+
+    try:
+        return float((dt.date.fromisoformat(value[:10]) - dt.date(1899, 12, 30)).days)
+    except ValueError:
+        return None
 
 
 def _format_date(serial: float, code: str) -> str:
