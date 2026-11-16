@@ -152,21 +152,42 @@ public sealed class PdfEmbeddedFontFallbackCandidate {
         return candidate;
     }
 
+
     /// <summary>
-    /// Returns a test that tells whether the face painting the requested style has every glyph of a text
-    /// that the regular face has, or null when that style is painted from the regular face anyway.
+    /// Splits styled text into pieces the styled face paints and pieces only the regular face can paint, or
+    /// returns null when the styled face paints all of it. Text the regular face covers only through shaping
+    /// stays whole on the regular face so its shaped units are kept.
     /// </summary>
-    internal Func<string, bool>? GetStyledFaceCoverageTest(bool bold, bool italic) =>
-        IsRegularFaceCandidate || (!bold && !italic)
-            ? null
-            : _styledFaceCoverageTests[(bold ? 1 : 0) + (italic ? 2 : 0) - 1].Value;
+    internal IReadOnlyList<(string Text, bool RegularFace)>? SplitByStyledFaceCoverage(string text, bool bold, bool italic) {
+        if (IsRegularFaceCandidate || (!bold && !italic) || string.IsNullOrEmpty(text)) return null;
+        Func<string, StyledFaceCoverage>? coverage = _styledFaceCoverageTests[(bold ? 1 : 0) + (italic ? 2 : 0) - 1].Value;
+        if (coverage == null) return null;
+        StyledFaceCoverage whole = coverage(text);
+        if (whole == StyledFaceCoverage.StyledFace) return null;
+        if (whole == StyledFaceCoverage.ShapedRegularFace) return new[] { (text, true) };
 
-    private readonly Lazy<Func<string, bool>?>[] _styledFaceCoverageTests;
+        var pieces = new List<(string Text, bool RegularFace)>();
+        var piece = new System.Text.StringBuilder();
+        bool pieceRegular = false;
+        foreach (string element in OfficeIMO.Drawing.OfficeTextElements.Enumerate(text)) {
+            bool regular = coverage(element) != StyledFaceCoverage.StyledFace;
+            if (piece.Length > 0 && regular != pieceRegular) {
+                pieces.Add((piece.ToString(), pieceRegular));
+                piece.Clear();
+            }
+            pieceRegular = regular;
+            piece.Append(element);
+        }
+        if (piece.Length > 0) pieces.Add((piece.ToString(), pieceRegular));
+        return pieces;
+    }
 
-    private Lazy<Func<string, bool>?>[] CreateStyledFaceCoverageTests() => new[] {
-        new Lazy<Func<string, bool>?>(() => PdfEmbeddedFontFamily.CreateStyledFaceCoverageTest(GetSlotFace(bold: true, italic: false).Data, _fontFamily.RegularSnapshot)),
-        new Lazy<Func<string, bool>?>(() => PdfEmbeddedFontFamily.CreateStyledFaceCoverageTest(GetSlotFace(bold: false, italic: true).Data, _fontFamily.RegularSnapshot)),
-        new Lazy<Func<string, bool>?>(() => PdfEmbeddedFontFamily.CreateStyledFaceCoverageTest(GetSlotFace(bold: true, italic: true).Data, _fontFamily.RegularSnapshot))
+    private readonly Lazy<Func<string, StyledFaceCoverage>?>[] _styledFaceCoverageTests;
+
+    private Lazy<Func<string, StyledFaceCoverage>?>[] CreateStyledFaceCoverageTests() => new[] {
+        new Lazy<Func<string, StyledFaceCoverage>?>(() => PdfEmbeddedFontFamily.CreateStyledFaceCoverageTest(GetSlotFace(bold: true, italic: false).Data, _fontFamily.RegularSnapshot)),
+        new Lazy<Func<string, StyledFaceCoverage>?>(() => PdfEmbeddedFontFamily.CreateStyledFaceCoverageTest(GetSlotFace(bold: false, italic: true).Data, _fontFamily.RegularSnapshot)),
+        new Lazy<Func<string, StyledFaceCoverage>?>(() => PdfEmbeddedFontFamily.CreateStyledFaceCoverageTest(GetSlotFace(bold: true, italic: true).Data, _fontFamily.RegularSnapshot))
     };
 
     internal bool HasSameFaces(PdfEmbeddedFontFallbackCandidate other) =>

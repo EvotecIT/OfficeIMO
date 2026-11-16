@@ -126,24 +126,27 @@ public sealed partial class PdfEmbeddedFontFamily {
         face != null && (ReferenceEquals(face, _regular) || HasUsableProgram(face)) ? face : null;
 
     /// <summary>
-    /// Returns a test that tells whether a styled face maps every scalar of a text the regular face maps, or null
-    /// when the styled face is the regular face itself. A scalar the regular face covers only through shaping,
-    /// such as the letters of a ligature it maps as one glyph, is left to the regular face.
+    /// Returns a test that tells which face can paint a text: the styled face when it maps every scalar, the
+    /// regular face otherwise, or the regular face as a whole shaped unit when the regular face covers a scalar
+    /// only through shaping, such as a letter of a ligature it maps as one glyph. Null when the styled face is
+    /// the regular face itself.
     /// </summary>
-    internal static Func<string, bool>? CreateStyledFaceCoverageTest(byte[] styledFace, byte[] regularFace) {
+    internal static Func<string, StyledFaceCoverage>? CreateStyledFaceCoverageTest(byte[] styledFace, byte[] regularFace) {
         if (ReferenceEquals(styledFace, regularFace)) return null;
         Func<int, bool> styled = CreateGlyphLookup(styledFace);
         Func<int, bool> regular = CreateGlyphLookup(regularFace);
         return text => {
+            StyledFaceCoverage coverage = StyledFaceCoverage.StyledFace;
             for (int index = 0; index < text.Length; index++) {
                 int scalar = text[index];
                 if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
                     scalar = char.ConvertToUtf32(text[index], text[index + 1]);
                     index++;
                 }
-                if (!regular(scalar) || !styled(scalar)) return false;
+                if (!regular(scalar)) return StyledFaceCoverage.ShapedRegularFace;
+                if (!styled(scalar)) coverage = StyledFaceCoverage.RegularFace;
             }
-            return true;
+            return coverage;
         };
     }
 
@@ -182,4 +185,11 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     private static byte[]? CloneOptional(byte[]? data) =>
         data == null ? null : (byte[])data.Clone();
+}
+
+/// <summary>Which face of a fallback family can paint a piece of styled text.</summary>
+internal enum StyledFaceCoverage {
+    StyledFace,
+    RegularFace,
+    ShapedRegularFace
 }

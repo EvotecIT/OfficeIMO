@@ -149,41 +149,34 @@ public sealed class PdfTextFallbackPlan {
     // lacks are painted with the candidate's regular face instead, which synthesizes the style for them.
     private void AddSegmentRuns(List<PdfTextRun> runs, PdfTextFallbackSegment segment, PdfTextRun? styleTemplate,
         Func<string, PdfTextRun> createRun) {
-        // A selected standard face such as HelveticaBold makes the run bold as well.
-        bool bold = styleTemplate?.Bold == true, italic = styleTemplate?.Italic == true;
-        if (styleTemplate?.StandardFont is PdfStandardFont selected) {
+        PdfTextRun whole = createRun(segment.Text);
+        // A styled standard face, from the template or the mapped slot, makes the run bold or italic as well.
+        bool bold = whole.Bold, italic = whole.Italic;
+        if (whole.StandardFont is PdfStandardFont selected) {
             PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(selected);
             bool boldItalicFace = selected == PdfStandardFontMapper.GetStyledFont(family, bold: true, italic: true);
             bold |= boldItalicFace || selected == PdfStandardFontMapper.GetStyledFont(family, bold: true, italic: false);
             italic |= boldItalicFace || selected == PdfStandardFontMapper.GetStyledFont(family, bold: false, italic: true);
         }
-        Func<string, bool>? covers = (bold || italic)
-            && _candidates != null && segment.FontIndex >= 0 && segment.FontIndex < _candidates.Count
-            ? _candidates[segment.FontIndex].GetStyledFaceCoverageTest(bold, italic)
+        PdfEmbeddedFontFallbackCandidate? candidate = _candidates != null && segment.FontIndex >= 0 && segment.FontIndex < _candidates.Count
+            ? _candidates[segment.FontIndex]
             : null;
-        if (covers == null || covers(segment.Text)) {
-            runs.Add(createRun(segment.Text));
+        IReadOnlyList<(string Text, bool RegularFace)>? pieces = candidate?.SplitByStyledFaceCoverage(segment.Text, bold, italic);
+        if (pieces == null) {
+            runs.Add(whole);
             return;
         }
 
-        PdfEmbeddedFontFallbackCandidate regularFace = _candidates![segment.FontIndex].RegularFaceCandidate;
-        var piece = new System.Text.StringBuilder();
-        bool pieceCovered = false;
-        foreach (string element in OfficeIMO.Drawing.OfficeTextElements.Enumerate(segment.Text)) {
-            bool covered = covers(element);
-            if (piece.Length > 0 && covered != pieceCovered) Flush();
-            pieceCovered = covered;
-            piece.Append(element);
-        }
-        Flush();
-
-        void Flush() {
-            if (piece.Length == 0) return;
-            string text = piece.ToString();
-            piece.Clear();
-            runs.Add(pieceCovered
-                ? createRun(text)
-                : CreateStyledNamedRun(text, regularFace.FontName, styleTemplate).WithPlannedFontFallback(regularFace));
+        PdfEmbeddedFontFallbackCandidate regularFace = candidate!.RegularFaceCandidate;
+        foreach ((string text, bool useRegularFace) in pieces) {
+            if (!useRegularFace) {
+                runs.Add(createRun(text));
+                continue;
+            }
+            PdfTextRun companion = CreateStyledNamedRun(text, regularFace.FontName, styleTemplate).WithPlannedFontFallback(regularFace);
+            if (bold) companion.SetBold();
+            if (italic) companion.SetItalic();
+            runs.Add(companion);
         }
     }
 

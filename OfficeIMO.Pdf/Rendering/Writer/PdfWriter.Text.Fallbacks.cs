@@ -98,8 +98,10 @@ internal static partial class PdfWriter {
         if (run.InlineElement != null) {
             return null;
         }
-        PdfTextRun resolved = options?.ResolvePlannedNamedFallbackRun(run) ?? run;
-        if (!ReferenceEquals(resolved, run)) return new[] { resolved };
+        if (options != null) {
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> resolved = options.ResolvePlannedNamedFallbackRuns(run);
+            if (resolved.Count != 1 || !ReferenceEquals(resolved[0], run)) return resolved;
+        }
 
         bool preferSelectedCallerFamily =
             options?.ShouldPreferSelectedCallerFamily(run.FontFamily) == true;

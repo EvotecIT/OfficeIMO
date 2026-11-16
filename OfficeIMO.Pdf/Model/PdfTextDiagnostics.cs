@@ -233,74 +233,76 @@ internal static partial class PdfTextDiagnostics {
                 continue;
             }
 
-            PdfTextRun run = options.ResolvePlannedNamedFallbackRun(sourceRun);
-            string runLocation = AppendRunLocation(location, runIndex);
-            PdfEmbeddedFontFallbackSet? fallbackSet =
-                options.GetEffectiveRenderingProfileDeclaredFallbacks(
-                    run.Bold,
-                    run.Italic)
-                ?? options.EmbeddedFontFallbacksSnapshot;
-            PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
-            if (options.TryGetEffectiveRenderingProfileFallbacks(
-                    run.FontFamily,
-                    run.Bold,
-                    run.Italic,
-                    out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks)
-                && profileFamilyFallbacks != null) {
-                List<PdfTextEncodingDiagnostic> profileDiagnostics =
-                    AnalyzeGeneratedTextWithFallback(
-                    run.Text,
-                    profileFamilyFallbacks,
-                    source,
-                    runLocation,
-                    runIndex,
-                    shapingMode,
-                    CreateSelectedCallerCoverage(
-                        options,
-                        run,
-                        shapingMode));
-                if (profileDiagnostics.Count == 0) {
-                    runIndex++;
-                    continue;
-                }
+            foreach (PdfTextRun run in options.ResolvePlannedNamedFallbackRuns(sourceRun)) {
+                AnalyzeRun(run);
             }
-            if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
-                if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
-                    namedFontProgram != null) {
-                    diagnostics.AddRange(AnalyzeGeneratedSelectedFont(run.Text, namedFontProgram, source,
-                        runLocation, runIndex, shapingMode, fallbackSet,
-                        ForEncodingDiagnostics(options, namedFontProgram.FontName, source, run.FeatureSettings,
-                            run.TextDirection, run.PreservesPaintedGlyphs),
-                        preferSelected: options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
-                    runIndex++;
-                    continue;
-                }
-
-                if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
-                    namedCffFontProgram != null) {
-                    diagnostics.AddRange(AnalyzeGeneratedSelectedFont(run.Text, namedCffFontProgram, source,
-                        runLocation, runIndex, shapingMode, fallbackSet,
-                        ForEncodingDiagnostics(options, namedCffFontProgram.FontName, source, run.FeatureSettings,
-                            run.TextDirection, run.PreservesPaintedGlyphs),
-                        preferSelected: options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
-                    runIndex++;
-                    continue;
-                }
-            }
-
-            PdfStandardFont runFont = ResolveRunFont(font, run);
-            diagnostics.AddRange(AnalyzeGeneratedTextCore(
-                run.Text,
-                options,
-                runFont,
-                source,
-                runLocation,
-                runIndex,
-                fallbackSet, run));
             runIndex++;
         }
 
         return diagnostics;
+
+        void AnalyzeRun(PdfTextRun run) {
+                string runLocation = AppendRunLocation(location, runIndex);
+                PdfEmbeddedFontFallbackSet? fallbackSet =
+                    options.GetEffectiveRenderingProfileDeclaredFallbacks(
+                        run.Bold,
+                        run.Italic)
+                    ?? options.EmbeddedFontFallbacksSnapshot;
+                PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
+                if (options.TryGetEffectiveRenderingProfileFallbacks(
+                        run.FontFamily,
+                        run.Bold,
+                        run.Italic,
+                        out PdfEmbeddedFontFallbackSet? profileFamilyFallbacks)
+                    && profileFamilyFallbacks != null) {
+                    List<PdfTextEncodingDiagnostic> profileDiagnostics =
+                        AnalyzeGeneratedTextWithFallback(
+                        run.Text,
+                        profileFamilyFallbacks,
+                        source,
+                        runLocation,
+                        runIndex,
+                        shapingMode,
+                        CreateSelectedCallerCoverage(
+                            options,
+                            run,
+                            shapingMode));
+                    if (profileDiagnostics.Count == 0) {
+                        return;
+                    }
+                }
+                if (options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
+                    if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
+                        namedFontProgram != null) {
+                        diagnostics.AddRange(AnalyzeGeneratedSelectedFont(run.Text, namedFontProgram, source,
+                            runLocation, runIndex, shapingMode, fallbackSet,
+                            ForEncodingDiagnostics(options, namedFontProgram.FontName, source, run.FeatureSettings,
+                                run.TextDirection, run.PreservesPaintedGlyphs),
+                            preferSelected: options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
+                        return;
+                    }
+
+                    if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
+                        namedCffFontProgram != null) {
+                        diagnostics.AddRange(AnalyzeGeneratedSelectedFont(run.Text, namedCffFontProgram, source,
+                            runLocation, runIndex, shapingMode, fallbackSet,
+                            ForEncodingDiagnostics(options, namedCffFontProgram.FontName, source, run.FeatureSettings,
+                                run.TextDirection, run.PreservesPaintedGlyphs),
+                            preferSelected: options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
+                        return;
+                    }
+                }
+
+                PdfStandardFont runFont = ResolveRunFont(font, run);
+                diagnostics.AddRange(AnalyzeGeneratedTextCore(
+                    run.Text,
+                    options,
+                    runFont,
+                    source,
+                    runLocation,
+                    runIndex,
+                    fallbackSet, run));
+        }
     }
 
     private static TryGetSelectedTextLength CreateSelectedCallerCoverage(
@@ -669,7 +671,8 @@ internal static partial class PdfTextDiagnostics {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(candidates, nameof(candidates));
 
-        IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidateList = candidates as IReadOnlyList<PdfEmbeddedFontFallbackCandidate> ?? candidates.ToList();
+        // The plan keeps the candidates for styled runs, so a later change to the caller's list cannot reach it.
+        IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidateList = candidates.ToArray();
         List<EmbeddedFontFallbackProgram> fonts = BuildFallbackPrograms(candidateList);
         if (fonts.Count == 0) {
             throw new ArgumentException("At least one embedded font fallback candidate is required.", nameof(candidates));

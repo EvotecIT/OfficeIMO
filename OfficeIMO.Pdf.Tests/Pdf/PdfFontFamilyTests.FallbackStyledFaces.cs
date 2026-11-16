@@ -109,6 +109,38 @@ public partial class PdfFontFamilyTests {
         Assert.Equal(FillThenStroke, Assert.Single(spans, span => span.Text == "☃").TextRenderingMode);
     }
 
+    [Fact]
+    public void PlannedFallbackRunsMadeBoldAfterPlanningUseTheRegularFaceForMissingBoldGlyphs() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 0x1F600, 0x2603);
+        byte[] bold = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 0x1F600);
+        var fallbacks = new PdfEmbeddedFontFallbackSet(new[] {
+            new PdfEmbeddedFontFallbackCandidate(new PdfEmbeddedFontFamily("Late Bold Fallback", regular, bold))
+        });
+        PdfTextRun[] runs = fallbacks.PlanTextRuns("😀☃").Select(run => run.SetBold()).ToArray();
+        byte[] bytes = PdfDocument.Create(fallbacks.RegisterFonts(new PdfCreateOptions { CompressContentStreams = false }))
+            .Paragraph(paragraph => paragraph.AddRuns(runs)).ToBytes();
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
+        Assert.NotEqual(FillThenStroke, Assert.Single(spans, span => span.Text == "😀").TextRenderingMode);
+        Assert.Equal(FillThenStroke, Assert.Single(spans, span => span.Text == "☃").TextRenderingMode);
+    }
+
+    [Fact]
+    public void FallbackRunsMappedToABoldSlotUseTheRegularFaceForMissingBoldGlyphs() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 0x1F600, 0x2603);
+        byte[] bold = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 0x1F600);
+        var fallbacks = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate(new PdfEmbeddedFontFamily("Slot Fallback", regular, bold)) },
+            new[] { PdfStandardFont.Helvetica });
+        IReadOnlyList<PdfTextRun> runs = fallbacks.PlanText("😀☃").ToTextRuns(new[] { PdfStandardFont.HelveticaBold });
+        byte[] bytes = PdfDocument.Create(fallbacks.RegisterFonts(new PdfCreateOptions { CompressContentStreams = false }))
+            .Paragraph(paragraph => paragraph.AddRuns(runs)).ToBytes();
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
+        Assert.NotEqual(FillThenStroke, Assert.Single(spans, span => span.Text == "😀").TextRenderingMode);
+        Assert.Equal(FillThenStroke, Assert.Single(spans, span => span.Text == "☃").TextRenderingMode);
+    }
+
     private static PdfTextSpan[] RenderBoldFallbackRun(PdfEmbeddedFontFamily family, bool compatibilitySlots, string fallbackText) {
         var candidates = new[] { new PdfEmbeddedFontFallbackCandidate(family) };
         PdfEmbeddedFontFallbackSet fallbacks = compatibilitySlots
