@@ -152,11 +152,19 @@ internal sealed partial class PdfFontResource {
     internal PdfFontResource WithDrawingProgram(PdfDrawingFontProgram drawingProgram) =>
         new PdfFontResource(ResourceName, this, drawingProgram);
 
+    private static byte[] Sha256(byte[] data) {
+#if NET5_0_OR_GREATER
+        return SHA256.HashData(data);
+#else
+        using SHA256 sha256 = SHA256.Create();
+        return sha256.ComputeHash(data);
+#endif
+    }
+
     // Embedded programs with the same PDF base name can differ between page and annotation resources.
     private static string? CreateDrawingFontFamily(string baseFont, byte[]? fontData, PdfDrawingFontProgram? drawingProgram = null) {
         if (fontData == null) return null;
-        using SHA256 sha256 = SHA256.Create();
-        byte[] hash = sha256.ComputeHash(fontData);
+        byte[] hash = Sha256(fontData);
         if (drawingProgram != null) {
             // A rebuilt Unicode cmap can omit duplicate or cluster mappings. Keep the full PDF code
             // map in the face identity, including CID entries above the one-byte simple-font range.
@@ -179,7 +187,7 @@ internal sealed partial class PdfFontResource {
                 Array.Resize(ref identity, identity.Length + codeMap.Length);
                 Buffer.BlockCopy(codeMap, 0, identity, identity.Length - codeMap.Length, codeMap.Length);
             }
-            hash = sha256.ComputeHash(identity);
+            hash = Sha256(identity);
         }
         // Font-family parsing limits each candidate to 256 characters. Keep the digest within
         // that bound so a long PDF BaseFont cannot truncate the identity used to load this face.

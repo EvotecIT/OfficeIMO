@@ -330,14 +330,25 @@ internal static partial class PdfSyntax {
     }
 
     /// <summary>
+    /// False when an object that is not built yet has no /AF or /FS key at any depth, so it cannot hold an
+    /// associated-file array or a file attachment annotation.
+    /// </summary>
+    internal static bool MayHoldAttachmentReferences(PdfDeferredObjectSummary summary) =>
+        (summary.MarkerNames & PdfDeferredMarkerNames.AttachmentKeys) != 0;
+
+    /// <summary>
     /// The feature-marker names that whole-document probes look for, one bit each. A deferred object records which of
     /// them occur as keys or name values anywhere in its value, so a probe reads the bits instead of building the value.
     /// </summary>
     private static class PdfDeferredMarkerNames {
-        private static readonly string[] Names = PdfInspector.GetDeferredMarkerNames();
+        // Attachment discovery looks for /AF and /FS keys in every object; /AF is already a probe marker.
+        private static readonly string[] Names = PdfInspector.GetDeferredMarkerNames().Concat(new[] { "FS" }).Distinct(StringComparer.Ordinal).ToArray();
         private static readonly int[][] IndexesByLength = CreateIndexesByLength();
+        internal static readonly ulong AttachmentKeys = Bit("AF") | Bit("FS");
 
         internal static string GetName(int bit) => Names[bit];
+
+        private static ulong Bit(string name) => 1UL << Array.IndexOf(Names, name);
 
         /// <summary>Whether every name in <paramref name="names"/> has a bit, so summaries can answer for it.</summary>
         internal static bool TracksAll(IEnumerable<string> names) {

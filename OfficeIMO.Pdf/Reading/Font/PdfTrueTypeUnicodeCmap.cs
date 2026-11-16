@@ -83,21 +83,21 @@ internal static partial class PdfTrueTypeUnicodeCmap {
     private static byte[]? Rebuild(byte[] program, SortedDictionary<int, int> mappings) {
         if (mappings.Count > OfficeOpenTypeCmap.MaximumFormat12Groups) return null;
         if (!TryReadTables(program, out List<(string Tag, int Offset, int Length)> tables)) return null;
-        var bodies = new List<(string Tag, byte[] Body)>(tables.Count + 1);
+        var bodies = new List<(string Tag, byte[] Source, int Offset, int Length)>(tables.Count + 1);
         foreach (var table in tables) {
             if (string.Equals(table.Tag, "cmap", StringComparison.Ordinal) ||
                 string.Equals(table.Tag, PaintedNotdefTable, StringComparison.Ordinal)) continue;
-            var body = new byte[table.Length];
-            Buffer.BlockCopy(program, table.Offset, body, 0, table.Length);
-            bodies.Add((table.Tag, body));
+            bodies.Add((table.Tag, program, table.Offset, table.Length));
         }
-        bodies.Add(("cmap", BuildUnicodeCmap(mappings)));
+        byte[] cmap = BuildUnicodeCmap(mappings);
+        bodies.Add(("cmap", cmap, 0, cmap.Length));
         int[] paintedNotdefScalars = mappings.Where(static pair => pair.Value == 0).Select(static pair => pair.Key).ToArray();
         if (paintedNotdefScalars.Length > 0) {
             using var provenance = new MemoryStream();
             WriteUInt32(provenance, (uint)paintedNotdefScalars.Length);
             foreach (int scalar in paintedNotdefScalars) WriteUInt32(provenance, (uint)scalar);
-            bodies.Add((PaintedNotdefTable, provenance.ToArray()));
+            byte[] provenanceBytes = provenance.ToArray();
+            bodies.Add((PaintedNotdefTable, provenanceBytes, 0, provenanceBytes.Length));
         }
         bodies.Sort(static (left, right) => string.CompareOrdinal(left.Tag, right.Tag));
         bool cff = ReadUInt32(program, 0) == OpenTypeCffFlavor;
@@ -584,6 +584,13 @@ internal static partial class PdfTrueTypeUnicodeCmap {
     }
 
     private static byte[] Assemble(List<(string Tag, byte[] Body)> tables, uint flavor = 0x00010000U) {
+        var segments = new List<(string Tag, byte[] Source, int Offset, int Length)>(tables.Count);
+        foreach ((string tag, byte[] body) in tables) segments.Add((tag, body, 0, body.Length));
+        return Assemble(segments, flavor);
+    }
+
+    /// <summary>Writes an sfnt from table bodies given as ranges of their source buffers, which are not modified.</summary>
+    private static byte[] Assemble(List<(string Tag, byte[] Source, int Offset, int Length)> tables, uint flavor) {
         int count = tables.Count;
         int power = 1;
         int entrySelector = 0;
@@ -591,45 +598,52 @@ internal static partial class PdfTrueTypeUnicodeCmap {
             power *= 2;
             entrySelector++;
         }
-        using var output = new MemoryStream();
-        WriteUInt32(output, flavor);
-        WriteUInt16(output, (ushort)count);
-        WriteUInt16(output, (ushort)(power * 16));
-        WriteUInt16(output, (ushort)entrySelector);
-        WriteUInt16(output, (ushort)(count * 16 - power * 16));
-        output.Write(new byte[count * 16], 0, count * 16);
+        // Lay the font out once: the directory, then each table on a four-byte boundary.
         var offsets = new int[count];
+        long position = 12L + count * 16L;
+        for (int index = 0; index < count; index++) {
+            offsets[index] = checked((int)position);
+            position = (position + tables[index].Length + 3) & ~3L;
+        }
+        var result = new byte[checked((int)position)];
+        WriteUInt32(result, 0, flavor);
+        WriteUInt16(result, 4, (ushort)count);
+        WriteUInt16(result, 6, (ushort)(power * 16));
+        WriteUInt16(result, 8, (ushort)entrySelector);
+        WriteUInt16(result, 10, (ushort)(count * 16 - power * 16));
         int headOffset = -1;
         for (int index = 0; index < count; index++) {
-            while (output.Length % 4 != 0) output.WriteByte(0);
-            offsets[index] = (int)output.Length;
-            byte[] body = tables[index].Body;
-            if (string.Equals(tables[index].Tag, "head", StringComparison.Ordinal) && body.Length >= 12) {
+            (string tag, byte[] source, int sourceOffset, int length) = tables[index];
+            Buffer.BlockCopy(source, sourceOffset, result, offsets[index], length);
+            if (string.Equals(tag, "head", StringComparison.Ordinal) && length >= 12) {
+                // The head checksum adjustment is summed as zero, then set from the whole-font sum below.
                 headOffset = offsets[index];
-                WriteUInt32(body, 8, 0);
+                WriteUInt32(result, headOffset + 8, 0);
             }
-            output.Write(body, 0, body.Length);
         }
-        while (output.Length % 4 != 0) output.WriteByte(0);
-        byte[] result = output.ToArray();
         for (int index = 0; index < count; index++) {
             int record = 12 + index * 16;
             Encoding.ASCII.GetBytes(tables[index].Tag, 0, 4, result, record);
-            WriteUInt32(result, record + 4, Checksum(tables[index].Body));
+            // Table padding is zero, so the padded range sums like the zero-extended table body.
+            WriteUInt32(result, record + 4, Checksum(result, offsets[index], tables[index].Length));
             WriteUInt32(result, record + 8, (uint)offsets[index]);
-            WriteUInt32(result, record + 12, (uint)tables[index].Body.Length);
+            WriteUInt32(result, record + 12, (uint)tables[index].Length);
         }
-        if (headOffset >= 0) WriteUInt32(result, headOffset + 8, unchecked(ChecksumMagic - Checksum(result)));
+        if (headOffset >= 0) WriteUInt32(result, headOffset + 8, unchecked(ChecksumMagic - Checksum(result, 0, result.Length)));
         return result;
     }
 
-    private static uint Checksum(byte[] data) {
+    /// <summary>Sums big-endian 32-bit words, treating a partial last word as zero-padded.</summary>
+    private static uint Checksum(byte[] data, int offset, int length) {
         uint sum = 0;
-        for (int offset = 0; offset < data.Length; offset += 4) {
+        int end = offset + length;
+        int index = offset;
+        for (; index <= end - 4; index += 4) {
+            sum = unchecked(sum + (((uint)data[index] << 24) | ((uint)data[index + 1] << 16) | ((uint)data[index + 2] << 8) | data[index + 3]));
+        }
+        if (index < end) {
             uint value = 0;
-            for (int index = 0; index < 4; index++) {
-                value = (value << 8) | (offset + index < data.Length ? data[offset + index] : 0u);
-            }
+            for (int shift = 24; index < end; index++, shift -= 8) value |= (uint)data[index] << shift;
             sum = unchecked(sum + value);
         }
         return sum;
