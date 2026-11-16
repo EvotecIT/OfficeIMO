@@ -26,7 +26,9 @@ public sealed class PdfDrawingGlowTests {
         Assert.Equal(255, inner.R);
         Assert.Equal(255, inner.B);
         int expectedGreen = 255 - alpha;
-        Assert.InRange((int)inner.G, System.Math.Max(0, expectedGreen - 3), expectedGreen + 3);
+        // The SVG reader approximates feGaussianBlur with a few offset copies, so its contour is less exact.
+        int tolerance = renderer == "svg" ? 20 : 3;
+        Assert.InRange((int)inner.G, System.Math.Max(0, expectedGreen - tolerance), expectedGreen + tolerance);
         Assert.InRange((int)outer.G, inner.G + 20, 254);
         Assert.Equal(OfficeColor.White, raster.GetPixel(24, 38));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(48, 38));
@@ -83,7 +85,7 @@ public sealed class PdfDrawingGlowTests {
     [Theory]
     [InlineData((byte)255)]
     [InlineData((byte)128)]
-    public void DrawingGlowRetainsVectorHaloAlphaAndPaintOrder(byte alpha) {
+    public void DrawingGlowPaintsOneBlurredHaloWithAlphaAndPaintOrder(byte alpha) {
         OfficeShape shape = OfficeShape.Rectangle(48D, 28D);
         shape.FillColor = OfficeColor.Blue;
         shape.StrokeWidth = 0D;
@@ -99,7 +101,8 @@ public sealed class PdfDrawingGlowTests {
 
         byte[] bytes = Write(drawing);
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
-        Assert.Empty(PdfDocument.Load(bytes).Reader.Images());
+        // The halo is one blurred image; the hard shadow and the shapes stay vector.
+        Assert.Single(PdfDocument.Load(bytes).Reader.Images());
         OfficeRasterImage raster = ReadRaster(bytes);
         OfficeColor halo = raster.GetPixel(31, 38);
         Assert.Equal(255, halo.R);

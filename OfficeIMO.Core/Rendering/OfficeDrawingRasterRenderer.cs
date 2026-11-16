@@ -242,14 +242,17 @@ public static partial class OfficeDrawingRasterRenderer {
 
     private static void RenderShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
         if (drawingShape.Shape.ClipPath?.Kind == OfficeClipPathKind.Empty) return;
-        IReadOnlyList<OfficeDrawingShape> glowShapes = CreateGlowShapes(drawingShape);
-        for (int i = 0; i < glowShapes.Count; i++) {
-            RenderShape(canvas, glowShapes[i], scale);
-        }
+        OfficeBlurredShapeEffect? glow = OfficeBlurredShapeEffect.CreateGlow(drawingShape.Shape);
+        if (glow != null) RenderBlurredEffect(canvas, drawingShape, glow, scale);
 
-        IReadOnlyList<OfficeDrawingShape> shadowShapes = CreateShadowShapes(drawingShape);
-        for (int i = 0; i < shadowShapes.Count; i++) {
-            RenderShape(canvas, shadowShapes[i], scale);
+        OfficeBlurredShapeEffect? softShadow = OfficeBlurredShapeEffect.CreateShadow(drawingShape.Shape);
+        if (softShadow != null) {
+            RenderBlurredEffect(canvas, drawingShape, softShadow, scale);
+        } else {
+            IReadOnlyList<OfficeDrawingShape> shadowShapes = CreateShadowShapes(drawingShape);
+            for (int i = 0; i < shadowShapes.Count; i++) {
+                RenderShape(canvas, shadowShapes[i], scale);
+            }
         }
 
         IDisposable? clipScope = PushShapeClip(canvas, drawingShape, scale);
@@ -526,14 +529,30 @@ public static partial class OfficeDrawingRasterRenderer {
         return gradient.WithStops(stops);
     }
 
-    private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {
-        IReadOnlyList<OfficeShape> layers = OfficeGlowLayerPlanner.CreateShapes(drawingShape.Shape);
-        if (layers.Count == 0) return Array.Empty<OfficeDrawingShape>();
-        var glowShapes = new List<OfficeDrawingShape>(layers.Count);
-        for (int i = 0; i < layers.Count; i++) {
-            glowShapes.Add(new OfficeDrawingShape(layers[i], drawingShape.X, drawingShape.Y));
+    // Draws the effect silhouette once, blurred, instead of a stack of translucent copies.
+    private static void RenderBlurredEffect(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, OfficeBlurredShapeEffect effect, double scale) {
+        double transformScale = OfficeBlurredShapeEffect.GetAxisScale(effect.Transform);
+        if (!(transformScale > 0D)) return;
+        double deviceDensity = scale * Math.Max(canvas.CoordinateScaleX, canvas.CoordinateScaleY) * transformScale;
+        double density = effect.ChoosePixelsPerUnit(deviceDensity, OfficeBlurredShapeEffect.MaximumRasterPixels);
+        OfficeTransform pixelTransform = effect.CreateImageTransform(density, drawingShape.X, drawingShape.Y)
+            .Then(OfficeTransform.Scale(scale, scale));
+        if (!canvas.IntersectsVisibleSurface(pixelTransform, Math.Ceiling(effect.LocalWidth * density),
+                Math.Ceiling(effect.LocalHeight * density))) return;
+        OfficeRasterImage image = effect.Render(density, canvas.CancellationToken);
+        IDisposable? clipScope = null;
+        if (effect.ClipPath != null) {
+            OfficeShape clipCarrier = effect.Silhouette.Clone();
+            clipCarrier.Transform = effect.Transform;
+            clipCarrier.ClipPath = effect.ClipPath;
+            clipScope = PushShapeClip(canvas, new OfficeDrawingShape(clipCarrier,
+                drawingShape.X + effect.OffsetX, drawingShape.Y + effect.OffsetY), scale);
         }
-        return glowShapes;
+        try {
+            canvas.DrawAffineImage(image, pixelTransform, effect.Opacity, OfficeBlendMode.Normal, interpolate: true);
+        } finally {
+            clipScope?.Dispose();
+        }
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateShadowShapes(OfficeDrawingShape drawingShape) {

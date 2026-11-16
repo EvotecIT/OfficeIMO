@@ -59,7 +59,8 @@ public partial class DrawingTests {
 
         OfficeColor center = raster.GetPixel(70, 50);
         OfficeColor roundedCorner = raster.GetPixel(30, 50);
-        Assert.InRange(center.R, (byte)195, (byte)225);
+        // A 28 pt blur (14 pt deviation) spreads a 30 pt tall shadow, so its middle stays below the 20% core.
+        Assert.InRange(center.R, (byte)215, (byte)235);
         Assert.True(roundedCorner.R >= center.R - 20, $"Rounded blur corner {roundedCorner} was materially darker than center {center}.");
     }
 
