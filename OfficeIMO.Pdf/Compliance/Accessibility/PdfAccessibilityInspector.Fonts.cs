@@ -160,7 +160,8 @@ internal sealed partial class PdfAccessibilityInspector {
                 Fail("31-002", "7.21.3.1-1", "The CIDSystemInfo Ordering of " + fontName + " (" + (fontOrdering ?? "none") + ") differs from its CMap's (" + (cmapOrdering ?? "none") + ").", page, cidObject);
             }
             int? fontSupplement = fontSystemInfo is null ? null : ReadInteger(fontSystemInfo, "Supplement");
-            if (cmapSystemInfo is not null && (fontSupplement is null || cmapSupplement is null || fontSupplement > cmapSupplement)) {
+            if ((fontSupplement is null && cmapOrdering is not null) ||
+                (cmapSystemInfo is not null && (fontSupplement is null || cmapSupplement is null || fontSupplement > cmapSupplement))) {
                 Fail("31-003", "7.21.3.1-1", "The CIDSystemInfo Supplement of " + fontName + " is missing or greater than its CMap's.", page, cidObject);
             } else if (cmapSystemInfo is null && cmapOrdering is not null && fontSupplement is > 0) {
                 // A predefined CMap's Supplement lives in its resource file, which this check does not carry.

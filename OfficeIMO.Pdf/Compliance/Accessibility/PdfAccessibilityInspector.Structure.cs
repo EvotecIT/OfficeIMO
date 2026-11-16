@@ -1,7 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfAccessibilityInspector {
-    // ISO 32000-1:2008, 14.8.4 standard structure types. Hn with any level is treated as standard, as ISO 14289-1 7.4.3 expects.
+    // ISO 32000-1:2008, 14.8.4 standard structure types. H7 and deeper are not standard and must be role mapped
+    // (Matterhorn 02-001), but they keep their heading level for the heading checks (ISO 14289-1 7.4.3).
     private static readonly HashSet<string> StandardTypes = new(StringComparer.Ordinal) {
         "Document", "Part", "Art", "Sect", "Div", "BlockQuote", "Caption", "TOC", "TOCI", "Index", "NonStruct", "Private",
         "P", "H", "H1", "H2", "H3", "H4", "H5", "H6", "L", "LI", "Lbl", "LBody", "Table", "TR", "TH", "TD", "THead", "TBody", "TFoot",
@@ -112,7 +113,9 @@ internal sealed partial class PdfAccessibilityInspector {
                 Language = ReadText(dictionary, "Lang"),
                 HasParentEntry = dictionary.Items.ContainsKey("P")
             };
-            node.StandardType = MapToStandard(node.Type, model, out _, out _);
+            node.StandardType = node.Type is not null && TryGetHeadingLevel(node.Type, out _)
+                ? node.Type
+                : MapToStandard(node.Type, model, out _, out _);
             model.Nodes.Add(node);
             model.NodesByDictionary[dictionary] = node;
             if (parent is null) model.TopLevel.Add(node); else parent.Kids.Add(node);
@@ -144,8 +147,7 @@ internal sealed partial class PdfAccessibilityInspector {
         "14-002", "14-003", "14-006", "14-007", "15-003", "17-002", "19-003", "19-004", "UA1:7.18.4-2"
     };
 
-    private static bool IsStandard(string type) =>
-        StandardTypes.Contains(type) || type.Length > 1 && type[0] == 'H' && type.Skip(1).All(static c => c >= '0' && c <= '9') && type[1] != '0';
+    private static bool IsStandard(string type) => StandardTypes.Contains(type);
 
     private static string? MapToStandard(string? type, StructureModel model, out bool circular, out bool unmapped) {
         circular = false;

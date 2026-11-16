@@ -48,6 +48,10 @@ never `Passed`.
   glyph names are `Indeterminate` until the Adobe Glyph List check exists.
 - 31-003 follows veraPDF: it fails when the CIDFont Supplement is greater than the CMap Supplement. With a
   predefined CMap the CMap's Supplement isn't carried, so a CIDFont Supplement above 0 is `Indeterminate`.
+- 28-002 and 28-004 also apply to Popup annotations, as veraPDF's 7.18.1-1 and 7.18.1-2 do; the Matterhorn
+  checkpoint 28 note exempts Popup annotations.
+- 02-001, 02-003 and 02-004 check the role mapping of structure types the tree uses, as veraPDF's 7.1-5 to 7.1-7
+  do. Matterhorn checkpoint 02 also covers RoleMap entries no element uses; those are not checked.
 - 06-002 accepts `pdfuaid:part` 1 or 2, so PDF/UA-2 files keep their identification; veraPDF's PDF/UA-1 profile
   requires 1.
 - 15-003 treats a table as organised with Headers and IDs only when every TD names headers that are TH cells of the

@@ -142,6 +142,7 @@ public class PdfAccessibilityCheckTests {
     [InlineData("table-with-direct-content", "09-004", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("enclosing-marked-content-language", "11-002", PdfAccessibilityConditionStatus.NotApplicable)]
     [InlineData("empty-text-operators", "01-005", PdfAccessibilityConditionStatus.Passed)]
+    [InlineData("unmapped-h7", "02-001", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("form-resources-from-painter", "31-009", PdfAccessibilityConditionStatus.Failed)]
     public void CheckAccessibility_ReadsTheConstructThatDecidesTheCondition(string construct, string conditionId, PdfAccessibilityConditionStatus expected) {
         string catalog = string.Empty, resources = string.Empty, content;
@@ -174,6 +175,12 @@ public class PdfAccessibilityCheckTests {
                 break;
             case "enclosing-marked-content-language":
                 content = "/Span <</Lang (en-US)>> BDC /Span <</ActualText (x)>> BDC 0 0 1 1 re f EMC EMC";
+                break;
+            case "unmapped-h7":
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                content = string.Empty;
+                extra.Add("<< /Type /StructTreeRoot /K 6 0 R >>");
+                extra.Add("<< /Type /StructElem /S /H7 /P 5 0 R >>");
                 break;
             case "empty-text-operators":
                 resources = "/Font << /F1 5 0 R >>";
