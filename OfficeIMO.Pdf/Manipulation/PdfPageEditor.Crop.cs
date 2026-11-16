@@ -62,7 +62,7 @@ internal static partial class PdfPageEditor {
             transforms[readPage.ObjectNumber] = transform;
             int prefixObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
             int suffixObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
-            PdfPageContentIsolation.Wrapping wrapping = PdfPageContentIsolation.Prepare(objects,
+            PdfPageContentIsolation.Wrapping wrapping = PdfPageContentIsolation.Prepare(objects, page,
                 page.Items.TryGetValue("Contents", out PdfObject? contents) ? contents : null,
                 stream => AddResizeContentStream(additionalObjects, stream, ref nextPseudoObjectNumber), cancellationToken);
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(

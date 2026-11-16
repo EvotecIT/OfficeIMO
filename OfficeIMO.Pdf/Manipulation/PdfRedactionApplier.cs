@@ -943,7 +943,7 @@ internal static partial class PdfRedactionApplier {
             return 0;
         }
 
-        pageDictionary.Items["Contents"] = PdfPageContentIsolation.Isolate(objects, contentsObject, ref nextObjectNumber, out int wrapperBytes);
+        pageDictionary.Items["Contents"] = PdfPageContentIsolation.Isolate(objects, pageDictionary, contentsObject, ref nextObjectNumber, out int wrapperBytes);
         return wrapperBytes;
     }
 

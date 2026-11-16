@@ -191,8 +191,9 @@ public class PdfTransformedPageEditTests {
     }
 
     [Fact]
-    public void SurplusRestoreBeforeAnInlineImageStillCannotMoveTheEdit() {
-        const string content = "Q 1 0 0 1 100 0 cm BI /W 1 /H 1 /BPC 8 /CS /RGB ID abc EI\n";
+    public void SurplusRestoresAroundAnInlineImageStayNoOps() {
+        // Both restores have nothing to restore: the translation applies to the rectangle and must not reach the edit.
+        const string content = "Q 1 0 0 1 100 0 cm BI /W 1 /H 1 /BPC 8 /CS /RGB ID abc EI Q 0 0 1 rg 10 10 20 20 re f\n";
         byte[] pdf = Serialize(new[] {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
@@ -202,7 +203,10 @@ public class PdfTransformedPageEditTests {
 
         byte[] stamped = PdfStamper.StampText(pdf, "EDITMARK", new PdfTextStampOptions { Color = Red });
 
-        PdfViewerPaint text = Assert.Single(PdfViewerGeometry.Paint(stamped), paint => paint.Kind == "text");
+        IReadOnlyList<PdfViewerPaint> paints = PdfViewerGeometry.Paint(stamped);
+        PdfViewerPaint rectangle = Assert.Single(paints, paint => paint.Kind == "path");
+        Assert.Equal((110D, 10D, 130D, 30D), (rectangle.A, rectangle.B, rectangle.C, rectangle.D));
+        PdfViewerPaint text = Assert.Single(paints, paint => paint.Kind == "text");
         Assert.Equal((36D, 36D), (text.E, text.F));
         Assert.Contains("ID abc EI", PdfTestContentText.ReadDecoded(stamped), StringComparison.Ordinal);
     }
@@ -221,6 +225,22 @@ public class PdfTransformedPageEditTests {
         Assert.InRange(red.Right, 38, 202);
         Assert.InRange(red.Top, 98, 142);
         Assert.InRange(red.Bottom, 98, 142);
+    }
+
+    [Fact]
+    public void AddedTextAtAnObliqueAngleStartsBelowTheRegionTopLeft() {
+        byte[] pdf = Serialize(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] >>"
+        });
+
+        byte[] edited = PdfDocument.Load(pdf).Text.Add(new PdfPageRegion(1, 100, 100, 200, 200), "MMMM",
+            new PdfTextEditOptions { Font = PdfStandardFont.Courier, FontSize = 12, RotationDegrees = -60 }).Document.ToBytes();
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(edited).Pages[0].GetTextSpans(), item => item.Text.Contains("MM"));
+        Assert.Equal(100D, span.X, 3);
+        Assert.Equal(288D, span.Y, 3);
     }
 
     [Theory]

@@ -58,7 +58,7 @@ internal static partial class PdfStamper {
                 PdfObject? existingContents = ((PdfDictionary)rewrittenObjects[pageObjectNumber].Value).Items.TryGetValue("Contents", out PdfObject? value) ? value : null;
                 PdfArray contents = existingContents is null
                     ? new PdfArray()
-                    : PdfPageContentIsolation.Isolate(rewrittenObjects, existingContents, ref nextObjectNumber);
+                    : PdfPageContentIsolation.Isolate(rewrittenObjects, (PdfDictionary)rewrittenObjects[pageObjectNumber].Value, existingContents, ref nextObjectNumber);
                 contents.Items.Add(new PdfReference(stampObjectNumber, 0));
                 Dictionary<string, PdfObject> overrides = BuildBatchTextPageOverrides(
                     rewrittenObjects,

@@ -53,7 +53,7 @@ internal static partial class PdfPageEditor {
                     SetNormalizedBox(page, "ArtBox", geometry.ArtBox, transform);
                     page.Items.TryGetValue("Contents", out PdfObject? contents);
                     int next = nextObject;
-                    PdfPageContentIsolation.Wrapping wrapping = PdfPageContentIsolation.Prepare(objects, contents,
+                    PdfPageContentIsolation.Wrapping wrapping = PdfPageContentIsolation.Prepare(objects, page, contents,
                         stream => new PdfReference(AddNormalizationObject(objects, ref next, stream), 0), cancellationToken);
                     nextObject = next;
                     int prefix = AddNormalizationObject(objects, ref nextObject,

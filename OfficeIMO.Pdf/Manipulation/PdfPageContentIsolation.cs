@@ -10,8 +10,8 @@ namespace OfficeIMO.Pdf;
 /// wrapper it restores the wrapper's state instead, so the original content escapes the wrapper and edits pick up what it
 /// changes afterwards. Wrappers therefore close every state the original content leaves open, and streams that restore
 /// more states than they saved are replaced by copies whose surplus <c>Q</c> operators are blanked, which keeps the
-/// original page drawing exactly as before. Image data is never touched: only restores before a stream's first inline
-/// image are blanked.
+/// original page drawing exactly as before. Inline image data is never touched; a stream whose inline image colour space
+/// cannot be resolved is kept as it is.
 /// </remarks>
 internal static class PdfPageContentIsolation {
     /// <summary>The original content entries to wrap, and the restores that close them.</summary>
@@ -38,16 +38,16 @@ internal static class PdfPageContentIsolation {
     }
 
     /// <summary>Wraps original stream entries; only streams with surplus restores are replaced.</summary>
-    internal static PdfArray Isolate(Dictionary<int, PdfIndirectObject> objects, PdfObject contents,
+    internal static PdfArray Isolate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? page, PdfObject contents,
         ref int nextObjectNumber, CancellationToken cancellationToken = default) =>
-        Isolate(objects, contents, ref nextObjectNumber, out _, cancellationToken);
+        Isolate(objects, page, contents, ref nextObjectNumber, out _, cancellationToken);
 
     /// <summary>Wraps original stream entries and reports the number of added wrapper bytes.</summary>
-    internal static PdfArray Isolate(Dictionary<int, PdfIndirectObject> objects, PdfObject contents,
+    internal static PdfArray Isolate(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? page, PdfObject contents,
         ref int nextObjectNumber, out int wrapperBytes, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         int next = nextObjectNumber;
-        Wrapping wrapping = Prepare(objects, contents, stream => {
+        Wrapping wrapping = Prepare(objects, page, contents, stream => {
             int number = checked(next++);
             objects[number] = new PdfIndirectObject(number, 0, stream);
             return new PdfReference(number, 0);
@@ -78,7 +78,7 @@ internal static class PdfPageContentIsolation {
             page.Items["Contents"] = appended;
             return 0;
         }
-        PdfArray isolated = Isolate(objects, contents, ref nextObjectNumber, out int wrapperBytes, cancellationToken);
+        PdfArray isolated = Isolate(objects, page, contents, ref nextObjectNumber, out int wrapperBytes, cancellationToken);
         isolated.Items.Add(appended);
         page.Items["Contents"] = isolated;
         return wrapperBytes;
@@ -89,7 +89,7 @@ internal static class PdfPageContentIsolation {
     /// <paramref name="addStream"/> stores a replacement stream and returns the entry that refers to it.
     /// Content that cannot be decoded or tokenized is wrapped unchanged with a single restore.
     /// </summary>
-    internal static Wrapping Prepare(Dictionary<int, PdfIndirectObject> objects, PdfObject? contents,
+    internal static Wrapping Prepare(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? page, PdfObject? contents,
         Func<PdfStream, PdfObject> addStream, CancellationToken cancellationToken = default) {
         if (contents is null) return new Wrapping(Array.Empty<PdfObject>(), 1);
         List<PdfObject> entries = GetEntries(objects, contents, cancellationToken);
@@ -105,31 +105,41 @@ internal static class PdfPageContentIsolation {
             decodedEntries.Add(decoded);
         }
 
+        // Inline image data ends where its colour space says, so aliases resolve through the page resources. A stream
+        // with an inline image whose colour space cannot be resolved is never rewritten: its data could hide a Q.
+        PdfDictionary? resources = page is null ? null : ResolveInheritedResources(objects, page);
+        bool unresolvedImage = false;
+        int ResolveComponents(PdfObject colorSpace) {
+            int count = PdfPrintProductionColorInspector.ResolveInlineImageComponentCountForResources(colorSpace, resources, objects,
+                MaximumObjectDepth, PdfReadLimits.DefaultMaxDecodedStreamBytes);
+            if (count <= 0) unresolvedImage = true;
+            return count;
+        }
+
         // Content streams in a page array form one operator sequence, so depth carries across stream boundaries.
         int depth = 0;
         var surplusRestores = new List<int>[entries.Count];
         try {
             for (int index = 0; index < entries.Count; index++) {
                 List<int>? surplus = null;
-                bool hasInlineImage = false;
+                unresolvedImage = false;
                 PdfContentStreamInterpreter.InterpretUntil(
                     PdfContentSource.FromBytes(decodedEntries[index]),
                     int.MaxValue,
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
-                        // Inline image data ends where its colour space says; without the page resources an aliased
-                        // colour space can misplace that end, so only restores before the first inline image are blanked.
-                        if (operation.Name == "BI") hasInlineImage = true;
                         if (operation.Name == "q") {
                             depth++;
                         } else if (operation.Name == "Q") {
                             if (depth > 0) depth--;
-                            else if (!hasInlineImage) (surplus ??= new List<int>()).Add(operation.OperatorOffset);
+                            else (surplus ??= new List<int>()).Add(operation.OperatorOffset);
                         }
                         return true;
                     },
+                    inlineImageComponentCount: name => ResolveComponents(new PdfName(name)),
+                    inlineImageArrayComponentCount: array => ResolveComponents(array),
                     maxGraphicsStateDepth: int.MaxValue);
-                surplusRestores[index] = surplus!;
+                surplusRestores[index] = unresolvedImage ? null! : surplus!;
             }
         } catch (Exception exception) when (exception is InvalidDataException or PdfReadLimitException or FormatException) {
             return new Wrapping(entries, 1);
@@ -149,6 +159,17 @@ internal static class PdfPageContentIsolation {
             prepared.Add(addStream(new PdfStream(new PdfDictionary(), blanked)));
         }
         return new Wrapping(prepared, 1 + depth);
+    }
+
+    private const int MaximumObjectDepth = 128;
+
+    private static PdfDictionary? ResolveInheritedResources(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
+        var visited = new HashSet<PdfDictionary>();
+        for (PdfDictionary? node = page; node is not null && visited.Add(node);
+            node = node.Items.TryGetValue("Parent", out PdfObject? parent) ? PdfObjectLookup.Resolve(objects, parent) as PdfDictionary : null) {
+            if (node.Items.TryGetValue("Resources", out PdfObject? value)) return PdfObjectLookup.Resolve(objects, value) as PdfDictionary;
+        }
+        return null;
     }
 
     private static List<PdfObject> GetEntries(Dictionary<int, PdfIndirectObject> objects, PdfObject contents,

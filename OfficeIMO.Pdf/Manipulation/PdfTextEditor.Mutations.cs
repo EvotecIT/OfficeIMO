@@ -40,9 +40,14 @@ internal static partial class PdfTextEditor {
         if (!snapshot.RotationDegrees.HasValue) snapshot.RotationDegrees = pageRotation;
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected: null);
         style = FitStyleToRegion(style, text, region, snapshot, out string? fitWarning);
-        // The first baseline starts one font size below the region corner that is top-left for the text's own direction.
-        int textQuarterTurns = (int)(Math.Round(style.RotationDegrees / 90D) % 4D);
-        int textRotation = (textQuarterTurns < 0 ? textQuarterTurns + 4 : textQuarterTurns) * 90;
+        // Quarter-turned text starts one font size below the region corner that is top-left in its own direction; other
+        // angles keep starting below the region's user-space top-left corner.
+        double quarterTurns = style.RotationDegrees / 90D;
+        int textRotation = 0;
+        if (Math.Abs(quarterTurns - Math.Round(quarterTurns)) < 1e-9) {
+            int turns = (int)(Math.Round(quarterTurns) % 4D);
+            textRotation = (turns < 0 ? turns + 4 : turns) * 90;
+        }
         var frame = PdfStamper.DisplayFrame.ForBox(region.X, region.Y, region.Right, region.Top, textRotation);
         (double x, double baselineY) = frame.ToUser(0D, frame.Height - style.FontSize);
         byte[] output = StampLines(pdf, region.PageNumber, x, baselineY, text, style, readOptions);
