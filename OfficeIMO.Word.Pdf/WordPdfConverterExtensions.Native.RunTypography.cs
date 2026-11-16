@@ -130,6 +130,8 @@ namespace OfficeIMO.Word.Pdf {
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             color ??= ResolveNativeAutomaticTextColor(paragraph);
+            // A heading passes its style color as the paragraph default; automatic runs must not inherit it.
+            if (!color.HasValue && GetHeadingLevel(styleSource) > 0) color = global::OfficeIMO.OfficeColor.Black;
             color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
             global::OfficeIMO.OfficeColor? background = MapNativeHighlight(
                 WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));

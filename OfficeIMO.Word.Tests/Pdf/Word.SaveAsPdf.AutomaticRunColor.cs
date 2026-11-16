@@ -18,7 +18,7 @@ public partial class Word {
         WordParagraph paragraph = source.AddParagraph("ColorMarker");
         paragraph.ShadingFillColor = OfficeColor.Parse(fill);
         paragraph.RunColorValue = textColor;
-        AssertAutomaticRunColorPdf(source, format, "ColorMarker", white);
+        AssertAutomaticRunColorPdf(source, format, "ColorMarker", white, fill);
     }
 
     [Theory]
@@ -42,39 +42,53 @@ public partial class Word {
             run.RunProperties ??= new RunProperties();
             run.RunProperties.RunStyle = new RunStyle { Val = "AutomaticForeground" };
         } else paragraph.SetStyleId("AutomaticForeground");
-        AssertAutomaticRunColorPdf(source, format, "StyledColorMarker", true);
+        AssertAutomaticRunColorPdf(source, format, "StyledColorMarker", true, "010203");
     }
 
     [Theory]
-    [InlineData(WordFileFormat.Docx, false)]
-    [InlineData(WordFileFormat.Docx, true)]
-    [InlineData(WordFileFormat.Doc, false)]
-    public void SaveAsPdf_AutomaticRunColorUsesCellBackgroundAndRetainsExplicitBlack(WordFileFormat format, bool explicitBlack) {
+    [InlineData(WordFileFormat.Docx, "cell", "auto", true)]
+    [InlineData(WordFileFormat.Docx, "cell", "000000", false)]
+    [InlineData(WordFileFormat.Doc, "cell", "auto", true)]
+    [InlineData(WordFileFormat.Docx, "paragraph", "auto", false)]
+    public void SaveAsPdf_AutomaticRunColorUsesPaintedCellBackground(WordFileFormat format, string shaded, string textColor, bool white) {
         using WordDocument source = WordDocument.Create();
         WordTableCell cell = source.AddTable(1, 1).Rows[0].Cells[0];
-        cell.ShadingFillColor = OfficeColor.Parse("000000");
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "CellColorMarker";
-        paragraph.RunColorValue = explicitBlack ? "000000" : "auto";
-        AssertAutomaticRunColorPdf(source, format, "CellColorMarker", !explicitBlack);
+        paragraph.RunColorValue = textColor;
+        // Table-cell paragraphs render without their own fill, so only the cell fill is a backdrop.
+        if (shaded == "cell") cell.ShadingFillColor = OfficeColor.Parse("000080");
+        else paragraph.ShadingFillColor = OfficeColor.Parse("010203");
+        AssertAutomaticRunColorPdf(source, format, "CellColorMarker", white, shaded == "cell" ? "000080" : null);
     }
 
     [Theory]
-    [InlineData(WordFileFormat.Docx, false, false)]
-    [InlineData(WordFileFormat.Docx, false, true)]
-    [InlineData(WordFileFormat.Docx, true, true)]
-    [InlineData(WordFileFormat.Doc, true, true)]
-    public void SaveAsPdf_HeadingAutomaticRunColorResolvesDirectAndStyleDeclarations(WordFileFormat format, bool direct, bool dark) {
+    [InlineData(WordFileFormat.Docx, false, "body")]
+    [InlineData(WordFileFormat.Docx, true, "body")]
+    [InlineData(WordFileFormat.Docx, false, "cell")]
+    [InlineData(WordFileFormat.Docx, true, "cell")]
+    [InlineData(WordFileFormat.Doc, true, "cell")]
+    public void SaveAsPdf_HeadingAutomaticRunColorResolvesAgainstPaintedBackground(WordFileFormat format, bool direct, string placement) {
         using WordDocument source = WordDocument.Create();
-        WordParagraph paragraph = source.AddParagraph("HeadingColorMarker");
+        WordParagraph paragraph;
+        if (placement == "cell") {
+            WordTableCell cell = source.AddTable(1, 1).Rows[0].Cells[0];
+            cell.ShadingFillColor = OfficeColor.Parse("000080");
+            paragraph = cell.Paragraphs[0];
+            paragraph.Text = "HeadingColorMarker";
+        } else {
+            paragraph = source.AddParagraph("HeadingColorMarker");
+            // Body headings render without their paragraph fill, so automatic text stays black.
+            paragraph.ShadingFillColor = OfficeColor.Parse("010203");
+        }
         paragraph.Style = WordParagraphStyles.Heading1;
         Style heading = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<Style>().Single(style => style.StyleId?.Value == "Heading1");
         heading.StyleRunProperties ??= new StyleRunProperties();
         heading.StyleRunProperties.Color = new Color { Val = direct ? "FF0000" : "auto" };
         if (direct) paragraph.RunColorValue = "auto";
-        if (dark) paragraph.ShadingFillColor = OfficeColor.Parse("010203");
-        AssertAutomaticRunColorPdf(source, format, "HeadingColorMarker", dark);
+        bool painted = placement == "cell";
+        AssertAutomaticRunColorPdf(source, format, "HeadingColorMarker", painted, painted ? "000080" : null);
     }
 
     [Theory]
@@ -95,14 +109,18 @@ public partial class Word {
         table._tableProperties!.TableStyle = new TableStyle { Val = "AutomaticColorTable" };
         table.ConditionalFormattingFirstRow = true;
         WordTableCell cell = table.Rows[0].Cells[0];
-        if (dark) cell.ShadingFillColor = OfficeColor.Parse("000000");
+        if (dark) cell.ShadingFillColor = OfficeColor.Parse("000080");
         cell.Paragraphs[0].Text = "ConditionalColorMarker";
-        AssertAutomaticRunColorPdf(source, WordFileFormat.Docx, "ConditionalColorMarker", dark);
+        AssertAutomaticRunColorPdf(source, WordFileFormat.Docx, "ConditionalColorMarker", dark, dark ? "000080" : null);
     }
 
-    private static void AssertAutomaticRunColorPdf(WordDocument source, WordFileFormat format, string marker, bool white) {
+    /// <summary>Checks the marker's letter color and that the named backdrop is painted (or the dark one is absent).</summary>
+    private static void AssertAutomaticRunColorPdf(WordDocument source, WordFileFormat format, string marker, bool white, string? paintedFill) {
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = format })));
         byte[] bytes = loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
+        string commands = PdfOperatorSearchText.From(bytes);
+        if (paintedFill != null) Assert.Contains(FormatPdfFillOperator(paintedFill), commands);
+        else Assert.DoesNotContain(FormatPdfFillOperator("010203"), commands);
         using PdfPigDocument document = PdfPigDocument.Open(bytes);
         var letters = document.GetPages().SelectMany(page => page.Letters).ToArray();
         Assert.Equal(marker, string.Concat(letters.Select(letter => letter.Value)));
@@ -113,5 +131,11 @@ public partial class Word {
             Assert.Equal(expected, green, 6);
             Assert.Equal(expected, blue, 6);
         });
+    }
+
+    private static string FormatPdfFillOperator(string hex) {
+        OfficeColor color = OfficeColor.Parse(hex);
+        static string Channel(byte value) => Math.Round(value / 255D, 3).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+        return Channel(color.R) + " " + Channel(color.G) + " " + Channel(color.B) + " rg";
     }
 }
