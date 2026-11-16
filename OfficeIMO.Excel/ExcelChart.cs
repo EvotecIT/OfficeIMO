@@ -20,8 +20,6 @@ namespace OfficeIMO.Excel {
         private string _lastKnownSheetName;
         private ExcelChartDataRange? _dataRange;
         private bool _dataRangeNeedsRefresh;
-        private int _saveDeferralDepth;
-        private bool _savePending;
 
         internal ExcelChart(Xdr.GraphicFrame frame, DrawingsPart drawingsPart, ExcelSheet sheet, ExcelChartDataRange? dataRange = null) {
             ArgumentNullException.ThrowIfNull(sheet);
@@ -601,41 +599,11 @@ namespace OfficeIMO.Excel {
             return part;
         }
 
-        private void Save() {
-            if (_saveDeferralDepth > 0) {
-                _savePending = true;
-                return;
-            }
-
-            ChartPart chartPart = GetChartPart();
-            chartPart.ChartSpace?.Save();
-            MarkChartDirty();
-        }
-
         /// <summary>
-        /// Writes the chart part once when the scope ends instead of after each edit inside it, which serializes every
-        /// cached point again.
+        /// Records a chart edit. The chart part keeps its loaded XML tree, and every package save writes that tree,
+        /// so serializing it here as well would build the chart XML a second time for each edit.
         /// </summary>
-        internal IDisposable DeferSaves() {
-            _saveDeferralDepth++;
-            return new SaveDeferral(this);
-        }
-
-        private sealed class SaveDeferral : IDisposable {
-            private ExcelChart? _chart;
-
-            internal SaveDeferral(ExcelChart chart) => _chart = chart;
-
-            public void Dispose() {
-                ExcelChart? chart = _chart;
-                if (chart == null) return;
-                _chart = null;
-                if (--chart._saveDeferralDepth == 0 && chart._savePending) {
-                    chart._savePending = false;
-                    chart.Save();
-                }
-            }
-        }
+        private void Save() => MarkChartDirty();
 
         /// <summary>
         /// Chart and drawing edits leave worksheet cells alone, so rows waiting for the direct worksheet writer stay there.
