@@ -358,21 +358,27 @@ def cmd_visual(args) -> None:
     from fidelity.visual import compare_pdfs
 
     work = os.path.abspath(args.work)
-    entries = {e["id"]: e for e in load_manifest(work)}
+    entries = load_manifest(work)
     vis = os.path.join(work, "tmp", "visual")
     jobs = []
-    for tool in ("officeimo", "pdf2docx", "libreoffice"):
+    # Every expected conversion gets a row; a missing or failed output renders nothing and scores 0.
+    for tool, families in (("officeimo", set(FAMILY_TARGETS)), ("pdf2docx", {"word", "tagged", "excel"}),
+                           ("libreoffice", set(FAMILY_TARGETS))):
         folder = os.path.join(work, "outputs", tool)
+        if not os.path.isdir(folder):
+            continue
         for target in VISUAL_TARGETS:
-            files = [p for p in glob.glob(os.path.join(folder, "*." + target)) if os.path.basename(p).rsplit(".", 1)[0] in entries]
-            if not files:
+            expected = [e for e in entries if e["family"] in families and target in FAMILY_TARGETS[e["family"]]
+                        and (tool == "officeimo" or target in ("docx", "pptx"))]
+            if not expected:
                 continue
             out = os.path.join(vis, tool, target)
-            soffice([p for p in files if not os.path.exists(os.path.join(out, os.path.basename(p).rsplit(".", 1)[0] + ".pdf"))],
-                    out, "pdf")
-            for p in files:
-                doc_id = os.path.basename(p).rsplit(".", 1)[0]
-                jobs.append((tool, target, doc_id, entries[doc_id]["pdf"], os.path.join(out, doc_id + ".pdf")))
+            sources = [os.path.join(folder, e["id"] + "." + target) for e in expected]
+            soffice([p for p in sources if os.path.exists(p)
+                     and not os.path.exists(os.path.join(out, os.path.basename(p).rsplit(".", 1)[0] + ".pdf"))], out, "pdf")
+            for e, p in zip(expected, sources):
+                rendered = os.path.join(out, e["id"] + ".pdf")
+                jobs.append((tool, target, e["id"], e["pdf"], rendered if os.path.exists(p) else rendered + ".missing"))
     rows = []
     with cf.ThreadPoolExecutor(args.parallel) as pool:
         for job, res in zip(jobs, pool.map(lambda j: compare_pdfs(j[3], j[4], os.path.join(vis, "png")), jobs)):

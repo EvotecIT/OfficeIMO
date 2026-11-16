@@ -431,9 +431,11 @@ def read_xlsx(path: str) -> Document:
                     if is_date:
                         cell = SheetCell(r, col, _serial_to_iso(value), "date", value)
                     else:
-                        # The PDF shows the rounded value, so the ground-truth text is rounded the same way.
-                        shown = round(value, decimals + (2 if percent else 0)) if decimals is not None else value
-                        cell = SheetCell(r, col, format(shown, ".15g"), "number", value, decimals, percent)
+                        # The PDF shows the rounded, scaled value, so the ground-truth text matches the display.
+                        shown = value * 100 if percent else value
+                        shown = round(shown, decimals) if decimals is not None else shown
+                        text = format(shown, ".15g") + ("%" if percent else "")
+                        cell = SheetCell(r, col, text, "number", value, decimals, percent)
                 else:
                     continue
                 if norm_text(cell.text):

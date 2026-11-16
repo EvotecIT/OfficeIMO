@@ -434,7 +434,11 @@ def parse_struct_text(text: str) -> Document:
             doc.add_block(Block("paragraph", split_words(text_of(n))))
         elif t == "LI":
             body = [c for c in n["children"] if c["type"] != "L"]
-            doc.add_block(Block("list", split_words("".join(text_of(c) for c in body if c["type"] != "Lbl")), list_depth))
+            label = "".join(text_of(c) for c in body if c["type"] == "Lbl").strip()
+            # The label decides bullet versus number; without one the list type is unknown and not scored.
+            ordered = bool(re.match(r"^[(\[]?(\d+|[A-Za-z]|[ivxlcdm]+)[.)\]]", label, re.I)) if label else None
+            doc.add_block(Block("list", split_words("".join(text_of(c) for c in body if c["type"] != "Lbl")), list_depth,
+                                ordered))
             for c in n["children"]:
                 if c["type"] == "L":
                     walk(c, list_depth + 1)

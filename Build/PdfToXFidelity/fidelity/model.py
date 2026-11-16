@@ -19,7 +19,7 @@ class Block:
     kind: str  # heading | paragraph | list | caption
     words: list[Word] = field(default_factory=list)
     level: int = 0  # heading level or list nesting level (0-based for lists)
-    ordered: bool = False
+    ordered: bool | None = False  # None when the source does not say whether a list is numbered
     optional: bool = False  # header/footer text: neither required nor penalised
 
     @property

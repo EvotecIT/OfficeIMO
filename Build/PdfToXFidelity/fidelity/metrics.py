@@ -131,7 +131,8 @@ def structure_metrics(gold: Document, out: Document) -> dict:
         g0 = min(b.level for b in gl)
         o0 = min(b.level for b in ol)
         res["list_level_acc"] = sum((a.level - g0) == (b.level - o0) for a, b in pairs) / len(pairs)
-        res["list_type_acc"] = sum(a.ordered == b.ordered for a, b in pairs) / len(pairs)
+        typed = [(a, b) for a, b in pairs if a.ordered is not None]
+        res["list_type_acc"] = (sum(a.ordered == bool(b.ordered) for a, b in typed) / len(typed)) if typed else NA
     else:
         res["list_level_acc"] = res["list_type_acc"] = NA
     return res
@@ -210,6 +211,17 @@ def _cells(t: Table) -> int:
     return sum(len(r) for r in t.rows)
 
 
+def _cell_key(cell: Cell) -> str:
+    """Pairing key that ignores number and date formatting, matching how cells are scored."""
+    value = cell_value(cell)
+    if value is not None:
+        return "n:" + format(round(value[0], 6), ".15g")
+    dates = parse_date(cell.text)
+    if dates:
+        return "d:" + format(min(dates), ".0f")
+    return norm_text(cell.text).casefold()
+
+
 def table_metrics(gold: Document, out: Document) -> dict:
     gts = [t for t in gold.tables if _cells(t) >= 2]
     ots = [t for t in out.tables if _cells(t) >= 2]
@@ -220,12 +232,12 @@ def table_metrics(gold: Document, out: Document) -> dict:
     used = set()
     pairs = []
     for gt in gts:
-        gbag = Counter(x for x in gt.texts() if x)
+        gbag = Counter(_cell_key(c) for row in gt.rows for c in row if norm_text(c.text))
         best, best_j = 0.0, None
         for j, ot in enumerate(ots):
             if j in used:
                 continue
-            obag = Counter(x for x in ot.texts() if x)
+            obag = Counter(_cell_key(c) for row in ot.rows for c in row if norm_text(c.text))
             inter = sum((gbag & obag).values())
             if not inter:
                 continue
