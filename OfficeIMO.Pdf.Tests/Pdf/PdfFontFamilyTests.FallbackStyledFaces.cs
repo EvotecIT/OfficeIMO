@@ -93,6 +93,22 @@ public partial class PdfFontFamilyTests {
         Assert.Contains("U+2603", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PlannedFallbackRunsFromABoldStandardFontTemplateUseTheRegularFaceForMissingBoldGlyphs() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 0x1F600, 0x2603);
+        byte[] bold = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 0x1F600);
+        var fallbacks = new PdfEmbeddedFontFallbackSet(new[] {
+            new PdfEmbeddedFontFallbackCandidate(new PdfEmbeddedFontFamily("Template Fallback", regular, bold))
+        });
+        IReadOnlyList<PdfTextRun> runs = fallbacks.PlanTextRuns("😀☃", styleTemplate: PdfTextRun.Normal(string.Empty, standardFont: PdfStandardFont.HelveticaBold));
+        var options = new PdfCreateOptions { CompressContentStreams = false };
+        byte[] bytes = PdfDocument.Create(fallbacks.RegisterFonts(options)).Paragraph(paragraph => paragraph.AddRuns(runs)).ToBytes();
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
+        Assert.NotEqual(FillThenStroke, Assert.Single(spans, span => span.Text == "😀").TextRenderingMode);
+        Assert.Equal(FillThenStroke, Assert.Single(spans, span => span.Text == "☃").TextRenderingMode);
+    }
+
     private static PdfTextSpan[] RenderBoldFallbackRun(PdfEmbeddedFontFamily family, bool compatibilitySlots, string fallbackText) {
         var candidates = new[] { new PdfEmbeddedFontFallbackCandidate(family) };
         PdfEmbeddedFontFallbackSet fallbacks = compatibilitySlots

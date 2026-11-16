@@ -149,9 +149,17 @@ public sealed class PdfTextFallbackPlan {
     // lacks are painted with the candidate's regular face instead, which synthesizes the style for them.
     private void AddSegmentRuns(List<PdfTextRun> runs, PdfTextFallbackSegment segment, PdfTextRun? styleTemplate,
         Func<string, PdfTextRun> createRun) {
-        Func<string, bool>? covers = styleTemplate != null && (styleTemplate.Bold || styleTemplate.Italic)
+        // A selected standard face such as HelveticaBold makes the run bold as well.
+        bool bold = styleTemplate?.Bold == true, italic = styleTemplate?.Italic == true;
+        if (styleTemplate?.StandardFont is PdfStandardFont selected) {
+            PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(selected);
+            bool boldItalicFace = selected == PdfStandardFontMapper.GetStyledFont(family, bold: true, italic: true);
+            bold |= boldItalicFace || selected == PdfStandardFontMapper.GetStyledFont(family, bold: true, italic: false);
+            italic |= boldItalicFace || selected == PdfStandardFontMapper.GetStyledFont(family, bold: false, italic: true);
+        }
+        Func<string, bool>? covers = (bold || italic)
             && _candidates != null && segment.FontIndex >= 0 && segment.FontIndex < _candidates.Count
-            ? _candidates[segment.FontIndex].GetStyledFaceCoverageTest(styleTemplate.Bold, styleTemplate.Italic)
+            ? _candidates[segment.FontIndex].GetStyledFaceCoverageTest(bold, italic)
             : null;
         if (covers == null || covers(segment.Text)) {
             runs.Add(createRun(segment.Text));
