@@ -1121,7 +1121,7 @@
                   </StackPanel>
                 </Expander>
 
-                <Expander Classes="section accessibleSection" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CertificateSignature}">
+                <Expander Classes="section accessibleSection" IsExpanded="{Binding IsCertificateSignatureSectionExpanded, Mode=TwoWay}" AutomationProperties.Name="{loc:Loc DocumentWorkspace.CertificateSignature}">
                   <Expander.Header><StackPanel Orientation="Horizontal" Spacing="{StaticResource StudioSpaceS}"><PathIcon Data="{StaticResource IconShieldCheck}" Width="14" Height="14" /><TextBlock Text="{loc:Loc DocumentWorkspace.CertificateSignature}" FontWeight="SemiBold" /></StackPanel></Expander.Header>
                   <StackPanel Spacing="{StaticResource StudioSpaceS}">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{StaticResource StudioSpaceSM}">

@@ -162,10 +162,16 @@ public sealed partial class MainWindowViewModel {
         }
     }
 
+    /// <summary>Whether the Protect panel's certificate signature section, which shows validation results, is open.</summary>
+    [ObservableProperty] private bool _isCertificateSignatureSectionExpanded;
+
     [RelayCommand]
     private async Task ValidateSignaturesAsync(CancellationToken cancellationToken) {
         using var notifications = BeginNotificationScope();
         if (_workspace is null) return;
+        // Validation results appear in the certificate signature section, so show it wherever validation started.
+        ShowProtectMode();
+        IsCertificateSignatureSectionExpanded = true;
         PdfSignatureValidationReport? report = null;
         bool succeeded = await RunStandaloneAsync(
             async token => report = await _workspace.ValidateSignaturesAsync(token).ConfigureAwait(true),

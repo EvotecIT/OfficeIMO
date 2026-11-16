@@ -63,6 +63,14 @@ public sealed class StudioStartGalleryTests {
                 Assert.Equal(StudioWorkspaceMode.PdfWorkspace, model.WorkspaceMode);
                 Assert.NotEqual(nightMode, model.IsPageNightMode);
 
+                // Validation results live in the Protect panel's certificate signature section, which opens with them.
+                model.WorkspaceMode = StudioWorkspaceMode.Home;
+                await model.StartToolAsync("ValidateSignatures");
+                Assert.Equal(StudioWorkspaceMode.PdfWorkspace, model.WorkspaceMode);
+                Assert.Equal(StudioDocumentMode.Protect, model.DocumentMode);
+                Assert.True(model.IsCertificateSignatureSectionExpanded);
+                Assert.True(model.HasSignatureValidationSummary);
+
                 // Workbenches keep their own screen.
                 model.WorkspaceMode = StudioWorkspaceMode.Home;
                 await model.StartToolAsync("Invoices");
