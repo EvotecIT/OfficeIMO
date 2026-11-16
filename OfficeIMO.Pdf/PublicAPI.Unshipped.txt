@@ -1281,3 +1281,13 @@ static OfficeIMO.Pdf.PdfAccessibilityConditions.Get(string! conditionId) -> Offi
 OfficeIMO.Pdf.PdfLogicalListItem.IsContentsEntry.get -> bool
 OfficeIMO.Pdf.PdfLogicalListItem.Link.get -> OfficeIMO.Pdf.PdfLogicalLinkAnnotation?
 OfficeIMO.Pdf.PdfLogicalListItem.TargetPageLabel.get -> string?
+OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode
+OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode.Base64 = 0 -> OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode
+OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode.File = 1 -> OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode
+OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode.None = 2 -> OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageDirectory.get -> string?
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageDirectory.set -> void
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageExportMode.get -> OfficeIMO.Pdf.PdfLogicalMarkdownImageExportMode
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageExportMode.set -> void
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.MaxEmbeddedImageBytes.get -> long
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.MaxEmbeddedImageBytes.set -> void

@@ -792,6 +792,20 @@ public static partial class PdfHtmlConverterExtensions {
             hasSafePlacement = false;
         }
 
+        // An image that cannot be embedded is reported in the conversion report. It adds body text only when the
+        // caller explicitly asked for placeholder output.
+        bool placeholderOnly = options.ImageExportMode == PdfHtmlImageExportMode.PlaceholderOnly;
+        string? source = null;
+        // The figure markup around the data URI needs room in the same output budget.
+        const int FigureMarkupAllowance = 1024;
+        int remainingCharacters = options.MaximumOutputCharacters is { } maximum
+            ? (int)Math.Min(int.MaxValue, Math.Max(0L, maximum - retainedHtmlCharacters - FigureMarkupAllowance))
+            : int.MaxValue;
+        if (!placeholderOnly &&
+            (!hasSafePlacement || !TryBuildEmbeddedImageDataUri(image, assessment, options, remainingCharacters, out source))) {
+            return string.Empty;
+        }
+
         return RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
             options.EmittedImagePlaceholderCount++;
             builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
@@ -799,18 +813,20 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append("\" data-page-number=\"");
             builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
             builder.Append("\">");
-            if (hasSafePlacement && TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+            if (source != null) {
                 ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
+                (int pixelWidth, int pixelHeight) = GetVisiblePixelSize(image, assessment);
                 builder.Append("<img src=\"");
-                builder.Append(HtmlAttribute(source!));
+                builder.Append(HtmlAttribute(source));
                 builder.Append("\" alt=\"");
-                builder.Append(HtmlAttribute("Image: " + image.ResourceName));
+                builder.Append(HtmlAttribute(PdfCore.PdfImagePlacementImportPolicy.GetAlternativeText(image, selectedPlacement)));
                 builder.Append("\" width=\"");
-                builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
+                builder.Append(pixelWidth.ToString(CultureInfo.InvariantCulture));
                 builder.Append("\" height=\"");
-                builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+                builder.Append(pixelHeight.ToString(CultureInfo.InvariantCulture));
                 AppendHtmlImageEffectStyle(builder, assessment, selectedPlacement);
-                builder.Append("\">");
+                builder.Append("\"></figure>");
+                return;
             }
 
             builder.Append("<figcaption>Image: ");
@@ -984,8 +1000,19 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
+    /// <summary>Pixel size of the embedded payload: the source size, less any rows and columns a clip crops away.</summary>
+    private static (int Width, int Height) GetVisiblePixelSize(
+        PdfCore.PdfLogicalImage image,
+        PdfCore.PdfImagePlacementImportAssessment assessment) {
+        if (assessment.Crop is not { } crop) return (image.Width, image.Height);
+        int width = image.Width - (int)Math.Round((crop.SourceLeft + crop.SourceRight) * image.Width, MidpointRounding.AwayFromZero);
+        int height = image.Height - (int)Math.Round((crop.SourceTop + crop.SourceBottom) * image.Height, MidpointRounding.AwayFromZero);
+        return (Math.Max(1, width), Math.Max(1, height));
+    }
+
     private static bool TryBuildEmbeddedImageDataUri(
         PdfCore.PdfLogicalImage image,
+        PdfCore.PdfImagePlacementImportAssessment assessment,
         PdfHtmlExportOptions options,
         int remainingItemCharacters,
         out string? source) {
@@ -996,7 +1023,8 @@ public static partial class PdfHtmlConverterExtensions {
 
         PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
         if (!sourceImage.IsImageFile ||
-            !OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(sourceImage.MimeType)) {
+            !OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(sourceImage.MimeType) ||
+            !PdfCore.PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] payload, out string mimeType, out _)) {
             AddWarning(
                 options,
                 OfficeDiagnosticCodes.ImageDataUnavailable,
@@ -1006,7 +1034,7 @@ public static partial class PdfHtmlConverterExtensions {
             return false;
         }
 
-        if (options.MaxEmbeddedImageBytes.HasValue && sourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value) {
+        if (options.MaxEmbeddedImageBytes.HasValue && payload.LongLength > options.MaxEmbeddedImageBytes.Value) {
             AddWarning(
                 options,
                 OfficeDiagnosticCodes.ImageDataTooLarge,
@@ -1017,8 +1045,8 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         if (options.MaximumOutputCharacters.HasValue) {
-            long base64Characters = ((sourceImage.Bytes.LongLength + 2L) / 3L) * 4L;
-            long dataUriCharacters = "data:;base64,".Length + sourceImage.MimeType!.Length + base64Characters;
+            long base64Characters = ((payload.LongLength + 2L) / 3L) * 4L;
+            long dataUriCharacters = "data:;base64,".Length + mimeType.Length + base64Characters;
             if (dataUriCharacters > Math.Min(options.MaximumOutputCharacters.Value, remainingItemCharacters)) {
                 AddWarning(
                     options,
@@ -1030,7 +1058,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
         }
 
-        source = "data:" + sourceImage.MimeType + ";base64," + Convert.ToBase64String(sourceImage.Bytes);
+        source = "data:" + mimeType + ";base64," + Convert.ToBase64String(payload);
         return true;
     }
 

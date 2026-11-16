@@ -65,9 +65,11 @@ public sealed class PdfInspectionProjectionConversionScopeTests {
         using (word.Value) Assert.NotEmpty(word.Report.Diagnostics);
         Assert.Contains("Native page text", logical.ToHtmlResult().Value);
         Assert.Contains("Native page text", logical.ToHtmlResult(PdfHtmlExportOptions.CreatePositionedReviewProfile()).Value);
-        logical.ToRtf(null, out OfficeConversionReport rtfReport);
-        PdfRtfConversionReport rtf = (PdfRtfConversionReport)rtfReport;
-        Assert.Contains(rtf.Warnings, warning => warning.Code == "IMAGES_NOT_IMPORTED");
+        using (OfficeIMO.Rtf.RtfDocument rtfDocument = logical.ToRtf(null, out OfficeConversionReport rtfReport)) {
+            PdfRtfConversionReport rtf = (PdfRtfConversionReport)rtfReport;
+            Assert.Single(rtfDocument.Paragraphs.SelectMany(static paragraph => paragraph.Inlines).OfType<OfficeIMO.Rtf.RtfImage>());
+            Assert.DoesNotContain(rtf.Warnings, warning => warning.Code == "IMAGES_NOT_IMPORTED");
+        }
     }
 
     private static void Convert(PdfDocumentReadResult logical, string converter) {
