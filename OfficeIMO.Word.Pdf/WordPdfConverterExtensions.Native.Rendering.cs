@@ -1071,7 +1071,16 @@ namespace OfficeIMO.Word.Pdf {
             style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
             style.LeftIndent = 0D;
             style.RightIndent = 0D;
-            pdf.Panel(panel => panel.Heading(level, normalizedText, content, align, color, style), panelStyle);
+            // Automatic text resolves against the painted fill while the heading content is built here.
+            global::OfficeIMO.OfficeColor? headingColor = color;
+            if (ResolveNativeParagraphDefaultColor(paragraph) == null) {
+                using NativePaintedPanelScope scope = EnterNativePaintedPanel(paragraph, fill);
+                headingColor = ResolveNativeAutomaticTextColor(paragraph) ?? color;
+            }
+            pdf.Panel(panel => panel.Heading(level, normalizedText, builder => {
+                using NativePaintedPanelScope paintedPanel = EnterNativePaintedPanel(paragraph, fill);
+                content(builder);
+            }, align, headingColor, style), panelStyle);
         }
 
         private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap, bool hasEquationContent) {

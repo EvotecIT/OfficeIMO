@@ -77,6 +77,7 @@ public partial class Word {
     [Theory]
     [InlineData(WordFileFormat.Docx, false, "body")]
     [InlineData(WordFileFormat.Docx, true, "body")]
+    [InlineData(WordFileFormat.Doc, true, "body")]
     [InlineData(WordFileFormat.Docx, false, "cell")]
     [InlineData(WordFileFormat.Docx, true, "cell")]
     [InlineData(WordFileFormat.Doc, true, "cell")]
@@ -90,7 +91,6 @@ public partial class Word {
             paragraph.Text = "HeadingColorMarker";
         } else {
             paragraph = source.AddParagraph("HeadingColorMarker");
-            // Body headings render without their paragraph fill, so automatic text stays black.
             paragraph.ShadingFillColor = OfficeColor.Parse("010203");
         }
         paragraph.Style = WordParagraphStyles.Heading1;
@@ -99,8 +99,8 @@ public partial class Word {
         heading.StyleRunProperties ??= new StyleRunProperties();
         heading.StyleRunProperties.Color = new Color { Val = direct ? "FF0000" : "auto" };
         if (direct) paragraph.RunColorValue = "auto";
-        bool painted = placement == "cell";
-        AssertAutomaticRunColorPdf(source, format, "HeadingColorMarker", painted, painted ? "000080" : null);
+        // Both the cell fill and a body heading's own fill are painted behind the heading text.
+        AssertAutomaticRunColorPdf(source, format, "HeadingColorMarker", true, placement == "cell" ? "000080" : "010203");
     }
 
     [Theory]
