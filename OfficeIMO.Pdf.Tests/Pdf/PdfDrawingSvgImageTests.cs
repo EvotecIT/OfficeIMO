@@ -41,7 +41,7 @@ public sealed class PdfDrawingSvgImageTests {
     }
 
     [Fact]
-    public void ForegroundCanvasSvgImageRetainsItsLayerAndReportsRasterization() {
+    public void ForegroundCanvasSvgImageRetainsItsLayerAsVectors() {
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='40' height='20' fill='red'/></svg>");
         var report = new PdfConversionReport();
         byte[] pdf = PdfDocument.Create(Options().ReportDiagnosticsTo(report)).Canvas(canvas => {
@@ -53,7 +53,8 @@ public sealed class PdfDrawingSvgImageTests {
 
         OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
         Assert.Equal(OfficeColor.Red, actual.GetPixel(10, 10));
-        Assert.Contains(report.Warnings, warning => warning.Code == "svg-image-raster-fallback");
+        Assert.Empty(PdfDocument.Load(pdf).Reader.Images());
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "svg-image-raster-fallback");
     }
 
     [Fact]

@@ -302,11 +302,11 @@ namespace OfficeIMO.Word.Pdf {
             out byte[] preparedBytes,
             out string? unsupportedReason,
             System.Threading.CancellationToken cancellationToken = default) =>
-            PdfCore.PdfDocument.TryPrepareImageBytes(
+            // SVG stays SVG so every PDF placement draws it as vectors; raster formats are normalized as before.
+            PdfCore.PdfDocument.TryPrepareImageKeepingSvg(
                 bytes,
                 cancellationToken,
                 out preparedBytes,
-                out _,
                 out _,
                 out unsupportedReason);
 

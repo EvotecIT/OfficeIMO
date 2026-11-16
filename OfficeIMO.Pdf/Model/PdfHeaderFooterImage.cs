@@ -8,6 +8,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfHeaderFooterImage {
     private readonly byte[] _data;
     private readonly PdfWriter.PdfImageStream? _preparedStream;
+    private readonly OfficeIMO.Drawing.OfficeDrawing? _svgDrawing;
     private readonly PdfImageStyle _style;
 
     /// <summary>Creates a meaningful header/footer image with alternate text.</summary>
@@ -32,11 +33,12 @@ public sealed class PdfHeaderFooterImage {
         _style.Align = align;
         PdfDocument.ValidateImageStyleForBox(_style, width.ToPoints(), height.ToPoints(), nameof(style));
 
-        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageKeepingSvg(data);
         PdfDocument.ValidateImageFitDimensions(prepared.Info, _style.Fit, nameof(style));
 
         _data = prepared.Data;
         _preparedStream = prepared.PreparedStream;
+        _svgDrawing = prepared.SvgDrawing;
         Width = width;
         Height = height;
         Align = align;
@@ -69,6 +71,7 @@ public sealed class PdfHeaderFooterImage {
     private PdfHeaderFooterImage(PdfHeaderFooterImage source) {
         _data = (byte[])source._data.Clone();
         _preparedStream = source._preparedStream;
+        _svgDrawing = source._svgDrawing;
         _style = source._style.Clone();
         Width = source.Width;
         Height = source.Height;
@@ -88,5 +91,5 @@ public sealed class PdfHeaderFooterImage {
     internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(this);
 
     internal ImageBlock ToImageBlock() => new ImageBlock(_data, Width.ToPoints(), Height.ToPoints(), Info, _style,
-        useDataSnapshot: true, preparedStream: _preparedStream);
+        useDataSnapshot: true, preparedStream: _preparedStream, svgDrawing: _svgDrawing);
 }

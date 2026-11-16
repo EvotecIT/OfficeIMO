@@ -52,11 +52,24 @@ internal static partial class PdfWriter {
                 .EndPath();
         }
 
-        if (img.Orientation != OfficeImageOrientation.Normal) {
-            content.TransformMatrix(GetImageOrientationTransform(img.Orientation));
+        if (img.SvgForm != null || img.SvgContent != null) {
+            // SVG paint is in drawing units; scale the drawing onto the image's unit square.
+            OfficeDrawing drawing = img.SvgDrawing!;
+            content.TransformMatrix(OfficeTransform.Scale(1D / drawing.Width, 1D / drawing.Height));
+            if (img.SvgForm != null) {
+                content.XObject(img.SvgForm.ResourceName);
+            } else {
+                sb.Append(img.SvgContent);
+                if (img.SvgContent!.Length > 0 && img.SvgContent[img.SvgContent.Length - 1] != '\n') sb.Append('\n');
+            }
+            content.RestoreState();
+        } else {
+            if (img.Orientation != OfficeImageOrientation.Normal) {
+                content.TransformMatrix(GetImageOrientationTransform(img.Orientation));
+            }
+            content.XObject(img.Name)
+                .RestoreState();
         }
-        content.XObject(img.Name)
-            .RestoreState();
 
         if (hasAlternativeText || !img.SuppressAccessibilityWrapper && img.IsDecorativeArtifact) {
             sb.Append("EMC\n");

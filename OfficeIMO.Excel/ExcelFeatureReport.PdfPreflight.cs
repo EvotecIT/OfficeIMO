@@ -338,7 +338,8 @@ namespace OfficeIMO.Excel {
         private static bool IsPdfSupportedWorksheetImage(ExcelImage image, out string reason) {
             string contentType = image.ContentType;
             byte[] bytes = Array.Empty<byte>();
-            // PDF export draws an SVG picture through its raster fallback, so preflight checks the same bytes.
+            // PDF export draws an SVG picture as vectors when it can and otherwise uses its raster fallback,
+            // so preflight checks the fallback that every SVG picture can export.
             bool rasterFallback = false;
             if (!IsPdfSupportedImageContentType(contentType) && image.TryGetRasterFallback(out byte[] fallback, out string fallbackType)) {
                 bytes = fallback;

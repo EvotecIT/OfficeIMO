@@ -452,6 +452,26 @@ internal static partial class PdfWriter {
         var imageXObjectIds = new List<(PdfImageStream Stream, int Id)>();
         Dictionary<string, List<(PdfImageStream Stream, int Id)>>? imageXObjectIdsByHash = null;
         var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
+        // Each SVG Form is written once per print-color context and referenced from every page that draws it.
+        var svgFormIds = new Dictionary<(SvgFormXObject Form, PdfPrintColorTransform? Colors), int>();
+        LayoutContext? svgBinder = null;
+
+        int EnsureSvgFormResource(SvgFormXObject form, PdfCreateOptions formOptions, List<(string Name, int Id)> pageXObjects) {
+            // Converted colors live inside the Form, so a page with another conversion needs its own copy.
+            PdfPrintColorTransform? formColorTransform = formOptions.ConvertVectorColorsToPdfXPrintCondition
+                ? GetPrintColorTransform(formOptions)
+                : null;
+            if (!svgFormIds.TryGetValue((form, formColorTransform), out int formId)) {
+                formId = AddSvgFormXObject(objects, form, formColorTransform, cancellationToken);
+                svgFormIds.Add((form, formColorTransform), formId);
+            }
+            bool listed = false;
+            foreach ((string Name, int Id) entry in pageXObjects) {
+                if (entry.Id == formId && string.Equals(entry.Name, form.ResourceName, StringComparison.Ordinal)) { listed = true; break; }
+            }
+            if (!listed) pageXObjects.Add((form.ResourceName, formId));
+            return formId;
+        }
 
         int EnsureImageXObject(PdfImageStream imageStream) {
             imageStream = PrepareImageStreamForVersion(imageStream, serializationFileVersion, cancellationToken);
@@ -531,6 +551,10 @@ internal static partial class PdfWriter {
             int headerFooterTotalPages = pageNumberInfo.TotalPages;
             byte[] pageContentBytes = layout.ReadContentBytes(page.Content);
             HashSet<string> pageResourceNames = CollectPdfResourceNames(pageContentBytes);
+            foreach (PageImage svgImage in page.Images) {
+                // Inline SVG paint is page content too; its fonts must be declared with the page's.
+                if (svgImage.SvgContent != null) pageResourceNames.UnionWith(CollectPdfResourceNames(PdfEncoding.Latin1GetBytes(svgImage.SvgContent)));
+            }
             var pageFontResources = new Dictionary<PdfStandardFont, string>();
             var pageNamedFontResources = new Dictionary<PdfNamedFontFace, string>();
             string EnsurePageFontResource(PdfStandardFont font, string preferredAlias) {
@@ -673,37 +697,7 @@ internal static partial class PdfWriter {
                 PdfPrintColorTransform? shadingColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                     ? GetPrintColorTransform(pageOpts)
                     : null;
-                foreach (var shading in page.Shadings) {
-                    PdfPrintColorTransform? resourceColorTransform = shading.IsOpacityData ? null : shadingColorTransform;
-                    string shadingObject = shading.SpreadMode != OfficeGradientSpreadMode.Pad ? string.Empty : shading.IsRadial
-                        ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
-                            shading.X0,
-                            shading.Y0,
-                            shading.R0,
-                            shading.X1,
-                            shading.Y1,
-                            shading.R1,
-                            shading.Stops,
-                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation,
-                            interpolateAlphaSeparately: shading.InterpolateAlphaSeparately,
-                            functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)))
-                        : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
-                            shading.X0,
-                            shading.Y0,
-                            shading.X1,
-                            shading.Y1,
-                            shading.Stops,
-                            resourceColorTransform, colorInterpolation: shading.ColorInterpolation,
-                            interpolateAlphaSeparately: shading.InterpolateAlphaSeparately,
-                            functionReferenceResolver: body => PdfSyntaxEscaper.IndirectReference(AddObject(objects, body)));
-                    int shadingId;
-                    if (shading.SpreadMode != OfficeGradientSpreadMode.Pad) {
-                        shadingId = AddRadialSpreadShading(objects, shading, alphaOnly: false, resourceColorTransform);
-                    } else shadingId = AddObject(objects, shadingObject);
-                    shadings.Add(("/" + shading.Name, shadingId));
-                    AddGradientAlphaResources(objects, shading, graphicsStates);
-                    AddRadialPadResources(objects, shading, shadingId, xobjects, resourceColorTransform, cancellationToken);
-                }
+                AddShadingResources(objects, page.Shadings, shadingColorTransform, graphicsStates, xobjects, shadings, cancellationToken);
             }
 
             // Content stream (append image draw commands at end)
@@ -723,6 +717,22 @@ internal static partial class PdfWriter {
                 for (int i = 0; i < page.Images.Count; i++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     var img = page.Images[i];
+                    if (img.SvgForm != null) {
+                        img.ObjectId = EnsureSvgFormResource(img.SvgForm, pageOpts, xobjects);
+                        img.Name = img.SvgForm.ResourceName;
+                        continue;
+                    }
+                    if (img.SvgContent != null) continue;
+                    if (img.Info.Format == OfficeImageFormat.Svg) {
+                        svgBinder ??= new LayoutContext(opts, sharedPageContents: layout.ContentStore, isRunningContent: true,
+                            svgForms: layout.SvgForms, cancellationToken: cancellationToken);
+                        svgBinder.BindWrittenSvgImage(page, pageOpts, img);
+                        if (img.SvgForm != null) {
+                            img.ObjectId = EnsureSvgFormResource(img.SvgForm, pageOpts, xobjects);
+                            img.Name = img.SvgForm.ResourceName;
+                            continue;
+                        }
+                    }
                     if (!img.IsOpacityData) ApplyPlacementAwareImageOptimization(img, opts, optimizedImageCache, cancellationToken);
                     if (!TryBuildImageStream(img, out var imageStream, out string? unsupportedReason)) {
                         throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
@@ -760,6 +770,8 @@ internal static partial class PdfWriter {
                     img.Name = name;
                 }
             }
+
+            foreach (SvgFormXObject form in page.SvgForms) EnsureSvgFormResource(form, pageOpts, xobjects);
 
             if (page.EffectGroups.Count > 0) {
                 for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {

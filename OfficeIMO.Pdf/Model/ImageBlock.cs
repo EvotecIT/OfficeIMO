@@ -8,6 +8,8 @@ internal sealed class ImageBlock : IPdfBlock {
     public double Height { get; }
     public OfficeImageInfo Info { get; }
     public PdfWriter.PdfImageStream? PreparedStream { get; }
+    /// <summary>The parsed drawing of an SVG image drawn as vectors; <c>null</c> for raster images.</summary>
+    public OfficeDrawing? SvgDrawing { get; }
     public PdfImageStyle? Style { get; }
     public string? LinkUri { get; }
     public string? LinkContents { get; }
@@ -16,7 +18,7 @@ internal sealed class ImageBlock : IPdfBlock {
     public OfficeImageFit Fit => (Style ?? new PdfImageStyle()).Fit;
     public string? AltText => Style?.AltText;
 
-    public ImageBlock(byte[] data, double width, double height, OfficeImageInfo info, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, bool useDataSnapshot = false, PdfWriter.PdfImageStream? preparedStream = null) {
+    public ImageBlock(byte[] data, double width, double height, OfficeImageInfo info, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, bool useDataSnapshot = false, PdfWriter.PdfImageStream? preparedStream = null, OfficeDrawing? svgDrawing = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
@@ -35,6 +37,7 @@ internal sealed class ImageBlock : IPdfBlock {
         Height = height;
         Info = info;
         PreparedStream = preparedStream;
+        SvgDrawing = svgDrawing;
         Style = style?.Clone();
         LinkUri = linkUri;
         LinkContents = linkUri == null ? null : linkContents ?? "Image";
