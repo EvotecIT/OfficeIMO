@@ -4398,6 +4398,14 @@
       "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/TestOfficeExcelTemplateCommand.cs#L30"
     },
     {
+      "name": "Test-OfficePdfAccessibility",
+      "kind": "Cmdlet",
+      "aliases": [],
+      "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/TestOfficePdfAccessibilityCommand.cs",
+      "sourceLine": 29,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/TestOfficePdfAccessibilityCommand.cs#L29"
+    },
+    {
       "name": "Test-OfficePdfRewrite",
       "kind": "Cmdlet",
       "aliases": [],
