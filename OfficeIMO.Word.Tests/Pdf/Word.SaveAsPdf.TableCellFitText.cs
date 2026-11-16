@@ -43,6 +43,20 @@ public partial class Word {
         Assert.All(fitted, letter => Assert.Equal(controlLetters[0].FontSize, letter.FontSize, 3));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_FitTextCellEndsTheLastVisibleLetterAtTheEdgeBeforeTrailingSpaces(bool separateRun) {
+        using var pdf = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, separateRun ? "FitAB" : "FitAB  ", fitText: true,
+            paragraph => { if (separateRun) paragraph.AddText("  "); }));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        double edge = letters.Single(letter => letter.Value == "Z").EndBaseLine.X;
+        var fitted = letters.TakeWhile(letter => letter.Value != "Z").ToArray();
+
+        Assert.Equal("FitAB", string.Concat(fitted.Select(letter => letter.Value)));
+        Assert.InRange(fitted[fitted.Length - 1].EndBaseLine.X, edge - 1D, edge + 0.05D);
+    }
+
     [Fact]
     public void SaveAsPdf_FitTextCellReplacesAuthoredCharacterSpacing() {
         const string text = "TrackedFitTextCellContent";

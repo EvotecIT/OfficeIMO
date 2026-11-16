@@ -118,10 +118,11 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double extraWidth, double target,
         PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         // Character spacing follows every rendered glyph, so distribute the extra width over shaped glyphs rather
-        // than source characters. The final grapheme is split off unspaced so the line ends at the cell edge.
+        // than source characters. The last visible grapheme is split off unspaced so the line ends at the cell
+        // edge; trailing spaces after it are dropped by wrapping and stay unspaced too.
         int lastTextRun = -1;
         for (int index = line.Count - 1; index >= 0 && lastTextRun < 0; index--) {
-            if (!string.IsNullOrEmpty(line[index].Text)) lastTextRun = index;
+            if (TrimTableCellFitTextTrailingSpaces(line[index].Text).Length > 0) lastTextRun = index;
         }
         if (lastTextRun < 0) return line;
 
@@ -130,14 +131,16 @@ internal static partial class PdfWriter {
             PdfTextRun run = line[index];
             string text = run.Text ?? string.Empty;
             if (index != lastTextRun) {
-                pieces.Add((run, text.Length > 0));
+                pieces.Add((run, index < lastTextRun && text.Length > 0));
                 continue;
             }
 
-            int[] boundaries = StringInfo.ParseCombiningCharacters(text);
+            string visible = TrimTableCellFitTextTrailingSpaces(text);
+            int[] boundaries = StringInfo.ParseCombiningCharacters(visible);
             int last = boundaries[boundaries.Length - 1];
-            if (last > 0) pieces.Add((CreateStyledTextRun(text.Substring(0, last), run, run.StandardFont), true));
-            pieces.Add((CreateStyledTextRun(text.Substring(last), run, run.StandardFont).WithHorizontalOffset(last == 0 ? run.HorizontalOffset : 0D), false));
+            if (last > 0) pieces.Add((CreateStyledTextRun(visible.Substring(0, last), run, run.StandardFont), true));
+            pieces.Add((CreateStyledTextRun(visible.Substring(last), run, run.StandardFont).WithHorizontalOffset(last == 0 ? run.HorizontalOffset : 0D), false));
+            if (visible.Length < text.Length) pieces.Add((CreateStyledTextRun(text.Substring(visible.Length), run, run.StandardFont), false));
         }
 
         int spacedGlyphs = pieces.Where(piece => piece.Spaced).Sum(piece => CountTableCellFitTextGlyphs(piece.Run, baseFont, options));
@@ -162,9 +165,12 @@ internal static partial class PdfWriter {
             : piece.Run).ToArray();
 
     private static bool EndsWithTableCellFitTextShapingContext(System.Collections.Generic.IReadOnlyList<PdfTextRun> line) {
-        PdfTextRun? last = line.LastOrDefault(run => !string.IsNullOrEmpty(run.Text));
-        return last != null && UsesTableCellFitTextShapingContext(last.Text!);
+        PdfTextRun? last = line.LastOrDefault(run => TrimTableCellFitTextTrailingSpaces(run.Text).Length > 0);
+        return last != null && UsesTableCellFitTextShapingContext(TrimTableCellFitTextTrailingSpaces(last.Text));
     }
+
+    // Ordinary spaces at the end of a line are dropped by wrapping and take no visible width.
+    private static string TrimTableCellFitTextTrailingSpaces(string? text) => (text ?? string.Empty).TrimEnd(' ');
 
     private static bool UsesTableCellFitTextShapingContext(string text) {
         foreach (char ch in text) {
