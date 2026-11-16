@@ -24,18 +24,9 @@ internal static partial class PdfWriter {
                 placed.RotationCenterX = x + image.Width.ToPoints() / 2D;
                 placed.RotationCenterY = bottom + image.Height.ToPoints() / 2D;
             }
-            if (block.SvgDrawing != null) {
-                // SVG has no alpha samples to inspect; treat its whole frame as painted.
-                OfficeTransform svgPlacement = new OfficeImageProjection(new OfficeImagePlacement(placed.X, placed.Y, placed.W, placed.H),
-                    rotationDegrees: placed.RotationAngle, rotationCenterX: placed.RotationCenterX, rotationCenterY: placed.RotationCenterY,
-                    flipHorizontal: placed.HorizontalFlip, flipVertical: placed.VerticalFlip).CreateUnitSquareTransform();
-                var svgFrame = DiagnosticRectangle(0D, 0D, 1D, 1D);
-                foreach (var ring in svgFrame) for (int index = 0; index < ring.Count; index++) ring[index] = svgPlacement.TransformPoint(ring[index]);
-                yield return (svgFrame, SvgDiagnosticClips(placed, svgPlacement));
-                yield break;
-            }
             PdfImageStream stream;
-            if (block.PreparedStream != null) stream = block.PreparedStream;
+            if (block.SvgDrawing != null) stream = DiagnosticSvgAlphaStream(block.SvgDrawing);
+            else if (block.PreparedStream != null) stream = block.PreparedStream;
             else if (!TryBuildImageStream(block.Data, block.Info, block.Width, block.Height, cancellationToken, out stream, out _))
                 throw new NotSupportedException("The inline image stream could not be inspected.");
             OfficeTransform placement = new OfficeImageProjection(new OfficeImagePlacement(placed.X, placed.Y, placed.W, placed.H),
@@ -92,23 +83,25 @@ internal static partial class PdfWriter {
             }
         }
 
-        private List<OfficeTextInkClip> SvgDiagnosticClips(PageImage placed, OfficeTransform placement) {
-            var clips = new List<OfficeTextInkClip>();
-            if (placed.SourceCrop?.HasCrop == true) {
-                PdfImageSourceCrop crop = placed.SourceCrop;
-                clips.Add(DiagnosticRectangleClip(new TableCellContentFrame(crop.Left, 1D - crop.Top,
-                    1D - crop.Left - crop.Right, 1D - crop.Top - crop.Bottom), placement));
-            }
-            if (placed.ClipPath != null) {
-                OfficeTransform clipPlacement = new(1D, 0D, 0D, -1D, placed.ClipX, placed.ClipY + placed.ClipHeight);
-                var rings = OfficeClipPathGeometry.CreateContours(placed.ClipPath, points => {
-                    var mapped = new List<OfficePoint>(points.Count);
-                    foreach (var point in points) { cancellationToken.ThrowIfCancellationRequested(); mapped.Add(clipPlacement.TransformPoint(point)); }
-                    return mapped;
-                });
-                clips.Add(OfficeTextInkClip.FromFilledContours(rings, placed.ClipPath.FillRule));
-            }
-            return clips;
+        private readonly Dictionary<OfficeDrawing, PdfImageStream> _diagnosticSvgAlpha = new();
+
+        /// <summary>
+        /// Paint coverage of an SVG drawn as vectors, sampled from the same 1x raster that SVG images were
+        /// embedded as before, so transparent margins are not mistaken for clipped content.
+        /// </summary>
+        private PdfImageStream DiagnosticSvgAlphaStream(OfficeDrawing drawing) {
+            if (_diagnosticSvgAlpha.TryGetValue(drawing, out PdfImageStream? cached)) return cached;
+            byte[] png = OfficeDrawingRasterRenderer.ToPng(drawing, new OfficeDrawingRasterRenderOptions {
+                Background = OfficeColor.Transparent,
+                MaximumRasterPixels = OfficeImagePdfCompatibility.DefaultMaximumTranscodePixels,
+                ThrowOnImageDecodeFailure = true,
+                LimitRasterPaintWork = true,
+                CancellationToken = cancellationToken
+            });
+            PdfImageStream stream = PdfDocument.PrepareImageBytes(png, cancellationToken).PreparedStream
+                ?? throw new NotSupportedException("The inline SVG paint could not be inspected.");
+            _diagnosticSvgAlpha[drawing] = stream;
+            return stream;
         }
 
         /// <summary>Checks nonempty raster paint in line slots discarded before the ordinary row renderer is entered.</summary>

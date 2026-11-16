@@ -452,24 +452,25 @@ internal static partial class PdfWriter {
         var imageXObjectIds = new List<(PdfImageStream Stream, int Id)>();
         Dictionary<string, List<(PdfImageStream Stream, int Id)>>? imageXObjectIdsByHash = null;
         var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
-        // Each SVG Form is written once and referenced from every page that draws it.
-        var svgFormIds = new Dictionary<SvgFormXObject, int>();
+        // Each SVG Form is written once per print-color context and referenced from every page that draws it.
+        var svgFormIds = new Dictionary<(SvgFormXObject Form, PdfPrintColorTransform? Colors), int>();
         LayoutContext? svgBinder = null;
 
-        string EnsureSvgFormResource(SvgFormXObject form, PdfCreateOptions formOptions, List<(string Name, int Id)> pageXObjects) {
-            if (!svgFormIds.TryGetValue(form, out int formId)) {
-                PdfPrintColorTransform? formColorTransform = formOptions.ConvertVectorColorsToPdfXPrintCondition
-                    ? GetPrintColorTransform(formOptions)
-                    : null;
+        int EnsureSvgFormResource(SvgFormXObject form, PdfCreateOptions formOptions, List<(string Name, int Id)> pageXObjects) {
+            // Converted colors live inside the Form, so a page with another conversion needs its own copy.
+            PdfPrintColorTransform? formColorTransform = formOptions.ConvertVectorColorsToPdfXPrintCondition
+                ? GetPrintColorTransform(formOptions)
+                : null;
+            if (!svgFormIds.TryGetValue((form, formColorTransform), out int formId)) {
                 formId = AddSvgFormXObject(objects, form, formColorTransform, cancellationToken);
-                svgFormIds.Add(form, formId);
+                svgFormIds.Add((form, formColorTransform), formId);
             }
             bool listed = false;
             foreach ((string Name, int Id) entry in pageXObjects) {
                 if (entry.Id == formId && string.Equals(entry.Name, form.ResourceName, StringComparison.Ordinal)) { listed = true; break; }
             }
             if (!listed) pageXObjects.Add((form.ResourceName, formId));
-            return form.ResourceName;
+            return formId;
         }
 
         int EnsureImageXObject(PdfImageStream imageStream) {
@@ -717,8 +718,8 @@ internal static partial class PdfWriter {
                     cancellationToken.ThrowIfCancellationRequested();
                     var img = page.Images[i];
                     if (img.SvgForm != null) {
-                        img.Name = EnsureSvgFormResource(img.SvgForm, pageOpts, xobjects);
-                        img.ObjectId = svgFormIds[img.SvgForm];
+                        img.ObjectId = EnsureSvgFormResource(img.SvgForm, pageOpts, xobjects);
+                        img.Name = img.SvgForm.ResourceName;
                         continue;
                     }
                     if (img.SvgContent != null) continue;
@@ -727,8 +728,8 @@ internal static partial class PdfWriter {
                             svgForms: layout.SvgForms, cancellationToken: cancellationToken);
                         svgBinder.BindWrittenSvgImage(page, pageOpts, img);
                         if (img.SvgForm != null) {
-                            img.Name = EnsureSvgFormResource(img.SvgForm, pageOpts, xobjects);
-                            img.ObjectId = svgFormIds[img.SvgForm];
+                            img.ObjectId = EnsureSvgFormResource(img.SvgForm, pageOpts, xobjects);
+                            img.Name = img.SvgForm.ResourceName;
                             continue;
                         }
                     }

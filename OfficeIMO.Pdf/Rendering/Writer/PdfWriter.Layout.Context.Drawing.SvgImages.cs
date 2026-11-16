@@ -162,6 +162,10 @@ internal static partial class PdfWriter {
                     RasterizeSvgPageImage(image, vector, "SVG image paint not supported by the PDF vector writer was rasterized.");
                     continue;
                 }
+                if (UsesEmbeddedSvgFonts(vector)) {
+                    RasterizeSvgPageImage(image, vector, "SVG image text set in fonts embedded in the SVG was rasterized at its placed size.");
+                    continue;
+                }
 
                 image.SvgDrawing = vector;
                 if (!image.IsOpacityData) {
@@ -220,6 +224,30 @@ internal static partial class PdfWriter {
             } finally {
                 currentPage = null;
             }
+        }
+
+        // The PDF text writer resolves fonts from the document, not from faces an SVG embeds with @font-face;
+        // text set in those faces keeps the raster route so it keeps its appearance.
+        private static bool UsesEmbeddedSvgFonts(OfficeDrawing drawing) => HasScopedFonts(drawing) && ContainsSvgText(drawing);
+
+        private static bool HasScopedFonts(OfficeDrawing drawing) {
+            if (drawing.HasScopedFonts) return true;
+            foreach (OfficeDrawingElement element in drawing.Elements) {
+                if (element is OfficeDrawingGroup group && HasScopedFonts(group.InnerDrawing) ||
+                    element is OfficeDrawingEffectGroup effect && HasScopedFonts(effect.InnerDrawing) ||
+                    element is OfficeDrawingTilingPattern pattern && HasScopedFonts(pattern.InnerTile)) return true;
+            }
+            return false;
+        }
+
+        private static bool ContainsSvgText(OfficeDrawing drawing) {
+            foreach (OfficeDrawingElement element in drawing.Elements) {
+                if (element is OfficeDrawingText or OfficeDrawingRichText ||
+                    element is OfficeDrawingGroup group && ContainsSvgText(group.InnerDrawing) ||
+                    element is OfficeDrawingEffectGroup effect && ContainsSvgText(effect.InnerDrawing) ||
+                    element is OfficeDrawingTilingPattern pattern && ContainsSvgText(pattern.InnerTile)) return true;
+            }
+            return false;
         }
 
         private static bool CanDrawSvgSceneAsVector(OfficeDrawing drawing) {

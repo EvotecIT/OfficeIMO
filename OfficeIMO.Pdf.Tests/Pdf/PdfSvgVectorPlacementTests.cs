@@ -88,6 +88,22 @@ public sealed class PdfSvgVectorPlacementTests {
         Assert.True(green > 400, "The badge background was not drawn: " + green);
     }
 
+    [Fact]
+    public void SvgTextInAnEmbeddedFontKeepsItsRasterAppearance() {
+        byte[] font = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Drawing.Tests/TestAssets/OpenSans-Bold.ttf"));
+        byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='80' height='30'><style>" +
+            "@font-face{font-family:'Embedded';src:url(data:font/ttf;base64," + System.Convert.ToBase64String(font) + ") format('truetype');}" +
+            "</style><text x='4' y='22' font-family='Embedded' font-size='18'>Logo</text></svg>");
+        var report = new PdfConversionReport();
+
+        byte[] pdf = PdfDocument.Create(PageOptions(200D, 60D).ReportDiagnosticsTo(report)).Image(svg, 80D, 30D)
+            .ToBytes(new PdfSaveOptions { AllowLoss = true });
+
+        // The PDF text writer cannot use the SVG's own face, so the drawing keeps its look as a raster.
+        Assert.Single(PdfDocument.Load(pdf).Reader.Images());
+        Assert.Contains(report.Warnings, warning => warning.Code == "svg-image-raster-fallback");
+    }
+
     private static string Hex(string text) {
         var hex = new StringBuilder();
         foreach (byte value in Encoding.ASCII.GetBytes(text)) hex.Append(value.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
