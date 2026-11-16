@@ -38,33 +38,23 @@ public static partial class WordOpenDocumentConversionExtensions {
         for (int sectionIndex = 0; sectionIndex < snapshot.Sections.Count; sectionIndex++) {
             WordSectionInfo section = snapshot.Sections[sectionIndex];
             notes.CurrentSectionIndex = sectionIndex;
-            OdtList? currentList = null;
-            bool? currentOrdered = null;
+            var openLists = new OdtNestedLists(target);
             foreach (WordBlockInfo block in section.Elements.OrderBy(item => item.Order)) {
                 if (block is WordParagraphInfo paragraph) {
                     if (paragraph.IsListItem) {
-                        bool ordered = paragraph.IsOrderedList == true;
-                        if (currentList == null || currentOrdered != ordered) {
-                            currentList = target.AddList(ordered);
-                            currentOrdered = ordered;
-                            lists++;
-                        }
-                        OdtParagraph listParagraph = currentList.AddItem().Paragraphs[0];
+                        OdtParagraph listParagraph = openLists.AddItem(paragraph, ref lists, ref nestedListLevels).Paragraphs[0];
                         CopyParagraph(paragraph, listParagraph, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
-                        if (paragraph.ListLevel > 0) nestedListLevels++;
                         paragraphs++;
                         continue;
                     }
 
-                    currentList = null;
-                    currentOrdered = null;
+                    openLists.Close();
                     int headingLevel = GetHeadingLevel(paragraph);
                     OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
                     CopyParagraph(paragraph, converted, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
                     if (headingLevel > 0) headings++; else paragraphs++;
                 } else if (block is WordTableInfo table) {
-                    currentList = null;
-                    currentOrdered = null;
+                    openLists.Close();
                     ConvertTable(table, target, effective, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                         ref bookmarks, notes);
                     tables++;
@@ -155,7 +145,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         CountWordNoteSettingsLoss(source, notes);
         AddNoteMappings(report, notes);
         if (nestedListLevels > 0) report.Add("list-levels", OdfConversionMappingStatus.Approximated, nestedListLevels,
-            "Nested Word list items are retained as top-level ODT list items because hierarchical list emission is not yet supported.");
+            "Word list items nested deeper than the ten ODT list levels are kept at the tenth level.");
         AddUnmappedWordFindings(source.InspectFeatures(), report, images, hyperlinks, bookmarks, notes);
         return new OdfConversionResult<OdtDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }

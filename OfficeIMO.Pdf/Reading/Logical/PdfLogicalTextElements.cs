@@ -350,10 +350,19 @@ public sealed class PdfLogicalListItem {
     public int PageNumber { get; }
 
     /// <summary>Best-effort nesting level, where 1 is the outermost list level.</summary>
-    public int Level { get; }
+    public int Level { get; internal set; }
 
     /// <summary>List marker such as "1", "1.2", "-", "•", or "(a)".</summary>
     public string Marker { get; }
+
+    /// <summary>Numbering style shown by <see cref="Marker"/>; <see cref="PdfLogicalListNumberFormat.Bullet"/> for symbols and unmarked items.</summary>
+    public PdfLogicalListNumberFormat NumberFormat => PdfLogicalListMarker.Parse(Marker).Format;
+
+    /// <summary>True when the marker numbers the item (digits, letters or Roman numerals).</summary>
+    public bool IsOrdered => NumberFormat != PdfLogicalListNumberFormat.Bullet;
+
+    /// <summary>Position the marker gives the item in its list ("3." and "c)" are 3); null for bullets.</summary>
+    public int? Ordinal => PdfLogicalListMarker.Parse(Marker).Ordinal;
 
     /// <summary>List item text without the marker.</summary>
     public string Text { get; }

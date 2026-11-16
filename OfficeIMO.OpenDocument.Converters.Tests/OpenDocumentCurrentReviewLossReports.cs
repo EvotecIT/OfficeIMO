@@ -722,17 +722,26 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
-    public void WordToOdtReportsFlattenedNestedListLevels() {
+    public void WordToOdtNestsListLevelsAndStartsSeparateLists() {
         using WordDocument source = WordDocument.Create();
         WordList list = source.AddListNumbered();
         list.AddItem("Parent");
         list.AddItem("Child", 1);
+        list.AddItem("Sibling");
+        source.AddParagraph("Between");
+        source.AddListBulleted().AddItem("Bullet");
 
         OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
-        OdtDocument target = conversion.Value;
+        XElement body = conversion.Value.Package.GetXml("content.xml").Descendants(OdfNamespaces.Office + "text").Single();
 
-        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "list-levels" &&
-            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "list-levels");
+        List<XElement> topLists = body.Elements(OdfNamespaces.Text + "list").ToList();
+        Assert.Equal(2, topLists.Count);
+        List<XElement> parents = topLists[0].Elements(OdfNamespaces.Text + "list-item").ToList();
+        Assert.Equal(new[] { "Parent", "Sibling" }, parents.Select(item => item.Element(OdfNamespaces.Text + "p")!.Value));
+        XElement child = parents[0].Element(OdfNamespaces.Text + "list")!.Element(OdfNamespaces.Text + "list-item")!;
+        Assert.Equal("Child", child.Element(OdfNamespaces.Text + "p")!.Value);
+        Assert.Equal("Bullet", topLists[1].Descendants(OdfNamespaces.Text + "p").Single().Value);
     }
 
     [Fact]

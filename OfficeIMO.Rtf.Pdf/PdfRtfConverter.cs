@@ -4,8 +4,6 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static class PdfRtfConverter {
     private const int HeadingStyleBaseId = 1;
-    private const int BulletListId = 1;
-    private const int DecimalListId = 2;
 
     public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfRtfExportOptions? options) {
         ArgumentNullException.ThrowIfNull(source);
@@ -15,6 +13,7 @@ internal static class PdfRtfConverter {
         PdfCore.PdfLogicalContentProjection.RequireComplete(source, readOptions.CancellationToken);
         RtfDocument document = RtfDocument.Create();
         var runStyles = new RunStyleCatalog(document);
+        var lists = new RtfListNumbering();
         AddUnsupportedContentDiagnostics(source, readOptions);
 
         if (readOptions.IncludeMetadata) {
@@ -31,7 +30,7 @@ internal static class PdfRtfConverter {
 
         for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
             readOptions.CancellationToken.ThrowIfCancellationRequested();
-            ImportPage(source.Pages[pageIndex], document, readOptions, runStyles, pageIndex > 0 && readOptions.PreservePageBreaks);
+            ImportPage(source.Pages[pageIndex], document, readOptions, runStyles, lists, pageIndex > 0 && readOptions.PreservePageBreaks);
         }
 
         return document;
@@ -77,6 +76,7 @@ internal static class PdfRtfConverter {
         RtfDocument document,
         PdfRtfExportOptions options,
         RunStyleCatalog runStyles,
+        RtfListNumbering lists,
         bool pageBreakBeforeFirstParagraph) {
         var consumed = new HashSet<PdfCore.PdfLogicalTextBlock>();
         bool emittedPageContent = false;
@@ -93,7 +93,7 @@ internal static class PdfRtfConverter {
                 paragraph = AddHeading(document, heading!, runStyles);
                 consumed.Add(block);
             } else if (options.ImportLists && TryFindListItem(page, block, out PdfCore.PdfLogicalListItem? listItem)) {
-                paragraph = AddListItem(document, listItem!, runStyles);
+                paragraph = AddListItem(document, listItem!, runStyles, lists);
                 consumed.Add(block);
             } else if (TryFindParagraph(page, block, out PdfCore.PdfLogicalParagraph? logicalParagraph)) {
                 paragraph = AddParagraph(document, logicalParagraph!, runStyles);
@@ -109,6 +109,8 @@ internal static class PdfRtfConverter {
                 continue;
             }
 
+            // Anything written between two list items ends the list; the next item starts a new one.
+            if (paragraph.ListKind == RtfListKind.None) lists.End();
             if (pendingPageBreak) {
                 paragraph.PageBreakBefore = true;
                 pendingPageBreak = false;
@@ -142,10 +144,12 @@ internal static class PdfRtfConverter {
     private static RtfParagraph AddListItem(
         RtfDocument document,
         PdfCore.PdfLogicalListItem item,
-        RunStyleCatalog runStyles) {
-        RtfListKind kind = item.IsContentsEntry || IsBulletMarker(item.Marker) ? RtfListKind.Bullet : RtfListKind.Decimal;
-        int listId = kind == RtfListKind.Bullet ? BulletListId : DecimalListId;
-        int level = Math.Max(0, item.Level - 1);
+        RunStyleCatalog runStyles,
+        RtfListNumbering lists) {
+        PdfCore.PdfLogicalListMarker marker = PdfCore.PdfLogicalListMarker.Parse(item.IsContentsEntry ? null : item.Marker);
+        RtfListKind kind = marker.IsOrdered ? RtfListKind.Decimal : RtfListKind.Bullet;
+        int level = Math.Max(0, Math.Min(8, item.Level - 1));
+        int listId = lists.Assign(level, kind, marker.Ordinal);
         RtfParagraph paragraph = document.AddParagraph();
         AppendStyledRuns(paragraph, item.Runs, item.Text, runStyles);
         if (item.IsContentsEntry && !string.IsNullOrEmpty(item.TargetPageLabel)) paragraph.AddText(" \u2014 " + item.TargetPageLabel);
@@ -288,18 +292,35 @@ internal static class PdfRtfConverter {
         return normalized + "\t";
     }
 
-    private static bool IsBulletMarker(string marker) {
-        string trimmed = marker.Trim();
-        if (trimmed.Length == 0) {
-            return false;
-        }
+    /// <summary>
+    /// Gives each source list its own RTF list id, so a second list starts again instead of counting on from the
+    /// first. A level that changes between bullets and numbers, or a number that does not follow on, starts a new list.
+    /// </summary>
+    private sealed class RtfListNumbering {
+        private const int MaximumLevels = 9;
+        private readonly RtfListKind?[] _kinds = new RtfListKind?[MaximumLevels];
+        private readonly int?[] _counters = new int?[MaximumLevels];
+        private int _nextId = 1;
+        private int _currentId;
 
-        return trimmed == "\u2022" ||
-            trimmed == "\u25CF" ||
-            trimmed == "-" ||
-            trimmed == "*" ||
-            trimmed == "\u00B7";
+        internal void End() => _currentId = 0;
+
+        internal int Assign(int level, RtfListKind kind, int? ordinal) {
+            bool continues = _currentId != 0 && (_kinds[level] == null || (_kinds[level] == kind &&
+                (!ordinal.HasValue || ordinal.Value == (_counters[level] + 1 ?? 1))));
+            if (!continues) {
+                _currentId = _nextId++;
+                Array.Clear(_kinds, 0, _kinds.Length);
+                Array.Clear(_counters, 0, _counters.Length);
+            }
+
+            _kinds[level] ??= kind;
+            _counters[level] = ordinal ?? (_counters[level] + 1 ?? 1);
+            for (int deeper = level + 1; deeper < MaximumLevels; deeper++) _counters[deeper] = null;
+            return _currentId;
+        }
     }
+
 
     private static int PointsToTwips(double points) {
         if (points <= 0 || double.IsNaN(points) || double.IsInfinity(points)) {

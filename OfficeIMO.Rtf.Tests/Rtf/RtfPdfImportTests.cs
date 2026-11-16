@@ -287,6 +287,25 @@ public class RtfPdfImportTests {
         Assert.True(output.CanWrite);
     }
 
+    [Fact]
+    public void PdfToRtf_GivesEachSeparateListItsOwnNumbering() {
+        var document = PdfCore.PdfDocument.Create();
+        document.AddNumberedList(new[] { "Collect requirements", "Agree on scope" });
+        document.AddParagraph("Follow-up actions.");
+        document.AddNumberedList(new[] { "Add alert", "Rehearse" });
+        document.AddList(new[] { "Loose end" });
+
+        RtfDocument rtf = LoadSemanticPdf(document.ToBytes()).ToRtf(CreateImportOptions());
+
+        RtfParagraph Item(string text) => Assert.Single(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == text);
+        Assert.Equal(Item("Collect requirements").ListId, Item("Agree on scope").ListId);
+        Assert.Equal(Item("Add alert").ListId, Item("Rehearse").ListId);
+        Assert.NotEqual(Item("Collect requirements").ListId, Item("Add alert").ListId);
+        Assert.Equal(RtfListKind.Decimal, Item("Add alert").ListKind);
+        Assert.Equal(RtfListKind.Bullet, Item("Loose end").ListKind);
+        Assert.NotEqual(Item("Rehearse").ListId, Item("Loose end").ListId);
+    }
+
     private static PdfRtfExportOptions CreateImportOptions() => new PdfRtfExportOptions();
 
     private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>

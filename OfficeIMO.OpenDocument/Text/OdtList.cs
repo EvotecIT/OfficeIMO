@@ -48,4 +48,15 @@ public sealed class OdtListItem {
         _document.MarkPartDirty("content.xml");
         return new OdtParagraph(_document, paragraph);
     }
+
+    /// <summary>Adds a list nested one level below this item, after its paragraphs.</summary>
+    /// <param name="ordered">True for a numbered list; false for bullets.</param>
+    public OdtList AddList(bool ordered = false) {
+        int level = _element.Ancestors(OdfNamespaces.Text + "list").Count() + 1;
+        string styleName = OdfListStyleStore.Create(_document, ordered, listLevel: Math.Min(10, level));
+        var list = new XElement(OdfNamespaces.Text + "list", new XAttribute(OdfNamespaces.Text + "style-name", styleName));
+        _element.Add(list);
+        _document.MarkPartDirty("content.xml");
+        return new OdtList(_document, list);
+    }
 }

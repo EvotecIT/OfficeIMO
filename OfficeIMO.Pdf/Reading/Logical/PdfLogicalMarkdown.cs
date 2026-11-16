@@ -343,6 +343,13 @@ public static class PdfLogicalMarkdownExtensions {
                 : trimmed + ".";
         }
 
+        // CommonMark numbers lists only with digits, so "c)" or "iv." keep their position as "3)" or "4.".
+        PdfLogicalListMarker parsed = PdfLogicalListMarker.Parse(trimmed);
+        if (parsed.Ordinal.HasValue) {
+            bool parenthesis = parsed.Suffix.Length > 0 && parsed.Suffix[parsed.Suffix.Length - 1] == ')';
+            return parsed.Ordinal.Value.ToString(CultureInfo.InvariantCulture) + (parenthesis ? ")" : ".");
+        }
+
         return "-";
     }
 

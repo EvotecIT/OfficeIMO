@@ -660,7 +660,11 @@ public sealed partial class PdfLogicalPage {
         var result = new List<PdfLogicalListItem>(Math.Max(listItems.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
         AddContentsItems(pageNumber, textBlocks, analysis, links, result, represented);
+        int firstVisualItem = result.Count;
         AddTaggedListItems(pageNumber, textBlocks, semanticByTextBlock, analysis, result, represented);
+        // Producers such as LibreOffice tag "List Bullet 2" items as separate flat lists, so tagged items also take
+        // the nesting their indentation shows.
+        var indentationLevelled = new HashSet<PdfLogicalListItem>(result.Skip(firstVisualItem));
         var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
             PdfLogicalTextBlock block = textBlocks[blockIndex];
@@ -692,6 +696,7 @@ public sealed partial class PdfLogicalPage {
                     lineTexts,
                     semantic?.Confidence,
                     semantic?.Evidence));
+                if (semantic?.Level is null) indentationLevelled.Add(result[result.Count - 1]);
                 for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) represented.Add(lines[lineIndex]);
             }
         }
@@ -719,10 +724,62 @@ public sealed partial class PdfLogicalPage {
                 lineTexts,
                 semantic?.Confidence,
                 semantic?.Evidence));
+            if (semantic?.Level is null) indentationLevelled.Add(result[result.Count - 1]);
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) represented.Add(lines[lineIndex]);
         }
 
+        AssignIndentationLevels(result, firstVisualItem, indentationLevelled);
         return result.AsReadOnly();
+    }
+
+    /// <summary>
+    /// Many PDFs show nesting only by indentation:"• Archive" drawn 18 pt right of "• Retire" is its child.
+    /// Items that follow each other closely form one list; within it each distinct marker indentation is one level
+    /// deeper. A dotted number ("1.2") keeps the deeper of its own and its indentation level.
+    /// </summary>
+    private static void AssignIndentationLevels(List<PdfLogicalListItem> items, int start, HashSet<PdfLogicalListItem> eligible) {
+        int groupStart = start;
+        for (int index = start; index <= items.Count; index++) {
+            if (index < items.Count && index > groupStart && ContinuesList(items[index - 1], items[index])) continue;
+            if (index > groupStart) AssignGroupLevels(items, groupStart, index, eligible);
+            groupStart = index;
+        }
+    }
+
+    private static bool ContinuesList(PdfLogicalListItem previous, PdfLogicalListItem next) {
+        double previousBaseline = previous.Lines[previous.Lines.Count - 1].BaselineY;
+        double gap = previousBaseline - next.Line.BaselineY;
+        double size = Math.Max(Math.Max(previous.Line.FontSize, next.Line.FontSize), 1D);
+        return gap > 0D && gap <= size * 3D;
+    }
+
+    private static void AssignGroupLevels(List<PdfLogicalListItem> items, int start, int end, HashSet<PdfLogicalListItem> eligible) {
+        if (end - start < 2) return;
+        var indents = new List<double>(end - start);
+        double size = 0D;
+        for (int index = start; index < end; index++) {
+            if (!eligible.Contains(items[index])) return;
+            indents.Add(items[index].Line.XStart);
+            size = Math.Max(size, items[index].Line.FontSize);
+        }
+
+        // Right-aligned numbers ("9." over "10.") shift a marker by a digit; a nesting step is wider.
+        double step = Math.Max(6D, size * 0.75D);
+        indents.Sort();
+        var levelStarts = new List<double> { indents[0] };
+        for (int i = 1; i < indents.Count; i++) {
+            if (indents[i] - levelStarts[levelStarts.Count - 1] > step) levelStarts.Add(indents[i]);
+        }
+        if (levelStarts.Count < 2) return;
+
+        for (int index = start; index < end; index++) {
+            PdfLogicalListItem item = items[index];
+            int indentLevel = 1;
+            for (int level = 1; level < levelStarts.Count; level++) {
+                if (item.Line.XStart - levelStarts[level] >= -step / 2D) indentLevel = level + 1;
+            }
+            item.Level = Math.Max(item.Level, indentLevel);
+        }
     }
 
     private static bool PreservesListContinuationOwnership(PdfUnderstandingSemanticElement semantic) {
