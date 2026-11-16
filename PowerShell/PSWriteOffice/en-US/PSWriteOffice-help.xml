@@ -209322,6 +209322,10 @@ and requires a document title; heuristic findings stay warnings.</maml:para>
     <maml:description>
       <maml:para>Works on any PDF, including files OfficeIMO did not produce. Machine-checkable conditions are evaluated;&#xD;
 conditions that need a person's judgement are returned with status NeedsReview and are never reported as passed.</maml:para>
+      <maml:para>Automatic coverage is not complete: conditions not checked yet, such as the glyph-level font checks, are&#xD;
+returned with status NotChecked, and when the document permissions deny accessibility extraction most conditions&#xD;
+are Indeterminate. No failures therefore does not mean the file conforms; see the PDF accessibility support matrix&#xD;
+in the OfficeIMO documentation for the coverage of each condition.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Path">

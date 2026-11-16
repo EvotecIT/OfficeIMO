@@ -28,6 +28,11 @@ Test-OfficePdfAccessibility -LiteralPath <string[]> [-LoadOptions <PdfLoadOption
 Works on any PDF, including files OfficeIMO did not produce. Machine-checkable conditions are evaluated;
 conditions that need a person's judgement are returned with status NeedsReview and are never reported as passed.
 
+Automatic coverage is not complete: conditions not checked yet, such as the glyph-level font checks, are
+returned with status NotChecked, and when the document permissions deny accessibility extraction most conditions
+are Indeterminate. No failures therefore does not mean the file conforms; see the PDF accessibility support matrix
+in the OfficeIMO documentation for the coverage of each condition.
+
 ## EXAMPLES
 
 ### EXAMPLE 1
