@@ -115,6 +115,23 @@ public sealed class Markdown_Reader_Deferred_Source_Tests {
         Assert.Null(parseInfo.FindFinalNodeForAssociatedObject(added));
     }
 
+    [Fact]
+    public void Parse_Table_Cell_Inlines_Read_Through_The_Table_Match_SourceBacked_Parse() {
+        const string markdown =
+            "| Name | Notes |\n" +
+            "| --- | --- |\n" +
+            "| a | - [link](https://example.com) |\n";
+        var expected = MarkdownReader.ParseWithSyntaxTree(markdown).Document.Blocks.OfType<TableBlock>().Single();
+
+        var table = MarkdownDocument.Parse(markdown).Blocks.OfType<TableBlock>().Single();
+        var link = table.RowInlines[0][1].Nodes.OfType<LinkInline>().Single();
+        var expectedLink = expected.RowInlines[0][1].Nodes.OfType<LinkInline>().Single();
+
+        Assert.NotNull(expectedLink.UrlSourceSpan);
+        Assert.Equal(expectedLink.UrlSourceSpan, link.UrlSourceSpan);
+        Assert.Equal(expectedLink.SourceSpan, link.SourceSpan);
+    }
+
     private static string NodeSignature(MarkdownSyntaxNode? node) =>
         node == null ? "<none>" : node.Kind + "|" + node.SourceSpan?.ToString() + "|" + node.Literal;
 }

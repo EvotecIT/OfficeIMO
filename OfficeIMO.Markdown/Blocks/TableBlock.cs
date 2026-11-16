@@ -585,6 +585,41 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         AdoptDetachedRows(StructuredRows, source.StructuredRows, map);
     }
 
+    internal bool DeferDetachedSourceInformation(MarkdownDeferredSourceCapture capture) {
+        return DeferDetachedCells(ParsedHeaders, capture)
+            && DeferDetachedRows(ParsedRows, capture)
+            && DeferDetachedCells(StructuredHeaders, capture)
+            && DeferDetachedRows(StructuredRows, capture);
+    }
+
+    private static bool DeferDetachedRows<T>(List<IReadOnlyList<T>>? rows, MarkdownDeferredSourceCapture capture) where T : MarkdownObject {
+        if (rows == null) {
+            return true;
+        }
+
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            if (!DeferDetachedCells(rows[rowIndex], capture)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool DeferDetachedCells<T>(IReadOnlyList<T>? cells, MarkdownDeferredSourceCapture capture) where T : MarkdownObject {
+        if (cells == null) {
+            return true;
+        }
+
+        for (int i = 0; i < cells.Count; i++) {
+            if (!capture.DeferDetached(cells[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static void AdoptDetachedRows<T>(
         List<IReadOnlyList<T>>? rows,
         List<IReadOnlyList<T>>? sourceRows,

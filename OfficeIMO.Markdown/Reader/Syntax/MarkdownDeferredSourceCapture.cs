@@ -16,6 +16,7 @@ internal sealed class MarkdownDeferredSourceCapture {
     private readonly MarkdownLoadOptions? _options;
     private readonly object _sync = new();
     private MarkdownObjectSequence? _objects;
+    private MarkdownObjectSequence? _detached;
 
     private MarkdownDeferredSourceCapture(
         MarkdownDocument document,
@@ -81,7 +82,64 @@ internal sealed class MarkdownDeferredSourceCapture {
             markdownObject.DeferSourceInformation(capture);
         }
 
+        // Tables keep the inline parse of cells read as blocks outside the object tree, and callers
+        // reach it through the table, so those objects defer their source information too.
+        foreach (MarkdownObject markdownObject in objects) {
+            if (markdownObject is TableBlock table && !table.DeferDetachedSourceInformation(capture)) {
+                foreach (MarkdownObject deferred in objects) {
+                    deferred.ClearDeferredSourceInformation();
+                }
+
+                capture.ClearDetached();
+                return false;
+            }
+        }
+
         return true;
+    }
+
+    /// <summary>
+    /// Defers source capture for an object outside the bound tree and its descendants. Returns false
+    /// when one carries generic attributes, which a deferred object does not report.
+    /// </summary>
+    internal bool DeferDetached(MarkdownObject? root) {
+        if (root == null) {
+            return true;
+        }
+
+        var pending = new Stack<MarkdownObject>();
+        pending.Push(root);
+        while (pending.Count > 0) {
+            MarkdownObject markdownObject = pending.Pop();
+            if (markdownObject.IsSourceInformationDeferredTo(this)) {
+                continue;
+            }
+
+            if (markdownObject.HasMetadata && !markdownObject.Attributes.IsEmpty) {
+                return false;
+            }
+
+            markdownObject.DeferSourceInformation(this);
+            (_detached ??= new MarkdownObjectSequence()).Add(markdownObject);
+            var children = MarkdownObjectTreeBinder.GetChildObjects(markdownObject);
+            for (int i = children.Count - 1; i >= 0; i--) {
+                pending.Push(children[i]);
+            }
+        }
+
+        return true;
+    }
+
+    private void ClearDetached() {
+        if (_detached == null) {
+            return;
+        }
+
+        foreach (MarkdownObject markdownObject in _detached) {
+            markdownObject.ClearDeferredSourceInformation();
+        }
+
+        _detached = null;
     }
 
     /// <summary>Captures the source information once and attaches it to the document's objects.</summary>
@@ -135,6 +193,10 @@ internal sealed class MarkdownDeferredSourceCapture {
             }
 
             map.RestoreDetached();
+
+            // A detached object the capture could not pair keeps no source information, like an
+            // object added after parsing.
+            ClearDetached();
 
             _document.ClearSemanticAbbreviationDefinitions();
             _ = new MarkdownParseInfo(
