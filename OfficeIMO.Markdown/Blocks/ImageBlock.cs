@@ -40,11 +40,11 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     public IList<ImagePictureSource> PictureSources { get; } = new List<ImagePictureSource>();
     /// <inheritdoc />
     public string? Caption { get; set; }
-    internal MarkdownSourceSpan? AltSyntaxSpan { get; private set; }
-    internal MarkdownSourceSpan? SourceSyntaxSpan { get; private set; }
-    internal MarkdownSourceSpan? TitleSyntaxSpan { get; private set; }
-    internal MarkdownSourceSpan? LinkTargetSyntaxSpan { get; private set; }
-    internal MarkdownSourceSpan? LinkTitleSyntaxSpan { get; private set; }
+    internal MarkdownSourceSpan? AltSyntaxSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
+    internal MarkdownSourceSpan? SourceSyntaxSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
+    internal MarkdownSourceSpan? TitleSyntaxSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
+    internal MarkdownSourceSpan? LinkTargetSyntaxSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
+    internal MarkdownSourceSpan? LinkTitleSyntaxSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Create an image block.</summary>
     public ImageBlock(string path, string? alt, string? title)
@@ -333,5 +333,14 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
             .Append("=\"")
             .Append(HtmlTextEncoder.Encode(value, options))
             .Append('"');
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (ImageBlock)captured;
+        AltSyntaxSpan = source.AltSyntaxSpan;
+        SourceSyntaxSpan = source.SourceSyntaxSpan;
+        TitleSyntaxSpan = source.TitleSyntaxSpan;
+        LinkTargetSyntaxSpan = source.LinkTargetSyntaxSpan;
+        LinkTitleSyntaxSpan = source.LinkTitleSyntaxSpan;
     }
 }

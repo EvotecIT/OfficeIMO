@@ -12,7 +12,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     /// <summary>Structured child blocks owned by this table cell.</summary>
     public List<IMarkdownBlock> ChildBlocks { get; } = new List<IMarkdownBlock>();
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
-    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); set => WriteSourceInformation(ref field, value); }
     /// <summary>Whether this cell belongs to the header row.</summary>
     public bool IsHeader { get; internal set; }
     /// <summary>Zero-based data-row index for body cells; <c>-1</c> for header cells.</summary>
@@ -134,5 +134,10 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
         return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (TableCell)captured;
+        SyntaxChildren = map.Retarget(source.SyntaxChildren);
     }
 }

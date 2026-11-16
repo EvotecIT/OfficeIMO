@@ -4,6 +4,7 @@ internal static class MarkdownInlineSyntaxBuilder {
     private static readonly MarkdownInlineSyntaxBuilderContext _context = new();
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildren(InlineSequence? sequence) {
+        sequence?.EnsureSourceInformation();
         if (sequence == null || sequence.Nodes.Count == 0) {
             return Array.Empty<MarkdownSyntaxNode>();
         }

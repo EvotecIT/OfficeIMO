@@ -1,10 +1,17 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownObjectTreeBinder {
-    internal static void BindDocument(MarkdownDocument document, MarkdownSyntaxNode? syntaxTree = null) {
+    internal static void BindDocument(MarkdownDocument document, MarkdownSyntaxNode? syntaxTree = null) =>
+        BindDocument(document, syntaxTree, visited: null);
+
+    /// <summary>
+    /// Binds the document and, when <paramref name="visited"/> is supplied, records every bound object in
+    /// binding order. Two documents with the same structure record corresponding objects at the same index.
+    /// </summary>
+    internal static void BindDocument(MarkdownDocument document, MarkdownSyntaxNode? syntaxTree, MarkdownObjectSequence? visited) {
         ArgumentNullException.ThrowIfNull(document);
 
-        BindObject(document, parent: null, indexInParent: null, previousSibling: null, nextSibling: null);
+        BindObject(document, parent: null, indexInParent: null, previousSibling: null, nextSibling: null, visited);
 
         if (syntaxTree != null) {
             MapSourceSpans(syntaxTree);
@@ -202,8 +209,10 @@ internal static class MarkdownObjectTreeBinder {
         MarkdownObject? parent,
         int? indexInParent,
         MarkdownObject? previousSibling,
-        MarkdownObject? nextSibling) {
+        MarkdownObject? nextSibling,
+        MarkdownObjectSequence? visited) {
         node.SetTreePosition(parent, indexInParent, previousSibling, nextSibling);
+        visited?.Add(node);
         var pending = new Stack<MarkdownObject>();
         var children = new List<MarkdownObject>();
         pending.Push(node);
@@ -224,6 +233,7 @@ internal static class MarkdownObjectTreeBinder {
                 }
             }
 
+            visited?.AddRange(children);
             for (int i = children.Count - 1; i >= 0; i--) {
                 MarkdownObject child = children[i];
                 if (!IsLeafObject(child)) {

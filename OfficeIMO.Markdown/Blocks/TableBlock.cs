@@ -106,9 +106,9 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     internal List<TableCell>? StructuredHeaders { get; private set; }
     internal List<IReadOnlyList<TableCell>>? StructuredRows { get; private set; }
     internal int? StructuredContentSignature { get; private set; }
-    internal MarkdownSourceSpan? AlignmentRowSourceSpan { get; private set; }
-    internal IReadOnlyList<TableAlignmentCellSource> AlignmentCellSources { get; private set; } = Array.Empty<TableAlignmentCellSource>();
-    internal IReadOnlyList<TablePipeSource> PipeSources { get; private set; } = Array.Empty<TablePipeSource>();
+    internal MarkdownSourceSpan? AlignmentRowSourceSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
+    internal IReadOnlyList<TableAlignmentCellSource> AlignmentCellSources { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); } = Array.Empty<TableAlignmentCellSource>();
+    internal IReadOnlyList<TablePipeSource> PipeSources { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); } = Array.Empty<TablePipeSource>();
     internal bool PreserveHeaderlessSingleRowTable { get; set; }
     internal bool UseHeaderColumnCountForRendering { get; set; }
     internal bool CellsContainRenderedMarkdown { get; set; }
@@ -567,5 +567,47 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         style.Append(name);
         style.Append(':');
         style.Append(HtmlTextEncoder.Encode(value!.Trim(), HtmlRenderContext.Options));
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (TableBlock)captured;
+        AlignmentRowSourceSpan = source.AlignmentRowSourceSpan;
+        AlignmentCellSources = source.AlignmentCellSources;
+        PipeSources = source.PipeSources;
+        InlineRenderOptions = source.InlineRenderOptions;
+        InlineRenderState = source.InlineRenderState;
+    }
+
+    /// <summary>
+    /// Enumerates the parsed cells this table keeps outside the object tree: the inline parse of cells
+    /// read as blocks, and parsed cells of rows padded or cut to the column count.
+    /// </summary>
+    internal IEnumerable<MarkdownObject> EnumerateDetachedObjects() {
+        foreach (var cell in EnumerateRows(ParsedHeaders, ParsedRows)) {
+            yield return cell;
+        }
+
+        foreach (var cell in EnumerateRows(StructuredHeaders, StructuredRows)) {
+            yield return cell;
+        }
+    }
+
+    private static IEnumerable<MarkdownObject> EnumerateRows<T>(List<T>? headers, List<IReadOnlyList<T>>? rows) where T : MarkdownObject {
+        if (headers != null) {
+            for (int i = 0; i < headers.Count; i++) {
+                yield return headers[i];
+            }
+        }
+
+        if (rows == null) {
+            yield break;
+        }
+
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            var row = rows[rowIndex];
+            for (int i = 0; i < row.Count; i++) {
+                yield return row[i];
+            }
+        }
     }
 }

@@ -22,7 +22,7 @@ public sealed class MarkdownSyntaxNode {
     /// <summary>Optional custom extension kind for nodes emitted by syntax-aware extensions.</summary>
     public string? CustomKind => (_literalOrMetadata as MarkdownSyntaxNodeMetadata)?.CustomKind;
     /// <summary>Optional originating model object (document/block/inline) for AST-aware consumers.</summary>
-    public object? AssociatedObject { get; }
+    public object? AssociatedObject { get; private set; }
     /// <summary>Generic Markdown attributes associated with this syntax node.</summary>
     public MarkdownAttributeSet Attributes =>
         (_literalOrMetadata as MarkdownSyntaxNodeMetadata)?.Attributes ?? MarkdownAttributeSet.Empty;
@@ -82,6 +82,9 @@ public sealed class MarkdownSyntaxNode {
             Children[i]?.AttachToParent(this, i);
         }
     }
+
+    // Deferred source capture points nodes of its source-backed parse at the caller's objects.
+    internal void RetargetAssociatedObject(object associatedObject) => AssociatedObject = associatedObject;
 
     /// <summary>Returns this node and all descendant nodes in depth-first order.</summary>
     public IEnumerable<MarkdownSyntaxNode> DescendantsAndSelf() {

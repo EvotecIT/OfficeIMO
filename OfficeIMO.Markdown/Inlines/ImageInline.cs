@@ -14,11 +14,11 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
     /// <summary>Optional title attribute shown as tooltip in HTML.</summary>
     public string? Title { get; }
     /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? AltSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the image source token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? SrcSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? SrcSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the optional image title token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Creates a new inline image.</summary>
     public ImageInline(string alt, string src, string? title = null, string? plainAlt = null) {
         Alt = alt ?? string.Empty;
@@ -56,4 +56,11 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(PlainAlt);
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (ImageInline)captured;
+        AltSourceSpan = source.AltSourceSpan;
+        SrcSourceSpan = source.SrcSourceSpan;
+        TitleSourceSpan = source.TitleSourceSpan;
+    }
 }

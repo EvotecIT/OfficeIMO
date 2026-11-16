@@ -16,13 +16,14 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
     /// <summary>Optional HTML rel attribute preserved from richer sources.</summary>
     public string? LinkRel { get; }
     /// <summary>Source span for the link URL token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? UrlSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? UrlSourceSpan { get => ReadSourceInformation(ref _urlSourceSpan); internal set => WriteSourceInformation(ref _urlSourceSpan, value); }
+    private MarkdownSourceSpan? _urlSourceSpan;
     /// <summary>Source span for the optional link title token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the optional HTML target attribute when imported from richer sources.</summary>
-    public MarkdownSourceSpan? HtmlTargetSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? HtmlTargetSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the optional HTML rel attribute when imported from richer sources.</summary>
-    public MarkdownSourceSpan? HtmlRelSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? HtmlRelSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     // Optional richer label representation (produced by the reader). When present, RenderHtml/RenderMarkdown
     // uses it instead of the plain Text property.
@@ -56,7 +57,8 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         HtmlRelSourceSpan = htmlRelSourceSpan;
     }
 
-    internal bool ParsedAsAutolinkWithoutSyntaxTree { get; set; }
+    internal bool ParsedAsAutolinkWithoutSyntaxTree { get => ReadSourceInformation(ref _parsedAsAutolinkWithoutSyntaxTree); set => WriteSourceInformation(ref _parsedAsAutolinkWithoutSyntaxTree, value); }
+    private bool _parsedAsAutolinkWithoutSyntaxTree;
 
     internal string RenderMarkdown() {
         string? autolinkMarkdown = TryRenderAutolinkMarkdown();
@@ -76,13 +78,15 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
             return null;
         }
 
-        if (!MarkdownInlineMetadataSourceSpans.GetLinkTargetSpan(this).HasValue && !ParsedAsAutolinkWithoutSyntaxTree) {
+        // Before source capture this reads the semantic parse, which marks autolinks and keeps their
+        // markers itself; either way the link writes the same Markdown.
+        if (!_urlSourceSpan.HasValue && !_parsedAsAutolinkWithoutSyntaxTree) {
             return null;
         }
 
-        string? openingMarker = MarkdownInlineMetadataSourceSpans.GetOpeningMarker(this);
-        string? closingMarker = MarkdownInlineMetadataSourceSpans.GetClosingMarker(this);
-        string? separatorMarker = MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(this);
+        string? openingMarker = MarkdownInlineMetadataSourceSpans.GetOpeningMarker(this, captureSourceInformation: false);
+        string? closingMarker = MarkdownInlineMetadataSourceSpans.GetClosingMarker(this, captureSourceInformation: false);
+        string? separatorMarker = MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(this, captureSourceInformation: false);
         if (string.Equals(openingMarker, "<", StringComparison.Ordinal) &&
             string.Equals(closingMarker, ">", StringComparison.Ordinal) &&
             string.IsNullOrEmpty(separatorMarker)) {
@@ -95,7 +99,7 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
             return null;
         }
 
-        string? autolinkLiteral = MarkdownInlineMetadataSourceSpans.GetAutolinkLiteral(this);
+        string? autolinkLiteral = MarkdownInlineMetadataSourceSpans.GetAutolinkLiteral(this, captureSourceInformation: false);
         if (!string.IsNullOrEmpty(autolinkLiteral)) {
             return autolinkLiteral;
         }
@@ -167,4 +171,13 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         sb.Append(Text);
     }
     InlineSequence? IInlineContainerMarkdownInline.NestedInlines => LabelInlines;
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (LinkInline)captured;
+        UrlSourceSpan = source.UrlSourceSpan;
+        TitleSourceSpan = source.TitleSourceSpan;
+        HtmlTargetSourceSpan = source.HtmlTargetSourceSpan;
+        HtmlRelSourceSpan = source.HtmlRelSourceSpan;
+        ParsedAsAutolinkWithoutSyntaxTree = source.ParsedAsAutolinkWithoutSyntaxTree;
+    }
 }
