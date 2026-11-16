@@ -39,6 +39,13 @@ internal static partial class PdfDocumentSemanticEnricher {
             if (pageIndex > 0 && pageNumbers[pageIndex - 1] != pageNumber - 1) continuation = null;
             AddPatternContentsEntries(document, readPage, pageNumber, lines, taggedRoles, knownTitles, entries, claimed, ref continuation, budget);
             if (entries.Count > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, entries.Count);
+            // Columns painted by one text operation share a source run, so neither entry owns its text alone.
+            // Leave such lines as they were read rather than assign the run to one of them.
+            var runOwners = new Dictionary<PdfTextSpan, int>();
+            foreach (PdfTextSpan run in entries.SelectMany(static entry => entry.Runs)) {
+                runOwners[run] = runOwners.TryGetValue(run, out int count) ? count + 1 : 1;
+            }
+            entries.RemoveAll(entry => entry.Runs.Any(run => runOwners[run] > 1));
             if (entries.Count > 0) {
                 var owned = new HashSet<PdfTextSpan>(entries.SelectMany(static entry => entry.Runs));
                 IReadOnlyList<PdfUnderstandingTableCandidate> candidates = tableCandidates[pageIndex];
@@ -95,10 +102,15 @@ internal static partial class PdfDocumentSemanticEnricher {
             // With an artifact leader the gap can be narrow, and the title can end in its own dots.
             int linkEnd = item.Words.FindLastIndex(word => HasRole(word, "Link"));
             List<PdfUnderstandingWord> afterLink = item.Words.Skip(linkEnd + 1).Where(word => !IsLeaderWord(word.Text)).ToList();
+            string structuralLabel = string.Join(" ", afterLink.Select(static word => word.Text.Trim()));
+            // A formatted label such as "Page 2" is a few words; anything longer is not a page reference.
             if (linkEnd >= 0 && item.Words.Take(linkEnd + 1).All(word => HasRole(word, "Link")) &&
-                afterLink.Count == 1 && IsPageLabel(afterLink[0].Text.Trim(), strict: false)) {
+                afterLink.Count is > 0 and <= 3 && structuralLabel.Length <= 24 &&
+                IsPageLabel(afterLink[afterLink.Count - 1].Text.Trim(), strict: false)) {
                 title = item.Words.Take(linkEnd + 1).ToList();
-                pageLabel = afterLink[0].Text.Trim();
+                // A leader painted inside the link is still a separator, not title text.
+                while (title.Count > 0 && IsLeaderWord(title[title.Count - 1].Text)) title.RemoveAt(title.Count - 1);
+                pageLabel = structuralLabel;
             } else if (!TrySplitContentsEntry(item.Words, strictPageLabel: false, out title, out pageLabel, out _, out lastTitleText)) {
                 continue;
             }

@@ -142,6 +142,36 @@ public class PdfTableOfContentsReadbackTests {
     }
 
     [Fact]
+    public void TaggedContents_KeepFormattedPageLabelsOutOfTheTitle() {
+        (string, int)[] sections = { ("Overview", 1), ("Findings", 1) };
+        var options = Options(tagged: true);
+        PdfDocument document = PdfDocument.Create(options).Meta(title: "Contents readback")
+            .TableOfContents(new PdfTableOfContentsOptions { PageNumberFormatter = page => "Page " + page });
+        foreach ((string title, int level) in sections) {
+            document.Section(title, section => section.AddParagraph(title + " body."), new PdfSectionOptions { Level = level, StartOnNewPage = true });
+        }
+
+        PdfLogicalListItem[] entries = PdfDocument.Load(document.ToBytes()).Read().Pages[0].ListItems
+            .Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.Equal(new[] { "Overview", "Findings" }, entries.Select(static entry => entry.Text));
+        Assert.Equal(new[] { "Page 2", "Page 3" }, entries.Select(static entry => entry.TargetPageLabel));
+    }
+
+    [Fact]
+    public void UntaggedColumnsInOneTextRun_ReadAsLinesWithoutLosingEntries() {
+        // Each row is one text operation spanning both columns. Where the columns share a source run neither entry
+        // owns its text alone, so the lines stay as read; either way no title may be lost or merged with another.
+        (string Title, string Page)[] expected = { ("Overview", "2"), ("Methods", "5"), ("Scope", "3"), ("Results", "6") };
+        PdfLogicalPage page = PdfDocument.Load(BuildSharedRunContentsPdf()).Read().Pages[0];
+        PdfLogicalListItem[] entries = page.ListItems.Where(static item => item.IsContentsEntry).ToArray();
+        string lines = string.Join(" ", page.TextBlocks.Where(block => !entries.Any(entry => entry.Lines.Contains(block))).Select(static block => block.Text));
+
+        Assert.All(entries, entry => Assert.Contains((entry.Text, entry.TargetPageLabel ?? string.Empty), expected));
+        Assert.All(expected, item => Assert.True(entries.Any(entry => entry.Text == item.Title) || lines.Contains(item.Title, StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public void UntaggedContentsWithoutLeaders_KeepNumberedTitles() {
         (string, int)[] sections = { ("Chapter 1", 1), ("Chapter 2", 1), ("Appendix IV", 1) };
         PdfLogicalPage page = PdfDocument.Load(CreateContents(Options(tagged: false), sections, startOnNewPage: true, PdfTabLeaderStyle.None))
@@ -272,6 +302,36 @@ public class PdfTableOfContentsReadbackTests {
         Assert.NotNull(font);
         PdfCreateOptions options = new PdfCreateOptions().UseFontFamily("Carlito", font!);
         return profile == PdfComplianceProfile.None ? options : options.UsePdfUa(profile, "en-US");
+    }
+
+    private static byte[] BuildSharedRunContentsPdf() {
+        string content = "BT /F1 11 Tf 150 Tw 72 700 Td (Overview............2 Methods............5) Tj ET\n" +
+            "BT /F1 11 Tf 150 Tw 72 684 Td (Scope.................3 Results............6) Tj ET";
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [4 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] /Count 6 >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R /Annots [12 0 R 13 0 R 14 0 R 15 0 R] >>",
+            "<< /Length " + content.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n" + content + "\nendstream",
+            "<< /Length 0 >>\nstream\n\nendstream"
+        };
+        for (int index = 0; index < 5; index++) objects.Add("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R >>");
+        objects.Add("<< /Type /Annot /Subtype /Link /Rect [72 697 120 710] /Border [0 0 0] /Dest [7 0 R /XYZ 0 792 0] >>");
+        objects.Add("<< /Type /Annot /Subtype /Link /Rect [72 681 110 694] /Border [0 0 0] /Dest [8 0 R /XYZ 0 792 0] >>");
+        objects.Add("<< /Type /Annot /Subtype /Link /Rect [314 697 360 710] /Border [0 0 0] /Dest [10 0 R /XYZ 0 792 0] >>");
+        objects.Add("<< /Type /Annot /Subtype /Link /Rect [320 681 366 694] /Border [0 0 0] /Dest [11 0 R /XYZ 0 792 0] >>");
+
+        var builder = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Count; index++) {
+            offsets.Add(System.Text.Encoding.ASCII.GetByteCount(builder.ToString()));
+            builder.Append(index + 1).Append(" 0 obj\n").Append(objects[index]).Append("\nendobj\n");
+        }
+        int xref = System.Text.Encoding.ASCII.GetByteCount(builder.ToString());
+        builder.Append("xref\n0 ").Append(objects.Count + 1).Append("\n0000000000 65535 f \n");
+        foreach (int offset in offsets) builder.Append(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n \n");
+        builder.Append("trailer\n<< /Root 1 0 R /Size ").Append(objects.Count + 1).Append(" >>\nstartxref\n").Append(xref).Append("\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(builder.ToString());
     }
 
     private static byte[] CreateContents(PdfCreateOptions options, IReadOnlyList<(string Title, int Level)> sections, bool startOnNewPage,
