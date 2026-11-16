@@ -259,15 +259,17 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
 
     private static List<HtmlRenderHeading> BuildHeadings(IReadOnlyList<HtmlRenderPage> pages, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
         var fragments = new List<(int NodeId, int Level, string Text, int PageNumber, double X, double Y, int Order, int? LogicalOrder, bool IsAnchor)>();
+        var anchors = new List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)>();
+        var texts = new List<HtmlRenderTextFragment>();
         foreach (HtmlRenderPage page in pages) {
-            var anchors = new List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)>();
+            anchors.Clear();
             CollectBookmarkAnchors(page.Scene, OfficeTransform.Identity, anchors);
             foreach (var (anchor, point) in anchors) {
                 if (bookmarks == null || !bookmarks.TryGetValue(anchor.SemanticNodeId, out HtmlRenderBookmarkDefinition? definition) || definition.Suppressed) continue;
                 fragments.Add((anchor.SemanticNodeId, definition.Level, anchor.Text, page.PageNumber, point.X, point.Y, anchor.PaintOrder, null, true));
             }
-            var texts = new List<HtmlRenderTextFragment>();
-            CollectTextFragments(page.Scene, OfficeTransform.Identity, texts);
+            texts.Clear();
+            CollectTextFragments(page.Scene, OfficeTransform.Identity, texts, bookmarks);
             foreach (HtmlRenderTextFragment text in texts) {
                 if (!text.SemanticNodeId.HasValue) continue;
                 bool automatic = HtmlRenderHeading.TryGetLevel(text.SemanticRole, out int level);
@@ -327,8 +329,15 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         }
     }
 
+    // Only fragments that can name a heading are kept: an automatic heading role or a bookmark definition.
+    private static bool CanNameHeading(string? semanticRole, int? semanticNodeId,
+        IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) =>
+        semanticNodeId.HasValue
+        && (HtmlRenderHeading.TryGetLevel(semanticRole, out _) || bookmarks != null && bookmarks.ContainsKey(semanticNodeId.Value));
+
     private static void CollectTextFragments(
-        IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments) {
+        IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments,
+        IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
         IReadOnlyList<HtmlRenderVisual> ordered = InPaintOrder(visuals);
         for (int index = 0; index < ordered.Count; index++) {
             HtmlRenderVisual visual = ordered[index];
@@ -337,7 +346,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
             }
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
                 HtmlRenderText? representative = EnumerateVisuals(logicalTextGroup.Visuals).OfType<HtmlRenderText>().FirstOrDefault();
-                if (representative != null) {
+                if (representative != null && CanNameHeading(representative.SemanticRole, representative.SemanticNodeId, bookmarks)) {
                     OfficePoint point = transform.TransformPoint(new OfficePoint(logicalTextGroup.X, logicalTextGroup.Y));
                     fragments.Add(new HtmlRenderTextFragment(
                         logicalTextGroup.Text,
@@ -351,6 +360,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
                 continue;
             }
             if (visual is HtmlRenderText text) {
+                if (!CanNameHeading(text.SemanticRole, text.SemanticNodeId, bookmarks)) continue;
                 OfficePoint point = transform.TransformPoint(new OfficePoint(text.X, text.Y));
                 fragments.Add(new HtmlRenderTextFragment(text.Text, text.SemanticRole, text.SemanticNodeId, point.X, point.Y, text.PaintOrder, text.SemanticFragmentOrder));
                 continue;
@@ -360,7 +370,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
             if (children == null) continue;
             OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
                 ? effect.Transform.Then(transform) : transform;
-            CollectTextFragments(children, childTransform, fragments);
+            CollectTextFragments(children, childTransform, fragments, bookmarks);
         }
     }
 

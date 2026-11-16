@@ -111,7 +111,9 @@ internal static partial class HtmlPdfRenderedConverter {
         Func<string, PdfCore.PdfTextRun[]> createRuns) {
         OfficeFontStyle style = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        foreach (OfficeFontFallbackRun run in webFonts.Faces.PlanFallbackRuns(text, visual.Font.FamilyName, style)) {
+        IReadOnlyList<OfficeFontFallbackRun> runs = webFonts.Faces.PlanFallbackRuns(text, visual.Font.FamilyName, style);
+        for (int index = 0; index < runs.Count; index++) {
+            OfficeFontFallbackRun run = runs[index];
             if (webFonts.Faces.TryResolveFaceForText(run.Text, run.FamilyRequest, style, out OfficeFontFace? face)
                 && face?.Program is OfficeTrueTypeFont program
                 && program.ContainsUnpaintableColorGlyph(run.Text)) return false;
@@ -203,8 +205,12 @@ internal static partial class HtmlPdfRenderedConverter {
             : visual is HtmlRenderPathClipGroup pathClip ? pathClip.Visuals
             : visual is HtmlRenderEffectGroup effect ? effect.Visuals
             : null;
-        return children == null || children.Any(child => ContainsPdfRenderableVisual(
-            child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken));
+        if (children == null) return true;
+        // A loop rather than Any: a lambda here would allocate its closure on every call, text visuals included.
+        foreach (HtmlRenderVisual child in children) {
+            if (ContainsPdfRenderableVisual(child, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)) return true;
+        }
+        return false;
     }
 
     private static bool CanPaintPrivateUseGlyph(

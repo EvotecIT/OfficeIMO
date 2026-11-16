@@ -11,12 +11,25 @@ internal sealed record HtmlRenderBreakRange(double Start, double End) {
         IEnumerable<HtmlRenderBreakRange> source, double extent) {
         if (source is IReadOnlyCollection<HtmlRenderBreakRange> { Count: 0 }) return Array.Empty<HtmlRenderBreakRange>();
 
+        var candidates = new List<HtmlRenderBreakRange>();
+        bool ordered = true;
+        foreach (HtmlRenderBreakRange range in source) {
+            if (!IsFinite(range.Start) || !IsFinite(range.End)
+                || range.End < range.Start || range.End < 0D || range.Start > extent) continue;
+            var clamped = new HtmlRenderBreakRange(Math.Max(0D, range.Start), Math.Min(extent, range.End));
+            if (ordered && candidates.Count > 0) {
+                HtmlRenderBreakRange last = candidates[candidates.Count - 1];
+                int byStart = last.Start.CompareTo(clamped.Start);
+                ordered = byStart < 0 || byStart == 0 && last.End.CompareTo(clamped.End) <= 0;
+            }
+            candidates.Add(clamped);
+        }
+        // Ranges almost always arrive in order; the stable sort is kept for the others.
+        IEnumerable<HtmlRenderBreakRange> sorted = ordered
+            ? candidates
+            : candidates.OrderBy(range => range.Start).ThenBy(range => range.End);
         var result = new List<HtmlRenderBreakRange>();
-        foreach (HtmlRenderBreakRange range in source
-            .Where(range => IsFinite(range.Start) && IsFinite(range.End)
-                && range.End >= range.Start && range.End >= 0D && range.Start <= extent)
-            .Select(range => new HtmlRenderBreakRange(Math.Max(0D, range.Start), Math.Min(extent, range.End)))
-            .OrderBy(range => range.Start).ThenBy(range => range.End)) {
+        foreach (HtmlRenderBreakRange range in sorted) {
             if (result.Count > 0 && range.Start <= result[result.Count - 1].End) {
                 HtmlRenderBreakRange previous = result[result.Count - 1];
                 result[result.Count - 1] = new(previous.Start, Math.Max(previous.End, range.End));
