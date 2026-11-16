@@ -158,13 +158,46 @@ internal sealed partial class PdfAccessibilityInspector {
             Fail("06-003", "7.1-9", "The XMP metadata has no dc:title. Add a title that identifies the document.");
         }
         string? raw = xmp?.RawXml;
-        if (raw is not null && raw.Contains("x-default")) {
-            Applies("11-006");
-            if (!_catalogHasLanguage) {
-                Fail("11-006", "7.2-33", "The XMP metadata uses x-default language alternatives but the catalog has no Lang entry, so their language cannot be determined.");
+        if (raw is not null) {
+            bool usesDefault;
+            try {
+                usesDefault = XmpUsesDefaultLanguage(raw);
+            } catch (System.Xml.XmlException exception) {
+                Unknown("11-006", "7.2-33", "The XMP metadata could not be read as XML: " + exception.Message);
+                return xmp?.PdfUaPart;
+            }
+            if (usesDefault) {
+                Applies("11-006");
+                if (!_catalogHasLanguage) {
+                    Fail("11-006", "7.2-33", "The XMP metadata uses x-default language alternatives but the catalog has no Lang entry, so their language cannot be determined.");
+                }
             }
         }
         return xmp?.PdfUaPart;
+    }
+
+    // Reads xml:lang attributes from the parsed packet, so comments, text and character references can't change the answer.
+    private static bool XmpUsesDefaultLanguage(string xml) {
+        var settings = new System.Xml.XmlReaderSettings {
+            DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+            XmlResolver = null,
+            ConformanceLevel = System.Xml.ConformanceLevel.Fragment,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true
+        };
+        using var reader = System.Xml.XmlReader.Create(new StringReader(xml), settings);
+        while (reader.Read()) {
+            if (reader.NodeType != System.Xml.XmlNodeType.Element || !reader.MoveToFirstAttribute()) continue;
+            do {
+                if (string.Equals(reader.LocalName, "lang", StringComparison.Ordinal) &&
+                    string.Equals(reader.NamespaceURI, "http://www.w3.org/XML/1998/namespace", StringComparison.Ordinal) &&
+                    string.Equals(reader.Value.Trim(), "x-default", StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            } while (reader.MoveToNextAttribute());
+            reader.MoveToElement();
+        }
+        return false;
     }
 
     private void CheckCatalogFlags() {

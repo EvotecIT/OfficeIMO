@@ -143,6 +143,10 @@ public class PdfAccessibilityCheckTests {
     [InlineData("enclosing-marked-content-language", "11-002", PdfAccessibilityConditionStatus.NotApplicable)]
     [InlineData("empty-text-operators", "01-005", PdfAccessibilityConditionStatus.Passed)]
     [InlineData("unmapped-h7", "02-001", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("content-tagged-below-depth-limit", "01-005", PdfAccessibilityConditionStatus.Indeterminate)]
+    [InlineData("known-owner-without-language-in-truncated-tree", "11-001", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("xmp-default-language-in-comment", "11-006", PdfAccessibilityConditionStatus.NotApplicable)]
+    [InlineData("xmp-default-language-as-character-reference", "11-006", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("form-resources-from-painter", "31-009", PdfAccessibilityConditionStatus.Failed)]
     public void CheckAccessibility_ReadsTheConstructThatDecidesTheCondition(string construct, string conditionId, PdfAccessibilityConditionStatus expected) {
         string catalog = string.Empty, resources = string.Empty, content;
@@ -175,6 +179,31 @@ public class PdfAccessibilityCheckTests {
                 break;
             case "enclosing-marked-content-language":
                 content = "/Span <</Lang (en-US)>> BDC /Span <</ActualText (x)>> BDC 0 0 1 1 re f EMC EMC";
+                break;
+            case "content-tagged-below-depth-limit":
+                // The only MCID is referenced by an element deeper than the structure inspection limit.
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                content = "/P <</MCID 0>> BDC 0 0 1 1 re f EMC";
+                extra.Add("<< /Type /StructTreeRoot /K 6 0 R >>");
+                AddDeepChain(extra, 6, 5, "/K 0 /Pg 3 0 R");
+                break;
+            case "known-owner-without-language-in-truncated-tree":
+                // A shallow P owns the text and has no Lang; a separate deep branch truncates the tree.
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                resources = "/Font << /F1 7 0 R >>";
+                content = "/P <</MCID 0>> BDC BT /F1 12 Tf 10 10 Td (x) Tj ET EMC";
+                extra.Add("<< /Type /StructTreeRoot /K [6 0 R 8 0 R] >>");
+                extra.Add("<< /Type /StructElem /S /P /P 5 0 R /Pg 3 0 R /K 0 >>");
+                extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+                AddDeepChain(extra, 8, 5, string.Empty);
+                break;
+            case "xmp-default-language-in-comment":
+            case "xmp-default-language-as-character-reference":
+                catalog = "/Metadata 5 0 R";
+                content = string.Empty;
+                extra.Add(Stream("/Type /Metadata /Subtype /XML", construct == "xmp-default-language-in-comment"
+                    ? Xmp.Replace("xml:lang=\"x-default\"", "xml:lang=\"en-US\"").Replace("<dc:title>", "<!-- x-default --><dc:title>")
+                    : Xmp.Replace("xml:lang=\"x-default\"", "xml:lang=\"x&#45;default\"")));
                 break;
             case "unmapped-h7":
                 catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
@@ -213,6 +242,16 @@ public class PdfAccessibilityCheckTests {
         PdfAccessibilityReport report = PdfDocument.Load(new MemoryStream(Build(objects.ToArray()))).Proof.CheckAccessibility();
 
         Assert.Equal(expected, report.Conditions.Single(result => result.Condition.ConditionId == conditionId).Status);
+    }
+
+    // Appends a chain of Div elements deeper than the structure inspection limit, starting at object number first.
+    private static void AddDeepChain(List<string> objects, int first, int parent, string leafEntries) {
+        const int depth = 520;
+        for (int i = 0; i < depth; i++) {
+            int number = first + i;
+            string kids = i == depth - 1 ? leafEntries : "/K " + (number + 1).ToString(CultureInfo.InvariantCulture) + " 0 R";
+            objects.Add("<< /Type /StructElem /S /Div /P " + (i == 0 ? parent : number - 1).ToString(CultureInfo.InvariantCulture) + " 0 R " + kids + " >>");
+        }
     }
 
     private static string Stream(string dictionary, string data) =>

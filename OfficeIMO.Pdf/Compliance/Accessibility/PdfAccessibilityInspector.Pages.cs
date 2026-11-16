@@ -41,6 +41,9 @@ internal sealed partial class PdfAccessibilityInspector {
             Applies("01-005");
             if (content.ArtifactsInTaggedContent > 0) {
                 Fail("01-003", "7.1-1", Count(content.ArtifactsInTaggedContent, "Artifact sequence") + " inside tagged content.", pageNumber, page.ObjectNumber);
+            } else if (structure.Truncated && content.ArtifactsInUnlinkedMcid > 0) {
+                Unknown("01-003", "7.1-1", Count(content.ArtifactsInUnlinkedMcid, "Artifact sequence") + " inside an MCID the structure tree " +
+                    "does not reference. The structure tree exceeds the inspection limits, so that MCID may be tagged deeper in it.", pageNumber, page.ObjectNumber);
             }
             if (content.TaggedContentInArtifacts > 0) {
                 Fail("01-004", "7.1-2", Count(content.TaggedContentInArtifacts, "tagged sequence") + " inside Artifact content.", pageNumber, page.ObjectNumber);
@@ -58,7 +61,7 @@ internal sealed partial class PdfAccessibilityInspector {
                     : (font.Value, fontObject, pageNumber);
             }
             foreach (KeyValuePair<int, int> invocation in content.FormInvocations) {
-                formInvocations[invocation.Key] = formInvocations.TryGetValue(invocation.Key, out int count) ? count + invocation.Value : invocation.Value;
+                formInvocations[invocation.Key] = PdfAccessibilityPageContent.AddCount(formInvocations.TryGetValue(invocation.Key, out int count) ? count : 0, invocation.Value);
                 if (!formPage.ContainsKey(invocation.Key)) formPage[invocation.Key] = pageNumber;
             }
             formsWithMcids.UnionWith(content.FormsWithMcids);
@@ -105,21 +108,22 @@ internal sealed partial class PdfAccessibilityInspector {
             FailUnlessTruncated(structure, "11-001", "7.2-34", Count(content.UntaggedTextWithoutLanguage, "untagged text item") + " without a determinable language. Set Lang on the catalog.",
                 pageNumber, page.ObjectNumber);
         }
+        // TextMcids holds only MCIDs the tree references, so their owners and its ancestors were read.
         int missing = 0;
         foreach ((int? stream, int mcid) in content.TextMcids) {
             if (_catalogHasLanguage) continue;
             if (!HasLanguage(structure.Owner(page.ObjectNumber, stream, mcid))) missing++;
         }
         if (missing > 0) {
-            FailUnlessTruncated(structure, "11-001", "7.2-34", Count(missing, "tagged text sequence") + " without a determinable language. Set Lang on the catalog or on the structure elements.",
+            Fail("11-001", "7.2-34", Count(missing, "tagged text sequence") + " without a determinable language. Set Lang on the catalog or on the structure elements.",
                 pageNumber, page.ObjectNumber);
         }
         foreach ((int? stream, int? mcid, string key) in content.PropertyTextWithoutLang) {
             Applies("11-002");
             StructNode? owner = mcid is int id ? structure.Owner(page.ObjectNumber, stream, id) : null;
             if (!HasLanguage(owner)) {
-                Fail("11-002", key == "ActualText" ? "7.2-30" : key == "Alt" ? "7.2-31" : "7.2-32",
-                    "Marked content carries " + key + " text without a determinable language.", pageNumber, page.ObjectNumber, owner);
+                FailForOwner(structure, owner, "11-002", key == "ActualText" ? "7.2-30" : key == "Alt" ? "7.2-31" : "7.2-32",
+                    "Marked content carries " + key + " text without a determinable language.", pageNumber, page.ObjectNumber);
             }
         }
     }

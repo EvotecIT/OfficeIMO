@@ -8,6 +8,8 @@ internal sealed class PdfAccessibilityPageContent {
     internal int ArtifactsInTaggedContent { get; set; }
     /// <summary>MCID sequences opened inside an artifact.</summary>
     internal int TaggedContentInArtifacts { get; set; }
+    /// <summary>Artifact sequences opened inside an MCID that the structure tree does not reference.</summary>
+    internal int ArtifactsInUnlinkedMcid { get; set; }
     /// <summary>MCIDs enclosing shown text with no enclosing marked-content Lang, keyed by owning stream (null for page content).</summary>
     internal HashSet<(int? Stream, int Mcid)> TextMcids { get; } = new();
     /// <summary>Text-showing operators outside tagged content and artifacts with no enclosing marked-content Lang.</summary>
@@ -26,6 +28,9 @@ internal sealed class PdfAccessibilityPageContent {
     internal HashSet<int> FormsWithMcids { get; } = new();
     /// <summary>Reference XObjects (Form XObjects with a Ref entry) painted on this page.</summary>
     internal HashSet<int> ReferenceXObjects { get; } = new();
+
+    /// <summary>Adds invocation counts without wrapping, so a large count can never read as a small one.</summary>
+    internal static int AddCount(int current, int added) => current > int.MaxValue - added ? int.MaxValue : current + added;
 
     internal sealed class ReferenceEqualityComparer<T> : IEqualityComparer<T> where T : class {
         internal static ReferenceEqualityComparer<T> Instance { get; } = new();
@@ -93,6 +98,7 @@ public sealed partial class PdfReadPage {
                         if (mcid.HasValue && streamObject is int formWithMcid) result.FormsWithMcids.Add(formWithMcid);
                         bool artifact = string.Equals(tag, "Artifact", StringComparison.Ordinal);
                         if (artifact && scope.Tagged) result.ArtifactsInTaggedContent++;
+                        else if (artifact && scope.Mcid.HasValue) result.ArtifactsInUnlinkedMcid++;
                         // Content keeps the tagged state of an enclosing MCID, so an Artifact opened inside tagged
                         // content also holds tagged content (veraPDF reports both 7.1-1 and 7.1-2 for it).
                         if ((mcid.HasValue || scope.Mcid.HasValue) && (artifact || scope.Artifact)) result.TaggedContentInArtifacts++;
@@ -222,9 +228,9 @@ public sealed partial class PdfReadPage {
         }
 
         void CountInvocation(int form, int count) {
-            result.FormInvocations[form] = result.FormInvocations.TryGetValue(form, out int seen) ? seen + count : count;
+            result.FormInvocations[form] = PdfAccessibilityPageContent.AddCount(result.FormInvocations.TryGetValue(form, out int seen) ? seen : 0, count);
             foreach (Dictionary<int, int> counter in nestedCounters) {
-                counter[form] = counter.TryGetValue(form, out int nestedSeen) ? nestedSeen + count : count;
+                counter[form] = PdfAccessibilityPageContent.AddCount(counter.TryGetValue(form, out int nestedSeen) ? nestedSeen : 0, count);
             }
         }
     }
