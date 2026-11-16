@@ -541,21 +541,13 @@ internal static partial class PdfSyntax {
 
     /// <summary>Reuses token arrays on modern targets while retaining the compatible list path on legacy targets.</summary>
     private struct PooledTokenBuffer<TText> : IDisposable where TText : struct, IPdfContentText {
-#if NET8_0_OR_GREATER
         private PdfToken[]? _rented;
-#else
-        private List<PdfToken>? _small;
-#endif
         private int _count;
         private readonly TText _source;
 
         internal PooledTokenBuffer(TText source, int initialCapacity) {
             _source = source;
-#if NET8_0_OR_GREATER
             _rented = RentTokens(Math.Max(initialCapacity, 16));
-#else
-            _small = new List<PdfToken>(initialCapacity);
-#endif
         }
 
         internal readonly int Count => _count;
@@ -564,38 +556,28 @@ internal static partial class PdfSyntax {
         internal readonly PdfToken this[int index] {
             get {
                 if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index));
-#if NET8_0_OR_GREATER
                 return _rented![index];
-#else
-                return _small![index];
-#endif
             }
         }
 
         internal void Add(PdfToken token) {
-#if NET8_0_OR_GREATER
             if (_count == _rented!.Length) {
                 PdfToken[] expanded = RentTokens(checked(_count * 2));
                 Array.Copy(_rented, expanded, _count);
-                ReturnTokens(_rented);
+                ReturnTokens(_rented, _count);
                 _rented = expanded;
             }
 
             _rented[_count] = token;
-#else
-            _small!.Add(token);
-#endif
 
             _count++;
         }
 
         public void Dispose() {
-#if NET8_0_OR_GREATER
             if (_rented is not null) {
-                ReturnTokens(_rented);
+                ReturnTokens(_rented, _count);
                 _rented = null;
             }
-#endif
         }
     }
 
@@ -621,6 +603,8 @@ internal static partial class PdfSyntax {
         return ArrayPool<PdfToken>.Shared.Rent(minimumLength);
     }
 
+    private static void ReturnTokens(PdfToken[] tokens, int _) => ReturnTokens(tokens);
+
     private static void ReturnTokens(PdfToken[] tokens) {
         if (tokens.Length > LargeTokenArrayLength && tokens.Length <= MaximumCachedTokenArrayLength) {
             PdfToken[]? cached = t_largeTokens;
@@ -633,6 +617,29 @@ internal static partial class PdfSyntax {
             }
         }
         ArrayPool<PdfToken>.Shared.Return(tokens, clearArray: true);
+    }
+#else
+    // Older targets have no shared array pool, and a new token list per object was a measurable share of loading.
+    // Each thread keeps its largest token array; a nested tokenization while it is lent out allocates its own.
+    private const int MaximumCachedTokenArrayLength = 1 << 17;
+    [ThreadStatic] private static PdfToken[]? t_tokens;
+
+    private static PdfToken[] RentTokens(int minimumLength) {
+        PdfToken[]? cached = t_tokens;
+        if (cached is not null && cached.Length >= minimumLength) {
+            t_tokens = null;
+            return cached;
+        }
+        return new PdfToken[minimumLength];
+    }
+
+    private static void ReturnTokens(PdfToken[] tokens, int used) {
+        if (tokens.Length > MaximumCachedTokenArrayLength) return;
+        PdfToken[]? cached = t_tokens;
+        if (cached is not null && cached.Length >= tokens.Length) return;
+        // Tokens can reference source strings; clear the used slots before keeping the array.
+        Array.Clear(tokens, 0, Math.Min(used, tokens.Length));
+        t_tokens = tokens;
     }
 #endif
 
@@ -893,10 +900,14 @@ internal static partial class PdfSyntax {
 
     private static PdfToken MaterializeToken<TText>(TText source, int start, int length,
         System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText {
-        if ((uint)length < (uint)KnownTokenTextsByLength.Length) {
+        if ((uint)length < (uint)KnownTokenTextsByLength.Length && length > 0) {
             string[] candidates = KnownTokenTextsByLength[length];
+            // Known names share their leading slash, so candidates are first told apart by the next character.
+            int keyIndex = length > 1 ? 1 : 0;
+            char key = source[start + keyIndex];
             for (int candidateIndex = 0; candidateIndex < candidates.Length; candidateIndex++) {
                 string candidate = candidates[candidateIndex];
+                if (candidate[keyIndex] != key) continue;
                 bool matches = true;
                 for (int characterIndex = 0; characterIndex < length; characterIndex++) {
                     if (source[start + characterIndex] != candidate[characterIndex]) {
