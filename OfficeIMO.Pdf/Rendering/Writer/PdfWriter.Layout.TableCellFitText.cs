@@ -9,20 +9,26 @@ internal static partial class PdfWriter {
 
     /// <summary>
     /// Stretches or condenses each source line of a fit-text cell paragraph to the resolved line width.
-    /// Long lines are condensed with horizontal glyph scaling; short lines are spread with character spacing.
+    /// Long lines are condensed with horizontal glyph scaling; short lines are spread with character spacing,
+    /// or widened with glyph scaling when they end in a connected script.
     /// Font height is unchanged.
     /// </summary>
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> FitTableCellParagraphText(
         System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, double firstLineWidth, double followingLineWidth,
         PdfStandardFont baseFont, double fontSize, PdfCreateOptions? options) {
-        // Tabs and inline objects position themselves, so their paragraphs keep the authored layout.
-        if (runs.Count == 0 || runs.Any(run => run.InlineElement != null || (run.Text?.IndexOf('\t') ?? -1) >= 0)) return runs;
+        if (runs.Count == 0) return runs;
 
         PdfCreateOptions measurementOptions = options ?? new PdfCreateOptions();
         var sourceLines = SplitTableCellFitTextLines(runs, out var separators);
         var fitted = new System.Collections.Generic.List<PdfTextRun>();
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
             if (lineIndex > 0) fitted.Add(separators[lineIndex - 1]);
+            // Tabs and inline objects position themselves, so their own lines keep the authored layout.
+            if (sourceLines[lineIndex].Any(run => run.InlineElement != null || (run.Text?.IndexOf('\t') ?? -1) >= 0)) {
+                fitted.AddRange(sourceLines[lineIndex]);
+                continue;
+            }
+
             // Fit Text replaces the authored character width and spacing on the lines it fits.
             System.Collections.Generic.IReadOnlyList<PdfTextRun> line = sourceLines[lineIndex]
                 .Select(run => string.IsNullOrEmpty(run.Text) ? run : run.WithHorizontalTextScaling(100D).WithCharacterSpacing(OfficeIMO.OfficeLength.Zero)).ToArray();
@@ -32,6 +38,11 @@ internal static partial class PdfWriter {
                 fitted.AddRange(line);
             } else if (natural > target) {
                 fitted.AddRange(CondenseTableCellFitTextLine(line, natural, target, baseFont, fontSize, measurementOptions));
+            } else if (EndsWithTableCellFitTextShapingContext(line)) {
+                // Spacing would leave a blank advance after the final joined glyph; widen the glyphs instead.
+                PdfTextRun[] widened = ScaleTableCellFitTextLine(line, target / natural);
+                fitted.AddRange(CondenseTableCellFitTextLine(widened, MeasureTableCellFitTextLine(widened, baseFont, fontSize, measurementOptions),
+                    target, baseFont, fontSize, measurementOptions));
             } else {
                 fitted.AddRange(SpreadTableCellFitTextLine(line, target - natural, target, baseFont, fontSize, measurementOptions));
             }
@@ -123,12 +134,6 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            // Splitting would break the joining context of connected scripts; space the whole run instead.
-            if (UsesTableCellFitTextShapingContext(text)) {
-                pieces.Add((run, true));
-                continue;
-            }
-
             int[] boundaries = StringInfo.ParseCombiningCharacters(text);
             int last = boundaries[boundaries.Length - 1];
             if (last > 0) pieces.Add((CreateStyledTextRun(text.Substring(0, last), run, run.StandardFont), true));
@@ -155,6 +160,11 @@ internal static partial class PdfWriter {
         pieces.Select(piece => piece.Spaced
             ? piece.Run.WithCharacterSpacing(OfficeIMO.OfficeLength.Points(extraSpacing))
             : piece.Run).ToArray();
+
+    private static bool EndsWithTableCellFitTextShapingContext(System.Collections.Generic.IReadOnlyList<PdfTextRun> line) {
+        PdfTextRun? last = line.LastOrDefault(run => !string.IsNullOrEmpty(run.Text));
+        return last != null && UsesTableCellFitTextShapingContext(last.Text!);
+    }
 
     private static bool UsesTableCellFitTextShapingContext(string text) {
         foreach (char ch in text) {

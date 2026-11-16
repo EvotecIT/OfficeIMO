@@ -108,6 +108,21 @@ public partial class Word {
         Assert.All(fitted, letter => Assert.Equal(fitted[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
     }
 
+    [Fact]
+    public void SaveAsPdf_FitTextCellFitsLinesBesideALineWithATab() {
+        using var pdf = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, "Short", fitText: true, paragraph => {
+            paragraph.AddBreak();
+            paragraph.AddText("Q");
+            paragraph.AddTab();
+            paragraph.AddText("R");
+        }));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        double edge = letters.Single(letter => letter.Value == "Z").EndBaseLine.X;
+
+        Assert.InRange(letters.Single(letter => letter.Value == "t").EndBaseLine.X, edge - 1D, edge + 0.05D);
+        Assert.True(letters.Single(letter => letter.Value == "R").StartBaseLine.X < edge - 20D);
+    }
+
     private static byte[] RenderFitTextCell(WordFileFormat format, string text, bool fitText, Action<WordParagraph>? configure = null) {
         using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(2, 1, WordTableStyle.TableNormal);
