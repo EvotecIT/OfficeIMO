@@ -282,8 +282,26 @@ def outputs_for(work: str, e: dict) -> list[tuple[str, str, str | None, str]]:
         if not os.path.isdir(folder):
             continue
         path = os.path.join(folder, e["id"] + "." + target)
-        rows.append((tool, target, path if os.path.exists(path) else None, "ok" if os.path.exists(path) else "error"))
+        status = _tool_status(folder).get(e["id"], "ok") if os.path.exists(path) else "error"
+        rows.append((tool, target, path if status == "ok" else None, status))
     return rows
+
+
+_STATUS_CACHE: dict[str, dict[str, str]] = {}
+
+
+def _tool_status(folder: str) -> dict[str, str]:
+    """Per-document outcome from a comparison runner's _log.json; a file left by a failed or earlier run is not a success."""
+    if folder not in _STATUS_CACHE:
+        statuses: dict[str, str] = {}
+        log = os.path.join(folder, "_log.json")
+        if os.path.exists(log):
+            with open(log, encoding="utf-8") as f:
+                for row in json.load(f):
+                    raw = str(row.get("status", ""))
+                    statuses[row["id"]] = "ok" if raw == "ok" or raw.endswith("SUCCESS") else raw[:80] or "error"
+        _STATUS_CACHE[folder] = statuses
+    return _STATUS_CACHE[folder]
 
 
 def _score_one(work: str, e: dict) -> list[dict]:

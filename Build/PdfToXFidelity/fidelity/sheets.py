@@ -11,7 +11,11 @@ _DATE_PATTERNS = [
     (re.compile(r"^(\d{1,2})\.(\d{1,2})\.(\d{2,4})\.?$"), ("d", "m", "y")),
     (re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{2,4})$"), ("m", "d", "y")),
     (re.compile(r"^(\d{1,2})-(\d{1,2})-(\d{2,4})$"), ("d", "m", "y")),
+    (re.compile(r"^(\d{4})/(\d{1,2})/(\d{1,2})$"), ("y", "m", "d")),
+    (re.compile(r"^(\d{4})\.(\d{1,2})\.(\d{1,2})\.?$"), ("y", "m", "d")),
 ]
+_MONTHS = {m: i + 1 for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"])}
+_NAMED_DATE = re.compile(r"^(\d{1,2})[ .-]([A-Za-z]{3})[A-Za-z]*\.?[ .-](\d{2,4})$")
 _EPOCH = dt.date(1899, 12, 30)
 
 
@@ -19,6 +23,13 @@ def parse_date(text: str) -> list[float]:
     """Candidate Excel serials for a displayed date; slash dates are ambiguous, so both readings are returned."""
     value = norm_text(text)
     out = []
+    m = _NAMED_DATE.match(value)
+    if m and m.group(2).lower() in _MONTHS:
+        year = int(m.group(3)) + (2000 if len(m.group(3)) == 2 else 0)
+        try:
+            out.append(float((dt.date(year, _MONTHS[m.group(2).lower()], int(m.group(1))) - _EPOCH).days))
+        except ValueError:
+            pass
     for pattern, order in _DATE_PATTERNS:
         m = pattern.match(value)
         if not m:

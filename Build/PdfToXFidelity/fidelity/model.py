@@ -128,15 +128,20 @@ _numeric = re.compile(r"^\d[\d.,']*$")
 
 
 def canonical_number(token: str) -> str:
-    """Numbers compare by value, so 1,234.50 / 1.234,50 / 1234.5 are the same token."""
-    if not _numeric.match(token) or not any(ch in token for ch in ".,'"):
-        return (token.lstrip("0") or "0") if token.isdigit() else token
-    from .sheets import parse_number
-
-    parsed = parse_number(token)
-    if parsed is None:
+    """Numbers compare by value, so 1,234.50 / 1.234,50 / 1234.5 / 1234.50 are the same token."""
+    if not _numeric.match(token) or len(token) > 18:
         return token
-    return format(round(parsed[0], 6), "g") if abs(parsed[0]) < 1e15 else token
+    if token.isdigit():
+        value = float(token)
+    else:
+        from .sheets import parse_number
+
+        parsed = parse_number(token)
+        if parsed is None:
+            return token
+        value = parsed[0]
+    # Fifteen significant digits keep distinct values distinct; rounding to 6 decimals absorbs float noise.
+    return format(round(value, 6), ".15g")
 
 
 def tokens(value: str) -> list[str]:
@@ -146,3 +151,20 @@ def tokens(value: str) -> list[str]:
 
 def split_words(text: str, bold=False, italic=False, size=None) -> list[Word]:
     return [Word(t, bold, italic, size) for t in norm_text(text).split(" ") if t]
+
+
+def join_segments(segments: list[tuple[str, bool, bool, float | None]]) -> list[Word]:
+    """Words from consecutive styled runs. A word split across runs ("super" + "script") stays one word
+    and takes the style of its first character."""
+    words: list[Word] = []
+    current: Word | None = None
+    for text, bold, italic, size in segments:
+        for ch in unicodedata.normalize("NFKC", text or "").translate(_dash):
+            if ch.isspace():
+                current = None
+                continue
+            if current is None:
+                current = Word("", bold, italic, size)
+                words.append(current)
+            current.text += ch
+    return words

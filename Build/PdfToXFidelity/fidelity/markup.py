@@ -5,7 +5,7 @@ import html
 import re
 from html.parser import HTMLParser
 
-from .model import Block, Cell, Document, Table, Word, norm_text, split_words
+from .model import Block, Cell, Document, Table, Word, join_segments, norm_text, split_words
 
 _BLOCK = {"p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br", "section", "article", "header", "footer", "aside",
           "blockquote", "pre", "caption", "figcaption", "dt", "dd", "tr", "td", "th", "table", "ul", "ol", "hr", "figure",
@@ -41,6 +41,7 @@ class _HtmlReader(HTMLParser):
         self.stack: list[tuple[str, dict]] = []  # (tag, style state)
         self.skip = 0
         self.words: list[Word] = []
+        self.segments: list[tuple[str, bool, bool, float | None]] = []
         self.kind = ("paragraph", 0, False)
         self.lists: list[bool] = []
         self.tables: list[dict] = []
@@ -54,6 +55,8 @@ class _HtmlReader(HTMLParser):
         return self.stack[-1][1] if self.stack else {"b": False, "i": False, "size": None}
 
     def _flush(self):
+        self.words.extend(join_segments(self.segments))
+        self.segments = []
         if self.tables:
             cell = self.tables[-1].get("cell")
             if cell is not None:
@@ -181,7 +184,7 @@ class _HtmlReader(HTMLParser):
         if self.skip:
             return
         s = self._state()
-        self.words.extend(split_words(data, s["b"], s["i"], s["size"]))
+        self.segments.append((data, s["b"], s["i"], s["size"]))
 
     def _parse_classes(self, css: str):
         for selector, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
@@ -227,13 +230,13 @@ def _md_inline(text: str, doc: Document) -> list[Word]:
     text = _TAG.sub("", text)
     text = re.sub(r"\[\^[^\]]+\]", "", text)  # footnote references
     text = html.unescape(text)
-    words: list[Word] = []
+    segments: list[tuple[str, bool, bool, float | None]] = []
     bold = italic = False
     i = 0
     buf: list[str] = []
 
     def flush():
-        words.extend(split_words(re.sub(r"\\(.)", r"\1", "".join(buf)), bold, italic))
+        segments.append((re.sub(r"\\(.)", r"\1", "".join(buf)), bold, italic, None))
         buf.clear()
 
     while i < len(text):
@@ -265,7 +268,7 @@ def _md_inline(text: str, doc: Document) -> list[Word]:
         buf.append(ch)
         i += 1
     flush()
-    return words
+    return join_segments(segments)
 
 
 _TABLE_SEP = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$")

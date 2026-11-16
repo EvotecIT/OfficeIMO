@@ -6,7 +6,7 @@ import re
 import zipfile
 from xml.etree import ElementTree as ET
 
-from .model import Block, Cell, Document, SheetCell, Table, Word, norm_text, split_words
+from .model import Block, Cell, Document, SheetCell, Table, Word, join_segments, norm_text, split_words
 from .sheets import sheet_regions
 
 NS = {
@@ -229,7 +229,7 @@ class _DocxReader:
         return " ".join(w.text for w in self._runs(p))
 
     def _runs(self, p, boxes=None, images=None) -> list[Word]:
-        words: list[Word] = []
+        segments: list[tuple[str, bool, bool, float | None]] = []
         ppr = p.find(f"{W}pPr")
         pstyle = ppr.find(f"{W}pStyle").get(W + "val") if ppr is not None and ppr.find(f"{W}pStyle") is not None else None
 
@@ -275,10 +275,10 @@ class _DocxReader:
                     parts.append("-")
                 elif tag in (W + "drawing", W + "pict", W + "object", MC + "AlternateContent"):
                     _scan_graphic(child, images, boxes)
-            words.extend(split_words("".join(parts), bold, italic, size))
+            segments.append(("".join(parts), bold, italic, size))
 
         walk(p)
-        return words
+        return join_segments(segments)
 
     def _paragraph(self, p, optional=False, count_images=True):
         boxes: list = []
@@ -530,7 +530,7 @@ def _pptx_tree(doc: Document, tree, rels, sizes) -> None:
             if body is None:
                 continue
             for para in body.findall(f"{A}p"):
-                words: list[Word] = []
+                segments: list[tuple[str, bool, bool, float | None]] = []
                 ppr0 = para.find(f"{A}pPr")
                 plvl = int(ppr0.get("lvl", "0")) if ppr0 is not None else 0
                 kind = "title" if ph_type in ("title", "ctrTitle") else "body" if ph_type is not None else "other"
@@ -546,9 +546,10 @@ def _pptx_tree(doc: Document, tree, rels, sizes) -> None:
                             if link is not None and link.get(R + "id") in rels and _external(rels[link.get(R + "id")][0]):
                                 doc.links.add(rels[link.get(R + "id")][0])
                         t = r.find(f"{A}t")
-                        words.extend(split_words(t.text if t is not None and t.text else "", bold, italic, size))
+                        segments.append((t.text if t is not None and t.text else "", bold, italic, size))
                     elif r.tag == A + "br":
-                        pass
+                        segments.append((" ", False, False, None))
+                words = join_segments(segments)
                 ppr = para.find(f"{A}pPr")
                 lvl = int(ppr.get("lvl", "0")) if ppr is not None else 0
                 block = Block("paragraph", words)

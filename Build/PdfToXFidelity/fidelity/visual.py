@@ -10,7 +10,9 @@ from __future__ import annotations
 import glob
 import hashlib
 import os
+import shutil
 import subprocess
+import threading
 
 import numpy as np
 from PIL import Image
@@ -25,13 +27,24 @@ def _wsl(path: str) -> str:
     return "/mnt/" + drive[0].lower() + rest.replace("\\", "/")
 
 
+_locks: dict[str, threading.Lock] = {}
+_locks_guard = threading.Lock()
+
+
 def render(pdf: str, png_dir: str) -> list[np.ndarray]:
+    """Rasterises once per PDF; parallel jobs for the same source wait for the first render to finish."""
     key = hashlib.sha1(os.path.abspath(pdf).encode()).hexdigest()[:16]
     folder = os.path.join(png_dir, key)
-    if not glob.glob(os.path.join(folder, "p-*.png")):
-        os.makedirs(folder, exist_ok=True)
-        subprocess.run(["wsl", "-e", "pdftoppm", "-r", str(DPI), "-gray", "-png", "-l", str(MAX_PAGES), _wsl(pdf),
-                        _wsl(os.path.join(folder, "p"))], capture_output=True, timeout=300, check=False)
+    with _locks_guard:
+        lock = _locks.setdefault(key, threading.Lock())
+    with lock:
+        if not os.path.isdir(folder):
+            staging = folder + ".partial"
+            shutil.rmtree(staging, ignore_errors=True)
+            os.makedirs(staging)
+            subprocess.run(["wsl", "-e", "pdftoppm", "-r", str(DPI), "-gray", "-png", "-l", str(MAX_PAGES), _wsl(pdf),
+                            _wsl(os.path.join(staging, "p"))], capture_output=True, timeout=300, check=False)
+            os.replace(staging, folder)
     pages = sorted(glob.glob(os.path.join(folder, "p-*.png")))
     return [np.asarray(Image.open(p).convert("L"), dtype=np.float64) for p in pages]
 

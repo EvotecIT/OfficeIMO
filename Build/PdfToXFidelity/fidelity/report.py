@@ -127,7 +127,9 @@ def write_report(work: str) -> None:
         # Spreadsheet targets extract tables only, so prose sources are scored for them in a separate table.
         return not (r["target"] in ("xlsx", "ods") and r["family"] != "excel")
 
-    card = scorecard([r for r in rows if primary(r)], visual)
+    family = {e["id"]: e["family"] for e in manifest}
+    card = scorecard([r for r in rows if primary(r)],
+                     [v for v in visual if primary({"target": v["target"], "family": family.get(v["id"], "")})])
     lines += ["## Scorecard", "",
               "Means over documents where the metric applies; failed conversions score 0 on recall metrics. "
               "XLSX and ODS rows cover spreadsheet sources; tables from prose sources follow separately.", ""]
