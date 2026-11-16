@@ -158,7 +158,7 @@ internal static partial class PdfWriter {
                 PageStructElement? element = scope.Element;
                 if (element == null) {
                     element = new PageStructElement {
-                        StructureType = MapSemanticStructureType(scope.Role),
+                        StructureType = scope.StructureType,
                         AlternativeText = scope.AlternativeText ?? string.Empty,
                         ParentElement = parent
                     };

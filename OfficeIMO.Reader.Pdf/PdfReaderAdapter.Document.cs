@@ -287,7 +287,7 @@ internal static partial class PdfReaderAdapter {
                     yield return new OfficeDocumentBlock {
                         Id = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture),
                         Kind = kind,
-                        Text = heading?.Text ?? listItem?.Text ?? textBlock.Text,
+                        Text = heading?.Text ?? (listItem is null ? null : FormatListItemText(listItem)) ?? textBlock.Text,
                         Level = heading?.Level ?? listItem?.Level,
                         Marker = listItem?.Marker,
                         Location = BuildLocation(source, page.PageNumber, selectionIndex, kind, "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture) + "-block-" + elementIndex.ToString("D4", CultureInfo.InvariantCulture)),
@@ -786,6 +786,10 @@ internal static partial class PdfReaderAdapter {
 
         return null;
     }
+
+    // A contents entry's title is its list text; its printed page number stays with it.
+    private static string FormatListItemText(PdfLogicalListItem item) =>
+        item.IsContentsEntry && !string.IsNullOrEmpty(item.TargetPageLabel) ? item.Text + " \u2014 " + item.TargetPageLabel : item.Text;
 
     private static PdfLogicalListItem? FindListItem(IReadOnlyList<PdfLogicalListItem> projectedLists, PdfLogicalTextBlock textBlock) {
         for (int i = 0; i < projectedLists.Count; i++) {

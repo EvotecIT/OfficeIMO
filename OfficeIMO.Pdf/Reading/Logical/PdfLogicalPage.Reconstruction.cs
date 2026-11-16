@@ -56,6 +56,10 @@ public sealed partial class PdfLogicalPage {
             analysis is null ? structured.TablesDetailed : null,
             projectedTableCandidates);
 
+        // Contents entries are projected as list items, never as paragraph text.
+        HashSet<PdfTextSpan>? contentsRuns = pageAnalysis.ContentsEntries.Count == 0
+            ? null
+            : new HashSet<PdfTextSpan>(pageAnalysis.ContentsEntries.SelectMany(static entry => entry.Runs));
         foreach (var line in structured.LinesDetailed) {
             cancellationToken.ThrowIfCancellationRequested();
             string text = line.Text?.Trim() ?? string.Empty;
@@ -67,7 +71,9 @@ public sealed partial class PdfLogicalPage {
             bool isStructuredListItem = analysis is null &&
                 (listLines.Contains(NormalizeForKindComparison(text)) || ContentStructureExtractor.IsListItemText(text));
             PdfUnderstandingSemanticElement? semantic = semanticIndex.Find(line.Y, line.XStart, text, line.Spans);
-            var kind = ToLogicalKind(semantic, line, isStructuredHeading)
+            var kind = contentsRuns is not null && line.Spans.Count > 0 && line.Spans.All(contentsRuns.Contains)
+                ? PdfLogicalElementKind.ListItem
+                : ToLogicalKind(semantic, line, isStructuredHeading)
                 ?? (isStructuredHeading
                     ? PdfLogicalElementKind.Heading
                     : isStructuredListItem
@@ -192,7 +198,7 @@ public sealed partial class PdfLogicalPage {
             analysis is null
                 ? BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks, textBlockSourceIndex)
                 : BuildParagraphsFromSemanticRegions(pageNumber, textBlocks, semanticByTextBlock),
-            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<PdfStructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis),
+            BuildListItems(pageNumber, analysis is null ? structured.ListNodes : new List<PdfStructuredListItem>(), textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex, pageAnalysis, links),
             tables.AsReadOnly(),
             images.AsReadOnly(),
             links.AsReadOnly(),

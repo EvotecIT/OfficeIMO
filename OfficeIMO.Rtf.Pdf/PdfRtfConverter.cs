@@ -143,11 +143,12 @@ internal static class PdfRtfConverter {
         RtfDocument document,
         PdfCore.PdfLogicalListItem item,
         RunStyleCatalog runStyles) {
-        RtfListKind kind = IsBulletMarker(item.Marker) ? RtfListKind.Bullet : RtfListKind.Decimal;
+        RtfListKind kind = item.IsContentsEntry || IsBulletMarker(item.Marker) ? RtfListKind.Bullet : RtfListKind.Decimal;
         int listId = kind == RtfListKind.Bullet ? BulletListId : DecimalListId;
         int level = Math.Max(0, item.Level - 1);
         RtfParagraph paragraph = document.AddParagraph();
         AppendStyledRuns(paragraph, item.Runs, item.Text, runStyles);
+        if (item.IsContentsEntry && !string.IsNullOrEmpty(item.TargetPageLabel)) paragraph.AddText(" \u2014 " + item.TargetPageLabel);
         paragraph.SetParagraphSpacing(afterTwips: 120);
         paragraph.SetList(listId, level, kind);
         paragraph.SetListText(GetListMarkerText(item.Marker, kind));
