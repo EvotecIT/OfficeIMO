@@ -144,9 +144,14 @@ def canonical_number(token: str) -> str:
     return format(round(value, 6), ".15g")
 
 
+# Space-grouped thousands (fr-FR, pl-PL: "1 234 567,89") are one number, not three words.
+_space_grouped = re.compile(r"(?<![\d.,])\d{1,3}(?: \d{3})+(?:[.,]\d+)?(?![\d])")
+
+
 def tokens(value: str) -> list[str]:
     """Word tokens with punctuation dropped and numbers canonicalised; bullets and list markers carry no content."""
-    return [canonical_number(t) for t in _token.findall(norm_text(value)) if any(ch.isalnum() for ch in t)]
+    text = _space_grouped.sub(lambda m: m.group(0).replace(" ", ""), norm_text(value))
+    return [canonical_number(t) for t in _token.findall(text) if any(ch.isalnum() for ch in t)]
 
 
 def split_words(text: str, bold=False, italic=False, size=None) -> list[Word]:

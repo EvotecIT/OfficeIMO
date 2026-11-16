@@ -295,7 +295,11 @@ def table_metrics(gold: Document, out: Document) -> dict:
 # ------------------------------------------------------------------------------------------------ images, links, notes
 
 def _norm_url(u: str) -> str:
-    return u.strip().rstrip("/").lower()
+    """Scheme and host are case-insensitive; path and query are compared exactly."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    parts = urlsplit(u.strip())
+    return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), parts.path.rstrip("/"), parts.query, parts.fragment))
 
 
 def object_metrics(gold: Document, out: Document) -> dict:

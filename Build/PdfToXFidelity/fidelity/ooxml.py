@@ -384,6 +384,7 @@ def read_xlsx(path: str) -> Document:
             for si in sst.findall(f"{S}si"):
                 shared.append("".join(t.text or "" for t in si.iter(f"{S}t") if not _in_phonetic(si, t)))
         formats: list[tuple[bool, int | None, bool]] = []
+        codes: list[str] = []
         styles = _xml(z, "xl/styles.xml")
         if styles is not None:
             custom = {int(n.get("numFmtId")): n.get("formatCode", "") for n in styles.iter(f"{S}numFmt")}
@@ -395,6 +396,7 @@ def read_xlsx(path: str) -> Document:
                 if fid in range(14, 23) or fid in (45, 46, 47):
                     info = (True, info[1], False)
                 formats.append(info)
+                codes.append(code)
         wb = _xml(z, "xl/workbook.xml")
         rels = _rels(z, "xl/workbook.xml")
         row_offset = 0
@@ -429,7 +431,8 @@ def read_xlsx(path: str) -> Document:
                 elif raw is not None:
                     value = float(raw)
                     if is_date:
-                        cell = SheetCell(r, col, _serial_to_iso(value), "date", value)
+                        code = codes[style] if style < len(codes) else ""
+                        cell = SheetCell(r, col, _format_date(value, code), "date", value)
                     else:
                         # The PDF shows the rounded, scaled value, so the ground-truth text matches the display.
                         shown = value * 100 if percent else value
@@ -462,13 +465,34 @@ def read_xlsx(path: str) -> Document:
     return doc
 
 
-def _serial_to_iso(serial: float) -> str:
+_MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+                "November", "December"]
+
+
+def _format_date(serial: float, code: str) -> str:
+    """The date as its number format displays it (English month names), so text metrics see what the PDF shows."""
     import datetime as dt
 
     try:
-        return (dt.date(1899, 12, 30) + dt.timedelta(days=int(serial))).isoformat()
+        day = dt.date(1899, 12, 30) + dt.timedelta(days=int(serial))
     except OverflowError:
         return str(serial)
+    section = re.sub(r'\[[^\]]*\]|"[^"]*"|\\|_.|\*.', "", code.split(";")[0])
+    if not re.search(r"[dmy]", section, re.I):
+        return day.isoformat()
+    out = []
+    for token in re.findall(r"y+|m+|d+|[^ymd]+", section, re.I):
+        low = token.lower()
+        if low.startswith("y"):
+            out.append(f"{day.year:04d}" if len(low) > 2 else f"{day.year % 100:02d}")
+        elif low.startswith("m"):
+            out.append(_MONTH_NAMES[day.month - 1] if len(low) == 4 else _MONTH_NAMES[day.month - 1][:3] if len(low) == 3
+                       else f"{day.month:02d}" if len(low) == 2 else str(day.month))
+        elif low.startswith("d"):
+            out.append(f"{day.day:02d}" if len(low) == 2 else str(day.day) if len(low) == 1 else day.strftime("%a"))
+        else:
+            out.append(re.sub(r"[hs:AMP/]+$", "", token) if re.search(r"[hs]", token) else token)
+    return "".join(out).strip()
 
 
 def _in_phonetic(si, t) -> bool:

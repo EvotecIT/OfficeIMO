@@ -337,8 +337,8 @@ def read_markdown(path: str) -> Document:
             i += 1
             continue
         if not stripped:
+            # A blank line does not end a loose list; content that leaves the list resets nesting below.
             flush_para()
-            indents.clear()
             i += 1
             continue
         m = re.match(r"^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$", line)
@@ -387,6 +387,8 @@ def read_markdown(path: str) -> Document:
             flush_para()
             i += 1
             continue
+        if not line[:1].isspace():
+            indents.clear()
         para.append(stripped.lstrip(">").strip())
         i += 1
     flush_para()
