@@ -84,16 +84,34 @@ class ThirdPartyNoticesTests(unittest.TestCase):
         self.save_manifest()
         self.assertEqual([], self.errors())
 
+    def test_undeclared_plural_notice_file_is_rejected(self):
+        self.write("Lib/Licenses/Widget-NOTICES.txt", "Widget notices")
+        self.assertIn("Lib/Licenses/Widget-NOTICES.txt: license or notice file", "\n".join(self.errors()))
+
     def test_package_without_license_text_is_rejected(self):
+        package = self.package({"Licenses/codec-LICENSE.txt": "BSD-3-Clause text"})
+        errors = checker.check_packages(self.root, [package.parent]).errors
+        self.assertEqual(["Lib.1.0.0.nupkg: missing 'Licenses/data-LICENSE.txt' for unicode."], errors)
+
+    def test_package_with_empty_or_changed_license_text_is_rejected(self):
+        package = self.package({"Licenses/codec-LICENSE.txt": "﻿BSD-3-Clause text\r\n", "Licenses/data-LICENSE.txt": ""})
+        errors = checker.check_packages(self.root, [package.parent]).errors
+        self.assertEqual(["Lib.1.0.0.nupkg: 'Licenses/data-LICENSE.txt' for unicode is empty."], errors)
+
+        package = self.package({"Licenses/codec-LICENSE.txt": "Other text", "Licenses/data-LICENSE.txt": "Unicode License V3 text"})
+        errors = checker.check_packages(self.root, [package.parent]).errors
+        self.assertEqual(["Lib.1.0.0.nupkg: 'Licenses/codec-LICENSE.txt' for codec differs from 'Lib/Licenses/codec-LICENSE.txt'."], errors)
+
+    def package(self, licenses):
         package = self.root / "out" / "Lib.1.0.0.nupkg"
-        package.parent.mkdir()
+        package.parent.mkdir(exist_ok=True)
         with zipfile.ZipFile(package, "w") as archive:
             archive.writestr("Lib.nuspec", '<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata>'
                              '<id>Lib</id><license type="expression">MIT AND BSD-3-Clause</license></metadata></package>')
             archive.writestr("THIRD-PARTY-NOTICES.md", "## Codec transform\n\n## Unicode tables\n")
-            archive.writestr("Licenses/codec-LICENSE.txt", "BSD-3-Clause text")
-        errors = checker.check_packages(self.root, [package.parent]).errors
-        self.assertEqual(["Lib.1.0.0.nupkg: missing 'Licenses/data-LICENSE.txt' for unicode."], errors)
+            for name, text in licenses.items():
+                archive.writestr(name, text)
+        return package
 
 
 if __name__ == "__main__":

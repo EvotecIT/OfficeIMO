@@ -50,7 +50,7 @@ MARKER = re.compile(
 )
 OWN_TEXT = re.compile(r"Evotec|Przemys|OfficeIMO's|repository's MIT", re.IGNORECASE)
 COMMENT = re.compile(r"^\s*(//(?!/)|/\*|\*)")
-LICENSE_FILE = re.compile(r"(^|[-_.])(LICENSE|LICENCE|NOTICE|PATENTS|COPYING)([-_.]|$)", re.IGNORECASE)
+LICENSE_FILE = re.compile(r"(^|[-_.])(LICEN[CS]ES?|NOTICES?|PATENTS?|COPYING)([-_.]|$)|ThirdPartyNotices", re.IGNORECASE)
 EXCLUDED_PARTS = {"bin", "obj", "node_modules", ".git"}
 
 
@@ -314,6 +314,12 @@ def check_source(root: Path) -> Report:
     return report
 
 
+def normalized_text(data: bytes) -> str:
+    """License text compared without a byte order mark, line-ending differences or trailing blank space."""
+    text = data.decode("utf-8-sig", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
+    return "\n".join(line.rstrip() for line in text.split("\n")).strip()
+
+
 def nuspec_metadata(archive: zipfile.ZipFile) -> tuple[str, str | None]:
     nuspec = [n for n in archive.namelist() if n.endswith(".nuspec") and "/" not in n]
     document = ET.fromstring(archive.read(nuspec[0]))
@@ -349,9 +355,16 @@ def check_packages(root: Path, packages: list[Path]) -> Report:
             for entry in mine:
                 if entry.get("noticeOmitted"):
                     continue
-                for target in entry["licenseFiles"].values():
+                for source, target in entry["licenseFiles"].items():
                     if target.lower() not in names:
                         report.error(f"{package.name}: missing '{target}' for {entry['id']}.")
+                        continue
+                    actual = next(n for n in archive.namelist() if n.lower() == target.lower())
+                    packed = normalized_text(archive.read(actual))
+                    if not packed:
+                        report.error(f"{package.name}: '{target}' for {entry['id']} is empty.")
+                    elif (root / source).is_file() and packed != normalized_text((root / source).read_bytes()):
+                        report.error(f"{package.name}: '{target}' for {entry['id']} differs from '{source}'.")
             notice = notices.get(project.name)
             if notice:
                 if notice["packagePath"].lower() not in names:

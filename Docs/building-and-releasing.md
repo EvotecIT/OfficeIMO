@@ -164,8 +164,10 @@ The first command checks the manifest against the sources, project files and
 license expressions; CI runs it on every pull request. It also flags source
 comments that say code was adapted, ported or vendored from elsewhere, or that
 carry a third-party copyright, when no entry covers the file. The second checks
-built packages: license expression, notices file and every license text.
-`Build/Build-Project.ps1` runs it after a package build.
+built packages: license expression, notices file and the content of every
+license text. `Build/Build-Project.ps1` runs it after a package build, and
+`Build/Build-Release.ps1 -RunMode Publish` runs the source check before it
+builds or publishes anything.
 
 ## Coordinated publication
 
