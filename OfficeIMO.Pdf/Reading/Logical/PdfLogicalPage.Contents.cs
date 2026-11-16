@@ -62,7 +62,8 @@ public sealed partial class PdfLogicalPage {
             result.Add(new PdfLogicalListItem(pageNumber, entry.Level, string.Empty, title, blocks, lineTexts, 0.97D,
                 new[] { entry.Evidence }, runs) {
                 IsContentsEntry = true,
-                TargetPageLabel = entry.PageLabel,
+                // A page number on a line the projection left out is not part of the item either.
+                TargetPageLabel = entry.PageLabelWords.All(word => word.SourceRuns.All(retained.Contains)) ? entry.PageLabel : null,
                 Link = FindTitleLink(entry, links)
             });
             foreach (PdfLogicalTextBlock block in blocks) represented.Add(block);

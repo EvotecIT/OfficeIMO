@@ -108,8 +108,11 @@ internal static partial class PdfDocumentSemanticEnricher {
                 afterLink.Count is > 0 and <= 3 && structuralLabel.Length <= 24 &&
                 IsPageLabel(afterLink[afterLink.Count - 1].Text.Trim(), strict: false)) {
                 title = item.Words.Take(linkEnd + 1).ToList();
-                // A leader painted inside the link is still a separator, not title text.
-                while (title.Count > 0 && IsLeaderWord(title[title.Count - 1].Text)) title.RemoveAt(title.Count - 1);
+                // A leader painted inside the link is still a separator, not title text. An ellipsis such as
+                // "..." or "\u2026" is shorter than any leader and stays with the title.
+                while (title.Count > 0 && IsLeaderWord(title[title.Count - 1].Text) && title[title.Count - 1].Text.Trim().Length > 3) {
+                    title.RemoveAt(title.Count - 1);
+                }
                 pageLabel = structuralLabel;
             } else if (!TrySplitContentsEntry(item.Words, strictPageLabel: false, out title, out pageLabel, out _, out lastTitleText)) {
                 continue;
@@ -458,6 +461,8 @@ internal static partial class PdfDocumentSemanticEnricher {
     // Dot, hyphen and underscore leaders, plus the middle-dot and ellipsis forms other producers paint.
     private static bool IsLeaderCharacter(char ch) => ch is '.' or '-' or '_' or '\u00B7' or '\u2026' or '\u2022' or '\u2219' or '\u22C5';
 
+    internal static bool IsContentsLeaderWord(string text) => IsLeaderWord(text);
+
     private static bool IsLeaderWord(string text) {
         string trimmed = text.Trim();
         return trimmed.Length > 0 && (trimmed.Length >= 3 || trimmed[0] == '\u2026') && trimmed.All(IsLeaderCharacter);
@@ -619,6 +624,11 @@ internal sealed class PdfContentsEntrySource {
         string? lastTitleText) {
         Level = level;
         LastTitleText = lastTitleText;
+        // The words that show the page number; a glued "Title.....4" shows it in the last title word.
+        PdfUnderstandingWord[] labelWords = pageLabel is null
+            ? Array.Empty<PdfUnderstandingWord>()
+            : words.Where(word => !title.Contains(word) && !PdfDocumentSemanticEnricher.IsContentsLeaderWord(word.Text)).ToArray();
+        PageLabelWords = labelWords.Length == 0 && pageLabel is not null && title.Count > 0 ? new[] { title[title.Count - 1] } : labelWords;
         Title = title;
         PageLabel = pageLabel;
         Lines = lines;
@@ -630,6 +640,7 @@ internal sealed class PdfContentsEntrySource {
     internal IReadOnlyList<PdfUnderstandingWord> Title { get; }
     /// <summary>The last title word without the leader or page number glued to it, when the parser removed one.</summary>
     internal string? LastTitleText { get; }
+    internal IReadOnlyList<PdfUnderstandingWord> PageLabelWords { get; }
     internal string? PageLabel { get; }
     internal IReadOnlyList<PdfUnderstandingLine> Lines { get; }
     internal HashSet<PdfTextSpan> Runs { get; }

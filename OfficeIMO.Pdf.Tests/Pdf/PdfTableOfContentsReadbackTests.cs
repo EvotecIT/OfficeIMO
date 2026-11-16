@@ -100,13 +100,14 @@ public class PdfTableOfContentsReadbackTests {
     public void ContentsTitles_KeepDotsAndNumbersAtTheirEnd(bool tagged) {
         // Without tagging a trailing ellipsis runs into the dot leader, so only the tagged case can keep it.
         (string, int)[] sections = tagged
-            ? new[] { ("What next...", 1), ("Release...2026", 1) }
+            ? new[] { ("What next...", 1), ("Release...2026", 1), ("To be continued ...", 1), ("What next \u2026", 1) }
             : new[] { ("Release...2026", 1), ("Release 2", 1) };
         PdfLogicalListItem[] entries = PdfDocument.Load(CreateContents(Options(tagged), sections, startOnNewPage: true))
             .Read().Pages[0].ListItems.Where(static item => item.IsContentsEntry).ToArray();
 
         Assert.Equal(sections.Select(static section => section.Item1), entries.Select(static entry => entry.Text));
-        Assert.Equal(new[] { "2", "3" }, entries.Select(static entry => entry.TargetPageLabel));
+        Assert.Equal(Enumerable.Range(2, sections.Length).Select(static page => page.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            entries.Select(static entry => entry.TargetPageLabel));
     }
 
     [Fact]
