@@ -431,11 +431,11 @@
           "id": "document-health",
           "title": "Document health",
           "detail": "Inspect, compare, optimize, repair and sanitize, always into a copy",
-          "support": { "windows": "available", "linux": "available", "mac": "available", "ipad": "available", "iphone": "available" },
+          "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
           "notes": {
-            "mac": "One open document at a time.",
-            "ipad": "One open document at a time.",
-            "iphone": "One open document at a time."
+            "mac": "Inspect, optimize, repair and sanitize the open document; no comparison.",
+            "ipad": "Inspect, optimize, repair and sanitize the open document; no comparison.",
+            "iphone": "Inspect, optimize, repair and sanitize the open document; no comparison."
           }
         },
         {
@@ -444,8 +444,8 @@
           "detail": "Queue many files, review what each conversion approximates and preview the result",
           "support": { "windows": "available", "linux": "available", "mac": "partial", "ipad": "partial", "iphone": "partial" },
           "notes": {
-            "windows": "Office, OpenDocument, iWork, web, markup, email, e-book and image formats, with retry and cancel per file.",
-            "linux": "Office, OpenDocument, iWork, web, markup, email, e-book and image formats, with retry and cancel per file.",
+            "windows": "Office, OpenDocument, iWork, web, markup, email, e-book and image formats; failed files can be retried together.",
+            "linux": "Office, OpenDocument, iWork, web, markup, email, e-book and image formats; failed files can be retried together.",
             "mac": "One file at a time, to or from PDF, without a queue. Shortcuts can repeat it.",
             "ipad": "One file at a time, to or from PDF, without a queue. Shortcuts can repeat it.",
             "iphone": "One file at a time, to or from PDF, without a queue. Shortcuts can repeat it."
