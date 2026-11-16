@@ -20,10 +20,16 @@ for (const [name, target] of Object.entries(manifest.exports)) {
   sizes.push({ entry: name === "." ? "/" : name.slice(1), modules: visited.size, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), gzip9: gzipSync(bytes, { level: 9 }).length,
     perModuleGzip9: [...visited.values()].reduce((n, s) => n + gzipSync(s, { level: 9 }).length, 0) });
 }
-for (const bundle of (await readdir(join(root, "bundles"))).filter(name => /^officeimo(?:-[a-z]+)?\.(?:m?js)$/.test(name)).sort()) {
-  const bytes = await readFile(join(root, "bundles", bundle));
-  sizes.push({ entry: bundle, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex"), gzip9: gzipSync(bytes, { level: 9 }).length });
+const bundles = new Map();
+for (const bundle of (await readdir(join(root, "bundles"))).filter(name => /^officeimo(?:-[a-z]+)*(?:\.min)?\.(?:m?js)$/.test(name)).sort()) {
+  const bytes = await readFile(join(root, "bundles", bundle)), size = { bytes: bytes.length, gzip9: gzipSync(bytes, { level: 9 }).length };
+  bundles.set(bundle, size); sizes.push({ entry: bundle, bytes: size.bytes, sha256: createHash("sha256").update(bytes).digest("hex"), gzip9: size.gzip9 });
 }
-const report = { node: process.version, method: "gzip level 9, unminified tsc output; ESM graph concatenated for comparison and separately compressed module sum for HTTP delivery", sizes };
+// A thin adapter is delivered beside the shared core: count both files, each compressed on its own.
+for (const [bundle, adapter] of bundles) {
+  const match = /^officeimo-[a-z]+-adapter((?:\.min)?\.m?js)$/.exec(bundle), shared = match && bundles.get("officeimo" + match[1]);
+  if (shared) sizes.push({ entry: "officeimo" + match[1] + " + " + bundle, bytes: shared.bytes + adapter.bytes, gzip9: shared.gzip9 + adapter.gzip9 });
+}
+const report = { node: process.version, method: "gzip level 9, readable and .min (comment-free, unindented) tsc output; adapters also counted with their shared core; ESM graph concatenated for comparison and separately compressed module sum for HTTP delivery", sizes };
 if (process.argv[2]) await writeFile(resolve(process.argv[2]), JSON.stringify(report, null, 2) + "\n");
 console.log(JSON.stringify(report, null, 2));

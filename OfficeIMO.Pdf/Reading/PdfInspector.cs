@@ -42,6 +42,17 @@ internal static class PdfInspector {
         return names;
     }
 
+    /// <summary>Every probe marker name, so deferred objects can record which of them they contain.</summary>
+    internal static string[] GetDeferredMarkerNames() {
+        var names = new List<string>();
+        foreach (string[] group in ProbeMarkerNames) {
+            foreach (string name in group) {
+                if (!names.Contains(name)) names.Add(name);
+            }
+        }
+        return names.ToArray();
+    }
+
     private static HashSet<string>[] CreateReachableProbeMarkerGroups() {
         var groups = new HashSet<string>[2];
         for (int index = (int)ProbeMarker.OptionalContent; index <= (int)ProbeMarker.ActiveContent; index++) {
@@ -497,6 +508,8 @@ internal static class PdfInspector {
         CancellationToken cancellationToken) {
         foreach (PdfIndirectObject indirectObject in document.Objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            // Values that are not built yet are dictionaries or object-stream members, never streams.
+            if (indirectObject.TryGetUnbuiltSummary(out _)) continue;
             if (indirectObject.Value is PdfStream stream &&
                 Filters.StreamDecoder.HasDeclaredFilter(stream.Dictionary, "Crypt", document.Objects)) {
                 return true;

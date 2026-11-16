@@ -12,7 +12,7 @@ internal static class PdfFileAssembler {
         string? trailerIdEntry = null,
         CancellationToken cancellationToken = default) {
         using var stream = CreateOutputMemoryStream(objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
-        Assemble(stream, objects, catalogId, infoId, fileVersion, trailerIdEntry, cancellationToken);
+        AssembleCore(stream, objects, catalogId, infoId, fileVersion, trailerIdEntry, hashAssembledBuffer: true, cancellationToken);
         return GetOutputBytes(stream, cancellationToken);
     }
 
@@ -23,7 +23,18 @@ internal static class PdfFileAssembler {
         int infoId,
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         string? trailerIdEntry = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default) =>
+        AssembleCore(destination, objects, catalogId, infoId, fileVersion, trailerIdEntry, hashAssembledBuffer: false, cancellationToken);
+
+    private static long AssembleCore(
+        Stream destination,
+        IReadOnlyList<PdfSerializedObject> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion,
+        string? trailerIdEntry,
+        bool hashAssembledBuffer,
+        CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         Guard.FileVersion(fileVersion, nameof(fileVersion));
         Guard.NotNull(destination, nameof(destination));
@@ -31,8 +42,10 @@ internal static class PdfFileAssembler {
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
         byte[] header = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
-        using HashAlgorithm fileIdHash = SHA256.Create();
-        fileIdHash.TransformBlock(header, 0, header.Length, header, 0);
+        // An owned, empty memory stream holds exactly the hashed bytes once the objects are written, so it is
+        // hashed in one call instead of once per object segment. Caller streams are hashed while they are written.
+        using HashAlgorithm? fileIdHash = hashAssembledBuffer ? null : SHA256.Create();
+        fileIdHash?.TransformBlock(header, 0, header.Length, header, 0);
         destination.Write(header, 0, header.Length);
         long written = header.LongLength;
 
@@ -45,7 +58,9 @@ internal static class PdfFileAssembler {
             written = checked(written + serializedObject.Length);
         }
 
-        byte[] fileId = FinalizeFileId(fileIdHash);
+        byte[] fileId = fileIdHash is null
+            ? HashAssembledBuffer((MemoryStream)destination, written, cancellationToken)
+            : FinalizeFileId(fileIdHash);
         long xrefPos = written;
         byte[] trailerBytes = BuildTrailerBytes(offsets, catalogId, infoId, xrefPos, encryptionAssembly: null, fileId, trailerIdEntry, permanentFileId: null, cancellationToken);
         WriteBytesCancellable(destination, trailerBytes, cancellationToken);
@@ -540,6 +555,35 @@ internal static class PdfFileAssembler {
             : " /Encrypt " + PdfSyntaxEscaper.IndirectReference(encryptionAssembly.EncryptionObjectNumber);
         string permanentId = permanentFileId == null ? id : PdfSyntaxEscaper.HexString(permanentFileId);
         return encryptionEntry + " /ID [" + permanentId + " " + id + "]";
+    }
+
+    private static byte[] HashAssembledBuffer(MemoryStream stream, long length, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] buffer = stream.GetBuffer();
+        int count = checked((int)length);
+        const int CancellableChunk = 1024 * 1024;
+        if (cancellationToken.CanBeCanceled && count > CancellableChunk) {
+            using HashAlgorithm chunked = SHA256.Create();
+            for (int offset = 0; offset < count;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int chunk = Math.Min(CancellableChunk, count - offset);
+                chunked.TransformBlock(buffer, offset, chunk, buffer, offset);
+                offset += chunk;
+            }
+            return FinalizeFileId(chunked);
+        }
+
+        var fileId = new byte[16];
+#if NET8_0_OR_GREATER
+        Span<byte> fullHash = stackalloc byte[32];
+        SHA256.HashData(buffer.AsSpan(0, count), fullHash);
+        fullHash.Slice(0, fileId.Length).CopyTo(fileId);
+#else
+        using HashAlgorithm hash = SHA256.Create();
+        byte[] fullHash = hash.ComputeHash(buffer, 0, count);
+        Buffer.BlockCopy(fullHash, 0, fileId, 0, fileId.Length);
+#endif
+        return fileId;
     }
 
     private static byte[] FinalizeFileId(HashAlgorithm hash) {

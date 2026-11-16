@@ -522,7 +522,9 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         OfficeFontStyle style = (run.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (run.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
-        foreach (OfficeFontFallbackRun planned in webFonts.Faces.PlanFallbackRuns(run.Text, run.Font.FamilyName, style)) {
+        IReadOnlyList<OfficeFontFallbackRun> plannedRuns = webFonts.Faces.PlanFallbackRuns(run.Text, run.Font.FamilyName, style);
+        for (int plannedIndex = 0; plannedIndex < plannedRuns.Count; plannedIndex++) {
+            OfficeFontFallbackRun planned = plannedRuns[plannedIndex];
             if (webFonts.AllowInstalledFontFaces && !webFonts.Slots.ContainsKey(planned.FamilyName)
                 && NeedsNumericSystemFace(run.FontDescriptor)) return false;
             if (webFonts.Faces.TryResolveFaceForText(planned.Text, planned.FamilyRequest, style, out OfficeFontFace? face)

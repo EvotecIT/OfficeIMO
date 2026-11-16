@@ -1363,12 +1363,17 @@ public sealed partial class PdfReadPage {
             : GetOptionalContentVisibility(resources);
         PdfPageInvokedResourceNames invokedResources = invokedResourceNames ??
             GetInvokedResourceNames(content, resources, operationCheck);
+        var graphicsStateResources = GetGraphicsStateResources(resources, pageContentBudget);
+        var colorSpaceResources = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
+        // Placements come only from Do and inline images. Content without either has already been read
+        // under the same limits by the invoked-resource analysis, so a second pass would find nothing.
+        if (!invokedResources.HasObjectPaint) return;
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
                      pageHeight,
-                     GetGraphicsStateResources(resources, pageContentBudget),
-                     GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
+                     graphicsStateResources,
+                     colorSpaceResources,
                      optionalContentVisibility,
                      initialFillColor,
                      initialFillColorSpace,

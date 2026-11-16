@@ -725,7 +725,7 @@ internal sealed class HtmlRenderTrailingGroup {
 
 internal sealed class HtmlRenderLineBreakGroup {
     internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows, bool hasImplicitFinalLine = false, double start = 0D, double end = 0D, bool checkInteriorBreaks = false, bool finalLineMarginBreak = false) {
-        Offsets = new SortedSet<double>(offsets).ToList().AsReadOnly();
+        Offsets = SortedDistinct(offsets).AsReadOnly();
         Orphans = Math.Max(1, orphans);
         Widows = Math.Max(1, widows);
         HasImplicitFinalLine = hasImplicitFinalLine;
@@ -733,6 +733,16 @@ internal sealed class HtmlRenderLineBreakGroup {
         End = end;
         CheckInteriorBreaks = checkInteriorBreaks;
         FinalLineMarginBreak = finalLineMarginBreak;
+    }
+
+    // Line offsets arrive in ascending order; only other input needs the ordering set.
+    private static List<double> SortedDistinct(IEnumerable<double> offsets) {
+        var values = new List<double>(offsets);
+        for (int index = 1; index < values.Count; index++) {
+            if (values[index - 1].CompareTo(values[index]) < 0) continue;
+            return new SortedSet<double>(values).ToList();
+        }
+        return values;
     }
 
     internal IReadOnlyList<double> Offsets { get; }

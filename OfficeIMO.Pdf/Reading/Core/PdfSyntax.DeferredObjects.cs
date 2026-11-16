@@ -104,8 +104,12 @@ internal static partial class PdfSyntax {
                 if (!scan.TryAddKey(token, source, keysStart)) return false;
                 if (i + 1 >= tokens.Count || tokens[i + 1].Equals(source, ">>")) return false;
                 TopLevelKey key = ClassifyTopLevelKey(token, source);
+                // Every load builds the page tree, so deferring a page or page-tree node only scans it twice. Their
+                // keys usually come early, and the eager parser builds the same value.
+                if (key == TopLevelKey.PageTreeLink) return false;
                 if (key == TopLevelKey.Encrypt) scan.MarkEncryptKey();
                 if (!ScanObject(tokens, i + 1, limits, 0, scan, key, out int consumed, cancellationToken)) return false;
+                if (key == TopLevelKey.Type && scan.IsPageTreeType) return false;
                 i += consumed + 1;
             } else if (token.Equals(source, ">>") && i == tokens.Count - 1) {
                 break;
@@ -183,7 +187,7 @@ internal static partial class PdfSyntax {
                 consumed = 2;
                 return true;
             }
-            return token.TryParseDouble(source, out _, cancellationToken);
+            return token.IsNumber(source, cancellationToken);
         }
         return false;
     }
@@ -204,6 +208,7 @@ internal static partial class PdfSyntax {
         if (key.Equals(source, "/Subtype")) return TopLevelKey.Subtype;
         if (key.Equals(source, "/FT")) return TopLevelKey.FieldType;
         if (key.Equals(source, "/Encrypt")) return TopLevelKey.Encrypt;
+        if (key.Equals(source, "/Parent") || key.Equals(source, "/Kids")) return TopLevelKey.PageTreeLink;
         return TopLevelKey.Other;
     }
 
@@ -213,7 +218,9 @@ internal static partial class PdfSyntax {
         Type,
         Subtype,
         FieldType,
-        Encrypt
+        Encrypt,
+        // /Parent or /Kids: page-tree nodes, and also fields, outline items and annotations, which are built when read.
+        PageTreeLink
     }
 
     /// <summary>Reusable state for scanning the objects of one load.</summary>
@@ -227,6 +234,7 @@ internal static partial class PdfSyntax {
         private string? _knownSubtype;
         private bool _hasEncryptKey;
         private bool _mayCarrySignatureData;
+        private ulong _markerNames;
 
         internal void Reset() {
             _references.Clear();
@@ -235,7 +243,10 @@ internal static partial class PdfSyntax {
             _knownSubtype = null;
             _hasEncryptKey = false;
             _mayCarrySignatureData = false;
+            _markerNames = 0;
         }
+
+        internal bool IsPageTreeType => _knownType is "Page" or "Pages";
 
         internal int BeginDictionary() => _keys.Count;
 
@@ -252,12 +263,14 @@ internal static partial class PdfSyntax {
             }
             _keys.Add(key);
             NoteSignatureName(key, source);
+            _markerNames |= PdfDeferredMarkerNames.Find(key, source);
             return true;
         }
 
         internal bool TryAddName(PdfToken name, PdfByteContentText source, TopLevelKey topLevelKey) {
             if (!IsPlainName(name, source)) return false;
             NoteSignatureName(name, source);
+            _markerNames |= PdfDeferredMarkerNames.Find(name, source);
             if (topLevelKey == TopLevelKey.Type) _knownType = FindKnownName(name, source, KnownTypes);
             else if (topLevelKey == TopLevelKey.Subtype) _knownSubtype = FindKnownName(name, source, KnownSubtypes);
             return true;
@@ -289,7 +302,8 @@ internal static partial class PdfSyntax {
             _knownType,
             _knownSubtype,
             _hasEncryptKey,
-            _mayCarrySignatureData);
+            _mayCarrySignatureData,
+            _markerNames);
 
         private void NoteSignatureName(PdfToken name, PdfByteContentText source) {
             if (name.Equals(source, "/ByteRange") || name.Equals(source, "/Sig") || name.Equals(source, "/SigFlags")) {
@@ -312,6 +326,64 @@ internal static partial class PdfSyntax {
                 if (left.GetCharacter(source, index) != right.GetCharacter(source, index)) return false;
             }
             return true;
+        }
+    }
+
+    /// <summary>
+    /// False when an object that is not built yet has no /AF or /FS key at any depth, so it cannot hold an
+    /// associated-file array or a file attachment annotation.
+    /// </summary>
+    internal static bool MayHoldAttachmentReferences(PdfDeferredObjectSummary summary) =>
+        (summary.MarkerNames & PdfDeferredMarkerNames.AttachmentKeys) != 0;
+
+    /// <summary>
+    /// The feature-marker names that whole-document probes look for, one bit each. A deferred object records which of
+    /// them occur as keys or name values anywhere in its value, so a probe reads the bits instead of building the value.
+    /// </summary>
+    private static class PdfDeferredMarkerNames {
+        // Attachment discovery looks for /AF and /FS keys in every object; /AF is already a probe marker.
+        private static readonly string[] Names = PdfInspector.GetDeferredMarkerNames().Concat(new[] { "FS" }).Distinct(StringComparer.Ordinal).ToArray();
+        private static readonly int[][] IndexesByLength = CreateIndexesByLength();
+        internal static readonly ulong AttachmentKeys = Bit("AF") | Bit("FS");
+
+        internal static string GetName(int bit) => Names[bit];
+
+        private static ulong Bit(string name) => 1UL << Array.IndexOf(Names, name);
+
+        /// <summary>Whether every name in <paramref name="names"/> has a bit, so summaries can answer for it.</summary>
+        internal static bool TracksAll(IEnumerable<string> names) {
+            foreach (string name in names) {
+                if (Array.IndexOf(Names, name) < 0) return false;
+            }
+            return true;
+        }
+
+        /// <summary>Returns the bit of a plain name token (with its leading slash), or zero when it is not tracked.</summary>
+        internal static ulong Find(PdfToken name, PdfByteContentText source) {
+            int length = name.Length - 1;
+            if ((uint)length >= (uint)IndexesByLength.Length) return 0;
+            int[] candidates = IndexesByLength[length];
+            for (int candidateIndex = 0; candidateIndex < candidates.Length; candidateIndex++) {
+                int bit = candidates[candidateIndex];
+                string candidate = Names[bit];
+                bool matches = true;
+                for (int character = 0; character < length && matches; character++) {
+                    matches = name.GetCharacter(source, character + 1) == candidate[character];
+                }
+                if (matches) return 1UL << bit;
+            }
+            return 0;
+        }
+
+        private static int[][] CreateIndexesByLength() {
+            if (Names.Length > 64) throw new InvalidOperationException("Deferred marker names need one bit each.");
+            int maximumLength = 0;
+            foreach (string name in Names) maximumLength = Math.Max(maximumLength, name.Length);
+            var buckets = new List<int>[maximumLength + 1];
+            for (int bit = 0; bit < Names.Length; bit++) (buckets[Names[bit].Length] ??= new List<int>()).Add(bit);
+            var result = new int[maximumLength + 1][];
+            for (int length = 0; length < result.Length; length++) result[length] = buckets[length]?.ToArray() ?? Array.Empty<int>();
+            return result;
         }
     }
 }

@@ -54,6 +54,15 @@ public static partial class OfficePngWriter {
         return true;
     }
 
+#if NET8_0_OR_GREATER
+    /// <summary>Returns the byte offset of the first pixel in [index, end) that differs from <paramref name="pixel"/>, or end.</summary>
+    private static int SkipRepeatedPixels(byte[] rgba, int index, int end, uint pixel) {
+        ReadOnlySpan<uint> pixels = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(rgba.AsSpan(index, end - index));
+        int offset = pixels.IndexOfAnyExcept(pixel);
+        return offset < 0 ? end : index + offset * 4;
+    }
+#endif
+
     /// <summary>Returns true when <paramref name="key"/> was already present; otherwise records it.</summary>
     private static bool AddPaletteKey(uint[] keys, bool[] slots, uint key) {
         int mask = keys.Length - 1;
@@ -82,6 +91,9 @@ public static partial class OfficePngWriter {
         var paletteSlots = new bool[512];
         uint lastKey = 0;
         bool hasLastKey = false;
+#if NET8_0_OR_GREATER
+        uint lastPixel = 0;
+#endif
         // Blocks keep the checkpoint after every 4096 bytes. Repeated colors skip the palette
         // lookup, and once only opacity is undecided the remaining pixels are checked in bulk.
         for (int block = 0; block < rgba.Length; block += 4096) {
@@ -94,6 +106,15 @@ public static partial class OfficePngWriter {
                 continue;
             }
             for (int i = block; i < end; i += 4) {
+#if NET8_0_OR_GREATER
+                // A pixel equal to the previous one changes none of the gray, opacity or palette state,
+                // so runs of it (page backgrounds, solid fills) are skipped a vector at a time.
+                if (hasLastKey) {
+                    i = SkipRepeatedPixels(rgba, i, end, lastPixel);
+                    if (i >= end) break;
+                }
+                lastPixel = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref rgba[i]);
+#endif
                 byte g = rgba[i];
                 if (gray) {
                     if (g == rgba[i + 1] && g == rgba[i + 2]) grayDepths &= GrayDepthTable[g];

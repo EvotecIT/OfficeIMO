@@ -138,6 +138,8 @@ internal static partial class PdfPageImageRenderer {
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
             cancellationToken.ThrowIfCancellationRequested();
+            // The capability scan and the drawing read the same page content; decode it once for both.
+            using PdfReadPage.DecodedContentReuseScope contentReuse = document.Pages[pageNumber - 1].ReuseDecodedContent();
             capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(
                 options.MaxDiagnosticsPerPage, options.MaxDiagnosticCharactersPerPage, cancellationToken);
             void ConfigureDrawing(OfficeDrawing scene) {

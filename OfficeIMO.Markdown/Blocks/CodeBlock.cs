@@ -25,13 +25,13 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     internal int ClosingFenceLength { get; private set; } = 3;
     internal int? FencedContentLineCount { get; private set; }
     /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the fenced-code info string when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? InfoStringSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? InfoStringSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the code payload when source-backed.</summary>
-    public MarkdownSourceSpan? ContentSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ContentSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the closing fence token when parsed from a closed fenced source block.</summary>
-    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Create a code block with an optional fenced-code info string.</summary>
     public CodeBlock(string language, string content) : this(language, content, isFenced: true) {
@@ -299,5 +299,13 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         }
 
         return new MarkdownSourceSpan(fenceStartLine, 1, value.EndLine, value.EndColumn.Value);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (CodeBlock)captured;
+        OpeningFenceSourceSpan = source.OpeningFenceSourceSpan;
+        InfoStringSourceSpan = source.InfoStringSourceSpan;
+        ContentSourceSpan = source.ContentSourceSpan;
+        ClosingFenceSourceSpan = source.ClosingFenceSourceSpan;
     }
 }

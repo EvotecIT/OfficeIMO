@@ -367,7 +367,9 @@ public sealed partial class OfficeFontFaceCollection {
         if (_faces.Count == 0) return false;
 
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
-        foreach (OfficeFontFallbackRun run in runs) {
+        // Indexed: every measured word passes here, and foreach over the interface boxes an enumerator.
+        for (int index = 0; index < runs.Count; index++) {
+            OfficeFontFallbackRun run = runs[index];
             IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyRequest, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             width += font.Measure(run.Text, fontSize);

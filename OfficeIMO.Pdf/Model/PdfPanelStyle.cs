@@ -39,6 +39,8 @@ public class PdfPanelStyle {
     // Paragraph spacing ends at the current frame; it does not create blank
     // content at the top of the next page or column like an explicit spacer.
     internal bool ClipSpacingAfterAtFrameEnd { get; set; }
+    /// <summary>Keeps <see cref="SpacingBefore"/> when the panel starts a page or column, as headings do.</summary>
+    internal bool ApplySpacingBeforeAtTop { get; set; }
     internal double? PaddingBottomOverride { get; set; }
     // Imported paragraph decoration follows the final line advance even when
     // that advance extends below the frame after its visible text has fitted.
@@ -198,6 +200,7 @@ public class PdfPanelStyle {
             FrameStartTopBorder = FrameStartTopBorder?.Clone(),
             BorderContinuesWithNext = BorderContinuesWithNext,
             ClipSpacingAfterAtFrameEnd = ClipSpacingAfterAtFrameEnd,
+            ApplySpacingBeforeAtTop = ApplySpacingBeforeAtTop,
             PaddingBottomOverride = PaddingBottomOverride,
             AllowTrailingPaddingOverflow = AllowTrailingPaddingOverflow,
             BorderWidth = BorderWidth,

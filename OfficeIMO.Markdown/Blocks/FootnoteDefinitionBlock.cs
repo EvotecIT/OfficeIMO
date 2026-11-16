@@ -7,11 +7,11 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     /// <summary>Footnote label (identifier without the leading ^).</summary>
     public string Label { get; }
     /// <summary>Source span for the opening <c>[^</c> marker when parsed from markdown.</summary>
-    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the footnote label token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? LabelSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? LabelSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the <c>]:</c> separator marker when parsed from markdown.</summary>
-    public MarkdownSourceSpan? SeparatorMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? SeparatorMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     private readonly string _fallbackText;
     private readonly string? _fallbackTextProjection;
     private readonly IReadOnlyList<IMarkdownBlock> _blocks;
@@ -50,7 +50,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     /// This exposes footnote content as owned block children for AST-style consumers.
     /// </summary>
     public IReadOnlyList<ParagraphBlock> ParagraphBlocks => CreateParagraphBlocks(_blocks);
-    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
     string IFootnoteSectionMarkdownBlock.FootnoteLabel => Label;
 
     /// <summary>Create a new footnote definition.</summary>
@@ -483,5 +483,13 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
 
             sb.Append(lines[i]);
         }
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (FootnoteDefinitionBlock)captured;
+        OpeningMarkerSourceSpan = source.OpeningMarkerSourceSpan;
+        LabelSourceSpan = source.LabelSourceSpan;
+        SeparatorMarkerSourceSpan = source.SeparatorMarkerSourceSpan;
+        SyntaxChildren = map.Retarget(source.SyntaxChildren);
     }
 }

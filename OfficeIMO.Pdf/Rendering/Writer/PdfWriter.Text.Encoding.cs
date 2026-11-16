@@ -225,9 +225,13 @@ internal static partial class PdfWriter {
             preservesPaintedGlyphs, requireGlyphClusters);
     }
 
+    // The usual run has no diagnostics; the remapping (and its closure) is made only when one needs it.
     internal static IReadOnlyList<PdfTextEncodingDiagnostic> RestoreOptionalBreakDiagnosticIndices(string source, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) =>
         diagnostics.Count == 0 || source.IndexOf('\u200B') < 0 ? diagnostics
-            : diagnostics.Select(diagnostic => RestoreOptionalBreakDiagnosticIndex(source, diagnostic)!).ToArray();
+            : RestoreEachOptionalBreakDiagnosticIndex(source, diagnostics);
+
+    private static PdfTextEncodingDiagnostic[] RestoreEachOptionalBreakDiagnosticIndex(string source, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) =>
+        diagnostics.Select(diagnostic => RestoreOptionalBreakDiagnosticIndex(source, diagnostic)!).ToArray();
 
     // Glyph indices use normalized text; diagnostics describe the caller's original UTF-16 text.
     private static PdfTextEncodingDiagnostic? RestoreOptionalBreakDiagnosticIndex(string source, PdfTextEncodingDiagnostic? diagnostic) {

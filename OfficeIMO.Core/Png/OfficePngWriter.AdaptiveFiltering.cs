@@ -77,10 +77,37 @@ public static partial class OfficePngWriter {
         bool packed = layout.Type == 3 || layout.Depth < 8;
         uint lastKey = 0;
         int lastIndex = -1;
+#if NET8_0_OR_GREATER
+        uint lastPixel = 0;
+#endif
         for (int blockStart = 0; blockStart < width; blockStart += 1024) {
             CheckColorBlock(blockStart * 4, token, observer);
             int blockEnd = Math.Min(width, blockStart + 1024);
             int source = rowSource + blockStart * 4;
+#if NET8_0_OR_GREATER
+            if (layout.Type == 3 && layout.Depth == 8) {
+                // One palette index per byte: a run of pixels equal to the last one shares its index.
+                for (int x = blockStart; x < blockEnd;) {
+                    if (lastIndex >= 0) {
+                        int next = SkipRepeatedPixels(rgba!, source, rowSource + blockEnd * 4, lastPixel) - rowSource;
+                        int runEnd = next / 4;
+                        if (runEnd > x) {
+                            row.AsSpan(x, runEnd - x).Fill((byte)lastIndex);
+                            source += (runEnd - x) * 4;
+                            x = runEnd;
+                            if (x >= blockEnd) break;
+                        }
+                    }
+                    lastPixel = System.Runtime.CompilerServices.Unsafe.ReadUnaligned<uint>(ref rgba![source]);
+                    uint key = RgbaKey(rgba, source);
+                    if (lastIndex < 0 || key != lastKey) { lastIndex = layout.Palette![key]; lastKey = key; }
+                    row[x] = (byte)lastIndex;
+                    x++;
+                    source += 4;
+                }
+                continue;
+            }
+#endif
             if (packed) {
                 for (int x = blockStart; x < blockEnd; x++, source += 4) {
                     int value;
@@ -152,6 +179,17 @@ public static partial class OfficePngWriter {
                 }
                 (value - prediction).CopyTo(selected, i + 1);
             }
+        } else if (filter == 4 && System.Numerics.Vector.IsHardwareAccelerated) {
+            int width = System.Numerics.Vector<byte>.Count;
+            for (; i <= end - width; i += width) {
+                System.Numerics.Vector.Widen(new System.Numerics.Vector<byte>(current, i), out var valueLow, out var valueHigh);
+                System.Numerics.Vector.Widen(new System.Numerics.Vector<byte>(current, i - bpp), out var leftLow, out var leftHigh);
+                System.Numerics.Vector.Widen(new System.Numerics.Vector<byte>(previous, i), out var upLow, out var upHigh);
+                System.Numerics.Vector.Widen(new System.Numerics.Vector<byte>(previous, i - bpp), out var upperLeftLow, out var upperLeftHigh);
+                var low = valueLow - PaethPrediction(leftLow, upLow, upperLeftLow);
+                var high = valueHigh - PaethPrediction(leftHigh, upHigh, upperLeftHigh);
+                System.Numerics.Vector.Narrow(low, high).CopyTo(selected, i + 1);
+            }
         }
 #endif
         switch (filter) {
@@ -169,6 +207,24 @@ public static partial class OfficePngWriter {
                 break;
         }
     }
+
+#if NET8_0_OR_GREATER
+    // ColorPaeth on widened samples: |p - left| = |up - upperLeft|, |p - up| = |left - upperLeft| and
+    // |p - upperLeft| = |left + up - 2 upperLeft|, with the same tie order (left, then up, then upper left).
+    private static System.Numerics.Vector<ushort> PaethPrediction(System.Numerics.Vector<ushort> left, System.Numerics.Vector<ushort> up,
+        System.Numerics.Vector<ushort> upperLeft) {
+        var l = System.Numerics.Vector.AsVectorInt16(left);
+        var u = System.Numerics.Vector.AsVectorInt16(up);
+        var ul = System.Numerics.Vector.AsVectorInt16(upperLeft);
+        var a = System.Numerics.Vector.Abs(u - ul);
+        var b = System.Numerics.Vector.Abs(l - ul);
+        var c = System.Numerics.Vector.Abs(l + u - ul - ul);
+        var useLeft = System.Numerics.Vector.LessThanOrEqual(a, b) & System.Numerics.Vector.LessThanOrEqual(a, c);
+        var useUp = System.Numerics.Vector.LessThanOrEqual(b, c);
+        var prediction = System.Numerics.Vector.ConditionalSelect(useLeft, l, System.Numerics.Vector.ConditionalSelect(useUp, u, ul));
+        return System.Numerics.Vector.AsVectorUInt16(prediction);
+    }
+#endif
 
     private static void CheckColorBlock(int index, CancellationToken token, Action<OfficeRasterEncodingCheckpoint>? observer) {
         if ((index & 4095) == 0) { observer?.Invoke(OfficeRasterEncodingCheckpoint.PngFilteringBlock); token.ThrowIfCancellationRequested(); }

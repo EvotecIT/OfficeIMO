@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
                 if (currentSection > targetSection) {
                     yield break;
                 }
-                if (currentSection == targetSection) {
+                if (currentSection == targetSection && WordElementWalker.DescendantsContain(element, static node => node is TReference)) {
                     foreach (TReference reference in element.Descendants<TReference>()) {
                         if (reference.Parent is not Run run ||
                             run.Ancestors().Any(ancestor => ancestor is DeletedRun || ancestor is MoveFromRun)) {

@@ -401,6 +401,9 @@ internal static partial class PdfWriter {
 
             if (item is ColTable table) {
                 double firstRowHeight = table.RowHeights.Length == 0 ? 0D : table.RowHeights[0];
+                double headerGroup = MeasureTableHeaderFirstBodyHeight(table.Style, table.RowHeights, GetTableCellSpacing(table.Style),
+                    row => MeasureColTableFirstLegalRowFragmentHeight(table, row, GetMeasuredContinuationFrameHeight()));
+                if (headerGroup > 0D) firstRowHeight = headerGroup;
                 return table.Style.SpacingBefore.ToPoints() + table.CaptionHeight + firstRowHeight;
             }
 

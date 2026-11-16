@@ -84,7 +84,7 @@ public sealed class TestOfficeAccessibilityCommand : PSCmdlet {
         foreach (string path in OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal)) {
             if (Stopping) return;
             if (!OfficeDocument.SupportsAccessibility(path)) {
-                WriteError(new ErrorRecord(new PSNotSupportedException("Accessibility checks support Word, Excel and PowerPoint files: " + path),
+                WriteError(new ErrorRecord(new PSNotSupportedException("Accessibility checks support Word, Excel and PowerPoint files; use Test-OfficePdfAccessibility for PDF: " + path),
                     "accessibility-unsupported-format", ErrorCategory.InvalidArgument, path));
                 continue;
             }

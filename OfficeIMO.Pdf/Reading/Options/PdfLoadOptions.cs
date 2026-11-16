@@ -159,10 +159,13 @@ public sealed partial class PdfLoadOptions {
         PdfGeneratedOutputGrowth growth = default) {
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         PdfLoadOptions source = Resolve(sourceOptions);
-        return ForGeneratedOutput(source, PdfSyntax.InspectStructuralMarkers(sourcePdf, source.Limits), outputPdf, growth);
+        return ForGeneratedOutput(source, PdfSyntax.CountSourceStructuralMarkers(sourcePdf, source.Limits), outputPdf, growth);
     }
 
-    /// <summary>Derives output read limits from source markers already measured under <paramref name="sourceOptions"/>.</summary>
+    /// <summary>
+    /// Derives output read limits from source markers already measured under <paramref name="sourceOptions"/>. Only the
+    /// source's header and startxref counts are read.
+    /// </summary>
     internal static PdfLoadOptions ForGeneratedOutput(
         PdfLoadOptions? sourceOptions,
         PdfStructuralMarkerCounts sourceMarkers,

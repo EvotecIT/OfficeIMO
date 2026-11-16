@@ -18,6 +18,7 @@ namespace OfficeIMO.Word {
             cancellationToken.ThrowIfCancellationRequested();
             using var storyScope = WordHeaderFooterResolutionSnapshot.Begin(this, cancellationToken);
             using var visibilityScope = WordComplexFieldRunVisibility.BeginConversionScope();
+            using var styleCatalogScope = WordListNumberingResolver.BeginReadOnlyPass(this);
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup(),
                 WordDocumentTraversal.BuildResolvedListMarkers(this)) {
                 IncludeImageBytes = includeImageBytes, CancellationToken = cancellationToken

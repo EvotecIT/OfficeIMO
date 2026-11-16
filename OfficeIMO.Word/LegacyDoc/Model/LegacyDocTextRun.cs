@@ -132,7 +132,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = string.IsNullOrWhiteSpace(colorHex)
                 ? null
-                : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
+                : Helpers.NormalizeOpenXmlColor(colorHex);
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
             CharacterScalePercentage = characterScalePercentage;

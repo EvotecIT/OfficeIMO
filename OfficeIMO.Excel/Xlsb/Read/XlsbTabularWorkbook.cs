@@ -148,9 +148,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();
-            // The inflater refills its input in small reads; a larger file buffer serves
-            // them from memory instead of issuing one system read for each refill.
-            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, PackageReadBufferSize);
+            // The inflater refills its input in small reads; a larger buffer serves them from memory instead of
+            // issuing one system read for each refill. It is rented, so the read does not allocate it.
+            Stream stream = ExcelPooledReadBufferStream.OpenFile(path, PackageReadBufferSize);
             try {
                 if (stream.Length > readOptions.MaxInputBytes) {
                     throw new InvalidDataException(
@@ -441,8 +441,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
-            byte[] bytes = _parts.ReadPart(partName, _cancellationToken);
-            var records = new XlsbRecordSliceReader(bytes, _limits.MaxRecordBytes, _recordBudget);
+            // The styles part is parsed and dropped here, so its bytes come from the pool.
+            using XlsbPooledPartStream part = _parts.ReadSeekablePart(partName, _cancellationToken);
+            var records = new XlsbRecordSliceReader(part.Buffer, _limits.MaxRecordBytes, _recordBudget, length: part.DataLength);
             var customFormats = new Dictionary<ushort, string>();
             var cellStyleFormats = new List<XlsbTabularCellFormatReference>();
             var cellFormats = new List<XlsbTabularCellFormatReference>();

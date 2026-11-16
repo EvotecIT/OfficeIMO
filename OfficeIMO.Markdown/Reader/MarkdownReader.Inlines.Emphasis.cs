@@ -12,7 +12,7 @@ internal static partial class MarkdownReader {
         Subscript,
     }
 
-    private sealed class InlineFrame {
+    private readonly struct InlineFrame {
         public InlineFrame(FrameKind kind, char marker, int openLen, InlineSequence seq, int openIndex) {
             Kind = kind;
             Marker = marker;
@@ -28,7 +28,7 @@ internal static partial class MarkdownReader {
         public int OpenIndex { get; }
     }
 
-    private static InlineFrame PeekSecondFrame(Stack<InlineFrame> stack) {
+    private static InlineFrame PeekSecondFrame(InlineFrameStack stack) {
         InlineFrame top = stack.Pop();
         InlineFrame second = stack.Peek();
         stack.Push(top);
@@ -36,7 +36,7 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryCloseFrame(
-        Stack<InlineFrame> stack,
+        InlineFrameStack stack,
         char marker,
         int remaining,
         MarkdownInlineSourceMap? sourceMap,
@@ -130,7 +130,7 @@ internal static partial class MarkdownReader {
             sourceMap.GetSpan(closingIndex, closingLength));
     }
 
-    private static bool ShouldTreatSingleMarkerAsLiteralInsideBold(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns) {
+    private static bool ShouldTreatSingleMarkerAsLiteralInsideBold(string text, int start, char marker, int runLen, InlineFrameStack stack, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns) {
         if (runLen != 1) return false;
         if (marker != '*' && marker != '_') return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
@@ -149,7 +149,7 @@ internal static partial class MarkdownReader {
         return nextRun == 2;
     }
 
-    private static bool ShouldTreatDelimiterRunAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool splitDoubleRunIntoDualItalic, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns, out int literalRunLength) {
+    private static bool ShouldTreatDelimiterRunAsLiteral(string text, int start, char marker, int runLen, InlineFrameStack stack, bool splitDoubleRunIntoDualItalic, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns, out int literalRunLength) {
         literalRunLength = 0;
         if (runLen != 2) return false;
         if (marker != '*' && marker != '_') return false;
@@ -202,7 +202,7 @@ internal static partial class MarkdownReader {
         return -1;
     }
 
-    private static bool TryRebalanceLeadingBoldInsideItalic(Stack<InlineFrame> stack, char marker, int remaining, out int consumed) {
+    private static bool TryRebalanceLeadingBoldInsideItalic(InlineFrameStack stack, char marker, int remaining, out int consumed) {
         consumed = 0;
         if (remaining < 2) return false;
         if (marker != '*' && marker != '_') return false;
@@ -224,7 +224,7 @@ internal static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryRebalanceParentBoldWithInnerItalicIntoDualItalic(string text, int start, Stack<InlineFrame> stack, char marker, int remaining, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns, out int consumed) {
+    private static bool TryRebalanceParentBoldWithInnerItalicIntoDualItalic(string text, int start, InlineFrameStack stack, char marker, int remaining, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns, out int consumed) {
         consumed = 0;
         if (remaining != 2) return false;
         if (marker != '*' && marker != '_') return false;
@@ -257,7 +257,7 @@ internal static partial class MarkdownReader {
         return true;
     }
 
-    private static bool ShouldPreferInnerBold(Stack<InlineFrame> stack, char marker, int remaining, bool canOpen, bool canClose) {
+    private static bool ShouldPreferInnerBold(InlineFrameStack stack, char marker, int remaining, bool canOpen, bool canClose) {
         if (!canOpen || !canClose || remaining != 2) return false;
         if (marker != '*' && marker != '_') return false;
         if (stack == null || stack.Count <= 1) return false;
@@ -290,7 +290,7 @@ internal static partial class MarkdownReader {
         int runLen,
         bool canOpen,
         bool canClose,
-        Stack<InlineFrame> stack,
+        InlineFrameStack stack,
         EmphasisClosingRunIndex? closingRuns) {
         if (!canOpen || canClose) return false;
         if (runLen != 2) return false;
@@ -373,7 +373,7 @@ internal static partial class MarkdownReader {
         int runLen,
         bool canOpen,
         bool canClose,
-        Stack<InlineFrame> stack,
+        InlineFrameStack stack,
         EmphasisClosingRunIndex? closingRuns) {
         if (!canOpen || canClose) return false;
         if (runLen != 1) return false;
@@ -393,7 +393,7 @@ internal static partial class MarkdownReader {
         return innerClose < 0 || outerClose < innerClose;
     }
 
-    private static bool ShouldTreatOppositeMarkerBeforeOuterCloseAsLiteral(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis) {
+    private static bool ShouldTreatOppositeMarkerBeforeOuterCloseAsLiteral(string text, int start, char marker, int runLen, InlineFrameStack stack, bool cjkFriendlyEmphasis) {
         if (runLen <= 0) return false;
         if (marker != '*' && marker != '_') return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
@@ -414,7 +414,7 @@ internal static partial class MarkdownReader {
         return outerCanClose;
     }
 
-    private static bool ShouldSplitDoubleRunIntoDualItalic(string text, int start, char marker, int runLen, Stack<InlineFrame> stack, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns) {
+    private static bool ShouldSplitDoubleRunIntoDualItalic(string text, int start, char marker, int runLen, InlineFrameStack stack, bool cjkFriendlyEmphasis, EmphasisClosingRunIndex? closingRuns) {
         if (runLen != 2) return false;
         if (marker != '*' && marker != '_') return false;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;

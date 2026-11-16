@@ -81,7 +81,10 @@ public static partial class HtmlAccessibilitySemantics {
 
         string? value = element.GetAttribute("epub:type");
         if (string.IsNullOrWhiteSpace(value)) {
-            foreach (IAttr attribute in element.Attributes) {
+            // Read by index: enumerating the attribute map allocates for every element checked.
+            INamedNodeMap attributes = element.Attributes;
+            for (int index = 0; index < attributes.Length; index++) {
+                IAttr attribute = attributes[index]!;
                 if (attribute.Name.Equals("epub:type", StringComparison.OrdinalIgnoreCase)) {
                     value = attribute.Value;
                     break;

@@ -16,40 +16,74 @@ internal static partial class MarkdownReader {
     /// </summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) {
         ArgumentNullException.ThrowIfNull(markdown);
-        options ??= new MarkdownLoadOptions();
+        MarkdownLoadOptions effectiveOptions = options ?? new MarkdownLoadOptions();
 
+        if (BuildEffectiveDocumentTransforms(effectiveOptions).Count == 0) {
+            // Source information is captured when first read. Until then the document is the
+            // semantic parse, which has the same objects, content and output.
+            if (MarkdownDeferredSourceCapture.CanDefer(markdown, effectiveOptions)) {
+                var state = new MarkdownReaderState();
+                var document = ParseInternal(
+                    markdown,
+                    effectiveOptions,
+                    state,
+                    allowFrontMatter: true,
+                    out _,
+                    out _,
+                    syntaxNodes: null,
+                    lineOffset: 0,
+                    transformDiagnostics: null);
+                var objects = new MarkdownObjectSequence();
+                MarkdownObjectTreeBinder.BindDocument(document, syntaxTree: null, objects);
+                // Writing abbreviation definitions reads their source lines, so those documents
+                // capture source information during the parse.
+                if (SnapshotAbbreviationDefinitions(state).Count == 0
+                    && MarkdownDeferredSourceCapture.TryDefer(
+                        document,
+                        markdown,
+                        options == null ? null : effectiveOptions.Clone(),
+                        objects)) {
+                    return document;
+                }
+            }
+
+            return ParseSourceBacked(markdown, effectiveOptions).Document;
+        }
+
+        return ParseWithSyntaxTree(markdown, effectiveOptions).Document;
+    }
+
+    /// <summary>
+    /// Parses Markdown with source spans and the syntax tree captured, for options without document transforms.
+    /// </summary>
+    internal static MarkdownParseInfo ParseSourceBacked(string markdown, MarkdownLoadOptions options) {
         // Without document transforms the syntax captured by ParseInternal already describes
         // the returned object model. Avoid rebuilding and rebinding an identical final tree,
         // while retaining the parse result needed by source-aware rendering.
-        if (BuildEffectiveDocumentTransforms(options).Count == 0) {
-            var state = new MarkdownReaderState();
-            var syntaxNodes = new List<MarkdownSyntaxNode>();
-            var document = ParseInternal(
-                markdown,
-                options,
-                state,
-                allowFrontMatter: true,
-                out var syntaxTree,
-                out var sourceMarkdown,
-                syntaxNodes,
-                lineOffset: 0,
-                transformDiagnostics: null,
-                applyDocumentTransforms: false);
-            var capturedSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
-            _ = new MarkdownParseInfo(
-                document,
-                capturedSyntaxTree,
-                capturedSyntaxTree,
-                sourceMarkdown,
-                options.PreserveTrivia ? markdown : null,
-                options.PreserveTrivia,
-                transformDiagnostics: null,
-                referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
-                abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
-            return document;
-        }
-
-        return ParseWithSyntaxTree(markdown, options).Document;
+        var state = new MarkdownReaderState();
+        var syntaxNodes = new List<MarkdownSyntaxNode>();
+        var document = ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out var syntaxTree,
+            out var sourceMarkdown,
+            syntaxNodes,
+            lineOffset: 0,
+            transformDiagnostics: null,
+            applyDocumentTransforms: false);
+        var capturedSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
+        return new MarkdownParseInfo(
+            document,
+            capturedSyntaxTree,
+            capturedSyntaxTree,
+            sourceMarkdown,
+            options.PreserveTrivia ? markdown : null,
+            options.PreserveTrivia,
+            transformDiagnostics: null,
+            referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
+            abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
     }
 
     /// <summary>

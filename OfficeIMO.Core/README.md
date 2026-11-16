@@ -1670,7 +1670,7 @@ High-quality image minification shares the operation's `MaximumRasterPixels` bud
 ## Targets and license
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
-- License: OfficeIMO code is MIT. The incorporated CodeGlyphX VP8 encoder remains Apache-2.0, and its forward transform retains the WebM BSD-3-Clause notice. See [third-party notices](THIRD-PARTY-NOTICES.md), the [CodeGlyphX license](Licenses/CodeGlyphX-LICENSE.txt), and the [WebM license](Licenses/libvpx-LICENSE.txt) and [patent grant](Licenses/libvpx-PATENTS.txt).
+- License: MIT. The package also embeds reference data, such as Unicode tables, font metrics and codec tables, under their own notices; see [third-party notices](THIRD-PARTY-NOTICES.md) and the `Licenses` folder.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
 ## Dependency footprint

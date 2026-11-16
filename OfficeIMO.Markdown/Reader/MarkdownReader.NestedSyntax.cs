@@ -148,11 +148,13 @@ internal static partial class MarkdownReader {
         InlineSequence sequence,
         MarkdownLoadOptions options) {
         int maximumDepth = options.MaxNestingDepth;
-        // Every inline parse ends here, and most sequences hold no containers at all, so the
-        // walk only allocates its stack once a nested sequence actually has to be visited.
-        Stack<(InlineSequence Sequence, int Depth)>? pending = null;
+        // Every inline parse ends here, so the walk reuses one stack per thread. It takes the stack
+        // while walking, so a walk started from inside another one gets its own.
+        var pending = t_inlineNestingPending ?? new Stack<(InlineSequence Sequence, int Depth)>();
+        t_inlineNestingPending = null;
         var current = sequence;
         int depth = 0;
+        int largestPendingCount = 0;
         while (true) {
             var nodes = current.Nodes;
             for (int i = 0; i < nodes.Count; i++) {
@@ -167,16 +169,24 @@ internal static partial class MarkdownReader {
                         $"Markdown inline nesting exceeds MaxNestingDepth ({maximumDepth}).");
                 }
 
-                (pending ??= new Stack<(InlineSequence Sequence, int Depth)>()).Push((nested, depth + 1));
+                pending.Push((nested, depth + 1));
+                largestPendingCount = Math.Max(largestPendingCount, pending.Count);
             }
 
-            if (pending == null || pending.Count == 0) {
+            if (pending.Count == 0) {
+                if (largestPendingCount <= MaximumRetainedInlineNestingPending) {
+                    t_inlineNestingPending = pending;
+                }
+
                 return;
             }
 
             (current, depth) = pending.Pop();
         }
     }
+
+    private const int MaximumRetainedInlineNestingPending = 256;
+    [ThreadStatic] private static Stack<(InlineSequence Sequence, int Depth)>? t_inlineNestingPending;
 
     private static MarkdownReaderState CreateNestedState(
         MarkdownReaderState state,

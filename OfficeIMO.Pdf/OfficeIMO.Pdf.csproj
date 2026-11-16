@@ -29,6 +29,7 @@
     <EmbeddedResource Include="Resources\sRGB_IEC61966-2-1_no_black_scaling.icc" />
     <EmbeddedResource Include="Resources/AdobeCMaps/Adobe-*.bin" LogicalName="OfficeIMO.Pdf.AdobeCMaps.%(Filename)%(Extension)" />
     <None Include="Resources/AdobeCMaps/LICENSE.md;Resources/AdobeCMaps/LICENSE.txt;Resources/AdobeCMaps/source.json" Pack="true" PackagePath="licenses/AdobeCMaps/" />
+    <None Include="Resources/sRGB-LICENSE.txt;Resources/Adobe-Core14-AFM-LICENSE.txt" Pack="true" PackagePath="licenses/" />
     <None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="THIRD-PARTY-NOTICES.md" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>

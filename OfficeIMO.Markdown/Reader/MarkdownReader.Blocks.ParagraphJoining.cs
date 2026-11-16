@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 
 internal static partial class MarkdownReader {
     private static InlineSequence ParseJoinedParagraphLines(List<string> lines, MarkdownLoadOptions options, MarkdownReaderState? state) {
-        var lineBreaks = CreateSemanticLineBreakList(state, lines.Count, index => lines[index]);
+        var lineBreaks = CreateSemanticLineBreakList(state, lines, static line => line);
         var text = JoinParagraphLines(lines, options, out var softBreaks, lineBreaks: lineBreaks);
         return ParseInlines(text, options, state, CreateSemanticLineBreakMap(text, softBreaks, lineBreaks));
     }
@@ -25,14 +25,15 @@ internal static partial class MarkdownReader {
     // A syntax-capturing parse rejects an angle link destination that spans lines because its
     // source points change line. Without points, a parse records where lines were joined, but only
     // for paragraphs that can hold such a destination.
-    private static List<int>? CreateSemanticLineBreakList(MarkdownReaderState? state, int lineCount, Func<int, string?> line) {
+    private static List<int>? CreateSemanticLineBreakList<TLine>(MarkdownReaderState? state, IReadOnlyList<TLine> lines, Func<TLine, string?> text) {
+        int lineCount = lines.Count;
         if (state?.CaptureSyntaxTree != false || lineCount < 2) {
             return null;
         }
 
         // An angle destination opens with "](", optional whitespace that may end the line, then '<'.
         for (int i = 0; i < lineCount; i++) {
-            var value = line(i);
+            var value = text(lines[i]);
             if (value == null) {
                 continue;
             }
@@ -45,7 +46,7 @@ internal static partial class MarkdownReader {
 
                 if (next < value.Length
                     ? value[next] == '<'
-                    : i + 1 < lineCount && line(i + 1)?.TrimStart().StartsWith("<", StringComparison.Ordinal) == true) {
+                    : i + 1 < lineCount && text(lines[i + 1])?.TrimStart().StartsWith("<", StringComparison.Ordinal) == true) {
                     return new List<int>();
                 }
             }
@@ -117,7 +118,7 @@ internal static partial class MarkdownReader {
         MarkdownReaderState? state,
         IReadOnlyList<int>? lineStartColumns = null) {
         if (state?.SourceTextMap == null) {
-            var lineBreaks = CreateSemanticLineBreakList(state, lines.Count, index => lines[index]);
+            var lineBreaks = CreateSemanticLineBreakList(state, lines, static line => line);
             var sourceText = JoinParagraphLines(lines, options, out var softBreaks, state, absoluteLineOffset, lineBreaks);
             return (sourceText, CreateSemanticLineBreakMap(sourceText, softBreaks, lineBreaks));
         }
@@ -250,7 +251,7 @@ internal static partial class MarkdownReader {
         }
 
         if (state?.SourceTextMap == null) {
-            var lineBreaks = CreateSemanticLineBreakList(state, lines.Count, index => lines[index].Text);
+            var lineBreaks = CreateSemanticLineBreakList(state, lines, static line => line.Text);
             var sourceText = JoinParagraphSourceLines(lines, options, out var softBreaks, lineBreaks);
             return (sourceText, CreateSemanticLineBreakMap(sourceText, softBreaks, lineBreaks));
         }

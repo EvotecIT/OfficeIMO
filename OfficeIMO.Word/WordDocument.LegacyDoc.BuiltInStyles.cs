@@ -194,7 +194,7 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new Shading {
                     Val = ShadingPatternValues.Clear,
                     Color = "auto",
-                    Fill = paragraphFormat.ParagraphShading.Value.FillColorHex!
+                    Fill = paragraphFormat.ParagraphShading.Value.OpenXmlFill!
                 });
             }
 

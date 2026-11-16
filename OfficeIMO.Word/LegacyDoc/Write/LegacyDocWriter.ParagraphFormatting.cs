@@ -329,16 +329,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             string? fillColorHex = shading.Fill?.Value;
-            if (string.IsNullOrWhiteSpace(fillColorHex)
-                || string.Equals(fillColorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
+            if (string.IsNullOrWhiteSpace(fillColorHex)) {
                 return default;
             }
 
-            if (!LegacyDocPaletteProjection.CanResolveColor(fillColorHex)) {
-                throw new NotSupportedException("Native DOC saving supports paragraph shading only for Word 97-2003 palette fill colors.");
+            // An explicit automatic fill is retained because it clears inherited shading.
+            var paragraphShading = new LegacyDocParagraphShading(fillColorHex);
+            if (!paragraphShading.IsAutomatic && !paragraphShading.TryGetRgb(out _, out _, out _)) {
+                throw new NotSupportedException("Native DOC saving supports paragraph shading only for six-digit RGB or automatic fill colors.");
             }
 
-            return new LegacyDocParagraphShading(fillColorHex);
+            return paragraphShading;
         }
 
         private static void ReadSupportedBuiltInOutlineLevel(OutlineLevel outlineLevel, ushort? builtInStyleIndex) {

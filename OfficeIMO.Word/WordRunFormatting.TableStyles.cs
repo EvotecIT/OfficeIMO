@@ -17,15 +17,24 @@ internal static partial class WordRunFormatting {
     }
 
     /// <summary>Resolves cell shading in source override order, retaining explicit nil and clear declarations.</summary>
-    internal static Shading? ResolveTableCellShading(WordTableCell cell) {
-        if (cell._tableCell.TableCellProperties?.GetFirstChild<Shading>() is { } direct) return direct;
-        Table? table = cell._tableCell.Ancestors<Table>().FirstOrDefault();
+    internal static Shading? ResolveTableCellShading(WordTableCell cell) =>
+        ResolveTableCellShading(cell._tableCell, cell.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles);
+
+    /// <summary>Resolves the shading of the nearest table cell containing a paragraph, or <see langword="null"/> outside tables.</summary>
+    internal static Shading? ResolveContainingTableCellShading(WordParagraph paragraph) {
+        TableCell? cell = paragraph._paragraph?.Ancestors<TableCell>().FirstOrDefault();
+        return cell == null ? null
+            : ResolveTableCellShading(cell, paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles);
+    }
+
+    private static Shading? ResolveTableCellShading(TableCell tableCell, Styles? styles) {
+        if (tableCell.TableCellProperties?.GetFirstChild<Shading>() is { } direct) return direct;
+        Table? table = tableCell.Ancestors<Table>().FirstOrDefault();
         if (table == null) return null;
         if (table.GetFirstChild<TableProperties>()?.GetFirstChild<Shading>() is { } tableShading) return tableShading;
-        Styles? styles = cell.Document.MainDocumentPartRoot.StyleDefinitionsPart?.Styles;
         TableRunPaintState state = GetTableRunPaintState(table, styles);
         if (state.HasConditionalFormatting) {
-            foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, cell._tableCell)) {
+            foreach (TableStyleOverrideValues condition in EnumerateTableRunConditions(state, tableCell)) {
                 foreach (Style style in state.Chain) {
                     foreach (TableStyleProperties conditional in style.Elements<TableStyleProperties>()
                                  .Where(properties => properties.Type?.Value == condition).Reverse()) {

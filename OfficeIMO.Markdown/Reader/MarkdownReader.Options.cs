@@ -9,16 +9,24 @@ internal static partial class MarkdownReader {
     // options copy is read-only.
     private static MarkdownLoadOptions GetSharedOptionsWithoutFrontMatter(MarkdownLoadOptions source, MarkdownReaderState state) {
         var cache = state.ParseCache;
-        if (ReferenceEquals(cache.OptionsWithoutFrontMatter, source)) {
+        if (cache.IsDerived(source, MarkdownReaderDerivedOptions.WithoutFrontMatter)) {
             return source;
         }
 
-        if (!ReferenceEquals(cache.OptionsWithoutFrontMatterSource, source) || cache.OptionsWithoutFrontMatter == null) {
-            cache.OptionsWithoutFrontMatter = CloneOptionsWithoutFrontMatter(source);
-            cache.OptionsWithoutFrontMatterSource = source;
-        }
+        return cache.GetDerived(source, MarkdownReaderDerivedOptions.WithoutFrontMatter)
+            ?? cache.AddDerived(source, MarkdownReaderDerivedOptions.WithoutFrontMatter, CloneOptionsWithoutFrontMatter(source));
+    }
 
-        return cache.OptionsWithoutFrontMatter;
+    // Containers that parse their content with one option changed (footnote bodies, structured
+    // table cells, quotes inside list items) reuse one read-only copy per parse, so repeated
+    // containers share it and its block parser pipeline.
+    private static MarkdownLoadOptions GetSharedDerivedOptions(
+        MarkdownLoadOptions source,
+        MarkdownReaderState state,
+        MarkdownReaderDerivedOptions kind,
+        Func<MarkdownLoadOptions, MarkdownLoadOptions> create) {
+        var cache = state.ParseCache;
+        return cache.GetDerived(source, kind) ?? cache.AddDerived(source, kind, create(source));
     }
 
     private static MarkdownReaderPipeline GetPipeline(MarkdownLoadOptions options, MarkdownReaderState state) {
@@ -250,10 +258,10 @@ internal static partial class MarkdownReader {
         clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;
         clone.NestedBlockDepth = state.NestedBlockDepth;
         clone.DiscardsNestedListSourceRemap = state.DiscardsNestedListSourceRemap;
-        foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
-        foreach (var line in state.QuoteContainerLines) clone.QuoteContainerLines.Add(line);
-        foreach (var line in state.SuppressedSetextHeadingUnderlineLines) clone.SuppressedSetextHeadingUnderlineLines.Add(line);
-        foreach (var line in state.SuppressedParagraphGenericAttributeStartLines) clone.SuppressedParagraphGenericAttributeStartLines.Add(line);
+        state.LazyQuoteContinuationLines.CopyTo(clone.LazyQuoteContinuationLines);
+        state.QuoteContainerLines.CopyTo(clone.QuoteContainerLines);
+        state.SuppressedSetextHeadingUnderlineLines.CopyTo(clone.SuppressedSetextHeadingUnderlineLines);
+        state.SuppressedParagraphGenericAttributeStartLines.CopyTo(clone.SuppressedParagraphGenericAttributeStartLines);
         return clone;
     }
 
@@ -348,7 +356,57 @@ internal static partial class MarkdownReader {
 /// <summary>Values derived from the options of one parse and reused by its nested parses.</summary>
 internal sealed class MarkdownReaderParseCache {
     internal const int MaxPipelines = 8;
-    internal MarkdownLoadOptions? OptionsWithoutFrontMatterSource;
-    internal MarkdownLoadOptions? OptionsWithoutFrontMatter;
+    private const int MaxDerivedOptions = 8;
+    private readonly List<DerivedOptions> _derivedOptions = new List<DerivedOptions>(2);
     internal readonly List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>> Pipelines = new List<KeyValuePair<MarkdownLoadOptions, MarkdownReaderPipeline>>(2);
+
+    internal MarkdownLoadOptions? GetDerived(MarkdownLoadOptions source, MarkdownReaderDerivedOptions kind) {
+        for (int i = 0; i < _derivedOptions.Count; i++) {
+            var entry = _derivedOptions[i];
+            if (entry.Kind == kind && ReferenceEquals(entry.Source, source)) {
+                return entry.Options;
+            }
+        }
+
+        return null;
+    }
+
+    internal bool IsDerived(MarkdownLoadOptions options, MarkdownReaderDerivedOptions kind) {
+        for (int i = 0; i < _derivedOptions.Count; i++) {
+            var entry = _derivedOptions[i];
+            if (entry.Kind == kind && ReferenceEquals(entry.Options, options)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    internal MarkdownLoadOptions AddDerived(MarkdownLoadOptions source, MarkdownReaderDerivedOptions kind, MarkdownLoadOptions options) {
+        if (_derivedOptions.Count < MaxDerivedOptions) {
+            _derivedOptions.Add(new DerivedOptions(source, kind, options));
+        }
+
+        return options;
+    }
+
+    private readonly struct DerivedOptions {
+        internal DerivedOptions(MarkdownLoadOptions source, MarkdownReaderDerivedOptions kind, MarkdownLoadOptions options) {
+            Source = source;
+            Kind = kind;
+            Options = options;
+        }
+
+        internal MarkdownLoadOptions Source { get; }
+        internal MarkdownReaderDerivedOptions Kind { get; }
+        internal MarkdownLoadOptions Options { get; }
+    }
+}
+
+/// <summary>The read-only option copies a parse derives for nested containers.</summary>
+internal enum MarkdownReaderDerivedOptions {
+    WithoutFrontMatter,
+    FootnoteBody,
+    TableCellBlocks,
+    ListItemQuote
 }

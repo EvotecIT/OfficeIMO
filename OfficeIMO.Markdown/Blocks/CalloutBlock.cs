@@ -8,13 +8,13 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     /// <summary>Admonition kind, e.g., info, warning, success.</summary>
     public string Kind { get; }
     /// <summary>Source span for the opening callout marker (<c>[!</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the callout kind token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? KindSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? KindSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the closing callout marker (<c>]</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the explicit callout title when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     private readonly string _fallbackBody;
     private readonly string? _fallbackBodyProjection;
     private readonly IReadOnlyList<IMarkdownBlock> _childBlocks;
@@ -45,7 +45,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     /// Optional parsed body blocks. When present (produced by <see cref="MarkdownReader"/>),
     /// HTML/Markdown rendering uses these blocks instead of the raw <see cref="Body"/> string.
     /// </summary>
-    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Creates a callout with the specified kind, title and body.</summary>
     public CalloutBlock(string kind, string title, string body)
@@ -350,5 +350,14 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             markerColumn,
             calloutSpan.Value.StartLine,
             markerColumn);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (CalloutBlock)captured;
+        OpeningMarkerSourceSpan = source.OpeningMarkerSourceSpan;
+        KindSourceSpan = source.KindSourceSpan;
+        ClosingMarkerSourceSpan = source.ClosingMarkerSourceSpan;
+        TitleSourceSpan = source.TitleSourceSpan;
+        SyntaxChildren = map.Retarget(source.SyntaxChildren);
     }
 }

@@ -23,7 +23,7 @@ public sealed class MathInline : MarkdownInline, IRenderableMarkdownInline, IPla
     public bool IsDisplay { get; }
 
     /// <summary>Source span for the TeX source between the delimiters when parsed from Markdown.</summary>
-    public MarkdownSourceSpan? ContentSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ContentSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     private string Delimiter => IsDisplay ? "$$" : "$";
 
@@ -56,4 +56,9 @@ public sealed class MathInline : MarkdownInline, IRenderableMarkdownInline, IPla
             Source,
             new[] { new MarkdownSyntaxNode(MarkdownSyntaxKind.InlineMathContent, ContentSourceSpan, Source) },
             this);
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (MathInline)captured;
+        ContentSourceSpan = source.ContentSourceSpan;
+    }
 }

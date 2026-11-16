@@ -13,23 +13,24 @@ function numericProfile(format: string | undefined): { minimumFractionDigits: nu
     percent: !!match[4], grouping: !!match[2], prefix: literal(match[1]!), suffix: literal(match[5]!) };
 }
 
-/** Separate declared literal units before recognizing the captured numeric token. */
+/** Separate declared literal units before recognizing the captured numeric token. U+2212 MINUS SIGN counts as a
+ * sign like "-": the number is re-rendered with Intl's sign, so it never becomes a literal prefix. */
 function capturedNumber(text: string, profile: NonNullable<ReturnType<typeof numericProfile>>): { prefix: string; number: string; suffix: string; signBeforePrefix: boolean } | undefined {
   let body = text, signBeforePrefix = false;
   if (profile.prefix && body.startsWith(profile.prefix)) body = body.slice(profile.prefix.length);
-  else if (profile.prefix && /^[+-]/.test(body) && body.slice(1).startsWith(profile.prefix)) {
+  else if (profile.prefix && /^[+\-\u2212]/.test(body) && body.slice(1).startsWith(profile.prefix)) {
     signBeforePrefix = true;
     body = body[0] + body.slice(1 + profile.prefix.length);
   }
   if (profile.suffix && body.endsWith(profile.suffix)) body = body.slice(0, -profile.suffix.length);
-  const match = /^([^0-9+-]*)([+-]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(body);
+  const match = /^([^0-9+\-\u2212]*)([+\-\u2212]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(body);
   return match ? { prefix: profile.prefix || match[1]!, number: match[2]!, suffix: profile.suffix || match[3]!, signBeforePrefix } : undefined;
 }
 
 /** Distinguish a captured thousands mark from a decimal, using the raw value. */
 function groupedInteger(numeric: string, value: number): boolean {
-  if (!/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric)) return false;
-  const grouped = Number(numeric.replace(/[.,]/g, ""));
+  if (!/^[+\-\u2212]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+\-\u2212]?\d{1,3}(?:\.\d{3})+$/.test(numeric)) return false;
+  const grouped = Number(numeric.replace(/[.,]/g, "").replace("\u2212", "-"));
   return grouped !== 0 && Math.abs(grouped - value) <= .5;
 }
 

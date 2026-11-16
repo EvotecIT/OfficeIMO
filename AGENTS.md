@@ -89,6 +89,11 @@ Edit the source, then regenerate. Never hand-edit the output.
 - No new external runtime dependencies without an explicit decision. Comparison
   libraries stay in benchmark projects and opt-in runners, outside the normal
   solution when their dependencies or licences would affect restore.
+- Don't copy, port or adapt code from other projects. Third-party data that ships
+  in a package goes in `Build/third-party-material.json`, with its license texts
+  packed and a section in the package's `THIRD-PARTY-NOTICES.md`;
+  `python Build/validate_third_party_notices.py` must pass. See "Third-party
+  material and package licenses" in `Docs/building-and-releasing.md`.
 - Studio and OfficeIMO.Workflows convert in process. LibreOffice and Pandoc
   references in fixtures, benchmarks or verification scripts are independent
   validation, not runtime requirements; don't carry them into Studio

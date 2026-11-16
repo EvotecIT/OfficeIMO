@@ -12,7 +12,12 @@ public partial class MarkdownDocument {
     /// <summary>Whether the document has front matter.</summary>
     public bool HasDocumentHeader => DocumentHeader != null;
 
-    internal MarkdownParseInfo? AttachedParseResult => _parseResult;
+    internal MarkdownParseInfo? AttachedParseResult {
+        get {
+            EnsureSourceInformation();
+            return _parseResult;
+        }
+    }
 
     /// <summary>Adds a block instance and returns that same typed block.</summary>
     /// <typeparam name="T">The block type.</typeparam>

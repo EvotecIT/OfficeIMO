@@ -20,13 +20,13 @@ public sealed class MathBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBl
     public string Content { get; }
 
     /// <summary>Source span for the TeX source when parsed from Markdown.</summary>
-    public MarkdownSourceSpan? ContentSourceSpan { get; private set; }
+    public MarkdownSourceSpan? ContentSourceSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Source span for the opening <c>$$</c> delimiter when parsed from Markdown.</summary>
-    public MarkdownSourceSpan? OpeningDelimiterSourceSpan { get; private set; }
+    public MarkdownSourceSpan? OpeningDelimiterSourceSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Source span for the closing <c>$$</c> delimiter when parsed from Markdown.</summary>
-    public MarkdownSourceSpan? ClosingDelimiterSourceSpan { get; private set; }
+    public MarkdownSourceSpan? ClosingDelimiterSourceSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Whether both delimiters and the source share one line (<c>$$x$$</c>).</summary>
     internal bool IsSingleLine { get; set; }
@@ -97,5 +97,12 @@ public sealed class MathBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBl
         if (closingLine <= value.EndLine) {
             ClosingDelimiterSourceSpan = new MarkdownSourceSpan(closingLine, startColumn, closingLine, startColumn + 1);
         }
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (MathBlock)captured;
+        ContentSourceSpan = source.ContentSourceSpan;
+        OpeningDelimiterSourceSpan = source.OpeningDelimiterSourceSpan;
+        ClosingDelimiterSourceSpan = source.ClosingDelimiterSourceSpan;
     }
 }

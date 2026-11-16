@@ -9,11 +9,23 @@ public partial class MarkdownDocument : IDisposable {
     /// <summary>Gets the associated path, or null for an in-memory document.</summary>
     public string? FilePath => _filePath;
     /// <summary>Gets the source syntax and transform snapshot, when the document was parsed.</summary>
-    public MarkdownParseInfo? ParseInfo => _parseResult;
+    public MarkdownParseInfo? ParseInfo {
+        get {
+            EnsureSourceInformation();
+            return _parseResult;
+        }
+    }
 
     /// <summary>Parses Markdown text into the document model.</summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) =>
         options?.CaptureSyntaxTree == false ? MarkdownReader.ParseSemantic(markdown, options) : MarkdownReader.Parse(markdown, options);
+
+    /// <summary>Parses inline Markdown without interpreting block syntax.</summary>
+    /// <param name="text">Inline Markdown text, or null for an empty sequence.</param>
+    /// <param name="options">Options controlling inline interpretation.</param>
+    /// <returns>The parsed sequence of inline nodes.</returns>
+    public static InlineSequence ParseInline(string? text, MarkdownLoadOptions? options = null) =>
+        MarkdownReader.ParseInlineText(text, options);
 
     /// <summary>Parses Markdown text and reports the completed native read.</summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options,

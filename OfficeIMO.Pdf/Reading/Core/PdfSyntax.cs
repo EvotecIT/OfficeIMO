@@ -370,9 +370,10 @@ internal static partial class PdfSyntax {
         repairReport = new PdfRepairReport(repairDiagnostics.AsReadOnly());
         decodedStreamBytes = decodedStreamBudget.UsedBytes;
         int[] revisionOffsets = GetActiveRevisionOffsets(pdf, text, map, limits, parseTimer, cancellationToken);
+        int revisionEntry = 0;
         foreach (var entry in map.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            ThrowIfParsingTimeExceeded(parseTimer, limits);
+            if ((revisionEntry++ & 127) == 0) ThrowIfParsingTimeExceeded(parseTimer, limits);
             if (entry.SourceOffset < 0 && parsedOffsets.TryGetValue(entry.ObjectNumber, out int offset)) entry.SourceOffset = offset;
             if (entry.SourceOffset < 0) continue;
             int revision = Array.BinarySearch(revisionOffsets, entry.SourceOffset);

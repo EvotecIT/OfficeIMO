@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class HorizontalRuleBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Source span of the thematic-break marker token when parsed from markdown.</summary>
-    public MarkdownSourceSpan? MarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? MarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Exact thematic-break marker text when parsed from markdown.</summary>
     public string? MarkerText { get; internal set; }
 
@@ -26,5 +26,10 @@ public sealed class HorizontalRuleBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             : Array.Empty<MarkdownSyntaxNode>();
 
         return new MarkdownSyntaxNode(MarkdownSyntaxKind.HorizontalRule, span ?? markerSpan, "---", children, this);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (HorizontalRuleBlock)captured;
+        MarkerSourceSpan = source.MarkerSourceSpan;
     }
 }

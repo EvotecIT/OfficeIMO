@@ -16683,6 +16683,96 @@
       "notes": "-Options takes New-OfficePdfInteractionOptions. Inspection requires a file source or explicit live Document; a PDF creation block has no completed inspection document."
     },
     {
+      "name": "Test-OfficePdfAccessibility",
+      "alias": null,
+      "status": "new",
+      "synopsis": "Checks a PDF against PDF/UA-1 using the Matterhorn Protocol failure conditions.",
+      "outputType": "PdfAccessibilityReport",
+      "parameterSets": [
+        {
+          "name": "Path",
+          "default": true,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "none",
+              "wildcards": true
+            },
+            {
+              "name": "LoadOptions",
+              "type": "PdfLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "IgnorePermissionRestrictions",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPath",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName"
+            },
+            {
+              "name": "LoadOptions",
+              "type": "PdfLoadOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "IgnorePermissionRestrictions",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "Document",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "PdfDocument",
+              "mandatory": true,
+              "pipeline": "value"
+            }
+          ]
+        }
+      ],
+      "examples": [
+        {
+          "title": "List failed accessibility conditions",
+          "description": "Checks any PDF, including files OfficeIMO did not produce, and lists the conditions it fails.",
+          "code": "(Test-OfficePdfAccessibility -Path .\\Report.pdf).FailedConditions"
+        }
+      ]
+    },
+    {
       "name": "Test-OfficePdfRewrite",
       "alias": null,
       "status": "existing",

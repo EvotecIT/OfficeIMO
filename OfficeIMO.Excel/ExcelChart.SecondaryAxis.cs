@@ -9,7 +9,7 @@ public partial class ExcelChart {
     public ExcelChart SetSecondaryValueAxis(OfficeChartValueAxisLayout layout) {
         var part = GetChartPart();
         OfficeOpenXmlChartSecondaryAxis.Apply(part.ChartSpace?.GetFirstChild<C.Chart>(), layout);
-        part.ChartSpace!.Save();
+        Save();
         return this;
     }
 }

@@ -430,16 +430,43 @@ internal static class HtmlDocumentParser {
     /// <summary>
     /// Resolves the effective base URI from a parsed document and optional caller-provided fallback.
     /// </summary>
+    // The first HTML <base href> in document order, as the base[href] selector finds it, read with a
+    // pre-order walk that keeps one child position per open ancestor. Positions advance by index:
+    // NextSibling searches the parent's child list, which would make wide lists quadratic.
+    private static IElement? FindFirstHtmlBaseElementWithHref(IHtmlDocument document) {
+        var ancestors = new Stack<(INodeList Children, int Index)>();
+        ancestors.Push((document.ChildNodes, 0));
+        while (ancestors.Count > 0) {
+            var (children, index) = ancestors.Pop();
+            if (index >= children.Length) {
+                continue;
+            }
+
+            ancestors.Push((children, index + 1));
+            if (children[index] is not IElement element) {
+                continue;
+            }
+
+            if (element.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase)
+                && element.HasAttribute("href")
+                && string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) {
+                return element;
+            }
+
+            if (element.ChildNodes.Length > 0) {
+                ancestors.Push((element.ChildNodes, 0));
+            }
+        }
+
+        return null;
+    }
+
     public static Uri? ResolveEffectiveBaseUri(IHtmlDocument document, Uri? fallbackBaseUri) {
         if (document == null) {
             return fallbackBaseUri;
         }
 
-        var baseElement = document.QuerySelectorAll("base[href]")
-            .FirstOrDefault(element => string.Equals(
-                element.NamespaceUri,
-                "http://www.w3.org/1999/xhtml",
-                StringComparison.Ordinal));
+        IElement? baseElement = FindFirstHtmlBaseElementWithHref(document);
         string? rawBaseHref = baseElement?.GetAttribute("href");
         if (rawBaseHref == null) {
             return fallbackBaseUri;
