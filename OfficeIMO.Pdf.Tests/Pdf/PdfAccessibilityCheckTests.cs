@@ -148,6 +148,8 @@ public class PdfAccessibilityCheckTests {
     [InlineData("actual-text-owned-below-depth-limit", "11-002", PdfAccessibilityConditionStatus.Indeterminate)]
     [InlineData("nested-mcid-owned-below-depth-limit", "11-001", PdfAccessibilityConditionStatus.Indeterminate)]
     [InlineData("pdfua-part-2", "06-002", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("painting-without-a-path", "01-005", PdfAccessibilityConditionStatus.Passed)]
+    [InlineData("xmp-over-the-metadata-read-limit", "06-002", PdfAccessibilityConditionStatus.Indeterminate)]
     [InlineData("font-only-in-annotation-appearance", "31-009", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("form-element-referencing-non-widget", "UA1:7.18.4-2", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("known-owner-without-language-in-truncated-tree", "11-001", PdfAccessibilityConditionStatus.Failed)]
@@ -214,6 +216,15 @@ public class PdfAccessibilityCheckTests {
                 extra.Add("<< /Type /StructElem /S /P /P 5 0 R /Pg 3 0 R /K 0 >>");
                 extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
                 AddDeepChain(extra, 8, 5, "/K 1 /Pg 3 0 R");
+                break;
+            case "painting-without-a-path":
+                content = "q f Q 0 0 1 1 re n S";
+                break;
+            case "xmp-over-the-metadata-read-limit":
+                // A valid packet padded past the 4,000,000-byte metadata read limit.
+                catalog = "/Metadata 5 0 R";
+                content = string.Empty;
+                extra.Add(Stream("/Type /Metadata /Subtype /XML", Xmp.Replace("<?xpacket end=", new string(' ', 4_000_100) + "<?xpacket end=")));
                 break;
             case "pdfua-part-2":
                 catalog = "/Metadata 5 0 R";

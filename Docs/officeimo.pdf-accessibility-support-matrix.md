@@ -42,8 +42,8 @@ never `Passed`.
 ## Behaviour and limits
 
 - Fonts are checked when page content or the normal appearance of a visible annotation selects them with `Tf` or
-  an ExtGState and shows text; fonts used only in Type 3 glyph procedures are not checked. 31-009 skips fonts used
-  only with rendering mode 3.
+  an ExtGState and shows text. Fonts used only inside tiling patterns or Type 3 glyph procedures are not checked
+  yet. 31-009 skips fonts used only with rendering mode 3.
 - 31-027 accepts simple fonts with a standard encoding, non-symbolic TrueType fonts, unembedded standard 14 Type 1
   fonts and Type 0 fonts with an Adobe GB1, CNS1, Japan1 or Korea1 collection. Type 1 and Type 3 fonts that rely on
   glyph names are `Indeterminate` until the Adobe Glyph List check exists.

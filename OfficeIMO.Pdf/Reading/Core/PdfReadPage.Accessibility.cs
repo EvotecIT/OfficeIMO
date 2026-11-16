@@ -94,6 +94,7 @@ public sealed partial class PdfReadPage {
             var states = new Stack<(PdfDictionary? Font, int Mode)>();
             PdfDictionary? font = inheritedFont;
             int mode = inheritedMode;
+            bool hasPath = false;
             AccessibilityScope Current() => scopes.Count == 0 ? inherited : scopes.Peek();
 
             PdfContentStreamInterpreter.Interpret(source, _limits.MaxContentOperations, operation => {
@@ -180,7 +181,17 @@ public sealed partial class PdfReadPage {
                         else if (!scope.Tagged && !scope.Artifact && !scope.Language) result.UntaggedTextWithoutLanguage++;
                         CountContentItem(scope);
                         break;
+                    case "m": case "l": case "c": case "v": case "y": case "h": case "re":
+                        hasPath = true;
+                        break;
+                    case "n":
+                        hasPath = false;
+                        break;
                     case "S": case "s": case "f": case "F": case "f*": case "B": case "B*": case "b": case "b*":
+                        // A painting operator with no current path paints nothing.
+                        if (hasPath) CountContentItem(scope);
+                        hasPath = false;
+                        break;
                     case "sh": case "BI":
                         CountContentItem(scope);
                         break;

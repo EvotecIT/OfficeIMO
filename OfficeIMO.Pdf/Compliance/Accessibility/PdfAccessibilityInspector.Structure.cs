@@ -36,6 +36,8 @@ internal sealed partial class PdfAccessibilityInspector {
         internal Dictionary<PdfDictionary, StructNode> NodesByDictionary { get; } = new(PdfAccessibilityPageContent.ReferenceEqualityComparer<PdfDictionary>.Instance);
         internal Dictionary<int, PdfObject> ParentTree { get; } = new();
         internal bool Truncated { get; set; }
+        /// <summary>Resolved role mappings by structure type, so long mapping chains are walked once per type.</summary>
+        internal Dictionary<string, (string? Standard, bool Circular, bool Unmapped)> MappedRoles { get; } = new(StringComparer.Ordinal);
 
         internal bool IsLinked(int? pageObject, int? stream, int mcid) => stream is int streamObject
             ? StreamMcids.ContainsKey((streamObject, mcid))
@@ -154,15 +156,24 @@ internal sealed partial class PdfAccessibilityInspector {
         unmapped = false;
         if (type is null) return null;
         if (IsStandard(type)) return type;
+        if (!model.MappedRoles.TryGetValue(type, out var mapped)) {
+            mapped = WalkRoleMap(type, model);
+            model.MappedRoles[type] = mapped;
+        }
+        circular = mapped.Circular;
+        unmapped = mapped.Unmapped;
+        return mapped.Standard;
+    }
+
+    private static (string? Standard, bool Circular, bool Unmapped) WalkRoleMap(string type, StructureModel model) {
         var seen = new HashSet<string>(StringComparer.Ordinal) { type };
         string current = type;
         while (model.RoleMap.TryGetValue(current, out string? next)) {
-            if (IsStandard(next)) return next;
-            if (!seen.Add(next)) { circular = true; return null; }
+            if (IsStandard(next)) return (next, false, false);
+            if (!seen.Add(next)) return (null, true, false);
             current = next;
         }
-        unmapped = true;
-        return null;
+        return (null, false, true);
     }
 
     private void CheckStructure(StructureModel model) {

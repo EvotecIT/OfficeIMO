@@ -147,6 +147,12 @@ internal sealed partial class PdfAccessibilityInspector {
             Unknown("06-003", "7.1-9", "The XMP metadata stream could not be read: " + exception.Message);
             return null;
         }
+        if (xmp is not null && xmp.RawXml is null) {
+            // The packet was larger than the metadata read limit or could not be decoded, so its entries are unknown.
+            Unknown("06-002", "5-1", "The XMP metadata stream could not be decoded within the read limits, so its pdfuaid:part was not read.");
+            Unknown("06-003", "7.1-9", "The XMP metadata stream could not be decoded within the read limits, so its dc:title was not read.");
+            return null;
+        }
         Applies("06-002");
         Applies("06-003");
         if (xmp?.PdfUaPart is null) {
