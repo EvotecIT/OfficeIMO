@@ -31,8 +31,8 @@
   },
   "files": ["dist", "bundles", "LICENSE", "README.md"],
   "scripts": {
-    "build": "node node_modules/typescript/bin/tsc && node node_modules/typescript/bin/tsc -p tsconfig.min.json && node scripts/bundles.mjs",
-    "check": "node node_modules/typescript/bin/tsc && node node_modules/typescript/bin/tsc -p tsconfig.min.json && node scripts/bundles.mjs --check",
+    "build": "node node_modules/typescript/bin/tsc && node scripts/bundles.mjs",
+    "check": "node node_modules/typescript/bin/tsc && node scripts/bundles.mjs --check",
     "test": "npm run check && node scripts/test.mjs",
     "test:consumer": "node node_modules/typescript/bin/tsc -p test/consumer/tsconfig.json",
     "test:pack": "node scripts/pack-test.mjs",
@@ -42,7 +42,7 @@
     "sizes": "node scripts/sizes.mjs",
     "prepack": "npm run check"
   },
-  "devDependencies": { "typescript": "7.0.2" },
+  "devDependencies": { "esbuild": "0.28.2", "typescript": "7.0.2" },
   "engines": { "node": "^22.0.0 || ^24.0.0 || ^25.0.0 || ^26.0.0" },
   "repository": { "type": "git", "url": "git+https://github.com/EvotecIT/OfficeIMO.git", "directory": "OfficeIMO.JavaScript" },
   "keywords": ["officeimo", "xlsx", "csv", "pdf", "excel", "browser", "streaming", "typescript"]

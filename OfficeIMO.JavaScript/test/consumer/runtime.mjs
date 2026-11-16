@@ -91,7 +91,7 @@ await writeFile("packed-streamed.xlsx", new Uint8Array(await streamedBlob.arrayB
 assert.equal(await (await csv.writeCsv([[resolved]], { columns: [{ header: "Amount" }], valueMode: "display" })).text(), "Amount\r\n'=display\r\n");
 const manifest = JSON.parse(await readFile("node_modules/@evotecit/officeimo/package.json", "utf8"));
 assert.equal(manifest.dependencies, undefined);
-assert.deepEqual(Object.keys(manifest.devDependencies), ["typescript"]);
+assert.deepEqual(Object.keys(manifest.devDependencies), ["esbuild", "typescript"]);
 // The optional installed entry must execute independently of a document or grid.
 const { port1, port2 } = new MessageChannel(), workerSink = new core.BlobByteSink();
 const handler = handleWorkerExports(port2, ({ rows, sink, signal }) => csvModule.writeCsvTo(rows, sink, {

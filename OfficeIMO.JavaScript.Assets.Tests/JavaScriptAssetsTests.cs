@@ -35,7 +35,7 @@ public sealed class JavaScriptAssetsTests {
     }
 
     [Fact]
-    public void EveryShippedBundleHasOneAssetAndCompactVariantsAreTheirOwn() {
+    public void EveryShippedBundleHasOneAssetAndMinifiedVariantsAreTheirOwn() {
         string[] shipped = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Assets")).Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).ToArray()!;
         Assert.Equal(shipped, All.Select(a => a.FileName).OrderBy(n => n, StringComparer.Ordinal).ToArray());
         foreach (JavaScriptAsset asset in Readable) {

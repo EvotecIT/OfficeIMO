@@ -20,7 +20,7 @@ npm pack --pack-destination /path/to/local-packages
 
 Install that archive in an isolated consumer with `npm install /path/to/local-packages/evotecit-officeimo-0.1.0.tgz`.
 
-`tsc` produces ES modules and declarations in `dist/`. The archive contains those files, portable bundles, this README and the MIT license. TypeScript is a development dependency; installing the archive as an application dependency installs no compiler or runtime packages.
+`tsc` produces ES modules and declarations in `dist/`. The archive contains those files, portable bundles, this README and the MIT license. TypeScript and esbuild (which minifies the `.min` bundles) are development dependencies; installing the archive as an application dependency installs no compiler or runtime packages.
 
 ## Export a table
 
@@ -1225,7 +1225,7 @@ The DataTables and CanopyX integrations also ship as thin adapters that take the
 
 Load `officeimo.js` (or `officeimo.min.js`) from the same build before an adapter script; an adapter loaded alone throws an error that names the missing file. The `officeimo-*-adapter.mjs` modules import the sibling `officeimo.mjs` (and `.min.mjs` the sibling `officeimo.min.mjs`), so serve them from one folder. The single-file `officeimo-datatables.js` and `officeimo-canopyx.js` remain for pages that embed one integration only.
 
-Every bundle also has a compact `.min.js`/`.min.mjs` variant with comments and insignificant whitespace removed. It has the same API, and it shares module and class identities with the readable variant of the same build, so readable and compact scripts can be mixed on one page. Identifiers are not renamed; keep the readable variant for debugging. The package exports the adapters as `@evotecit/officeimo/datatables-adapter.js` and `/canopyx-adapter.js`, and every bundle file under `@evotecit/officeimo/bundles/*`. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
+Every bundle also has a minified `.min.js`/`.min.mjs` variant. It has the same API, and it shares module and class identities with the readable variant of the same build, so readable and compact scripts can be mixed on one page. Keep the readable variant for debugging. The package exports the adapters as `@evotecit/officeimo/datatables-adapter.js` and `/canopyx-adapter.js`, and every bundle file under `@evotecit/officeimo/bundles/*`. Classic scripts work from `file://` and in host-owned workers without a module loader. ES modules use normal import paths on HTTP(S) and in Node; browser local-file module policy can block `file://` imports.
 
 [OfficeIMO.JavaScript.Assets](../OfficeIMO.JavaScript.Assets/README.md) embeds the same committed TypeScript-built bundles in .NET. Its `JavaScriptAsset` API returns exact content and content-hashed filenames; consuming .NET applications require no Node tooling. Standalone `.mjs` assemblies preserve the asset package's module API. The npm subpaths remain genuine separate `tsc` modules with generated declarations.
 
@@ -1240,6 +1240,6 @@ npm run test:browser -- /path/to/evidence/browser
 npm run sizes -- /path/to/evidence/sizes.json
 ```
 
-`npm test` compiles strictly, checks committed bundles and runs Node's built-in runner. `npm run check` fails when a bundle differs from the compiled graph. No bundler or minifier is used: the compact variants come from a second `tsc` emit without comments (`tsconfig.min.json`, written to ignored `dist-min/`), with insignificant whitespace removed by `scripts/bundles.mjs`. On Windows, `npm --script-shell pwsh` can select PowerShell 7 when the machine's default npm shell cannot resolve its tools.
+`npm test` compiles strictly, checks committed bundles and runs Node's built-in runner. `npm run check` fails when a bundle differs from the compiled graph. No bundler is used. `scripts/bundles.mjs` assembles each bundle and has esbuild, pinned to an exact version, minify that text into its `.min` variant; the check rebuilds those bytes too. On Windows, `npm --script-shell pwsh` can select PowerShell 7 when the machine's default npm shell cannot resolve its tools.
 
 The browser command uses the repository's existing isolated HtmlTinkerX/Playwright runner and pinned .NET SDK. It checks Chromium, Firefox and WebKit, classic `file://` scripts, ESM imports, workers, downloads and the shared corpus. [C# conformance tests](../OfficeIMO.JavaScript.Assets.Tests/JavaScriptConformanceTests.cs) independently open produced workbooks with OfficeIMO.Excel/OfficeIMO.Reader.Excel and validate them with the Open XML SDK. The [architecture guide](../Docs/officeimo.javascript-architecture.md) describes API stability, format ownership and adding a module.

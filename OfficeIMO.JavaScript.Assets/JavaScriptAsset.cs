@@ -42,8 +42,8 @@ public sealed class JavaScriptAsset {
     /// <summary>The first 16 lowercase hex digits of the SHA-256 of the UTF-8 bytes, without BOM.</summary>
     public string ContentHash => _hash.Value;
 
-    /// <summary>The compact variant of this asset (comments and insignificant whitespace removed), for example officeimo.min.js.</summary>
-    /// <remarks>It exposes the same API and shares module identity with the readable variant of the same build. A compact asset returns itself.</remarks>
+    /// <summary>The minified variant of this asset, for example officeimo.min.js.</summary>
+    /// <remarks>It exposes the same API and shares module identity with the readable variant of the same build. A minified asset returns itself.</remarks>
     public JavaScriptAsset Minified => _minified.Value;
 
     /// <summary>A file name bound to these exact bytes, such as officeimo-xlsx.0123456789abcdef.js.</summary>

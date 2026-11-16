@@ -3,7 +3,7 @@ namespace OfficeIMO.JavaScript.Assets;
 /// <summary>Dependency-free export scripts for inline reports, offline bundles and JavaScript modules.</summary>
 /// <remarks>
 /// Classic scripts extend <c>globalThis.OfficeIMO</c>. Modules have no relative runtime imports, except the integration
-/// adapter modules, which import the sibling <c>officeimo.mjs</c>. Every asset has a compact <see cref="JavaScriptAsset.Minified"/> variant.
+/// adapter modules, which import the sibling <c>officeimo.mjs</c>. Every asset has a minified <see cref="JavaScriptAsset.Minified"/> variant.
 /// </remarks>
 public static class JavaScriptAssets {
     /// <summary>The classic XLSX, CSV and PDF runtime for a single script tag.</summary>
