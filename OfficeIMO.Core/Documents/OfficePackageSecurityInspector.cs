@@ -384,7 +384,8 @@ namespace OfficeIMO {
             int externalCount = 0;
             try {
                 using Stream stream = entry.Open();
-                using XmlReader reader = XmlReader.Create(stream, CreateSecureXmlSettings(maxXmlCharactersInPart));
+                using XmlReader reader = XmlReader.Create(OfficeSmallXmlPartInput.Prepare(stream, entry.Length),
+                    CreateSecureXmlSettings(maxXmlCharactersInPart));
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element
                         || !string.Equals(reader.LocalName, "Relationship", StringComparison.Ordinal)) continue;

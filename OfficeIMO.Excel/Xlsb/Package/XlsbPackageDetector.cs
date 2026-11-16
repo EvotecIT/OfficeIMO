@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             }
 
             using Stream stream = contentTypesEntry.Open();
-            XDocument document = LoadBoundedXml(stream, maxContentTypesBytes);
+            XDocument document = LoadBoundedXml(stream, maxContentTypesBytes, contentTypesEntry.Length);
             if (document.Root?.Name != XName.Get("Types", PackageContentTypesNamespace)) return false;
             string expectedPartName = "/" + workbookPartName.TrimStart('/');
             string?[] overrides = document.Root
@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             ZipArchiveEntry relationshipsEntry,
             long maximumBytes) {
             using Stream stream = relationshipsEntry.Open();
-            XDocument document = LoadBoundedXml(stream, maximumBytes);
+            XDocument document = LoadBoundedXml(stream, maximumBytes, relationshipsEntry.Length);
             if (document.Root?.Name != XName.Get("Relationships", PackageRelationshipsNamespace)) return null;
             XElement[] relationships = document.Root
                 .Elements(XName.Get("Relationship", PackageRelationshipsNamespace))
@@ -187,12 +187,13 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             return relationships.Length == 1 ? (string?)relationships[0].Attribute("Target") : null;
         }
 
-        internal static XDocument LoadBoundedXml(Stream stream, long maximumBytes) {
+        /// <summary>Loads a bounded metadata part; <paramref name="declaredLength"/> lets a small part be parsed from an exact-size copy.</summary>
+        internal static XDocument LoadBoundedXml(Stream stream, long maximumBytes, long declaredLength = 0) {
             ArgumentNullException.ThrowIfNull(stream);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
 
             using var bounded = new BootstrapMetadataReadStream(stream, maximumBytes);
-            using XmlReader reader = XmlReader.Create(bounded, new XmlReaderSettings {
+            using XmlReader reader = XmlReader.Create(OfficeSmallXmlPartInput.Prepare(bounded, declaredLength), new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
                 CloseInput = false,
