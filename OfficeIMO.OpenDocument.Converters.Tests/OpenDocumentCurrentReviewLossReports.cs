@@ -745,6 +745,19 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     }
 
     [Fact]
+    public void WordToOdtReportsListItemsThatSkipALevel() {
+        using WordDocument source = WordDocument.Create();
+        WordList list = source.AddListBulleted();
+        list.AddItem("Parent");
+        list.AddItem("Deep", 2);
+
+        OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
+
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "list-levels" &&
+            mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
+    }
+
+    [Fact]
     public void OdtToWordPreservesHeaderInlineFormattingAndImages() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph header = source.PageLayout.Header.AddParagraph();

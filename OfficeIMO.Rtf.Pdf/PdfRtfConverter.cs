@@ -146,7 +146,7 @@ internal static class PdfRtfConverter {
         PdfCore.PdfLogicalListItem item,
         RunStyleCatalog runStyles,
         RtfListNumbering lists) {
-        PdfCore.PdfLogicalListMarker marker = PdfCore.PdfLogicalListMarker.Parse(item.IsContentsEntry ? null : item.Marker);
+        PdfCore.PdfLogicalListMarker marker = item.MarkerInfo;
         RtfListKind kind = marker.IsOrdered ? RtfListKind.Decimal : RtfListKind.Bullet;
         int level = Math.Max(0, Math.Min(8, item.Level - 1));
         int listId = lists.Assign(level, kind, marker.Ordinal);

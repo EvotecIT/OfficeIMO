@@ -82,12 +82,20 @@ internal static class PdfLogicalInlineText {
         if (candidates.Count == 0) return owners;
 
         int cursor = 0;
+        bool unmeasured = line.Spans.Count == 0;
         foreach (PdfTextSpan span in line.Spans) {
-            if (string.IsNullOrEmpty(span.Text) ||
-                !PdfLogicalTextBlock.TryFindNormalizedSpan(text, span.Text, cursor, out int start, out int end)) continue;
+            if (string.IsNullOrEmpty(span.Text)) continue;
+            if (!PdfLogicalTextBlock.TryFindNormalizedSpan(text, span.Text, cursor, out int start, out int end)) {
+                unmeasured = true;
+                continue;
+            }
             cursor = end;
             int count = end - start;
-            if (count <= 0 || Math.Abs(span.RotationDegrees) > 0.5D) continue;
+            if (count <= 0) continue;
+            if (Math.Abs(span.RotationDegrees) > 0.5D) {
+                unmeasured = true;
+                continue;
+            }
             string spanText = span.Text;
             bool measured = PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) &&
                 boundaries.Length == spanText.Length + 1;
@@ -111,6 +119,30 @@ internal static class PdfLogicalInlineText {
             }
         }
 
+        // Rotated or unmapped text cannot be split by position. A link over such a line keeps the whole line, as
+        // before splitting, rather than being written again on its own.
+        if (unmeasured && Array.TrueForAll(owners, static owner => owner is null)) {
+            int first = 0;
+            int last = text.Length - 1;
+            while (first <= last && char.IsWhiteSpace(text[first])) first++;
+            while (last >= first && char.IsWhiteSpace(text[last])) last--;
+            for (int index = first; index <= last; index++) owners[index] = candidates[0];
+            return owners;
+        }
+
+        // Link rectangles are drawn by hand and can end inside a word; a word belongs to the link covering most of it.
+        for (int wordStart = 0; wordStart < text.Length;) {
+            if (char.IsWhiteSpace(text[wordStart])) {
+                wordStart++;
+                continue;
+            }
+            int wordEnd = wordStart;
+            while (wordEnd < text.Length && !char.IsWhiteSpace(text[wordEnd])) wordEnd++;
+            PdfLogicalLinkAnnotation? owner = MostCommonOwner(owners, wordStart, wordEnd);
+            for (int index = wordStart; index < wordEnd; index++) owners[index] = owner;
+            wordStart = wordEnd;
+        }
+
         // Spaces between two words of the same link belong to it; spaces at its edges do not.
         int previousOwned = -1;
         for (int index = 0; index < text.Length; index++) {
@@ -122,6 +154,29 @@ internal static class PdfLogicalInlineText {
         }
 
         return owners;
+    }
+
+    /// <summary>The link drawn over most characters of a word; null when most of it is outside every link.</summary>
+    private static PdfLogicalLinkAnnotation? MostCommonOwner(PdfLogicalLinkAnnotation?[] owners, int start, int end) {
+        PdfLogicalLinkAnnotation? best = null;
+        int bestCount = 0;
+        int unowned = 0;
+        for (int index = start; index < end; index++) {
+            PdfLogicalLinkAnnotation? owner = owners[index];
+            if (owner is null) {
+                unowned++;
+                continue;
+            }
+            int count = 0;
+            for (int other = start; other < end; other++) {
+                if (ReferenceEquals(owners[other], owner)) count++;
+            }
+            if (count > bestCount) {
+                best = owner;
+                bestCount = count;
+            }
+        }
+        return bestCount > unowned ? best : null;
     }
 
     private static PdfLogicalLinkAnnotation? FirstOwner(PdfLogicalLinkAnnotation?[] owners) {

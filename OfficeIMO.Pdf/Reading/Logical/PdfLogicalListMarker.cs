@@ -80,6 +80,32 @@ internal readonly struct PdfLogicalListMarker {
         return Bullet;
     }
 
+    /// <summary>
+    /// Reads a single-character marker in the light of the item before it at the same level: "(v)" after "(iv)" is
+    /// Roman 5 rather than the letter v, and "(i)" after "(h)" is the letter i rather than Roman 1.
+    /// </summary>
+    internal PdfLogicalListMarker ResolveAfter(PdfLogicalListMarker previous, string? marker) {
+        bool letter = Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.UpperLetter;
+        bool roman = Format is PdfLogicalListNumberFormat.LowerRoman or PdfLogicalListNumberFormat.UpperRoman;
+        bool previousLetter = previous.Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.UpperLetter;
+        bool previousRoman = previous.Format is PdfLogicalListNumberFormat.LowerRoman or PdfLogicalListNumberFormat.UpperRoman;
+        if (!(letter && previousRoman) && !(roman && previousLetter)) return this;
+
+        string core = (marker ?? string.Empty).Trim();
+        core = core.Substring(Prefix.Length, core.Length - Prefix.Length - Suffix.Length);
+        bool lower = IsLower(core);
+        bool sameCase = lower == (previous.Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.LowerRoman);
+        if (!sameCase) return this;
+        if (letter && TryParseRoman(core, out int value)) {
+            return new PdfLogicalListMarker(lower ? PdfLogicalListNumberFormat.LowerRoman : PdfLogicalListNumberFormat.UpperRoman, value, Prefix, Suffix);
+        }
+        if (roman && core.Length == 1) {
+            return new PdfLogicalListMarker(lower ? PdfLogicalListNumberFormat.LowerLetter : PdfLogicalListNumberFormat.UpperLetter,
+                char.ToLowerInvariant(core[0]) - 'a' + 1, Prefix, Suffix);
+        }
+        return this;
+    }
+
     private static PdfLogicalListMarker Bullet => new PdfLogicalListMarker(PdfLogicalListNumberFormat.Bullet, null, string.Empty, string.Empty);
 
     private static bool TryParseDecimal(string value, out int number) {

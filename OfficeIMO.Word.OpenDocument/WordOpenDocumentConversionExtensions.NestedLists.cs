@@ -33,6 +33,9 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
 
             if (_open.Count == 0 || _open[_open.Count - 1].Level < level) {
+                // ODT nests one level per list, so an item that skips a level sits one level below the item before it.
+                int expectedLevel = _open.Count == 0 ? 0 : _open[_open.Count - 1].Level + 1;
+                if (level > expectedLevel && level == sourceLevel) flattenedLevels++;
                 OdtList list = _open.Count == 0
                     ? _target.AddList(ordered)
                     : _open[_open.Count - 1].LastItem!.AddList(ordered);

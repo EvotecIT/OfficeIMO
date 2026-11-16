@@ -26,9 +26,7 @@ namespace OfficeIMO.Pdf.Word {
 
             internal WordParagraph AddItem(PdfCore.PdfLogicalListItem item) {
                 int level = Math.Max(0, Math.Min(MaximumLevels - 1, item.Level - 1));
-                PdfCore.PdfLogicalListMarker marker = item.IsContentsEntry
-                    ? PdfCore.PdfLogicalListMarker.Parse(null)
-                    : PdfCore.PdfLogicalListMarker.Parse(item.Marker);
+                PdfCore.PdfLogicalListMarker marker = item.MarkerInfo;
                 if (_list == null || !Continues(level, marker)) Start();
                 WordList list = _list!;
                 if (_formats[level] == null) ConfigureLevel(list, level, marker);

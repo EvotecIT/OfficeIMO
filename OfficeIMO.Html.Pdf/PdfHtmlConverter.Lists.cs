@@ -19,9 +19,7 @@ public static partial class PdfHtmlConverterExtensions {
 
         internal void AppendItem(PdfCore.PdfLogicalListItem item, string content) {
             int level = Math.Max(1, item.Level);
-            PdfCore.PdfLogicalListMarker marker = item.IsContentsEntry
-                ? PdfCore.PdfLogicalListMarker.Parse(null)
-                : PdfCore.PdfLogicalListMarker.Parse(item.Marker);
+            PdfCore.PdfLogicalListMarker marker = item.MarkerInfo;
             while (_open.Count > 0 && _open[_open.Count - 1].Level > level) CloseLast();
 
             if (_open.Count > 0 && _open[_open.Count - 1].Level == level) {

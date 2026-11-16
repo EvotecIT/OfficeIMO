@@ -25,4 +25,15 @@ public class PdfLogicalListNumberingTests {
 
     private static (int Level, PdfLogicalListNumberFormat Format, int? Ordinal) Describe(PdfLogicalListItem item) =>
         (item.Level, item.NumberFormat, item.Ordinal);
+
+    [Theory]
+    [InlineData("(iv)", "(v)", PdfLogicalListNumberFormat.LowerRoman, 5)]
+    [InlineData("(h)", "(i)", PdfLogicalListNumberFormat.LowerLetter, 9)]
+    [InlineData("C.", "D.", PdfLogicalListNumberFormat.UpperLetter, 4)]
+    public void ListMarkers_ReadSingleCharactersInTheirListContext(string previous, string marker, PdfLogicalListNumberFormat format, int ordinal) {
+        PdfLogicalListMarker resolved = PdfLogicalListMarker.Parse(marker).ResolveAfter(PdfLogicalListMarker.Parse(previous), marker);
+
+        Assert.Equal(format, resolved.Format);
+        Assert.Equal(ordinal, resolved.Ordinal);
+    }
 }

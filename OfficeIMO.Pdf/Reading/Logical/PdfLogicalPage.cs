@@ -662,7 +662,7 @@ public sealed partial class PdfLogicalPage {
         AddContentsItems(pageNumber, textBlocks, analysis, links, result, represented);
         int firstVisualItem = result.Count;
         AddTaggedListItems(pageNumber, textBlocks, semanticByTextBlock, analysis, result, represented);
-        // Producers such as LibreOffice tag "List Bullet 2" items as separate flat lists, so tagged items also take
+        // Some producers tag "List Bullet 2" items as separate flat lists, so tagged items also take
         // the nesting their indentation shows.
         var indentationLevelled = new HashSet<PdfLogicalListItem>(result.Skip(firstVisualItem));
         var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
@@ -729,7 +729,24 @@ public sealed partial class PdfLogicalPage {
         }
 
         AssignIndentationLevels(result, firstVisualItem, indentationLevelled);
+        ResolveAmbiguousMarkers(result, firstVisualItem);
         return result.AsReadOnly();
+    }
+
+    /// <summary>Reads "(v)" after "(iv)" as Roman and "(i)" after "(h)" as a letter, within each run of list items.</summary>
+    private static void ResolveAmbiguousMarkers(List<PdfLogicalListItem> items, int start) {
+        var previous = new Dictionary<int, PdfLogicalListMarker>();
+        for (int index = start; index < items.Count; index++) {
+            PdfLogicalListItem item = items[index];
+            if (index > start && !ContinuesList(items[index - 1], item)) previous.Clear();
+            foreach (int deeper in previous.Keys.Where(level => level > item.Level).ToList()) previous.Remove(deeper);
+            PdfLogicalListMarker marker = item.MarkerInfo;
+            if (previous.TryGetValue(item.Level, out PdfLogicalListMarker before)) {
+                marker = marker.ResolveAfter(before, item.Marker);
+                item.MarkerInfo = marker;
+            }
+            previous[item.Level] = marker;
+        }
     }
 
     /// <summary>

@@ -145,7 +145,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         CountWordNoteSettingsLoss(source, notes);
         AddNoteMappings(report, notes);
         if (nestedListLevels > 0) report.Add("list-levels", OdfConversionMappingStatus.Approximated, nestedListLevels,
-            "Word list items nested deeper than the ten ODT list levels are kept at the tenth level.");
+            "Word list items that skip a level are nested one level below the item before them, and items deeper than ten levels stay at the tenth.");
         AddUnmappedWordFindings(source.InspectFeatures(), report, images, hyperlinks, bookmarks, notes);
         return new OdfConversionResult<OdtDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
