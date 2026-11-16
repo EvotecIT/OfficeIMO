@@ -18,8 +18,10 @@ public enum MarkdownCalloutTitleMode {
 public sealed class MarkdownLoadOptions {
     /// <summary>
     /// Retains the syntax tree, source spans and <see cref="MarkdownDocument.ParseInfo"/>. Default: true.
-    /// Set it to false when nothing reads source information: the parse then builds the same semantic
-    /// document, which renders and writes the same output, in less time and memory.
+    /// The parse builds the semantic document and captures source information from the same text the
+    /// first time something reads it, so rendering and writing a document whose source information is
+    /// never read costs no more than a semantic parse. Set it to false when nothing reads source
+    /// information: the document then neither keeps the text it was parsed from nor any source information.
     /// </summary>
     public bool CaptureSyntaxTree { get; set; } = true;
 

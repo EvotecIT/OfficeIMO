@@ -6,7 +6,56 @@ namespace OfficeIMO.Markdown;
 public abstract class MarkdownObject {
     // Parsed objects can use their already-retained syntax node as immutable source metadata.
     // Objects edited or constructed independently fall back to a writable metadata holder.
+    // Objects of a parsed document whose source information is not captured yet hold the
+    // document's deferred capture, which supplies their syntax node on first use.
     private object? _metadata;
+
+    /// <summary>
+    /// Captures the parsed source information of this object's document when it was deferred.
+    /// Every member that reads or writes source information calls this first.
+    /// </summary>
+    internal void EnsureSourceInformation() {
+        if (_metadata is MarkdownDeferredSourceCapture deferred) {
+            deferred.Capture();
+        }
+    }
+
+    /// <summary>Reads a source-information field of this object, capturing deferred source information first.</summary>
+    private protected T ReadSourceInformation<T>(ref T storage) {
+        EnsureSourceInformation();
+        return storage;
+    }
+
+    /// <summary>Writes a source-information field of this object, capturing deferred source information first.</summary>
+    private protected void WriteSourceInformation<T>(ref T storage, T value) {
+        EnsureSourceInformation();
+        storage = value;
+    }
+
+    internal bool HasMetadata => _metadata != null;
+
+    internal void DeferSourceInformation(MarkdownDeferredSourceCapture capture) => _metadata = capture;
+
+    internal void AdoptCapturedMetadata(MarkdownObject captured) => _metadata = captured._metadata;
+
+    // While source capture attaches a source-backed parse to a document, each object of that parse
+    // points at the document's object it describes. Captured objects are discarded afterwards.
+    internal void ForwardCapturedObject(MarkdownObject target) => _metadata = target;
+
+    internal MarkdownObject? CapturedObjectTarget => _metadata as MarkdownObject;
+
+    internal void ClearDeferredSourceInformation() {
+        if (_metadata is MarkdownDeferredSourceCapture) {
+            _metadata = null;
+        }
+    }
+
+    /// <summary>
+    /// Copies the source information that a source-backed parse records on an object of the same type,
+    /// beyond its syntax node. Types holding such information override this.
+    /// </summary>
+    internal virtual void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+    }
 
     /// <summary>Parent node in the markdown object tree, or <c>null</c> for the document root.</summary>
     public MarkdownObject? Parent { get; private set; }
@@ -28,13 +77,17 @@ public abstract class MarkdownObject {
 
     /// <summary>Source span mapped from the syntax tree when available.</summary>
     public MarkdownSourceSpan? SourceSpan {
-        get => _metadata switch {
-            MarkdownSyntaxNode syntaxNode => syntaxNode.SourceSpan,
-            MarkdownObjectMetadata metadata => metadata.SourceSpan,
-            MarkdownSourceSpan sourceSpan => sourceSpan,
-            _ => null
-        };
+        get {
+            EnsureSourceInformation();
+            return _metadata switch {
+                MarkdownSyntaxNode syntaxNode => syntaxNode.SourceSpan,
+                MarkdownObjectMetadata metadata => metadata.SourceSpan,
+                MarkdownSourceSpan sourceSpan => sourceSpan,
+                _ => null
+            };
+        }
         internal set {
+            EnsureSourceInformation();
             if (value.HasValue) {
                 if (_metadata == null || _metadata is MarkdownSourceSpan) {
                     _metadata = value.Value;
@@ -53,6 +106,8 @@ public abstract class MarkdownObject {
         }
     }
 
+    // An object whose source capture is deferred has no attributes: a parse that finds generic
+    // attributes captures source information while parsing.
     /// <summary>Generic Markdown attributes associated with this node.</summary>
     public MarkdownAttributeSet Attributes => _metadata switch {
         MarkdownSyntaxNode syntaxNode => syntaxNode.Attributes,
@@ -117,6 +172,7 @@ public abstract class MarkdownObject {
     }
 
     internal void SetAttributes(MarkdownAttributeSet? attributes) {
+        EnsureSourceInformation();
         if (attributes == null || attributes.IsEmpty) {
             if (_metadata is MarkdownObjectMetadata metadata) {
                 metadata.Attributes = MarkdownAttributeSet.Empty;
@@ -134,6 +190,7 @@ public abstract class MarkdownObject {
     internal void BindSyntaxNode(MarkdownSyntaxNode syntaxNode) {
         ArgumentNullException.ThrowIfNull(syntaxNode);
 
+        EnsureSourceInformation();
         MarkdownAttributeSet existingAttributes = Attributes;
         _metadata = syntaxNode.Attributes.IsEmpty && !existingAttributes.IsEmpty
             ? new MarkdownObjectMetadata {
@@ -143,7 +200,16 @@ public abstract class MarkdownObject {
             : syntaxNode;
     }
 
-    internal MarkdownSyntaxNode? BoundSyntaxNode => _metadata as MarkdownSyntaxNode;
+    // Rendering reads the parse state it needs without capturing deferred source information: the
+    // semantic parse leaves what writing reads in the same rendered form as a source-backed parse.
+    internal MarkdownSyntaxNode? BoundSyntaxNodeWithoutCapture => _metadata as MarkdownSyntaxNode;
+
+    internal MarkdownSyntaxNode? BoundSyntaxNode {
+        get {
+            EnsureSourceInformation();
+            return _metadata as MarkdownSyntaxNode;
+        }
+    }
 
     private MarkdownObjectMetadata WritableMetadata {
         get {

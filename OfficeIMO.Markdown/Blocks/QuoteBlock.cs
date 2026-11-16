@@ -11,9 +11,14 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
     /// <summary>Nested blocks rendered inside the quote.</summary>
     public System.Collections.Generic.List<IMarkdownBlock> ChildBlocks { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
     /// <summary>Source spans for quote marker tokens (<c>&gt;</c>) captured from parsed markdown lines.</summary>
-    public IReadOnlyList<MarkdownSourceSpan> MarkerSourceSpans => _markerSourceSpans;
+    public IReadOnlyList<MarkdownSourceSpan> MarkerSourceSpans {
+        get {
+            EnsureSourceInformation();
+            return _markerSourceSpans;
+        }
+    }
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
-    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); set => WriteSourceInformation(ref field, value); }
     /// <summary>Create an empty quote block.</summary>
     public QuoteBlock() { }
     /// <summary>Create a quote block with initial lines.</summary>
@@ -24,6 +29,7 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
     }
 
     internal void ReplaceMarkerSourceSpans(IEnumerable<MarkdownSourceSpan>? spans) {
+        EnsureSourceInformation();
         _markerSourceSpans.Clear();
         if (spans == null) {
             return;
@@ -132,5 +138,12 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
         }
 
         return children;
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (QuoteBlock)captured;
+        _markerSourceSpans.Clear();
+        _markerSourceSpans.AddRange(source._markerSourceSpans);
+        SyntaxChildren = map.Retarget(source.SyntaxChildren);
     }
 }

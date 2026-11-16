@@ -8,15 +8,15 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
     public string Html { get; }
     internal bool IsParsedBlock { get; set; }
     /// <summary>Source span for a recognized opening raw HTML tag when available.</summary>
-    public MarkdownSourceSpan? OpeningTagSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the raw HTML body between recognized matching tags when available.</summary>
-    public MarkdownSourceSpan? BodySourceSpan { get; internal set; }
+    public MarkdownSourceSpan? BodySourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for a recognized matching closing raw HTML tag when available.</summary>
-    public MarkdownSourceSpan? ClosingTagSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for a recognized raw HTML opening marker when available.</summary>
-    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for a recognized raw HTML closing marker when available.</summary>
-    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Create a new raw HTML block.</summary>
     /// <param name="html">HTML fragment.</param>
@@ -326,5 +326,14 @@ public sealed class HtmlRawBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdow
         internal int ClosingEndIndex { get; }
         internal bool HasBody => BodyStartIndex >= 0 && BodyEndIndex >= BodyStartIndex;
         internal bool HasClosing => ClosingStartIndex >= 0 && ClosingEndIndex >= ClosingStartIndex;
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (HtmlRawBlock)captured;
+        OpeningTagSourceSpan = source.OpeningTagSourceSpan;
+        BodySourceSpan = source.BodySourceSpan;
+        ClosingTagSourceSpan = source.ClosingTagSourceSpan;
+        OpeningMarkerSourceSpan = source.OpeningMarkerSourceSpan;
+        ClosingMarkerSourceSpan = source.ClosingMarkerSourceSpan;
     }
 }

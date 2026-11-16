@@ -20,6 +20,17 @@ internal static class MarkdownGenericAttributeSourceSpans {
         holder.SourceSpan = sourceSpan;
     }
 
+    /// <summary>Gives <paramref name="target"/> the attribute source a source-backed parse recorded for <paramref name="captured"/>.</summary>
+    internal static void Adopt(MarkdownObject target, MarkdownObject captured) {
+        if (_spans.TryGetValue(captured, out var holder)) {
+            Set(target, holder.SourceText, holder.SourceSpan);
+        }
+
+        if (_standaloneWithoutSpan.TryGetValue(captured, out _)) {
+            MarkStandaloneWithoutSpan(target);
+        }
+    }
+
     internal static string? GetSourceText(MarkdownObject? markdownObject) =>
         markdownObject != null && _spans.TryGetValue(markdownObject, out var holder)
             ? holder.SourceText
