@@ -138,6 +138,50 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_ListMarkerIgnoresDarkRunShadingItIsNotPaintedOn() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph item = source.AddList(WordListStyle.Numbered).AddItem("ListRunMarker");
+        item.BackgroundColor = OfficeColor.Parse("000080");
+        item.RunColorValue = "auto";
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        byte[] bytes = loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
+        Assert.Contains(FormatPdfFillOperator("000080"), PdfOperatorSearchText.From(bytes));
+        using PdfPigDocument document = PdfPigDocument.Open(bytes);
+        var letters = document.GetPages().SelectMany(page => page.Letters).ToArray();
+        Assert.Equal("1.ListRunMarker", string.Concat(letters.Select(letter => letter.Value)));
+        // The marker sits on the page, the item text on its painted run shading.
+        Assert.All(letters.Take(2), letter => Assert.Equal(0D, letter.Color.ToRGBValues().Item1, 6));
+        Assert.All(letters.Skip(2), letter => Assert.Equal(1D, letter.Color.ToRGBValues().Item1, 6));
+    }
+
+    [Fact]
+    public void SaveAsPdf_NumberedShadedHeadingPaintsFillBehindAutomaticText() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph item = source.AddList(WordListStyle.Numbered).AddItem("HeadingListMarker");
+        item.Style = WordParagraphStyles.Heading1;
+        item.ShadingFillColor = OfficeColor.Parse("010203");
+        item.RunColorValue = "auto";
+        AssertAutomaticRunColorPdf(source, WordFileFormat.Docx, "1.HeadingListMarker", true, "010203");
+    }
+
+    [Fact]
+    public void SaveAsPdf_ShadedParagraphWithTextBoxKeepsAutomaticTextVisible() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("PREFIX");
+        paragraph.ShadingFillColor = OfficeColor.Parse("010203");
+        paragraph.RunColorValue = "auto";
+        paragraph.AddTextBox("BOXTEXT", WordImageTextWrapping.Square);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        byte[] bytes = loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
+        string commands = PdfOperatorSearchText.From(bytes);
+        using PdfPigDocument document = PdfPigDocument.Open(bytes);
+        var prefix = document.GetPages().SelectMany(page => page.GetWords()).Single(word => word.Text.Contains("PREFIX"));
+        // White automatic text is only correct where the dark paragraph fill is actually painted.
+        bool white = prefix.Letters.All(letter => letter.Color.ToRGBValues().Item1 > 0.5D);
+        Assert.Equal(white, commands.Contains(FormatPdfFillOperator("010203")));
+    }
+
+    [Fact]
     public void SaveAsPdf_AutomaticRunColorUsesConditionalTableStyleCellFill() {
         using WordDocument source = WordDocument.Create();
         Style style = new(new StyleName { Val = "Navy header" }) { StyleId = "NavyHeader", Type = StyleValues.Table, CustomStyle = true };
