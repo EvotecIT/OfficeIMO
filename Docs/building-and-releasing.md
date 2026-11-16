@@ -128,9 +128,11 @@ into a cross-version comparison.
 ## Third-party material and package licenses
 
 OfficeIMO is MIT-licensed and written as its own code. Code from other projects
-is not copied, ported or adapted into it, even under permissive licenses; the
-few remaining exceptions are recorded in the manifest below with their planned
-replacement. Third-party *data*
+is not copied, ported or adapted into it, even under permissive licenses. The
+manifest below records the exceptions: code contributed by its own author, and
+the unmodified ISO Schematron stylesheets that OfficeIMO.Invoicing.Validation
+runs. Code that OfficeIMO's author wrote in another of their projects is
+recorded as first-party. Third-party *data*
 that a format needs, such as Unicode tables, Adobe font metrics, CMaps, ICC
 profiles, schemas or hyphenation patterns, may ship when its license allows
 redistribution and its notice ships with it.

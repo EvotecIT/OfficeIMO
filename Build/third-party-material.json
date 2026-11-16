@@ -1,5 +1,5 @@
 {
-  "$comment": "Every piece of third-party code or data that ships in an OfficeIMO NuGet package. Build/validate_third_party_notices.py checks this file against the sources, the project files and built packages. See AGENTS.md, 'Third-party material'.",
+  "$comment": "Every piece of third-party code or data that ships in an OfficeIMO NuGet package. Build/validate_third_party_notices.py checks this file against the sources, the project files and built packages. See Docs/building-and-releasing.md, 'Third-party material and package licenses'.",
   "schemaVersion": 1,
   "entries": [
     {
@@ -10,8 +10,8 @@
       "source": "https://github.com/SimonCropp/Polyfill",
       "project": "*",
       "files": ["OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/*.cs"],
-      "licenseFiles": {"OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/LICENSE.txt": "Licenses/Polyfill-LICENSE.txt"},
-      "replacement": "Pending a decision: replace with OfficeIMO's own guard helpers."
+      "licenseFiles": {"OfficeIMO.SharedSource/Compatibility/ArgumentExceptions/LICENSE.txt": null},
+      "noticeOmitted": "Contributed by Polyfill's author and copyright holder in #3236; #3337, also by the author, stopped packing the notice because the guard helpers are not a substantial portion of Polyfill."
     },
     {
       "id": "core-unicode-character-database",
@@ -92,58 +92,6 @@
         "OfficeIMO.Core/Licenses/libvpx-LICENSE.txt": "Licenses/libvpx-LICENSE.txt",
         "OfficeIMO.Core/Licenses/libvpx-PATENTS.txt": "Licenses/libvpx-PATENTS.txt"
       }
-    },
-    {
-      "id": "core-libvpx-forward-transform",
-      "title": "WebM libvpx forward transform",
-      "kind": "code",
-      "license": "BSD-3-Clause",
-      "source": "https://chromium.googlesource.com/webm/libvpx",
-      "project": "OfficeIMO.Core",
-      "files": ["OfficeIMO.Core/Raster/Webp/OfficeVp8Encoder.Transform.cs"],
-      "licenseFiles": {
-        "OfficeIMO.Core/Licenses/libvpx-LICENSE.txt": "Licenses/libvpx-LICENSE.txt",
-        "OfficeIMO.Core/Licenses/libvpx-PATENTS.txt": "Licenses/libvpx-PATENTS.txt"
-      },
-      "replacement": "Pending a decision: replace with OfficeIMO's own forward transform."
-    },
-    {
-      "id": "core-codeglyphx-vp8-encoder",
-      "title": "CodeGlyphX VP8 encoder",
-      "kind": "code",
-      "license": "Apache-2.0",
-      "source": "https://github.com/EvotecIT/CodeGlyphX/tree/3c9103da07623e15804450ec0bca284bfcbf4a2c/CodeGlyphX/Rendering/Webp",
-      "project": "OfficeIMO.Core",
-      "files": ["OfficeIMO.Core/Raster/Webp/OfficeVp8Encoder*.cs", "OfficeIMO.Core/Raster/Webp/OfficeVp8BoolEncoder.cs"],
-      "licenseFiles": {"OfficeIMO.Core/Licenses/CodeGlyphX-LICENSE.txt": "Licenses/CodeGlyphX-LICENSE.txt"},
-      "replacement": "Pending a decision: relicense under MIT by its author, as was done for the VP8 decoder."
-    },
-    {
-      "id": "core-codeglyphx-vp8-decoder",
-      "title": "CodeGlyphX VP8 decoder",
-      "kind": "code",
-      "license": "MIT",
-      "source": "https://github.com/EvotecIT/CodeGlyphX (relicensed under MIT by its author)",
-      "project": "OfficeIMO.Core",
-      "files": [
-        "OfficeIMO.Core/Raster/Webp/OfficeVp8Decoder*.cs",
-        "OfficeIMO.Core/Raster/Webp/OfficeVp8BoolDecoder.cs",
-        "OfficeIMO.Core/Raster/Webp/OfficeVp8Prediction.cs",
-        "OfficeIMO.Core/Raster/Webp/OfficeVp8Transform.cs",
-        "OfficeIMO.Core/Raster/Webp/OfficeVp8Types.cs"
-      ],
-      "licenseFiles": {}
-    },
-    {
-      "id": "core-bouncy-castle-aes",
-      "title": "Bouncy Castle C# AES implementation",
-      "kind": "code",
-      "license": "MIT",
-      "source": "https://github.com/bcgit/bc-csharp/blob/release-2.7.0/crypto/src/crypto/engines/AesLightEngine.cs",
-      "project": "OfficeIMO.Core",
-      "files": ["OfficeIMO.Core/Security/ManagedAesBlockCipher.cs"],
-      "licenseFiles": {},
-      "replacement": "Pending a decision: replace with OfficeIMO's own AES implementation written from FIPS 197."
     },
     {
       "id": "core-imageplayground-heif",
@@ -244,6 +192,21 @@
       "files": ["OfficeIMO.Invoicing.Validation/Compiler/*.xsl"],
       "licenseFiles": {},
       "noticeInFiles": true
+    }
+  ],
+  "firstParty": [
+    {
+      "id": "core-codeglyphx-vp8",
+      "files": [
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Encoder*.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8BoolEncoder.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Decoder*.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8BoolDecoder.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Prediction.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Transform.cs",
+        "OfficeIMO.Core/Raster/Webp/OfficeVp8Types.cs"
+      ],
+      "reason": "Written by OfficeIMO's author in CodeGlyphX (https://github.com/EvotecIT/CodeGlyphX) and licensed to OfficeIMO under MIT. The tables in OfficeVp8Tables.cs are RFC 6386 data and are listed above."
     }
   ],
   "dependencyLicenses": [

@@ -27,14 +27,10 @@
              Condition="Exists('$(OfficeIMOTrimmingPolyfillsFile)')" />
   </ItemGroup>
 
-  <!-- ArgumentNullException.ThrowIfNull and related guard helpers for targets older than net8.0.
-       Every package compiles them, so every package carries their license
-       (see Build/third-party-material.json). -->
+  <!-- ArgumentNullException.ThrowIfNull and related guard helpers for targets older than net8.0. -->
   <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
     <Compile Include="$(OfficeIMOSharedSourceDir)\Compatibility\ArgumentExceptions\*.cs"
              Link="Shared\Compatibility\ArgumentExceptions\%(Filename)%(Extension)" />
-    <None Include="$(OfficeIMOSharedSourceDir)\Compatibility\ArgumentExceptions\LICENSE.txt"
-          Pack="true" PackagePath="Licenses/Polyfill-LICENSE.txt" Visible="false" />
   </ItemGroup>
 
 </Project>

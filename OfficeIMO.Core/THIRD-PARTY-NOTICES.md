@@ -67,52 +67,6 @@ WebM libwebp reference. The WebM BSD-3-Clause license and patent grant are retai
 `Licenses/libvpx-LICENSE.txt` and `Licenses/libvpx-PATENTS.txt`. No libwebp or libvpx runtime
 dependency is introduced.
 
-## WebM libvpx forward transform
-
-The forward integer transform in `Raster/Webp/OfficeVp8Encoder.Transform.cs` is adapted from
-WebM libvpx and is covered by the BSD-3-Clause license and patent grant in
-`Licenses/libvpx-LICENSE.txt` and `Licenses/libvpx-PATENTS.txt`.
-
-## CodeGlyphX VP8 encoder
-
-`Raster/Webp/OfficeVp8Encoder*.cs` and `Raster/Webp/OfficeVp8BoolEncoder.cs` are adapted from the
-managed CodeGlyphX VP8 encoder at [`3c9103da07623e15804450ec0bca284bfcbf4a2c`](https://github.com/EvotecIT/CodeGlyphX/tree/3c9103da07623e15804450ec0bca284bfcbf4a2c/CodeGlyphX/Rendering/Webp),
-copyright Przemyslaw Klys, and keep CodeGlyphX's Apache-2.0 license in
-`Licenses/CodeGlyphX-LICENSE.txt`. OfficeIMO's changes split codec responsibilities, reuse Core
-prediction and reconstruction, bound output and managed memory, observe cancellation, and correct
-alpha prediction at image boundaries. No CodeGlyphX runtime dependency is introduced.
-
-## CodeGlyphX VP8 decoder
-
-`Raster/Webp/OfficeVp8Decoder*.cs`, `OfficeVp8BoolDecoder.cs`, `OfficeVp8Prediction.cs`,
-`OfficeVp8Transform.cs` and `OfficeVp8Types.cs` were first written in CodeGlyphX at
-`fc25e2fcf795d9c9a09b88708c47bdfeed5c446d` and are licensed under OfficeIMO's MIT license by
-their author. That relicensing does not cover the encoder above.
-
-## Bouncy Castle C# AES implementation
-
-`Security/ManagedAesBlockCipher.cs` is adapted from `AesLightEngine.cs` in Bouncy Castle C# release 2.7.0:
-
-- Source: https://github.com/bcgit/bc-csharp/blob/release-2.7.0/crypto/src/crypto/engines/AesLightEngine.cs
-- Source Git blob: `bd8bb4468588fcb92d350881aec2ae04f5f76b73`
-- License: https://github.com/bcgit/bc-csharp/blob/release-2.7.0/LICENSE.md
-
-MIT License (https://opensource.org/licenses/MIT)
-
-Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org).
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sub license, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions: The above copyright notice and this
-permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 ## ImagePlayground HEIF container metadata
 
 `Raster/Heif/OfficeHeifMetadataReader*.cs` and `Raster/Heif/OfficeHeifImageInfo.cs` are adapted

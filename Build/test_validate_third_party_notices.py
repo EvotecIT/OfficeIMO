@@ -71,6 +71,19 @@ class ThirdPartyNoticesTests(unittest.TestCase):
         self.write("Lib/Other.cs", "// Ported from Elsewhere.\nclass X {}\n")
         self.assertIn("Lib/Other.cs:1: third-party marker", "\n".join(self.errors()))
 
+    def test_first_party_and_author_contributed_code_needs_no_packed_notice(self):
+        self.write("Lib/Own.Codec.cs", "// Adapted from AnotherOwnProject commit abc.\nclass C {}\n")
+        self.write("Shared/Guards.cs", "// Vendored from Guards, MIT License, Copyright (c) Guard Author.\nclass G {}\n")
+        self.write("Shared/LICENSE.txt", "MIT License, Copyright (c) Guard Author")
+        self.manifest["firstParty"] = [{"id": "own", "files": ["Lib/Own.Codec.cs"], "reason": "Same author."}]
+        self.manifest["entries"].append({
+            "id": "guards", "title": "Guards", "kind": "code", "license": "MIT", "source": "https://example.invalid",
+            "project": "*", "files": ["Shared/Guards.cs"], "licenseFiles": {"Shared/LICENSE.txt": None},
+            "noticeOmitted": "Contributed by its author, who asked for the notice not to ship.",
+        })
+        self.save_manifest()
+        self.assertEqual([], self.errors())
+
     def test_package_without_license_text_is_rejected(self):
         package = self.root / "out" / "Lib.1.0.0.nupkg"
         package.parent.mkdir()

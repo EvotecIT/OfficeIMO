@@ -8,7 +8,10 @@ package compiles in or embeds. This script checks that list against the reposito
   package  built .nupkg files: license expression, notices file and license texts
 
 Rules:
-  * Each entry's files and license texts exist, and its package packs them.
+  * Each entry's files and license texts exist, and its package packs them, unless the entry
+    records why its notice does not ship (noticeOmitted).
+  * Files recorded under firstParty were written by OfficeIMO's author in another of their
+    projects and need no notice.
   * A package with entries packs a notices file that names every entry by its title.
   * A package's PackageLicenseExpression is MIT plus the license of every third-party *code*
     entry it compiles. Data licenses go in the notices, not in the expression: nuget.org only
@@ -220,8 +223,20 @@ def check_source(root: Path) -> Report:
             license_sources.add(source)
             if not (root / source).is_file():
                 report.error(f"{label}: license file '{source}' does not exist.")
-        if entry["project"] == ALL_PACKAGES and not entry["licenseFiles"]:
+        if "noticeOmitted" in entry and not str(entry["noticeOmitted"]).strip():
+            report.error(f"{label}: 'noticeOmitted' must say why the notice does not ship.")
+        if entry["project"] == ALL_PACKAGES and not entry["licenseFiles"] and not entry.get("noticeOmitted"):
             report.error(f"{label}: material in every package needs a license file to pack.")
+
+    for item in manifest.get("firstParty", []):
+        for key in ("id", "files", "reason"):
+            if key not in item:
+                report.error(f"{item.get('id', '<missing id>')}: first-party record is missing '{key}'.")
+        for pattern in item.get("files", []):
+            matched = expand(files, pattern)
+            if not matched:
+                report.error(f"{item.get('id')}: '{pattern}' matches no file.")
+            covered.update(matched)
 
     packed_by_props = packed_items(
         root,
@@ -231,13 +246,15 @@ def check_source(root: Path) -> Report:
 
     for project in projects.values():
         mine = [e for e in entries if e.get("project") == project.name and "licenseFiles" in e]
-        shared = [e for e in entries if e.get("project") == ALL_PACKAGES and "licenseFiles" in e]
+        shared = [e for e in entries if e.get("project") == ALL_PACKAGES and "licenseFiles" in e and not e.get("noticeOmitted")]
         packed = packed_items(root, project.path, {})
         for entry in shared:
             for source, target in entry["licenseFiles"].items():
                 if packed_by_props.get(source, packed.get(source)) != target:
                     report.error(f"{project.name}: does not pack '{source}' as '{target}' for {entry['id']}.")
         for entry in mine:
+            if entry.get("noticeOmitted"):
+                continue
             for source, target in entry["licenseFiles"].items():
                 if packed.get(source) != target:
                     report.error(f"{project.name}: does not pack '{source}' as '{target}' for {entry['id']}.")
@@ -253,7 +270,7 @@ def check_source(root: Path) -> Report:
             else:
                 text = read_text(path)
                 for entry in mine:
-                    if entry["title"] not in text:
+                    if not entry.get("noticeOmitted") and entry["title"] not in text:
                         report.error(f"{project.name}: '{notice['path']}' does not mention '{entry['title']}'.")
             if packed.get(notice["path"]) != notice["packagePath"]:
                 report.error(f"{project.name}: does not pack '{notice['path']}' as '{notice['packagePath']}'.")
@@ -330,6 +347,8 @@ def check_packages(root: Path, packages: list[Path]) -> Report:
             if expression is None or split_expression(expression) != expected:
                 report.error(f"{package.name}: license expression is '{expression}', expected '{' AND '.join(sorted(expected, key=lambda t: (t != 'MIT', t)))}'.")
             for entry in mine:
+                if entry.get("noticeOmitted"):
+                    continue
                 for target in entry["licenseFiles"].values():
                     if target.lower() not in names:
                         report.error(f"{package.name}: missing '{target}' for {entry['id']}.")
@@ -341,7 +360,7 @@ def check_packages(root: Path, packages: list[Path]) -> Report:
                     actual = next(n for n in archive.namelist() if n.lower() == notice["packagePath"].lower())
                     text = archive.read(actual).decode("utf-8-sig", errors="replace")
                     for entry in mine:
-                        if entry["project"] != ALL_PACKAGES and entry["title"] not in text:
+                        if entry["project"] != ALL_PACKAGES and not entry.get("noticeOmitted") and entry["title"] not in text:
                             report.error(f"{package.name}: '{notice['packagePath']}' does not mention '{entry['title']}'.")
     return report
 
@@ -359,7 +378,7 @@ def main(argv: list[str] | None = None) -> int:
     for message in report.errors:
         print(f"error: {message}", file=sys.stderr)
     if report.errors:
-        print(f"{len(report.errors)} third-party notice problem(s). See AGENTS.md, 'Third-party material'.", file=sys.stderr)
+        print(f"{len(report.errors)} third-party notice problem(s). See Docs/building-and-releasing.md, 'Third-party material and package licenses'.", file=sys.stderr)
         return 1
     print("Third-party material is declared and shipped with its notices.")
     return 0
