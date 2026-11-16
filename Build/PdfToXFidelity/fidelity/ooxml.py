@@ -402,6 +402,9 @@ def read_xlsx(path: str) -> Document:
                 formats.append(info)
                 codes.append(code)
         wb = _xml(z, "xl/workbook.xml")
+        pr = wb.find(f"{S}workbookPr")
+        # 1904-based workbooks count days from 1904-01-01; shift them onto the 1900 system used for comparison.
+        date_shift = 1462 if pr is not None and _on(pr, "date1904") and pr.get("date1904") else 0
         rels = _rels(z, "xl/workbook.xml")
         row_offset = 0
         for sheet in wb.iter(f"{S}sheet"):
@@ -436,6 +439,7 @@ def read_xlsx(path: str) -> Document:
                 elif raw is not None:
                     value = float(raw)
                     if is_date:
+                        value += date_shift
                         code = codes[style] if style < len(codes) else ""
                         cell = SheetCell(r, col, _format_date(value, code), "date", value)
                     else:

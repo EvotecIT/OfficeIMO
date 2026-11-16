@@ -352,7 +352,10 @@ def read_markdown(path: str) -> Document:
             continue
         if para and re.match(r"^\s{0,3}(=+|-+)\s*$", line) and len(para) == 1:
             level = 1 if stripped[0] == "=" else 2
-            doc.add_block(Block("heading", _md_inline(para[0], doc), level))
+            words = _md_inline(para[0], doc)
+            for w in words:
+                w.bold = True  # rendered bold like ATX headings
+            doc.add_block(Block("heading", words, level))
             para.clear()
             i += 1
             continue
