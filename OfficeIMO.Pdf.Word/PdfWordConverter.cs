@@ -845,12 +845,13 @@ namespace OfficeIMO.Pdf.Word {
             ref WordList? numberedList,
             PdfWordExportOptions options,
             double typographyScale) {
-            bool bullet = IsBulletMarker(item.Marker);
+            bool bullet = item.IsContentsEntry || IsBulletMarker(item.Marker);
             WordList list = bullet
                 ? bulletList ??= document.AddListBulleted()
                 : numberedList ??= document.AddListNumbered();
             WordParagraph paragraph = list.AddItem((string?)null, Math.Max(0, item.Level - 1));
             AppendStyledRuns(paragraph, item.Runs, item.Text, item.Line.FontSize, typographyScale);
+            if (item.IsContentsEntry && !string.IsNullOrEmpty(item.TargetPageLabel)) paragraph.AddText(" \u2014 " + item.TargetPageLabel);
             ApplyCompactSpacing(paragraph);
             return paragraph;
         }

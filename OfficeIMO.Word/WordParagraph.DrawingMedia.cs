@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Enumerates independent DrawingML or VML images represented by this run.</summary>
         internal IEnumerable<WordImage> EnumerateImages() {
-            if (_run == null) yield break;
+            if (_run == null || !HasGraphicCandidate()) yield break;
 
             foreach (WordDrawing drawing in EnumerateEffectiveRunContent().SelectMany(
                          element => element is WordDrawing direct
@@ -77,6 +77,17 @@ namespace OfficeIMO.Word {
             }
         }
 
+        // Images, text boxes and shapes all come from a DrawingML drawing or a VML shape, text box or primitive
+        // under the run's visible children, so a run without any of them has none in any markup-compatibility
+        // branch. Most runs hold only text, and this answers for them without enumerating their content.
+        private bool HasGraphicCandidate() {
+            foreach (OpenXmlElement child in VisibleSourceRunChildren()) {
+                if (WordElementWalker.SubtreeContains(child, static element => element is WordDrawing
+                        or V.Shape or V.TextBox or V.Rectangle or V.RoundRectangle or V.Oval or V.Line or V.PolyLine)) return true;
+            }
+            return false;
+        }
+
         private IEnumerable<OpenXmlElement> VisibleSourceRunChildren() =>
             _visibleRunSourceChildren ?? (IEnumerable<OpenXmlElement>?)_run?.ChildElements ?? Array.Empty<OpenXmlElement>();
 
@@ -104,7 +115,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordChart? Chart {
             get {
-                if (_run is not null) {
+                if (_run is not null && HasGraphicCandidate()) {
                     foreach (WordDrawing drawing in EnumerateEffectiveRunContent().OfType<WordDrawing>()) {
                         if (DrawingOwnsChart(drawing)) {
                             return new WordChart(_document, this, drawing);
@@ -160,7 +171,7 @@ namespace OfficeIMO.Word {
         public WordTextBox? TextBox => GetTextBoxes().FirstOrDefault();
 
         internal IEnumerable<WordTextBox> GetTextBoxes() {
-            if (_run == null) yield break;
+            if (_run == null || !HasGraphicCandidate()) yield break;
             foreach (OpenXmlElement child in EnumerateEffectiveRunContent()) {
                 if (child is WordDrawing drawing) {
                     if (drawing.Descendants<Wps.TextBoxInfo2>().Any(box => !box.Ancestors<Wpg.WordprocessingGroup>().Any()))
@@ -180,7 +191,7 @@ namespace OfficeIMO.Word {
         /// number in the grouped page-number building blocks. <see cref="GetTextBoxes"/> leaves these out.
         /// </summary>
         internal IEnumerable<WordTextBox> GetGroupTextBoxes() {
-            if (_run == null) yield break;
+            if (_run == null || !HasGraphicCandidate()) yield break;
             foreach (OpenXmlElement child in EnumerateEffectiveRunContent()) {
                 if (child is WordDrawing drawing &&
                     drawing.Descendants<Wps.TextBoxInfo2>().Any(box => box.Ancestors<Wpg.WordprocessingGroup>().Any()) &&
@@ -197,7 +208,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Enumerates the independent shapes associated with this run.</summary>
         internal IEnumerable<WordShape> EnumerateShapes() {
-            if (_run == null || TextBox != null) yield break;
+            if (_run == null || !HasGraphicCandidate() || TextBox != null) yield break;
             foreach (OpenXmlElement element in EnumerateEffectiveRunContent()
                          .SelectMany(child => child.Descendants().Prepend(child))) {
                 if (!element.Ancestors<V.Group>().Any() &&

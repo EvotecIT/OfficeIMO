@@ -1278,3 +1278,6 @@ OfficeIMO.Pdf.PdfAccessibilityReport.SourceSha256.get -> string!
 OfficeIMO.Pdf.PdfDocumentProof.CheckAccessibility(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfAccessibilityReport!
 static OfficeIMO.Pdf.PdfAccessibilityConditions.All.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfAccessibilityCondition!>!
 static OfficeIMO.Pdf.PdfAccessibilityConditions.Get(string! conditionId) -> OfficeIMO.Pdf.PdfAccessibilityCondition!
+OfficeIMO.Pdf.PdfLogicalListItem.IsContentsEntry.get -> bool
+OfficeIMO.Pdf.PdfLogicalListItem.Link.get -> OfficeIMO.Pdf.PdfLogicalLinkAnnotation?
+OfficeIMO.Pdf.PdfLogicalListItem.TargetPageLabel.get -> string?

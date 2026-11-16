@@ -372,6 +372,18 @@ public sealed class PdfLogicalListItem {
     /// <summary>Evidence supporting the list classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
+    /// <summary>
+    /// True when the item is an entry of a table of contents, recognised from tagged TOC/TOCI structure or from
+    /// contents lines (title, dot leader or gap, page number). <see cref="Text"/> then holds the entry title.
+    /// </summary>
+    public bool IsContentsEntry { get; internal set; }
+
+    /// <summary>Printed page number of a contents entry, such as "12" or "iv", when the entry shows one.</summary>
+    public string? TargetPageLabel { get; internal set; }
+
+    /// <summary>Link annotation over a contents entry's title, when the entry links to its target.</summary>
+    public PdfLogicalLinkAnnotation? Link { get; internal set; }
+
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalTextRun> BuildRuns(
         IReadOnlyList<PdfLogicalTextBlock> lines,
         IReadOnlyList<string> lineTexts) {

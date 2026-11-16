@@ -317,7 +317,8 @@ namespace OfficeIMO.Word {
 
             var visitedParagraphs = new HashSet<Paragraph>();
             foreach (var paragraph in paragraphs) {
-                if (!visitedParagraphs.Add(paragraph._paragraph)) {
+                if (!visitedParagraphs.Add(paragraph._paragraph) ||
+                    !WordElementWalker.DescendantsContain(paragraph._paragraph, static node => node is BookmarkStart)) {
                     continue;
                 }
 
