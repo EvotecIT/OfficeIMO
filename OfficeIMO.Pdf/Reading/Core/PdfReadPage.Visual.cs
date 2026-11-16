@@ -3343,7 +3343,9 @@ public sealed partial class PdfReadPage {
                 placements,
                 activeForms,
                 pageContentBudget: pageContentBudget,
-                contentOrderPrefix: PdfContentOrderKey.Root);
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                invokedResourceNames: GetRootInvokedResourceNames(content, pageResources,
+                    pageContentBudget.CancellationToken.ThrowIfCancellationRequested));
         }
 
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
