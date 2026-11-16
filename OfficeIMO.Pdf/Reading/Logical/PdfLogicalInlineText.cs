@@ -130,14 +130,16 @@ internal static class PdfLogicalInlineText {
             return owners;
         }
 
-        // Link rectangles are drawn by hand and can end inside a word; a word belongs to the link covering most of it.
+        // Link rectangles are drawn by hand and can end inside a word; a word belongs to the link covering most of
+        // it. Punctuation at its edges ("archive." or "(page)") keeps its own measured position.
         for (int wordStart = 0; wordStart < text.Length;) {
-            if (char.IsWhiteSpace(text[wordStart])) {
+            if (!char.IsLetterOrDigit(text[wordStart])) {
                 wordStart++;
                 continue;
             }
             int wordEnd = wordStart;
             while (wordEnd < text.Length && !char.IsWhiteSpace(text[wordEnd])) wordEnd++;
+            while (wordEnd > wordStart + 1 && !char.IsLetterOrDigit(text[wordEnd - 1])) wordEnd--;
             PdfLogicalLinkAnnotation? owner = MostCommonOwner(owners, wordStart, wordEnd);
             for (int index = wordStart; index < wordEnd; index++) owners[index] = owner;
             wordStart = wordEnd;
