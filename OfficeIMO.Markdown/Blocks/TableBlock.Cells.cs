@@ -477,8 +477,6 @@ public sealed partial class TableBlock {
         }
 
         var inlines = MarkdownReader.ParseTableCellInlineText(cell ?? string.Empty, InlineRenderOptions, InlineRenderState);
-        return new TableCell(new[] {
-            new ParagraphBlock(inlines)
-        });
+        return new TableCell(new ParagraphBlock(inlines));
     }
 }

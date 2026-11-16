@@ -129,12 +129,17 @@ internal static partial class MarkdownReader {
 
     private static string? TryGetTaskMarkerText(string line, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrEmpty(line)
-            || !TryGetRawListItemContentAfterMarker(line, out string content, options)
-            || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
+            || !TryGetRawListItemContentStartIndex(line, out int contentStart, options)
+            || !TryGetTaskListMarkerContentStartIndex(line, contentStart, out _)) {
             return null;
         }
 
-        return content.Length >= 3 ? content.Substring(0, 3) : null;
+        // A task marker is one of three spellings.
+        return line[contentStart + 1] switch {
+            ' ' => "[ ]",
+            'x' => "[x]",
+            _ => "[X]"
+        };
     }
 
     private static MarkdownSourceSpan? TryCreateListMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownLoadOptions? options, MarkdownReaderState state) {
@@ -162,8 +167,8 @@ internal static partial class MarkdownReader {
             return null;
         }
 
-        if (!TryGetRawListItemContentAfterMarker(line, out string content, options)
-            || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
+        if (!TryGetRawListItemContentStartIndex(line, out int contentStart, options)
+            || !TryGetTaskListMarkerContentStartIndex(line, contentStart, out _)) {
             return null;
         }
 
@@ -249,7 +254,17 @@ internal static partial class MarkdownReader {
     }
 
     private static bool TryGetRawListItemContentAfterMarker(string line, out string content, MarkdownLoadOptions? options = null) {
+        if (TryGetRawListItemContentStartIndex(line, out int contentStart, options)) {
+            content = line.Substring(contentStart);
+            return true;
+        }
+
         content = string.Empty;
+        return false;
+    }
+
+    private static bool TryGetRawListItemContentStartIndex(string line, out int contentStart, MarkdownLoadOptions? options = null) {
+        contentStart = 0;
         if (string.IsNullOrEmpty(line)) return false;
         if (options?.OrderedLists != false &&
             TryGetOrderedListMarkerInfo(line, options, out var orderedLeadingSpaces, out _, out int orderedContentStartIndex, out _, out _)) {
@@ -257,7 +272,7 @@ internal static partial class MarkdownReader {
                 return false;
             }
 
-            content = line.Substring(orderedContentStartIndex);
+            contentStart = orderedContentStartIndex;
             return true;
         }
 
@@ -267,7 +282,7 @@ internal static partial class MarkdownReader {
                 return false;
             }
 
-            content = line.Substring(unorderedContentStartIndex);
+            contentStart = unorderedContentStartIndex;
             return true;
         }
 

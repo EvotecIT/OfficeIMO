@@ -2,6 +2,23 @@ namespace OfficeIMO.Markdown;
 
 // Inline parsing helpers for MarkdownReader.
 internal static partial class MarkdownReader {
+    // Single-character strings for ASCII, shared by the escapes, delimiter literals and marker text
+    // the inline parser creates one character at a time.
+    private static readonly string[] AsciiCharacterStrings = CreateAsciiCharacterStrings();
+
+    private static string[] CreateAsciiCharacterStrings() {
+        var strings = new string[128];
+        for (int i = 0; i < strings.Length; i++) {
+            strings[i] = ((char)i).ToString();
+        }
+
+        return strings;
+    }
+
+    private static string CharacterString(char value) => value < 128 ? AsciiCharacterStrings[value] : value.ToString();
+
+    private static string RepeatCharacter(char value, int count) => count == 1 ? CharacterString(value) : new string(value, count);
+
     private static InlineSequence ParseInlines(string text, MarkdownLoadOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null, TableCellHtmlMode tableCellHtmlMode = TableCellHtmlMode.Unrestricted) {
         InlineSequence sequence;
         bool hasRegisteredAbbreviations = options.Abbreviations && state?.Abbreviations.Count > 0;
@@ -74,9 +91,9 @@ internal static partial class MarkdownReader {
         // We parse emphasis/strong/strikethrough using a simple stack of open frames so that nesting like
         // "*a **b** c*" behaves intuitively. This is not a full spec implementation, but it's materially
         // more robust than naive IndexOf-based matching.
-        // Every parse owns the root frame, so allocate the small common-case
-        // backing store directly instead of growing from zero on the first push.
-        var stack = new Stack<InlineFrame>(4);
+        // Every parse owns the root frame. Frame stacks are reused per thread; nested label parses
+        // take their own while their parent's is in use.
+        var stack = RentInlineFrameStack();
         stack.Push(new InlineFrame(FrameKind.Root, '\0', 0, root, -1));
         InlineSequence Current() => stack.Peek().Seq;
         MarkdownInlineSourceMap? SliceMap(int start, int length) => sourceMap?.Slice(start, length);
@@ -86,7 +103,6 @@ internal static partial class MarkdownReader {
         }
         void AddCodeSpanNode(string literal, int start, int closingStart, int fenceLength) {
             var node = new CodeSpanInline(literal);
-            var marker = new string('`', fenceLength);
             var contentStart = start + fenceLength;
             var contentLength = closingStart - contentStart;
             if (contentLength > 0) {
@@ -96,6 +112,7 @@ internal static partial class MarkdownReader {
             }
 
             if (captureSyntaxMetadata) {
+                var marker = RepeatCharacter('`', fenceLength);
                 MarkdownInlineMetadataSourceSpans.SetFormattingMarkers(
                     node,
                     marker,
@@ -107,12 +124,13 @@ internal static partial class MarkdownReader {
         }
         void AddTextNode(string literal, int start, int length) => AddRawNode(new MarkdownTextRun(literal), start, length);
         void AddEscapedTextNode(char escapedCharacter, int start) {
-            var node = new MarkdownTextRun(escapedCharacter.ToString());
+            string escapedText = CharacterString(escapedCharacter);
+            var node = new MarkdownTextRun(escapedText);
             MarkdownInlineMetadataSourceSpans.SetEscapedText(
                 node,
                 "\\",
                 sourceMap?.GetSpan(start, 1),
-                escapedCharacter.ToString(),
+                escapedText,
                 sourceMap?.GetSpan(start + 1, 1));
             AddRawNode(node, start, 2);
         }
@@ -486,7 +504,7 @@ internal static partial class MarkdownReader {
                 }
 
                 if (fenceLen > 1) {
-                    AddTextNode(new string('`', fenceLen), pos, fenceLen);
+                    AddTextNode(RepeatCharacter('`', fenceLen), pos, fenceLen);
                     pos += fenceLen;
                     continue;
                 }
@@ -780,7 +798,7 @@ internal static partial class MarkdownReader {
                 if ((marker == '=' && !options.Highlight)
                     || (marker == '+' && !options.Inserted)
                     || (marker == '^' && !options.Superscript)) {
-                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    AddTextNode(RepeatCharacter(marker, runLen), pos, runLen);
                     pos += runLen;
                     continue;
                 }
@@ -788,32 +806,32 @@ internal static partial class MarkdownReader {
                 bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis, emphasisClosingRuns);
 
                 if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, options.CjkFriendlyEmphasis, emphasisClosingRuns, out int literalRunLength)) {
-                    AddTextNode(new string(marker, literalRunLength), pos, literalRunLength);
+                    AddTextNode(RepeatCharacter(marker, literalRunLength), pos, literalRunLength);
                     pos += literalRunLength;
                     continue;
                 }
 
                 if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis, emphasisClosingRuns)) {
-                    AddTextNode(marker.ToString(), pos, 1);
+                    AddTextNode(CharacterString(marker), pos, 1);
                     pos++;
                     continue;
                 }
 
                 // "==" and "++" always require a double delimiter. "~" can mean Markdig subscript or cmark-gfm single-tilde strike.
                 if ((marker == '=' || marker == '+') && runLen < 2) {
-                    AddTextNode(marker.ToString(), pos, 1);
+                    AddTextNode(CharacterString(marker), pos, 1);
                     pos++;
                     continue;
                 }
 
                 if (marker == '+' && runLen > 2) {
-                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    AddTextNode(RepeatCharacter(marker, runLen), pos, runLen);
                     pos += runLen;
                     continue;
                 }
 
                 if (marker == '~' && runLen < (options.SingleTildeStrikethrough || options.Subscript ? 1 : 2)) {
-                    AddTextNode(marker.ToString(), pos, 1);
+                    AddTextNode(CharacterString(marker), pos, 1);
                     pos++;
                     continue;
                 }
@@ -821,7 +839,7 @@ internal static partial class MarkdownReader {
                 // cmark-gfm strikethrough recognizes one- and two-tilde delimiter runs.
                 // Longer runs such as "~~~three~~~" and "~~~~~one~~~~~" remain literal.
                 if (marker == '~' && runLen > 2) {
-                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    AddTextNode(RepeatCharacter(marker, runLen), pos, runLen);
                     pos += runLen;
                     continue;
                 }
@@ -835,19 +853,19 @@ internal static partial class MarkdownReader {
                     && !canClose
                     && marker is '*' or '_'
                     && emphasisClosingRuns?.FindFirstRun(pos + runLen, marker) < 0) {
-                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    AddTextNode(RepeatCharacter(marker, runLen), pos, runLen);
                     pos += runLen;
                     continue;
                 }
 
                 if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack, emphasisClosingRuns)) {
-                    AddTextNode(marker.ToString(), pos, 1);
+                    AddTextNode(CharacterString(marker), pos, 1);
                     pos++;
                     continue;
                 }
 
                 if (ShouldTreatOppositeMarkerBeforeOuterCloseAsLiteral(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis)) {
-                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    AddTextNode(RepeatCharacter(marker, runLen), pos, runLen);
                     pos += runLen;
                     continue;
                 }
@@ -895,7 +913,7 @@ internal static partial class MarkdownReader {
                         remaining -= 2;
                     }
                     else if (literalPrefixForOddCloser > 0 && !splitDoubleRunIntoDualItalic && !splitDoubleRunIntoRootDualItalic) {
-                        AddTextNode(new string(marker, literalPrefixForOddCloser), pos, literalPrefixForOddCloser);
+                        AddTextNode(RepeatCharacter(marker, literalPrefixForOddCloser), pos, literalPrefixForOddCloser);
                         remaining -= literalPrefixForOddCloser;
                     }
 
@@ -952,7 +970,7 @@ internal static partial class MarkdownReader {
                 }
 
                 if (remaining > 0) {
-                    AddTextNode(new string(marker, remaining), pos + (runLen - remaining), remaining);
+                    AddTextNode(RepeatCharacter(marker, remaining), pos + (runLen - remaining), remaining);
                 }
 
                 pos += runLen;
@@ -1014,7 +1032,7 @@ internal static partial class MarkdownReader {
         while (stack.Count > 1) {
             var f = stack.Pop();
             var parent = stack.Peek().Seq;
-            var markerNode = new MarkdownTextRun(new string(f.Marker, f.OpenLen));
+            var markerNode = new MarkdownTextRun(RepeatCharacter(f.Marker, f.OpenLen));
             MarkdownInlineSourceSpans.Set(markerNode, sourceMap?.GetSpan(f.OpenIndex, f.OpenLen));
             parent.AddRaw(markerNode);
             foreach (var node in f.Seq.Nodes) parent.AddRaw(node);
@@ -1023,7 +1041,84 @@ internal static partial class MarkdownReader {
         // Link labels and inline HTML wrappers are parsed here too, so their depth is checked
         // before a parent derives text from them.
         EnsureInlineNestingDepthAvailable(root, options);
+        ReturnInlineFrameStack(stack);
         return root;
+    }
+
+    // The open emphasis frames of one inline parse.
+    private sealed class InlineFrameStack {
+        private InlineFrame[] _items = new InlineFrame[4];
+        private int _count;
+
+        public int Count => _count;
+
+        internal int Capacity => _items.Length;
+
+        public void Push(InlineFrame frame) {
+            if (_count == _items.Length) {
+                Array.Resize(ref _items, _items.Length * 2);
+            }
+
+            _items[_count++] = frame;
+        }
+
+        public InlineFrame Peek() {
+            if (_count == 0) {
+                throw new InvalidOperationException("Stack empty.");
+            }
+
+            return _items[_count - 1];
+        }
+
+        public InlineFrame Pop() {
+            if (_count == 0) {
+                throw new InvalidOperationException("Stack empty.");
+            }
+
+            InlineFrame frame = _items[--_count];
+            _items[_count] = default;
+            return frame;
+        }
+
+        public void Clear() {
+            Array.Clear(_items, 0, _count);
+            _count = 0;
+        }
+    }
+
+    private const int InlineFrameStackPoolSize = 4;
+    private const int MaximumRetainedInlineFrames = 64;
+    [ThreadStatic] private static InlineFrameStack?[]? t_inlineFrameStacks;
+
+    private static InlineFrameStack RentInlineFrameStack() {
+        var pool = t_inlineFrameStacks;
+        if (pool != null) {
+            for (int i = 0; i < pool.Length; i++) {
+                var pooled = pool[i];
+                if (pooled != null) {
+                    pool[i] = null;
+                    return pooled;
+                }
+            }
+        }
+
+        return new InlineFrameStack();
+    }
+
+    private static void ReturnInlineFrameStack(InlineFrameStack stack) {
+        // A stack that grew for deeply nested input is left to the collector.
+        if (stack.Capacity > MaximumRetainedInlineFrames) {
+            return;
+        }
+
+        stack.Clear();
+        var pool = t_inlineFrameStacks ??= new InlineFrameStack?[InlineFrameStackPoolSize];
+        for (int i = 0; i < pool.Length; i++) {
+            if (pool[i] == null) {
+                pool[i] = stack;
+                return;
+            }
+        }
     }
 
     private static void ApplyGenericAttributesToInlineElements(InlineSequence? sequence, MarkdownLoadOptions options) {
