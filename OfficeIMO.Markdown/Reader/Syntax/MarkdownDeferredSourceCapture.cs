@@ -16,7 +16,6 @@ internal sealed class MarkdownDeferredSourceCapture {
     private readonly MarkdownLoadOptions? _options;
     private readonly object _sync = new();
     private MarkdownObjectSequence? _objects;
-    private MarkdownObjectSequence? _detached;
 
     private MarkdownDeferredSourceCapture(
         MarkdownDocument document,
@@ -77,69 +76,61 @@ internal sealed class MarkdownDeferredSourceCapture {
             }
         }
 
+        // Tables keep the inline parse of cells read as blocks outside the object tree, and callers
+        // reach it through the table, so those objects are recorded after the tree and defer too.
+        int boundCount = objects.Count;
+        AppendDetachedObjects(objects);
+        int index = 0;
+        foreach (MarkdownObject markdownObject in objects) {
+            if (index++ >= boundCount && markdownObject.HasMetadata && !markdownObject.Attributes.IsEmpty) {
+                return false;
+            }
+        }
+
         var capture = new MarkdownDeferredSourceCapture(document, markdown, options, objects);
         foreach (MarkdownObject markdownObject in objects) {
             markdownObject.DeferSourceInformation(capture);
-        }
-
-        // Tables keep the inline parse of cells read as blocks outside the object tree, and callers
-        // reach it through the table, so those objects defer their source information too.
-        foreach (MarkdownObject markdownObject in objects) {
-            if (markdownObject is TableBlock table && !table.DeferDetachedSourceInformation(capture)) {
-                foreach (MarkdownObject deferred in objects) {
-                    deferred.ClearDeferredSourceInformation();
-                }
-
-                capture.ClearDetached();
-                return false;
-            }
         }
 
         return true;
     }
 
     /// <summary>
-    /// Defers source capture for an object outside the bound tree and its descendants. Returns false
-    /// when one carries generic attributes, which a deferred object does not report.
+    /// Appends the objects that tables keep outside the bound object tree, with their descendants, in a
+    /// fixed order. A just-bound document and a parse of the same text append corresponding objects.
     /// </summary>
-    internal bool DeferDetached(MarkdownObject? root) {
-        if (root == null) {
-            return true;
-        }
-
-        var pending = new Stack<MarkdownObject>();
-        pending.Push(root);
-        while (pending.Count > 0) {
-            MarkdownObject markdownObject = pending.Pop();
-            if (markdownObject.IsSourceInformationDeferredTo(this)) {
-                continue;
-            }
-
-            if (markdownObject.HasMetadata && !markdownObject.Attributes.IsEmpty) {
-                return false;
-            }
-
-            markdownObject.DeferSourceInformation(this);
-            (_detached ??= new MarkdownObjectSequence()).Add(markdownObject);
-            var children = MarkdownObjectTreeBinder.GetChildObjects(markdownObject);
-            for (int i = children.Count - 1; i >= 0; i--) {
-                pending.Push(children[i]);
+    private static void AppendDetachedObjects(MarkdownObjectSequence objects) {
+        List<TableBlock>? tables = null;
+        foreach (MarkdownObject markdownObject in objects) {
+            if (markdownObject is TableBlock table) {
+                (tables ??= new List<TableBlock>()).Add(table);
             }
         }
 
-        return true;
-    }
-
-    private void ClearDetached() {
-        if (_detached == null) {
+        if (tables == null) {
             return;
         }
 
-        foreach (MarkdownObject markdownObject in _detached) {
-            markdownObject.ClearDeferredSourceInformation();
-        }
+        var visited = new HashSet<MarkdownObject>();
+        var pending = new Stack<MarkdownObject>();
+        foreach (TableBlock table in tables) {
+            foreach (MarkdownObject root in table.EnumerateDetachedObjects()) {
+                pending.Push(root);
+                while (pending.Count > 0) {
+                    MarkdownObject markdownObject = pending.Pop();
+                    // Bound objects have a parent; detached ones are reached only from their table.
+                    if (markdownObject.Parent != null || !visited.Add(markdownObject)) {
+                        continue;
+                    }
 
-        _detached = null;
+                    objects.Add(markdownObject);
+                    var children = MarkdownObjectTreeBinder.GetChildObjects(markdownObject);
+                    for (int i = children.Count - 1; i >= 0; i--) {
+                        pending.Push(children[i]);
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>Captures the source information once and attaches it to the document's objects.</summary>
@@ -154,6 +145,7 @@ internal sealed class MarkdownDeferredSourceCapture {
             MarkdownParseInfo captured = MarkdownReader.ParseSourceBacked(_markdown, _options ?? new MarkdownLoadOptions());
             var capturedObjects = new MarkdownObjectSequence();
             MarkdownObjectTreeBinder.BindDocument(captured.Document, syntaxTree: null, capturedObjects);
+            AppendDetachedObjects(capturedObjects);
 
             // Replace every deferral first, so reads made while attaching the rest see captured state.
             // Each captured object then points at the object it describes until the capture ends.
@@ -192,12 +184,6 @@ internal sealed class MarkdownDeferredSourceCapture {
                 capturedEnumerator.Current.AdoptCapturedMetadata(recordedEnumerator.Current);
             }
 
-            map.RestoreDetached();
-
-            // A detached object the capture could not pair keeps no source information, like an
-            // object added after parsing.
-            ClearDetached();
-
             _document.ClearSemanticAbbreviationDefinitions();
             _ = new MarkdownParseInfo(
                 _document,
@@ -219,39 +205,6 @@ internal sealed class MarkdownDeferredSourceCapture {
 /// </summary>
 internal sealed class MarkdownCapturedObjectMap {
     private readonly Stack<MarkdownSyntaxNode> _pending = new();
-    private List<(MarkdownObject Captured, MarkdownObject Target)>? _detached;
-
-    /// <summary>
-    /// Gives an object outside the bound object tree, and its descendants, the source information of
-    /// the corresponding captured object, unless the tree already paired it.
-    /// </summary>
-    internal void AdoptDetached(MarkdownObject? target, MarkdownObject? captured) {
-        if (target == null || captured == null || target.GetType() != captured.GetType() || captured.CapturedObjectTarget != null) {
-            return;
-        }
-
-        target.AdoptCapturedMetadata(captured);
-        captured.ForwardCapturedObject(target);
-        (_detached ??= new List<(MarkdownObject Captured, MarkdownObject Target)>()).Add((captured, target));
-        var children = MarkdownObjectTreeBinder.GetChildObjects(target);
-        var capturedChildren = MarkdownObjectTreeBinder.GetChildObjects(captured);
-        for (int i = 0; i < children.Count && i < capturedChildren.Count; i++) {
-            AdoptDetached(children[i], capturedChildren[i]);
-        }
-
-        target.AdoptCapturedSourceInformation(captured, this);
-        MarkdownSourceSideTables.Adopt(target, captured);
-    }
-
-    internal void RestoreDetached() {
-        if (_detached == null) {
-            return;
-        }
-
-        for (int i = 0; i < _detached.Count; i++) {
-            _detached[i].Captured.AdoptCapturedMetadata(_detached[i].Target);
-        }
-    }
 
     /// <summary>Points the syntax nodes under <paramref name="root"/> at the corresponding objects.</summary>
     internal void Retarget(MarkdownSyntaxNode? root) {

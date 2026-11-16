@@ -34,8 +34,6 @@ public abstract class MarkdownObject {
 
     internal bool HasMetadata => _metadata != null;
 
-    internal bool IsSourceInformationDeferredTo(MarkdownDeferredSourceCapture capture) => ReferenceEquals(_metadata, capture);
-
     internal void DeferSourceInformation(MarkdownDeferredSourceCapture capture) => _metadata = capture;
 
     internal void AdoptCapturedMetadata(MarkdownObject captured) => _metadata = captured._metadata;

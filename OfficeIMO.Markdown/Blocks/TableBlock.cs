@@ -576,73 +576,38 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         PipeSources = source.PipeSources;
         InlineRenderOptions = source.InlineRenderOptions;
         InlineRenderState = source.InlineRenderState;
-
-        // Cells parsed as blocks keep their inline parse outside the object tree, and rows padded or cut
-        // to the column count keep their parsed cells there too.
-        AdoptDetachedCells(ParsedHeaders, source.ParsedHeaders, map);
-        AdoptDetachedRows(ParsedRows, source.ParsedRows, map);
-        AdoptDetachedCells(StructuredHeaders, source.StructuredHeaders, map);
-        AdoptDetachedRows(StructuredRows, source.StructuredRows, map);
     }
 
-    internal bool DeferDetachedSourceInformation(MarkdownDeferredSourceCapture capture) {
-        return DeferDetachedCells(ParsedHeaders, capture)
-            && DeferDetachedRows(ParsedRows, capture)
-            && DeferDetachedCells(StructuredHeaders, capture)
-            && DeferDetachedRows(StructuredRows, capture);
+    /// <summary>
+    /// Enumerates the parsed cells this table keeps outside the object tree: the inline parse of cells
+    /// read as blocks, and parsed cells of rows padded or cut to the column count.
+    /// </summary>
+    internal IEnumerable<MarkdownObject> EnumerateDetachedObjects() {
+        foreach (var cell in EnumerateRows(ParsedHeaders, ParsedRows)) {
+            yield return cell;
+        }
+
+        foreach (var cell in EnumerateRows(StructuredHeaders, StructuredRows)) {
+            yield return cell;
+        }
     }
 
-    private static bool DeferDetachedRows<T>(List<IReadOnlyList<T>>? rows, MarkdownDeferredSourceCapture capture) where T : MarkdownObject {
+    private static IEnumerable<MarkdownObject> EnumerateRows<T>(List<T>? headers, List<IReadOnlyList<T>>? rows) where T : MarkdownObject {
+        if (headers != null) {
+            for (int i = 0; i < headers.Count; i++) {
+                yield return headers[i];
+            }
+        }
+
         if (rows == null) {
-            return true;
+            yield break;
         }
 
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-            if (!DeferDetachedCells(rows[rowIndex], capture)) {
-                return false;
+            var row = rows[rowIndex];
+            for (int i = 0; i < row.Count; i++) {
+                yield return row[i];
             }
-        }
-
-        return true;
-    }
-
-    private static bool DeferDetachedCells<T>(IReadOnlyList<T>? cells, MarkdownDeferredSourceCapture capture) where T : MarkdownObject {
-        if (cells == null) {
-            return true;
-        }
-
-        for (int i = 0; i < cells.Count; i++) {
-            if (!capture.DeferDetached(cells[i])) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static void AdoptDetachedRows<T>(
-        List<IReadOnlyList<T>>? rows,
-        List<IReadOnlyList<T>>? sourceRows,
-        MarkdownCapturedObjectMap map) where T : MarkdownObject {
-        if (rows == null || sourceRows == null || rows.Count != sourceRows.Count) {
-            return;
-        }
-
-        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-            AdoptDetachedCells(rows[rowIndex], sourceRows[rowIndex], map);
-        }
-    }
-
-    private static void AdoptDetachedCells<T>(
-        IReadOnlyList<T>? cells,
-        IReadOnlyList<T>? sourceCells,
-        MarkdownCapturedObjectMap map) where T : MarkdownObject {
-        if (cells == null || sourceCells == null || cells.Count != sourceCells.Count) {
-            return;
-        }
-
-        for (int i = 0; i < cells.Count; i++) {
-            map.AdoptDetached(cells[i], sourceCells[i]);
         }
     }
 }
