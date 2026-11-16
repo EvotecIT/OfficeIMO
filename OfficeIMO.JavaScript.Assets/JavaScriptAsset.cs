@@ -43,7 +43,7 @@ public sealed class JavaScriptAsset {
     public string ContentHash => _hash.Value;
 
     /// <summary>The minified variant of this asset, for example officeimo.min.js.</summary>
-    /// <remarks>It exposes the same API and shares module identity with the readable variant of the same build. A minified asset returns itself.</remarks>
+    /// <remarks>It exposes the same API. A minified classic script shares module identity with the readable classic scripts of the same build; ES modules are separate graphs, so use one variant throughout. A minified asset returns itself.</remarks>
     public JavaScriptAsset Minified => _minified.Value;
 
     /// <summary>A file name bound to these exact bytes, such as officeimo-xlsx.0123456789abcdef.js.</summary>
