@@ -29,7 +29,8 @@ public static partial class OfficePngWriter {
     private static bool PredictionCompressesSmaller(byte[] scanlines, int rowBytes, int height, int bytesPerPixel,
         PngColorWorkspace workspace, CancellationToken token) {
         int rowLength = rowBytes + 1;
-        int bandRows = Math.Min(height, PredictionSampleBandRows);
+        // Very wide rows shorten the bands so the sample stays near its byte budget; one row is the minimum.
+        int bandRows = Math.Max(1, Math.Min(Math.Min(height, PredictionSampleBandRows), PredictionSampleBytes / rowLength));
         int bands = Math.Max(1, Math.Min(height / bandRows, PredictionSampleBytes / Math.Max(1, rowLength * bandRows)));
         var raw = new byte[checked(bands * bandRows * rowLength)];
         var filtered = new byte[raw.Length];
