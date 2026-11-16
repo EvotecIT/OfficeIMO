@@ -16,10 +16,11 @@ namespace OfficeIMO.Word.Pdf {
                 background = cellShading == null ? null : ParseNativeColor(WordRunFormatting.ResolveShadingFillColorHex(cellShading, paragraph._document));
             }
 
-            if (background is not { } fill) {
-                return null;
-            }
+            return background is { } fill ? ResolveNativeAutomaticTextColor(fill) : null;
+        }
 
+        /// <summary>Returns white for automatic text on a dark backdrop and <see langword="null"/> (black) otherwise.</summary>
+        private static global::OfficeIMO.OfficeColor? ResolveNativeAutomaticTextColor(global::OfficeIMO.OfficeColor fill) {
             // Word switches automatic text on encoded RGB brightness, not WCAG contrast; Word-produced
             // DOC and DOCX references cover both sides of this threshold.
             var rgb = fill.ToNormalizedRgb();

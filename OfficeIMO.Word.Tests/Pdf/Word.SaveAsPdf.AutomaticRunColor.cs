@@ -22,6 +22,18 @@ public partial class Word {
     }
 
     [Theory]
+    [InlineData("010203", "FFFFFF", false)]
+    [InlineData("E5EFF7", "000080", true)]
+    public void SaveAsPdf_AutomaticRunColorUsesPaintedRunShadingBeforeParagraphFill(string paragraphFill, string runFill, bool white) {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph("RunShadedMarker");
+        paragraph.ShadingFillColor = OfficeColor.Parse(paragraphFill);
+        paragraph.BackgroundColor = OfficeColor.Parse(runFill);
+        paragraph.RunColorValue = "auto";
+        AssertAutomaticRunColorPdf(source, WordFileFormat.Docx, "RunShadedMarker", white, runFill);
+    }
+
+    [Theory]
     [InlineData(WordFileFormat.Docx, false)]
     [InlineData(WordFileFormat.Docx, true)]
     [InlineData(WordFileFormat.Doc, false)]

@@ -129,13 +129,14 @@ namespace OfficeIMO.Word.Pdf {
             global::OfficeIMO.OfficeColor? color = TryGetNativeRunColor(runProperties, paragraph._document, out global::OfficeIMO.OfficeColor? directColor)
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
-            color ??= ResolveNativeAutomaticTextColor(paragraph);
-            // A heading passes its style color as the paragraph default; automatic runs must not inherit it.
-            if (!color.HasValue && GetHeadingLevel(styleSource) > 0) color = global::OfficeIMO.OfficeColor.Black;
-            color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
             global::OfficeIMO.OfficeColor? background = MapNativeHighlight(
                 WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));
             background ??= ParseNativeColor(WordRunFormatting.ResolveRunShadingFillColorHex(paragraph));
+            // A painted run highlight or shading is the nearest backdrop for automatic text.
+            color ??= background.HasValue ? ResolveNativeAutomaticTextColor(background.Value) : ResolveNativeAutomaticTextColor(paragraph);
+            // A heading passes its style color as the paragraph default; automatic runs must not inherit it.
+            if (!color.HasValue && GetHeadingLevel(styleSource) > 0) color = global::OfficeIMO.OfficeColor.Black;
+            color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
 
             return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background) {
                 SmallCaps = smallCaps,
