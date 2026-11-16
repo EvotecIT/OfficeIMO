@@ -62,12 +62,14 @@ internal static partial class PdfPageEditor {
             transforms[readPage.ObjectNumber] = transform;
             int prefixObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
             int suffixObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
+            PdfPageContentIsolation.Nesting nesting = PdfPageContentIsolation.Measure(objects,
+                page.Items.TryGetValue("Contents", out PdfObject? measuredContents) ? measuredContents : null, cancellationToken);
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(
                 prefixObjectNumber,
-                BuildResizeContentStream(transform, left, bottom, width, height)));
+                BuildResizeContentStream(transform, left, bottom, width, height, nesting)));
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(
                 suffixObjectNumber,
-                new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n"))));
+                new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(nesting.RestoreOperators))));
 
             var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
                 ["MediaBox"] = CreatePageBoxArray(0D, 0D, width, height),

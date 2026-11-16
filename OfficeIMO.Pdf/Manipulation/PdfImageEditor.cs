@@ -57,9 +57,19 @@ internal static partial class PdfImageEditor {
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         ValidatePage(target.PageNumber, document.Pages.Count, nameof(target));
-        (double originX, double originY) = document.Pages[target.PageNumber - 1].GetPageBoundaryOrigin();
+        PdfReadPage page = document.Pages[target.PageNumber - 1];
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
         PdfImageEditOptions snapshot = (options ?? new PdfImageEditOptions()).Snapshot();
-        byte[] output = PdfStamper.StampImage(pdf, imageBytes, CreateStampOptions(target.PageNumber, target.X + originX, target.Y + originY, target.Width, target.Height, 0D, snapshot, document.Pages[target.PageNumber - 1].GetGeometry().UserUnit ?? 1D), readOptions);
+        // The image fills the region upright on the displayed page: anchor it at the region corner shown lower-left.
+        double left = target.X + originX, bottom = target.Y + originY, right = left + target.Width, top = bottom + target.Height;
+        int rotation = (int)(Math.Round(page.GetRotationDegrees() / 90D) % 4D) * 90;
+        (double x, double y, double width, double height) = rotation switch {
+            90 => (right, bottom, target.Height, target.Width),
+            180 => (right, top, target.Width, target.Height),
+            270 => (left, top, target.Height, target.Width),
+            _ => (left, bottom, target.Width, target.Height)
+        };
+        byte[] output = PdfStamper.StampImage(pdf, imageBytes, CreateStampOptions(target.PageNumber, x, y, width, height, rotation, snapshot, page.GetGeometry().UserUnit ?? 1D), readOptions);
         return new ImageMutationResult(output, 1);
     }
 
@@ -260,6 +270,7 @@ internal static partial class PdfImageEditor {
             Width = global::OfficeIMO.OfficeLength.Points(width * userUnit),
             Height = global::OfficeIMO.OfficeLength.Points(height * userUnit),
             RotationDegrees = rotationDegrees,
+            RotationInUserSpace = true,
             MaximumEncodedImageBytes = options.MaximumEncodedImageBytes,
             BehindContent = options.Layer == PdfImageEditLayer.BehindExistingContent
         };

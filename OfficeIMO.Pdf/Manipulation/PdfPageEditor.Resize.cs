@@ -78,8 +78,9 @@ internal static partial class PdfPageEditor {
             transformsByPageObjectNumber[pageObjectNumber] = transform;
             int prefixPseudoObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
             int suffixPseudoObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(prefixPseudoObjectNumber, BuildResizeContentStream(transform, sourceLeft, sourceBottom, sourceWidth, sourceHeight)));
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n"))));
+            PdfPageContentIsolation.Nesting nesting = PdfPageContentIsolation.Measure(objects, pageDictionary.Items.TryGetValue("Contents", out PdfObject? measuredContents) ? measuredContents : null, cancellationToken);
+            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(prefixPseudoObjectNumber, BuildResizeContentStream(transform, sourceLeft, sourceBottom, sourceWidth, sourceHeight, nesting)));
+            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(nesting.RestoreOperators))));
 
             var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
                 ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width.ToPoints(), options.PageSize.Height.ToPoints()),
@@ -237,7 +238,7 @@ internal static partial class PdfPageEditor {
         target.Items.Add(contents);
     }
 
-    private static PdfStream BuildResizeContentStream(PageResizeTransform transform, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight) {
+    private static PdfStream BuildResizeContentStream(PageResizeTransform transform, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, PdfPageContentIsolation.Nesting nesting) {
         string content =
             "q\n" +
             FormatResizeNumber(transform.TargetClipLeft) + " " +
@@ -255,7 +256,7 @@ internal static partial class PdfPageEditor {
             FormatResizeNumber(sourceBottom) + " " +
             FormatResizeNumber(sourceWidth) + " " +
             FormatResizeNumber(sourceHeight) + " re\n" +
-            "W n\n";
+            "W n\n" + nesting.ExtraSaveOperators;
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(content));
     }
 

@@ -66,6 +66,17 @@ internal static partial class PdfAnnotationFlattener {
         string content;
         IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources;
         double? opacity = TryReadAnnotationOpacity(objects, annotation);
+        int freeTextRotation = string.Equals(subtype, "FreeText", StringComparison.Ordinal) ? TryReadFreeTextRotation(objects, annotation) : 0;
+        if (freeTextRotation != 0) {
+            // A turned free text box is laid out in its own upright frame and turned into the rectangle by /Matrix.
+            double frameWidth = freeTextRotation % 180 == 0 ? width : height;
+            double frameHeight = freeTextRotation % 180 == 0 ? height : width;
+            content = BuildSyntheticFreeTextAppearance(objects, annotation, x, y, frameWidth, frameHeight, out fontResources);
+            if (opacity.HasValue) content = ApplyAnnotationOpacity(content);
+            PdfStream turned = CreateSyntheticAppearanceStream(frameWidth, frameHeight, content, fontResources, false, opacity);
+            turned.Dictionary.Items["Matrix"] = CreateRotationMatrix(freeTextRotation, frameWidth, frameHeight);
+            return turned;
+        }
 
         if (string.Equals(subtype, "Text", StringComparison.Ordinal)) {
             content = PdfAnnotationDictionaryBuilder.BuildTextAnnotationAppearanceContent(
@@ -481,6 +492,27 @@ internal static partial class PdfAnnotationFlattener {
 
     private static string ApplyAnnotationOpacity(string content) {
         return "q\n/OfficeIMOAnnotationOpacityGs gs\n" + content + "Q\n";
+    }
+
+    /// <summary>Reads the free text /Rotate entry as a counter-clockwise quarter turn of 0, 90, 180 or 270 degrees.</summary>
+    private static int TryReadFreeTextRotation(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        if (!annotation.Items.TryGetValue("Rotate", out PdfObject? value) || ResolveObject(objects, value) is not PdfNumber number ||
+            double.IsNaN(number.Value) || double.IsInfinity(number.Value)) return 0;
+        int quarterTurns = (int)(Math.Round(number.Value / 90D) % 4D);
+        return (quarterTurns < 0 ? quarterTurns + 4 : quarterTurns) * 90;
+    }
+
+    /// <summary>Turns a <c>[0 0 width height]</c> frame counter-clockwise and moves it back into the positive quadrant.</summary>
+    private static PdfArray CreateRotationMatrix(int degrees, double width, double height) {
+        double[] values = degrees switch {
+            90 => new[] { 0D, 1D, -1D, 0D, height, 0D },
+            180 => new[] { -1D, 0D, 0D, -1D, width, height },
+            270 => new[] { 0D, -1D, 1D, 0D, 0D, width },
+            _ => new[] { 1D, 0D, 0D, 1D, 0D, 0D }
+        };
+        var matrix = new PdfArray();
+        foreach (double value in values) matrix.Items.Add(new PdfNumber(value));
+        return matrix;
     }
 
     private static PdfStream CreateSyntheticAppearanceStream(double width, double height, string content, IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, bool usesHighlightBlendMode, double? opacity) {

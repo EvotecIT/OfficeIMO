@@ -32,12 +32,18 @@ internal static partial class PdfTextEditor {
     internal static TextMutationResult Add(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         if (!HasRenderableTextLine(text)) throw new ArgumentException("Added text must contain at least one renderable line.", nameof(text));
-        region = TranslateRegionToSource(pdf, region, readOptions);
+        PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
+        region = TranslateRegionToSource(document, region);
         PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
+        // New text reads upright on the displayed page unless the caller chooses a rotation.
+        int pageRotation = (int)(Math.Round(document.Pages[region.PageNumber - 1].GetRotationDegrees() / 90D) % 4D) * 90;
+        if (!snapshot.RotationDegrees.HasValue) snapshot.RotationDegrees = pageRotation;
         PdfResolvedTextStyle style = ResolveStyle(snapshot, detected: null);
         style = FitStyleToRegion(style, text, region, snapshot, out string? fitWarning);
-        double baselineY = region.Top - style.FontSize;
-        byte[] output = StampLines(pdf, region.PageNumber, region.X, baselineY, text, style, readOptions);
+        // The first baseline starts one font size below the region's displayed top-left corner.
+        var frame = PdfStamper.DisplayFrame.ForBox(region.X, region.Y, region.Right, region.Top, pageRotation);
+        (double x, double baselineY) = frame.ToUser(0D, frame.Height - style.FontSize);
+        byte[] output = StampLines(pdf, region.PageNumber, x, baselineY, text, style, readOptions);
         return new TextMutationResult(output, 1, fitWarning is null ? Array.Empty<string>() : new[] { fitWarning });
     }
 

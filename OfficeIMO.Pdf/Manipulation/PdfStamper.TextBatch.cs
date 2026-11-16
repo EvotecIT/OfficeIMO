@@ -53,8 +53,10 @@ internal static partial class PdfStamper {
                 int saveStateObjectNumber = nextObjectNumber++;
                 int restoreStateObjectNumber = nextObjectNumber++;
                 int stampObjectNumber = nextObjectNumber++;
-                rewrittenObjects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n")));
-                rewrittenObjects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("\nQ\n")));
+                PdfPageContentIsolation.Nesting nesting = PdfPageContentIsolation.Measure(rewrittenObjects,
+                    ((PdfDictionary)rewrittenObjects[pageObjectNumber].Value).Items.TryGetValue("Contents", out PdfObject? existingContents) ? existingContents : null);
+                rewrittenObjects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes("q\n" + nesting.ExtraSaveOperators)));
+                rewrittenObjects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(nesting.RestoreOperators)));
                 rewrittenObjects[stampObjectNumber] = new PdfIndirectObject(
                     stampObjectNumber,
                     0,

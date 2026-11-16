@@ -51,11 +51,12 @@ internal static partial class PdfPageEditor {
                     SetNormalizedBox(page, "TrimBox", geometry.TrimBox, transform);
                     SetNormalizedBox(page, "BleedBox", geometry.BleedBox, transform);
                     SetNormalizedBox(page, "ArtBox", geometry.ArtBox, transform);
-                    int prefix = AddNormalizationObject(objects, ref nextObject,
-                        new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("q\n" + NormalizationMatrixCommand(ToMatrix(transform)))));
-                    int suffix = AddNormalizationObject(objects, ref nextObject,
-                        new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("\nQ\n")));
                     page.Items.TryGetValue("Contents", out PdfObject? contents);
+                    PdfPageContentIsolation.Nesting nesting = PdfPageContentIsolation.Measure(objects, contents, cancellationToken);
+                    int prefix = AddNormalizationObject(objects, ref nextObject,
+                        new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("q\n" + NormalizationMatrixCommand(ToMatrix(transform)) + nesting.ExtraSaveOperators)));
+                    int suffix = AddNormalizationObject(objects, ref nextObject,
+                        new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes(nesting.RestoreOperators)));
                     page.Items["Contents"] = BuildResizedContentsArray(objects, contents, prefix, suffix);
                     page.Items["Rotate"] = new PdfNumber(0);
                     NormalizePageAnnotations(objects, page, transform, ref nextObject, cancellationToken);

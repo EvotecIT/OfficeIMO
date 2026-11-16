@@ -943,22 +943,8 @@ internal static partial class PdfRedactionApplier {
             return 0;
         }
 
-        int saveStateObjectNumber = nextObjectNumber++;
-        int restoreStateObjectNumber = nextObjectNumber++;
-        byte[] saveStateContent = PdfEncoding.Latin1GetBytes("q\n");
-        byte[] restoreStateContent = PdfEncoding.Latin1GetBytes("\nQ\n");
-        objects[saveStateObjectNumber] = new PdfIndirectObject(saveStateObjectNumber, 0, new PdfStream(new PdfDictionary(), saveStateContent));
-        objects[restoreStateObjectNumber] = new PdfIndirectObject(restoreStateObjectNumber, 0, new PdfStream(new PdfDictionary(), restoreStateContent));
-
-        var isolatedContents = new PdfArray();
-        isolatedContents.Items.Add(new PdfReference(saveStateObjectNumber, 0));
-        for (int i = 0; i < originalContents.Length; i++) {
-            isolatedContents.Items.Add(originalContents[i]);
-        }
-
-        isolatedContents.Items.Add(new PdfReference(restoreStateObjectNumber, 0));
-        pageDictionary.Items["Contents"] = isolatedContents;
-        return SaturatingAdd(saveStateContent.Length, restoreStateContent.Length);
+        pageDictionary.Items["Contents"] = PdfPageContentIsolation.Isolate(objects, contentsObject, ref nextObjectNumber, out int wrapperBytes);
+        return wrapperBytes;
     }
 
     private static PdfDictionary CleanStreamDictionary(PdfDictionary source) {
