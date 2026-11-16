@@ -447,6 +447,18 @@ test("structured DataTables exports preserve vertical headers, blank spans, type
   await assert.rejects(exportDataTable(host, table, "pdf", { columnOptions: { 1: { header: "Override" } } }), /spanning leaf/);
 });
 
+test("structured DataTables exports use the headings customizeData leaves", async () => {
+  const { host, table } = fixture();
+  const exportOptions = { customizeData: data => { data.header[1] = "Total amount"; data.footer[0] = "Sum"; } };
+  const options = { mode: "compatibility", headings: "structured", exportOptions, pdf: { compression: false } };
+  const pdf = await inspectPdf(await exportDataTable(host, table, "pdf", options));
+  for (const text of ["Metrics", "Name", "Total amount", "Sum", "20"]) assert.ok(pdf.text.includes(text), text);
+  for (const text of ["Amount", "Totals"]) assert.ok(!pdf.pages.flatMap(page => page.lines).includes(text), text);
+  const spanning = { customizeData: data => { data.header[0] = "Renamed"; } };
+  table.buttons.exportData = (native => options => { const data = native(options); data.headerStructure = [[{ title: "Both", colspan: 2, rowspan: 1 }, null]]; return data; })(table.buttons.exportData);
+  await assert.rejects(exportDataTable(host, table, "pdf", { ...options, exportOptions: spanning }), /spanning header cell/);
+});
+
 test("structured XLSX and CSV replacements omit unused source matrices before validating spans", async () => {
   for (const format of ["xlsx", "csv"]) {
     const { host, table } = fixture(), original = table.buttons.exportData;

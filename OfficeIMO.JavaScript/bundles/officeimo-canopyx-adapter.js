@@ -1064,7 +1064,7 @@ _modules.set("ccfefc97a47cc288f2c9a2eed33fff323570e35193cedbd876ebb3e8fb78a42e",
 return _exports;
 })();
 
-const _m34 = _modules.get("ac2d9b4299940637c2762e636ef75d8c1339cd95cdd8d53c48b26583e5f1e561") ?? (() => {
+const _m34 = _modules.get("a0c020124a53cd7be15e3d53388b8393c981c3abc0f8d4aee76a442a2458457f") ?? (() => {
 const { ExportCell } = _c0;
 
 /** Fixed numeric formats affect PDF text, not the frozen numeric value used by other writers. */
@@ -1080,25 +1080,26 @@ function numericProfile(format) {
     return { minimumFractionDigits: (match[3]?.match(/0/g) ?? []).length, maximumFractionDigits: match[3]?.length ?? 0,
         percent: !!match[4], grouping: !!match[2], prefix: literal(match[1]), suffix: literal(match[5]) };
 }
-/** Separate declared literal units before recognizing the captured numeric token. */
+/** Separate declared literal units before recognizing the captured numeric token. U+2212 MINUS SIGN counts as a
+ * sign like "-": the number is re-rendered with Intl's sign, so it never becomes a literal prefix. */
 function capturedNumber(text, profile) {
     let body = text, signBeforePrefix = false;
     if (profile.prefix && body.startsWith(profile.prefix))
         body = body.slice(profile.prefix.length);
-    else if (profile.prefix && /^[+-]/.test(body) && body.slice(1).startsWith(profile.prefix)) {
+    else if (profile.prefix && /^[+\-\u2212]/.test(body) && body.slice(1).startsWith(profile.prefix)) {
         signBeforePrefix = true;
         body = body[0] + body.slice(1 + profile.prefix.length);
     }
     if (profile.suffix && body.endsWith(profile.suffix))
         body = body.slice(0, -profile.suffix.length);
-    const match = /^([^0-9+-]*)([+-]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(body);
+    const match = /^([^0-9+\-\u2212]*)([+\-\u2212]?\d[\d., \u00a0\u202f]*?)([^0-9]*)$/.exec(body);
     return match ? { prefix: profile.prefix || match[1], number: match[2], suffix: profile.suffix || match[3], signBeforePrefix } : undefined;
 }
 /** Distinguish a captured thousands mark from a decimal, using the raw value. */
 function groupedInteger(numeric, value) {
-    if (!/^[+-]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+-]?\d{1,3}(?:\.\d{3})+$/.test(numeric))
+    if (!/^[+\-\u2212]?\d{1,3}(?:,\d{3})+$/.test(numeric) && !/^[+\-\u2212]?\d{1,3}(?:\.\d{3})+$/.test(numeric))
         return false;
-    const grouped = Number(numeric.replace(/[.,]/g, ""));
+    const grouped = Number(numeric.replace(/[.,]/g, "").replace("\u2212", "-"));
     return grouped !== 0 && Math.abs(grouped - value) <= .5;
 }
 /** Choose once for the document; percent text is the strongest captured culture signal. */
@@ -1184,11 +1185,11 @@ function canopyPdfNumbers(sample, columns) {
     });
 }
 const _exports = Object.freeze({ canopyPdfNumbers: canopyPdfNumbers });
-_modules.set("ac2d9b4299940637c2762e636ef75d8c1339cd95cdd8d53c48b26583e5f1e561", _exports);
+_modules.set("a0c020124a53cd7be15e3d53388b8393c981c3abc0f8d4aee76a442a2458457f", _exports);
 return _exports;
 })();
 
-const _m31 = _modules.get("77da9b842a46b99cb3478438e27f47c1f794ab03bac5e64844fb923f2756df71") ?? (() => {
+const _m31 = _modules.get("dab3e04542b3619c5c937162b41068f7cb1c3021b4620987c0fb95d4bd98d8e2") ?? (() => {
 const { ExportCell, NotSupportedError, OfficeIMOError } = _c0;
 
 const { inputRows, checkAbort, pause, taskYieldDue } = _c14;
@@ -1293,11 +1294,11 @@ async function withCanopyPdfLayout(source, captured, options, write) {
     }
 }
 const _exports = Object.freeze({ withCanopyPdfLayout: withCanopyPdfLayout });
-_modules.set("77da9b842a46b99cb3478438e27f47c1f794ab03bac5e64844fb923f2756df71", _exports);
+_modules.set("dab3e04542b3619c5c937162b41068f7cb1c3021b4620987c0fb95d4bd98d8e2", _exports);
 return _exports;
 })();
 
-const _m0 = _modules.get("2e24380844e3dba4335b7d834825b712f857aaffd5b30b161e3533d4ff95cbb4") ?? (() => {
+const _m0 = _modules.get("1f0435c9bc6e437b986c72df8ed33a7636aea9e87db25a98bdb2a48a43985e5d") ?? (() => {
 const { BlobByteSink, ExportCell } = _c0;
 
 const { notifyProgress } = _c1;
@@ -1436,7 +1437,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m13.createCanopyExport, ExportCell: _c11.ExportCell, PdfFont: _c19.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("2e24380844e3dba4335b7d834825b712f857aaffd5b30b161e3533d4ff95cbb4", _exports);
+_modules.set("1f0435c9bc6e437b986c72df8ed33a7636aea9e87db25a98bdb2a48a43985e5d", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

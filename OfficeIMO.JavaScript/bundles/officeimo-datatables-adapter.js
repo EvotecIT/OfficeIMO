@@ -128,7 +128,7 @@ _modules.set("0e5ede7759618ed3ec827d34fbd62b205f3a5241650504807c24e5323a2496a5",
 return _exports;
 })();
 
-const _m11 = _modules.get("355177890a4e7a43de040650e9c2359a6ccf105705bc6231f51db5975a838d3d") ?? (() => {
+const _m11 = _modules.get("301d0eb4d5c2c309b584c3c060f22d451089bef803eb1fac9a7ee815c1afd0d0") ?? (() => {
 const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _c8;
 
 const { ExportBudget } = _c9;
@@ -154,6 +154,24 @@ function safeOptions(options) {
                 if (typeof member(result, "then") === "function")
                     value(result);
             } } : {}) };
+}
+/** Buttons builds the heading structures before customizeData runs; carry changed leaf labels into their bottom row. */
+function customizedStructure(structure, before, after, kind) {
+    if (!before || !Array.isArray(structure) || !structure.length)
+        return structure;
+    const changed = after.map((label, index) => !Object.is(label, before[index]));
+    if (!changed.some(Boolean))
+        return structure;
+    return structure.map((row, level) => !Array.isArray(row) ? row : row.map((cell, index) => {
+        if (cell == null || level + (Number(member(cell, "rowspan")) || 1) !== structure.length)
+            return cell;
+        const span = Number(member(cell, "colspan")) || 1;
+        if (!changed.slice(index, index + span).some(Boolean))
+            return cell;
+        if (span !== 1)
+            throw new TypeError("customizeData cannot change one column of a spanning " + kind + " cell.");
+        return { ...cell, title: after[index] };
+    }));
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
@@ -206,11 +224,18 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
         throw new RangeError("A selected row exceeds maxBatchCells.");
     if (new Set(rowIndexes).size !== rowIndexes.length || new Set(columnIndexes).size !== columnIndexes.length)
         throw new TypeError("DataTables export indexes must be unique.");
-    const data = call(table.buttons, "exportData", { ...config, modifier, ...(mode === "batched" ? { rows: [] } : {}) });
+    let before;
+    const customize = config.customizeData;
+    const data = call(table.buttons, "exportData", { ...config, modifier, ...(mode === "batched" ? { rows: [] } : {}),
+        ...(customize ? { customizeData: (input) => {
+                const footer = member(input, "footer");
+                before = { header: [...array(member(input, "header"))], footer: footer == null ? undefined : [...array(footer)] };
+                customize(input);
+            } } : {}) });
     const leaf = array(member(data, "header"));
     if (leaf.length !== columnIndexes.length)
         throw new TypeError("Export header must match the selected columns.");
-    const heading = headings(omitted?.header ? undefined : member(data, "headerStructure"), leaf, omitted?.header ? "leaf" : headingMode);
+    const heading = headings(omitted?.header ? undefined : customizedStructure(member(data, "headerStructure"), before?.header, leaf, "header"), leaf, omitted?.header ? "leaf" : headingMode);
     for (const index of columnIndexes)
         if (member(options.columnOptions?.[index], "value") !== undefined)
             throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
@@ -237,7 +262,8 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
     const footer = rawFooter == null ? undefined : array(rawFooter).map(value);
     if (footer && footer.length !== columns.length)
         throw new TypeError("Export footer must match the selected columns.");
-    const footerHeading = footer && Array.isArray(footerStructure) && footerStructure.length ? headings(footerStructure, footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
+    const footerHeading = footer && Array.isArray(footerStructure) && footerStructure.length
+        ? headings(customizedStructure(footerStructure, before?.footer, array(rawFooter), "footer"), footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
     const body = mode === "compatibility" ? array(member(data, "body")) : undefined;
     const count = columns.length ? body?.length ?? rowIndexes.length : 0;
     budget.check("maxRows", count);
@@ -342,7 +368,7 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport, captureDataTablesExport: captureDataTablesExport });
-_modules.set("355177890a4e7a43de040650e9c2359a6ccf105705bc6231f51db5975a838d3d", _exports);
+_modules.set("301d0eb4d5c2c309b584c3c060f22d451089bef803eb1fac9a7ee815c1afd0d0", _exports);
 return _exports;
 })();
 
@@ -391,7 +417,7 @@ _modules.set("7b12a415e92cc9ef7212fb3a88007cb6dc37f9f30077165d4897cfa8052f9a3c",
 return _exports;
 })();
 
-const _m0 = _modules.get("e1e425a9e0b0395ee93081d272efccecbe05aae4894ad4e46880868003b542ca") ?? (() => {
+const _m0 = _modules.get("ba29a6584e94081506bb58fe9378958ba24d0fc6ce3b91e837b67b07e6cd8619") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _c0;
 
 const { notifyProgress } = _c1;
@@ -574,7 +600,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m11.createDataTablesExport, ExportCell: _c6.ExportCell, PdfFont: _c15.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("e1e425a9e0b0395ee93081d272efccecbe05aae4894ad4e46880868003b542ca", _exports);
+_modules.set("ba29a6584e94081506bb58fe9378958ba24d0fc6ce3b91e837b67b07e6cd8619", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

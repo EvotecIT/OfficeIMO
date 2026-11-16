@@ -21,6 +21,20 @@ function safeOptions(options: DataTablesExportOptions): DataTablesExportOptions 
   } } : {}) };
 }
 
+/** Buttons builds the heading structures before customizeData runs; carry changed leaf labels into their bottom row. */
+function customizedStructure(structure: unknown, before: readonly unknown[] | undefined, after: readonly unknown[], kind: string): unknown {
+  if (!before || !Array.isArray(structure) || !structure.length) return structure;
+  const changed = after.map((label, index) => !Object.is(label, before[index]));
+  if (!changed.some(Boolean)) return structure;
+  return structure.map((row: unknown, level: number) => !Array.isArray(row) ? row : row.map((cell: unknown, index: number) => {
+    if (cell == null || level + (Number(member(cell, "rowspan")) || 1) !== structure.length) return cell;
+    const span = Number(member(cell, "colspan")) || 1;
+    if (!changed.slice(index, index + span).some(Boolean)) return cell;
+    if (span !== 1) throw new TypeError("customizeData cannot change one column of a spanning " + kind + " cell.");
+    return { ...(cell as object), title: after[index] };
+  }));
+}
+
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 export function createDataTablesExport(host: DataTablesHost, table: DataTablesApi, options: DataTablesOptions = {}): DataTablesExport {
   return captureDataTablesExport(host, table, options);
@@ -65,10 +79,18 @@ export function captureDataTablesExport(host: DataTablesHost, table: DataTablesA
   if (columnIndexes.length > maxBatchCells) throw new RangeError("A selected row exceeds maxBatchCells.");
   if (new Set(rowIndexes).size !== rowIndexes.length || new Set(columnIndexes).size !== columnIndexes.length)
     throw new TypeError("DataTables export indexes must be unique.");
-  const data = call(table.buttons, "exportData", { ...config, modifier, ...(mode === "batched" ? { rows: [] } : {}) });
+  let before: { header: unknown[]; footer: unknown[] | undefined } | undefined;
+  const customize = config.customizeData;
+  const data = call(table.buttons, "exportData", { ...config, modifier, ...(mode === "batched" ? { rows: [] } : {}),
+    ...(customize ? { customizeData: (input: unknown) => {
+      const footer = member(input, "footer");
+      before = { header: [...array(member(input, "header"))], footer: footer == null ? undefined : [...array(footer)] };
+      customize(input);
+    } } : {}) });
   const leaf = array(member(data, "header"));
   if (leaf.length !== columnIndexes.length) throw new TypeError("Export header must match the selected columns.");
-  const heading = headings(omitted?.header ? undefined : member(data, "headerStructure"), leaf, omitted?.header ? "leaf" : headingMode);
+  const heading = headings(omitted?.header ? undefined : customizedStructure(member(data, "headerStructure"), before?.header, leaf, "header"),
+    leaf, omitted?.header ? "leaf" : headingMode);
   for (const index of columnIndexes) if (member(options.columnOptions?.[index], "value") !== undefined)
     throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
   const columns: readonly Column<readonly ExportValue[]>[] = Object.freeze(copyColumns(leaf.map((label, index) => ({
@@ -91,7 +113,8 @@ export function captureDataTablesExport(host: DataTablesHost, table: DataTablesA
   const rawFooter = includeSourceFooter ? member(data, "footer") : undefined;
   const footer = rawFooter == null ? undefined : array(rawFooter).map(value);
   if (footer && footer.length !== columns.length) throw new TypeError("Export footer must match the selected columns.");
-  const footerHeading = footer && Array.isArray(footerStructure) && footerStructure.length ? headings(footerStructure, footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
+  const footerHeading = footer && Array.isArray(footerStructure) && footerStructure.length
+    ? headings(customizedStructure(footerStructure, before?.footer, array(rawFooter), "footer"), footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
   const body = mode === "compatibility" ? array(member(data, "body")) : undefined;
   const count = columns.length ? body?.length ?? rowIndexes.length : 0;
   budget.check("maxRows", count);
