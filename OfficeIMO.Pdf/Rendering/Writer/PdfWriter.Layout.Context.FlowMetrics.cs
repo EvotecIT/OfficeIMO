@@ -724,11 +724,17 @@ internal static partial class PdfWriter {
             double leadingHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) : 0D) + captionHeight;
             int measuredRowCount = firstVisualOnly && !reserveWholeTable ? 1 : rowHeights.Length;
             bool completesFirstRow = true;
-            double rowHeight = firstVisualOnly && (allowTableFragments || style.KeepHeaderWithFirstBodyFragment) && !reserveWholeTable
+            double rowHeight = firstVisualOnly && allowTableFragments && !reserveWholeTable
                 ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap, out completesFirstRow)
                 : firstVisualOnly && !reserveWholeTable
                     ? MeasureTableStartingRows(style, rowHeights, rowGap, leadingHeight, out measuredRowCount)
                     : GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
+            if (firstVisualOnly && !allowTableFragments && !reserveWholeTable && measuredRowCount <= style.HeaderRowCount) {
+                // Starting rows that leave a repeated header by itself still reserve the first body fragment with it.
+                rowHeight = Math.Max(rowHeight, MeasureTableHeaderFirstBodyHeight(style, rowHeights, rowGap,
+                    row => MeasureTableFirstBodyPlacementHeight(table, style, prepared, columns, columnLayout.Widths, columnGap,
+                        row, GetMeasuredContinuationFrameHeight())));
+            }
             double tableHeight = leadingHeight + rowHeight;
             if (style.Position != null) return tableHeight;
             if (!firstVisualOnly) return tableHeight + style.SpacingAfter.ToPoints();

@@ -67,12 +67,12 @@ namespace OfficeIMO.Word.Pdf {
             if (!usesConfiguredDefaultStyle && repeatedHeaderRowCount > 0) {
                 // A repeated source header starts with body content. Removing
                 // presentation row groups must not leave a header by itself.
-                if (UsesModernNativeWordLayout(table.Document)) {
-                    // Word 2013 and later keep the header with the first legal fragment
-                    // of the following row, so a long row splits instead of moving whole.
-                    style.KeepHeaderWithFirstBodyFragment = true;
-                } else {
+                // Word 2013 and later keep the header with the first legal fragment of the
+                // following row, the shared renderer's default. Earlier layout and native DOC
+                // keep it with the whole first row.
+                if (!UsesModernNativeWordLayout(table.Document)) {
                     style.MinimumBodyRowsOnFirstPage = 1;
+                    style.KeepsRepeatedHeaderWithWholeRowsOnly = true;
                 }
             }
             if (repeatedHeaderRowCount > 0) {

@@ -138,9 +138,13 @@ internal static partial class PdfWriter {
         /// </summary>
         private static double MeasureTableHeaderFirstBodyHeight(PdfTableStyle style, double[] heights, double gap,
             Func<int, double> measureFirstBodyFragment) {
-            if (!style.KeepHeaderWithFirstBodyFragment || style.HeaderRowCount <= 0 ||
-                heights.Length - style.FooterRowCount <= style.HeaderRowCount) return 0D;
+            if (!KeepsRepeatedHeaderWithFirstBodyFragment(style, heights.Length)) return 0D;
             return GetTableRowsHeight(heights, 0, style.HeaderRowCount, gap) + measureFirstBodyFragment(style.HeaderRowCount);
         }
+
+        /// <summary>Repeated header rows start with at least the first legal fragment of the following body row.</summary>
+        private static bool KeepsRepeatedHeaderWithFirstBodyFragment(PdfTableStyle style, int rowCount) =>
+            !style.KeepsRepeatedHeaderWithWholeRowsOnly && style.HeaderRowCount > 0 &&
+            GetTableRepeatHeaderRowCount(style) > 0 && rowCount - style.FooterRowCount > style.HeaderRowCount;
     }
 }

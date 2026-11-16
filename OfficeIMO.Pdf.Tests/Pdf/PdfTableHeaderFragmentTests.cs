@@ -6,11 +6,13 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTableHeaderFragmentTests {
     [Theory]
-    [InlineData("flow")]
-    [InlineData("row")]
-    [InlineData("columns")]
-    public void HeaderReservationUsesTheFirstLegalBodyFragment(string mode) {
-        using var pdf = PdfPigDocument.Open(Render(mode, 110, 16));
+    [InlineData("flow", 0)]
+    [InlineData("row", 0)]
+    [InlineData("columns", 0)]
+    [InlineData("flow", 2)]
+    [InlineData("row", 2)]
+    public void HeaderReservationUsesTheFirstLegalBodyFragment(string mode, int minimumBodyRows) {
+        using var pdf = PdfPigDocument.Open(Render(mode, 110, 16, minimumBodyRows: minimumBodyRows));
 
         if (mode == "columns") {
             var headers = pdf.GetPage(1).GetWords().Where(word => word.Text == "HeaderMarker").ToArray();
@@ -102,9 +104,10 @@ public sealed class PdfTableHeaderFragmentTests {
     }
 
     private static byte[] Render(string mode, double fillerHeight, int bodyLines, bool incomingKeep = false,
-        bool outerFiller = false, double cellSpacing = 0, bool trailingRow = false) {
+        bool outerFiller = false, double cellSpacing = 0, bool trailingRow = false, int minimumBodyRows = 0) {
         PdfTableStyle style = HeaderStyle();
         style.CellSpacing = P(cellSpacing);
+        style.MinimumBodyRowsOnFirstPage = minimumBodyRows;
         var rows = new List<PdfTableCell[]> {
             new[] { Cell("HeaderMarker") },
             new[] { Cell(string.Join("\n", Enumerable.Range(1, bodyLines).Select(line => $"BodyLine{line:D2}"))) }
@@ -145,7 +148,7 @@ public sealed class PdfTableHeaderFragmentTests {
     }
 
     private static PdfTableStyle HeaderStyle() => new() {
-        HeaderRowCount = 1, RepeatHeaderRowCount = 1, KeepHeaderWithFirstBodyFragment = true,
+        HeaderRowCount = 1, RepeatHeaderRowCount = 1,
         MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0, CellPaddingX = P(0), CellPaddingY = P(0),
         FontSize = P(12), LineHeight = 20D / 12D, SpacingBefore = P(0), SpacingAfter = P(0), HeaderBold = false,
         BorderWidth = P(0), RowSeparatorWidth = P(0)

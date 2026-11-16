@@ -336,8 +336,7 @@ internal static partial class PdfWriter {
             int minimumFirstPageBodyRows = Math.Min(
                 style.MinimumBodyRowsOnFirstPage,
                 Math.Max(0, footerStartRowIndex - headerRowCount));
-            bool keepHeaderWithFragment = style.KeepHeaderWithFirstBodyFragment && headerRowCount > 0 &&
-                footerStartRowIndex > headerRowCount;
+            bool keepHeaderWithFragment = KeepsRepeatedHeaderWithFirstBodyFragment(style, tb.Rows.Count);
             if (!skipInitialHeaderRows && (minimumFirstPageBodyRows > 0 || keepHeaderWithFragment)) {
                 int firstPageRowCount = headerRowCount + minimumFirstPageBodyRows;
                 double FirstPageGroupHeight() {
