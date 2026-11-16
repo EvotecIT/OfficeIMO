@@ -17,6 +17,7 @@ public sealed partial class PdfLogicalPage {
         }
         foreach (PdfLogicalTextBlock block in textBlocks) {
             Consume();
+            if (represented.Contains(block)) continue;
             var fragments = new Dictionary<PdfTaggedListItemSource, TaggedListLine>();
             int cursor = 0;
             bool exclusive = !block.IsTableContent && block.Kind is not (PdfLogicalElementKind.Heading or PdfLogicalElementKind.Table);

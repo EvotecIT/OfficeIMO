@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
                 });
             }
 
-            flowSemanticScopes.Add(new FlowSemanticScope(PdfSemanticRole.Section, alternativeText: null));
+            flowSemanticScopes.Add(new FlowSemanticScope(MapSemanticStructureType(PdfSemanticRole.Section), alternativeText: null));
             try {
                 if (section.Options.IncludeHeading) {
                     var heading = new HeadingBlock(
@@ -55,6 +55,7 @@ internal static partial class PdfWriter {
             IEnumerable<PdfTableOfContentsEntry> source = options.Entries ?? sectionDefinitions
                 .Where(section => section.Options.IncludeInTableOfContents)
                 .Select(section => new PdfTableOfContentsEntry(section.Title, section.DestinationName, section.Options.Level)).ToArray();
+            var items = new List<(int Level, IPdfBlock Paragraph)>();
             foreach (PdfTableOfContentsEntry entry in source) {
                 if (entry.Level < options.MinimumLevel || entry.Level > options.MaximumLevel) {
                     continue;
@@ -71,7 +72,9 @@ internal static partial class PdfWriter {
                 string pageText = sectionPageNumbers.TryGetValue(entry.DestinationName, out int pageNumber)
                     ? FormatSectionPageNumber(options, pageNumber)
                     : "0000";
-                entries.Add(new RichParagraphBlock(
+                // Tagged output nests each entry as TOCI > Reference > (Link, page number);
+                // the dot leader is painted as a layout artifact.
+                items.Add((entry.Level, new RichParagraphBlock(
                     new[] {
                         PdfTextRun.LinkToBookmark(entry.Title, entry.DestinationName, underline: false, contents: entry.LinkContents),
                         PdfTextRun.Tab(options.Leader, PdfTabAlignment.Right),
@@ -79,10 +82,27 @@ internal static partial class PdfWriter {
                     },
                     OfficeAlignment.Left,
                     defaultColor: null,
-                    style));
+                    style).AsStructure("Reference")));
             }
 
+            if (items.Count > 0) entries.Add(new SemanticBlock("TOC", CreateTableOfContentsItems(items, 0, items.Count)));
             return entries;
+        }
+
+        // A deeper entry belongs to a nested TOC inside the preceding shallower entry's TOCI (ISO 32000-1, 14.8.4.3.2).
+        private static List<IPdfBlock> CreateTableOfContentsItems(List<(int Level, IPdfBlock Paragraph)> items, int start, int end) {
+            var result = new List<IPdfBlock>();
+            int index = start;
+            while (index < end) {
+                int next = index + 1;
+                while (next < end && items[next].Level > items[index].Level) next++;
+                var itemBlocks = new List<IPdfBlock> { items[index].Paragraph };
+                if (next > index + 1) itemBlocks.Add(new SemanticBlock("TOC", CreateTableOfContentsItems(items, index + 1, next)));
+                result.Add(new SemanticBlock("TOCI", itemBlocks));
+                index = next;
+            }
+
+            return result;
         }
 
         public void ValidateTableOfContentsDestinations(IReadOnlyDictionary<string, int> resolved) {

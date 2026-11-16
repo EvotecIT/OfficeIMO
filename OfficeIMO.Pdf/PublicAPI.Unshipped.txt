@@ -1225,3 +1225,6 @@ OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.get -> Offic
 OfficeIMO.Pdf.PdfPublicKeyEncryptionOptions.AesCryptographyProvider.set -> void
 OfficeIMO.Pdf.PdfReadLimits.MaxClippingIntersectionWorkPerPage.get -> long
 OfficeIMO.Pdf.PdfReadLimits.MaxClippingIntersectionWorkPerPage.init -> void
+OfficeIMO.Pdf.PdfLogicalListItem.IsContentsEntry.get -> bool
+OfficeIMO.Pdf.PdfLogicalListItem.Link.get -> OfficeIMO.Pdf.PdfLogicalLinkAnnotation?
+OfficeIMO.Pdf.PdfLogicalListItem.TargetPageLabel.get -> string?
