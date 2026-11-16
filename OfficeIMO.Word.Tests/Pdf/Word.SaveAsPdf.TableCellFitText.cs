@@ -58,6 +58,15 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_FitTextCellWidensASingleLetterToTheCellEdge() {
+        using var pdf = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, "A", fitText: true));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        double edge = letters.Single(letter => letter.Value == "Z").EndBaseLine.X;
+
+        Assert.InRange(letters.Single(letter => letter.Value == "A").EndBaseLine.X, edge - 1D, edge + 0.05D);
+    }
+
+    [Fact]
     public void SaveAsPdf_FitTextCellReplacesAuthoredCharacterSpacing() {
         const string text = "TrackedFitTextCellContent";
         using var pdf = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, text, fitText: true,

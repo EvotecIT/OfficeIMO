@@ -38,13 +38,13 @@ internal static partial class PdfWriter {
                 fitted.AddRange(line);
             } else if (natural > target) {
                 fitted.AddRange(CondenseTableCellFitTextLine(line, natural, target, baseFont, fontSize, measurementOptions));
-            } else if (EndsWithTableCellFitTextShapingContext(line)) {
-                // Spacing would leave a blank advance after the final joined glyph; widen the glyphs instead.
-                PdfTextRun[] widened = ScaleTableCellFitTextLine(line, target / natural);
-                fitted.AddRange(CondenseTableCellFitTextLine(widened, MeasureTableCellFitTextLine(widened, baseFont, fontSize, measurementOptions),
-                    target, baseFont, fontSize, measurementOptions));
             } else {
-                fitted.AddRange(SpreadTableCellFitTextLine(line, target - natural, target, baseFont, fontSize, measurementOptions));
+                // Spacing would leave a blank advance after a final joined glyph, and cannot widen a line with no
+                // visible glyph before its last one; widen the glyphs instead.
+                fitted.AddRange((EndsWithTableCellFitTextShapingContext(line)
+                    ? null
+                    : SpreadTableCellFitTextLine(line, natural, target, baseFont, fontSize, measurementOptions))
+                    ?? WidenTableCellFitTextLine(line, natural, target, baseFont, fontSize, measurementOptions));
             }
         }
 
@@ -114,8 +114,17 @@ internal static partial class PdfWriter {
             ? run
             : run.WithHorizontalTextScaling(Math.Max(TableCellFitTextMinimumScaling, run.HorizontalTextScaling * factor))).ToArray();
 
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> SpreadTableCellFitTextLine(
-        System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double extraWidth, double target,
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> WidenTableCellFitTextLine(
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double natural, double target,
+        PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
+        PdfTextRun[] widened = ScaleTableCellFitTextLine(line, target / natural);
+        return CondenseTableCellFitTextLine(widened, MeasureTableCellFitTextLine(widened, baseFont, fontSize, options),
+            target, baseFont, fontSize, options);
+    }
+
+    /// <summary>Returns <see langword="null"/> when no rendered glyph before the last visible one can take spacing.</summary>
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun>? SpreadTableCellFitTextLine(
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double natural, double target,
         PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         // Character spacing follows every rendered glyph, so distribute the extra width over shaped glyphs rather
         // than source characters. The last visible grapheme is split off unspaced so the line ends at the cell
@@ -124,7 +133,7 @@ internal static partial class PdfWriter {
         for (int index = line.Count - 1; index >= 0 && lastTextRun < 0; index--) {
             if (TrimTableCellFitTextTrailingSpaces(line[index].Text).Length > 0) lastTextRun = index;
         }
-        if (lastTextRun < 0) return line;
+        if (lastTextRun < 0) return null;
 
         var pieces = new System.Collections.Generic.List<(PdfTextRun Run, bool Spaced)>();
         for (int index = 0; index < line.Count; index++) {
@@ -144,14 +153,19 @@ internal static partial class PdfWriter {
         }
 
         int spacedGlyphs = pieces.Where(piece => piece.Spaced).Sum(piece => CountTableCellFitTextGlyphs(piece.Run, baseFont, options));
-        if (spacedGlyphs == 0) return line;
-        double extraSpacing = extraWidth / spacedGlyphs;
+        if (spacedGlyphs == 0) return null;
+        // Wrapping can drop spaced glyphs (collapsed whitespace) and splitting off the final grapheme can end a
+        // kerned pair, so calibrate against the wrapped measurement: the width grows linearly with the spacing.
+        double trial = (target - natural) / spacedGlyphs;
+        double unspaced = MeasureTableCellFitTextLine(ApplyTableCellFitTextSpacing(pieces, 0D), baseFont, fontSize, options);
+        double perPoint = (MeasureTableCellFitTextLine(ApplyTableCellFitTextSpacing(pieces, trial), baseFont, fontSize, options) - unspaced) / trial;
+        if (perPoint < 0.5D) return null;
+        double extraSpacing = (target - unspaced) / perPoint;
+        if (!(extraSpacing > 0D)) return line;
         PdfTextRun[] spread = ApplyTableCellFitTextSpacing(pieces, extraSpacing);
-        // Splitting off the final grapheme can end a kerned pair, so check the spread line and take any
-        // overshoot back out of the spacing.
         double overshoot = MeasureTableCellFitTextLine(spread, baseFont, fontSize, options) - target;
         if (overshoot > 0D) {
-            extraSpacing -= overshoot / spacedGlyphs;
+            extraSpacing -= overshoot / perPoint;
             spread = extraSpacing > 0D ? ApplyTableCellFitTextSpacing(pieces, extraSpacing) : line.ToArray();
         }
 
