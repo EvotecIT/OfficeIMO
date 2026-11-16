@@ -104,7 +104,11 @@ export function captureDataTablesExport(host: DataTablesHost, table: DataTablesA
   const reordered = reorderedSources(before?.header, leaf);
   if (reordered && heading.rows.length > 1)
     throw new TypeError("customizeData cannot reorder columns under grouped headings; select headings: 'leaf' or reorder the table's columns.");
-  // Column options and keys follow each column to its new position after a customizeData reorder.
+  // Column options and keys follow each column to its new position after a customizeData reorder. Any other heading
+  // change (a rename, or a reorder with a rename) leaves no reliable source mapping for column options.
+  if (before && !reordered && before.header.some((label, index) => !Object.is(label, leaf[index])) &&
+    columnIndexes.some(index => options.columnOptions?.[index] !== undefined))
+    throw new TypeError("customizeData changed column headings, so columnOptions cannot be matched to columns; rename columns with columnOptions header instead.");
   const sourceColumns = reordered ? reordered.map(source => columnIndexes[source]!) : columnIndexes;
   for (const index of columnIndexes) if (member(options.columnOptions?.[index], "value") !== undefined)
     throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");

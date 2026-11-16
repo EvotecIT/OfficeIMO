@@ -476,6 +476,9 @@ test("DataTables column options follow columns that customizeData reorders", asy
   assert.match(sheet, /<c r="A2"[^>]*><v>7.5<\/v>/);
   const grouped = fixture();
   assert.throws(() => createDataTablesExport(grouped.host, grouped.table, options), /reorder columns under grouped headings/);
+  const renamed = { customizeData: data => { swap.customizeData(data); data.header[0] = "Amount USD"; } };
+  assert.throws(() => createDataTablesExport(host, table, { ...options, exportOptions: renamed }), /cannot be matched to columns/);
+  assert.equal(createDataTablesExport(host, table, { mode: "compatibility", exportOptions: renamed }).columns[0].header, "Amount USD");
 });
 
 test("structured XLSX and CSV replacements omit unused source matrices before validating spans", async () => {

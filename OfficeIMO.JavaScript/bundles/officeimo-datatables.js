@@ -11737,7 +11737,7 @@ _modules.set("0e5ede7759618ed3ec827d34fbd62b205f3a5241650504807c24e5323a2496a5",
 return _exports;
 })();
 
-const _m96 = _modules.get("3f7dfa31cf3dccea78a7ca594b86fe3f047463be88dfa3ffd2d53184bea60471") ?? (() => {
+const _m96 = _modules.get("688b82bc547a5189861020b7c8a696816f7b8990933bc3b43a1d9825133b879b") ?? (() => {
 const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _m4;
 
 const { ExportBudget } = _m9;
@@ -11858,7 +11858,11 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
     const reordered = reorderedSources(before?.header, leaf);
     if (reordered && heading.rows.length > 1)
         throw new TypeError("customizeData cannot reorder columns under grouped headings; select headings: 'leaf' or reorder the table's columns.");
-    // Column options and keys follow each column to its new position after a customizeData reorder.
+    // Column options and keys follow each column to its new position after a customizeData reorder. Any other heading
+    // change (a rename, or a reorder with a rename) leaves no reliable source mapping for column options.
+    if (before && !reordered && before.header.some((label, index) => !Object.is(label, leaf[index])) &&
+        columnIndexes.some(index => options.columnOptions?.[index] !== undefined))
+        throw new TypeError("customizeData changed column headings, so columnOptions cannot be matched to columns; rename columns with columnOptions header instead.");
     const sourceColumns = reordered ? reordered.map(source => columnIndexes[source]) : columnIndexes;
     for (const index of columnIndexes)
         if (member(options.columnOptions?.[index], "value") !== undefined)
@@ -11992,7 +11996,7 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport, captureDataTablesExport: captureDataTablesExport });
-_modules.set("3f7dfa31cf3dccea78a7ca594b86fe3f047463be88dfa3ffd2d53184bea60471", _exports);
+_modules.set("688b82bc547a5189861020b7c8a696816f7b8990933bc3b43a1d9825133b879b", _exports);
 return _exports;
 })();
 
@@ -12041,7 +12045,7 @@ _modules.set("7b12a415e92cc9ef7212fb3a88007cb6dc37f9f30077165d4897cfa8052f9a3c",
 return _exports;
 })();
 
-const _m0 = _modules.get("9c1ea87d43e6968c40971d053ee3391db818d0d79c0ed2159da99a7f5d71fe65") ?? (() => {
+const _m0 = _modules.get("6938e95ad31b974b8c7813328ac7ebad9e046c8eba7236ba6fb48cfe4174bcde") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12224,7 +12228,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m96.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m63.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("9c1ea87d43e6968c40971d053ee3391db818d0d79c0ed2159da99a7f5d71fe65", _exports);
+_modules.set("6938e95ad31b974b8c7813328ac7ebad9e046c8eba7236ba6fb48cfe4174bcde", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);
