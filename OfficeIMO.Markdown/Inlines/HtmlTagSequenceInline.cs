@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Inline node rendered via a whitelisted HTML tag while preserving nested inline content as AST.
 /// </summary>
-public sealed class HtmlTagSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner, IHtmlAppendableMarkdownInline {
+public sealed class HtmlTagSequenceInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner, IHtmlAppendableMarkdownInline, IMarkdownAppendableMarkdownInline {
     MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Normalized lowercase tag name.</summary>
     public string TagName { get; }
@@ -19,7 +19,16 @@ public sealed class HtmlTagSequenceInline : MarkdownInline, IRenderableMarkdownI
         Inlines = inlines ?? new InlineSequence();
     }
 
-    internal string RenderMarkdown() => "<" + TagName + ">" + Inlines.RenderMarkdown() + "</" + TagName + ">";
+    internal string RenderMarkdown() {
+        var sb = new StringBuilder();
+        AppendMarkdown(sb);
+        return sb.ToString();
+    }
+    internal void AppendMarkdown(StringBuilder sb) {
+        sb.Append('<').Append(TagName).Append('>');
+        Inlines.AppendMarkdown(sb);
+        sb.Append("</").Append(TagName).Append('>');
+    }
     internal string RenderHtml() {
         var sb = new StringBuilder();
         AppendHtml(sb);
@@ -34,6 +43,7 @@ public sealed class HtmlTagSequenceInline : MarkdownInline, IRenderableMarkdownI
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => AppendHtml(builder);
+    void IMarkdownAppendableMarkdownInline.AppendMarkdown(StringBuilder builder) => AppendMarkdown(builder);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => InlinePlainText.AppendPlainText(sb, Inlines);
     InlineSequence? IInlineContainerMarkdownInline.NestedInlines => Inlines;
 }

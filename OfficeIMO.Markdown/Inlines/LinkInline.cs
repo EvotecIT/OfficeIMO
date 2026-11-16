@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Hyperlink inline.
 /// </summary>
-public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner, IHtmlAppendableMarkdownInline {
+public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline, IInlineContainerMarkdownInline, IMarkdownInlineAuxiliarySyntaxMetadataOwner, IHtmlAppendableMarkdownInline, IMarkdownAppendableMarkdownInline {
     MarkdownInlineAuxiliarySyntaxMetadata? IMarkdownInlineAuxiliarySyntaxMetadataOwner.AuxiliarySyntaxMetadata { get; set; }
     /// <summary>Link text.</summary>
     public string Text { get; }
@@ -66,11 +66,31 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
             return autolinkMarkdown;
         }
 
-        string title = MarkdownEscaper.FormatOptionalTitle(Title);
-        if (LabelInlines != null) {
-            return $"[{LabelInlines.RenderMarkdown()}]({MarkdownEscaper.EscapeLinkUrl(Url)}{title})";
+        var sb = new StringBuilder();
+        AppendLinkMarkdown(sb);
+        return sb.ToString();
+    }
+
+    internal void AppendMarkdown(StringBuilder sb) {
+        string? autolinkMarkdown = TryRenderAutolinkMarkdown();
+        if (autolinkMarkdown != null) {
+            sb.Append(autolinkMarkdown);
+            return;
         }
-        return $"[{MarkdownEscaper.EscapeLinkText(Text)}]({MarkdownEscaper.EscapeLinkUrl(Url)}{title})";
+
+        AppendLinkMarkdown(sb);
+    }
+
+    private void AppendLinkMarkdown(StringBuilder sb) {
+        string title = MarkdownEscaper.FormatOptionalTitle(Title);
+        sb.Append('[');
+        if (LabelInlines != null) {
+            LabelInlines.AppendMarkdown(sb);
+        } else {
+            sb.Append(MarkdownEscaper.EscapeLinkText(Text));
+        }
+
+        sb.Append("](").Append(MarkdownEscaper.EscapeLinkUrl(Url)).Append(title).Append(')');
     }
 
     private string? TryRenderAutolinkMarkdown() {
@@ -162,6 +182,7 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => AppendHtml(builder);
+    void IMarkdownAppendableMarkdownInline.AppendMarkdown(StringBuilder builder) => AppendMarkdown(builder);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) {
         if (LabelInlines != null) {
             InlinePlainText.AppendPlainText(sb, LabelInlines);
