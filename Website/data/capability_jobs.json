@@ -76,7 +76,7 @@
       "summary": "Sign with certificates, check existing signatures, and validate invoices and file origin.",
       "dotnet": { "packages": ["OfficeIMO.Pdf", "OfficeIMO.Security", "OfficeIMO.Invoicing.Validation", "OfficeIMO.Provenance.C2pa"] },
       "powershell": { "guide": "/docs/pswriteoffice/pdf/", "commands": ["New-OfficePdfSignature", "Set-OfficePdfSignature", "Get-OfficePdfSignature", "Test-OfficeDocument", "Get-OfficeDocumentProvenance"] },
-      "agents": { "guide": "/agents/", "tools": ["officeimo_inspect"] },
+      "agents": { "guide": "/agents/", "tools": [] },
       "studio": { "features": ["handwritten-signature", "certificate-signature", "validate", "invoice-workbench"] }
     },
     {

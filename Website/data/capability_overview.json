@@ -1007,12 +1007,7 @@
         "agents": {
           "guide": "/agents/",
           "extra": "",
-          "items": [
-            {
-              "label": "officeimo_inspect",
-              "url": "/agents/#tool-officeimo_inspect"
-            }
-          ]
+          "items": []
         },
         "studio": {
           "guide": "/studio/#feature-handwritten-signature",
