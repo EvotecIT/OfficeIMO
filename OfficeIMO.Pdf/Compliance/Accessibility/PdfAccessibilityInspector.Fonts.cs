@@ -74,7 +74,7 @@ internal sealed partial class PdfAccessibilityInspector {
             }
         }
 
-        if (font.Items.ContainsKey("ToUnicode")) { Applies("31-027"); return; }
+        if (HasToUnicodeMap(font)) { Applies("31-027"); return; }
         Applies("31-027");
         string? baseEncoding = encoding is PdfName simpleEncoding ? simpleEncoding.Name
             : encoding is PdfDictionary differencesEncoding ? ReadName(differencesEncoding, "BaseEncoding") : null;
@@ -172,7 +172,7 @@ internal sealed partial class PdfAccessibilityInspector {
         }
 
         Applies("31-027");
-        if (font.Items.ContainsKey("ToUnicode")) return;
+        if (HasToUnicodeMap(font)) return;
         string? registry = fontSystemInfo is null ? null : ReadText(fontSystemInfo, "Registry");
         string? ordering = fontSystemInfo is null ? null : ReadText(fontSystemInfo, "Ordering");
         if (registry == "Adobe" && ordering is "GB1" or "CNS1" or "Japan1" or "Korea1") return;
@@ -241,6 +241,10 @@ internal sealed partial class PdfAccessibilityInspector {
     private static bool IsCMapWhiteSpace(char c) => c is ' ' or '\t' or '\r' or '\n' or '\f' or '\0';
 
     private static bool IsCMapDelimiter(char c) => IsCMapWhiteSpace(c) || c is '/' or '(' or ')' or '<' or '>' or '[' or ']' or '{' or '}' or '%';
+
+    // A null or dangling ToUnicode entry supplies no map.
+    private bool HasToUnicodeMap(PdfDictionary font) =>
+        Resolve(font.Items.TryGetValue("ToUnicode", out PdfObject? toUnicode) ? toUnicode : null) is PdfStream;
 
     private bool HasFontFile(PdfDictionary? descriptor) => descriptor is not null &&
         (Resolve(descriptor.Items.TryGetValue("FontFile", out PdfObject? f1) ? f1 : null) is PdfStream ||

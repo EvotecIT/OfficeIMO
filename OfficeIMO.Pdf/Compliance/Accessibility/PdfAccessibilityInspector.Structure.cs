@@ -115,9 +115,9 @@ internal sealed partial class PdfAccessibilityInspector {
                 Language = ReadText(dictionary, "Lang"),
                 HasParentEntry = dictionary.Items.ContainsKey("P")
             };
-            node.StandardType = node.Type is not null && TryGetHeadingLevel(node.Type, out _)
-                ? node.Type
-                : MapToStandard(node.Type, model, out _, out _);
+            // A role mapping wins; an unmapped H7 or deeper still counts as a heading of its own level.
+            node.StandardType = MapToStandard(node.Type, model, out _, out _) ??
+                (node.Type is not null && TryGetHeadingLevel(node.Type, out _) ? node.Type : null);
             model.Nodes.Add(node);
             model.NodesByDictionary[dictionary] = node;
             if (parent is null) model.TopLevel.Add(node); else parent.Kids.Add(node);

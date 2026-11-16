@@ -149,6 +149,8 @@ public class PdfAccessibilityCheckTests {
     [InlineData("nested-mcid-owned-below-depth-limit", "11-001", PdfAccessibilityConditionStatus.Indeterminate)]
     [InlineData("pdfua-part-2", "06-002", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("painting-without-a-path", "01-005", PdfAccessibilityConditionStatus.Passed)]
+    [InlineData("h7-role-mapped-to-h1", "14-002", PdfAccessibilityConditionStatus.Passed)]
+    [InlineData("null-tounicode-entry", "31-027", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("xmp-over-the-metadata-read-limit", "06-002", PdfAccessibilityConditionStatus.Indeterminate)]
     [InlineData("font-only-in-annotation-appearance", "31-009", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("form-element-referencing-non-widget", "UA1:7.18.4-2", PdfAccessibilityConditionStatus.Failed)]
@@ -216,6 +218,18 @@ public class PdfAccessibilityCheckTests {
                 extra.Add("<< /Type /StructElem /S /P /P 5 0 R /Pg 3 0 R /K 0 >>");
                 extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
                 AddDeepChain(extra, 8, 5, "/K 1 /Pg 3 0 R");
+                break;
+            case "h7-role-mapped-to-h1":
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                content = string.Empty;
+                extra.Add("<< /Type /StructTreeRoot /K 6 0 R /RoleMap << /H7 /H1 >> >>");
+                extra.Add("<< /Type /StructElem /S /H7 /P 5 0 R >>");
+                break;
+            case "null-tounicode-entry":
+                resources = "/Font << /F1 5 0 R >>";
+                content = "BT /F1 12 Tf 10 10 Td <0001> Tj ET";
+                extra.Add("<< /Type /Font /Subtype /Type0 /BaseFont /Custom /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode null >>");
+                extra.Add("<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Custom /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> >>");
                 break;
             case "painting-without-a-path":
                 content = "q f Q 0 0 1 1 re n S";

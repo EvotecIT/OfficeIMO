@@ -31,7 +31,7 @@ never `Passed`.
 | 18 Page headers and footers | | all | |
 | 19 Notes and references | 19-003, 19-004 | 19-001, 19-002 | |
 | 20 Optional content | 20-001 to 20-003 | | |
-| 21 Embedded files | 21-001 | | |
+| 21 Embedded files | 21-001 (EmbeddedFiles name tree and FileAttachment annotations) | | 21-001 for files reached only through `AF` arrays |
 | 22-24, 27, 29 | | all (23-001 and 27-001 have no specific test) | |
 | 25 XFA | 25-001 | | |
 | 26 Security | 26-001, 26-002 | | |
