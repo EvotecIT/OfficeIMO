@@ -17,6 +17,8 @@ internal static partial class PdfWriter {
                 PdfTableCellParagraph paragraph = range.Paragraph;
                 bool continued = consumedLines > range.StartLine;
                 int start = Math.Max(consumedLines, range.StartLine);
+                // Fit Text refits the remaining authored lines to the continuation width, replacing the width
+                // and spacing the wrapped runs carry from the previous frame.
                 var runs = continued ? BuildTextRunsFromWrappedLines(previous.Lines, start, end - start) : paragraph.Runs;
                 paragraphs.Add(new PdfTableCellParagraph(runs, paragraph.SpacingAfter, paragraph.Align,
                     global::OfficeIMO.OfficeLength.Points(continued ? 0D : paragraph.SpacingBefore.ToPoints()), paragraph.LeftIndent, paragraph.RightIndent,
@@ -24,7 +26,7 @@ internal static partial class PdfWriter {
                     paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                     paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
                     paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing,
-                    fitText: !continued && paragraph.FitText));
+                    fitText: paragraph.FitText));
             }
             remainder = CreateTableCellTextLayout(CreateContinuationCell(cell,
                 paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray(), paragraphs),

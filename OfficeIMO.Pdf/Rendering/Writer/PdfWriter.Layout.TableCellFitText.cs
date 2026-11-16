@@ -128,10 +128,10 @@ internal static partial class PdfWriter {
         PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         // Character spacing follows every rendered glyph, so distribute the extra width over shaped glyphs rather
         // than source characters. The last visible grapheme is split off unspaced so the line ends at the cell
-        // edge; trailing spaces after it are dropped by wrapping and stay unspaced too.
+        // edge; trailing spaces and optional breaks after it are not painted and stay unspaced too.
         int lastTextRun = -1;
         for (int index = line.Count - 1; index >= 0 && lastTextRun < 0; index--) {
-            if (TrimTableCellFitTextTrailingSpaces(line[index].Text).Length > 0) lastTextRun = index;
+            if (TrimTableCellFitTextUnpaintedEnd(line[index].Text).Length > 0) lastTextRun = index;
         }
         if (lastTextRun < 0) return null;
 
@@ -144,7 +144,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            string visible = TrimTableCellFitTextTrailingSpaces(text);
+            string visible = TrimTableCellFitTextUnpaintedEnd(text);
             int[] boundaries = StringInfo.ParseCombiningCharacters(visible);
             int last = boundaries[boundaries.Length - 1];
             if (last > 0) pieces.Add((CreateStyledTextRun(visible.Substring(0, last), run, run.StandardFont), true));
@@ -179,12 +179,12 @@ internal static partial class PdfWriter {
             : piece.Run).ToArray();
 
     private static bool EndsWithTableCellFitTextShapingContext(System.Collections.Generic.IReadOnlyList<PdfTextRun> line) {
-        PdfTextRun? last = line.LastOrDefault(run => TrimTableCellFitTextTrailingSpaces(run.Text).Length > 0);
-        return last != null && UsesTableCellFitTextShapingContext(TrimTableCellFitTextTrailingSpaces(last.Text));
+        PdfTextRun? last = line.LastOrDefault(run => TrimTableCellFitTextUnpaintedEnd(run.Text).Length > 0);
+        return last != null && UsesTableCellFitTextShapingContext(TrimTableCellFitTextUnpaintedEnd(last.Text));
     }
 
-    // Ordinary spaces at the end of a line are dropped by wrapping and take no visible width.
-    private static string TrimTableCellFitTextTrailingSpaces(string? text) => (text ?? string.Empty).TrimEnd(' ');
+    // Ordinary spaces at the end of a line are dropped by wrapping, and optional breaks (U+200B) are never painted.
+    private static string TrimTableCellFitTextUnpaintedEnd(string? text) => (text ?? string.Empty).TrimEnd(' ', '\u200B');
 
     private static bool UsesTableCellFitTextShapingContext(string text) {
         foreach (char ch in text) {
