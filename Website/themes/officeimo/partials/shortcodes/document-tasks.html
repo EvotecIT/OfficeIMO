@@ -4,6 +4,7 @@
     {{~ if jobs.eyebrow ~}}<p class="imo-section__eyebrow">{{ jobs.eyebrow }}</p>{{~ end ~}}
     <h2 id="document-tasks-title">{{ jobs.title }}</h2>
     {{~ if jobs.lede ~}}<p>{{ jobs.lede }}</p>{{~ end ~}}
+    {{~ if jobs.overview ~}}<p class="imo-document-tasks__overview"><a href="{{ jobs.overview.url }}">{{ jobs.overview.label }} <span aria-hidden="true">→</span></a></p>{{~ end ~}}
   </header>
   <div class="imo-document-tasks__grid">
     {{~ for task in jobs.tasks ~}}
