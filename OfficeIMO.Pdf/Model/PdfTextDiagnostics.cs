@@ -669,7 +669,8 @@ internal static partial class PdfTextDiagnostics {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(candidates, nameof(candidates));
 
-        List<EmbeddedFontFallbackProgram> fonts = BuildFallbackPrograms(candidates);
+        IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidateList = candidates as IReadOnlyList<PdfEmbeddedFontFallbackCandidate> ?? candidates.ToList();
+        List<EmbeddedFontFallbackProgram> fonts = BuildFallbackPrograms(candidateList);
         if (fonts.Count == 0) {
             throw new ArgumentException("At least one embedded font fallback candidate is required.", nameof(candidates));
         }
@@ -745,7 +746,7 @@ internal static partial class PdfTextDiagnostics {
         }
 
         FlushSegment(text.Length);
-        return new PdfTextFallbackPlan(text, segments, diagnostics);
+        return new PdfTextFallbackPlan(text, segments, diagnostics, candidateList);
     }
 
     private delegate bool TryGetSelectedTextLength(string text, int index, out int length);

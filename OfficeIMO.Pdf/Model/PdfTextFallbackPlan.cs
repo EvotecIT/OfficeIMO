@@ -4,10 +4,14 @@ namespace OfficeIMO.Pdf;
 /// Describes how text can be split across embedded fonts before generated PDF rendering.
 /// </summary>
 public sealed class PdfTextFallbackPlan {
-    internal PdfTextFallbackPlan(string originalText, IReadOnlyList<PdfTextFallbackSegment> segments, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) {
+    private readonly IReadOnlyList<PdfEmbeddedFontFallbackCandidate>? _candidates;
+
+    internal PdfTextFallbackPlan(string originalText, IReadOnlyList<PdfTextFallbackSegment> segments, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics,
+        IReadOnlyList<PdfEmbeddedFontFallbackCandidate>? candidates = null) {
         OriginalText = originalText ?? string.Empty;
         Segments = segments ?? throw new ArgumentNullException(nameof(segments));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        _candidates = candidates;
     }
 
     /// <summary>Original text used to create this fallback plan.</summary>
@@ -97,7 +101,7 @@ public sealed class PdfTextFallbackPlan {
                     styleTemplate);
             }
 
-            runs.Add(CreateStyledRun(segment.Text, resolveFont(segment.FontIndex), styleTemplate));
+            AddSegmentRuns(runs, segment, styleTemplate, text => CreateStyledRun(text, resolveFont(segment.FontIndex), styleTemplate));
             cursor = segment.StartIndex + segment.Length;
         }
 
@@ -125,9 +129,11 @@ public sealed class PdfTextFallbackPlan {
                     styleTemplate);
             }
 
-            PdfTextRun run = CreateStyledNamedRun(segment.Text, resolveFontFamily(segment.FontIndex), styleTemplate);
-            if (candidates != null) run.WithPlannedFontFallback(candidates[segment.FontIndex]);
-            runs.Add(run);
+            AddSegmentRuns(runs, segment, styleTemplate, text => {
+                PdfTextRun run = CreateStyledNamedRun(text, resolveFontFamily(segment.FontIndex), styleTemplate);
+                if (candidates != null) run.WithPlannedFontFallback(candidates[segment.FontIndex]);
+                return run;
+            });
             cursor = segment.StartIndex + segment.Length;
         }
 
@@ -137,6 +143,40 @@ public sealed class PdfTextFallbackPlan {
 
         KeepHorizontalOffsetOnFirstGeneratedRun(runs);
         return runs.AsReadOnly();
+    }
+
+    // Bold and italic runs use the candidate's own styled faces. Text elements whose glyphs the styled face
+    // lacks are painted with the candidate's regular face instead, which synthesizes the style for them.
+    private void AddSegmentRuns(List<PdfTextRun> runs, PdfTextFallbackSegment segment, PdfTextRun? styleTemplate,
+        Func<string, PdfTextRun> createRun) {
+        Func<string, bool>? covers = styleTemplate != null && (styleTemplate.Bold || styleTemplate.Italic)
+            && _candidates != null && segment.FontIndex >= 0 && segment.FontIndex < _candidates.Count
+            ? _candidates[segment.FontIndex].GetStyledFaceCoverageTest(styleTemplate.Bold, styleTemplate.Italic)
+            : null;
+        if (covers == null || covers(segment.Text)) {
+            runs.Add(createRun(segment.Text));
+            return;
+        }
+
+        PdfEmbeddedFontFallbackCandidate regularFace = _candidates![segment.FontIndex].RegularFaceCandidate;
+        var piece = new System.Text.StringBuilder();
+        bool pieceCovered = false;
+        foreach (string element in OfficeIMO.Drawing.OfficeTextElements.Enumerate(segment.Text)) {
+            bool covered = covers(element);
+            if (piece.Length > 0 && covered != pieceCovered) Flush();
+            pieceCovered = covered;
+            piece.Append(element);
+        }
+        Flush();
+
+        void Flush() {
+            if (piece.Length == 0) return;
+            string text = piece.ToString();
+            piece.Clear();
+            runs.Add(pieceCovered
+                ? createRun(text)
+                : CreateStyledNamedRun(text, regularFace.FontName, styleTemplate).WithPlannedFontFallback(regularFace));
+        }
     }
 
     /// <summary>Applies the source run's offset once across all generated font and layout segments.</summary>

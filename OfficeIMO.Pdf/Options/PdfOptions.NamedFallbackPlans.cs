@@ -74,8 +74,8 @@ public sealed partial class PdfCreateOptions {
             IsNamedFallbackRegistrationCurrent(active)
             && unavailableNames?.Contains(NormalizeNamedFontFamilyKey(active.FontName)) != true
             && string.Equals(active.PlannerFamilyName, candidate.PlannerFamilyName, StringComparison.OrdinalIgnoreCase)
-            && (active.FontFamilySnapshot.ItalicSnapshot != null) == (candidate.FontFamilySnapshot.ItalicSnapshot != null)
-            && active.DataSnapshot.SequenceEqual(candidate.DataSnapshot));
+            && active.HasSameFaces(candidate));
+
         string name = reusable?.FontName ?? CreatePromotedFallbackFamilyName(
             candidate.FontName.Trim(), PdfStandardFont.Helvetica, prospective);
         return candidate.WithRegisteredFamilyName(name);
@@ -85,7 +85,7 @@ public sealed partial class PdfCreateOptions {
         familyName = candidate.FontName;
         if (_namedFallbackPlanBindings?.TryGetValue(candidate.RegistrationIdentity, out PdfEmbeddedFontFallbackCandidate? bound) != true
             || bound == null) {
-            return false;
+            return candidate.IsRegularFaceCandidate && TryRegisterRegularFaceFallback(candidate, out familyName);
         }
         if (!IsNamedFallbackRegistrationCurrent(bound)) {
             // A later caller can claim the original resource name. Keep that
@@ -97,6 +97,22 @@ public sealed partial class PdfCreateOptions {
             RegisterNamedFontFamily(bound.FontFamilySnapshot);
             RegisterNamedFallbackPlan(bound);
         }
+        familyName = bound.FontName;
+        return true;
+    }
+
+    // A fallback's regular-face companion is registered the first time styled text needs it,
+    // and belongs to the fallback lifecycle like an automatic fallback family.
+    private bool TryRegisterRegularFaceFallback(PdfEmbeddedFontFallbackCandidate candidate, out string familyName) {
+        familyName = candidate.FontName;
+        var prospective = _namedFontFamilies == null
+            ? new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal)
+            : new Dictionary<string, PdfEmbeddedFontFamily>(_namedFontFamilies, StringComparer.Ordinal);
+        PdfEmbeddedFontFallbackCandidate bound = PrepareNamedFallbackCandidate(candidate, prospective);
+        if (!TryRegisterNamedFontFamily(bound.FontFamilySnapshot)) return false;
+        RegisterNamedFallbackPlan(bound);
+        (_automaticFallbackOwnedNamedFamilyKeys ??= new HashSet<string>(StringComparer.Ordinal))
+            .Add(NormalizeNamedFontFamilyKey(bound.FontName));
         familyName = bound.FontName;
         return true;
     }
