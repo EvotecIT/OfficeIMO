@@ -448,7 +448,8 @@ internal sealed partial class PdfAccessibilityInspector {
         bool hasRole = ReadAttributeDictionaries(form.Dictionary).Any(attributes =>
             string.Equals(ReadName(attributes, "O"), "PrintField", StringComparison.Ordinal) && attributes.Items.ContainsKey("Role"));
         if (hasRole) return;
-        if (form.Kids.Count != 0 || form.ContentKidCount != 1 || form.ObjectReferences.Count != 1) {
+        if (form.Kids.Count != 0 || form.ContentKidCount != 1 || form.ObjectReferences.Count != 1 ||
+            ResolveDict(form.ObjectReferences[0]) is not PdfDictionary target || ReadName(target, "Subtype") != "Widget") {
             Fail("UA1:7.18.4-2", "7.18.4-2", "A Form element without a Role attribute must contain exactly one object reference to its widget.", element: form);
         }
     }

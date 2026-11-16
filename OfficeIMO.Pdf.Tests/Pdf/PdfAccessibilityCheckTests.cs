@@ -144,12 +144,18 @@ public class PdfAccessibilityCheckTests {
     [InlineData("empty-text-operators", "01-005", PdfAccessibilityConditionStatus.Passed)]
     [InlineData("unmapped-h7", "02-001", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("content-tagged-below-depth-limit", "01-005", PdfAccessibilityConditionStatus.Indeterminate)]
+    [InlineData("artifact-in-mcid-below-depth-limit", "01-003", PdfAccessibilityConditionStatus.Indeterminate)]
+    [InlineData("actual-text-owned-below-depth-limit", "11-002", PdfAccessibilityConditionStatus.Indeterminate)]
+    [InlineData("nested-mcid-owned-below-depth-limit", "11-001", PdfAccessibilityConditionStatus.Indeterminate)]
+    [InlineData("pdfua-part-2", "06-002", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("font-only-in-annotation-appearance", "31-009", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("form-element-referencing-non-widget", "UA1:7.18.4-2", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("known-owner-without-language-in-truncated-tree", "11-001", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("xmp-default-language-in-comment", "11-006", PdfAccessibilityConditionStatus.NotApplicable)]
     [InlineData("xmp-default-language-as-character-reference", "11-006", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("form-resources-from-painter", "31-009", PdfAccessibilityConditionStatus.Failed)]
     public void CheckAccessibility_ReadsTheConstructThatDecidesTheCondition(string construct, string conditionId, PdfAccessibilityConditionStatus expected) {
-        string catalog = string.Empty, resources = string.Empty, content;
+        string catalog = string.Empty, resources = string.Empty, annotations = string.Empty, content;
         var extra = new List<string>();
         switch (construct) {
             case "xfa-prefixed-dynamic":
@@ -186,6 +192,47 @@ public class PdfAccessibilityCheckTests {
                 content = "/P <</MCID 0>> BDC 0 0 1 1 re f EMC";
                 extra.Add("<< /Type /StructTreeRoot /K 6 0 R >>");
                 AddDeepChain(extra, 6, 5, "/K 0 /Pg 3 0 R");
+                break;
+            case "artifact-in-mcid-below-depth-limit":
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                content = "/P <</MCID 0>> BDC /Artifact BMC 0 0 1 1 re f EMC EMC";
+                extra.Add("<< /Type /StructTreeRoot /K 6 0 R >>");
+                AddDeepChain(extra, 6, 5, "/K 0 /Pg 3 0 R");
+                break;
+            case "actual-text-owned-below-depth-limit":
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                content = "/Span <</MCID 0 /ActualText (x)>> BDC 0 0 1 1 re f EMC";
+                extra.Add("<< /Type /StructTreeRoot /K 6 0 R >>");
+                AddDeepChain(extra, 6, 5, "/K 0 /Pg 3 0 R");
+                break;
+            case "nested-mcid-owned-below-depth-limit":
+                // The outer MCID is owned by a shallow P; the inner MCID that holds the text is owned below the limit.
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                resources = "/Font << /F1 7 0 R >>";
+                content = "/P <</MCID 0>> BDC /Span <</MCID 1>> BDC BT /F1 12 Tf 10 10 Td (x) Tj ET EMC EMC";
+                extra.Add("<< /Type /StructTreeRoot /K [6 0 R 8 0 R] >>");
+                extra.Add("<< /Type /StructElem /S /P /P 5 0 R /Pg 3 0 R /K 0 >>");
+                extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+                AddDeepChain(extra, 8, 5, "/K 1 /Pg 3 0 R");
+                break;
+            case "pdfua-part-2":
+                catalog = "/Metadata 5 0 R";
+                content = string.Empty;
+                extra.Add(Stream("/Type /Metadata /Subtype /XML", Xmp.Replace("<pdfuaid:part>1</pdfuaid:part>", "<pdfuaid:part>2</pdfuaid:part>")));
+                break;
+            case "font-only-in-annotation-appearance":
+                content = string.Empty;
+                annotations = "/Annots [5 0 R]";
+                extra.Add("<< /Type /Annot /Subtype /FreeText /Rect [10 10 100 40] /Contents (Note) /DA (/F1 12 Tf) /AP << /N 6 0 R >> >>");
+                extra.Add(Stream("/Type /XObject /Subtype /Form /BBox [0 0 90 30] /Resources << /Font << /F1 7 0 R >> >>", "BT /F1 12 Tf 2 10 Td (Note) Tj ET"));
+                extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+                break;
+            case "form-element-referencing-non-widget":
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                content = string.Empty;
+                extra.Add("<< /Type /StructTreeRoot /K 6 0 R >>");
+                extra.Add("<< /Type /StructElem /S /Form /P 5 0 R /K << /Type /OBJR /Obj 7 0 R >> >>");
+                extra.Add("<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] >>");
                 break;
             case "known-owner-without-language-in-truncated-tree":
                 // A shallow P owns the text and has no Lang; a separate deep branch truncates the tree.
@@ -234,7 +281,7 @@ public class PdfAccessibilityCheckTests {
         var objects = new List<string> {
             "<< /Type /Catalog /Pages 2 0 R " + catalog + " >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << " + resources + " >> /Contents 4 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << " + resources + " >> /Contents 4 0 R " + annotations + " >>",
             Stream(string.Empty, content)
         };
         objects.AddRange(extra);

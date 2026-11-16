@@ -41,8 +41,9 @@ never `Passed`.
 
 ## Behaviour and limits
 
-- Fonts are checked when page content selects them with `Tf` and shows text; fonts used only in annotation
-  appearances or Type 3 glyph procedures are not checked. 31-009 skips fonts used only with rendering mode 3.
+- Fonts are checked when page content or the normal appearance of a visible annotation selects them with `Tf` or
+  an ExtGState and shows text; fonts used only in Type 3 glyph procedures are not checked. 31-009 skips fonts used
+  only with rendering mode 3.
 - 31-027 accepts simple fonts with a standard encoding, non-symbolic TrueType fonts, unembedded standard 14 Type 1
   fonts and Type 0 fonts with an Adobe GB1, CNS1, Japan1 or Korea1 collection. Type 1 and Type 3 fonts that rely on
   glyph names are `Indeterminate` until the Adobe Glyph List check exists.
@@ -52,8 +53,8 @@ never `Passed`.
   checkpoint 28 note exempts Popup annotations.
 - 02-001, 02-003 and 02-004 check the role mapping of structure types the tree uses, as veraPDF's 7.1-5 to 7.1-7
   do. Matterhorn checkpoint 02 also covers RoleMap entries no element uses; those are not checked.
-- 06-002 accepts `pdfuaid:part` 1 or 2, so PDF/UA-2 files keep their identification; veraPDF's PDF/UA-1 profile
-  requires 1.
+- 06-002 requires `pdfuaid:part` 1, as veraPDF's PDF/UA-1 profile does; a PDF/UA-2 file fails it because this
+  check evaluates PDF/UA-1. `DeclaredPdfUaPart` reports the declared part either way.
 - 15-003 treats a table as organised with Headers and IDs only when every TD names headers that are TH cells of the
   same table. veraPDF resolves each cell's headers instead; the two agree on the veraPDF corpus.
 - 09-004 to 09-008 also fail a grouping element (Table, TR, THead, TBody, TFoot, L, TOC, Ruby, Warichu) that

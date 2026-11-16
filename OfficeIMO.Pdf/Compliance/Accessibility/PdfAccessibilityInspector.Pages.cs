@@ -27,6 +27,7 @@ internal sealed partial class PdfAccessibilityInspector {
             PdfReadPage page = pages[index];
             int pageNumber = index + 1;
             CheckAnnotations(page, pageNumber, structure);
+            CollectAppearanceFonts(page, pageNumber, fonts);
             PdfAccessibilityPageContent content;
             try {
                 content = page.ScanAccessibilityContent((stream, mcid) => structure.IsLinked(page.ObjectNumber, stream, mcid), _cancellationToken);
@@ -54,12 +55,7 @@ internal sealed partial class PdfAccessibilityInspector {
             }
             foreach (string language in content.PropertyLanguages) CheckLanguageValue(language, pageNumber, null, "a marked-content property list", page.ObjectNumber);
             CheckContentLanguage(content, page, pageNumber, structure);
-            foreach (KeyValuePair<PdfDictionary, bool> font in content.Fonts) {
-                content.FontObjectNumbers.TryGetValue(font.Key, out int? fontObject);
-                fonts[font.Key] = fonts.TryGetValue(font.Key, out var previous)
-                    ? (previous.Rendered || font.Value, previous.ObjectNumber ?? fontObject, previous.Page)
-                    : (font.Value, fontObject, pageNumber);
-            }
+            MergeFonts(content, pageNumber, fonts);
             foreach (KeyValuePair<int, int> invocation in content.FormInvocations) {
                 formInvocations[invocation.Key] = PdfAccessibilityPageContent.AddCount(formInvocations.TryGetValue(invocation.Key, out int count) ? count : 0, invocation.Value);
                 if (!formPage.ContainsKey(invocation.Key)) formPage[invocation.Key] = pageNumber;
@@ -78,6 +74,43 @@ internal sealed partial class PdfAccessibilityInspector {
             }
         }
         CheckFonts(fonts);
+    }
+
+    private static void MergeFonts(PdfAccessibilityPageContent content, int pageNumber,
+        Dictionary<PdfDictionary, (bool Rendered, int? ObjectNumber, int Page)> fonts) {
+        foreach (KeyValuePair<PdfDictionary, bool> font in content.Fonts) {
+            content.FontObjectNumbers.TryGetValue(font.Key, out int? fontObject);
+            fonts[font.Key] = fonts.TryGetValue(font.Key, out var previous)
+                ? (previous.Rendered || font.Value, previous.ObjectNumber ?? fontObject, previous.Page)
+                : (font.Value, fontObject, pageNumber);
+        }
+    }
+
+    // ISO 14289-1 7.21.4.1 covers every font used for rendering, so the normal appearances of visible annotations
+    // feed the font checks too. Their content is not page content, so nothing else is taken from those scans.
+    private void CollectAppearanceFonts(PdfReadPage page, int pageNumber, Dictionary<PdfDictionary, (bool Rendered, int? ObjectNumber, int Page)> fonts) {
+        PdfArray? annotations = ResolveArray(page.PageDictionary.Items.TryGetValue("Annots", out PdfObject? annotsObject) ? annotsObject : null);
+        if (annotations is null) return;
+        foreach (PdfObject item in annotations.Items) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (ResolveDict(item) is not PdfDictionary annotation) continue;
+            int flags = ReadInteger(annotation, "F") ?? 0;
+            if ((flags & 2) != 0 || (flags & 32) != 0) continue; // Hidden or NoView
+            if (ResolveDict(annotation.Items.TryGetValue("AP", out PdfObject? apObject) ? apObject : null) is not PdfDictionary appearances ||
+                !appearances.Items.TryGetValue("N", out PdfObject? normal)) continue;
+            PdfObject? resolved = Resolve(normal);
+            if (resolved is PdfDictionary states && ReadName(annotation, "AS") is string state) {
+                resolved = Resolve(states.Items.TryGetValue(state, out PdfObject? selected) ? selected : null);
+            }
+            if (resolved is not PdfStream appearance) continue;
+            try {
+                MergeFonts(page.ScanAccessibilityAppearance(appearance, _cancellationToken), pageNumber, fonts);
+            } catch (Exception exception) when (IsReadFailure(exception)) {
+                foreach (string id in ContentScanConditions.Where(static id => id.StartsWith("31-", StringComparison.Ordinal))) {
+                    Unknown(id, null, "An annotation appearance could not be inspected completely: " + exception.Message, pageNumber, ObjectNumberOf(item));
+                }
+            }
+        }
     }
 
     // Content counts as tagged only when the structure tree references it. When the tree was not read completely,
@@ -109,10 +142,17 @@ internal sealed partial class PdfAccessibilityInspector {
                 pageNumber, page.ObjectNumber);
         }
         // TextMcids holds only MCIDs the tree references, so their owners and its ancestors were read.
-        int missing = 0;
+        int missing = 0, unread = 0;
         foreach ((int? stream, int mcid) in content.TextMcids) {
             if (_catalogHasLanguage) continue;
-            if (!HasLanguage(structure.Owner(page.ObjectNumber, stream, mcid))) missing++;
+            StructNode? owner = structure.Owner(page.ObjectNumber, stream, mcid);
+            // A nested MCID may belong to an element below the inspection limits; its language is then unknown.
+            if (owner is null && structure.Truncated) unread++;
+            else if (!HasLanguage(owner)) missing++;
+        }
+        if (unread > 0) {
+            Unknown("11-001", "7.2-34", Count(unread, "tagged text sequence") + " owned by structure elements beyond the inspection limits; their language was not read.",
+                pageNumber, page.ObjectNumber);
         }
         if (missing > 0) {
             Fail("11-001", "7.2-34", Count(missing, "tagged text sequence") + " without a determinable language. Set Lang on the catalog or on the structure elements.",

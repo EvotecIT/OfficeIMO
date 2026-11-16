@@ -55,11 +55,27 @@ public sealed partial class PdfReadPage {
     /// Walks the page content and the Form XObjects it paints, following marked-content nesting the way
     /// ISO 14289-1 7.1 reads it. <paramref name="isLinked"/> says whether an MCID is referenced from the structure tree.
     /// </summary>
-    internal PdfAccessibilityPageContent ScanAccessibilityContent(Func<int?, int, bool> isLinked, CancellationToken cancellationToken) {
+    internal PdfAccessibilityPageContent ScanAccessibilityContent(Func<int?, int, bool> isLinked, CancellationToken cancellationToken) =>
+        ScanAccessibility(isLinked, null, cancellationToken);
+
+    /// <summary>
+    /// Walks one annotation appearance stream and the forms it paints. Appearances are not page content, so only
+    /// the font evidence is meant to be used from the result.
+    /// </summary>
+    internal PdfAccessibilityPageContent ScanAccessibilityAppearance(PdfStream appearance, CancellationToken cancellationToken) =>
+        ScanAccessibility(static (_, _) => false, appearance, cancellationToken);
+
+    private PdfAccessibilityPageContent ScanAccessibility(Func<int?, int, bool> isLinked, PdfStream? appearance, CancellationToken cancellationToken) {
         var result = new PdfAccessibilityPageContent();
         var budget = new PageContentBudget(this, cancellationToken);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        PageContentStreamSequence sequence = GetContentStreamSequence(budget);
+        PdfContentSource source;
+        if (appearance is null) {
+            source = GetContentStreamSequence(budget).Source;
+        } else {
+            source = PdfContentSource.FromBytes(budget.Decode(appearance));
+            resources = ResolveDictionary(appearance.Dictionary.Items.TryGetValue("Resources", out PdfObject? appearanceResources) ? appearanceResources : null) ?? resources;
+        }
         // A form scanned once under the same inherited state yields the same evidence; on a repeat paint only
         // the invocation counts of the forms it paints in turn are replayed.
         var scannedForms = new Dictionary<(int Form, PdfDictionary? Resources, bool Tagged, bool Artifact, int? Mcid, int? McidStream, bool Language, PdfDictionary? Font, bool Rendered), Dictionary<int, int>>();
@@ -68,7 +84,7 @@ public sealed partial class PdfReadPage {
         var nestedCounters = new List<Dictionary<int, int>>();
         long work = 0;
         long maxWork = Math.Max(1L, (long)_limits.MaxContentOperations) * 4L;
-        ScanAccessibilityStream(sequence.Source, null, resources, new AccessibilityScope(false, false, null, null, false), null, 0, 0);
+        ScanAccessibilityStream(source, null, resources, new AccessibilityScope(false, false, null, null, false), null, 0, 0);
         return result;
 
         // A Form XObject inherits the graphics state at Do, so the caller's font and rendering mode carry in.

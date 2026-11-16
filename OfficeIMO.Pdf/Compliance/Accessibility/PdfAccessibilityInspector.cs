@@ -151,8 +151,10 @@ internal sealed partial class PdfAccessibilityInspector {
         Applies("06-003");
         if (xmp?.PdfUaPart is null) {
             Fail("06-002", "5-1", "The XMP metadata has no pdfuaid:part entry identifying the PDF/UA part.");
-        } else if (xmp.PdfUaPart is not (1 or 2)) {
-            Fail("06-002", "5-2", "pdfuaid:part is " + xmp.PdfUaPart.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "; PDF/UA parts are 1 and 2.");
+        } else if (xmp.PdfUaPart != 1) {
+            // This check evaluates PDF/UA-1, so it requires the part 1 identification, as veraPDF's rule 5-2 does.
+            Fail("06-002", "5-2", "pdfuaid:part is " + xmp.PdfUaPart.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "; this check evaluates PDF/UA-1, which requires part 1.");
         }
         if (string.IsNullOrWhiteSpace(xmp?.Title)) {
             Fail("06-003", "7.1-9", "The XMP metadata has no dc:title. Add a title that identifies the document.");
