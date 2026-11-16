@@ -176,7 +176,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             sb.Append(attributeWhitespace);
             for (int i = 0; i < NestedBlocks.Count; i++) {
                 AppendTightListItemChildSeparator(sb, itemStart, NestedBlocks[i]);
-                sb.Append(MarkdownBlockRenderDispatcher.RenderTightListItemHtml(NestedBlocks[i]));
+                MarkdownBlockRenderDispatcher.AppendTightListItemHtml(sb, NestedBlocks[i]);
             }
             return;
         }
@@ -229,9 +229,9 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
                 : "<input type=\"checkbox\" disabled=\"\" /> ";
         }
 
-        return "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled"
-               + (Checked ? " checked" : string.Empty)
-               + "> ";
+        return Checked
+            ? "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled checked> "
+            : "<input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled> ";
     }
 
     internal bool TryAbsorbTrailingParagraphBlocks(IReadOnlyList<IMarkdownBlock> trailingBlocks) {
