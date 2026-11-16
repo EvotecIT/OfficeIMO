@@ -59,6 +59,10 @@ projects or packages:
 | [Docling](https://github.com/docling-project/docling) with its layout and table models, OCR off | Markdown, HTML | MIT (models: see the Docling model cards) |
 | [PyMuPDF4LLM](https://github.com/pymupdf/pymupdf4llm) | Markdown | AGPL-3.0, benchmark use only |
 | LibreOffice PDF import (`writer_pdf_import`, `impress_pdf_import`) | DOCX, PPTX | MPL-2.0 |
+| [pdf_oxide](https://github.com/yfedoseev/pdf_oxide) through the `PdfOxide` NuGet package (`ToMarkdownAll`, `ToHtmlAll`) | Markdown, HTML | MIT or Apache-2.0 |
+
+pdf_oxide runs from a small console kept outside the repository; its outputs go to `<work>/outputs/pdfoxide/<id>.md`
+and `.html`, and `score` picks them up when that folder exists.
 
 ## Running
 

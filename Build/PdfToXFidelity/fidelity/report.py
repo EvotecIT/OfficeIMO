@@ -19,7 +19,7 @@ GROUPS = [
     ("Spreadsheet cells", ["xl_number_value", "xl_number_typed", "xl_date_value", "xl_date_typed", "xl_text"]),
 ]
 TARGET_ORDER = ["docx", "odt", "rtf", "xlsx", "ods", "pptx", "odp", "html", "md"]
-TOOL_ORDER = ["officeimo", "libreoffice", "pdf2docx", "docling", "pymupdf4llm"]
+TOOL_ORDER = ["officeimo", "libreoffice", "pdf2docx", "docling", "pymupdf4llm", "pdfoxide"]
 
 
 def _read(path):

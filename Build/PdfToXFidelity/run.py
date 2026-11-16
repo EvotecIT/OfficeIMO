@@ -273,7 +273,8 @@ def outputs_for(work: str, e: dict) -> list[tuple[str, str, str | None, str]]:
         rows.append(("officeimo", target, path if s == "ok" and os.path.exists(path) else None, s))
     comparisons = [("pdf2docx", "docx", {"word", "tagged", "excel"}), ("libreoffice", "docx", {"word", "tagged", "excel"}),
                    ("libreoffice", "pptx", {"slides"}), ("docling", "md", set(FAMILY_TARGETS)),
-                   ("docling", "html", set(FAMILY_TARGETS)), ("pymupdf4llm", "md", set(FAMILY_TARGETS))]
+                   ("docling", "html", set(FAMILY_TARGETS)), ("pymupdf4llm", "md", set(FAMILY_TARGETS)),
+                   ("pdfoxide", "md", set(FAMILY_TARGETS)), ("pdfoxide", "html", set(FAMILY_TARGETS))]
     for tool, target, families in comparisons:
         if e["family"] not in families or target not in FAMILY_TARGETS[e["family"]]:
             continue
