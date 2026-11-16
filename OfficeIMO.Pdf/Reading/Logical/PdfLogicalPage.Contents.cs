@@ -43,10 +43,11 @@ public sealed partial class PdfLogicalPage {
             var words = new List<string>();
             for (int index = 0; index < titleWords.Length; index++) {
                 PdfUnderstandingWord word = titleWords[index];
-                string text = index == titleWords.Length - 1 ? PdfDocumentSemanticEnricher.TrimContentsLeader(word.Text) : word.Text.Trim();
+                bool trimmed = entry.LastTitleText is not null && ReferenceEquals(word, entry.Title[entry.Title.Count - 1]);
+                string text = trimmed ? entry.LastTitleText! : word.Text.Trim();
                 if (text.Length == 0) continue;
                 if (runs.Count > 0) runs.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
-                runs.Add(new PdfLogicalTextRun(text, word.SourceRuns.Count > 0 ? word.SourceRuns[0] : null));
+                AddWordRuns(runs, word, text);
                 words.Add(text);
             }
             if (words.Count == 0) continue;
@@ -65,6 +66,29 @@ public sealed partial class PdfLogicalPage {
             analysis.CancellationCheck?.Invoke();
             analysis.ConsumeWork?.Invoke(1);
         }
+    }
+
+    /// <summary>
+    /// Keeps each source span's style within a word, such as bold "Office" followed by regular "IMO". When the
+    /// spans do not spell the word, the word keeps its first span's style.
+    /// </summary>
+    private static void AddWordRuns(List<PdfLogicalTextRun> runs, PdfUnderstandingWord word, string text) {
+        if (word.SourceRuns.Count > 1) {
+            string joined = string.Concat(word.SourceRuns.Select(static span => span.Text.Trim()));
+            if (joined.StartsWith(text, StringComparison.Ordinal)) {
+                int remaining = text.Length;
+                foreach (PdfTextSpan span in word.SourceRuns) {
+                    if (remaining == 0) break;
+                    string piece = span.Text.Trim();
+                    if (piece.Length == 0) continue;
+                    if (piece.Length > remaining) piece = piece.Substring(0, remaining);
+                    runs.Add(new PdfLogicalTextRun(piece, span));
+                    remaining -= piece.Length;
+                }
+                return;
+            }
+        }
+        runs.Add(new PdfLogicalTextRun(text, word.SourceRuns.Count > 0 ? word.SourceRuns[0] : null));
     }
 
     private static PdfLogicalLinkAnnotation? FindTitleLink(PdfContentsEntrySource entry, IReadOnlyList<PdfLogicalLinkAnnotation> links) {

@@ -88,11 +88,12 @@ internal static partial class PdfDocumentSemanticEnricher {
             var ownedWords = new HashSet<PdfUnderstandingWord>(item.Words);
             item.Words.Clear();
             foreach (ContentsRow row in GroupContentsRows(item.Lines, budget)) item.Words.AddRange(row.Words.Where(ownedWords.Contains));
-            if (!TrySplitContentsEntry(item.Words, strictPageLabel: false, out List<PdfUnderstandingWord> title, out string? pageLabel, out _)) continue;
+            if (!TrySplitContentsEntry(item.Words, strictPageLabel: false, out List<PdfUnderstandingWord> title, out string? pageLabel, out _,
+                    out string? lastTitleText)) continue;
             entries.Add(new PdfContentsEntrySource(item.Level, title, pageLabel, item.Words, item.Lines,
                 new PdfInferenceEvidence("semantic-tagged-contents-item",
                     "The nearest tagged TOCI structure " + objectNumber.ToString(CultureInfo.InvariantCulture) +
-                    " owns this contents entry's text on the page.", 0.99D)));
+                    " owns this contents entry's text on the page.", 0.99D), lastTitleText));
             foreach (PdfUnderstandingLine line in item.Lines) claimed.Add(line);
         }
     }
@@ -122,8 +123,8 @@ internal static partial class PdfDocumentSemanticEnricher {
             var next = new List<List<PatternContentsLine>>();
             foreach (List<PdfUnderstandingWord> segment in SplitContentsColumns(row.Words)) {
                 if (!TrySplitContentsEntry(segment, strictPageLabel: true,
-                        out List<PdfUnderstandingWord> title, out string? pageLabel, out bool hasLeader) || pageLabel is null) continue;
-                var candidate = new PatternContentsLine(row, rowIndex, segment, title, pageLabel, hasLeader);
+                        out List<PdfUnderstandingWord> title, out string? pageLabel, out bool hasLeader, out string? lastTitleText) || pageLabel is null) continue;
+                var candidate = new PatternContentsLine(row, rowIndex, segment, title, pageLabel, hasLeader, lastTitleText);
                 // A contents entry's page number is right-aligned with the entry above it in the same column.
                 List<PatternContentsLine>? run = open.FirstOrDefault(item =>
                     Math.Abs(item[item.Count - 1].XEnd - candidate.XEnd) <= Math.Max(3D, row.FontSize * 0.5D));
@@ -149,9 +150,9 @@ internal static partial class PdfDocumentSemanticEnricher {
         }
         CloseAll();
 
-        ContentsContinuation? last = null;
         ContentsContinuation? previousPage = continuation;
-        bool accepted = false;
+        var acceptedRuns = new List<List<PatternContentsLine>>();
+        bool continuesPreviousPage = false;
         // One entry alone matches too much. It counts only beside accepted contents on the page (another column)
         // or as the tail of contents from the previous page.
         foreach (bool singles in new[] { false, true }) {
@@ -160,7 +161,39 @@ internal static partial class PdfDocumentSemanticEnricher {
                 Accept(run);
             }
         }
-        continuation = last;
+        if (acceptedRuns.Count == 0) {
+            continuation = null;
+            return;
+        }
+
+        // Accepted columns, and contents continued from the previous page, share one indentation scale.
+        double[] indents = acceptedRuns.SelectMany(static run => run.Select(static line => line.Indent))
+            .Concat(continuesPreviousPage ? previousPage!.Indents : Array.Empty<double>())
+            .Distinct().OrderByDescending(static indent => indent).ToArray();
+        var levels = new List<double>();
+        foreach (double indent in indents) {
+            if (levels.Count == 0 || levels[levels.Count - 1] - indent > 3D) levels.Add(indent);
+        }
+        PageLabelValue? lastValue = null;
+        double lastEdge = 0D;
+        foreach (List<PatternContentsLine> run in acceptedRuns) {
+            foreach (PatternContentsLine line in run) {
+                budget.Consume();
+                int level = levels.FindLastIndex(indent => line.Indent <= indent + 3D) + 1;
+                PdfUnderstandingLine[] sources = line.Row.Lines.Where(source => source.Words.Any(line.Words.Contains)).ToArray();
+                entries.Add(new PdfContentsEntrySource(Math.Max(1, level), line.Title, line.PageLabel, line.Words, sources,
+                    new PdfInferenceEvidence("contents-line-pattern",
+                        "Consecutive lines end in right-aligned page numbers after " + (line.HasLeader ? "a dot leader" : "a wide gap") +
+                        " and point into the document.", 0.85D), line.LastTitleText));
+                foreach (PdfUnderstandingLine source in sources) claimed.Add(source);
+            }
+            PageLabelValue? end = TryReadPageValue(run[run.Count - 1].PageLabel, document.Pages.Count);
+            if (end.HasValue && (lastValue is not PageLabelValue known || known.IsBefore(end.Value))) {
+                lastValue = end;
+                lastEdge = run[run.Count - 1].XEnd;
+            }
+        }
+        continuation = lastValue.HasValue ? new ContentsContinuation(lastValue, levels.ToArray(), lastEdge) : null;
 
         void Accept(List<PatternContentsLine> run) {
             budget.Consume();
@@ -169,32 +202,13 @@ internal static partial class PdfDocumentSemanticEnricher {
             // The column that continues the previous page's contents keeps its indentation levels.
             bool continues = previousPage?.Last is PageLabelValue previousLast && !first.Value.IsBefore(previousLast) &&
                 Math.Abs(previousPage.XEnd - run[0].XEnd) <= Math.Max(3D, run[0].Row.FontSize * 0.5D);
-            if (run.Count < 2 && !accepted && !continues) return;
+            if (run.Count < 2 && acceptedRuns.Count == 0 && !continues) return;
             links ??= readPage.GetLinkAnnotations();
             int corroborated = run.Count(line => HasInternalLink(line, links) || knownTitles.Contains(NormalizeTitle(line.Title)));
             // Leader rows such as price lists share the shape; contents entries also point into the document.
             if (corroborated * 2 < run.Count) return;
-            double[] indents = run.Select(static line => line.Title[0].XStart)
-                .Concat(continues ? previousPage!.Indents : Array.Empty<double>()).Distinct().OrderBy(static x => x).ToArray();
-            var levels = new List<double>();
-            foreach (double indent in indents) {
-                if (levels.Count == 0 || indent - levels[levels.Count - 1] > 3D) levels.Add(indent);
-            }
-            foreach (PatternContentsLine line in run) {
-                budget.Consume();
-                int level = levels.FindLastIndex(indent => line.Title[0].XStart >= indent - 3D) + 1;
-                PdfUnderstandingLine[] sources = line.Row.Lines.Where(source => source.Words.Any(line.Words.Contains)).ToArray();
-                entries.Add(new PdfContentsEntrySource(Math.Max(1, level), line.Title, line.PageLabel, line.Words, sources,
-                    new PdfInferenceEvidence("contents-line-pattern",
-                        "Consecutive lines end in right-aligned page numbers after " + (line.HasLeader ? "a dot leader" : "a wide gap") +
-                        " and point into the document.", 0.85D)));
-                foreach (PdfUnderstandingLine source in sources) claimed.Add(source);
-            }
-            accepted = true;
-            PageLabelValue? end = TryReadPageValue(run[run.Count - 1].PageLabel, document.Pages.Count);
-            if (end.HasValue && (last?.Last is not PageLabelValue known || known.IsBefore(end.Value))) {
-                last = new ContentsContinuation(end, levels.ToArray(), run[run.Count - 1].XEnd);
-            }
+            acceptedRuns.Add(run);
+            continuesPreviousPage |= continues;
         }
 
         void CloseAll() {
@@ -210,10 +224,9 @@ internal static partial class PdfDocumentSemanticEnricher {
             PdfUnderstandingWord word = words[index];
             segment.Add(word);
             // "Chapter 1    2" must not end a column after "1": the segment has to be a whole entry already.
-            bool endsColumn = index + 1 < words.Count && segment.Count > 1 &&
-                IsPageLabel(word.Text.Trim().Substring(CountLeading(word.Text.Trim())), strict: true) &&
+            bool endsColumn = index + 1 < words.Count &&
                 words[index + 1].XStart - word.XEnd >= word.FontSize * 1.5D &&
-                TrySplitContentsEntry(segment, strictPageLabel: true, out _, out string? label, out _) && label is not null;
+                TrySplitContentsEntry(segment, strictPageLabel: true, out _, out string? label, out _, out _) && label is not null;
             if (endsColumn) {
                 yield return segment;
                 segment = new List<PdfUnderstandingWord>();
@@ -334,20 +347,23 @@ internal static partial class PdfDocumentSemanticEnricher {
         bool strictPageLabel,
         out List<PdfUnderstandingWord> title,
         out string? pageLabel,
-        out bool hasLeader) {
+        out bool hasLeader,
+        out string? lastTitleText) {
         title = new List<PdfUnderstandingWord>();
         pageLabel = null;
         hasLeader = false;
+        lastTitleText = null;
         int end = words.Count;
         if (end == 0) return false;
         PdfUnderstandingWord last = words[end - 1];
         string labelText = last.Text.Trim();
-        if (TrySplitGluedLabel(labelText, strictPageLabel, out string? gluedLabel)) {
-            // "Part C.......4": the title, leader and page number were painted without spaces.
+        if (TrySplitGluedLabel(labelText, strictPageLabel, out string? gluedLabel, out string? gluedTitle)) {
+            // "Part C..........4": the title, leader and page number were painted without spaces.
             hasLeader = true;
             pageLabel = gluedLabel;
             title.AddRange(words);
-            return title.Any(static word => TrimContentsLeader(word.Text).Any(char.IsLetter));
+            lastTitleText = gluedTitle;
+            return words.Take(words.Count - 1).Any(static word => word.Text.Any(char.IsLetter)) || gluedTitle!.Any(char.IsLetter);
         }
         int labelLeader = CountLeading(labelText);
         string candidateLabel = labelText.Substring(labelLeader);
@@ -360,41 +376,51 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
             if (titleEnd > 0) {
                 PdfUnderstandingWord previous = words[titleEnd - 1];
-                bool trailingLeader = CountTrailing(previous.Text.Trim()) >= 3;
                 double gap = last.XStart - words[end - 2].XEnd;
-                if (leader || trailingLeader || gap >= Math.Max(last.FontSize, previous.FontSize) * 1.5D) {
+                bool wideGap = gap >= Math.Max(last.FontSize, previous.FontSize) * 1.5D;
+                // Dots that run up to the page number are its leader; dots followed by a wide gap end the title.
+                bool trailingLeader = titleEnd == end - 1 && !wideGap && CountTrailing(previous.Text.Trim()) >= 3;
+                if (leader || trailingLeader || wideGap) {
                     hasLeader = leader || trailingLeader;
                     pageLabel = candidateLabel;
                     end = titleEnd;
+                    if (trailingLeader) {
+                        string text = previous.Text.Trim();
+                        lastTitleText = text.Substring(0, text.Length - CountTrailing(text)).TrimEnd();
+                    }
                 }
             }
         }
         if (strictPageLabel && pageLabel is null) return false;
         // Only the separator before the page number is a leader; dots or an ellipsis inside the title stay.
-        while (end > 0 && IsLeaderWord(words[end - 1].Text)) end--;
+        if (lastTitleText is null) {
+            while (end > 0 && IsLeaderWord(words[end - 1].Text)) end--;
+        }
         for (int index = 0; index < end; index++) title.Add(words[index]);
+        if (lastTitleText is { Length: 0 }) {
+            title.RemoveAt(title.Count - 1);
+            lastTitleText = null;
+        }
         return title.Count > 0 && title.Any(static word => word.Text.Any(char.IsLetter));
     }
 
-    private static bool TrySplitGluedLabel(string text, bool strict, out string? label) {
+    /// <summary>
+    /// Splits "Title.......12" painted as one word. A glued leader must be longer than an ellipsis, so a title such
+    /// as "Release...2026" is never read as a page number.
+    /// </summary>
+    private static bool TrySplitGluedLabel(string text, bool strict, out string? label, out string? title) {
         label = null;
+        title = null;
         int labelStart = text.Length;
         while (labelStart > 0 && !IsLeaderCharacter(text[labelStart - 1])) labelStart--;
         int leaderStart = labelStart;
         while (leaderStart > 0 && IsLeaderCharacter(text[leaderStart - 1])) leaderStart--;
-        if (labelStart == text.Length || labelStart - leaderStart < 3 || leaderStart == 0) return false;
+        if (labelStart == text.Length || labelStart - leaderStart < 5 || leaderStart == 0) return false;
         string candidate = text.Substring(labelStart);
         if (!IsPageLabel(candidate, strict)) return false;
         label = candidate;
+        title = text.Substring(0, leaderStart).TrimEnd();
         return true;
-    }
-
-    /// <summary>Removes a trailing dot leader, and a page number glued to it, from a title word.</summary>
-    internal static string TrimContentsLeader(string text) {
-        string trimmed = text.Trim();
-        if (TrySplitGluedLabel(trimmed, strict: false, out string? label)) trimmed = trimmed.Substring(0, trimmed.Length - label!.Length);
-        int trailing = CountTrailing(trimmed);
-        return trailing >= 3 ? trimmed.Substring(0, trimmed.Length - trailing).TrimEnd() : trimmed;
     }
 
     // Dot, hyphen and underscore leaders, plus the middle-dot and ellipsis forms other producers paint.
@@ -485,7 +511,8 @@ internal static partial class PdfDocumentSemanticEnricher {
 
     private sealed class PatternContentsLine {
         internal PatternContentsLine(ContentsRow row, int rowIndex, List<PdfUnderstandingWord> words, List<PdfUnderstandingWord> title,
-            string pageLabel, bool hasLeader) {
+            string pageLabel, bool hasLeader, string? lastTitleText) {
+            LastTitleText = lastTitleText;
             Row = row;
             RowIndex = rowIndex;
             Words = words;
@@ -500,6 +527,9 @@ internal static partial class PdfDocumentSemanticEnricher {
         internal List<PdfUnderstandingWord> Title { get; }
         internal string PageLabel { get; }
         internal bool HasLeader { get; }
+        internal string? LastTitleText { get; }
+        // Indentation measured from the right-aligned page numbers, so columns of equal width share levels.
+        internal double Indent => XEnd - Title[0].XStart;
         internal double XStart => Words[0].XStart;
         internal double XEnd => Words[Words.Count - 1].XEnd;
     }
@@ -543,8 +573,10 @@ internal sealed class PdfContentsEntrySource {
         string? pageLabel,
         IReadOnlyList<PdfUnderstandingWord> words,
         IReadOnlyList<PdfUnderstandingLine> lines,
-        PdfInferenceEvidence evidence) {
+        PdfInferenceEvidence evidence,
+        string? lastTitleText) {
         Level = level;
+        LastTitleText = lastTitleText;
         Title = title;
         PageLabel = pageLabel;
         Lines = lines;
@@ -554,6 +586,8 @@ internal sealed class PdfContentsEntrySource {
 
     internal int Level { get; }
     internal IReadOnlyList<PdfUnderstandingWord> Title { get; }
+    /// <summary>The last title word without the leader or page number glued to it, when the parser removed one.</summary>
+    internal string? LastTitleText { get; }
     internal string? PageLabel { get; }
     internal IReadOnlyList<PdfUnderstandingLine> Lines { get; }
     internal HashSet<PdfTextSpan> Runs { get; }

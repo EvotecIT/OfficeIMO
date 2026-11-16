@@ -94,6 +94,39 @@ public class PdfTableOfContentsReadbackTests {
         Assert.Equal(new[] { "2", "3", "4" }, entries.Select(static entry => entry.TargetPageLabel));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ContentsTitles_KeepDotsAndNumbersAtTheirEnd(bool tagged) {
+        // Without tagging a trailing ellipsis runs into the dot leader, so only the tagged case can keep it.
+        (string, int)[] sections = tagged
+            ? new[] { ("What next...", 1), ("Release...2026", 1) }
+            : new[] { ("Release...2026", 1), ("Release 2", 1) };
+        PdfLogicalListItem[] entries = PdfDocument.Load(CreateContents(Options(tagged), sections, startOnNewPage: true))
+            .Read().Pages[0].ListItems.Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.Equal(sections.Select(static section => section.Item1), entries.Select(static entry => entry.Text));
+        Assert.Equal(new[] { "2", "3" }, entries.Select(static entry => entry.TargetPageLabel));
+    }
+
+    [Fact]
+    public void UntaggedContentsInTwoColumns_KeepSubsectionLevelsInTheSecondColumn() {
+        PdfDocument document = PdfDocument.Create(Options(tagged: false)).Meta(title: "Columns");
+        document.Columns(columns => columns.TableOfContents(), new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(24) });
+        document.Section("Handbook", section => section.AddParagraph("Handbook body."), new PdfSectionOptions { StartOnNewPage = true });
+        for (int index = 1; index <= 9; index++) {
+            string title = "Topic " + index;
+            document.Section(title, section => section.AddParagraph(title + " body."), new PdfSectionOptions { Level = 2, StartOnNewPage = true });
+        }
+
+        PdfLogicalListItem[] entries = PdfDocument.Load(document.ToBytes()).Read().Pages[0].ListItems
+            .Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.Equal(10, entries.Length);
+        Assert.Equal(1, Assert.Single(entries, static entry => entry.Text == "Handbook").Level);
+        Assert.All(entries.Where(static entry => entry.Text != "Handbook"), static entry => Assert.Equal(2, entry.Level));
+    }
+
     [Fact]
     public void UntaggedContentsWithoutLeaders_KeepNumberedTitles() {
         (string, int)[] sections = { ("Chapter 1", 1), ("Chapter 2", 1), ("Appendix IV", 1) };
