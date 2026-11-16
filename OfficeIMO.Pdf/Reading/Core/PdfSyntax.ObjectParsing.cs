@@ -327,10 +327,11 @@ internal static partial class PdfSyntax {
                 count++;
                 expectKey = false;
             } else {
+                // The count only sizes the dictionary, so a reference is recognized by its shape without parsing it.
                 if (index + 2 < end &&
                     tokens[index + 2].Equals(source, "R") &&
-                    tokens[index].TryParseInt32(source, out _, cancellationToken) &&
-                    tokens[index + 1].TryParseInt32(source, out _, cancellationToken)) {
+                    StartsWithDigit(tokens[index], source) &&
+                    StartsWithDigit(tokens[index + 1], source)) {
                     index += 2;
                 }
                 expectKey = true;
@@ -357,8 +358,8 @@ internal static partial class PdfSyntax {
 
             if (index + 2 < tokens.Count &&
                 tokens[index + 2].Equals(source, "R") &&
-                tokens[index].TryParseInt32(source, out _, cancellationToken) &&
-                tokens[index + 1].TryParseInt32(source, out _, cancellationToken)) {
+                StartsWithDigit(tokens[index], source) &&
+                StartsWithDigit(tokens[index + 1], source)) {
                 index += 3;
                 continue;
             }
@@ -368,6 +369,9 @@ internal static partial class PdfSyntax {
 
         return count;
     }
+
+    private static bool StartsWithDigit<TText>(PdfToken token, TText source) where TText : struct, IPdfContentText =>
+        !token.IsString && token.Length > 0 && (uint)(token.GetCharacter(source, 0) - '0') <= 9;
 
     private static PooledTokenBuffer<PdfStringContentText> Tokenize(
         string s,
@@ -430,7 +434,7 @@ internal static partial class PdfSyntax {
             }
 
             char c = s[i];
-            if (char.IsWhiteSpace(c)) { i++; continue; }
+            if (c < 256 ? WhiteSpaceCharacters[c] : char.IsWhiteSpace(c)) { i++; continue; }
             if (c == '%') {
                 i++;
                 while (i < end && s[i] != '\n' && s[i] != '\r') {
@@ -484,14 +488,14 @@ internal static partial class PdfSyntax {
             }
             // name, number, keyword
             int j = i;
-            while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') {
+            while (j < end && !EndsBareToken(s[j])) {
                 if ((j & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 j++;
             }
             int tokenLength = j - i;
-            if (tokenLength == 0 && s[i] == '/') { // name starting here
+            if (tokenLength == 0 && c == '/') { // name starting here
                 j = i + 1;
-                while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') {
+                while (j < end && !EndsBareToken(s[j])) {
                     if ((j & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     j++;
                 }
@@ -515,6 +519,25 @@ internal static partial class PdfSyntax {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ObjectTokens, effectiveLimits.MaxTokensPerObject, tokens.Count);
         }
     }
+
+    // Whitespace (as char.IsWhiteSpace defines it) and the delimiters that end a name, number or keyword token.
+    private static readonly bool[] WhiteSpaceCharacters = CreateWhiteSpaceCharacters();
+    private static readonly bool[] BareTokenTerminators = CreateBareTokenTerminators();
+
+    private static bool[] CreateWhiteSpaceCharacters() {
+        var table = new bool[256];
+        for (int value = 0; value < table.Length; value++) table[value] = char.IsWhiteSpace((char)value);
+        return table;
+    }
+
+    private static bool[] CreateBareTokenTerminators() {
+        bool[] table = CreateWhiteSpaceCharacters();
+        foreach (char delimiter in "%/[]<>()") table[delimiter] = true;
+        return table;
+    }
+
+    private static bool EndsBareToken(char value) =>
+        value < 256 ? BareTokenTerminators[value] : char.IsWhiteSpace(value);
 
     /// <summary>Reuses token arrays on modern targets while retaining the compatible list path on legacy targets.</summary>
     private struct PooledTokenBuffer<TText> : IDisposable where TText : struct, IPdfContentText {
