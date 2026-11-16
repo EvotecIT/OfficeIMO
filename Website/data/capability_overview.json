@@ -3,7 +3,7 @@
   "sources": [
     "Website/data/capability_jobs.json",
     "Website/data/documentation_catalog.json",
-    "PowerShell/PSWriteOffice/WebsiteArtifacts/apidocs/powershell/command-metadata.json",
+    "Website/data/apidocs/powershell/command-metadata.json",
     "Website/data/agent_integrations.json",
     "Website/data/studio_features.json",
     "Website/data/format_map.json"

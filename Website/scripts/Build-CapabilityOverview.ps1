@@ -9,7 +9,8 @@
     data/capability_overview.json, which the capabilities page renders:
 
     - .NET packages from data/documentation_catalog.json (with each package's guide URL)
-    - PowerShell commands from the PSWriteOffice command metadata exported with the module
+    - PowerShell commands from the PSWriteOffice command metadata that the pipeline syncs before this step, the same
+      inventory the PowerShell reference pages are built from
     - MCP tools and agent skills from data/agent_integrations.json
     - Studio support on each system from data/studio_features.json
     - conversion route counts per surface from data/format_map.json
@@ -37,7 +38,7 @@ function Read-JsonFile([string] $Path) {
 $sources = [ordered]@{
     jobs       = 'Website/data/capability_jobs.json'
     packages   = 'Website/data/documentation_catalog.json'
-    powershell = 'PowerShell/PSWriteOffice/WebsiteArtifacts/apidocs/powershell/command-metadata.json'
+    powershell = 'Website/data/apidocs/powershell/command-metadata.json'
     agents     = 'Website/data/agent_integrations.json'
     studio     = 'Website/data/studio_features.json'
     formats    = 'Website/data/format_map.json'
@@ -86,7 +87,7 @@ $jobs = foreach ($job in $data.jobs.jobs) {
     $cells.dotnet = New-Cell $guide $items $extra
 
     $items = foreach ($name in $job.powershell.commands) {
-        if (-not $commands.ContainsKey([string] $name)) { $problems.Add("Job '$($job.id)' names command '$name', which PSWriteOffice does not export."); continue }
+        if (-not $commands.ContainsKey([string] $name)) { $problems.Add("Job '$($job.id)' names command '$name', which the website's PSWriteOffice snapshot does not list. Run scripts/Sync-PSWriteOfficeApiDocs.ps1 if the module exports it."); continue }
         [ordered]@{ label = [string] $name; url = "/api/powershell/$(([string] $name).ToLowerInvariant())/" }
     }
     $extra = if ($job.routes) { "$($routeCounts['powershell']) conversion routes" } else { '' }

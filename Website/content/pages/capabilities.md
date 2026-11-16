@@ -1,7 +1,7 @@
 ---
 title: "Capability overview"
-description: "What you can do with OfficeIMO and where: create, read, convert, edit, review, fill forms, protect, sign, check accessibility, print and automate in .NET, PowerShell, the CLI and AI agents, and OfficeIMO Studio."
-meta.seo_title: "OfficeIMO capability overview: every document job on every surface"
+description: "What you can do with OfficeIMO and where: create, convert, edit, protect, sign, print and automate documents in .NET, PowerShell, the CLI, AI agents and Studio."
+meta.seo_title: "OfficeIMO capability overview: every job on every surface"
 layout: capabilities
 ---
 
