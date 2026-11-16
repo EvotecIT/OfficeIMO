@@ -37,6 +37,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPBrcRight80 = 0x6427;
         private const ushort SprmPBrcBetween80 = 0x6428;
         private const ushort SprmPShd80 = 0x442D;
+        private const ushort SprmPShd = 0xC64D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmPChgTabs = 0xC615;
@@ -208,8 +209,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static LegacyDocParagraphShading ReadParagraphShading(ushort shd80) {
-            if (shd80 == 0 || shd80 == Shd80Nil) {
+            if (shd80 == Shd80Nil) {
                 return default;
+            }
+
+            // An all-automatic clear record is an explicit automatic fill that clears inherited shading.
+            if (shd80 == 0) {
+                return new LegacyDocParagraphShading("auto");
             }
 
             byte backgroundIco = (byte)((shd80 >> 5) & 0x1F);
@@ -217,6 +223,28 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return string.IsNullOrEmpty(fillColorHex)
                 ? default
                 : new LegacyDocParagraphShading(fillColorHex);
+        }
+
+        private static LegacyDocParagraphShading? ReadRgbParagraphShading(byte[] bytes, int offset) {
+            // SHDOperand: foreground COLORREF, background COLORREF, then the pattern.
+            // Only clear fills are represented; a background with fAuto (0xFF) is an automatic clear.
+            if (LegacyDocFib.ReadUInt16(bytes, offset + 8) != 0) {
+                return null;
+            }
+
+            byte backgroundFlags = bytes[offset + 7];
+            if (backgroundFlags == 0xFF) {
+                return new LegacyDocParagraphShading("auto");
+            }
+
+            if (backgroundFlags != 0) {
+                return null;
+            }
+
+            return new LegacyDocParagraphShading(
+                bytes[offset + 4].ToString("X2", System.Globalization.CultureInfo.InvariantCulture)
+                + bytes[offset + 5].ToString("X2", System.Globalization.CultureInfo.InvariantCulture)
+                + bytes[offset + 6].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         }
 
         private static LegacyDocParagraphBorder ReadParagraphBorder(byte[] bytes, int offset) {

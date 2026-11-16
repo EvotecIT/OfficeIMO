@@ -12,9 +12,12 @@ namespace OfficeIMO.Word {
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value != string.Empty) {
-                    var color = value.Replace("#", string.Empty).ToUpperInvariant();
                     props.Shading ??= new Shading();
-                    props.Shading.Fill = color;
+                    props.Shading.Fill = Helpers.NormalizeOpenXmlColor(value);
+                    // An explicit fill replaces any theme fill selector loaded with the paragraph.
+                    props.Shading.ThemeFill = null;
+                    props.Shading.ThemeFillTint = null;
+                    props.Shading.ThemeFillShade = null;
                     props.Shading.Val ??= ShadingPatternValues.Clear;
                 } else {
                     props.Shading?.Remove();

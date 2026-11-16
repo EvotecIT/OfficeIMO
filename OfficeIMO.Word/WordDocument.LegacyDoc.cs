@@ -1269,7 +1269,7 @@ namespace OfficeIMO.Word {
             }
 
             if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
-                paragraph.ShadingFillValue = paragraphFormat.ParagraphShading.Value.FillColorHex!;
+                paragraph.ShadingFillValue = paragraphFormat.ParagraphShading.Value.OpenXmlFill!;
             }
 
             if (paragraphFormat.ParagraphBorders != null && paragraphFormat.ParagraphBorders.Value.HasAny) {
@@ -1801,7 +1801,7 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new Shading {
                     Val = ShadingPatternValues.Clear,
                     Color = "auto",
-                    Fill = paragraphFormat.ParagraphShading.Value.FillColorHex!
+                    Fill = paragraphFormat.ParagraphShading.Value.OpenXmlFill!
                 });
                 hasProperties = true;
             }
