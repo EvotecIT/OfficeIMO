@@ -18,7 +18,17 @@ internal static class TextParity {
         string[] pairs = (Options.Get(args, "--pairs") ??
                 "officeimo:pdfium,pdfoxide:pdfium,pdfpig:pdfium,officeimo-read:pdfium,officeimo:pdfoxide")
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        string[] suites = Directory.GetDirectories(Path.Combine(textRoot, "pdfium")).Select(Path.GetFileName).ToArray()!;
+        // Suites come from every engine named in the pairs, so a run without PDFium, or a suite where one engine
+        // failed throughout, still compares the engines that have output.
+        string[] suites = pairs.SelectMany(static pair => pair.Split(':'))
+            .Distinct(StringComparer.Ordinal)
+            .Select(engine => Path.Combine(textRoot, engine))
+            .Where(Directory.Exists)
+            .SelectMany(Directory.GetDirectories)
+            .Select(static directory => Path.GetFileName(directory))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static suite => suite, StringComparer.Ordinal)
+            .ToArray();
 
         var rows = new List<string>();
         foreach (string suite in suites) {
@@ -88,12 +98,7 @@ internal static class TextParity {
     }
 
     internal static string Normalize(string text) {
-        string normalized = ReplaceLoneSurrogates(text);
-        try {
-            normalized = normalized.Normalize(NormalizationForm.FormKC);
-        } catch (ArgumentException) {
-            // Noncharacters such as U+FFFE are rejected by normalization; compare those texts as emitted.
-        }
+        string normalized = PrepareForNormalization(text).Normalize(NormalizationForm.FormKC);
         var builder = new StringBuilder(normalized.Length);
         bool pendingSpace = false;
         foreach (char c in normalized) {
@@ -113,26 +118,33 @@ internal static class TextParity {
         return builder.ToString();
     }
 
-    /// <summary>Engines can emit unpaired surrogates for unmappable glyphs; NFKC rejects them.</summary>
-    private static string ReplaceLoneSurrogates(string text) {
+    /// <summary>
+    /// Engines can emit unpaired surrogates and noncharacters for unmappable glyphs, and NFKC rejects both. Unpaired
+    /// surrogates become U+FFFD; noncharacters are ignored anyway, so they are dropped before normalisation so the
+    /// rest of the text is still normalised.
+    /// </summary>
+    private static string PrepareForNormalization(string text) {
         StringBuilder? builder = null;
         for (int i = 0; i < text.Length; i++) {
             char c = text[i];
             bool paired = char.IsHighSurrogate(c) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]);
-            if (paired) {
-                builder?.Append(c).Append(text[i + 1]);
-                i++;
-                continue;
-            }
-            if (char.IsSurrogate(c)) {
+            int codePoint = paired ? char.ConvertToUtf32(c, text[i + 1]) : c;
+            int width = paired ? 2 : 1;
+            if (IsNoncharacter(codePoint)) {
+                builder ??= new StringBuilder(text, 0, i, text.Length);
+            } else if (!paired && char.IsSurrogate(c)) {
                 builder ??= new StringBuilder(text, 0, i, text.Length);
                 builder.Append('�');
             } else {
-                builder?.Append(c);
+                builder?.Append(text, i, width);
             }
+            i += width - 1;
         }
         return builder?.ToString() ?? text;
     }
+
+    private static bool IsNoncharacter(int codePoint) =>
+        codePoint is >= 0xFDD0 and <= 0xFDEF || (codePoint & 0xFFFE) == 0xFFFE;
 
     private static double WordDice(string[] a, string[] b) {
         if (a.Length + b.Length == 0) {

@@ -67,9 +67,7 @@ internal static class CorpusRunner {
                     for (int offset = 0; offset < engines.Length; offset++) {
                         string engine = engines[(offset + rotation) % engines.Length];
                         string? textPath = writeText ? Path.Combine(textRoot, engine, suite, relative + ".txt") : null;
-                        if (textPath is not null && File.Exists(textPath)) {
-                            File.Delete(textPath);
-                        }
+                        DeleteText(textPath);
                         Outcome outcome;
                         if (mode == "cold") {
                             using var process = new EngineProcess(engine);
@@ -85,6 +83,11 @@ internal static class CorpusRunner {
                                 worker.Dispose();
                                 workers.Remove(engine);
                             }
+                        }
+                        if (outcome.Status != "ok") {
+                            // Only successful extractions may leave text for parity; the process has exited or
+                            // answered, so nothing is still writing these paths.
+                            DeleteText(textPath);
                         }
                         csv.WriteLine(string.Join(',',
                             Csv(suite), Csv(relative), engine, mode, outcome.Status,
@@ -121,6 +124,17 @@ internal static class CorpusRunner {
         return (shard, count);
     }
 
+    private static void DeleteText(string? textPath) {
+        if (textPath is null) {
+            return;
+        }
+        foreach (string path in new[] { textPath, textPath + ExtractionWorker.PartialSuffix }) {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
     internal static string Csv(string? value) {
         if (string.IsNullOrEmpty(value)) {
             return string.Empty;
@@ -146,8 +160,9 @@ internal static class CorpusRunner {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
+                StandardInputEncoding = ExtractionWorker.Utf8,
+                StandardOutputEncoding = ExtractionWorker.Utf8,
+                StandardErrorEncoding = ExtractionWorker.Utf8
             };
             string entryAssembly = typeof(CorpusRunner).Assembly.Location;
             if (Path.GetFileNameWithoutExtension(Environment.ProcessPath!).Equals("dotnet", StringComparison.OrdinalIgnoreCase)) {
@@ -161,7 +176,7 @@ internal static class CorpusRunner {
                 if (e.Data is null) {
                     _results.CompleteAdding();
                 } else if (e.Data.StartsWith(ExtractionWorker.ResultPrefix, StringComparison.Ordinal)) {
-                    _results.Add(e.Data[ExtractionWorker.ResultPrefix.Length..]);
+                    _results.TryAdd(e.Data[ExtractionWorker.ResultPrefix.Length..]);
                 }
             };
             _process.ErrorDataReceived += (_, e) => {
@@ -182,7 +197,7 @@ internal static class CorpusRunner {
             long requested = _firstRequest ? _started : Stopwatch.GetTimestamp();
             _firstRequest = false;
             try {
-                _process.StandardInput.WriteLine(file + "\t" + (textPath ?? string.Empty));
+                _process.StandardInput.WriteLine(JsonSerializer.Serialize(new WorkerRequest(file, textPath)));
                 _process.StandardInput.Flush();
             } catch (IOException) {
                 return Crash(requested);
@@ -232,8 +247,13 @@ internal static class CorpusRunner {
             } catch (IOException) {
                 Kill();
             }
+            if (_process.HasExited) {
+                // The parameterless wait returns only after the redirected output and error callbacks have drained,
+                // so no callback can touch the result channel after it is disposed.
+                _process.WaitForExit();
+                _results.Dispose();
+            }
             _process.Dispose();
-            _results.Dispose();
         }
     }
 }

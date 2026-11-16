@@ -11,11 +11,22 @@ internal static class ResultSummary {
     internal static int Run(string[] args) {
         string output = Path.GetFullPath(Options.Get(args, "--output") ?? throw new ArgumentException("--output is required."));
         string pattern = Options.Get(args, "--pattern") ?? "results-*.csv";
-        var rows = Directory.EnumerateFiles(output, pattern)
-            .SelectMany(static file => ReadCsv(file).Skip(1))
-            .Select(static fields => new Row(fields[0], fields[1], fields[2], fields[3], fields[4],
-                double.Parse(fields[5], CultureInfo.InvariantCulture), double.Parse(fields[6], CultureInfo.InvariantCulture)))
-            .ToList();
+        // Shards with different counts can cover the same file; each (mode, suite, file, engine) counts once and
+        // the most recently written result wins.
+        var latest = new Dictionary<(string Mode, string Suite, string File, string Engine), Row>();
+        int rowCount = 0;
+        foreach (string path in Directory.EnumerateFiles(output, pattern).OrderBy(static path => File.GetLastWriteTimeUtc(path))) {
+            foreach (string[] fields in ReadCsv(path).Skip(1)) {
+                var row = new Row(fields[0], fields[1], fields[2], fields[3], fields[4],
+                    double.Parse(fields[5], CultureInfo.InvariantCulture), double.Parse(fields[6], CultureInfo.InvariantCulture));
+                latest[(row.Mode, row.Suite, row.File, row.Engine)] = row;
+                rowCount++;
+            }
+        }
+        if (rowCount > latest.Count) {
+            Console.Error.WriteLine($"{rowCount - latest.Count} duplicate rows from overlapping shards were counted once, using the newest result file.");
+        }
+        List<Row> rows = latest.Values.ToList();
 
         var report = new StringBuilder();
         var metrics = new StringBuilder("mode,suite,engine,files,pass,errors,timeouts,crashes,pass_rate,mean_ms,p50_ms,p99_ms,max_ms,total_s,mean_wall_ms\n");
@@ -38,7 +49,7 @@ internal static class ResultSummary {
                     report.AppendLine(string.Create(CultureInfo.InvariantCulture,
                         $"| {engineGroup.Key} | {files} | {passRate:0.0}% | {mean:0.00} | {p50:0.00} | {p99:0.0} | {max:0} | {errors} | {timeouts} | {crashes} |"));
                     metrics.AppendLine(string.Create(CultureInfo.InvariantCulture,
-                        $"{modeGroup.Key},{suiteGroup.Key},{engineGroup.Key},{files},{times.Length},{errors},{timeouts},{crashes},{passRate:0.00},{mean:0.000},{p50:0.000},{p99:0.000},{max:0.000},{times.Sum() / 1000:0.000},{wall:0.000}"));
+                        $"{CorpusRunner.Csv(modeGroup.Key)},{CorpusRunner.Csv(suiteGroup.Key)},{CorpusRunner.Csv(engineGroup.Key)},{files},{times.Length},{errors},{timeouts},{crashes},{passRate:0.00},{mean:0.000},{p50:0.000},{p99:0.000},{max:0.000},{times.Sum() / 1000:0.000},{wall:0.000}"));
                 }
                 report.AppendLine();
             }
