@@ -37,7 +37,8 @@ public static partial class OfficePngWriter {
         int target = 0;
         for (int band = 0; band < bands; band++) {
             token.ThrowIfCancellationRequested();
-            int start = bands == 1 ? 0 : (int)((long)band * (height - bandRows) / (bands - 1));
+            // A single band sits in the middle, so even a one-row sample keeps a real predecessor for Up and Paeth.
+            int start = bands == 1 ? (height - bandRows) / 2 : (int)((long)band * (height - bandRows) / (bands - 1));
             if (start > 0) Buffer.BlockCopy(scanlines, (start - 1) * rowLength + 1, workspace.Previous, 0, rowBytes);
             else Array.Clear(workspace.Previous, 0, rowBytes);
             for (int y = start; y < start + bandRows; y++, target += rowLength) {
