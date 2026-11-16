@@ -88,16 +88,21 @@ internal static partial class PdfDocumentSemanticEnricher {
             var ownedWords = new HashSet<PdfUnderstandingWord>(item.Words);
             item.Words.Clear();
             foreach (ContentsRow row in GroupContentsRows(item.Lines, budget)) item.Words.AddRange(row.Words.Where(ownedWords.Contains));
-            if (!TrySplitContentsEntry(item.Words, strictPageLabel: false, out List<PdfUnderstandingWord> title, out string? pageLabel, out _,
-                    out string? lastTitleText)) continue;
-            // With an artifact leader the gap before the page number can be narrow. Structure still tells them
-            // apart: the title is the entry's Link and the page number is outside it. Without that, keep the text whole.
-            if (pageLabel is null && title.Count > 1 && IsPageLabel(title[title.Count - 1].Text.Trim(), strict: false) &&
-                !HasRole(title[title.Count - 1], "Link") && title.Take(title.Count - 1).All(word => HasRole(word, "Link"))) {
-                pageLabel = title[title.Count - 1].Text.Trim();
-                title.RemoveAt(title.Count - 1);
-                lastTitleText = null;
+            List<PdfUnderstandingWord> title;
+            string? pageLabel;
+            string? lastTitleText = null;
+            // Structure decides first: the title is the entry's Link and the page number is the text after it.
+            // With an artifact leader the gap can be narrow, and the title can end in its own dots.
+            int linkEnd = item.Words.FindLastIndex(word => HasRole(word, "Link"));
+            List<PdfUnderstandingWord> afterLink = item.Words.Skip(linkEnd + 1).Where(word => !IsLeaderWord(word.Text)).ToList();
+            if (linkEnd >= 0 && item.Words.Take(linkEnd + 1).All(word => HasRole(word, "Link")) &&
+                afterLink.Count == 1 && IsPageLabel(afterLink[0].Text.Trim(), strict: false)) {
+                title = item.Words.Take(linkEnd + 1).ToList();
+                pageLabel = afterLink[0].Text.Trim();
+            } else if (!TrySplitContentsEntry(item.Words, strictPageLabel: false, out title, out pageLabel, out _, out lastTitleText)) {
+                continue;
             }
+            if (!title.Any(static word => word.Text.Any(char.IsLetter))) continue;
             entries.Add(new PdfContentsEntrySource(item.Level, title, pageLabel, item.Words, item.Lines,
                 new PdfInferenceEvidence("semantic-tagged-contents-item",
                     "The nearest tagged TOCI structure " + objectNumber.ToString(CultureInfo.InvariantCulture) +

@@ -132,7 +132,7 @@ public class PdfTableOfContentsReadbackTests {
         // Titles from comfortably short up to wrapping, so some leave only a narrow gap before the page number.
         string[] words = "Quarterly review of identity backup messaging endpoint and network findings with owners and dates".Split(' ');
         (string, int)[] sections = Enumerable.Range(8, words.Length - 7)
-            .Select(count => (string.Join(" ", words.Take(count)) + " " + count, 1)).ToArray();
+            .Select(count => (string.Join(" ", words.Take(count)) + (count % 2 == 0 ? " " + count : "..."), 1)).ToArray();
         PdfLogicalListItem[] entries = PdfDocument.Load(CreateContents(Options(tagged: true), sections, startOnNewPage: true))
             .Read().Pages[0].ListItems.Where(static item => item.IsContentsEntry).ToArray();
 
@@ -183,7 +183,7 @@ public class PdfTableOfContentsReadbackTests {
     }
 
     [Fact]
-    public void ContentsEntries_KeepTheirPageNumbersInWordHtmlAndRtf() {
+    public void ContentsEntries_KeepTheirPageNumbersInImports() {
         byte[] bytes = CreateContents(Options(tagged: true), NestedSections, startOnNewPage: true);
         string expected = "Scope — 3";
 
@@ -196,6 +196,9 @@ public class PdfTableOfContentsReadbackTests {
         Assert.Contains("<li>" + expected + "</li>", html, StringComparison.Ordinal);
         OfficeIMO.Rtf.RtfDocument rtf = PdfDocument.Load(bytes).Read().ToRtf(new PdfRtfExportOptions());
         Assert.Contains(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == expected);
+        OfficeIMO.Reader.OfficeDocumentReadResult reader = OfficeIMO.Reader.Pdf.PdfReaderAdapter.ReadDocument(
+            PdfDocument.Load(bytes).Read(), sourceName: "contents.pdf");
+        Assert.Contains(reader.Blocks, block => block.Kind == "list-item" && block.Text == expected);
     }
 
     [Theory]
