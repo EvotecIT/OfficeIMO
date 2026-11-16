@@ -1,0 +1,76 @@
+name: Compare affected-project selectors
+
+# Observation only: no production workflow calls this workflow or consumes its outputs.
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Baseline commit to compare with the selected workflow revision
+        required: true
+        default: HEAD^1
+      discovery:
+        description: Discovery boundary (all can require optional SDKs and sibling sources)
+        type: choice
+        options: [OfficeIMO.slnx, all]
+        default: OfficeIMO.slnx
+      exclude_discovery:
+        description: Optional discovery regex; exclusions are listed separately from savings
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    name: Observe / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    env:
+      DOTNET_PROCESSOR_COUNT: '2'
+      MSBUILDDISABLENODEREUSE: '1'
+      DOTNET_CLI_USE_MSBUILD_SERVER: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+          global-json-file: global.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install the comparison tool
+        shell: pwsh
+        run: dotnet tool install dotnet-affected --version 7.0.1 --tool-path "${{ runner.temp }}/affected-tools"
+      - name: Compare committed inputs
+        shell: pwsh
+        env:
+          PILOT_BASE: ${{ inputs.base }}
+          PILOT_DISCOVERY: ${{ inputs.discovery }}
+          PILOT_EXCLUDE: ${{ inputs.exclude_discovery }}
+        run: |
+          $tool = Join-Path '${{ runner.temp }}/affected-tools' $(if ($IsWindows) { 'dotnet-affected.exe' } else { 'dotnet-affected' })
+          $arguments = @('Build/Ci/compare_affected.py', '--base', $env:PILOT_BASE, '--filter', $env:PILOT_DISCOVERY, '--tool', $tool, '--output', '${{ runner.temp }}/affected-comparison')
+          if ($env:PILOT_EXCLUDE) { $arguments += @('--exclude-discovery', $env:PILOT_EXCLUDE) }
+          python @arguments
+          exit $LASTEXITCODE
+      - name: Summarize the observation
+        if: always()
+        shell: pwsh
+        run: |
+          $report = '${{ runner.temp }}/affected-comparison/comparison.md'
+          if (Test-Path -LiteralPath $report) { Get-Content -LiteralPath $report | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY }
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: affected-comparison-${{ matrix.os }}
+          path: ${{ runner.temp }}/affected-comparison
+          if-no-files-found: warn
+          retention-days: 14

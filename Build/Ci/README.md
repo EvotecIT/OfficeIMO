@@ -1,5 +1,56 @@
 # Pull-request validation
 
+## Compare affected-project selectors
+
+`compare_affected.py` compares the existing selector with dotnet-affected 7.0.1.
+It observes committed inputs without building projects, restoring product packages,
+writing GitHub selection outputs or changing the existing workflow decisions.
+The separate **Compare affected-project selectors** workflow is manual and has
+no consumers in the validation workflows. It uploads a report for Windows and
+Linux; a failed or inconsistent observation does not change their coverage.
+
+For a local comparison, install the optional tool outside the checkout and use a
+clean standalone clone at the revision being evaluated:
+
+```powershell
+dotnet tool install dotnet-affected --version 7.0.1 --tool-path <scratch>/tools
+python Build/Ci/compare_affected.py --repository <clean-clone> --base <baseline-commit> --tool <scratch>/tools/dotnet-affected --output <scratch>/comparison
+```
+
+On Windows, use the tool's `.exe` apphost. Each output directory must be new and
+outside the evaluated checkout. `--base` compares that commit with the checkout's
+current commit; both selectors evaluate that current source. For historical
+comparisons, check out the historical revision in the disposable clone first.
+The comparison calls the selector as an ordinary PR; master, nightly, manual and
+`full-ci` validation overrides remain unchanged.
+
+The default discovery boundary is `OfficeIMO.slnx`. The report lists current
+selection outside that boundary separately, without counting it as a saving.
+For a broader comparison, `--filter all` includes tracked projects outside the
+solution. The opt-in `Build/HtmlReportFixtures/producer` needs an external
+HtmlForgeX checkout. To compare the other projects without that checkout, pass
+`--exclude-discovery '[/\\]Build[/\\]HtmlReportFixtures[/\\]producer[/\\]'`.
+Exclusions use regex syntax supported by both Python and .NET and are recorded
+in the report. They can remove dependency paths, so the result remains scoped
+to the retained graph. Unrestricted discovery reports errors instead of silently
+excluding projects that cannot be evaluated.
+
+The tool runs three times against identical inputs. Different project sets mark
+the report `unstable` and withhold savings. Otherwise, current-only projects are
+review candidates, not permission to skip their contracts. Runtime-loaded
+fixtures, native and PowerShell checks, platform conditions and package-consumer
+validation still require their existing rules. Project counts are not build
+minutes; selection timings measure only the comparison overhead. The JSON report
+retains every observation, source revisions, discovery inventory and selected
+suites so differences can be investigated.
+
+Version 7.0.1's Git library rejects repositories with `extensions.worktreeConfig`.
+Use a disposable standalone clone for the experiment rather than changing the
+shared repository's Git configuration. SDK or graph evaluation failures remain
+explicit incomplete reports.
+
+## Existing selection
+
 `select.py` follows tracked `ProjectReference` edges in reverse, from changed
 projects to their consumers. `pr-suites.json` assigns executable contracts to
 jobs and Ubuntu partitions. Conditional references are included for every host;
