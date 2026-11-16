@@ -55,6 +55,18 @@ public sealed class StudioStartGalleryTests {
                 Assert.Equal(StudioWorkspaceMode.PdfWorkspace, model.WorkspaceMode);
                 Assert.Equal(StudioDocumentMode.Pages, model.DocumentMode);
                 Assert.False(model.Commands.Start["Pages"].OpensDocumentFirst);
+
+                // From the start screen with a document open, a tool that doesn't switch screens itself still shows the document.
+                model.WorkspaceMode = StudioWorkspaceMode.Home;
+                bool nightMode = model.IsPageNightMode;
+                await model.StartToolAsync("PageNightMode");
+                Assert.Equal(StudioWorkspaceMode.PdfWorkspace, model.WorkspaceMode);
+                Assert.NotEqual(nightMode, model.IsPageNightMode);
+
+                // Workbenches keep their own screen.
+                model.WorkspaceMode = StudioWorkspaceMode.Home;
+                await model.StartToolAsync("Invoices");
+                Assert.True(model.IsInvoiceMode);
                 return true;
             }, CancellationToken.None);
         } finally {
