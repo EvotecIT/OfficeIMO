@@ -51,7 +51,7 @@
           {{~ end ~}}
         </ul>
         {{~ if cell.items.size > visible ~}}
-        <details class="imo-capabilities__more"><summary>{{ cell.items.size - visible }} more</summary><ul class="imo-capabilities__items">
+        <details class="imo-capabilities__more"><summary>{{ cell.items.size - visible }} more<span class="imo-visually-hidden"> for {{ job.title | string.downcase }} with {{ surface.label }}</span></summary><ul class="imo-capabilities__items">
           {{~ for item in cell.items offset:visible ~}}
           <li><a href="{{ item.url }}">{{ item.label | html.escape | string.replace "_" "_<wbr>" | string.replace "." ".<wbr>" | string.replace "-" "-<wbr>" }}<span class="imo-visually-hidden"> ({{ surface.label }})</span></a></li>
           {{~ end ~}}

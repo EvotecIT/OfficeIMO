@@ -11,6 +11,7 @@
     - .NET packages from data/documentation_catalog.json (with each package's guide URL)
     - PowerShell commands from the PSWriteOffice command metadata that the pipeline syncs before this step, the same
       inventory the PowerShell reference pages are built from
+    - CLI command groups from data/cli/commands.json
     - MCP tools and agent skills from data/agent_integrations.json
     - Studio support on each system from data/studio_features.json
     - conversion route counts per surface from data/format_map.json
@@ -40,6 +41,7 @@ $sources = [ordered]@{
     packages   = 'Website/data/documentation_catalog.json'
     powershell = 'Website/data/apidocs/powershell/command-metadata.json'
     agents     = 'Website/data/agent_integrations.json'
+    cli        = 'Website/data/cli/commands.json'
     studio     = 'Website/data/studio_features.json'
     formats    = 'Website/data/format_map.json'
 }
@@ -56,6 +58,9 @@ $commands = @{}
 foreach ($command in $data.powershell.commands) {
     if ($command.kind -ne 'Alias') { $commands[[string] $command.name] = $command }
 }
+$cliGroups = @{}
+foreach ($group in $data.cli.groups) { $cliGroups[[string] $group.id] = $group }
+$cliCommand = [string] $data.cli.tool.command
 $tools = @{}
 foreach ($tool in $data.agents.tools) { $tools[[string] $tool.name] = $tool }
 $features = @{}
@@ -93,7 +98,11 @@ $jobs = foreach ($job in $data.jobs.jobs) {
     $extra = if ($job.routes) { "$($routeCounts['powershell']) conversion routes" } else { '' }
     $cells.powershell = New-Cell ([string] $job.powershell.guide) $items $extra
 
-    $items = @(foreach ($name in $job.agents.tools) {
+    $items = @(foreach ($id in $job.agents.cli) {
+        if (-not $cliGroups.ContainsKey([string] $id)) { $problems.Add("Job '$($job.id)' names CLI command '$id', which the CLI catalog does not list."); continue }
+        [ordered]@{ label = "$cliCommand $id"; url = [string] $cliGroups[$id].docsUrl }
+    })
+    $items += @(foreach ($name in $job.agents.tools) {
         if (-not $tools.ContainsKey([string] $name)) { $problems.Add("Job '$($job.id)' names MCP tool '$name', which the agents page does not list."); continue }
         [ordered]@{ label = [string] $name; url = "/agents/#tool-$name" }
     })
@@ -143,6 +152,7 @@ $overview = [ordered]@{
     summary       = [ordered]@{
         packageCount  = $packages.Count
         commandCount  = $commands.Count
+        cliCount      = $cliGroups.Count
         toolCount     = $tools.Count
         skillCount    = @($data.agents.skills).Count
         studioFeatures = $features.Count

@@ -5,12 +5,14 @@
     "Website/data/documentation_catalog.json",
     "Website/data/apidocs/powershell/command-metadata.json",
     "Website/data/agent_integrations.json",
+    "Website/data/cli/commands.json",
     "Website/data/studio_features.json",
     "Website/data/format_map.json"
   ],
   "summary": {
     "packageCount": 160,
     "commandCount": 521,
+    "cliCount": 17,
     "toolCount": 20,
     "skillCount": 2,
     "studioFeatures": 53,
@@ -108,6 +110,10 @@
           "guide": "/agents/",
           "extra": "",
           "items": [
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
             {
               "label": "officeimo_convert",
               "url": "/agents/#tool-officeimo_convert"
@@ -228,6 +234,22 @@
           "guide": "/agents/",
           "extra": "",
           "items": [
+            {
+              "label": "officeimo read",
+              "url": "/docs/cli/extract-and-inspect/"
+            },
+            {
+              "label": "officeimo inspect",
+              "url": "/docs/cli/extract-and-inspect/#inspect-a-file"
+            },
+            {
+              "label": "officeimo reader",
+              "url": "/docs/cli/extract-and-inspect/"
+            },
+            {
+              "label": "officeimo query",
+              "url": "/docs/cli/extract-and-inspect/#query-yaml-json-and-toml"
+            },
             {
               "label": "officeimo_inspect",
               "url": "/agents/#tool-officeimo_inspect"
@@ -360,6 +382,22 @@
           "guide": "/cli/",
           "extra": "43 routes in the CLI",
           "items": [
+            {
+              "label": "officeimo convert",
+              "url": "/docs/cli/convert/"
+            },
+            {
+              "label": "officeimo html",
+              "url": "/docs/cli/html/"
+            },
+            {
+              "label": "officeimo tabular",
+              "url": "/docs/cli/convert/#spreadsheets-and-delimited-files"
+            },
+            {
+              "label": "officeimo markup",
+              "url": "/docs/cli/markup/"
+            },
             {
               "label": "officeimo_convert",
               "url": "/agents/#tool-officeimo_convert"
@@ -496,6 +534,14 @@
           "guide": "/agents/",
           "extra": "",
           "items": [
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
             {
               "label": "officeimo_pdf_split",
               "url": "/agents/#tool-officeimo_pdf_split"
@@ -637,6 +683,14 @@
           "extra": "",
           "items": [
             {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
               "label": "officeimo_pdf_compare",
               "url": "/agents/#tool-officeimo_pdf_compare"
             },
@@ -761,6 +815,10 @@
           "extra": "",
           "items": [
             {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
               "label": "officeimo_pdf",
               "url": "/agents/#tool-officeimo_pdf"
             }
@@ -876,6 +934,18 @@
           "guide": "/agents/",
           "extra": "",
           "items": [
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
+              "label": "officeimo hidden-data",
+              "url": "/docs/cli/before-sharing/#hidden-data"
+            },
+            {
+              "label": "officeimo provenance",
+              "url": "/docs/cli/before-sharing/#content-credentials-and-ai-labels"
+            },
             {
               "label": "officeimo_inspect_hidden_data",
               "url": "/agents/#tool-officeimo_inspect_hidden_data"
@@ -1007,7 +1077,16 @@
         "agents": {
           "guide": "/agents/",
           "extra": "",
-          "items": []
+          "items": [
+            {
+              "label": "officeimo invoice",
+              "url": "/docs/cli/invoices/"
+            },
+            {
+              "label": "officeimo provenance",
+              "url": "/docs/cli/before-sharing/#content-credentials-and-ai-labels"
+            }
+          ]
         },
         "studio": {
           "guide": "/studio/#feature-handwritten-signature",
@@ -1116,6 +1195,14 @@
           "extra": "",
           "items": [
             {
+              "label": "officeimo accessibility",
+              "url": "/docs/cli/before-sharing/#accessibility"
+            },
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
               "label": "officeimo_check_accessibility",
               "url": "/agents/#tool-officeimo_check_accessibility"
             },
@@ -1220,6 +1307,10 @@
           "extra": "",
           "items": [
             {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
               "label": "officeimo_pdf_print_plan",
               "url": "/agents/#tool-officeimo_pdf_print_plan"
             }
@@ -1319,6 +1410,18 @@
           "guide": "/agents/",
           "extra": "",
           "items": [
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
+              "label": "officeimo agent",
+              "url": "/docs/cli/mcp-and-agents/#agent-commands"
+            },
+            {
+              "label": "officeimo mcp",
+              "url": "/docs/cli/mcp-and-agents/"
+            },
             {
               "label": "officeimo_capabilities",
               "url": "/agents/#tool-officeimo_capabilities"
