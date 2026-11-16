@@ -128,7 +128,7 @@ _modules.set("0e5ede7759618ed3ec827d34fbd62b205f3a5241650504807c24e5323a2496a5",
 return _exports;
 })();
 
-const _m11 = _modules.get("688b82bc547a5189861020b7c8a696816f7b8990933bc3b43a1d9825133b879b") ?? (() => {
+const _m11 = _modules.get("8edb7b3b19d6555ea24a92d771d532dc0448ad18101fdf663217b4c518b5a31b") ?? (() => {
 const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _c8;
 
 const { ExportBudget } = _c9;
@@ -178,7 +178,7 @@ function reorderedSources(before, after) {
     if (!before || before.length !== after.length || new Set(before).size !== before.length)
         return undefined;
     const sources = after.map(label => before.indexOf(label));
-    return sources.every(source => source >= 0) && sources.some((source, index) => source !== index) ? sources : undefined;
+    return sources.every(source => source >= 0) && new Set(sources).size === sources.length && sources.some((source, index) => source !== index) ? sources : undefined;
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
@@ -387,7 +387,7 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport, captureDataTablesExport: captureDataTablesExport });
-_modules.set("688b82bc547a5189861020b7c8a696816f7b8990933bc3b43a1d9825133b879b", _exports);
+_modules.set("8edb7b3b19d6555ea24a92d771d532dc0448ad18101fdf663217b4c518b5a31b", _exports);
 return _exports;
 })();
 
@@ -436,7 +436,7 @@ _modules.set("7b12a415e92cc9ef7212fb3a88007cb6dc37f9f30077165d4897cfa8052f9a3c",
 return _exports;
 })();
 
-const _m0 = _modules.get("6938e95ad31b974b8c7813328ac7ebad9e046c8eba7236ba6fb48cfe4174bcde") ?? (() => {
+const _m0 = _modules.get("f5f1435b6f22ab08d91f4a58bb66e975d4427bcaf5697011e28bfa9e74b2a2ca") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _c0;
 
 const { notifyProgress } = _c1;
@@ -619,7 +619,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m11.createDataTablesExport, ExportCell: _c6.ExportCell, PdfFont: _c15.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("6938e95ad31b974b8c7813328ac7ebad9e046c8eba7236ba6fb48cfe4174bcde", _exports);
+_modules.set("f5f1435b6f22ab08d91f4a58bb66e975d4427bcaf5697011e28bfa9e74b2a2ca", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

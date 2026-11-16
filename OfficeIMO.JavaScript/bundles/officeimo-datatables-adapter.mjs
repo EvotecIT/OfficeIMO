@@ -172,7 +172,7 @@ function reorderedSources(before, after) {
     if (!before || before.length !== after.length || new Set(before).size !== before.length)
         return undefined;
     const sources = after.map(label => before.indexOf(label));
-    return sources.every(source => source >= 0) && sources.some((source, index) => source !== index) ? sources : undefined;
+    return sources.every(source => source >= 0) && new Set(sources).size === sources.length && sources.some((source, index) => source !== index) ? sources : undefined;
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {

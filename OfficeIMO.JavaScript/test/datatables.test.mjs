@@ -478,6 +478,8 @@ test("DataTables column options follow columns that customizeData reorders", asy
   assert.throws(() => createDataTablesExport(grouped.host, grouped.table, options), /reorder columns under grouped headings/);
   const renamed = { customizeData: data => { swap.customizeData(data); data.header[0] = "Amount USD"; } };
   assert.throws(() => createDataTablesExport(host, table, { ...options, exportOptions: renamed }), /cannot be matched to columns/);
+  const duplicated = { customizeData: data => { swap.customizeData(data); data.header[1] = "Amount"; } };
+  assert.throws(() => createDataTablesExport(host, table, { ...options, exportOptions: duplicated }), /cannot be matched to columns/);
   assert.equal(createDataTablesExport(host, table, { mode: "compatibility", exportOptions: renamed }).columns[0].header, "Amount USD");
 });
 
