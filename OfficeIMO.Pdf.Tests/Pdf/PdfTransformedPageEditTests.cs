@@ -191,6 +191,23 @@ public class PdfTransformedPageEditTests {
     }
 
     [Fact]
+    public void SurplusRestoreBeforeAnInlineImageStillCannotMoveTheEdit() {
+        const string content = "Q 1 0 0 1 100 0 cm BI /W 1 /H 1 /BPC 8 /CS /RGB ID abc EI\n";
+        byte[] pdf = Serialize(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Contents 4 0 R >>",
+            "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream"
+        });
+
+        byte[] stamped = PdfStamper.StampText(pdf, "EDITMARK", new PdfTextStampOptions { Color = Red });
+
+        PdfViewerPaint text = Assert.Single(PdfViewerGeometry.Paint(stamped), paint => paint.Kind == "text");
+        Assert.Equal((36D, 36D), (text.E, text.F));
+        Assert.Contains("ID abc EI", PdfTestContentText.ReadDecoded(stamped), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddedTextWithAnExplicitRotationStaysInsideItsRegionOnRotatedPages() {
         var fixture = new Fixture(ContentShape.Balanced, 180, BoxShape.Origin);
 

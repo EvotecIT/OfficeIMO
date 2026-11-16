@@ -10,7 +10,8 @@ namespace OfficeIMO.Pdf;
 /// wrapper it restores the wrapper's state instead, so the original content escapes the wrapper and edits pick up what it
 /// changes afterwards. Wrappers therefore close every state the original content leaves open, and streams that restore
 /// more states than they saved are replaced by copies whose surplus <c>Q</c> operators are blanked, which keeps the
-/// original page drawing exactly as before. Streams with inline images are kept as they are.
+/// original page drawing exactly as before. Image data is never touched: only restores before a stream's first inline
+/// image are blanked.
 /// </remarks>
 internal static class PdfPageContentIsolation {
     /// <summary>The original content entries to wrap, and the restores that close them.</summary>
@@ -117,18 +118,18 @@ internal static class PdfPageContentIsolation {
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
                         // Inline image data ends where its colour space says; without the page resources an aliased
-                        // colour space can misplace that end, so a stream with inline images is never rewritten.
+                        // colour space can misplace that end, so only restores before the first inline image are blanked.
                         if (operation.Name == "BI") hasInlineImage = true;
                         if (operation.Name == "q") {
                             depth++;
                         } else if (operation.Name == "Q") {
                             if (depth > 0) depth--;
-                            else (surplus ??= new List<int>()).Add(operation.OperatorOffset);
+                            else if (!hasInlineImage) (surplus ??= new List<int>()).Add(operation.OperatorOffset);
                         }
                         return true;
                     },
                     maxGraphicsStateDepth: int.MaxValue);
-                surplusRestores[index] = hasInlineImage ? null! : surplus!;
+                surplusRestores[index] = surplus!;
             }
         } catch (Exception exception) when (exception is InvalidDataException or PdfReadLimitException or FormatException) {
             return new Wrapping(entries, 1);
