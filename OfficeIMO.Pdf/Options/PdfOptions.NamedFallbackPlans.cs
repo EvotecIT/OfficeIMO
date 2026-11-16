@@ -108,7 +108,10 @@ public sealed partial class PdfCreateOptions {
         var prospective = _namedFontFamilies == null
             ? new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal)
             : new Dictionary<string, PdfEmbeddedFontFamily>(_namedFontFamilies, StringComparer.Ordinal);
-        PdfEmbeddedFontFallbackCandidate bound = PrepareNamedFallbackCandidate(candidate, prospective);
+        // The companion never replaces a family registered under its name, whoever owns it.
+        PdfEmbeddedFontFallbackCandidate bound = prospective.ContainsKey(NormalizeNamedFontFamilyKey(candidate.FontName))
+            ? candidate.WithRegisteredFamilyName(CreatePromotedFallbackFamilyName(candidate.FontName, PdfStandardFont.Helvetica, prospective))
+            : candidate;
         if (!TryRegisterNamedFontFamily(bound.FontFamilySnapshot)) return false;
         RegisterNamedFallbackPlan(bound);
         (_automaticFallbackOwnedNamedFamilyKeys ??= new HashSet<string>(StringComparer.Ordinal))

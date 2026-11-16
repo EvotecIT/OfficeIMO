@@ -52,6 +52,47 @@ public partial class PdfFontFamilyTests {
         Assert.All(spans, span => Assert.Equal(FillThenStroke, span.TextRenderingMode));
     }
 
+    [Fact]
+    public void FallbackRegularFaceCompanionKeepsAnotherFallbackWithTheSameName() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 0x2603);
+        byte[] bold = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 0x1F600);
+        byte[] other = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, ' ', 0x2602);
+        var fallbacks = new PdfEmbeddedFontFallbackSet(new[] {
+            new PdfEmbeddedFontFallbackCandidate(new PdfEmbeddedFontFamily("Pair", regular, bold)),
+            new PdfEmbeddedFontFallbackCandidate("Pair Regular Face", other)
+        });
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+            .EmbedStandardFont(PdfStandardFont.Helvetica, CreateRegistrationPrimaryFont(), "OfficeIMO Primary")
+            .RegisterEmbeddedFontFallbacks(fallbacks)
+            .Paragraph(paragraph => paragraph.AddText("A☃☂").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(10)))
+            .ToBytes();
+
+        Assert.Contains("A☃☂", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        PdfTextSpan[] spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
+        Assert.Equal(FillThenStroke, Assert.Single(spans, span => span.Text == "☃").TextRenderingMode);
+        Assert.Equal(6D, Assert.Single(spans, span => span.Text == "☂").Advance, 2);
+    }
+
+    [Fact]
+    public void FallbackRegularFaceCompanionWithoutNamedFamilyCapacityIsNotLeftUnresolved() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 0x1F600, 0x2603);
+        byte[] bold = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 0x1F600);
+        var options = new PdfCreateOptions { CompressContentStreams = false }
+            .EmbedStandardFont(PdfStandardFont.Helvetica, CreateRegistrationPrimaryFont(), "OfficeIMO Primary");
+        for (int index = 0; index < PdfCreateOptions.MaximumNamedFontFamilies; index++) {
+            options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Caller " + index, CreateRegistrationPrimaryFont()));
+        }
+        options.RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate(new PdfEmbeddedFontFamily("Full Fallback", regular, bold)) },
+            new[] { PdfStandardFont.TimesRoman }));
+
+        // The companion cannot be registered, so the run is reported instead of pointing at an unknown family.
+        Exception exception = Assert.ThrowsAny<ArgumentException>(() => PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.AddText("A☃").SetBold())
+            .ToBytes());
+        Assert.Contains("U+2603", exception.Message, StringComparison.Ordinal);
+    }
+
     private static PdfTextSpan[] RenderBoldFallbackRun(PdfEmbeddedFontFamily family, bool compatibilitySlots, string fallbackText) {
         var candidates = new[] { new PdfEmbeddedFontFallbackCandidate(family) };
         PdfEmbeddedFontFallbackSet fallbacks = compatibilitySlots

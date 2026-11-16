@@ -126,8 +126,9 @@ public sealed partial class PdfEmbeddedFontFamily {
         face != null && (ReferenceEquals(face, _regular) || HasUsableProgram(face)) ? face : null;
 
     /// <summary>
-    /// Returns a test that tells whether a styled face paints every scalar of a text that the regular face paints,
-    /// or null when the styled face is the regular face itself.
+    /// Returns a test that tells whether a styled face maps every scalar of a text the regular face maps, or null
+    /// when the styled face is the regular face itself. A scalar the regular face covers only through shaping,
+    /// such as the letters of a ligature it maps as one glyph, is left to the regular face.
     /// </summary>
     internal static Func<string, bool>? CreateStyledFaceCoverageTest(byte[] styledFace, byte[] regularFace) {
         if (ReferenceEquals(styledFace, regularFace)) return null;
@@ -140,7 +141,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                     scalar = char.ConvertToUtf32(text[index], text[index + 1]);
                     index++;
                 }
-                if (regular(scalar) && !styled(scalar)) return false;
+                if (!regular(scalar) || !styled(scalar)) return false;
             }
             return true;
         };

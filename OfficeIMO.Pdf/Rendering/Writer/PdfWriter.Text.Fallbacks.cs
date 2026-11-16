@@ -229,7 +229,7 @@ internal static partial class PdfWriter {
         if (fallbackSet.UsesNamedFontFamilies) {
             plannedRuns = fallbackSet.CreateNamedTextRuns(plan, styleTemplate)
                 .Select(options.ResolvePlannedNamedFallbackRun).ToArray();
-            return true;
+            return RegularFaceCompanionsResolved(ref plannedRuns);
         }
 
         if (!TryResolveFallbackFontSlots(fallbackSet, plan, selectedFont, options, out System.Collections.Generic.IReadOnlyDictionary<int, PdfStandardFont> fontSlots)) {
@@ -242,7 +242,15 @@ internal static partial class PdfWriter {
         }
 
         plannedRuns = plan.ToTextRuns(fontSlots, styleTemplate).Select(options.ResolvePlannedNamedFallbackRun).ToArray();
-        return true;
+        return RegularFaceCompanionsResolved(ref plannedRuns);
+    }
+
+    // A styled run's regular-face companion needs a named family. When none can be registered,
+    // the plan is not renderable and the text falls back to the ordinary missing-glyph handling.
+    private static bool RegularFaceCompanionsResolved(ref System.Collections.Generic.IReadOnlyList<PdfTextRun> plannedRuns) {
+        if (!plannedRuns.Any(run => run.PlannedFontFallback?.IsRegularFaceCandidate == true)) return true;
+        plannedRuns = Array.Empty<PdfTextRun>();
+        return false;
     }
 
     private static bool TryResolveFallbackFontSlots(
