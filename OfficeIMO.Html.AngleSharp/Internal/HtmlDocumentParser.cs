@@ -431,25 +431,31 @@ internal static class HtmlDocumentParser {
     /// Resolves the effective base URI from a parsed document and optional caller-provided fallback.
     /// </summary>
     // The first HTML <base href> in document order, as the base[href] selector finds it, read with a
-    // plain walk instead of running the selector engine over the whole document.
+    // pre-order walk over sibling links, which keeps no traversal state however wide the document is.
     private static IElement? FindFirstHtmlBaseElementWithHref(IHtmlDocument document) {
-        var pending = new Stack<INode>();
-        pending.Push(document);
-        while (pending.Count > 0) {
-            INode node = pending.Pop();
-            if (node is IElement element
-                && element.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase)
-                && element.HasAttribute("href")
-                && string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) {
-                return element;
-            }
+        INode? current = document.FirstChild;
+        while (current != null) {
+            if (current is IElement element) {
+                if (element.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase)
+                    && element.HasAttribute("href")
+                    && string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) {
+                    return element;
+                }
 
-            INodeList children = node.ChildNodes;
-            for (int i = children.Length - 1; i >= 0; i--) {
-                if (children[i] is IElement) {
-                    pending.Push(children[i]);
+                if (element.FirstChild != null) {
+                    current = element.FirstChild;
+                    continue;
                 }
             }
+
+            while (current.NextSibling == null) {
+                current = current.Parent;
+                if (current == null || ReferenceEquals(current, document)) {
+                    return null;
+                }
+            }
+
+            current = current.NextSibling;
         }
 
         return null;
