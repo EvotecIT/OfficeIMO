@@ -73,6 +73,26 @@ public partial class Word {
         Assert.Equal(expected, pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.Y, 2);
     }
 
+    [Fact]
+    public void SaveAsPdf_FitTextCellDoesNotWidenAnAutoFitColumn() {
+        byte[] Render(bool fitText) {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
+            table.LayoutMode = WordTableLayoutMode.AutoFit;
+            table.Rows[0].Cells[0].FitText = fitText;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "AB";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "Q";
+            return document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        }
+
+        using var control = PdfPigDocument.Open(Render(fitText: false));
+        using var pdf = PdfPigDocument.Open(Render(fitText: true));
+
+        Assert.Equal(control.GetPage(1).Letters.Single(letter => letter.Value == "Q").StartBaseLine.X,
+            pdf.GetPage(1).Letters.Single(letter => letter.Value == "Q").StartBaseLine.X, 1);
+    }
+
     private static byte[] RenderFitTextCell(WordFileFormat format, string text, bool fitText, Action<WordParagraph>? configure = null) {        using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(2, 1, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;

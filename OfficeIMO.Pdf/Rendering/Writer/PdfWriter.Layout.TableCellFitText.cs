@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
             } else if (natural > target) {
                 fitted.AddRange(CondenseTableCellFitTextLine(line, natural, target, baseFont, fontSize, measurementOptions));
             } else {
-                fitted.AddRange(SpreadTableCellFitTextLine(line, target - natural, baseFont, measurementOptions));
+                fitted.AddRange(SpreadTableCellFitTextLine(line, target - natural, target, baseFont, fontSize, measurementOptions));
             }
         }
 
@@ -101,7 +101,8 @@ internal static partial class PdfWriter {
             : run.WithHorizontalTextScaling(Math.Max(TableCellFitTextMinimumScaling, run.HorizontalTextScaling * factor))).ToArray();
 
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> SpreadTableCellFitTextLine(
-        System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double extraWidth, PdfStandardFont baseFont, PdfCreateOptions options) {
+        System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double extraWidth, double target,
+        PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         // Character spacing follows every rendered glyph, so distribute the extra width over shaped glyphs rather
         // than source characters. The final grapheme is split off unspaced so the line ends at the cell edge.
         int lastTextRun = -1;
@@ -128,10 +129,23 @@ internal static partial class PdfWriter {
         int spacedGlyphs = pieces.Where(piece => piece.Spaced).Sum(piece => CountTableCellFitTextGlyphs(piece.Run, baseFont, options));
         if (spacedGlyphs == 0) return line;
         double extraSpacing = extraWidth / spacedGlyphs;
-        return pieces.Select(piece => piece.Spaced
+        PdfTextRun[] spread = ApplyTableCellFitTextSpacing(pieces, extraSpacing);
+        // Splitting off the final grapheme can end a kerned pair, so check the spread line and take any
+        // overshoot back out of the spacing.
+        double overshoot = MeasureTableCellFitTextLine(spread, baseFont, fontSize, options) - target;
+        if (overshoot > 0D) {
+            extraSpacing -= overshoot / spacedGlyphs;
+            spread = extraSpacing > 0D ? ApplyTableCellFitTextSpacing(pieces, extraSpacing) : line.ToArray();
+        }
+
+        return spread;
+    }
+
+    private static PdfTextRun[] ApplyTableCellFitTextSpacing(
+        System.Collections.Generic.IReadOnlyList<(PdfTextRun Run, bool Spaced)> pieces, double extraSpacing) =>
+        pieces.Select(piece => piece.Spaced
             ? piece.Run.WithCharacterSpacing(OfficeIMO.OfficeLength.Points(extraSpacing))
             : piece.Run).ToArray();
-    }
 
     private static int CountTableCellFitTextGlyphs(PdfTextRun run, PdfStandardFont baseFont, PdfCreateOptions options) =>
         PrepareTableTextLineWidths(new[] { run }, baseFont, options)

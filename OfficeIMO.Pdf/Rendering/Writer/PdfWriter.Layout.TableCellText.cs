@@ -127,7 +127,8 @@ internal static partial class PdfWriter {
             var alignmentFrame = wrapWidth > cellInnerWidth
                 ? GetParagraphTextFrame(paragraphStyle, 0D, cellInnerWidth)
                 : paragraphFrame;
-            System.Collections.Generic.IReadOnlyList<PdfTextRun> paragraphRuns = paragraph.FitText
+            // Intrinsic measurement must see natural advances; fitting happens once the cell width is resolved.
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> paragraphRuns = paragraph.FitText && purpose == RichWrapPurpose.Layout
                 ? FitTableCellParagraphText(paragraph.Runs, alignmentFrame.FirstLineWidth, alignmentFrame.Width, baseFont, paragraphFontSize, options)
                 : paragraph.Runs;
             var wrap = WrapRichRunsCoreWithFirstLineOrigin(
