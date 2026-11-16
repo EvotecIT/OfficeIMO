@@ -107,7 +107,46 @@ internal static class WordListNumberingResolver {
     internal static StyleCatalog CreateStyleCatalog(WordDocument document) =>
         new(document._wordprocessingDocument.MainDocumentPart, memoizeResolutions: true);
 
+    /// <summary>
+    /// Shares one style catalog across a read-only pass over <paramref name="document"/>, such as building an
+    /// inspection snapshot, so each paragraph's list resolution does not revalidate the cached catalog.
+    /// The pass must not change styles or numbering while the scope is active.
+    /// </summary>
+    internal static IDisposable BeginReadOnlyPass(WordDocument document) {
+        var scope = new ReadOnlyPassScope(document, ActiveReadOnlyPass.Value);
+        ActiveReadOnlyPass.Value = scope;
+        return scope;
+    }
+
+    private static readonly AsyncLocal<ReadOnlyPassScope?> ActiveReadOnlyPass = new();
+
+    private sealed class ReadOnlyPassScope : IDisposable {
+        private readonly ReadOnlyPassScope? _previous;
+        private bool _disposed;
+
+        internal ReadOnlyPassScope(WordDocument document, ReadOnlyPassScope? previous) {
+            Document = document;
+            _previous = previous;
+        }
+
+        internal WordDocument Document { get; }
+        internal StyleCatalog? Catalog { get; set; }
+
+        public void Dispose() {
+            if (_disposed) return;
+            _disposed = true;
+            ActiveReadOnlyPass.Value = _previous;
+        }
+    }
+
     internal static StyleCatalog GetCachedStyleCatalog(WordDocument document) {
+        if (ActiveReadOnlyPass.Value is { } pass && ReferenceEquals(pass.Document, document)) {
+            return pass.Catalog ??= GetUnscopedStyleCatalog(document);
+        }
+        return GetUnscopedStyleCatalog(document);
+    }
+
+    private static StyleCatalog GetUnscopedStyleCatalog(WordDocument document) {
         MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
         if (mainPart == null) return new StyleCatalog(null);
         if (document._openXmlDocumentAccessed) return new StyleCatalog(mainPart);
