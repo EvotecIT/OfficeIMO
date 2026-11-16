@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO.Packaging;
 using System.Text;
 using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
@@ -30,7 +31,11 @@ internal static class WordStreamingTextReader {
         long start = stream.Position;
         if (stream.Length - start > global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes) return null;
         try {
-            List<string>? lines = ReadLines(stream, readerOptions, cancellationToken);
+            List<string>? lines = ReadLinesInPlace(stream, readerOptions, cancellationToken, out bool packageOpened);
+            if (!packageOpened) {
+                stream.Position = start;
+                lines = ReadLines(stream, readerOptions, cancellationToken, out _);
+            }
             return lines == null ? null : CreateResult(lines, sourceName);
         } catch (OperationCanceledException) {
             throw;
@@ -42,10 +47,36 @@ internal static class WordStreamingTextReader {
         }
     }
 
-    private static List<string>? ReadLines(Stream stream, ReaderOptions readerOptions, CancellationToken cancellationToken) {
+    /// <summary>
+    /// Opens the package over the caller's bytes without the copy the Open XML SDK makes of a stream opened for
+    /// reading. The SDK copies such a stream to a temporary file so it can repair malformed part URIs; a well-formed
+    /// package reads the same without that repair. When the package does not open cleanly this way,
+    /// <paramref name="packageOpened"/> is false and the caller repeats the read through the SDK's repairing path.
+    /// </summary>
+    private static List<string>? ReadLinesInPlace(Stream stream, ReaderOptions readerOptions, CancellationToken cancellationToken,
+        out bool packageOpened) {
+        try {
+            using Package source = Package.Open(stream, FileMode.Open, FileAccess.Read);
+            using WordprocessingDocument document = WordprocessingDocument.Open(source);
+            return ReadLines(document, readerOptions, cancellationToken, out packageOpened);
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (Exception exception) when (exception is not OutOfMemoryException) {
+            packageOpened = false;
+            return null;
+        }
+    }
+
+    private static List<string>? ReadLines(Stream stream, ReaderOptions readerOptions, CancellationToken cancellationToken, out bool packageOpened) {
         using var package = WordprocessingDocument.Open(stream, false);
+        return ReadLines(package, readerOptions, cancellationToken, out packageOpened);
+    }
+
+    private static List<string>? ReadLines(WordprocessingDocument package, ReaderOptions readerOptions, CancellationToken cancellationToken, out bool packageOpened) {
+        packageOpened = false;
         MainDocumentPart? main = package.MainDocumentPart;
         if (main == null) return null;
+        packageOpened = true;
         var context = new Context(readerOptions, cancellationToken);
         // The model load caps a part at the same character count; a larger part declines and the model reports it.
         var settings = new XmlReaderSettings {
