@@ -21,6 +21,11 @@ internal static class PdfByteSearch {
                 const ulong Ones = 0x0101010101010101UL;
                 const ulong Highs = 0x8080808080808080UL;
                 ulong pattern = Ones * value;
+                // Bytes before the first 8-byte boundary are tested one at a time, so every word read is aligned.
+                while (current < end && ((ulong)current & 7UL) != 0) {
+                    if (*current == value) return (int)(current - first);
+                    current++;
+                }
                 while (end - current >= 8) {
                     // A zero byte in x marks a match; the lowest flagged byte is always a real match.
                     ulong x = *(ulong*)current ^ pattern;

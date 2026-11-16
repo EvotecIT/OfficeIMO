@@ -564,9 +564,11 @@ internal static class PdfFileAssembler {
         const int CancellableChunk = 1024 * 1024;
         if (cancellationToken.CanBeCanceled && count > CancellableChunk) {
             using HashAlgorithm chunked = SHA256.Create();
-            for (int offset = 0; offset < count; offset += CancellableChunk) {
+            for (int offset = 0; offset < count;) {
                 cancellationToken.ThrowIfCancellationRequested();
-                chunked.TransformBlock(buffer, offset, Math.Min(CancellableChunk, count - offset), buffer, offset);
+                int chunk = Math.Min(CancellableChunk, count - offset);
+                chunked.TransformBlock(buffer, offset, chunk, buffer, offset);
+                offset += chunk;
             }
             return FinalizeFileId(chunked);
         }
