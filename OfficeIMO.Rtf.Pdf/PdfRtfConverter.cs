@@ -163,6 +163,14 @@ internal static class PdfRtfConverter {
                         "The PDF image was not embedded because its placement cannot be reproduced safely as an RTF picture.");
                     continue;
                 }
+                if (assessment.HasNonDefaultOpacity || assessment.HasNonNormalBlendMode) {
+                    AddImageOmission(options, image,
+                        assessment.HasNonNormalBlendMode
+                            ? OfficeDiagnosticCodes.ImageUnsupportedBlendModeNotSafelyEditable
+                            : OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable,
+                        "The PDF image was not embedded because RTF pictures cannot reproduce its opacity or blend mode.");
+                    continue;
+                }
                 if (page.RotationDegrees % 360 != 0 || placement.A < 0D || placement.D < 0D) {
                     AddImageOmission(options, image, OfficeDiagnosticCodes.ImageTransformNotSafelyEditable,
                         "The PDF image was not embedded because its page rotation or mirroring is not represented by an RTF picture.");

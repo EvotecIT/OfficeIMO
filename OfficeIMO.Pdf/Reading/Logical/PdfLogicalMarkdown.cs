@@ -139,7 +139,7 @@ public static class PdfLogicalMarkdownExtensions {
                     item.HasGeometry && !item.IsClipped && item.PlacementIndex >= 0:
                     PdfLogicalImage image = page.Images[item.SourceIndex];
                     if (emittedImages?.Contains(item.SourceIndex) == true) continue;
-                    markdown = FormatImage(page, image, image.Placements[item.PlacementIndex], options);
+                    markdown = FormatImage(page, item.SourceIndex, image.Placements[item.PlacementIndex], options);
                     if (markdown.Length > 0) (emittedImages ??= new HashSet<int>()).Add(item.SourceIndex);
                     break;
                 default: continue;
@@ -168,7 +168,7 @@ public static class PdfLogicalMarkdownExtensions {
                 PdfLogicalImage image = page.Images[i];
                 string markdown = string.Empty;
                 for (int placementIndex = 0; placementIndex < image.Placements.Count && markdown.Length == 0; placementIndex++) {
-                    markdown = FormatImage(page, image, image.Placements[placementIndex], options, allowPlaceholder: false);
+                    markdown = FormatImage(page, i, image.Placements[placementIndex], options, allowPlaceholder: false);
                 }
                 if (markdown.Length == 0 && options.IncludeImagePlaceholders &&
                     (image.Placements.Count == 0 || PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image))) {
@@ -215,21 +215,23 @@ public static class PdfLogicalMarkdownExtensions {
     /// </summary>
     private static string FormatImage(
         PdfLogicalPage page,
-        PdfLogicalImage image,
+        int imageIndex,
         PdfImagePlacement placement,
         PdfLogicalMarkdownOptions options,
         bool allowPlaceholder = true) {
+        PdfLogicalImage image = page.Images[imageIndex];
         PdfImagePlacementImportAssessment assessment = PdfImagePlacementImportPolicy.Analyze(page, image, placement);
         if (assessment.IsSuppressed) return string.Empty;
         if (options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None &&
             assessment.CanImport &&
             page.RotationDegrees % 360 == 0 &&
             placement.A >= 0D && placement.D >= 0D &&
-            assessment.HasNonDefaultOpacity == false &&
+            !assessment.HasNonDefaultOpacity &&
+            !assessment.HasNonNormalBlendMode &&
             PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] bytes, out string mimeType, out string extension) &&
             OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(mimeType)) {
             string? source = options.ImageExportMode == PdfLogicalMarkdownImageExportMode.File
-                ? WriteImageFile(image, placement, bytes, extension, options)
+                ? WriteImageFile(image, imageIndex, placement, bytes, extension, options)
                 : bytes.LongLength <= options.MaxEmbeddedImageBytes
                     ? "data:" + mimeType + ";base64," + Convert.ToBase64String(bytes)
                     : null;
@@ -239,15 +241,17 @@ public static class PdfLogicalMarkdownExtensions {
         return allowPlaceholder && options.IncludeImagePlaceholders ? FormatImagePlaceholder(image) : string.Empty;
     }
 
-    private static string WriteImageFile(PdfLogicalImage image, PdfImagePlacement placement, byte[] bytes, string extension, PdfLogicalMarkdownOptions options) {
+    private static string WriteImageFile(PdfLogicalImage image, int imageIndex, PdfImagePlacement placement, byte[] bytes, string extension, PdfLogicalMarkdownOptions options) {
         string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
         Directory.CreateDirectory(directory);
+        // Page number and image position on the page keep names unique within one export; resource names can
+        // collide after sanitizing, so they are not used.
         var name = new StringBuilder("pdf-p");
-        name.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture)).Append('-');
-        foreach (char ch in image.ResourceName) name.Append(char.IsLetterOrDigit(ch) ? ch : '_');
+        name.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("-image");
+        name.Append((imageIndex + 1).ToString(CultureInfo.InvariantCulture));
         int placementIndex = 0;
         while (placementIndex < image.Placements.Count && !ReferenceEquals(image.Placements[placementIndex], placement)) placementIndex++;
-        if (placementIndex > 0) name.Append('-').Append(placementIndex.ToString(CultureInfo.InvariantCulture));
+        if (placementIndex > 0) name.Append('-').Append((placementIndex + 1).ToString(CultureInfo.InvariantCulture));
         string normalizedExtension = string.IsNullOrEmpty(extension) ? ".png" : (extension[0] == '.' ? extension : "." + extension);
         string fileName = name.Append(normalizedExtension).ToString();
         File.WriteAllBytes(Path.Combine(directory, fileName), bytes);

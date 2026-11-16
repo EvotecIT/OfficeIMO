@@ -267,6 +267,14 @@ internal static class PdfImagePlacementImportPolicy {
         return string.IsNullOrWhiteSpace(caption) ? string.Empty : caption!.Trim();
     }
 
+    /// <summary>Pixel size of the payload <see cref="TryGetVisibleImagePayload"/> embeds for an image of the given size.</summary>
+    internal static (int Width, int Height) GetVisiblePixelSize(int width, int height, PdfImagePlacementImportAssessment assessment) {
+        if (assessment.Crop is not { } crop) return (width, height);
+        return (
+            Math.Max(1, width - ToPixels(crop.SourceLeft, width) - ToPixels(crop.SourceRight, width)),
+            Math.Max(1, height - ToPixels(crop.SourceTop, height) - ToPixels(crop.SourceBottom, height)));
+    }
+
     private static int ToPixels(double fraction, int pixels) =>
         Math.Max(0, Math.Min(pixels, (int)Math.Round(fraction * pixels, MidpointRounding.AwayFromZero)));
 
@@ -277,8 +285,8 @@ internal static class PdfImagePlacementImportPolicy {
 
     /// <summary>
     /// Resolves the part of an axis-aligned placement that the page shows. A rectangular clip that contains the
-    /// image, or trims it by less than half a source pixel (producers such as LibreOffice clip every image to its
-    /// own rounded frame), leaves the image whole. A rectangular clip that cuts deeper becomes a crop. Clips that
+    /// image, or trims it by less than half a source pixel (office suites commonly clip every image to its own
+    /// rounded frame), leaves the image whole. A rectangular clip that cuts deeper becomes a crop. Clips that
     /// are not exact rectangles, text clips, and images still partly off the page after clipping are refused.
     /// </summary>
     private static bool TryResolveVisibleRectangle(

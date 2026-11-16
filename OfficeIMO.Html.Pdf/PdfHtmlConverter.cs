@@ -815,7 +815,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append("\">");
             if (source != null) {
                 ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
-                (int pixelWidth, int pixelHeight) = GetVisiblePixelSize(image, assessment);
+                (int pixelWidth, int pixelHeight) = PdfCore.PdfImagePlacementImportPolicy.GetVisiblePixelSize(image.Width, image.Height, assessment);
                 builder.Append("<img src=\"");
                 builder.Append(HtmlAttribute(source));
                 builder.Append("\" alt=\"");
@@ -998,16 +998,6 @@ public static partial class PdfHtmlConverterExtensions {
                 "The PDF image blend mode was mapped to CSS mix-blend-mode; browser compositing can differ from PDF compositing.",
                 PdfCore.PdfConversionWarningSeverity.Warning, OfficeConversionLossKind.Approximation, details);
         }
-    }
-
-    /// <summary>Pixel size of the embedded payload: the source size, less any rows and columns a clip crops away.</summary>
-    private static (int Width, int Height) GetVisiblePixelSize(
-        PdfCore.PdfLogicalImage image,
-        PdfCore.PdfImagePlacementImportAssessment assessment) {
-        if (assessment.Crop is not { } crop) return (image.Width, image.Height);
-        int width = image.Width - (int)Math.Round((crop.SourceLeft + crop.SourceRight) * image.Width, MidpointRounding.AwayFromZero);
-        int height = image.Height - (int)Math.Round((crop.SourceTop + crop.SourceBottom) * image.Height, MidpointRounding.AwayFromZero);
-        return (Math.Max(1, width), Math.Max(1, height));
     }
 
     private static bool TryBuildEmbeddedImageDataUri(
