@@ -159,9 +159,18 @@ internal sealed partial class HtmlToMarkdownConverter {
             }
         }
 
+        // Every element is checked when a conversion starts, so the semantic names are kept in
+        // shared arrays and checked without per-element delegates.
+        private static readonly string[] DefinitionEpubTypes = { "footnote", "endnote", "rearnote" };
+        private static readonly string[] DefinitionRoles = { "doc-footnote", "doc-endnote" };
+        private static readonly string[] ContainerEpubTypes = { "footnotes", "endnotes", "rearnotes" };
+        private static readonly string[] ContainerRoles = { "doc-endnotes" };
+        private static readonly string[] ReferenceEpubTypes = { "noteref" };
+        private static readonly string[] ReferenceRoles = { "doc-noteref" };
+
         private static bool IsSemanticFootnoteDefinition(IElement element) =>
-            HasAnyEpubType(element, "footnote", "endnote", "rearnote")
-            || HasAnyRole(element, "doc-footnote", "doc-endnote");
+            HasAnyEpubType(element, DefinitionEpubTypes)
+            || HasAnyRole(element, DefinitionRoles);
 
         private static bool IsRecognizedIdDefinition(IElement element, ISet<string> referencedIds) {
             string? id = element.Id;
@@ -181,13 +190,13 @@ internal sealed partial class HtmlToMarkdownConverter {
             element.HasAttribute("data-footnotes")
             || element.ClassList.Contains("footnotes")
             || element.ClassList.Contains("endnotes")
-            || HasAnyEpubType(element, "footnotes", "endnotes", "rearnotes")
-            || HasAnyRole(element, "doc-endnotes");
+            || HasAnyEpubType(element, ContainerEpubTypes)
+            || HasAnyRole(element, ContainerRoles);
 
         private static bool LooksLikeFootnoteReference(IElement element) {
             if (element == null || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) return false;
-            if (HasAnyEpubType(element, "noteref")
-                || HasAnyRole(element, "doc-noteref")
+            if (HasAnyEpubType(element, ReferenceEpubTypes)
+                || HasAnyRole(element, ReferenceRoles)
                 || element.HasAttribute("data-footnote-ref")
                 || element.ClassList.Contains("noteref")
                 || element.ClassList.Contains("footnote-ref")) {
@@ -276,11 +285,21 @@ internal sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        private static bool HasAnyEpubType(IElement element, params string[] values) =>
-            values.Any(value => HtmlAccessibilitySemantics.HasEpubType(element, value));
+        private static bool HasAnyEpubType(IElement element, string[] values) {
+            for (int i = 0; i < values.Length; i++) {
+                if (HtmlAccessibilitySemantics.HasEpubType(element, values[i])) return true;
+            }
 
-        private static bool HasAnyRole(IElement element, params string[] values) =>
-            values.Any(value => HtmlAccessibilitySemantics.HasRole(element, value));
+            return false;
+        }
+
+        private static bool HasAnyRole(IElement element, string[] values) {
+            for (int i = 0; i < values.Length; i++) {
+                if (HtmlAccessibilitySemantics.HasRole(element, values[i])) return true;
+            }
+
+            return false;
+        }
     }
 
     private static bool TryConvertFootnoteElement(
