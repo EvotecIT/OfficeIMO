@@ -6,27 +6,25 @@ using Xunit;
 namespace OfficeIMO.JavaScript.Assets.Tests;
 
 public sealed class JavaScriptAssetsTests {
+    private static readonly JavaScriptAsset[] Readable = {
+        JavaScriptAssets.Script, JavaScriptAssets.XlsxScript, JavaScriptAssets.CsvScript,
+        JavaScriptAssets.Module, JavaScriptAssets.XlsxModule, JavaScriptAssets.CsvModule,
+        JavaScriptAssets.PdfScript, JavaScriptAssets.PdfModule, JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule,
+        JavaScriptAssets.DataTablesScript, JavaScriptAssets.DataTablesModule, JavaScriptAssets.DataTablesAdapterScript, JavaScriptAssets.DataTablesAdapterModule,
+        JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule, JavaScriptAssets.CanopyXAdapterScript, JavaScriptAssets.CanopyXAdapterModule };
+
+    private static IEnumerable<JavaScriptAsset> All => Readable.Concat(Readable.Select(asset => asset.Minified));
+
+    public static TheoryData<string> Names() {
+        var data = new TheoryData<string>();
+        foreach (JavaScriptAsset asset in All) data.Add(asset.FileName);
+        return data;
+    }
+
     [Theory]
-    [InlineData("officeimo.js")]
-    [InlineData("officeimo-xlsx.js")]
-    [InlineData("officeimo-csv.js")]
-    [InlineData("officeimo.mjs")]
-    [InlineData("officeimo-xlsx.mjs")]
-    [InlineData("officeimo-csv.mjs")]
-    [InlineData("officeimo-pdf.js")]
-    [InlineData("officeimo-pdf.mjs")]
-    [InlineData("officeimo-execution.js")]
-    [InlineData("officeimo-execution.mjs")]
-    [InlineData("officeimo-datatables.js")]
-    [InlineData("officeimo-datatables.mjs")]
-    [InlineData("officeimo-canopyx.js")]
-    [InlineData("officeimo-canopyx.mjs")]
+    [MemberData(nameof(Names))]
     public void EmbeddedAssetAndHashedNameDescribeExactShippedBytes(string name) {
-        JavaScriptAsset asset = new[] { JavaScriptAssets.Script, JavaScriptAssets.XlsxScript, JavaScriptAssets.CsvScript,
-            JavaScriptAssets.Module, JavaScriptAssets.XlsxModule, JavaScriptAssets.CsvModule,
-            JavaScriptAssets.DataTablesScript, JavaScriptAssets.DataTablesModule, JavaScriptAssets.PdfScript, JavaScriptAssets.PdfModule,
-            JavaScriptAssets.CanopyXScript, JavaScriptAssets.CanopyXModule,
-            JavaScriptAssets.ExecutionScript, JavaScriptAssets.ExecutionModule }.Single(a => a.FileName == name);
+        JavaScriptAsset asset = All.Single(a => a.FileName == name);
         byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", name));
         byte[] actual = new UTF8Encoding(false).GetBytes(asset.Content);
         Assert.Equal(expected, actual);
@@ -34,5 +32,15 @@ public sealed class JavaScriptAssetsTests {
         string hash = BitConverter.ToString(sha.ComputeHash(expected)).Replace("-", "").ToLowerInvariant().Substring(0, 16);
         Assert.Equal(hash, asset.ContentHash);
         Assert.Equal(Path.GetFileNameWithoutExtension(name) + "." + hash + Path.GetExtension(name), asset.HashedFileName);
+    }
+
+    [Fact]
+    public void EveryShippedBundleHasOneAssetAndCompactVariantsAreTheirOwn() {
+        string[] shipped = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "Assets")).Select(Path.GetFileName).OrderBy(n => n, StringComparer.Ordinal).ToArray()!;
+        Assert.Equal(shipped, All.Select(a => a.FileName).OrderBy(n => n, StringComparer.Ordinal).ToArray());
+        foreach (JavaScriptAsset asset in Readable) {
+            Assert.Same(asset.Minified, asset.Minified.Minified);
+            Assert.True(asset.Minified.Content.Length < asset.Content.Length, asset.FileName);
+        }
     }
 }

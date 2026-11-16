@@ -104,6 +104,11 @@ try {
   await import("@evotecit/officeimo/execution.js");
   assert.equal(typeof globalThis.OfficeIMO.executeWorkerExport, "function");
 } finally { handler.dispose(); port1.close(); port2.close(); }
+// Installed thin adapters resolve their writers from the shared bundle of the same archive.
+await import("@evotecit/officeimo/classic.js"); await import("@evotecit/officeimo/canopyx-adapter.js");
+assert.equal(typeof globalThis.OfficeIMO.exportCanopy, "function"); assert.equal(globalThis.OfficeIMO.PdfFont, globalThis.OfficeIMO.pdf.PdfFont);
+const sharedModule = await import("@evotecit/officeimo/bundles/officeimo.min.mjs");
+assert.equal((await import("@evotecit/officeimo/bundles/officeimo-datatables-adapter.min.mjs")).PdfFont, sharedModule.PdfFont);
 // The exact installed archive must preserve grouped source ownership across public subpaths.
 const groupedColumns = [{ header: "Measure", key: "amount", type: "number" }, { header: "Location", key: "site" }, { header: "Ready", key: "ready" }];
 const groupedRecords = [{ amount: 2, site: "A", ready: true }, { amount: null, site: "A", ready: false }, { amount: 8, site: "B", ready: true }];

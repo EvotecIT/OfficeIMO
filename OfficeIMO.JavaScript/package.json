@@ -24,12 +24,15 @@
     "./xlsx.js": "./bundles/officeimo-xlsx.js",
     "./csv.js": "./bundles/officeimo-csv.js",
     "./pdf.js": "./bundles/officeimo-pdf.js",
-    "./execution.js": "./bundles/officeimo-execution.js"
+    "./execution.js": "./bundles/officeimo-execution.js",
+    "./canopyx-adapter.js": "./bundles/officeimo-canopyx-adapter.js",
+    "./datatables-adapter.js": "./bundles/officeimo-datatables-adapter.js",
+    "./bundles/*": "./bundles/*"
   },
   "files": ["dist", "bundles", "LICENSE", "README.md"],
   "scripts": {
-    "build": "node node_modules/typescript/bin/tsc && node scripts/bundles.mjs",
-    "check": "node node_modules/typescript/bin/tsc && node scripts/bundles.mjs --check",
+    "build": "node node_modules/typescript/bin/tsc && node node_modules/typescript/bin/tsc -p tsconfig.min.json && node scripts/bundles.mjs",
+    "check": "node node_modules/typescript/bin/tsc && node node_modules/typescript/bin/tsc -p tsconfig.min.json && node scripts/bundles.mjs --check",
     "test": "npm run check && node scripts/test.mjs",
     "test:consumer": "node node_modules/typescript/bin/tsc -p test/consumer/tsconfig.json",
     "test:pack": "node scripts/pack-test.mjs",

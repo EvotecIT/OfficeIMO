@@ -37,8 +37,12 @@ Each `JavaScriptAsset` exposes `FileName`, `Content`, `ContentHash` and `HashedF
 | `DataTablesModule` | Optional standalone DataTables bridge ES module |
 | `CanopyXScript` | Optional classic CanopyX record capture adapter with XLSX/CSV/PDF writers |
 | `CanopyXModule` | Optional standalone CanopyX capture adapter ES module |
+| `DataTablesAdapterScript`, `CanopyXAdapterScript` | The grid bridges without document writers; load `Script` from the same build first |
+| `DataTablesAdapterModule`, `CanopyXAdapterModule` | The grid bridge ES modules without document writers; they import the sibling `officeimo.mjs` |
 
-Classic scripts compose in either order and work in a plain `file://` page or a host-owned worker. The `Workbook`, `writeCsv` and `saveBlob` root helpers remain available. Browser local-file policy can block ES module imports; serve modules through HTTP(S). The standalone `.mjs` assets contain their module graph and require no relative runtime imports.
+Every asset's `Minified` property returns its compact variant (`officeimo.min.js`, `officeimo-canopyx-adapter.min.mjs`, ...) with comments and insignificant whitespace removed. Compact and readable scripts of one build share modules on a page. A compact adapter module imports `officeimo.min.mjs`.
+
+Classic scripts compose in either order and work in a plain `file://` page or a host-owned worker. The `Workbook`, `writeCsv` and `saveBlob` root helpers remain available. Browser local-file policy can block ES module imports; serve modules through HTTP(S). The standalone `.mjs` assets contain their module graph and require no relative runtime imports; only the adapter modules import their sibling combined module.
 
 The [offline current-view example](../OfficeIMO.JavaScript.Examples/README.md) produces an inline HTML report and an HTML/script bundle. Both export filtered, sorted, reordered and visible table data without a server. Full-dataset Excel generation at report-build time remains on OfficeIMO.Excel. Grid, iframe, CSP and download policy belong to the host integration.
 

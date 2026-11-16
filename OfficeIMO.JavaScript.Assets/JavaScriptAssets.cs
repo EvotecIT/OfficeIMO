@@ -1,7 +1,10 @@
 namespace OfficeIMO.JavaScript.Assets;
 
 /// <summary>Dependency-free export scripts for inline reports, offline bundles and JavaScript modules.</summary>
-/// <remarks>Classic scripts extend <c>globalThis.OfficeIMO</c>. Modules have no relative runtime imports.</remarks>
+/// <remarks>
+/// Classic scripts extend <c>globalThis.OfficeIMO</c>. Modules have no relative runtime imports, except the integration
+/// adapter modules, which import the sibling <c>officeimo.mjs</c>. Every asset has a compact <see cref="JavaScriptAsset.Minified"/> variant.
+/// </remarks>
 public static class JavaScriptAssets {
     /// <summary>The classic XLSX, CSV and PDF runtime for a single script tag.</summary>
     public static JavaScriptAsset Script { get; } = new JavaScriptAsset("officeimo.js");
@@ -39,9 +42,21 @@ public static class JavaScriptAssets {
     /// <summary>The optional standalone DataTables ES module, including its document writers.</summary>
     public static JavaScriptAsset DataTablesModule { get; } = new JavaScriptAsset("officeimo-datatables.mjs");
 
+    /// <summary>The DataTables integration without document writers; load <see cref="Script"/> from the same build first.</summary>
+    public static JavaScriptAsset DataTablesAdapterScript { get; } = new JavaScriptAsset("officeimo-datatables-adapter.js");
+
+    /// <summary>The DataTables integration ES module without document writers; it imports the sibling <c>officeimo.mjs</c> (<see cref="Module"/>).</summary>
+    public static JavaScriptAsset DataTablesAdapterModule { get; } = new JavaScriptAsset("officeimo-datatables-adapter.mjs");
+
     /// <summary>The optional CanopyX portable grid capture integration, including its document writers.</summary>
     public static JavaScriptAsset CanopyXScript { get; } = new JavaScriptAsset("officeimo-canopyx.js");
 
     /// <summary>The optional standalone CanopyX ES module, including its document writers.</summary>
     public static JavaScriptAsset CanopyXModule { get; } = new JavaScriptAsset("officeimo-canopyx.mjs");
+
+    /// <summary>The CanopyX integration without document writers; load <see cref="Script"/> from the same build first.</summary>
+    public static JavaScriptAsset CanopyXAdapterScript { get; } = new JavaScriptAsset("officeimo-canopyx-adapter.js");
+
+    /// <summary>The CanopyX integration ES module without document writers; it imports the sibling <c>officeimo.mjs</c> (<see cref="Module"/>).</summary>
+    public static JavaScriptAsset CanopyXAdapterModule { get; } = new JavaScriptAsset("officeimo-canopyx-adapter.mjs");
 }
