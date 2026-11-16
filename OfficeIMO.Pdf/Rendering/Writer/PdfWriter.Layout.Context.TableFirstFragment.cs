@@ -37,15 +37,45 @@ internal static partial class PdfWriter {
 
         /// <summary>Preflights a breakable first row at its first legal cell boundary instead of requiring the entire row.</summary>
         private double MeasureTableFirstFragmentHeight(TableBlock table, PdfTableStyle style, PreparedFlowTableRows rows,
-            int columns, double[] widths, double gap, out bool completesFirstRow) {
+            int columns, double[] widths, double gap, out bool completesFirstRow) =>
+            MeasureTableFirstFragmentHeight(table, style, rows, columns, widths, gap, out completesFirstRow, out _);
+
+        /// <summary>
+        /// Measures the table's starting group and reports how many leading rows it starts and whether
+        /// the last of them is placed whole.
+        /// </summary>
+        private double MeasureTableFirstFragmentHeight(TableBlock table, PdfTableStyle style, PreparedFlowTableRows rows,
+            int columns, double[] widths, double gap, out bool completesMeasuredRows, out int measuredRows) {
             double fullHeight = GetMeasuredContinuationFrameHeight();
-            double headerGroup = MeasureTableHeaderFirstBodyHeight(style, rows.Heights, gap,
-                row => MeasureTableFirstBodyPlacementHeight(table, style, rows, columns, widths, gap, row, fullHeight));
-            if (headerGroup > 0D) {
-                completesFirstRow = false;
-                return headerGroup;
+            if (MeasureTableHeaderStartingGroup(table, style, rows, columns, widths, gap, fullHeight,
+                out completesMeasuredRows, out measuredRows) is double headerGroup) return headerGroup;
+            measuredRows = 1;
+            return MeasureTableFirstLegalRowFragmentHeight(table, style, rows, columns, widths, gap, 0, fullHeight, out completesMeasuredRows);
+        }
+
+        /// <summary>
+        /// Measures the group a table with repeated headers starts with, as placement reserves it: the preferred
+        /// whole body rows when they fit one frame, otherwise the header and the first body row's first fragment.
+        /// Returns null when the table does not keep its header with the first body fragment.
+        /// </summary>
+        private static double? MeasureTableHeaderStartingGroup(TableBlock table, PdfTableStyle style, PreparedFlowTableRows rows,
+            int columns, double[] widths, double gap, double fullHeight, out bool completesMeasuredRows, out int measuredRows) {
+            completesMeasuredRows = true;
+            measuredRows = 0;
+            int rowCount = rows.Heights.Length;
+            if (!KeepsRepeatedHeaderWithFirstBodyFragment(style, rowCount)) return null;
+            int header = style.HeaderRowCount;
+            int preferred = Math.Min(style.MinimumBodyRowsOnFirstPage, rowCount - style.FooterRowCount - header);
+            double fragmentGroup = GetTableRowsHeight(rows.Heights, 0, header, gap) + MeasureTableFirstBodyPlacementHeight(table, style,
+                rows, columns, widths, gap, header, fullHeight, out bool bodyCompletes, out int bodyRows);
+            double preferredGroup = GetTableRowsHeight(rows.Heights, 0, header + preferred, gap);
+            if (preferred > 0 && preferredGroup <= fullHeight + 0.001D && preferredGroup > fragmentGroup) {
+                measuredRows = header + preferred;
+                return preferredGroup;
             }
-            return MeasureTableFirstLegalRowFragmentHeight(table, style, rows, columns, widths, gap, 0, fullHeight, out completesFirstRow);
+            completesMeasuredRows = bodyCompletes;
+            measuredRows = header + bodyRows;
+            return fragmentGroup;
         }
 
         /// <summary>
@@ -53,11 +83,19 @@ internal static partial class PdfWriter {
         /// complete visible span when it starts a viewport row group, which must stay on one page.
         /// </summary>
         private static double MeasureTableFirstBodyPlacementHeight(TableBlock table, PdfTableStyle style, PreparedFlowTableRows rows,
-            int columns, double[] widths, double gap, int row, double fullHeight) {
+            int columns, double[] widths, double gap, int row, double fullHeight) =>
+            MeasureTableFirstBodyPlacementHeight(table, style, rows, columns, widths, gap, row, fullHeight, out _, out _);
+
+        private static double MeasureTableFirstBodyPlacementHeight(TableBlock table, PdfTableStyle style, PreparedFlowTableRows rows,
+            int columns, double[] widths, double gap, int row, double fullHeight, out bool completesRow, out int rowsCovered) {
             int[] viewportGroups = GetTableViewportRowGroups(table, columns);
-            return StartsTableViewportRowGroup(viewportGroups, row)
-                ? GetTableViewportPlacementHeight(viewportGroups, rows.Heights, row, gap)
-                : MeasureTableFirstLegalRowFragmentHeight(table, style, rows, columns, widths, gap, row, fullHeight, out _);
+            if (StartsTableViewportRowGroup(viewportGroups, row)) {
+                completesRow = true;
+                rowsCovered = viewportGroups[row] - row + 1;
+                return GetTableViewportPlacementHeight(viewportGroups, rows.Heights, row, gap);
+            }
+            rowsCovered = 1;
+            return MeasureTableFirstLegalRowFragmentHeight(table, style, rows, columns, widths, gap, row, fullHeight, out completesRow);
         }
 
         /// <summary>Measures a row's first legal fragment with the same boundary rules row placement uses.</summary>
@@ -141,6 +179,14 @@ internal static partial class PdfWriter {
             if (!KeepsRepeatedHeaderWithFirstBodyFragment(style, heights.Length)) return 0D;
             return GetTableRowsHeight(heights, 0, style.HeaderRowCount, gap) + measureFirstBodyFragment(style.HeaderRowCount);
         }
+
+        /// <summary>
+        /// Whole body rows that planners working in whole rows keep with the leading header rows.
+        /// Repeated headers keep at least one, so a block-content table never starts with the header alone.
+        /// </summary>
+        private static int GetTableFirstPageBodyRowPreference(PdfTableStyle style, int rowCount) =>
+            KeepsRepeatedHeaderWithFirstBodyFragment(style, rowCount)
+                ? Math.Max(1, style.MinimumBodyRowsOnFirstPage) : style.MinimumBodyRowsOnFirstPage;
 
         /// <summary>Repeated header rows start with at least the first legal fragment of the following body row.</summary>
         private static bool KeepsRepeatedHeaderWithFirstBodyFragment(PdfTableStyle style, int rowCount) =>

@@ -103,10 +103,37 @@ public sealed class PdfTableHeaderFragmentTests {
         Assert.Contains("LastRowMarker", pdf.GetPage(2).Text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("flow")]
+    [InlineData("row")]
+    public void HeaderReservationIgnoresSpacingBeforeThatTheNextFrameDrops(string mode) {
+        // 135 pt remain; spacing 110 + header 20 + first fragment 20 exceeds a frame, but the next frame drops the spacing.
+        using var pdf = PdfPigDocument.Open(Render(mode, 5, 2, spacingBefore: 110));
+
+        Assert.DoesNotContain("HeaderMarker", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        Assert.Contains("HeaderMarker", pdf.GetPage(2).Text, StringComparison.Ordinal);
+        Assert.Contains("BodyLine01", pdf.GetPage(2).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncomingKeepReservesThePreferredBodyRowsThatPlacementKeeps() {
+        // 70 pt remain: the keep, header and one body row fit, the two preferred body rows do not.
+        using var pdf = PdfPigDocument.Open(Render("columns", 70, 1, incomingKeep: true, trailingRow: true, minimumBodyRows: 2));
+        var page = pdf.GetPage(1);
+        double LeftColumnStart(string text) => page.GetWords().Where(word => word.Text == text)
+            .Select(word => word.Letters[0].StartBaseLine.X).DefaultIfEmpty(-1D).Min();
+
+        Assert.Equal(210D, LeftColumnStart("PrecedingMarker"), 1);
+        Assert.Equal(210D, LeftColumnStart("HeaderMarker"), 1);
+        Assert.Equal(210D, LeftColumnStart("LastRowMarker"), 1);
+    }
+
     private static byte[] Render(string mode, double fillerHeight, int bodyLines, bool incomingKeep = false,
-        bool outerFiller = false, double cellSpacing = 0, bool trailingRow = false, int minimumBodyRows = 0) {
+        bool outerFiller = false, double cellSpacing = 0, bool trailingRow = false, int minimumBodyRows = 0,
+        double spacingBefore = 0) {
         PdfTableStyle style = HeaderStyle();
         style.CellSpacing = P(cellSpacing);
+        style.SpacingBefore = P(spacingBefore);
         style.MinimumBodyRowsOnFirstPage = minimumBodyRows;
         var rows = new List<PdfTableCell[]> {
             new[] { Cell("HeaderMarker") },

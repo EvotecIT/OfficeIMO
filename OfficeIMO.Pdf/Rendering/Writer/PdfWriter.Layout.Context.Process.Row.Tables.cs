@@ -79,11 +79,12 @@ internal static partial class PdfWriter {
                 if (keepHeaderWithFragment) {
                     double fragmentGroup = MeasureTableHeaderFirstBodyHeight(tableStyle, table.RowHeights, columnTableRowGap,
                         row => MeasureColTableFirstLegalRowFragmentHeight(table, row, maxContentHeight));
-                    if (minimumFirstPageBodyRows == 0 || prefix + rowsHeight > maxContentHeight + 0.001D) rowsHeight = 0D;
+                    // A new column frame drops the table's spacing before, so it does not count against capacity.
+                    if (minimumFirstPageBodyRows == 0 || table.CaptionHeight + rowsHeight > maxContentHeight + 0.001D) rowsHeight = 0D;
                     rowsHeight = Math.Max(rowsHeight, fragmentGroup);
                 }
                 double firstPageGroupHeight = prefix + rowsHeight;
-                if (firstPageGroupHeight <= maxContentHeight + 0.001 &&
+                if (firstPageGroupHeight - tableSpacingBefore <= maxContentHeight + 0.001 &&
                     firstPageGroupHeight > state.Remaining + 0.001) {
                     return false;
                 }

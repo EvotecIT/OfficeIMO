@@ -347,15 +347,17 @@ internal static partial class PdfWriter {
                     double capacity = MaximumContinuationHeight();
                     double fragmentGroup = MeasureTableHeaderFirstBodyHeight(style, rowHeights, rowGapPx,
                         row => MeasureTableFirstBodyPlacementHeight(tb, style, preparedRows, cols, colPixel, colGapPx, row, capacity));
-                    // Whole preferred rows that cannot share one frame give way to the header and the body row's first fragment.
-                    if (minimumFirstPageBodyRows == 0 || prefix + rowsHeight > capacity + 0.001D) {
+                    // Whole preferred rows that cannot share one frame give way to the header and the body row's first
+                    // fragment. A new frame drops the table's spacing before, so it does not count against capacity.
+                    if (minimumFirstPageBodyRows == 0 || prefix - tableSpacingBefore + rowsHeight > capacity + 0.001D) {
                         firstPageRowCount = headerRowCount;
                         rowsHeight = 0D;
                     }
                     return prefix + Math.Max(rowsHeight, fragmentGroup);
                 }
                 double firstPageGroupHeight = FirstPageGroupHeight();
-                if (firstPageGroupHeight <= MaximumContinuationHeight() + 0.001D &&
+                // The group moves only when it fits a fresh frame, where the spacing before is dropped.
+                if (firstPageGroupHeight - tableSpacingBefore <= MaximumContinuationHeight() + 0.001D &&
                     (y - firstPageGroupHeight < TableBottom() || !TryReserveTableGroup(0, firstPageRowCount,
                         y - tableSpacingBefore - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter.ToPoints()),
                         y - firstPageGroupHeight, commit: false)) &&

@@ -1060,6 +1060,7 @@ namespace OfficeIMO.Word.Pdf {
                 RightInset = global::OfficeIMO.OfficeLength.Points(style.RightIndent),
                 RepeatFragmentDecoration = true,
                 SpacingBefore = style.SpacingBefore,
+                ApplySpacingBeforeAtTop = style.ApplySpacingBeforeAtTop,
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(style.GetSpacingAfter(style.GetLeading(style.GetFontSize(level)))),
                 ClipSpacingAfterAtFrameEnd = true,
                 KeepWithNext = style.KeepWithNext

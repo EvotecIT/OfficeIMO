@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
                 y -= spacingAfter;
                 var frame = ResolveContainerFrame(next, style, currentOpts.MarginLeft.ToPoints(), width);
                 var visual = MeasureContainerFirstVisual(next, style, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth);
-                double needed = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + style.TopPadding +
+                double needed = ResolveContainerSpacingBefore(style) + style.TopPadding +
                     style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + visual.Height;
                 if (ShouldAdvanceForBlockHeight(needed) || visual.Overflow != PdfKeepTogetherOverflowBehavior.Reject &&
                     (y < GetCurrentFramePageStartY() - .001D || IsPartialPhysicalColumnFrame())) return true;

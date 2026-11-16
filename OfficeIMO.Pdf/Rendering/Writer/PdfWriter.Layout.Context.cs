@@ -285,6 +285,9 @@ internal static partial class PdfWriter {
             return y < GetCurrentFramePageStartY() - 0.001 ? spacingBefore : 0D;
         }
 
+        private double ResolveContainerSpacingBefore(PdfPanelStyle style) =>
+            style.ApplySpacingBeforeAtTop ? style.SpacingBefore.ToPoints() : ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
+
         private static double ResolveColumnSpacingBefore(double spacingBefore, double consumed) {
             return consumed > 0.001 ? spacingBefore : 0D;
         }

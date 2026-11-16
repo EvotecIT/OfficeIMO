@@ -107,5 +107,28 @@ public partial class Word {
         // The heading fits below the filler; only its keep with the following paragraph moves it.
         Assert.Equal(!keepWithNext, pdf.GetPage(1).Text.Contains("KeptHeadingMarker", StringComparison.Ordinal));
         Assert.Contains("FollowingMarker", pdf.GetPage(2).Text, StringComparison.Ordinal);
+        if (keepWithNext) {
+            // The heading's outline destination follows it to the page it moved to.
+            Assert.Equal(2, Assert.Single(PdfInspector.Inspect(bytes).Outlines).PageNumber);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_ShadedHeadingKeepsItsSpacingBeforeAtThePageTop(bool pageBreakBefore) {
+        double HeadingBaseline(bool shaded) {
+            using WordDocument source = WordDocument.Create();
+            if (pageBreakBefore) source.AddParagraph("FirstPageMarker").AddBreak(WordBreakType.Page);
+            WordParagraph heading = source.AddParagraph("TopHeadingMarker");
+            heading.Style = WordParagraphStyles.Heading1;
+            heading.LineSpacingBefore = OfficeLength.Points(30);
+            if (shaded) heading.ShadingFillColor = OfficeColor.Parse("FFFF00");
+            source.AddParagraph("BodyMarker");
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(source.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes());
+            return pdf.GetPages().SelectMany(page => page.GetWords()).Single(word => word.Text == "TopHeadingMarker").Letters[0].StartBaseLine.Y;
+        }
+
+        Assert.Equal(HeadingBaseline(shaded: false), HeadingBaseline(shaded: true), 2);
     }
 }
