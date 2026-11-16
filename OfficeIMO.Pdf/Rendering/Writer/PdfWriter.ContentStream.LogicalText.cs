@@ -171,14 +171,19 @@ internal sealed partial class ContentStreamBuilder {
     private void RewriteShowStart(string prefix, int skip) {
         int start = T._showStart + skip;
         int count = _sb.Length - start;
-        char[] tail = t_showTail ??= new char[Math.Max(count, 256)];
-        if (tail.Length < count) t_showTail = tail = new char[Math.Max(count, tail.Length * 2)];
+        char[] tail = t_showTail ??= new char[256];
+        if (tail.Length < count) {
+            tail = new char[Math.Max(count, tail.Length * 2)];
+            // An unusually long show uses its own buffer, so it cannot stay pinned on the thread.
+            if (tail.Length <= MaximumRetainedShowTail) t_showTail = tail;
+        }
         _sb.CopyTo(start, tail, 0, count);
         _sb.Length = T._showStart;
         _sb.Append(prefix).Append(tail, 0, count);
     }
 
     [ThreadStatic] private static char[]? t_showTail;
+    private const int MaximumRetainedShowTail = 4096;
 
     private const double MaximumFoldedMove1000 = 1000D;
 
