@@ -483,6 +483,19 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: ./Build/Test-InvoicingStandards.ps1
 
+  third-party-notices:
+    name: Third-party notices
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check declared third-party material
+        run: |
+          python3 -m unittest discover -s Build -p test_validate_third_party_notices.py
+          python3 Build/validate_third_party_notices.py
+
   build-matrix:
     needs: changes
     name: 'Cross-platform build'
@@ -2416,7 +2429,7 @@ jobs:
     name: PR validation
     if: always()
     runs-on: ubuntu-latest
-    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-release-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "pdf-testing-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts", "odbc-contracts"]
+    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-release-restore", "invoice-standards", "third-party-notices", "build-matrix", "html-package-consumers", "typography-package-consumers", "pdf-testing-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts", "odbc-contracts"]
     steps:
       - name: Require selection and every selected contract
         env:

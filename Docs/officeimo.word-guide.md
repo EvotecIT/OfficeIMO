@@ -43,10 +43,12 @@ opts into the full table catalogue and replaces matching table, note, header/foo
 `NoList` and registered custom definitions. Other authored styles, such as `Heading1`,
 remain unchanged.
 
-Native DOC output uses a 16-colour palette for borders and fills. Saving an RGB
-colour that needs approximation throws `OfficeConversionException` with a
-`word-doc-color-approximated` report. Accept it with `WordSaveOptions.AllowLoss`;
-DOCX retains the original RGB colours.
+Native DOC output uses a 16-colour palette for borders and table-cell fills.
+Saving an RGB colour that needs approximation throws `OfficeConversionException`
+with a `word-doc-color-approximated` report. Accept it with `WordSaveOptions.AllowLoss`;
+DOCX retains the original RGB colours. Paragraph fills keep their exact RGB value
+in DOC, as Word writes them, and an automatic fill or text colour still overrides
+an inherited one.
 
 Page size, margins, orientation and running content belong to a section's
 `PageSetup`; `document.PageSetup` is the first section's setup. `Header` and

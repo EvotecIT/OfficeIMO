@@ -125,6 +125,50 @@ and page-count checks in ordinary local runs. Required-rasterizer and CI visual
 gates fail on a version mismatch; release investigations can deliberately opt
 into a cross-version comparison.
 
+## Third-party material and package licenses
+
+OfficeIMO is MIT-licensed and written as its own code. Code from other projects
+is not copied, ported or adapted into it, even under permissive licenses. The
+manifest below records the exceptions: code contributed by its own author, and
+the unmodified ISO Schematron stylesheets that OfficeIMO.Invoicing.Validation
+runs. Code that OfficeIMO's author wrote in another of their projects is
+recorded as first-party. Third-party *data*
+that a format needs, such as Unicode tables, Adobe font metrics, CMaps, ICC
+profiles, schemas or hyphenation patterns, may ship when its license allows
+redistribution and its notice ships with it.
+
+`Build/third-party-material.json` is the single record of third-party code and
+data in any NuGet package. Each entry names the package, the files it covers,
+the source and revision, the SPDX license and the license texts to pack. To add
+material:
+
+1. Keep the upstream notice in the file or beside it, and add the license text
+   under the package's `Licenses/` (or equivalent) folder.
+2. Add an entry to the manifest.
+3. Describe the material under a heading with the entry's title in the package's
+   `THIRD-PARTY-NOTICES.md`, and pack that file and the license texts.
+4. Run the check.
+
+A package's `PackageLicenseExpression` is `MIT`, joined with `AND` to the license
+of any third-party code it compiles. Data licenses go in the notices, not in the
+expression: nuget.org only accepts OSI- or FSF-approved identifiers, so terms
+such as `APAFML` or `CC-BY-SA-3.0` can't be expressed there, and a partial list
+would be misleading.
+
+```powershell
+python Build/validate_third_party_notices.py
+python Build/validate_third_party_notices.py package Artefacts/ProjectBuild
+```
+
+The first command checks the manifest against the sources, project files and
+license expressions; CI runs it on every pull request. It also flags source
+comments that say code was adapted, ported or vendored from elsewhere, or that
+carry a third-party copyright, when no entry covers the file. The second checks
+built packages: license expression, notices file and the content of every
+license text. `Build/Build-Project.ps1` runs it after a package build, and
+`Build/Build-Release.ps1 -RunMode Publish` runs the source check before it
+builds or publishes anything.
+
 ## Coordinated publication
 
 Publication uses the local credential files configured in

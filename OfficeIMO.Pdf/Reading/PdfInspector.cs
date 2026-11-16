@@ -508,6 +508,8 @@ internal static class PdfInspector {
         CancellationToken cancellationToken) {
         foreach (PdfIndirectObject indirectObject in document.Objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            // Values that are not built yet are dictionaries or object-stream members, never streams.
+            if (indirectObject.TryGetUnbuiltSummary(out _)) continue;
             if (indirectObject.Value is PdfStream stream &&
                 Filters.StreamDecoder.HasDeclaredFilter(stream.Dictionary, "Crypt", document.Objects)) {
                 return true;

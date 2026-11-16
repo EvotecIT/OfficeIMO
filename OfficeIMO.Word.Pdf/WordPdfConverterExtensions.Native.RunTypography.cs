@@ -19,6 +19,8 @@ namespace OfficeIMO.Word.Pdf {
             public bool SmallCaps { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeTextSpacing ListMarkerTextSpacing { get; init; }
+            /// <summary>The marker's inherited color, resolved without the run background it is not painted on.</summary>
+            public global::OfficeIMO.OfficeColor? MarkerColor { get; init; }
             public double EffectiveFontSize { get; init; }
             public PdfCore.PdfTextRun ApplyTo(PdfCore.PdfTextRun run) => TextSpacing.ApplyTo(run, EffectiveFontSize);
             internal bool Underline => UnderlineStyle != OfficeTextDecorationStyle.None;
@@ -129,13 +131,25 @@ namespace OfficeIMO.Word.Pdf {
             global::OfficeIMO.OfficeColor? color = TryGetNativeRunColor(runProperties, paragraph._document, out global::OfficeIMO.OfficeColor? directColor)
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
-            color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
             global::OfficeIMO.OfficeColor? background = MapNativeHighlight(
                 WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));
             background ??= ParseNativeColor(WordRunFormatting.ResolveRunShadingFillColorHex(paragraph));
+            // A painted run highlight or shading is the nearest backdrop for automatic text. A list marker
+            // inherits the color but not the run background, so it resolves against the paragraph backdrop.
+            global::OfficeIMO.OfficeColor? paragraphAutomaticColor = color.HasValue ? null : ResolveNativeAutomaticTextColor(paragraph);
+            global::OfficeIMO.OfficeColor? markerColor = color ?? paragraphAutomaticColor;
+            color ??= background.HasValue ? ResolveNativeAutomaticTextColor(background.Value) : paragraphAutomaticColor;
+            // A heading passes its style color as the paragraph default; automatic runs must not inherit it.
+            if (GetHeadingLevel(styleSource) > 0) {
+                color ??= global::OfficeIMO.OfficeColor.Black;
+                markerColor ??= global::OfficeIMO.OfficeColor.Black;
+            }
+            color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
+            markerColor = ResolveNativeGroupedHeaderFooterTextColor(paragraph, markerColor);
 
             return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background) {
                 SmallCaps = smallCaps,
+                MarkerColor = markerColor,
                 EffectiveFontSize = fontSize ?? nativeFontMap?.DefaultFontSize ?? resolvedNativeDefaults.FontSize,
                 TextSpacing = resolvedNativeDefaults.TextSpacing.Merge(tableRunStyleDefaults.TextSpacing)
                     .Merge(styleDefaults.TextSpacing).Merge(characterStyleDefaults.TextSpacing).Merge(runProperties).Resolve(resolvedNativeDefaults.OpenTypeFeaturesEnabled),

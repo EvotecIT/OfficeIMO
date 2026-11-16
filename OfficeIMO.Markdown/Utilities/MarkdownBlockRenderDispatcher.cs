@@ -127,6 +127,45 @@ internal static class MarkdownBlockRenderDispatcher {
         return RenderTightListItemHtmlFallback(block, context);
     }
 
+    /// <summary>Appends the same HTML as <see cref="RenderTightListItemHtml(IMarkdownBlock)"/>.</summary>
+    internal static void AppendTightListItemHtml(StringBuilder builder, IMarkdownBlock block) {
+        if (block == null) {
+            return;
+        }
+
+        var context = HtmlRenderContext.BodyContext;
+        if (context != null) {
+            var overridden = TryRenderSyntaxBlockHtmlOverride(block, context)
+                ?? TryRenderBlockHtmlOverride(block, context);
+            if (overridden != null) {
+                builder.Append(overridden);
+                return;
+            }
+        }
+
+        if (block is ParagraphBlock paragraph) {
+            paragraph.Inlines.AppendHtml(builder);
+            return;
+        }
+
+        if (block is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
+            builder.Append(tightHtmlBlock.RenderTightListItemHtml());
+            return;
+        }
+
+        if (context != null && block is IContextualHtmlMarkdownBlock contextualBlock) {
+            if (block is IHtmlAppendableContextualMarkdownBlock appendable) {
+                appendable.AppendHtml(builder, context);
+            } else {
+                builder.Append(contextualBlock.RenderHtml(context));
+            }
+
+            return;
+        }
+
+        AppendDefaultHtml(builder, block);
+    }
+
     internal static string RenderMarkdown(IMarkdownBlock block) {
         if (block == null) {
             return string.Empty;

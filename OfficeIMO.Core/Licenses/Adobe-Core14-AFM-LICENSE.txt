@@ -1,0 +1,15 @@
+Adobe Core 14 AFM files (AFM 4.1)
+
+Copyright (c) 1985, 1987, 1988, 1989, 1990, 1991, 1992, 1993, 1997 Adobe Systems Incorporated.
+All Rights Reserved.
+
+Times is a trademark of Linotype-Hell AG and/or its subsidiaries.
+Helvetica is a trademark of Linotype-Hell AG and/or its subsidiaries.
+ITC Zapf Dingbats is a registered trademark of International Typeface Corporation.
+
+Permission notice from the accompanying MustRead.html:
+
+This file and the 14 PostScript(R) AFM files it accompanies may be used, copied, and distributed for any purpose and without charge, with or without modification, provided that all copyright notices are retained; that the AFM files are not distributed without this file; that all modifications to this file or any of the AFM files are prominently noted in the modified file(s); and that this paragraph is not modified. Adobe Systems has no responsibility or obligation to support the use of the AFM files.
+
+OfficeIMO modification: the AFM files are not redistributed. Build/Generate-PdfStandardFontWidths.py
+reduces them to advance widths, kerning pairs and glyph bounds in generated C# tables.

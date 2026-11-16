@@ -673,6 +673,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderVisual visual = visuals[index];
             bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup;
             double bottom = paintOnlyBounds ? 0D : visual.Y + visual.Height;
+            if (visual is HtmlRenderSemanticGroup pendingGroup
+                && TryMaximumPendingScrollBottom(pendingGroup, out double pendingBottom)) {
+                maximum = Math.Max(maximum, Math.Max(bottom, pendingBottom));
+                continue;
+            }
             IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup clip when !clip.ClipVertical => clip.Visuals,
                 HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
@@ -693,6 +698,56 @@ internal sealed partial class HtmlRenderLayoutEngine {
             maximum = Math.Max(maximum, bottom);
         }
         return maximum;
+    }
+
+    /// <summary>
+    /// The scroll bottom a group's children would give once its pending translation is applied, read from the
+    /// untranslated children instead of copying them. Each child's position is moved by the same additions, in
+    /// the same order, as its translated copy, so the answer is exactly the one the copies give. Kinds that
+    /// translate differently or carry paint-only bounds return false, and the caller reads the copies.
+    /// </summary>
+    private static bool TryMaximumPendingScrollBottom(HtmlRenderSemanticGroup group, out double maximum) {
+        maximum = 0D;
+        return group.TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> source, out HtmlRenderOffset[] offsets)
+            && TryMaximumTranslatedScrollBottom(source, offsets, out maximum);
+    }
+
+    private static bool TryMaximumTranslatedScrollBottom(IReadOnlyList<HtmlRenderVisual> visuals,
+        HtmlRenderOffset[] offsets, out double maximum) {
+        maximum = 0D;
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
+            double y = visual.Y;
+            if (visual is HtmlRenderText text) {
+                // A text copy skips a step that neither moves nor renumbers it.
+                bool copied = false;
+                foreach (HtmlRenderOffset offset in offsets) {
+                    if (offset.IsZero && (copied ? index : text.PaintOrder) == index) continue;
+                    copied = true;
+                    y += offset.Y;
+                }
+            } else if (visual is HtmlRenderShape or HtmlRenderLayoutBox or HtmlRenderSemanticGroup) {
+                foreach (HtmlRenderOffset offset in offsets) y += offset.Y;
+            } else {
+                return false;
+            }
+            double bottom = y + visual.Height;
+            if (visual is HtmlRenderSemanticGroup child) {
+                IReadOnlyList<HtmlRenderVisual> children;
+                HtmlRenderOffset[] childOffsets;
+                if (child.TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> childSource, out HtmlRenderOffset[] own)) {
+                    children = childSource;
+                    childOffsets = HtmlRenderOffset.Append(own, offsets);
+                } else {
+                    children = child.Visuals;
+                    childOffsets = offsets;
+                }
+                if (!TryMaximumTranslatedScrollBottom(children, childOffsets, out double childBottom)) return false;
+                bottom = Math.Max(bottom, childBottom);
+            }
+            maximum = Math.Max(maximum, bottom);
+        }
+        return true;
     }
 
     private static bool TryGetVerticalPaintTranslation(OfficeTransform transform, out double translation) {

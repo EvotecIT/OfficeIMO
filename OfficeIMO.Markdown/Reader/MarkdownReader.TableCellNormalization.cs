@@ -78,6 +78,63 @@ internal static partial class MarkdownReader {
             return (string.Empty, null);
         }
 
+        // Without a source map, a cell that normalizing leaves as it is needs no copy.
+        if (state?.SourceTextMap == null
+            && IsTableCellMarkdownUnchangedByNormalization(cell.Markdown, unescapeCodePipes, preserveFencedCodeSpans)) {
+            return (cell.Markdown, null);
+        }
+
+        return NormalizeTableCellInlineMarkdownWithSourceMapCore(cell, state, unescapeCodePipes, preserveFencedCodeSpans);
+    }
+
+    private static readonly char[] TableCellNormalizationStops = { '\r', '\n', '<' };
+
+    // Mirrors the scan below: only line endings, break tags and escaped pipes inside code spans
+    // change the text.
+    private static bool IsTableCellMarkdownUnchangedByNormalization(string markdown, bool unescapeCodePipes, bool preserveFencedCodeSpans) {
+        bool mayUnescapeCodePipes = unescapeCodePipes
+            && markdown.IndexOf('`') >= 0
+            && markdown.IndexOf("\\|", StringComparison.Ordinal) >= 0;
+        if (!mayUnescapeCodePipes && markdown.IndexOfAny(TableCellNormalizationStops) < 0) {
+            return true;
+        }
+
+        char blockFenceChar = '\0';
+        int blockFenceLength = 0;
+        for (int i = 0; i < markdown.Length; i++) {
+            char ch = markdown[i];
+            if (TryConsumeTableCellLiteralToken(markdown, i, out int literalLength, ref blockFenceChar, ref blockFenceLength, preserveFencedCodeSpans)) {
+                if (unescapeCodePipes && ch == '`') {
+                    for (int offset = 0; offset + 1 < literalLength; offset++) {
+                        if (markdown[i + offset] == '\\' && markdown[i + offset + 1] == '|') {
+                            return false;
+                        }
+                    }
+                }
+
+                i += literalLength - 1;
+                continue;
+            }
+
+            if (ch == '\\' && i + 1 < markdown.Length && IsBackslashEscapable(markdown[i + 1])) {
+                i++;
+                continue;
+            }
+
+            if (ch == '\r' || ch == '\n' || (ch == '<' && TableBlock.TryConsumeBreakTag(markdown, i, out _))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static (string Text, MarkdownInlineSourceMap? SourceMap) NormalizeTableCellInlineMarkdownWithSourceMapCore(
+        TableCellSourceFragment cell,
+        MarkdownReaderState? state,
+        bool unescapeCodePipes,
+        bool preserveFencedCodeSpans) {
+
         var builder = new StringBuilder(cell.Markdown.Length + 8);
         List<MarkdownSourcePoint?>? points = state?.SourceTextMap == null ? null : new List<MarkdownSourcePoint?>(cell.Markdown.Length + 8);
         List<MarkdownSourceSpan?>? tokenSpans = points == null ? null : new List<MarkdownSourceSpan?>(cell.Markdown.Length + 8);

@@ -403,6 +403,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmPShd) {
+                    if (offset + 3 > end || offset + 3 + bytes[offset + 2] > end) {
+                        break;
+                    }
+
+                    int length = bytes[offset + 2];
+                    if (length == 10 && ReadRgbParagraphShading(bytes, offset + 3) is { } rgbShading) {
+                        paragraphShading = rgbShading;
+                    }
+
+                    offset += 3 + length;
+                    continue;
+                }
+
                 if (sprm == SprmPBrcTop80
                     || sprm == SprmPBrcLeft80
                     || sprm == SprmPBrcBottom80

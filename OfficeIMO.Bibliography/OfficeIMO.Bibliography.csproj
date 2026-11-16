@@ -33,6 +33,7 @@
     <EmbeddedResource Include="Citations/Locales/locales-*.xml" />
     <EmbeddedResource Include="Citations/Locales/locales.json" />
     <EmbeddedResource Include="Citations/Data/stop-words.json" />
+    <None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
     <None Include="Citations/Locales/NOTICE.txt" Pack="true" PackagePath="licenses/csl-locales/" />
     <None Include="Citations/Data/NOTICE.txt;Citations/Data/LICENSE.txt" Pack="true" PackagePath="licenses/csl-schema/" />
   </ItemGroup>

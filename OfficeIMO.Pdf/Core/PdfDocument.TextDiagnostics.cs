@@ -294,7 +294,11 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AnalyzeDrawing(DrawingBlock drawing, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+    private static void AnalyzeDrawing(DrawingBlock drawing, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) =>
+        AnalyzeDrawing(drawing, options, defaultFont, diagnostics, new CanvasLocation(null, locationPrefix, null), cancellationToken);
+
+    // Most canvas drawings are borders and fills without text, so their location path is built only for a text element.
+    private static void AnalyzeDrawing(DrawingBlock drawing, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, CanvasLocation locationPrefix, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         for (int elementIndex = 0; elementIndex < drawing.Drawing.Elements.Count; elementIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -318,7 +322,7 @@ public sealed partial class PdfDocument {
                     standardFont: font,
                     fontFamily: text.Font.FamilyName)
             };
-            AddRuns(diagnostics, runs, options, font, "PdfDrawingText", AppendLocation(locationPrefix, "PdfDrawingText[" + elementIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+            AddRuns(diagnostics, runs, options, font, "PdfDrawingText", AppendLocation(locationPrefix.ToString(), "PdfDrawingText[" + elementIndex.ToString(CultureInfo.InvariantCulture) + "]"));
         }
     }
 
@@ -376,7 +380,7 @@ public sealed partial class PdfDocument {
                     AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasBehindText", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasDrawingItem drawing:
-                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix.ToString(), "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasDrawing", itemIndex), cancellationToken);
                     break;
             }
         }

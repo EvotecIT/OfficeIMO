@@ -232,6 +232,9 @@ internal static class PdfAttachmentExtractor {
         foreach (PdfIndirectObject indirect in objects.Values) {
             budget.Checkpoint();
             if (allowedObjectNumbers != null && !allowedObjectNumbers.Contains(indirect.ObjectNumber)) continue;
+            // The load scan recorded every key of an unbuilt value, so one without /AF or /FS stays unparsed.
+            if (indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary) &&
+                !PdfSyntax.MayHoldAttachmentReferences(summary)) continue;
             CollectAttachmentReferences(objects, indirect.Value, associatedFileArrays, fileAttachmentAnnotations,
                 seenAssociatedFileArrays, budget);
         }

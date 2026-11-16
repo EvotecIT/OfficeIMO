@@ -37,6 +37,7 @@ internal static partial class MarkdownReader {
         string line = lines[index] ?? string.Empty;
         int indent = CountLeadingIndentColumns(line);
         if (indent < continuationIndent) return false;
+        if (FirstCharacterAfterIndent(line) is not ('`' or '~')) return false;
 
         string first = StripLeadingIndentColumns(line, continuationIndent);
         int openingFenceIndent = CountLeadingIndentColumns(first);
