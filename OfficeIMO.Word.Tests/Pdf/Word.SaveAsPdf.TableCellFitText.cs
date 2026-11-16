@@ -10,13 +10,17 @@ public partial class Word {
     [InlineData(WordFileFormat.Docx)]
     [InlineData(WordFileFormat.Doc)]
     public void SaveAsPdf_FitTextCellSpreadsShortTextToTheCellEdge(WordFileFormat format) {
+        using var control = PdfPigDocument.Open(RenderFitTextCell(format, "FitAB", fitText: false));
         using var pdf = PdfPigDocument.Open(RenderFitTextCell(format, "FitAB", fitText: true));
         var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
         double edge = letters.Single(letter => letter.Value == "Z").EndBaseLine.X;
         var fitted = letters.TakeWhile(letter => letter.Value != "Z").ToArray();
 
         Assert.Equal("FitAB", string.Concat(fitted.Select(letter => letter.Value)));
-        Assert.Equal(edge, fitted[fitted.Length - 1].EndBaseLine.X, 1);
+        // A fitted line fills its row without wrapping into an extra line.
+        Assert.Equal(control.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.Y,
+            letters.Single(letter => letter.Value == "Z").StartBaseLine.Y, 2);
+        Assert.InRange(fitted[fitted.Length - 1].EndBaseLine.X, edge - 1D, edge + 0.05D);
         Assert.All(fitted, letter => Assert.Equal(fitted[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
     }
 
@@ -39,8 +43,37 @@ public partial class Word {
         Assert.All(fitted, letter => Assert.Equal(controlLetters[0].FontSize, letter.FontSize, 3));
     }
 
-    private static byte[] RenderFitTextCell(WordFileFormat format, string text, bool fitText) {
-        using WordDocument source = WordDocument.Create();
+    [Fact]
+    public void SaveAsPdf_FitTextCellReplacesAuthoredCharacterSpacing() {
+        const string text = "TrackedFitTextCellContent";
+        using var pdf = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, text, fitText: true,
+            paragraph => paragraph.Spacing = global::OfficeIMO.OfficeLength.Points(4D)));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        double edge = letters.Single(letter => letter.Value == "Z").EndBaseLine.X;
+        var fitted = letters.TakeWhile(letter => letter.Value != "Z").ToArray();
+
+        Assert.Equal(text, string.Concat(fitted.Select(letter => letter.Value)));
+        Assert.All(fitted, letter => Assert.Equal(fitted[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
+        Assert.InRange(fitted[fitted.Length - 1].EndBaseLine.X, edge - 1D, edge + 0.05D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_FitTextCellKeepsTheParagraphMarkLineHeightAfterATrailingBreak() {
+        static void TallTrailingBreak(WordParagraph paragraph) {
+            paragraph.AddBreak();
+            paragraph._paragraph.ParagraphProperties ??= new DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties();
+            paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties =
+                new DocumentFormat.OpenXml.Wordprocessing.ParagraphMarkRunProperties(new DocumentFormat.OpenXml.Wordprocessing.FontSize { Val = "72" });
+        }
+
+        using var control = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, "Alpha", fitText: false, TallTrailingBreak));
+        using var pdf = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, "Alpha", fitText: true, TallTrailingBreak));
+        double expected = control.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.Y;
+
+        Assert.Equal(expected, pdf.GetPage(1).Letters.Single(letter => letter.Value == "Z").StartBaseLine.Y, 2);
+    }
+
+    private static byte[] RenderFitTextCell(WordFileFormat format, string text, bool fitText, Action<WordParagraph>? configure = null) {        using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(2, 1, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         foreach (WordTableRow row in table.Rows) {
@@ -49,6 +82,7 @@ public partial class Word {
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.FitText = fitText;
         cell.Paragraphs[0].Text = text;
+        configure?.Invoke(cell.Paragraphs[0]);
         // A right-aligned reference in an identical cell marks the inner right edge.
         WordParagraph edge = table.Rows[1].Cells[0].Paragraphs[0];
         edge.Text = "Z";

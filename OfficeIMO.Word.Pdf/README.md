@@ -159,7 +159,8 @@ exact line endings and glyph appearance.
 
 Table cells with Fit Text (`w:tcFitText`) fill the cell's text width line by line
 without changing font height: longer lines are condensed with character width
-scaling and shorter lines are spread with character spacing. Each paragraph in the
+scaling and shorter lines are spread with character spacing, replacing any authored
+character width and spacing on those lines. Each paragraph in the
 cell fits on its own. Lines containing tabs or inline objects keep their authored
 layout.
 
