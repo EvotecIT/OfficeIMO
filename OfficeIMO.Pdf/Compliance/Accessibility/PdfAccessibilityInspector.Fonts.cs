@@ -222,7 +222,11 @@ internal sealed partial class PdfAccessibilityInspector {
             } else if (c == '/' && string.CompareOrdinal(text, i, "/WMode", 0, 6) == 0 &&
                 (i + 6 == text.Length || IsCMapDelimiter(text[i + 6]))) {
                 int start = i + 6;
-                while (start < text.Length && IsCMapWhiteSpace(text[start])) start++;
+                while (start < text.Length) {
+                    if (IsCMapWhiteSpace(text[start])) start++;
+                    else if (text[start] == '%') { while (start < text.Length && text[start] != '\n' && text[start] != '\r') start++; }
+                    else break;
+                }
                 int end = start;
                 while (end < text.Length && !IsCMapDelimiter(text[end])) end++;
                 return end > start ? text.Substring(start, end - start) : null;

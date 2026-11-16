@@ -141,6 +141,8 @@ public class PdfAccessibilityCheckTests {
     [InlineData("font-inherited-by-form", "31-009", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("table-with-direct-content", "09-004", PdfAccessibilityConditionStatus.Failed)]
     [InlineData("enclosing-marked-content-language", "11-002", PdfAccessibilityConditionStatus.NotApplicable)]
+    [InlineData("empty-text-operators", "01-005", PdfAccessibilityConditionStatus.Passed)]
+    [InlineData("form-resources-from-painter", "31-009", PdfAccessibilityConditionStatus.Failed)]
     public void CheckAccessibility_ReadsTheConstructThatDecidesTheCondition(string construct, string conditionId, PdfAccessibilityConditionStatus expected) {
         string catalog = string.Empty, resources = string.Empty, content;
         var extra = new List<string>();
@@ -172,6 +174,23 @@ public class PdfAccessibilityCheckTests {
                 break;
             case "enclosing-marked-content-language":
                 content = "/Span <</Lang (en-US)>> BDC /Span <</ActualText (x)>> BDC 0 0 1 1 re f EMC EMC";
+                break;
+            case "empty-text-operators":
+                resources = "/Font << /F1 5 0 R >>";
+                content = "BT /F1 12 Tf [120] TJ () Tj ET";
+                extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+                break;
+            case "form-resources-from-painter":
+                // One resource-less form painted by two forms whose F1 differs: the second paint shows an unembedded font.
+                resources = "/XObject << /A 5 0 R /B 6 0 R >>";
+                content = "/A Do /B Do";
+                extra.Add(Stream("/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /Font << /F1 8 0 R >> /XObject << /I 7 0 R >> >>", "/I Do"));
+                extra.Add(Stream("/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /Font << /F1 9 0 R >> /XObject << /I 7 0 R >> >>", "/I Do"));
+                extra.Add(Stream("/Type /XObject /Subtype /Form /BBox [0 0 100 100]", "BT /F1 12 Tf 10 10 Td (x) Tj ET"));
+                extra.Add("<< /Type /Font /Subtype /TrueType /BaseFont /Embedded /Encoding /WinAnsiEncoding /FontDescriptor 10 0 R >>");
+                extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+                extra.Add("<< /Type /FontDescriptor /FontName /Embedded /Flags 32 /FontFile2 11 0 R >>");
+                extra.Add(Stream(string.Empty, "font"));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(construct), construct, null);

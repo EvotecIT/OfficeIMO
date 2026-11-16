@@ -52,7 +52,7 @@ never `Passed`.
   requires 1.
 - 15-003 treats a table as organised with Headers and IDs only when every TD names headers that are TH cells of the
   same table. veraPDF resolves each cell's headers instead; the two agree on the veraPDF corpus.
-- 09-004 to 09-008 also fail a grouping element (Table, TR, THead, TBody, TFoot, L, LI, TOC, Ruby, Warichu) that
+- 09-004 to 09-008 also fail a grouping element (Table, TR, THead, TBody, TFoot, L, TOC, Ruby, Warichu) that
   holds content directly. veraPDF checks only child elements, so these findings carry no veraPDF rule.
 - Form XObjects inherit the font and rendering mode in effect at `Do`; fonts selected through an ExtGState `Font`
   entry are checked like fonts selected with `Tf`.

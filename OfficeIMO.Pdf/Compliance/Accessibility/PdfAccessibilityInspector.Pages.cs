@@ -46,7 +46,7 @@ internal sealed partial class PdfAccessibilityInspector {
                 Fail("01-004", "7.1-2", Count(content.TaggedContentInArtifacts, "tagged sequence") + " inside Artifact content.", pageNumber, page.ObjectNumber);
             }
             if (content.UntaggedItems > 0) {
-                Fail("01-005", "7.1-3", Count(content.UntaggedItems, "content item") + " neither tagged nor marked as Artifact. " +
+                FailUnlessTruncated(structure, "01-005", "7.1-3", Count(content.UntaggedItems, "content item") + " neither tagged nor marked as Artifact. " +
                     "Tag real content in the structure tree and mark decoration as Artifact.", pageNumber, page.ObjectNumber);
             }
             foreach (string language in content.PropertyLanguages) CheckLanguageValue(language, pageNumber, null, "a marked-content property list", page.ObjectNumber);
@@ -77,13 +77,32 @@ internal sealed partial class PdfAccessibilityInspector {
         CheckFonts(fonts);
     }
 
+    // Content counts as tagged only when the structure tree references it. When the tree was not read completely,
+    // the missing reference proves nothing, so the finding is Indeterminate instead of a failure.
+    private void FailUnlessTruncated(StructureModel structure, string conditionId, string rule, string message, int pageNumber, int? objectNumber) {
+        if (structure.Truncated) {
+            Unknown(conditionId, rule, message + " The structure tree exceeds the inspection limits, so this content may be tagged deeper in it.", pageNumber, objectNumber);
+        } else {
+            Fail(conditionId, rule, message, pageNumber, objectNumber);
+        }
+    }
+
+    // An annotation without a known structure owner may be owned by an element below the inspection limits.
+    private void FailForOwner(StructureModel structure, StructNode? owner, string conditionId, string rule, string message, int pageNumber, int? objectNumber) {
+        if (owner is null && structure.Truncated) {
+            Unknown(conditionId, rule, message + " The structure tree exceeds the inspection limits, so its structure element may not have been read.", pageNumber, objectNumber);
+        } else {
+            Fail(conditionId, rule, message, pageNumber, objectNumber, owner);
+        }
+    }
+
     private static string Count(int count, string noun) =>
         count.ToString(CultureInfo.InvariantCulture) + " " + noun + (count == 1 ? " is" : "s are");
 
     private void CheckContentLanguage(PdfAccessibilityPageContent content, PdfReadPage page, int pageNumber, StructureModel structure) {
         if (content.TextMcids.Count > 0 || content.UntaggedTextWithoutLanguage > 0) Applies("11-001");
         if (!_catalogHasLanguage && content.UntaggedTextWithoutLanguage > 0) {
-            Fail("11-001", "7.2-34", Count(content.UntaggedTextWithoutLanguage, "untagged text item") + " without a determinable language. Set Lang on the catalog.",
+            FailUnlessTruncated(structure, "11-001", "7.2-34", Count(content.UntaggedTextWithoutLanguage, "untagged text item") + " without a determinable language. Set Lang on the catalog.",
                 pageNumber, page.ObjectNumber);
         }
         int missing = 0;
@@ -92,7 +111,7 @@ internal sealed partial class PdfAccessibilityInspector {
             if (!HasLanguage(structure.Owner(page.ObjectNumber, stream, mcid))) missing++;
         }
         if (missing > 0) {
-            Fail("11-001", "7.2-34", Count(missing, "tagged text sequence") + " without a determinable language. Set Lang on the catalog or on the structure elements.",
+            FailUnlessTruncated(structure, "11-001", "7.2-34", Count(missing, "tagged text sequence") + " without a determinable language. Set Lang on the catalog or on the structure elements.",
                 pageNumber, page.ObjectNumber);
         }
         foreach ((int? stream, int? mcid, string key) in content.PropertyTextWithoutLang) {
@@ -137,7 +156,7 @@ internal sealed partial class PdfAccessibilityInspector {
             if (contents is not null) {
                 Applies("11-004");
                 if (!_catalogHasLanguage && string.IsNullOrEmpty(owner?.Language)) {
-                    Fail("11-004", "7.2-24", "The annotation Contents has no determinable language.", pageNumber, objectNumber, owner);
+                    FailForOwner(structure, owner, "11-004", "7.2-24", "The annotation Contents has no determinable language.", pageNumber, objectNumber);
                 }
             }
             if (subtype == "PrinterMark") {
@@ -156,32 +175,32 @@ internal sealed partial class PdfAccessibilityInspector {
             if (subtype is not ("Widget" or "Link" or "PrinterMark")) {
                 Applies(nestingId);
                 if (owner?.StandardType != "Annot") {
-                    Fail(nestingId, "7.18.1-1", "The " + (subtype.Length == 0 ? "annotation" : subtype + " annotation") + " is not inside an Annot structure element.", pageNumber, objectNumber, owner);
+                    FailForOwner(structure, owner, nestingId, "7.18.1-1", "The " + (subtype.Length == 0 ? "annotation" : subtype + " annotation") + " is not inside an Annot structure element.", pageNumber, objectNumber);
                 }
             }
             if (subtype != "Widget") {
                 string descriptionId = KnownAnnotationSubtypes.Contains(subtype) ? "28-004" : "28-006";
                 Applies(descriptionId);
                 if (string.IsNullOrEmpty(contents) && string.IsNullOrEmpty(alt)) {
-                    Fail(descriptionId, "7.18.1-2", "The " + (subtype.Length == 0 ? "annotation" : subtype + " annotation") + " has no Contents and its structure element has no Alt.", pageNumber, objectNumber, owner);
+                    FailForOwner(structure, owner, descriptionId, "7.18.1-2", "The " + (subtype.Length == 0 ? "annotation" : subtype + " annotation") + " has no Contents and its structure element has no Alt.", pageNumber, objectNumber);
                 }
             }
             if (subtype == "Widget") {
                 Applies("28-010");
                 if (owner?.StandardType != "Form") {
-                    Fail("28-010", "7.18.4-1", "The widget annotation is not inside a Form structure element.", pageNumber, objectNumber, owner);
+                    FailForOwner(structure, owner, "28-010", "7.18.4-1", "The widget annotation is not inside a Form structure element.", pageNumber, objectNumber);
                 }
                 PdfDictionary field = ResolveField(annotation);
                 if (ReadName(field, "FT") is not null || annotation.Items.ContainsKey("Parent") || annotation.Items.ContainsKey("T")) {
                     Applies("28-005");
                     string? tooltip = ReadText(field, "TU");
                     if (string.IsNullOrEmpty(tooltip) && string.IsNullOrEmpty(alt)) {
-                        Fail("28-005", "7.18.1-3", "The form field has no TU (tooltip) and its Form element has no Alt; screen readers have no name for it.", pageNumber, objectNumber, owner);
+                        FailForOwner(structure, owner, "28-005", "7.18.1-3", "The form field has no TU (tooltip) and its Form element has no Alt; screen readers have no name for it.", pageNumber, objectNumber);
                     }
                     if (tooltip is not null) {
                         Applies("11-005");
                         if (!_catalogHasLanguage && string.IsNullOrEmpty(owner?.Language)) {
-                            Fail("11-005", "7.2-25", "The form field TU text has no determinable language; set Lang on the catalog or the Form element.", pageNumber, objectNumber, owner);
+                            FailForOwner(structure, owner, "11-005", "7.2-25", "The form field TU text has no determinable language; set Lang on the catalog or the Form element.", pageNumber, objectNumber);
                         }
                     }
                 }
@@ -190,7 +209,7 @@ internal sealed partial class PdfAccessibilityInspector {
                 Applies("28-011");
                 Applies("28-012");
                 if (owner?.StandardType != "Link") {
-                    Fail("28-011", "7.18.5-1", "The link annotation is not inside a Link structure element.", pageNumber, objectNumber, owner);
+                    FailForOwner(structure, owner, "28-011", "7.18.5-1", "The link annotation is not inside a Link structure element.", pageNumber, objectNumber);
                 }
                 if (string.IsNullOrEmpty(contents)) {
                     Fail("28-012", "7.18.5-2", "The link annotation has no Contents describing where it goes.", pageNumber, objectNumber, owner);

@@ -9,6 +9,10 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <summary>Checks a PDF against PDF/UA-1 using the Matterhorn Protocol failure conditions.</summary>
 /// <para>Works on any PDF, including files OfficeIMO did not produce. Machine-checkable conditions are evaluated;
 /// conditions that need a person's judgement are returned with status NeedsReview and are never reported as passed.</para>
+/// <para>Automatic coverage is not complete: conditions not checked yet, such as the glyph-level font checks, are
+/// returned with status NotChecked, and when the document permissions deny accessibility extraction most conditions
+/// are Indeterminate. No failures therefore does not mean the file conforms; see the PDF accessibility support matrix
+/// in the OfficeIMO documentation for the coverage of each condition.</para>
 /// <example>
 ///   <summary>List the failed accessibility conditions of a PDF.</summary>
 ///   <prefix>PS&gt; </prefix>

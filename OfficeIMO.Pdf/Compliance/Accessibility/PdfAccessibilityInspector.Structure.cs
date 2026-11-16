@@ -272,10 +272,11 @@ internal sealed partial class PdfAccessibilityInspector {
     private void CheckGrouping(StructNode node, string type) {
         string? parent = node.Parent?.StandardType;
         string[] kids = node.Kids.Select(static kid => kid.StandardType ?? string.Empty).ToArray();
-        // ISO 32000-1 Tables 336 to 338 allow these grouping elements only element children, never content.
+        // ISO 32000-1 Tables 336 to 338 allow these grouping elements only element children, never content. LI is left
+        // out: producers commonly put item content in LI directly, and veraPDF accepts it.
         string? groupingCondition = type switch {
             "Table" or "TR" or "THead" or "TBody" or "TFoot" => "09-004",
-            "L" or "LI" => "09-005",
+            "L" => "09-005",
             "TOC" => "09-006",
             "Ruby" => "09-007",
             "Warichu" => "09-008",

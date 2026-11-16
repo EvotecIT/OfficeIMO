@@ -57,8 +57,10 @@ public sealed partial class PdfReadPage {
         PageContentStreamSequence sequence = GetContentStreamSequence(budget);
         // A form scanned once under the same inherited state yields the same evidence; on a repeat paint only
         // the invocation counts of the forms it paints in turn are replayed.
-        var scannedForms = new Dictionary<(int Form, bool Tagged, bool Artifact, int? Mcid, int? McidStream, bool Language, PdfDictionary? Font, bool Rendered), Dictionary<int, int>>();
+        var scannedForms = new Dictionary<(int Form, PdfDictionary? Resources, bool Tagged, bool Artifact, int? Mcid, int? McidStream, bool Language, PdfDictionary? Font, bool Rendered), Dictionary<int, int>>();
         var activeForms = new HashSet<int>();
+        // One counter per form scan in progress, so each scan learns which forms it painted without copying page-wide counts.
+        var nestedCounters = new List<Dictionary<int, int>>();
         long work = 0;
         long maxWork = Math.Max(1L, (long)_limits.MaxContentOperations) * 4L;
         ScanAccessibilityStream(sequence.Source, null, resources, new AccessibilityScope(false, false, null, null, false), null, 0, 0);
@@ -146,6 +148,8 @@ public sealed partial class PdfReadPage {
                     case "TJ":
                     case "'":
                     case "\"":
+                        // An empty string or a TJ array of positioning numbers shows no glyphs.
+                        if (!ShowsCharacters(operation)) break;
                         if (font is not null) {
                             bool rendered = mode != 3;
                             result.Fonts[font] = result.Fonts.TryGetValue(font, out bool previous) ? previous || rendered : rendered;
@@ -188,14 +192,16 @@ public sealed partial class PdfReadPage {
                 return;
             }
             if (!string.Equals(subtype, "Form", StringComparison.Ordinal)) return;
+            // A form without its own Resources uses the painting stream's, so those are part of what it shows.
+            PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
+                ?? streamResources;
+            var key = (objectNumber ?? 0, formResources, scope.Tagged, scope.Artifact, scope.Mcid, scope.McidStream, scope.Language, font, mode != 3);
             if (objectNumber is int formNumber) {
-                result.FormInvocations[formNumber] = result.FormInvocations.TryGetValue(formNumber, out int count) ? count + 1 : 1;
+                CountInvocation(formNumber, 1);
                 if (stream.Dictionary.Items.ContainsKey("Ref")) result.ReferenceXObjects.Add(formNumber);
                 if (activeForms.Contains(formNumber)) return;
-                if (scannedForms.TryGetValue((formNumber, scope.Tagged, scope.Artifact, scope.Mcid, scope.McidStream, scope.Language, font, mode != 3), out Dictionary<int, int>? nested)) {
-                    foreach (KeyValuePair<int, int> invocation in nested) {
-                        result.FormInvocations[invocation.Key] = result.FormInvocations.TryGetValue(invocation.Key, out int seen) ? seen + invocation.Value : invocation.Value;
-                    }
+                if (scannedForms.TryGetValue(key, out Dictionary<int, int>? painted)) {
+                    foreach (KeyValuePair<int, int> invocation in painted) CountInvocation(invocation.Key, invocation.Value);
                     return;
                 }
                 activeForms.Add(formNumber);
@@ -203,27 +209,43 @@ public sealed partial class PdfReadPage {
             if (depth + 1 > _limits.MaxContentNestingDepth) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, _limits.MaxContentNestingDepth, depth + 1);
             }
+            var nested = new Dictionary<int, int>();
+            nestedCounters.Add(nested);
             try {
-                PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
-                    ?? streamResources;
                 byte[] decoded = budget.Decode(stream);
-                var before = new Dictionary<int, int>(result.FormInvocations);
                 ScanAccessibilityStream(PdfContentSource.FromBytes(decoded), objectNumber, formResources, scope, font, mode, depth + 1);
-                if (objectNumber is int scanned) {
-                    var nested = new Dictionary<int, int>();
-                    foreach (KeyValuePair<int, int> invocation in result.FormInvocations) {
-                        int delta = invocation.Value - (before.TryGetValue(invocation.Key, out int earlier) ? earlier : 0);
-                        if (delta > 0) nested[invocation.Key] = delta;
-                    }
-                    scannedForms[(scanned, scope.Tagged, scope.Artifact, scope.Mcid, scope.McidStream, scope.Language, font, mode != 3)] = nested;
-                }
+                if (objectNumber is not null) scannedForms[key] = nested;
             } finally {
+                nestedCounters.RemoveAt(nestedCounters.Count - 1);
                 if (objectNumber is int number) activeForms.Remove(number);
+            }
+        }
+
+        void CountInvocation(int form, int count) {
+            result.FormInvocations[form] = result.FormInvocations.TryGetValue(form, out int seen) ? seen + count : count;
+            foreach (Dictionary<int, int> counter in nestedCounters) {
+                counter[form] = counter.TryGetValue(form, out int nestedSeen) ? nestedSeen + count : count;
             }
         }
     }
 
     private static readonly string[] PropertyTextKeys = { "Alt", "ActualText", "E" };
+
+    // Operands that can't be read are treated as showing text, so malformed content is never skipped.
+    private static bool ShowsCharacters(PdfContentOperation operation) {
+        if (operation.Operands.Count == 0) return true;
+        object last = operation.Operands[operation.Operands.Count - 1];
+        if (last is byte[] text) return text.Length > 0;
+        // The interpreter reads an array of numbers only, such as [120], as double[].
+        if (last is double[] && string.Equals(operation.Name, "TJ", StringComparison.Ordinal)) return false;
+        if (last is List<object> items && string.Equals(operation.Name, "TJ", StringComparison.Ordinal)) {
+            foreach (object item in items) {
+                if (item is byte[] part ? part.Length > 0 : item is not double) return true;
+            }
+            return false;
+        }
+        return true;
+    }
 
     private int? GraphicsStateFontObjectNumber(PdfDictionary graphicsState, PdfDictionary? resources) {
         if (ResolveObject(graphicsState.Items.TryGetValue("Font", out PdfObject? selection) ? selection : null) is not PdfArray values || values.Items.Count == 0) return null;
