@@ -147,6 +147,7 @@ public static class ReaderInputLimits {
 
         bool restorePosition = stream.CanSeek;
         long originalPosition = 0;
+        long? knownLength = null;
         if (restorePosition) {
             originalPosition = stream.Position;
             try {
@@ -154,13 +155,14 @@ public static class ReaderInputLimits {
                 maxInputBytes = ResolveProbedMaxInputBytes(stream, maxInputBytes, inputLimitProbe, cancellationToken);
                 EnforceSeekableStreamSize(stream, maxInputBytes);
                 stream.Position = 0;
+                knownLength = GetSeekableLength(stream);
             } catch {
                 stream.Position = originalPosition;
                 throw;
             }
         }
 
-        Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes);
+        Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes, knownLength);
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -245,6 +247,7 @@ public static class ReaderInputLimits {
 
         bool restorePosition = stream.CanSeek;
         long originalPosition = 0;
+        long? knownLength = null;
         if (restorePosition) {
             originalPosition = stream.Position;
             try {
@@ -252,13 +255,14 @@ public static class ReaderInputLimits {
                 maxInputBytes = await ResolveProbedMaxInputBytesAsync(stream, maxInputBytes, inputLimitProbe, cancellationToken).ConfigureAwait(false);
                 EnforceSeekableStreamSize(stream, maxInputBytes);
                 stream.Position = 0;
+                knownLength = GetSeekableLength(stream);
             } catch {
                 stream.Position = originalPosition;
                 throw;
             }
         }
 
-        Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes);
+        Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes, knownLength);
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -353,13 +357,27 @@ public static class ReaderInputLimits {
             $"Input exceeds MaxInputBytes ({totalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
     }
 
-    private static Stream CreateBoundedSnapshotBuffer(long? maxInputBytes) {
+    private static Stream CreateBoundedSnapshotBuffer(long? maxInputBytes, long? knownLength) {
+        // A seekable source states its size up front, so a small input is copied in memory
+        // at its exact length instead of being spooled through a private temporary file.
+        if (knownLength is long length && length <= MaximumInMemorySnapshotBytes) {
+            return new ReaderSnapshotStream((int)length);
+        }
+
         if (maxInputBytes.HasValue
             && maxInputBytes.Value <= MaximumInMemorySnapshotBytes) {
             return new ReaderSnapshotStream(0);
         }
 
         return CreatePrivateSnapshotFileStream();
+    }
+
+    private static long? GetSeekableLength(Stream stream) {
+        try {
+            return stream.Length;
+        } catch (NotSupportedException) {
+            return null;
+        }
     }
 
     private static Stream CreatePrivateSnapshotFileStream() {
