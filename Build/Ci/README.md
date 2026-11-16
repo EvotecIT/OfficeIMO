@@ -53,6 +53,27 @@ Use a disposable standalone clone for the experiment rather than changing the
 shared repository's Git configuration. SDK or graph evaluation failures remain
 explicit incomplete reports.
 
+The [recorded sample](affected-pilot-observations.json) replays five historical
+changes on Windows with SDK 10.0.404. All 363 project declarations were unchanged
+across the sampled revisions; discovery included 362, with the external fixture
+producer explicitly excluded. No additional build saving was established:
+
+| Change | Existing selector | Three tool observations | Finding |
+| --- | ---: | --- | --- |
+| Shared Core, HTML and PDF | 307 | 311 / 115 / 115 | Unstable; the 311-project result adds four documentation examples |
+| Markdown | 97 | 30 / 30 / 30 | Declared consumers, including Markdown tests, are missing |
+| HTML and Markdown | 127 | 45 / 45 / 45 | Declared consumers are missing |
+| PDF and Word | 119 | 38 / 38 / 38 | Declared consumers are missing |
+| Website | 0 | 0 / 0 / 0 | Both already avoid .NET work |
+
+The four documentation examples use `OfficeIMODocumentationSourceRoot` in their
+project references. The XML selector does not expand that property, while the
+separate documentation-examples workflow already executes those projects.
+MSBuild evaluation also confirms the active Core reference in Word tests and
+the active Markdown reference in Markdown tests, which smaller tool results
+omit. These observations support keeping the existing selection. They do not
+establish the tool's underlying defect or performance on other platforms.
+
 ## Existing selection
 
 `select.py` follows tracked `ProjectReference` edges in reverse, from changed

@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "dotnet-affected",
+    "version": "7.0.1"
+  },
+  "evaluation": {
+    "platform": "Windows",
+    "sdk": "10.0.404",
+    "processorCount": 2,
+    "mode": "PR project selection on each historical source revision",
+    "trackedProjects": 363,
+    "observedDiscoveryProjects": 362,
+    "excludedProject": "Build/HtmlReportFixtures/producer/SyntheticReportProducer.csproj",
+    "exclusionReason": "Opt-in fixture producer requires a separate HtmlForgeX source checkout",
+    "productBuildsOrTestsTimed": false
+  },
+  "conclusion": {
+    "validatedAdditionalBuildSavings": null,
+    "recommendation": "Keep existing CI selection authoritative. Investigate the four property-expanded documentation references and the tool omissions before considering adoption.",
+    "existingDocumentationWorkflowCoversExamples": true
+  },
+  "cases": [
+    {
+      "name": "shared-core",
+      "sourceRevision": "55bbf9d7b9a0db04e315c98832e8b1e23910e0d1",
+      "baselineRevision": "6c0b3ea7ed3949c1cf720aaf711f4938fdd9e26f",
+      "status": "unstable",
+      "currentProjects": 307,
+      "toolObservationCounts": [
+        311,
+        115,
+        115
+      ],
+      "toolUnionProjects": 311,
+      "currentProjectsAbsentFromUnion": 0,
+      "toolOnlyProjects": [
+        "Build/DocumentationExamples/Excel/Excel.csproj",
+        "Build/DocumentationExamples/Pdf/Pdf.csproj",
+        "Build/DocumentationExamples/QuickStart/QuickStart.csproj",
+        "Build/DocumentationExamples/Word/Word.csproj"
+      ],
+      "missingConsumerExamples": [],
+      "seconds": {
+        "currentSelectorMedian": 1.172,
+        "currentSelectorRange": [
+          0.739,
+          1.273
+        ],
+        "toolMedian": 22.33,
+        "toolRange": [
+          20.413,
+          24.313
+        ],
+        "discoveryInventory": 21.145
+      },
+      "potentialSavings": null,
+      "retainedObservationsReassessedAgainstUnchangedProjectDeclarations": true
+    },
+    {
+      "name": "markdown",
+      "sourceRevision": "3bb9c53813dc20d7f4b2673a7338cccb50bd4d85",
+      "baselineRevision": "f2d00f0498a8b7903d937aa4fc3a8ea261364ca8",
+      "status": "dependency-gaps",
+      "currentProjects": 97,
+      "toolObservationCounts": [
+        30,
+        30,
+        30
+      ],
+      "toolUnionProjects": 30,
+      "currentProjectsAbsentFromUnion": 67,
+      "toolOnlyProjects": [],
+      "missingConsumerExamples": [
+        "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj",
+        "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj",
+        "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj"
+      ],
+      "seconds": {
+        "currentSelectorMedian": 1.777,
+        "currentSelectorRange": [
+          1.651,
+          2.563
+        ],
+        "toolMedian": 24.065,
+        "toolRange": [
+          22.493,
+          24.682
+        ],
+        "discoveryInventory": 26.929
+      },
+      "potentialSavings": null,
+      "retainedObservationsReassessedAgainstUnchangedProjectDeclarations": true
+    },
+    {
+      "name": "html-markdown",
+      "sourceRevision": "e558d8fbed31c6f6989fe16dc4483bd511cbe8bd",
+      "baselineRevision": "3bb9c53813dc20d7f4b2673a7338cccb50bd4d85",
+      "status": "dependency-gaps",
+      "currentProjects": 127,
+      "toolObservationCounts": [
+        45,
+        45,
+        45
+      ],
+      "toolUnionProjects": 45,
+      "currentProjectsAbsentFromUnion": 82,
+      "toolOnlyProjects": [],
+      "missingConsumerExamples": [
+        "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj",
+        "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj",
+        "OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj"
+      ],
+      "seconds": {
+        "currentSelectorMedian": 1.092,
+        "currentSelectorRange": [
+          1.015,
+          1.17
+        ],
+        "toolMedian": 25.559,
+        "toolRange": [
+          23.296,
+          27.021
+        ],
+        "discoveryInventory": 33.631
+      },
+      "potentialSavings": null,
+      "retainedObservationsReassessedAgainstUnchangedProjectDeclarations": true
+    },
+    {
+      "name": "pdf-word",
+      "sourceRevision": "cf95643c2e47bddfa72c80e3b0d00713996db82a",
+      "baselineRevision": "d7b23657e165c7add441b2b8548f5127735e250d",
+      "status": "dependency-gaps",
+      "currentProjects": 119,
+      "toolObservationCounts": [
+        38,
+        38,
+        38
+      ],
+      "toolUnionProjects": 38,
+      "currentProjectsAbsentFromUnion": 81,
+      "toolOnlyProjects": [],
+      "missingConsumerExamples": [
+        "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj"
+      ],
+      "seconds": {
+        "currentSelectorMedian": 0.825,
+        "currentSelectorRange": [
+          0.754,
+          0.845
+        ],
+        "toolMedian": 21.564,
+        "toolRange": [
+          20.27,
+          21.847
+        ],
+        "discoveryInventory": 21.286
+      },
+      "potentialSavings": null,
+      "retainedObservationsReassessedAgainstUnchangedProjectDeclarations": true
+    },
+    {
+      "name": "website",
+      "sourceRevision": "6c0b3ea7ed3949c1cf720aaf711f4938fdd9e26f",
+      "baselineRevision": "cf95643c2e47bddfa72c80e3b0d00713996db82a",
+      "status": "complete",
+      "currentProjects": 0,
+      "toolObservationCounts": [
+        0,
+        0,
+        0
+      ],
+      "toolUnionProjects": 0,
+      "currentProjectsAbsentFromUnion": 0,
+      "toolOnlyProjects": [],
+      "missingConsumerExamples": [],
+      "seconds": {
+        "currentSelectorMedian": 0.76,
+        "currentSelectorRange": [
+          0.626,
+          1.113
+        ],
+        "toolMedian": 22.62,
+        "toolRange": [
+          20.514,
+          28.488
+        ],
+        "discoveryInventory": 19.289
+      },
+      "potentialSavings": {
+        "netProjectReduction": 0,
+        "candidateRemovalPercent": null,
+        "buildMinutes": null
+      },
+      "retainedObservationsReassessedAgainstUnchangedProjectDeclarations": true
+    }
+  ]
+}
