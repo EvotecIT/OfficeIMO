@@ -33,7 +33,9 @@ _locks_guard = threading.Lock()
 
 def render(pdf: str, png_dir: str) -> list[np.ndarray]:
     """Rasterises once per PDF; parallel jobs for the same source wait for the first render to finish."""
-    key = hashlib.sha1(os.path.abspath(pdf).encode()).hexdigest()[:16]
+    stat = os.stat(pdf)
+    # Path, size and modification time: a re-rendered PDF gets fresh page images.
+    key = hashlib.sha1(f"{os.path.abspath(pdf)}|{stat.st_size}|{stat.st_mtime_ns}".encode()).hexdigest()[:16]
     folder = os.path.join(png_dir, key)
     with _locks_guard:
         lock = _locks.setdefault(key, threading.Lock())

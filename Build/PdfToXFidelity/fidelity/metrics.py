@@ -49,8 +49,12 @@ def text_similarity(a: str, b: str) -> float:
 def text_metrics(gold: Document, out: Document) -> dict:
     gw = gold.reading_words()
     ow = out.reading_words(include_optional=True)
-    allowed = Counter(gw) + Counter(gold.optional_words())
     g, o = Counter(gw), Counter(ow)
+    # Header and footer text repeats once per page in a faithful output, so any number of copies is allowed.
+    optional = set(gold.optional_words())
+    allowed = Counter(g)
+    for word in optional:
+        allowed[word] = max(allowed[word], o[word])
     common = sum((g & o).values())
     word_r = _ratio(common, len(gw))
     word_p = _ratio(sum((o & allowed).values()), len(ow)) if gw else NA
@@ -60,11 +64,12 @@ def text_metrics(gold: Document, out: Document) -> dict:
     char_p = _ratio(sum((oc & ac).values()), sum(oc.values())) if gw else NA
     # Reading order: share of recovered words that also keep the source order.
     order = NA
-    if common:
-        limit = 40000
+    limit = 40000
+    shared = sum((Counter(gw[:limit]) & Counter(ow[:limit])).values())
+    if shared:
         matcher = SequenceMatcher(None, gw[:limit], ow[:limit], autojunk=False)
         ordered = sum(block.size for block in matcher.get_matching_blocks())
-        order = min(1.0, ordered / sum((Counter(gw[:limit]) & Counter(ow[:limit])).values()))
+        order = min(1.0, ordered / shared)
     return {"char_recall": char_r, "char_precision": char_p, "word_recall": word_r, "word_precision": word_p,
             "word_f1": _f1(word_p, word_r), "reading_order": order}
 
@@ -233,6 +238,14 @@ def table_metrics(gold: Document, out: Document) -> dict:
     pairs = []
     for gt in gts:
         gbag = Counter(_cell_key(c) for row in gt.rows for c in row if norm_text(c.text))
+        if not gbag:
+            # A table of empty cells can only be paired by its grid.
+            j = next((j for j, ot in enumerate(ots) if j not in used and _shape(ot) == _shape(gt)
+                      and not any(norm_text(c.text) for row in ot.rows for c in row)), None)
+            if j is not None:
+                used.add(j)
+                pairs.append((gt, ots[j]))
+            continue
         best, best_j = 0.0, None
         for j, ot in enumerate(ots):
             if j in used:

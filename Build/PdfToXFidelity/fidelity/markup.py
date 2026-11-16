@@ -118,6 +118,8 @@ class _HtmlReader(HTMLParser):
         if is_note and tag in ("li", "div", "section", "aside", "ol", "p"):
             self.footnote_depth += 1
             state["note"] = True
+        elif tag == "li" and self.footnote_depth:
+            state["note_item"] = True  # one note inside a shared footnotes list
         if tag == "table":
             self.tables.append({"table": Table(), "row": None, "cell": None})
         elif tag == "tr" and self.tables:
@@ -166,6 +168,10 @@ class _HtmlReader(HTMLParser):
         # pop the matching element
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i][0] == tag:
+                if self.stack[i][1].get("note_item") and self.note_words:
+                    self.doc.footnotes.append(" ".join(self.note_words))
+                    self.doc.footnotes_native = True
+                    self.note_words = []
                 if self.stack[i][1].get("note") and not any(s.get("note") for _, s in self.stack[:i]):
                     self.footnote_depth = 0
                     if self.note_words:

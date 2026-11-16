@@ -374,8 +374,13 @@ def cmd_visual(args) -> None:
                 continue
             out = os.path.join(vis, tool, target)
             sources = [os.path.join(folder, e["id"] + "." + target) for e in expected]
-            soffice([p for p in sources if os.path.exists(p)
-                     and not os.path.exists(os.path.join(out, os.path.basename(p).rsplit(".", 1)[0] + ".pdf"))], out, "pdf")
+            # Re-render when the conversion output is newer than its rendered PDF.
+            stale = []
+            for p in sources:
+                rendered = os.path.join(out, os.path.basename(p).rsplit(".", 1)[0] + ".pdf")
+                if os.path.exists(p) and (not os.path.exists(rendered) or os.path.getmtime(rendered) < os.path.getmtime(p)):
+                    stale.append(p)
+            soffice(stale, out, "pdf")
             for e, p in zip(expected, sources):
                 rendered = os.path.join(out, e["id"] + ".pdf")
                 jobs.append((tool, target, e["id"], e["pdf"], rendered if os.path.exists(p) else rendered + ".missing"))
