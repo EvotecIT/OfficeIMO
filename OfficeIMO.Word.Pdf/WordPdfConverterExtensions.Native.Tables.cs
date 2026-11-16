@@ -327,7 +327,7 @@ namespace OfficeIMO.Word.Pdf {
         private static NativeTableStyleDefaults ApplyNativeTableConditionalStyleDefaults(NativeTableStyleDefaults tableStyleDefaults, NativeTableConditionalStyleDefaults conditionalStyle) {
             if (!conditionalStyle.CellFill.HasValue &&
                 conditionalStyle.ParagraphPagination == default &&
-                !conditionalStyle.TextColor.HasValue &&
+                !conditionalStyle.TextColorDeclared &&
                 !conditionalStyle.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.FontSize.HasValue &&
                 !conditionalStyle.ComplexScript.Enabled.HasValue &&
@@ -386,7 +386,9 @@ namespace OfficeIMO.Word.Pdf {
                     AllCaps = conditionalStyle.AllCaps ?? runStyle.AllCaps,
                     SmallCaps = conditionalStyle.SmallCaps ?? runStyle.SmallCaps,
                     Baseline = conditionalStyle.Baseline ?? runStyle.Baseline,
-                    Color = conditionalStyle.TextColor ?? runStyle.Color,
+                    // A declared automatic color overrides the whole-table run color.
+                    Color = conditionalStyle.TextColorDeclared ? conditionalStyle.TextColor : runStyle.Color,
+                    ColorHex = conditionalStyle.TextColorDeclared && !conditionalStyle.TextColor.HasValue ? "auto" : runStyle.ColorHex,
                     Highlight = conditionalStyle.Highlight ?? runStyle.Highlight
                 }
             };
