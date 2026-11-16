@@ -126,6 +126,33 @@ public partial class Word {
         AssertAutomaticRunColorPdf(source, WordFileFormat.Docx, "ConditionalColorMarker", dark, dark ? "000080" : null);
     }
 
+    [Theory]
+    [InlineData(WordListStyle.Numbered, "1.ListColorMarker")]
+    [InlineData(WordListStyle.Bulleted, "•ListColorMarker")]
+    public void SaveAsPdf_ShadedListItemPaintsFillBehindAutomaticText(WordListStyle listStyle, string expectedText) {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph item = source.AddList(listStyle).AddItem("ListColorMarker");
+        item.ShadingFillColor = OfficeColor.Parse("010203");
+        item.RunColorValue = "auto";
+        AssertAutomaticRunColorPdf(source, WordFileFormat.Docx, expectedText, true, "010203");
+    }
+
+    [Fact]
+    public void SaveAsPdf_AutomaticRunColorUsesConditionalTableStyleCellFill() {
+        using WordDocument source = WordDocument.Create();
+        Style style = new(new StyleName { Val = "Navy header" }) { StyleId = "NavyHeader", Type = StyleValues.Table, CustomStyle = true };
+        style.Append(new TableStyleProperties(new TableStyleConditionalFormattingTableCellProperties(
+            new Shading { Val = ShadingPatternValues.Clear, Color = "auto", Fill = "000080" })) { Type = TableStyleOverrideValues.FirstRow });
+        source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+        WordTable table = source.AddTable(1, 1);
+        table._tableProperties!.TableStyle = new TableStyle { Val = "NavyHeader" };
+        table.ConditionalFormattingFirstRow = true;
+        WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+        paragraph.Text = "HeaderColorMarker";
+        paragraph.RunColorValue = "auto";
+        AssertAutomaticRunColorPdf(source, WordFileFormat.Docx, "HeaderColorMarker", true, "000080");
+    }
+
     /// <summary>Checks the marker's letter color and that the named backdrop is painted (or the dark one is absent).</summary>
     private static void AssertAutomaticRunColorPdf(WordDocument source, WordFileFormat format, string marker, bool white, string? paintedFill) {
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = format })));

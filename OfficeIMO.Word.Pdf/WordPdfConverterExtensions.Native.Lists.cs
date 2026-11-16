@@ -108,6 +108,8 @@ namespace OfficeIMO.Word.Pdf {
             // Space and nothing suffixes follow each item's actual marker advance.
             // The paragraph path retains that per-item position instead of a shared column.
             if (info.Value.LevelSuffix is WordListLevelSuffix.Space or WordListLevelSuffix.Nothing) return false;
+            // List blocks have no paragraph fill; shaded items use the panel-backed paragraph path.
+            if (ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph)).HasValue) return false;
 
             // Numbering tabs may place the first line before or after the
             // continuation indent. Paragraphs preserve both positions;
