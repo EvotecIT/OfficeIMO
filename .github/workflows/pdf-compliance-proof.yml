@@ -331,6 +331,20 @@ jobs:
             --configuration "${BUILD_CONFIGURATION}" --framework net8.0 --no-restore -m:4 \
             --filter 'FullyQualifiedName~PdfInvoiceExternalProofTests|FullyQualifiedName~PdfOptimizerExternalProofTests' --verbosity minimal
 
+      - name: Compare the accessibility check with veraPDF PDF/UA-1
+        shell: bash
+        env:
+          VERAPDF_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.verapdf_path || '' }}
+        run: |
+          set -euo pipefail
+          OFFICEIMO_VERAPDF="${VERAPDF_PATH:-${OFFICEIMO_VERAPDF_CLI:-}}" \
+          OFFICEIMO_VERAPDF_ARGS='--flavour ua1 --format xml {pdf}' \
+          OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS='1' \
+            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj \
+              --configuration "${BUILD_CONFIGURATION}" --framework net8.0 --no-restore \
+              --filter 'FullyQualifiedName~PdfAccessibilityCheckTests' \
+              --verbosity minimal
+
       - name: Validate exact standards profiles invoices and timestamps
         shell: bash
         env:

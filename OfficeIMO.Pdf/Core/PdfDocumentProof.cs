@@ -11,6 +11,14 @@ public sealed class PdfDocumentProof {
         System.Threading.CancellationToken cancellationToken = default) =>
         PdfProductionPreflightInspector.Inspect(_document, options, cancellationToken);
 
+    /// <summary>
+    /// Checks this exact PDF against PDF/UA-1 (ISO 14289-1) using the Matterhorn Protocol 1.1 failure conditions.
+    /// Machine-checkable conditions are evaluated; conditions that need a person's judgement are listed for review
+    /// and never reported as passed. The result does not certify conformance.
+    /// </summary>
+    public PdfAccessibilityReport CheckAccessibility(System.Threading.CancellationToken cancellationToken = default) =>
+        PdfAccessibilityInspector.Inspect(_document, cancellationToken);
+
     /// <summary>Aligns pages with another PDF and reports insertion, deletion, reorder, and visual-change candidates.</summary>
     public PdfPageChangeReport AnalyzePageChanges(PdfDocument actualDocument, PdfPageChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(actualDocument, nameof(actualDocument));
