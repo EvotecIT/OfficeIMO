@@ -1,0 +1,14 @@
+{
+  "Producer": "Microsoft Word",
+  "Version": "16.0",
+  "Recipe": "Arial 12-point text with exact 20-point lines in two columns. Set the first paragraph's BackgroundPatternColor to 0xF7EFE5 (RGB E5EFF7), insert a continuous section with one column, and save as Word 97-2003 DOC. Reopen read-only in Microsoft Word.",
+  "Artifacts": [
+    {
+      "source": "word-rgb-paragraph.doc",
+      "sourceSha256": "085F474981F859B5CB97860A7C4A1BD3A49DDAAC1E6649D5C1B35DCE1E8A389A",
+      "compatibilityMode": 11,
+      "paragraphFill": "E5EFF7",
+      "pages": 1
+    }
+  ]
+}

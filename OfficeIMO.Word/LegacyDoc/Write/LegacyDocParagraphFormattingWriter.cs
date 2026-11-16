@@ -35,6 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPBrcRight80 = 0x6427;
         private const ushort SprmPBrcBetween80 = 0x6428;
         private const ushort SprmPShd80 = 0x442D;
+        private const ushort SprmPShd = 0xC64D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmPIlvl = 0x260A;
@@ -367,11 +368,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AddParagraphShadingSprm(List<byte> grpprl, LegacyDocParagraphShading shading) {
-            if (!LegacyDocPaletteProjection.TryResolveColor(shading.FillColorHex, "paragraph shading", out byte backgroundIco) || backgroundIco == 0) {
-                throw new NotSupportedException("Native DOC saving supports paragraph shading only for Word 97-2003 palette fill colors.");
+            if (shading.IsAutomatic) {
+                // An all-automatic clear record overrides inherited shading without painting.
+                AddParagraphShd80Sprm(grpprl, 0);
+                return;
             }
 
-            ushort shd80 = (ushort)(backgroundIco << 5);
+            if (LegacyDocColorPalette.TryGetIcoForHex(shading.FillColorHex, out byte paletteIco) && paletteIco != 0) {
+                AddParagraphShd80Sprm(grpprl, (ushort)(paletteIco << 5));
+                return;
+            }
+
+            if (!shading.TryGetRgb(out byte red, out byte green, out byte blue)
+                || !LegacyDocColorPalette.TryGetNearestIcoForHex(shading.FillColorHex, out byte nearestIco)) {
+                throw new NotSupportedException("Native DOC saving supports paragraph shading only for six-digit RGB fill colors.");
+            }
+
+            // Like Word, write the nearest palette fill for Word 97 readers, then the exact RGB record that later readers apply.
+            AddParagraphShd80Sprm(grpprl, (ushort)(nearestIco << 5));
+            grpprl.Add((byte)(SprmPShd & 0xFF));
+            grpprl.Add((byte)(SprmPShd >> 8));
+            grpprl.Add(10); // SHDOperand length: foreground COLORREF, background COLORREF, pattern.
+            grpprl.AddRange(new byte[] { 0, 0, 0, 0xFF, red, green, blue, 0, 0, 0 });
+        }
+
+        private static void AddParagraphShd80Sprm(List<byte> grpprl, ushort shd80) {
             grpprl.Add((byte)(SprmPShd80 & 0xFF));
             grpprl.Add((byte)(SprmPShd80 >> 8));
             grpprl.Add((byte)(shd80 & 0xFF));

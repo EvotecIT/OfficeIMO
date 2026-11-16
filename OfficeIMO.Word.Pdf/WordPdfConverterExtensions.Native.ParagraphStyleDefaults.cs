@@ -186,7 +186,10 @@ namespace OfficeIMO.Word.Pdf {
                     keepWithNext = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.KeepNext>()) ?? keepWithNext;
                     widowControl = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.WidowControl>()) ?? widowControl;
                     contextualSpacing = ReadNativeOnOff(paragraphProperties.GetFirstChild<W.ContextualSpacing>()) ?? contextualSpacing;
-                    shadingFillColorHex = NormalizeNativeShadingFill(paragraphProperties.GetFirstChild<W.Shading>()?.Fill?.Value) ?? shadingFillColorHex;
+                    if (paragraphProperties.GetFirstChild<W.Shading>() is { } shading) {
+                        // A derived style's automatic fill clears the inherited fill.
+                        shadingFillColorHex = NormalizeNativeShadingFill(shading.Fill?.Value);
+                    }
                     borders = MergeNativeParagraphBorders(borders, paragraphProperties.GetFirstChild<W.ParagraphBorders>());
                 }
             }

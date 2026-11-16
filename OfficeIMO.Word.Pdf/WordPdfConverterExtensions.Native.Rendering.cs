@@ -271,6 +271,8 @@ namespace OfficeIMO.Word.Pdf {
                 paragraphStyle.LeftIndent -= panelStyle.LeftInset;
                 paragraphStyle.RightIndent -= panelStyle.RightInset;
                 pdf.PanelParagraph(builder => {
+                    // Automatic text resolves against this painted fill only while its content is built here.
+                    using NativePaintedPanelScope paintedPanel = EnterNativePaintedPanel(paragraph, panelStyle.Background);
                     AddNativeParagraphContent(builder, paragraph, marker, runs, hasRenderableRuns || inlineImages.Count > 0, renderContent, paragraphFootnoteNumbers, footnoteNumbersById, options, nativeDefaults, nativeFontMap, needsAnchorLine,
                         inlineMarkerColumnWidth: markerColumnWidth, inlineImages: inlineImages);
                 }, panelStyle, align, defaultColor, paragraphStyle);

@@ -5648,8 +5648,8 @@ tables.
 instead of removing the direct setting. This lets regular text override a
 bold table header or an italic paragraph style.
 
-Native DOC borders and fills approximate RGB colours outside its 16-colour
-palette. A native save rejects these changes with an `OfficeConversionException`
+Native DOC borders and table-cell fills approximate RGB colours outside its
+16-colour palette; paragraph fills keep their exact RGB value. A native save rejects these changes with an `OfficeConversionException`
 whose report carries `word-doc-color-approximated`; set `WordSaveOptions.AllowLoss`
 to accept them. DOC conversion reports carry the same approximation while
 keeping tables editable. DOCX retains the authored RGB colours.
