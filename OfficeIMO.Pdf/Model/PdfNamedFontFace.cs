@@ -23,20 +23,34 @@ internal readonly record struct PdfNamedFontFace {
     internal string FaceKey =>
         FamilyKey + "|" + (Bold ? "1" : "0") + (Italic ? "1" : "0");
 
+    // Text runs ask for the same face's resource name for every segment; each thread remembers the last
+    // name built for each bold/italic combination.
+    [ThreadStatic] private static (string? FamilyKey, string? Name)[]? t_resourceNames;
+
     internal string ResourceName {
         get {
-            ulong hash = 14695981039346656037UL;
-            string value = FaceKey;
-            for (int index = 0; index < value.Length; index++) {
-                hash ^= value[index];
-                hash *= 1099511628211UL;
-            }
-
-            return "FN" +
-                   hash.ToString("X16", CultureInfo.InvariantCulture) +
-                   (Bold ? "B" : "R") +
-                   (Italic ? "I" : "N");
+            (string? FamilyKey, string? Name)[] names = t_resourceNames ??= new (string?, string?)[4];
+            int slot = (Bold ? 2 : 0) + (Italic ? 1 : 0);
+            (string? cachedKey, string? cachedName) = names[slot];
+            if (cachedName != null && string.Equals(cachedKey, FamilyKey, StringComparison.Ordinal)) return cachedName;
+            string name = BuildResourceName();
+            names[slot] = (FamilyKey, name);
+            return name;
         }
+    }
+
+    private string BuildResourceName() {
+        ulong hash = 14695981039346656037UL;
+        string value = FaceKey;
+        for (int index = 0; index < value.Length; index++) {
+            hash ^= value[index];
+            hash *= 1099511628211UL;
+        }
+
+        return "FN" +
+               hash.ToString("X16", CultureInfo.InvariantCulture) +
+               (Bold ? "B" : "R") +
+               (Italic ? "I" : "N");
     }
 
     public bool Equals(PdfNamedFontFace other) =>

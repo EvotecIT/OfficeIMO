@@ -348,6 +348,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 Array.Empty<int>(),
                 Array.Empty<int>());
         }
+        return PrepareHyphenationBreaks(paintToken, logicalToken, style);
+    }
+
+    // Kept apart from the common no-hyphenation exit so that its closures are allocated only here.
+    private HyphenationToken PrepareHyphenationBreaks(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
         var paint = new StringBuilder(paintToken.Length);
         var logical = new StringBuilder(logicalToken.Length);
         var manualBreaks = new List<int>();
@@ -530,24 +535,38 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (whitespace.HasValue && whitespace.Value != currentWhitespace) {
-                yield return text.Substring(tokenStart, i - tokenStart);
+                yield return SliceToken(text, tokenStart, i - tokenStart);
                 tokenStart = i;
             }
 
             whitespace = currentWhitespace;
         }
 
-        if (tokenStart < text.Length) yield return tokenStart == 0 ? text : text.Substring(tokenStart);
+        if (tokenStart < text.Length) yield return tokenStart == 0 ? text : SliceToken(text, tokenStart, text.Length - tokenStart);
     }
 
-    private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(IsCollapsibleCssWhitespace);
+    // Every other token in running text is a single space between words; they share one string.
+    private static string SliceToken(string text, int start, int length) =>
+        length == 1 && text[start] == ' ' ? " " : text.Substring(start, length);
+
+    private static bool IsWhitespaceToken(string token) {
+        if (token.Length == 0) return false;
+        for (int index = 0; index < token.Length; index++) {
+            if (!IsCollapsibleCssWhitespace(token[index])) return false;
+        }
+        return true;
+    }
 
     // Word spacing applies to separators independently of CSS collapsing and
     // line-breaking rules, including nonbreaking spaces but excluding fixed-width spaces.
-    private static bool IsWordSpacingSeparator(string textElement) => textElement.Length > 0
-        && textElement.All(static value => char.IsWhiteSpace(value)
-            && (value < '\u2000' || value > '\u200a')
-            && value != '\u3000');
+    private static bool IsWordSpacingSeparator(string textElement) {
+        if (textElement.Length == 0) return false;
+        for (int index = 0; index < textElement.Length; index++) {
+            char value = textElement[index];
+            if (!char.IsWhiteSpace(value) || value >= '\u2000' && value <= '\u200a' || value == '\u3000') return false;
+        }
+        return true;
+    }
 
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
