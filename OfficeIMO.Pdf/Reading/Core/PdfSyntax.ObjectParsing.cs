@@ -680,6 +680,7 @@ internal static partial class PdfSyntax {
             return int.TryParse(_text.AsSpan(), System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #else
+            if (_text is null && TryParsePlainInt32(source, _sourceStart, _length, out value)) return true;
             return int.TryParse(GetText(source, cancellationToken), System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
@@ -695,6 +696,8 @@ internal static partial class PdfSyntax {
                 value = default;
                 return false;
             }
+            if (_text is null && (styles & System.Globalization.NumberStyles.Float) == System.Globalization.NumberStyles.Float &&
+                TryParsePlainDecimal(source, _sourceStart, _length, out value)) return true;
 #if NET8_0_OR_GREATER
             if (_text is null) return source.TryParseDouble(_sourceStart, _length, styles, out value);
             return double.TryParse(_text.AsSpan(), styles,
@@ -704,7 +707,138 @@ internal static partial class PdfSyntax {
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
         }
+
+        /// <summary>
+        /// Whether the framework parser accepts this token under <see cref="System.Globalization.NumberStyles.Any"/>,
+        /// answered without parsing for the plain <c>[+-]digits[.digits]</c> spelling that is short enough not to overflow.
+        /// </summary>
+        internal bool IsNumber<TText>(TText source, System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText =>
+            (_text is null && IsShortPlainDecimal(source, _sourceStart, _length)) || TryParseDouble(source, out _, cancellationToken);
     }
+
+    private static bool IsShortPlainDecimal<TText>(TText source, int start, int length) where TText : struct, IPdfContentText {
+        // 32 characters cannot reach the double range on any target, so the parse cannot fail.
+        if (length > 32) return false;
+        int index = start;
+        int end = start + length;
+        if (index < end && (source[index] == '-' || source[index] == '+')) index++;
+        bool seenPoint = false;
+        bool seenDigit = false;
+        for (; index < end; index++) {
+            char current = source[index];
+            if (current == '.') {
+                if (seenPoint) return false;
+                seenPoint = true;
+            } else if ((uint)(current - '0') <= 9) {
+                seenDigit = true;
+            } else {
+                return false;
+            }
+        }
+        return seenDigit;
+    }
+
+#if NET8_0_OR_GREATER
+    private static readonly double[] ExactPowersOfTen = {
+        1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15,
+        1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
+    };
+
+    /// <summary>
+    /// Reads <c>[+-]digits[.digits]</c> with a non-zero value of at most 15 significant digits. The digits and the
+    /// power of ten are both exact doubles, so one IEEE division gives the correctly rounded value, which is what
+    /// the runtime parser returns on these targets. Zero, whose sign the parsers keep, and every other spelling
+    /// return false for the runtime parser.
+    /// </summary>
+    private static bool TryParsePlainDecimal<TText>(TText source, int start, int length, out double value) where TText : struct, IPdfContentText {
+        value = 0;
+        int index = start;
+        int end = start + length;
+        bool negative = false;
+        if (index < end && (source[index] == '-' || source[index] == '+')) {
+            negative = source[index] == '-';
+            index++;
+        }
+        long mantissa = 0;
+        int significantDigits = 0;
+        int fractionDigits = 0;
+        bool seenPoint = false;
+        for (; index < end; index++) {
+            char current = source[index];
+            if (current == '.') {
+                if (seenPoint) return false;
+                seenPoint = true;
+                continue;
+            }
+            int digit = current - '0';
+            if ((uint)digit > 9) return false;
+            if (seenPoint) fractionDigits++;
+            if (mantissa == 0 && digit == 0) continue;
+            if (++significantDigits > 15) return false;
+            mantissa = mantissa * 10 + digit;
+        }
+        if (mantissa == 0 || fractionDigits >= ExactPowersOfTen.Length) return false;
+        double magnitude = fractionDigits == 0 ? mantissa : mantissa / ExactPowersOfTen[fractionDigits];
+        value = negative ? -magnitude : magnitude;
+        return true;
+    }
+#else
+    // Older targets have no span-based number parsing, so every numeric token used to become a substring first.
+    // These read the common PDF spellings in place and leave every other spelling to the framework parser.
+
+    /// <summary>Reads <c>[+-]digits</c> that fits an Int32. Any other spelling returns false for the framework parser.</summary>
+    private static bool TryParsePlainInt32<TText>(TText source, int start, int length, out int value) where TText : struct, IPdfContentText {
+        value = 0;
+        int index = start;
+        int end = start + length;
+        bool negative = false;
+        if (index < end && (source[index] == '-' || source[index] == '+')) {
+            negative = source[index] == '-';
+            index++;
+        }
+        if (index == end) return false;
+        long magnitude = 0;
+        for (; index < end; index++) {
+            int digit = source[index] - '0';
+            if ((uint)digit > 9) return false;
+            magnitude = magnitude * 10 + digit;
+            if (magnitude > 2147483648L) return false;
+        }
+        if (negative) magnitude = -magnitude;
+        if (magnitude > int.MaxValue) return false;
+        value = (int)magnitude;
+        return true;
+    }
+
+    /// <summary>
+    /// Reads a non-zero whole number <c>[+-]digits</c> of at most 15 significant digits, which every target parses
+    /// to the same exact double. Fractions are left to the framework parser: .NET Framework does not always round
+    /// them correctly, and its own "R" formatting depends on reading back its parser's value. Zero, whose sign the
+    /// framework parsers treat differently, and every other spelling also return false.
+    /// </summary>
+    private static bool TryParsePlainDecimal<TText>(TText source, int start, int length, out double value) where TText : struct, IPdfContentText {
+        value = 0;
+        int index = start;
+        int end = start + length;
+        bool negative = false;
+        if (index < end && (source[index] == '-' || source[index] == '+')) {
+            negative = source[index] == '-';
+            index++;
+        }
+        long mantissa = 0;
+        int significantDigits = 0;
+        for (; index < end; index++) {
+            int digit = source[index] - '0';
+            if ((uint)digit > 9) return false;
+            if (mantissa == 0 && digit == 0) continue;
+            if (++significantDigits > 15) return false;
+            mantissa = mantissa * 10 + digit;
+        }
+        if (mantissa == 0) return false;
+        value = negative ? -mantissa : mantissa;
+        return true;
+    }
+#endif
 
     // PDF dictionaries repeat a small vocabulary across virtually every object. Keep this
     // pool deliberately bounded: arbitrary document names must never be globally interned.
@@ -752,15 +886,8 @@ internal static partial class PdfSyntax {
             }
         }
 
-#if NET8_0_OR_GREATER
+        // Numbers are read in place on every target; other tokens are sliced only when their text is needed.
         return new PdfToken(start, length);
-#else
-        if (source[start] == '/') return new PdfToken(start, length);
-        // Older targets do not expose span-based numeric parsing. Preserve their
-        // single materialization rather than recreating the same slice at each parse.
-        cancellationToken.ThrowIfCancellationRequested();
-        return new PdfToken(source.Substring(start, length, cancellationToken));
-#endif
     }
 
     private static string DecodeNameToken<TText>(PdfToken token, TText source,

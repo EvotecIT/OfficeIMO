@@ -42,6 +42,17 @@ internal static class PdfInspector {
         return names;
     }
 
+    /// <summary>Every probe marker name, so deferred objects can record which of them they contain.</summary>
+    internal static string[] GetDeferredMarkerNames() {
+        var names = new List<string>();
+        foreach (string[] group in ProbeMarkerNames) {
+            foreach (string name in group) {
+                if (!names.Contains(name)) names.Add(name);
+            }
+        }
+        return names.ToArray();
+    }
+
     private static HashSet<string>[] CreateReachableProbeMarkerGroups() {
         var groups = new HashSet<string>[2];
         for (int index = (int)ProbeMarker.OptionalContent; index <= (int)ProbeMarker.ActiveContent; index++) {

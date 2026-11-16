@@ -10,6 +10,7 @@ internal static partial class PdfMerger {
         int[]? outputSourceIndexes = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
+        byte[] assembled = merged;
         PdfMergePolicy policy = options?.Policy ?? new PdfMergePolicy();
         Guard.NotNull(policy, nameof(policy));
         if (outputSourceIndexes is not null && outputSourceIndexes.Length != sources.Sum(static source => source.PageObjectNumbers.Length)) {
@@ -81,7 +82,13 @@ internal static partial class PdfMerger {
                 PdfLoadOptions.WithPassword(currentReadOptions, primaryOptions.Password), primaryOptions.AesCryptographyProvider);
         }
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
-        PdfReadDocument readback = PdfReadDocument.Open(merged, currentReadOptions, cancellationToken);
+        // When no policy editor or encryption replaced the canonical assembler's clear-text output, it is read back
+        // as such, which skips the raw marker scans meant for arbitrary input but keeps the full object parse.
+        bool canonicalClearText = ReferenceEquals(merged, assembled) && primaryEncryption is null &&
+            encryptedSourceCount == 0 && !inventories.Any(static source => source.HasSignatures);
+        PdfReadDocument readback = canonicalClearText
+            ? PdfReadDocument.OpenRewrittenOutput(merged, currentReadOptions, cancellationToken)
+            : PdfReadDocument.Open(merged, currentReadOptions, cancellationToken);
         int expectedPageCount = sources.Sum(static source => source.PageObjectNumbers.Length);
         if (readback.Pages.Count != expectedPageCount) {
             throw new InvalidOperationException("PDF merge post-save validation failed: output page count did not match the imported page count.");

@@ -16,9 +16,19 @@ internal readonly struct PdfStructuralMarkerCounts {
 
 internal static partial class PdfSyntax {
     internal static int CountIndirectObjectHeaders(byte[] pdf, PdfReadLimits limits) =>
-        InspectStructuralMarkers(pdf, limits).IndirectObjectHeaders;
+        InspectStructuralMarkers(pdf, limits, measureObjects: false).IndirectObjectHeaders;
 
-    internal static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits) {
+    internal static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits) =>
+        InspectStructuralMarkers(pdf, limits, measureObjects: true);
+
+    /// <summary>
+    /// Counts only the indirect-object headers and startxref markers. A source document's counts are compared with its
+    /// generated outputs; their object and stream sizes are not, so the object walk is skipped and they read zero.
+    /// </summary>
+    internal static PdfStructuralMarkerCounts CountSourceStructuralMarkers(byte[] pdf, PdfReadLimits limits) =>
+        InspectStructuralMarkers(pdf, limits, measureObjects: false);
+
+    private static PdfStructuralMarkerCounts InspectStructuralMarkers(byte[] pdf, PdfReadLimits limits, bool measureObjects) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(limits, nameof(limits));
         limits.Validate();
@@ -39,7 +49,7 @@ internal static partial class PdfSyntax {
             cursor = header.Index + header.Length;
         }
 
-        int objectCursor = 0;
+        int objectCursor = measureObjects ? 0 : text.Length;
         while (TryFindIndirectObjectHeader(
             text,
             objectCursor,

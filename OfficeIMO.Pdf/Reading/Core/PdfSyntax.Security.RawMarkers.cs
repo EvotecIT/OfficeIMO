@@ -49,7 +49,7 @@ internal static partial class PdfSyntax {
             }
             index += relative;
 #else
-            int found = Array.IndexOf(pdf, (byte)'/', index, windowEnd - index);
+            int found = PdfByteSearch.IndexOf(pdf, (byte)'/', index, windowEnd - index);
             if (found < 0) {
                 index = windowEnd;
                 continue;

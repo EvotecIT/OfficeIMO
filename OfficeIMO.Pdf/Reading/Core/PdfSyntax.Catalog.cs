@@ -606,10 +606,21 @@ internal static partial class PdfSyntax {
             return false;
         }
         Func<string, bool> collect = Collect;
+        // Objects that are not built yet carry the marker names their load scan saw, so they stay unparsed.
+        bool useSummaries = PdfDeferredMarkerNames.TracksAll(requestedNames);
+        ulong summaryNames = 0;
 
         foreach (PdfIndirectObject indirectObject in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (useSummaries && indirectObject.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)) {
+                summaryNames |= summary.MarkerNames;
+                continue;
+            }
             VisitParsedPdfNames(indirectObject.Value, collect, cancellationToken);
+        }
+
+        for (int bit = 0; summaryNames != 0; bit++, summaryNames >>= 1) {
+            if ((summaryNames & 1UL) != 0) Collect(PdfDeferredMarkerNames.GetName(bit));
         }
 
         return found;
@@ -633,18 +644,24 @@ internal static partial class PdfSyntax {
         var visitedObjectNumbers = new HashSet<int>();
         var visitedContainers = new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>();
+        // Objects that are not built yet are matched from the marker names and references their load scan recorded.
+        bool useSummaries = true;
+        for (int groupIndex = 0; groupIndex < requestedNameGroups.Count && useSummaries; groupIndex++) {
+            useSummaries = PdfDeferredMarkerNames.TracksAll(requestedNameGroups[groupIndex]);
+        }
+        var pendingReferences = new Stack<long>();
         pending.Push(root);
-        while (pending.Count > 0) {
+        while (pending.Count > 0 || pendingReferences.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (pendingReferences.Count > 0) {
+                long packed = pendingReferences.Pop();
+                if (VisitReference((int)(packed >> 32), (int)packed)) return matchedGroups;
+                continue;
+            }
             PdfObject value = pending.Pop();
 
             if (value is PdfReference reference) {
-                if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                    indirect == null ||
-                    !visitedObjectNumbers.Add(reference.ObjectNumber)) {
-                    continue;
-                }
-                pending.Push(indirect.Value);
+                if (VisitReference(reference.ObjectNumber, reference.Generation)) return matchedGroups;
                 continue;
             }
             if (value is PdfName name) {
@@ -672,6 +689,25 @@ internal static partial class PdfSyntax {
         }
 
         return matchedGroups;
+
+        // Returns true once every group has matched.
+        bool VisitReference(int objectNumber, int generation) {
+            if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
+                indirect.Generation != generation ||
+                !visitedObjectNumbers.Add(objectNumber)) {
+                return false;
+            }
+            if (useSummaries && indirect.TryGetUnbuiltSummary(out PdfDeferredObjectSummary summary)) {
+                for (ulong names = summary.MarkerNames, bit = 0; names != 0; bit++, names >>= 1) {
+                    if ((names & 1UL) != 0 && MatchName(PdfDeferredMarkerNames.GetName((int)bit))) return true;
+                }
+                long[] references = summary.References;
+                for (int index = references.Length - 1; index >= 0; index--) pendingReferences.Push(references[index]);
+                return false;
+            }
+            pending.Push(indirect.Value);
+            return false;
+        }
 
         bool MatchName(string name) {
             for (int groupIndex = 0; groupIndex < requestedNameGroups.Count; groupIndex++) {
