@@ -447,6 +447,42 @@ test("structured DataTables exports preserve vertical headers, blank spans, type
   await assert.rejects(exportDataTable(host, table, "pdf", { columnOptions: { 1: { header: "Override" } } }), /spanning leaf/);
 });
 
+test("structured DataTables exports use the headings customizeData leaves", async () => {
+  const { host, table } = fixture();
+  const exportOptions = { customizeData: data => { data.header[1] = "Total amount"; data.footer[0] = "Sum"; } };
+  const options = { mode: "compatibility", headings: "structured", exportOptions, pdf: { compression: false } };
+  const pdf = await inspectPdf(await exportDataTable(host, table, "pdf", options));
+  for (const text of ["Metrics", "Name", "Total amount", "Sum", "20"]) assert.ok(pdf.text.includes(text), text);
+  for (const text of ["Amount", "Totals"]) assert.ok(!pdf.pages.flatMap(page => page.lines).includes(text), text);
+  const spanning = { customizeData: data => { data.header[0] = "Renamed"; } };
+  table.buttons.exportData = (native => options => { const data = native(options); data.headerStructure = [[{ title: "Both", colspan: 2, rowspan: 1 }, null]]; return data; })(table.buttons.exportData);
+  await assert.rejects(exportDataTable(host, table, "pdf", { ...options, exportOptions: spanning }), /spanning header cell/);
+});
+
+test("leaf DataTables headings ignore source structures that customizeData renames beneath", async () => {
+  const { host, table } = fixture(); const native = table.buttons.exportData;
+  table.buttons.exportData = options => { const data = native(options); data.headerStructure = [[{ title: "Both", colspan: 2, rowspan: 1 }, null]]; return data; };
+  const csv = await exportDataTable(host, table, "csv", { mode: "compatibility", headings: "leaf", exportOptions: { customizeData: data => { data.header[0] = "Renamed"; } } });
+  assert.equal((await csv.text()).split("\r\n")[0], "Renamed,Amount");
+});
+
+test("DataTables column options follow columns that customizeData reorders", async () => {
+  const swap = { customizeData: data => { data.header.reverse(); for (const row of data.body) row.reverse(); } };
+  const { host, table } = fixture({ grouped: false });
+  const options = { mode: "compatibility", exportOptions: swap, columnOptions: { 1: { type: "number" } }, xlsx: { compression: "store", sheet: { autoFilter: false } } };
+  const source = createDataTablesExport(host, table, options);
+  assert.deepEqual(source.columns.map(column => [column.header, column.key, column.type]), [["Amount", "dt:1", "number"], ["Name", "dt:0", undefined]]);
+  const sheet = (await readZip(await exportDataTable(host, table, "xlsx", options))).get("xl/worksheets/sheet1.xml").content;
+  assert.match(sheet, /<c r="A2"[^>]*><v>7.5<\/v>/);
+  const grouped = fixture();
+  assert.throws(() => createDataTablesExport(grouped.host, grouped.table, options), /reorder columns under grouped headings/);
+  const renamed = { customizeData: data => { swap.customizeData(data); data.header[0] = "Amount USD"; } };
+  assert.throws(() => createDataTablesExport(host, table, { ...options, exportOptions: renamed }), /cannot be matched to columns/);
+  const duplicated = { customizeData: data => { swap.customizeData(data); data.header[1] = "Amount"; } };
+  assert.throws(() => createDataTablesExport(host, table, { ...options, exportOptions: duplicated }), /cannot be matched to columns/);
+  assert.equal(createDataTablesExport(host, table, { mode: "compatibility", exportOptions: renamed }).columns[0].header, "Amount USD");
+});
+
 test("structured XLSX and CSV replacements omit unused source matrices before validating spans", async () => {
   for (const format of ["xlsx", "csv"]) {
     const { host, table } = fixture(), original = table.buttons.exportData;

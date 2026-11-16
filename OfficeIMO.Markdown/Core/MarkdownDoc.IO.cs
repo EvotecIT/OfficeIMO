@@ -15,6 +15,13 @@ public partial class MarkdownDocument : IDisposable {
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) =>
         options?.CaptureSyntaxTree == false ? MarkdownReader.ParseSemantic(markdown, options) : MarkdownReader.Parse(markdown, options);
 
+    /// <summary>Parses inline Markdown without interpreting block syntax.</summary>
+    /// <param name="text">Inline Markdown text, or null for an empty sequence.</param>
+    /// <param name="options">Options controlling inline interpretation.</param>
+    /// <returns>The parsed sequence of inline nodes.</returns>
+    public static InlineSequence ParseInline(string? text, MarkdownLoadOptions? options = null) =>
+        MarkdownReader.ParseInlineText(text, options);
+
     /// <summary>Parses Markdown text and reports the completed native read.</summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options,
         out OfficeConversionReport report) {

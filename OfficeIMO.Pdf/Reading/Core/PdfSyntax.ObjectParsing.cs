@@ -327,10 +327,11 @@ internal static partial class PdfSyntax {
                 count++;
                 expectKey = false;
             } else {
+                // The count only sizes the dictionary, so a reference is recognized by its shape without parsing it.
                 if (index + 2 < end &&
                     tokens[index + 2].Equals(source, "R") &&
-                    tokens[index].TryParseInt32(source, out _, cancellationToken) &&
-                    tokens[index + 1].TryParseInt32(source, out _, cancellationToken)) {
+                    StartsWithDigit(tokens[index], source) &&
+                    StartsWithDigit(tokens[index + 1], source)) {
                     index += 2;
                 }
                 expectKey = true;
@@ -357,8 +358,8 @@ internal static partial class PdfSyntax {
 
             if (index + 2 < tokens.Count &&
                 tokens[index + 2].Equals(source, "R") &&
-                tokens[index].TryParseInt32(source, out _, cancellationToken) &&
-                tokens[index + 1].TryParseInt32(source, out _, cancellationToken)) {
+                StartsWithDigit(tokens[index], source) &&
+                StartsWithDigit(tokens[index + 1], source)) {
                 index += 3;
                 continue;
             }
@@ -368,6 +369,9 @@ internal static partial class PdfSyntax {
 
         return count;
     }
+
+    private static bool StartsWithDigit<TText>(PdfToken token, TText source) where TText : struct, IPdfContentText =>
+        !token.IsString && token.Length > 0 && (uint)(token.GetCharacter(source, 0) - '0') <= 9;
 
     private static PooledTokenBuffer<PdfStringContentText> Tokenize(
         string s,
@@ -430,7 +434,7 @@ internal static partial class PdfSyntax {
             }
 
             char c = s[i];
-            if (char.IsWhiteSpace(c)) { i++; continue; }
+            if (c < 256 ? WhiteSpaceCharacters[c] : char.IsWhiteSpace(c)) { i++; continue; }
             if (c == '%') {
                 i++;
                 while (i < end && s[i] != '\n' && s[i] != '\r') {
@@ -484,14 +488,14 @@ internal static partial class PdfSyntax {
             }
             // name, number, keyword
             int j = i;
-            while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') {
+            while (j < end && !EndsBareToken(s[j])) {
                 if ((j & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 j++;
             }
             int tokenLength = j - i;
-            if (tokenLength == 0 && s[i] == '/') { // name starting here
+            if (tokenLength == 0 && c == '/') { // name starting here
                 j = i + 1;
-                while (j < end && !char.IsWhiteSpace(s[j]) && s[j] != '%' && s[j] != '/' && s[j] != '[' && s[j] != ']' && s[j] != '<' && s[j] != '>' && s[j] != '(' && s[j] != ')') {
+                while (j < end && !EndsBareToken(s[j])) {
                     if ((j & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                     j++;
                 }
@@ -516,23 +520,34 @@ internal static partial class PdfSyntax {
         }
     }
 
+    // Whitespace (as char.IsWhiteSpace defines it) and the delimiters that end a name, number or keyword token.
+    private static readonly bool[] WhiteSpaceCharacters = CreateWhiteSpaceCharacters();
+    private static readonly bool[] BareTokenTerminators = CreateBareTokenTerminators();
+
+    private static bool[] CreateWhiteSpaceCharacters() {
+        var table = new bool[256];
+        for (int value = 0; value < table.Length; value++) table[value] = char.IsWhiteSpace((char)value);
+        return table;
+    }
+
+    private static bool[] CreateBareTokenTerminators() {
+        bool[] table = CreateWhiteSpaceCharacters();
+        foreach (char delimiter in "%/[]<>()") table[delimiter] = true;
+        return table;
+    }
+
+    private static bool EndsBareToken(char value) =>
+        value < 256 ? BareTokenTerminators[value] : char.IsWhiteSpace(value);
+
     /// <summary>Reuses token arrays on modern targets while retaining the compatible list path on legacy targets.</summary>
     private struct PooledTokenBuffer<TText> : IDisposable where TText : struct, IPdfContentText {
-#if NET8_0_OR_GREATER
         private PdfToken[]? _rented;
-#else
-        private List<PdfToken>? _small;
-#endif
         private int _count;
         private readonly TText _source;
 
         internal PooledTokenBuffer(TText source, int initialCapacity) {
             _source = source;
-#if NET8_0_OR_GREATER
             _rented = RentTokens(Math.Max(initialCapacity, 16));
-#else
-            _small = new List<PdfToken>(initialCapacity);
-#endif
         }
 
         internal readonly int Count => _count;
@@ -541,38 +556,28 @@ internal static partial class PdfSyntax {
         internal readonly PdfToken this[int index] {
             get {
                 if ((uint)index >= (uint)_count) throw new ArgumentOutOfRangeException(nameof(index));
-#if NET8_0_OR_GREATER
                 return _rented![index];
-#else
-                return _small![index];
-#endif
             }
         }
 
         internal void Add(PdfToken token) {
-#if NET8_0_OR_GREATER
             if (_count == _rented!.Length) {
                 PdfToken[] expanded = RentTokens(checked(_count * 2));
                 Array.Copy(_rented, expanded, _count);
-                ReturnTokens(_rented);
+                ReturnTokens(_rented, _count);
                 _rented = expanded;
             }
 
             _rented[_count] = token;
-#else
-            _small!.Add(token);
-#endif
 
             _count++;
         }
 
         public void Dispose() {
-#if NET8_0_OR_GREATER
             if (_rented is not null) {
-                ReturnTokens(_rented);
+                ReturnTokens(_rented, _count);
                 _rented = null;
             }
-#endif
         }
     }
 
@@ -598,6 +603,8 @@ internal static partial class PdfSyntax {
         return ArrayPool<PdfToken>.Shared.Rent(minimumLength);
     }
 
+    private static void ReturnTokens(PdfToken[] tokens, int _) => ReturnTokens(tokens);
+
     private static void ReturnTokens(PdfToken[] tokens) {
         if (tokens.Length > LargeTokenArrayLength && tokens.Length <= MaximumCachedTokenArrayLength) {
             PdfToken[]? cached = t_largeTokens;
@@ -610,6 +617,29 @@ internal static partial class PdfSyntax {
             }
         }
         ArrayPool<PdfToken>.Shared.Return(tokens, clearArray: true);
+    }
+#else
+    // Older targets have no shared array pool, and a new token list per object was a measurable share of loading.
+    // Each thread keeps its largest token array; a nested tokenization while it is lent out allocates its own.
+    private const int MaximumCachedTokenArrayLength = 1 << 17;
+    [ThreadStatic] private static PdfToken[]? t_tokens;
+
+    private static PdfToken[] RentTokens(int minimumLength) {
+        PdfToken[]? cached = t_tokens;
+        if (cached is not null && cached.Length >= minimumLength) {
+            t_tokens = null;
+            return cached;
+        }
+        return new PdfToken[minimumLength];
+    }
+
+    private static void ReturnTokens(PdfToken[] tokens, int used) {
+        if (tokens.Length > MaximumCachedTokenArrayLength) return;
+        PdfToken[]? cached = t_tokens;
+        if (cached is not null && cached.Length >= tokens.Length) return;
+        // Tokens can reference source strings; clear the used slots before keeping the array.
+        Array.Clear(tokens, 0, Math.Min(used, tokens.Length));
+        t_tokens = tokens;
     }
 #endif
 
@@ -680,6 +710,7 @@ internal static partial class PdfSyntax {
             return int.TryParse(_text.AsSpan(), System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #else
+            if (_text is null && TryParsePlainInt32(source, _sourceStart, _length, out value)) return true;
             return int.TryParse(GetText(source, cancellationToken), System.Globalization.NumberStyles.Integer,
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
@@ -695,6 +726,8 @@ internal static partial class PdfSyntax {
                 value = default;
                 return false;
             }
+            if (_text is null && (styles & System.Globalization.NumberStyles.Float) == System.Globalization.NumberStyles.Float &&
+                TryParsePlainDecimal(source, _sourceStart, _length, out value)) return true;
 #if NET8_0_OR_GREATER
             if (_text is null) return source.TryParseDouble(_sourceStart, _length, styles, out value);
             return double.TryParse(_text.AsSpan(), styles,
@@ -704,7 +737,138 @@ internal static partial class PdfSyntax {
                 System.Globalization.CultureInfo.InvariantCulture, out value);
 #endif
         }
+
+        /// <summary>
+        /// Whether the framework parser accepts this token under <see cref="System.Globalization.NumberStyles.Any"/>,
+        /// answered without parsing for the plain <c>[+-]digits[.digits]</c> spelling that is short enough not to overflow.
+        /// </summary>
+        internal bool IsNumber<TText>(TText source, System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText =>
+            (_text is null && IsShortPlainDecimal(source, _sourceStart, _length)) || TryParseDouble(source, out _, cancellationToken);
     }
+
+    private static bool IsShortPlainDecimal<TText>(TText source, int start, int length) where TText : struct, IPdfContentText {
+        // 32 characters cannot reach the double range on any target, so the parse cannot fail.
+        if (length > 32) return false;
+        int index = start;
+        int end = start + length;
+        if (index < end && (source[index] == '-' || source[index] == '+')) index++;
+        bool seenPoint = false;
+        bool seenDigit = false;
+        for (; index < end; index++) {
+            char current = source[index];
+            if (current == '.') {
+                if (seenPoint) return false;
+                seenPoint = true;
+            } else if ((uint)(current - '0') <= 9) {
+                seenDigit = true;
+            } else {
+                return false;
+            }
+        }
+        return seenDigit;
+    }
+
+#if NET8_0_OR_GREATER
+    private static readonly double[] ExactPowersOfTen = {
+        1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15,
+        1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
+    };
+
+    /// <summary>
+    /// Reads <c>[+-]digits[.digits]</c> with a non-zero value of at most 15 significant digits. The digits and the
+    /// power of ten are both exact doubles, so one IEEE division gives the correctly rounded value, which is what
+    /// the runtime parser returns on these targets. Zero, whose sign the parsers keep, and every other spelling
+    /// return false for the runtime parser.
+    /// </summary>
+    private static bool TryParsePlainDecimal<TText>(TText source, int start, int length, out double value) where TText : struct, IPdfContentText {
+        value = 0;
+        int index = start;
+        int end = start + length;
+        bool negative = false;
+        if (index < end && (source[index] == '-' || source[index] == '+')) {
+            negative = source[index] == '-';
+            index++;
+        }
+        long mantissa = 0;
+        int significantDigits = 0;
+        int fractionDigits = 0;
+        bool seenPoint = false;
+        for (; index < end; index++) {
+            char current = source[index];
+            if (current == '.') {
+                if (seenPoint) return false;
+                seenPoint = true;
+                continue;
+            }
+            int digit = current - '0';
+            if ((uint)digit > 9) return false;
+            if (seenPoint) fractionDigits++;
+            if (mantissa == 0 && digit == 0) continue;
+            if (++significantDigits > 15) return false;
+            mantissa = mantissa * 10 + digit;
+        }
+        if (mantissa == 0 || fractionDigits >= ExactPowersOfTen.Length) return false;
+        double magnitude = fractionDigits == 0 ? mantissa : mantissa / ExactPowersOfTen[fractionDigits];
+        value = negative ? -magnitude : magnitude;
+        return true;
+    }
+#else
+    // Older targets have no span-based number parsing, so every numeric token used to become a substring first.
+    // These read the common PDF spellings in place and leave every other spelling to the framework parser.
+
+    /// <summary>Reads <c>[+-]digits</c> that fits an Int32. Any other spelling returns false for the framework parser.</summary>
+    private static bool TryParsePlainInt32<TText>(TText source, int start, int length, out int value) where TText : struct, IPdfContentText {
+        value = 0;
+        int index = start;
+        int end = start + length;
+        bool negative = false;
+        if (index < end && (source[index] == '-' || source[index] == '+')) {
+            negative = source[index] == '-';
+            index++;
+        }
+        if (index == end) return false;
+        long magnitude = 0;
+        for (; index < end; index++) {
+            int digit = source[index] - '0';
+            if ((uint)digit > 9) return false;
+            magnitude = magnitude * 10 + digit;
+            if (magnitude > 2147483648L) return false;
+        }
+        if (negative) magnitude = -magnitude;
+        if (magnitude > int.MaxValue) return false;
+        value = (int)magnitude;
+        return true;
+    }
+
+    /// <summary>
+    /// Reads a non-zero whole number <c>[+-]digits</c> of at most 15 significant digits, which every target parses
+    /// to the same exact double. Fractions are left to the framework parser: .NET Framework does not always round
+    /// them correctly, and its own "R" formatting depends on reading back its parser's value. Zero, whose sign the
+    /// framework parsers treat differently, and every other spelling also return false.
+    /// </summary>
+    private static bool TryParsePlainDecimal<TText>(TText source, int start, int length, out double value) where TText : struct, IPdfContentText {
+        value = 0;
+        int index = start;
+        int end = start + length;
+        bool negative = false;
+        if (index < end && (source[index] == '-' || source[index] == '+')) {
+            negative = source[index] == '-';
+            index++;
+        }
+        long mantissa = 0;
+        int significantDigits = 0;
+        for (; index < end; index++) {
+            int digit = source[index] - '0';
+            if ((uint)digit > 9) return false;
+            if (mantissa == 0 && digit == 0) continue;
+            if (++significantDigits > 15) return false;
+            mantissa = mantissa * 10 + digit;
+        }
+        if (mantissa == 0) return false;
+        value = negative ? -mantissa : mantissa;
+        return true;
+    }
+#endif
 
     // PDF dictionaries repeat a small vocabulary across virtually every object. Keep this
     // pool deliberately bounded: arbitrary document names must never be globally interned.
@@ -736,10 +900,14 @@ internal static partial class PdfSyntax {
 
     private static PdfToken MaterializeToken<TText>(TText source, int start, int length,
         System.Threading.CancellationToken cancellationToken) where TText : struct, IPdfContentText {
-        if ((uint)length < (uint)KnownTokenTextsByLength.Length) {
+        if ((uint)length < (uint)KnownTokenTextsByLength.Length && length > 0) {
             string[] candidates = KnownTokenTextsByLength[length];
+            // Known names share their leading slash, so candidates are first told apart by the next character.
+            int keyIndex = length > 1 ? 1 : 0;
+            char key = source[start + keyIndex];
             for (int candidateIndex = 0; candidateIndex < candidates.Length; candidateIndex++) {
                 string candidate = candidates[candidateIndex];
+                if (candidate[keyIndex] != key) continue;
                 bool matches = true;
                 for (int characterIndex = 0; characterIndex < length; characterIndex++) {
                     if (source[start + characterIndex] != candidate[characterIndex]) {
@@ -752,15 +920,8 @@ internal static partial class PdfSyntax {
             }
         }
 
-#if NET8_0_OR_GREATER
+        // Numbers are read in place on every target; other tokens are sliced only when their text is needed.
         return new PdfToken(start, length);
-#else
-        if (source[start] == '/') return new PdfToken(start, length);
-        // Older targets do not expose span-based numeric parsing. Preserve their
-        // single materialization rather than recreating the same slice at each parse.
-        cancellationToken.ThrowIfCancellationRequested();
-        return new PdfToken(source.Substring(start, length, cancellationToken));
-#endif
     }
 
     private static string DecodeNameToken<TText>(PdfToken token, TText source,

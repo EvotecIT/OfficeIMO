@@ -207,11 +207,22 @@ internal sealed partial class PdfReadDocument {
         return values.Count == 1 ? values.Single() : null;
     }
 
-    private static IEnumerable<XElement> FindDocumentSubjectDescriptions(XDocument document, CancellationToken cancellationToken) =>
-        DescendantsWithCancellation(document, cancellationToken).Where(e =>
+    // About twenty properties are read from the same parsed packet, so its descriptions are found once and kept on it.
+    private static XElement[] FindDocumentSubjectDescriptions(XDocument document, CancellationToken cancellationToken) {
+        SubjectDescriptions? cached = document.Annotation<SubjectDescriptions>();
+        if (cached is not null) return cached.Elements;
+        var elements = DescendantsWithCancellation(document, cancellationToken).Where(e =>
             e.Name.LocalName == "Description" &&
             string.Equals(e.Name.NamespaceName, RdfNamespaceUri, StringComparison.Ordinal) &&
-            string.IsNullOrEmpty((string?)e.Attribute(XName.Get("about", RdfNamespaceUri))));
+            string.IsNullOrEmpty((string?)e.Attribute(XName.Get("about", RdfNamespaceUri)))).ToArray();
+        document.AddAnnotation(new SubjectDescriptions(elements));
+        return elements;
+    }
+
+    private sealed class SubjectDescriptions {
+        internal SubjectDescriptions(XElement[] elements) => Elements = elements;
+        internal XElement[] Elements { get; }
+    }
 
     private static int? ReadIntegerElementByNamespace(XDocument document, string localName, string namespaceUri, CancellationToken cancellationToken) {
         string? value = ReadElementTextByNamespace(document, localName, namespaceUri, cancellationToken);

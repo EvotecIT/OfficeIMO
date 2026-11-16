@@ -834,7 +834,7 @@ internal static partial class PdfSyntax {
         if (marker.Length > 1 && !IsAsciiLetter(marker[0]) && IsAsciiLetter(marker[1])) anchor = 1;
         int index = start;
         while (index <= lastStart) {
-            int found = Array.IndexOf(pdf, marker[anchor], index + anchor, lastStart - index + 1);
+            int found = PdfByteSearch.IndexOf(pdf, marker[anchor], index + anchor, lastStart - index + 1);
             if (found < 0) return -1;
             index = found - anchor;
             int matched = 0;

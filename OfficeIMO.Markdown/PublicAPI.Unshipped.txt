@@ -70,3 +70,4 @@ OfficeIMO.Markdown.MathInline.ContentSourceSpan.get -> OfficeIMO.Markdown.Markdo
 OfficeIMO.Markdown.MathInline.IsDisplay.get -> bool
 OfficeIMO.Markdown.MathInline.MathInline(string! source, bool isDisplay = false) -> void
 OfficeIMO.Markdown.MathInline.Source.get -> string!
+static OfficeIMO.Markdown.MarkdownDocument.ParseInline(string? text, OfficeIMO.Markdown.MarkdownLoadOptions? options = null) -> OfficeIMO.Markdown.InlineSequence!
