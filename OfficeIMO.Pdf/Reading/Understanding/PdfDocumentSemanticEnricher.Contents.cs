@@ -21,7 +21,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfUnderstandingWorkBudget budget) {
         var result = new IReadOnlyList<PdfContentsEntrySource>[pages.Count];
         HashSet<string>? knownTitles = null;
-        PageLabelValue? continuation = null;
+        ContentsContinuation? continuation = null;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             budget.Consume();
             int pageNumber = pageNumbers[pageIndex];
@@ -106,7 +106,7 @@ internal static partial class PdfDocumentSemanticEnricher {
         HashSet<string> knownTitles,
         List<PdfContentsEntrySource> entries,
         HashSet<PdfUnderstandingLine> claimed,
-        ref PageLabelValue? continuation,
+        ref ContentsContinuation? continuation,
         PdfUnderstandingWorkBudget budget) {
         IReadOnlyList<PdfLinkAnnotation>? links = null;
         List<ContentsRow> rows = GroupContentsRows(lines, budget);
@@ -149,8 +149,8 @@ internal static partial class PdfDocumentSemanticEnricher {
         }
         CloseAll();
 
-        PageLabelValue? last = null;
-        PageLabelValue? previousPage = continuation;
+        ContentsContinuation? last = null;
+        ContentsContinuation? previousPage = continuation;
         bool accepted = false;
         // One entry alone matches too much. It counts only beside accepted contents on the page (another column)
         // or as the tail of contents from the previous page.
@@ -166,12 +166,16 @@ internal static partial class PdfDocumentSemanticEnricher {
             budget.Consume();
             PageLabelValue? first = TryReadPageSequence(run, document.Pages.Count);
             if (!first.HasValue) return;
-            if (run.Count < 2 && !accepted && !(previousPage.HasValue && !first.Value.IsBefore(previousPage.Value))) return;
+            // The column that continues the previous page's contents keeps its indentation levels.
+            bool continues = previousPage?.Last is PageLabelValue previousLast && !first.Value.IsBefore(previousLast) &&
+                Math.Abs(previousPage.XEnd - run[0].XEnd) <= Math.Max(3D, run[0].Row.FontSize * 0.5D);
+            if (run.Count < 2 && !accepted && !continues) return;
             links ??= readPage.GetLinkAnnotations();
             int corroborated = run.Count(line => HasInternalLink(line, links) || knownTitles.Contains(NormalizeTitle(line.Title)));
             // Leader rows such as price lists share the shape; contents entries also point into the document.
             if (corroborated * 2 < run.Count) return;
-            double[] indents = run.Select(static line => line.Title[0].XStart).Distinct().OrderBy(static x => x).ToArray();
+            double[] indents = run.Select(static line => line.Title[0].XStart)
+                .Concat(continues ? previousPage!.Indents : Array.Empty<double>()).Distinct().OrderBy(static x => x).ToArray();
             var levels = new List<double>();
             foreach (double indent in indents) {
                 if (levels.Count == 0 || indent - levels[levels.Count - 1] > 3D) levels.Add(indent);
@@ -188,7 +192,9 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
             accepted = true;
             PageLabelValue? end = TryReadPageValue(run[run.Count - 1].PageLabel, document.Pages.Count);
-            if (!last.HasValue || (end.HasValue && last.Value.IsBefore(end.Value))) last = end;
+            if (end.HasValue && (last?.Last is not PageLabelValue known || known.IsBefore(end.Value))) {
+                last = new ContentsContinuation(end, levels.ToArray(), run[run.Count - 1].XEnd);
+            }
         }
 
         void CloseAll() {
@@ -203,9 +209,11 @@ internal static partial class PdfDocumentSemanticEnricher {
         for (int index = 0; index < words.Count; index++) {
             PdfUnderstandingWord word = words[index];
             segment.Add(word);
+            // "Chapter 1    2" must not end a column after "1": the segment has to be a whole entry already.
             bool endsColumn = index + 1 < words.Count && segment.Count > 1 &&
                 IsPageLabel(word.Text.Trim().Substring(CountLeading(word.Text.Trim())), strict: true) &&
-                words[index + 1].XStart - word.XEnd >= word.FontSize * 1.5D;
+                words[index + 1].XStart - word.XEnd >= word.FontSize * 1.5D &&
+                TrySplitContentsEntry(segment, strictPageLabel: true, out _, out string? label, out _) && label is not null;
             if (endsColumn) {
                 yield return segment;
                 segment = new List<PdfUnderstandingWord>();
@@ -263,6 +271,19 @@ internal static partial class PdfDocumentSemanticEnricher {
         return int.TryParse(label, NumberStyles.None, CultureInfo.InvariantCulture, out int value) && value >= 1 && value <= pageCount
             ? new PageLabelValue(false, value)
             : null;
+    }
+
+    /// <summary>Where the previous page's contents ended: its last page number, column edge and indentation levels.</summary>
+    private sealed class ContentsContinuation {
+        internal ContentsContinuation(PageLabelValue? last, double[] indents, double xEnd) {
+            Last = last;
+            Indents = indents;
+            XEnd = xEnd;
+        }
+
+        internal PageLabelValue? Last { get; }
+        internal double[] Indents { get; }
+        internal double XEnd { get; }
     }
 
     private readonly record struct PageLabelValue(bool Roman, int Value) {

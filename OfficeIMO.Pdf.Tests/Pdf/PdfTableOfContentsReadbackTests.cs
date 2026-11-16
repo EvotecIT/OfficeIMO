@@ -95,6 +95,31 @@ public class PdfTableOfContentsReadbackTests {
     }
 
     [Fact]
+    public void UntaggedContentsWithoutLeaders_KeepNumberedTitles() {
+        (string, int)[] sections = { ("Chapter 1", 1), ("Chapter 2", 1), ("Appendix IV", 1) };
+        PdfLogicalPage page = PdfDocument.Load(CreateContents(Options(tagged: false), sections, startOnNewPage: true, PdfTabLeaderStyle.None))
+            .Read().Pages[0];
+        PdfLogicalListItem[] entries = page.ListItems.Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.Empty(page.Tables);
+        Assert.Equal(sections.Select(static section => section.Item1), entries.Select(static entry => entry.Text));
+        Assert.Equal(new[] { "2", "3", "4" }, entries.Select(static entry => entry.TargetPageLabel));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ContentsContinuedWithSubsectionsOnly_KeepTheirLevel(bool tagged) {
+        (string, int)[] sections = new[] { ("Handbook", 1) }
+            .Concat(Enumerable.Range(1, 70).Select(static index => ("Topic " + index, 2))).ToArray();
+        PdfDocumentReadResult read = PdfDocument.Load(CreateContents(Options(tagged), sections, startOnNewPage: false)).Read();
+        PdfLogicalListItem[] second = read.Pages[1].ListItems.Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.NotEmpty(second);
+        Assert.All(second, static entry => Assert.Equal(2, entry.Level));
+    }
+
+    [Fact]
     public void UntaggedContentsInTwoColumns_KeepEachColumnsEntriesApart() {
         PdfDocument document = PdfDocument.Create(Options(tagged: false)).Meta(title: "Columns");
         document.Columns(columns => columns.TableOfContents(), new PdfMultiColumnOptions { ColumnCount = 2, Gap = global::OfficeIMO.OfficeLength.Points(24) });
@@ -199,10 +224,11 @@ public class PdfTableOfContentsReadbackTests {
         return profile == PdfComplianceProfile.None ? options : options.UsePdfUa(profile, "en-US");
     }
 
-    private static byte[] CreateContents(PdfCreateOptions options, IReadOnlyList<(string Title, int Level)> sections, bool startOnNewPage) {
+    private static byte[] CreateContents(PdfCreateOptions options, IReadOnlyList<(string Title, int Level)> sections, bool startOnNewPage,
+        PdfTabLeaderStyle leader = PdfTabLeaderStyle.Dots) {
         PdfDocument document = PdfDocument.Create(options)
             .Meta(title: "Contents readback")
-            .TableOfContents(new PdfTableOfContentsOptions { MaximumLevel = 3 });
+            .TableOfContents(new PdfTableOfContentsOptions { MaximumLevel = 3, Leader = leader });
         foreach ((string title, int level) in sections) {
             document.Section(title, section => section.AddParagraph(title + " body."),
                 new PdfSectionOptions { Level = level, StartOnNewPage = startOnNewPage });
