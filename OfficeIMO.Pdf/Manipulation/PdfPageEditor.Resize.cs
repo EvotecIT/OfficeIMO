@@ -78,20 +78,18 @@ internal static partial class PdfPageEditor {
             transformsByPageObjectNumber[pageObjectNumber] = transform;
             int prefixPseudoObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
             int suffixPseudoObjectNumber = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
-            PdfPageContentIsolation.Nesting nesting = PdfPageContentIsolation.Measure(objects, pageDictionary.Items.TryGetValue("Contents", out PdfObject? measuredContents) ? measuredContents : null, cancellationToken);
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(prefixPseudoObjectNumber, BuildResizeContentStream(transform, sourceLeft, sourceBottom, sourceWidth, sourceHeight, nesting)));
-            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(nesting.RestoreOperators))));
+            PdfPageContentIsolation.Wrapping wrapping = PdfPageContentIsolation.Prepare(objects,
+                pageDictionary.Items.TryGetValue("Contents", out PdfObject? contents) ? contents : null,
+                stream => AddResizeContentStream(additionalObjects, stream, ref nextPseudoObjectNumber), cancellationToken);
+            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(prefixPseudoObjectNumber, BuildResizeContentStream(transform, sourceLeft, sourceBottom, sourceWidth, sourceHeight)));
+            additionalObjects.Add(new PdfPageExtractor.AdditionalObject(suffixPseudoObjectNumber, new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(wrapping.RestoreOperators))));
 
             var pageOverrides = new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
                 ["MediaBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width.ToPoints(), options.PageSize.Height.ToPoints()),
                 ["CropBox"] = CreatePageBoxArray(0D, 0D, options.PageSize.Width.ToPoints(), options.PageSize.Height.ToPoints()),
                 ["UserUnit"] = new PdfNumber(1D),
                 ["Rotate"] = new PdfNumber(0D),
-                ["Contents"] = BuildResizedContentsArray(
-                    objects,
-                    pageDictionary.Items.TryGetValue("Contents", out var contents) ? contents : null,
-                    prefixPseudoObjectNumber,
-                    suffixPseudoObjectNumber)
+                ["Contents"] = BuildResizedContentsArray(wrapping, prefixPseudoObjectNumber, suffixPseudoObjectNumber)
             };
 
             AddNormalizedProductionBoxes(pageOverrides, geometry, options.PageSize);
@@ -204,41 +202,22 @@ internal static partial class PdfPageEditor {
         return ResizePages(pdf, options, readOptions: null, cancellationToken, ExpandPageRangesDistinct(pageRanges, nameof(pageRanges)));
     }
 
-    private static PdfArray BuildResizedContentsArray(Dictionary<int, PdfIndirectObject> objects, PdfObject? existingContents, int prefixPseudoObjectNumber, int suffixPseudoObjectNumber) {
+    private static PdfArray BuildResizedContentsArray(PdfPageContentIsolation.Wrapping wrapping, int prefixPseudoObjectNumber, int suffixPseudoObjectNumber) {
         var result = new PdfArray();
         result.Items.Add(new PdfReference(prefixPseudoObjectNumber, 0));
-        AppendContentEntries(objects, result, existingContents);
+        foreach (PdfObject entry in wrapping.Entries) result.Items.Add(entry);
         result.Items.Add(new PdfReference(suffixPseudoObjectNumber, 0));
         return result;
     }
 
-    private static void AppendContentEntries(Dictionary<int, PdfIndirectObject> objects, PdfArray target, PdfObject? contents) {
-        if (contents is null) {
-            return;
-        }
-
-        if (contents is PdfArray directArray) {
-            foreach (var item in directArray.Items) {
-                target.Items.Add(item);
-            }
-
-            return;
-        }
-
-        if (contents is PdfReference reference &&
-            PdfObjectLookup.TryGet(objects, reference, out var indirect) &&
-            indirect.Value is PdfArray referencedArray) {
-            foreach (var item in referencedArray.Items) {
-                target.Items.Add(item);
-            }
-
-            return;
-        }
-
-        target.Items.Add(contents);
+    /// <summary>Stores a replacement content stream as a pseudo object written with the resized pages.</summary>
+    private static PdfReference AddResizeContentStream(List<PdfPageExtractor.AdditionalObject> additionalObjects, PdfStream stream, ref int nextPseudoObjectNumber) {
+        int number = AllocateResizePseudoObjectNumber(ref nextPseudoObjectNumber);
+        additionalObjects.Add(new PdfPageExtractor.AdditionalObject(number, stream));
+        return new PdfReference(number, 0);
     }
 
-    private static PdfStream BuildResizeContentStream(PageResizeTransform transform, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight, PdfPageContentIsolation.Nesting nesting) {
+    private static PdfStream BuildResizeContentStream(PageResizeTransform transform, double sourceLeft, double sourceBottom, double sourceWidth, double sourceHeight) {
         string content =
             "q\n" +
             FormatResizeNumber(transform.TargetClipLeft) + " " +
@@ -256,7 +235,7 @@ internal static partial class PdfPageEditor {
             FormatResizeNumber(sourceBottom) + " " +
             FormatResizeNumber(sourceWidth) + " " +
             FormatResizeNumber(sourceHeight) + " re\n" +
-            "W n\n" + nesting.ExtraSaveOperators;
+            "W n\n";
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(content));
     }
 

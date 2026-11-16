@@ -5378,11 +5378,12 @@ Text and image stamps, watermarks, `PdfDocument.Text.Add`, `PdfDocument.Images.A
 free text annotations created with `PdfDocument.Annotations.Add` now read upright on pages
 with `/Rotate`. `PdfTextStampOptions.RotationDegrees` and `PdfImageStampOptions.RotationDegrees`
 are measured on the displayed page, and default stamp positions are 36 points from the
-lower-left corner of the displayed page, inside the crop box. Explicit `X` and `Y` remain
-user-space coordinates from the unrotated PDF origin. Code that added the page rotation to
-`RotationDegrees` itself, or offset coordinates to keep stamps visible on rotated or
-cropped pages, should stop doing so. `PdfTextEditOptions.RotationDegrees` keeps its
-user-space meaning; leave it unset to add upright text.
+lower-left corner of the displayed page, inside the crop box. Code that added the page
+rotation to `RotationDegrees` itself should stop doing so. Explicit `X` and `Y` remain
+user-space coordinates from the unrotated PDF origin, so keep any offsets they carry; on a
+rotated page the stamp now grows right and up on the displayed page from that point.
+`PdfTextEditOptions.RotationDegrees` keeps its user-space meaning; leave it unset to add
+upright text.
 
 ## PDF read limits open larger valid files by default
 

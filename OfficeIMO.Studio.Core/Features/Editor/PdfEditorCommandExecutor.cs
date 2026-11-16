@@ -214,12 +214,13 @@ internal static class PdfEditorCommandExecutor {
     }
 
     private static byte[] AddText(PdfDocument pdf, PdfEditorCommand command) {
-        PdfPageRectangle bounds = command.Bounds;
-        double userUnit = pdf.GetPageLayouts().First(page => page.PageNumber == command.PageNumber).UserUnit;
+        PdfPageLayoutInfo page = pdf.GetPageLayouts().First(candidate => candidate.PageNumber == command.PageNumber);
+        double userUnit = page.UserUnit;
+        (double x, double y, _, _) = DisplayedPlacement(command.Bounds, page.RotationDegrees);
         return pdf.Stamp.Text(command.Properties.Text, new PdfTextStampOptions {
             PageNumbers = new[] { command.PageNumber },
-            X = global::OfficeIMO.OfficeLength.Points(bounds.Left * userUnit),
-            Y = global::OfficeIMO.OfficeLength.Points(bounds.Bottom * userUnit),
+            X = global::OfficeIMO.OfficeLength.Points(x * userUnit),
+            Y = global::OfficeIMO.OfficeLength.Points(y * userUnit),
             FontSize = global::OfficeIMO.OfficeLength.Points(command.Properties.FontSize * userUnit),
             Color = command.Properties.Color
         }).ToBytes();
@@ -228,16 +229,29 @@ internal static class PdfEditorCommandExecutor {
     private static byte[] AddImage(PdfDocument pdf, PdfEditorCommand command) {
         byte[] image = command.Properties.ImageBytes
             ?? throw new InvalidOperationException("Choose an image before drawing its placement.");
-        PdfPageRectangle bounds = command.Bounds;
-        double userUnit = pdf.GetPageLayouts().First(page => page.PageNumber == command.PageNumber).UserUnit;
+        PdfPageLayoutInfo page = pdf.GetPageLayouts().First(candidate => candidate.PageNumber == command.PageNumber);
+        double userUnit = page.UserUnit;
+        (double x, double y, double width, double height) = DisplayedPlacement(command.Bounds, page.RotationDegrees);
         return pdf.Stamp.Image(image, new PdfImageStampOptions {
             PageNumbers = new[] { command.PageNumber },
-            X = global::OfficeIMO.OfficeLength.Points(bounds.Left * userUnit),
-            Y = global::OfficeIMO.OfficeLength.Points(bounds.Bottom * userUnit),
-            Width = global::OfficeIMO.OfficeLength.Points(bounds.Width * userUnit),
-            Height = global::OfficeIMO.OfficeLength.Points(bounds.Height * userUnit)
+            X = global::OfficeIMO.OfficeLength.Points(x * userUnit),
+            Y = global::OfficeIMO.OfficeLength.Points(y * userUnit),
+            Width = global::OfficeIMO.OfficeLength.Points(width * userUnit),
+            Height = global::OfficeIMO.OfficeLength.Points(height * userUnit)
         }).ToBytes();
     }
+
+    /// <summary>
+    /// Stamps read upright on the displayed page and grow right and up from their origin, so anchor them at the corner of
+    /// the user-space bounds that is shown lower-left, with the width and height the user drew on screen.
+    /// </summary>
+    private static (double X, double Y, double Width, double Height) DisplayedPlacement(PdfPageRectangle bounds, int rotationDegrees) =>
+        ((rotationDegrees % 360 + 360) % 360) switch {
+            90 => (bounds.Right, bounds.Bottom, bounds.Height, bounds.Width),
+            180 => (bounds.Right, bounds.Top, bounds.Width, bounds.Height),
+            270 => (bounds.Left, bounds.Top, bounds.Height, bounds.Width),
+            _ => (bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)
+        };
 
     private static PdfAnnotationEditResult AddLink(PdfDocument pdf, PdfEditorCommand command) {
         PdfAnnotationEditResult result = pdf.Annotations.Add(new PdfAnnotationCreateOptions {

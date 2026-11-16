@@ -71,7 +71,8 @@ internal static partial class PdfAnnotationFlattener {
             // A turned free text box is laid out in its own upright frame and turned into the rectangle by /Matrix.
             double frameWidth = freeTextRotation % 180 == 0 ? width : height;
             double frameHeight = freeTextRotation % 180 == 0 ? height : width;
-            content = BuildSyntheticFreeTextAppearance(objects, annotation, x, y, frameWidth, frameHeight, out fontResources);
+            PdfDictionary framed = MapFreeTextGeometryToFrame(objects, annotation, freeTextRotation, x, y, frameWidth, frameHeight);
+            content = BuildSyntheticFreeTextAppearance(objects, framed, x, y, frameWidth, frameHeight, out fontResources);
             if (opacity.HasValue) content = ApplyAnnotationOpacity(content);
             PdfStream turned = CreateSyntheticAppearanceStream(frameWidth, frameHeight, content, fontResources, false, opacity);
             turned.Dictionary.Items["Matrix"] = CreateRotationMatrix(freeTextRotation, frameWidth, frameHeight);
@@ -500,6 +501,40 @@ internal static partial class PdfAnnotationFlattener {
             double.IsNaN(number.Value) || double.IsInfinity(number.Value)) return 0;
         int quarterTurns = (int)(Math.Round(number.Value / 90D) % 4D);
         return (quarterTurns < 0 ? quarterTurns + 4 : quarterTurns) * 90;
+    }
+
+    /// <summary>
+    /// Copies a turned free text annotation with its callout line and rectangle differences expressed in the upright frame,
+    /// so the appearance /Matrix turns them back onto their declared page positions.
+    /// </summary>
+    private static PdfDictionary MapFreeTextGeometryToFrame(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation,
+        int degrees, double x, double y, double frameWidth, double frameHeight) {
+        var framed = new PdfDictionary();
+        foreach (KeyValuePair<string, PdfObject> item in annotation.Items) framed.Items[item.Key] = item.Value;
+        if (ResolveObject(objects, annotation.Items.TryGetValue("CL", out PdfObject? calloutValue) ? calloutValue : null) is PdfArray callout &&
+            callout.Items.Count % 2 == 0 && callout.Items.All(item => ResolveObject(objects, item) is PdfNumber)) {
+            var mapped = new PdfArray();
+            for (int index = 0; index < callout.Items.Count; index += 2) {
+                double localX = ((PdfNumber)ResolveObject(objects, callout.Items[index])!).Value - x;
+                double localY = ((PdfNumber)ResolveObject(objects, callout.Items[index + 1])!).Value - y;
+                (double u, double v) = degrees switch {
+                    90 => (localY, frameHeight - localX),
+                    180 => (frameWidth - localX, frameHeight - localY),
+                    _ => (frameWidth - localY, localX)
+                };
+                mapped.Items.Add(new PdfNumber(x + u));
+                mapped.Items.Add(new PdfNumber(y + v));
+            }
+            framed.Items["CL"] = mapped;
+        }
+        if (ResolveObject(objects, annotation.Items.TryGetValue("RD", out PdfObject? differencesValue) ? differencesValue : null) is PdfArray differences &&
+            differences.Items.Count == 4) {
+            // /RD lists left, bottom, right and top insets; each frame side shows the rectangle side a quarter turn on.
+            var mapped = new PdfArray();
+            for (int index = 0; index < 4; index++) mapped.Items.Add(differences.Items[(index + degrees / 90) % 4]);
+            framed.Items["RD"] = mapped;
+        }
+        return framed;
     }
 
     /// <summary>Turns a <c>[0 0 width height]</c> frame counter-clockwise and moves it back into the positive quadrant.</summary>

@@ -20,6 +20,7 @@ public static class PdfTransformedPageEditFixtures {
         NestedUnclosedSave,
         BareFlip,
         LeadingExtraRestore,
+        RepeatedExtraRestores,
         TrailingExtraRestoreThenFlip,
         SplitStreams,
         StateLeak
@@ -109,6 +110,8 @@ public static class PdfTransformedPageEditFixtures {
             ContentShape.NestedUnclosedSave => new[] { "q\n" + flipCm + "\nq\n" + marks(true) },
             ContentShape.BareFlip => new[] { flipCm + "\n" + marks(true) },
             ContentShape.LeadingExtraRestore => new[] { "Q\n" + flipCm + "\n" + marks(true) },
+            // Neither restore has anything to restore, so the flip between them stays in force for the marks.
+            ContentShape.RepeatedExtraRestores => new[] { "Q\n" + flipCm + "\nQ\n" + marks(true) },
             ContentShape.TrailingExtraRestoreThenFlip => new[] { "q\n" + marks(false) + "Q\nQ\n" + flipCm + "\n" },
             ContentShape.SplitStreams => new[] { "q\n" + flipCm + "\n", marks(true) },
             ContentShape.StateLeak => new[] { marks(false) + "3 Tr 4 Tz /Low gs 0 0 0 RG 9 w " + Fmt(f.Left, f.Bottom, 5, 5) + " re W n\n" },

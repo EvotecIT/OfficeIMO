@@ -138,8 +138,14 @@ internal static class PdfTransformedPageEditOperations {
                 return ExpectRectangle(after, 200, 60, 50, 30, 2);
             case "SquareFlatten":
                 return ExpectRectangle(after, 200, 60, 50, 30, 3);
-            case "FreeTextFlatten":
+            case "FreeTextFlatten": {
+                // The note's text must be visible inside the requested box, not merely extractable.
+                Box ink = Find(after, Ink.Dark, 55, 115, 265, 165);
+                if (ink.IsEmpty || ink.PixelWidth <= ink.PixelHeight) return $"note text {ink} not drawn across the requested box";
+                if (!Find(after, Ink.Dark, 0, 0, (int)size.Width, 110).IsEmpty || !Find(after, Ink.Dark, 0, 170, (int)size.Width, (int)size.Height).IsEmpty)
+                    return "note text drawn outside the requested box";
                 return ExpectAngle(f, edited, "NOTEMARK", 0);
+            }
             case "TextAdd": {
                 Box red = Find(after, Ink.Red);
                 if (red.IsEmpty) return "no text";

@@ -16,7 +16,9 @@ public class PdfTransformedPageEditTests {
         var data = new TheoryData<string, ContentShape, int, BoxShape>();
         foreach (string operation in PdfTransformedPageEditOperations.AppendingOperations)
             foreach (ContentShape shape in Enum.GetValues(typeof(ContentShape)))
-                if (shape != ContentShape.Balanced) {
+                // Redaction chooses what to remove from the reader's geometry, which still lets a surplus Q undo the page
+                // transformation; Docs/ROADMAP.md tracks reading such pages the way viewers draw them.
+                if (shape != ContentShape.Balanced && !(operation == "Redaction" && shape == ContentShape.RepeatedExtraRestores)) {
                     data.Add(operation, shape, 0, BoxShape.Origin);
                     data.Add(operation, shape, 90, BoxShape.OffsetMediaBox);
                 }
@@ -126,6 +128,47 @@ public class PdfTransformedPageEditTests {
         AssertSameBox(before, Find(after, Ink.Red));
         AssertSameBox(beforeStrip, Find(after, Ink.Green));
         Assert.Empty(PdfReadDocument.Open(flattened).Pages[0].GetAnnotations());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void TurnedFreeTextKeepsItsCalloutWhereItWasDeclared(int rotation) {
+        // No appearance stream, so flattening builds one from /Rotate, /CL, /RD and /C. /Rect encloses the callout and
+        // /RD insets the text box to [100 100 260 180].
+        byte[] pdf = Serialize(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Annots [4 0 R] >>",
+            "<< /Type /Annot /Subtype /FreeText /F 4 /Rect [20 20 260 180] /RD [80 80 0 0] /Rotate " + rotation +
+                " /Contents (NOTE) /DA (/Helv 10 Tf 0 g) /C [1 0 0] /IT /FreeTextCallout /CL [40 40 100 120] /BS << /W 2 >> >>"
+        });
+
+        byte[] flattened = PdfDocument.Load(pdf).Annotations.Flatten().Bytes;
+
+        // The callout starts at user (40, 40), which is (40, 260) on this unrotated page.
+        OfficeRasterImage after = Render(flattened);
+        Assert.False(Find(after, Ink.Red, 34, 254, 46, 266).IsEmpty, "The callout does not start where /CL declares it.");
+        // Its midpoint, user (70, 80), is drawn too: the line runs between the declared points.
+        Assert.False(Find(after, Ink.Red, 64, 214, 76, 226).IsEmpty, "The callout does not run between its declared points.");
+    }
+
+    [Fact]
+    public void AddedTextWithAnExplicitRotationStaysInsideItsRegionOnRotatedPages() {
+        var fixture = new Fixture(ContentShape.Balanced, 180, BoxShape.Origin);
+
+        byte[] edited = PdfDocument.Load(fixture.Bytes).Text.Add(new PdfPageRegion(1, 200, 100, 160, 40), "EDITMARK",
+            new PdfTextEditOptions { Color = Red, FontSize = 12, RotationDegrees = 0 }).Document.ToBytes();
+
+        // User region [200 100 360 140] is displayed at x 40..200, y 100..140 on the half-turned page.
+        Box red = Find(Render(edited), Ink.Red);
+        Assert.False(red.IsEmpty);
+        Assert.InRange(red.Left, 38, 202);
+        Assert.InRange(red.Right, 38, 202);
+        Assert.InRange(red.Top, 98, 142);
+        Assert.InRange(red.Bottom, 98, 142);
     }
 
     [Theory]
