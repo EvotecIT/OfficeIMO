@@ -679,12 +679,13 @@ public sealed partial class PdfDocument {
                 continue;
             }
 
-            PdfTextRun run = options.ResolvePlannedNamedFallbackRun(sourceRun);
-            PdfStandardFont runFont = ResolveDiagnosticRunFont(defaultFont, run);
-            AddTextShapingDiagnostics(options,
-                PdfTextDiagnostics.AnalyzeAdvancedTextLayout(run.Text, source),
-                run.Text,
-                ShouldDeferProviderCoveredTextShapingDiagnostics(options, runFont, run.Text, run));
+            foreach (PdfTextRun run in options.ResolvePlannedNamedFallbackRuns(sourceRun)) {
+                PdfStandardFont runFont = ResolveDiagnosticRunFont(defaultFont, run);
+                AddTextShapingDiagnostics(options,
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(run.Text, source),
+                    run.Text,
+                    ShouldDeferProviderCoveredTextShapingDiagnostics(options, runFont, run.Text, run));
+            }
         }
     }
 

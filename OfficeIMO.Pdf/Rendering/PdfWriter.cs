@@ -179,13 +179,18 @@ internal static partial class PdfWriter {
         // Collect fonts used across pages
         // Embedded faces are keyed by their font bytes, not by mapping instance, so sections that register the same
         // installed family share one subset instead of writing one per section.
-        var fontObjectIds = new Dictionary<(PdfStandardFont Font, byte[]? EmbeddedFontData, string? EmbeddedFontName, bool SyntheticOblique, bool IncludeToUnicode, int ShapingContextId), int>();
+        var fontObjectIds = new Dictionary<(PdfStandardFont Font, byte[]? EmbeddedFontData, string? EmbeddedFontName, bool IncludeToUnicode, int ShapingContextId), int>();
         var shapingContexts = new List<(PdfTextShapingMode Mode, IOfficeTextShapingProvider? Provider, string? Language, OfficeIMO.Drawing.OfficeTextFeatureSettings Features)>();
         var namedFontObjectIds = new Dictionary<PdfCreateOptions, Dictionary<PdfNamedFontFace, int>>();
         var formHelveticaFontIds = new Dictionary<PdfCreateOptions, int>();
         var printColorTransforms = new Dictionary<PdfCreateOptions, PdfPrintColorTransform?>();
         var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfCreateOptions Options)>();
         var pendingFontOptions = new Dictionary<int, List<PdfCreateOptions>>();
+        // Slots backed by the bytes another slot already embeds keep their own font dictionaries, so readers
+        // still see each style's name, and point at the owner's single embedded program.
+        var pendingFontAliases = new List<(int ObjectId, int OwnerId, PdfStandardFont Font, PdfCreateOptions Options)>();
+        var fontAliasOwners = new Dictionary<int, int>();
+        var materializedTrueTypeFonts = new Dictionary<int, (PdfTrueTypeFontProgram Program, int FontFileId, int CidToGlyphMapId, int ToUnicodeId)>();
         var pendingNamedFontObjects = new List<(int ObjectId, PdfNamedFontFace Font, PdfCreateOptions Options)>();
         var pendingNamedFontOptions = new Dictionary<int, List<PdfCreateOptions>>();
         // A standard slot and a named family can resolve to the same installed face; both then share one subset.
@@ -243,13 +248,24 @@ internal static partial class PdfWriter {
                 font,
                 embeddedFont?.DataSnapshot,
                 embeddedFont?.FontName,
-                embeddedFont?.SyntheticOblique == true,
                 IncludeToUnicode: embeddedFont == null && fontOptions.IncludeStandardFontToUnicodeMaps,
                 ShapingContextId: embeddedFont == null ? 0 : GetShapingContextId(fontOptions));
             if (!fontObjectIds.TryGetValue(key, out int id)) {
-                bool shareable = embeddedFont != null && !embeddedFont.SyntheticOblique && IsTrueTypeData(embeddedFont.DataSnapshot);
-                if (shareable && trueTypeFontObjectsByData.TryGetValue((embeddedFont!.DataSnapshot, key.ShapingContextId), out id) &&
-                    !pendingFontOptions.ContainsKey(id)) {
+                // Synthetic slant and weight are painted by the text matrix and render mode, so the styles a
+                // single face backs share its embedded program.
+                bool shareable = embeddedFont != null && IsTrueTypeData(embeddedFont.DataSnapshot);
+                if (shareable && trueTypeFontObjectsByData.TryGetValue((embeddedFont!.DataSnapshot, key.ShapingContextId), out int ownerId) &&
+                    pendingFontOptions.ContainsKey(ownerId)) {
+                    id = ReserveObject(objects);
+                    fontObjectIds[key] = id;
+                    fontAliasOwners[id] = ownerId;
+                    pendingFontAliases.Add((id, ownerId, font, fontOptions));
+                    PdfStandardFont aliasFont = font;
+                    PdfCreateOptions aliasOptions = fontOptions;
+                    AddSharedUsageSource(ownerId, () => aliasOptions.TryGetEmbeddedStandardFontProgramForGeneration(aliasFont, out _, out PdfTrueTypeFontProgram? program) ? program : null);
+                    return id;
+                }
+                if (shareable && trueTypeFontObjectsByData.TryGetValue((embeddedFont!.DataSnapshot, key.ShapingContextId), out id)) {
                     // A named face already owns this font object; record this slot's usage for its subset.
                     fontObjectIds[key] = id;
                     PdfStandardFont sharedFont = font;
@@ -267,7 +283,7 @@ internal static partial class PdfWriter {
             } else {
                 PdfStandardFont sharedFont = font;
                 PdfCreateOptions sharedOptions = fontOptions;
-                AddSharedUsageSource(id, () => sharedOptions.TryGetEmbeddedStandardFontProgramForGeneration(sharedFont, out _, out PdfTrueTypeFontProgram? program) ? program : null);
+                AddSharedUsageSource(fontAliasOwners.TryGetValue(id, out int usageOwner) ? usageOwner : id, () => sharedOptions.TryGetEmbeddedStandardFontProgramForGeneration(sharedFont, out _, out PdfTrueTypeFontProgram? program) ? program : null);
             }
             return id;
         }
@@ -335,6 +351,7 @@ internal static partial class PdfWriter {
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildToUnicodeCMap(fontProgram));
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
                     MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, fontProgram.SubsetFontName, descriptorId, trueType: true);
+                    materializedTrueTypeFonts[pendingFont.ObjectId] = (fontProgram, fontFileId, cidToGlyphMapId, toUnicodeObjectId);
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
                     foreach (PdfCreateOptions otherOptions in pendingFontOptions[pendingFont.ObjectId]) {
@@ -371,6 +388,26 @@ internal static partial class PdfWriter {
                         : 0;
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(pendingFont.Font, toUnicodeObjectId));
                     MaterializeSearchableFonts(objects, pendingSearchableFonts, pendingFont.ObjectId, pendingFont.Font.ToBaseFontName());
+                }
+            }
+
+            foreach (var alias in pendingFontAliases) {
+                if (materializedTrueTypeFonts.TryGetValue(alias.OwnerId, out var owner) &&
+                    alias.Options.TryGetEmbeddedStandardFontProgramForGeneration(alias.Font, out PdfEmbeddedFont? _, out PdfTrueTypeFontProgram? aliasProgram) &&
+                    aliasProgram != null) {
+                    // The alias keeps its own style name under the owner's subset tag.
+                    string ownerName = owner.Program.SubsetFontName;
+                    string tag = ownerName.EndsWith(owner.Program.FontName, StringComparison.Ordinal)
+                        ? ownerName.Substring(0, ownerName.Length - owner.Program.FontName.Length) : string.Empty;
+                    string aliasName = tag + aliasProgram.FontName;
+                    int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(owner.Program, owner.FontFileId, aliasName));
+                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType2DescendantObject(owner.Program, descriptorId, owner.CidToGlyphMapId, aliasName));
+                    ReplaceObject(objects, alias.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(owner.Program, descendantFontId, owner.ToUnicodeId, aliasName));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, alias.ObjectId, aliasName, descriptorId, trueType: true);
+                } else {
+                    // The owner could not embed these bytes, so neither can the alias.
+                    ReplaceObject(objects, alias.ObjectId, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(alias.Font, 0));
+                    MaterializeSearchableFonts(objects, pendingSearchableFonts, alias.ObjectId, alias.Font.ToBaseFontName());
                 }
             }
 

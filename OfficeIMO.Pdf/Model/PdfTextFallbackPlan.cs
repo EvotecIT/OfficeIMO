@@ -4,10 +4,14 @@ namespace OfficeIMO.Pdf;
 /// Describes how text can be split across embedded fonts before generated PDF rendering.
 /// </summary>
 public sealed class PdfTextFallbackPlan {
-    internal PdfTextFallbackPlan(string originalText, IReadOnlyList<PdfTextFallbackSegment> segments, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) {
+    private readonly IReadOnlyList<PdfEmbeddedFontFallbackCandidate>? _candidates;
+
+    internal PdfTextFallbackPlan(string originalText, IReadOnlyList<PdfTextFallbackSegment> segments, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics,
+        IReadOnlyList<PdfEmbeddedFontFallbackCandidate>? candidates = null) {
         OriginalText = originalText ?? string.Empty;
         Segments = segments ?? throw new ArgumentNullException(nameof(segments));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        _candidates = candidates;
     }
 
     /// <summary>Original text used to create this fallback plan.</summary>
@@ -97,7 +101,7 @@ public sealed class PdfTextFallbackPlan {
                     styleTemplate);
             }
 
-            runs.Add(CreateStyledRun(segment.Text, resolveFont(segment.FontIndex), styleTemplate));
+            AddSegmentRuns(runs, segment, styleTemplate, text => CreateStyledRun(text, resolveFont(segment.FontIndex), styleTemplate));
             cursor = segment.StartIndex + segment.Length;
         }
 
@@ -125,9 +129,11 @@ public sealed class PdfTextFallbackPlan {
                     styleTemplate);
             }
 
-            PdfTextRun run = CreateStyledNamedRun(segment.Text, resolveFontFamily(segment.FontIndex), styleTemplate);
-            if (candidates != null) run.WithPlannedFontFallback(candidates[segment.FontIndex]);
-            runs.Add(run);
+            AddSegmentRuns(runs, segment, styleTemplate, text => {
+                PdfTextRun run = CreateStyledNamedRun(text, resolveFontFamily(segment.FontIndex), styleTemplate);
+                if (candidates != null) run.WithPlannedFontFallback(candidates[segment.FontIndex]);
+                return run;
+            });
             cursor = segment.StartIndex + segment.Length;
         }
 
@@ -137,6 +143,41 @@ public sealed class PdfTextFallbackPlan {
 
         KeepHorizontalOffsetOnFirstGeneratedRun(runs);
         return runs.AsReadOnly();
+    }
+
+    // Bold and italic runs use the candidate's own styled faces. Text elements whose glyphs the styled face
+    // lacks are painted with the candidate's regular face instead, which synthesizes the style for them.
+    private void AddSegmentRuns(List<PdfTextRun> runs, PdfTextFallbackSegment segment, PdfTextRun? styleTemplate,
+        Func<string, PdfTextRun> createRun) {
+        PdfTextRun whole = createRun(segment.Text);
+        // A styled standard face, from the template or the mapped slot, makes the run bold or italic as well.
+        bool bold = whole.Bold, italic = whole.Italic;
+        if (whole.StandardFont is PdfStandardFont selected) {
+            PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(selected);
+            bool boldItalicFace = selected == PdfStandardFontMapper.GetStyledFont(family, bold: true, italic: true);
+            bold |= boldItalicFace || selected == PdfStandardFontMapper.GetStyledFont(family, bold: true, italic: false);
+            italic |= boldItalicFace || selected == PdfStandardFontMapper.GetStyledFont(family, bold: false, italic: true);
+        }
+        PdfEmbeddedFontFallbackCandidate? candidate = _candidates != null && segment.FontIndex >= 0 && segment.FontIndex < _candidates.Count
+            ? _candidates[segment.FontIndex]
+            : null;
+        IReadOnlyList<(string Text, bool RegularFace)>? pieces = candidate?.SplitByStyledFaceCoverage(segment.Text, bold, italic);
+        if (pieces == null) {
+            runs.Add(whole);
+            return;
+        }
+
+        PdfEmbeddedFontFallbackCandidate regularFace = candidate!.RegularFaceCandidate;
+        foreach ((string text, bool useRegularFace) in pieces) {
+            if (!useRegularFace) {
+                runs.Add(createRun(text));
+                continue;
+            }
+            PdfTextRun companion = CreateStyledNamedRun(text, regularFace.FontName, styleTemplate).WithPlannedFontFallback(regularFace);
+            if (bold) companion.SetBold();
+            if (italic) companion.SetItalic();
+            runs.Add(companion);
+        }
     }
 
     /// <summary>Applies the source run's offset once across all generated font and layout segments.</summary>
