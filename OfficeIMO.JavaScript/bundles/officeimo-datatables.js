@@ -11737,7 +11737,7 @@ _modules.set("0e5ede7759618ed3ec827d34fbd62b205f3a5241650504807c24e5323a2496a5",
 return _exports;
 })();
 
-const _m96 = _modules.get("301d0eb4d5c2c309b584c3c060f22d451089bef803eb1fac9a7ee815c1afd0d0") ?? (() => {
+const _m96 = _modules.get("3f7dfa31cf3dccea78a7ca594b86fe3f047463be88dfa3ffd2d53184bea60471") ?? (() => {
 const { checkAbort, pause, rowsFromBatches, taskYieldDue } = _m4;
 
 const { ExportBudget } = _m9;
@@ -11781,6 +11781,13 @@ function customizedStructure(structure, before, after, kind) {
             throw new TypeError("customizeData cannot change one column of a spanning " + kind + " cell.");
         return { ...cell, title: after[index] };
     }));
+}
+/** A customizeData reorder is visible as a permutation of distinct leaf labels; map each output column to its source. */
+function reorderedSources(before, after) {
+    if (!before || before.length !== after.length || new Set(before).size !== before.length)
+        return undefined;
+    const sources = after.map(label => before.indexOf(label));
+    return sources.every(source => source >= 0) && sources.some((source, index) => source !== index) ? sources : undefined;
 }
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 function createDataTablesExport(host, table, options = {}) {
@@ -11844,12 +11851,20 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
     const leaf = array(member(data, "header"));
     if (leaf.length !== columnIndexes.length)
         throw new TypeError("Export header must match the selected columns.");
-    const heading = headings(omitted?.header ? undefined : customizedStructure(member(data, "headerStructure"), before?.header, leaf, "header"), leaf, omitted?.header ? "leaf" : headingMode);
+    // Only structured output reaches the source structures' bottom row; leaf and grouped headings take the leaf labels.
+    const structured = headingMode === "structured" && !omitted?.header;
+    const sourceStructure = omitted?.header ? undefined : member(data, "headerStructure");
+    const heading = headings(structured ? customizedStructure(sourceStructure, before?.header, leaf, "header") : sourceStructure, leaf, omitted?.header ? "leaf" : headingMode);
+    const reordered = reorderedSources(before?.header, leaf);
+    if (reordered && heading.rows.length > 1)
+        throw new TypeError("customizeData cannot reorder columns under grouped headings; select headings: 'leaf' or reorder the table's columns.");
+    // Column options and keys follow each column to its new position after a customizeData reorder.
+    const sourceColumns = reordered ? reordered.map(source => columnIndexes[source]) : columnIndexes;
     for (const index of columnIndexes)
         if (member(options.columnOptions?.[index], "value") !== undefined)
             throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
     const columns = Object.freeze(copyColumns(leaf.map((label, index) => ({
-        header: text(label), key: "dt:" + columnIndexes[index], ...options.columnOptions?.[columnIndexes[index]],
+        header: text(label), key: "dt:" + sourceColumns[index], ...options.columnOptions?.[sourceColumns[index]],
         ...(heading.groups[index].length ? { groups: Object.freeze(heading.groups[index]) } : {})
     }))).map(column => Object.freeze(column)));
     // Explicit heading overrides also apply to CSV's leaf heading.
@@ -11858,8 +11873,8 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
     const headerStructure = heading.structure?.map((row, level) => Object.freeze(row.map((cell, index) => {
         if (!cell || level + (cell.rowSpan ?? 1) !== heading.structure.length)
             return cell;
-        const override = options.columnOptions?.[columnIndexes[index]]?.header;
-        if ((cell.columnSpan ?? 1) > 1 && columnIndexes.slice(index, index + (cell.columnSpan ?? 1)).some(c => options.columnOptions?.[c]?.header !== undefined))
+        const override = options.columnOptions?.[sourceColumns[index]]?.header;
+        if ((cell.columnSpan ?? 1) > 1 && sourceColumns.slice(index, index + (cell.columnSpan ?? 1)).some(c => options.columnOptions?.[c]?.header !== undefined))
             throw new TypeError("A spanning leaf heading cannot have per-column header overrides.");
         return override === undefined ? cell : Object.freeze({ ...cell, value: override });
     })));
@@ -11872,7 +11887,7 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
     if (footer && footer.length !== columns.length)
         throw new TypeError("Export footer must match the selected columns.");
     const footerHeading = footer && Array.isArray(footerStructure) && footerStructure.length
-        ? headings(customizedStructure(footerStructure, before?.footer, array(rawFooter), "footer"), footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
+        ? headings(headingMode === "structured" ? customizedStructure(footerStructure, before?.footer, array(rawFooter), "footer") : footerStructure, footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
     const body = mode === "compatibility" ? array(member(data, "body")) : undefined;
     const count = columns.length ? body?.length ?? rowIndexes.length : 0;
     budget.check("maxRows", count);
@@ -11977,7 +11992,7 @@ function captureDataTablesExport(host, table, options = {}, omitted) {
         ...(footerHeading?.structure ? { footerStructure: footerHeading.structure } : {}), rowCount: count, rows });
 }
 const _exports = Object.freeze({ createDataTablesExport: createDataTablesExport, captureDataTablesExport: captureDataTablesExport });
-_modules.set("301d0eb4d5c2c309b584c3c060f22d451089bef803eb1fac9a7ee815c1afd0d0", _exports);
+_modules.set("3f7dfa31cf3dccea78a7ca594b86fe3f047463be88dfa3ffd2d53184bea60471", _exports);
 return _exports;
 })();
 
@@ -12026,7 +12041,7 @@ _modules.set("7b12a415e92cc9ef7212fb3a88007cb6dc37f9f30077165d4897cfa8052f9a3c",
 return _exports;
 })();
 
-const _m0 = _modules.get("ba29a6584e94081506bb58fe9378958ba24d0fc6ce3b91e837b67b07e6cd8619") ?? (() => {
+const _m0 = _modules.get("9c1ea87d43e6968c40971d053ee3391db818d0d79c0ed2159da99a7f5d71fe65") ?? (() => {
 const { BlobByteSink, checkAbort, saveBlob } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12209,7 +12224,7 @@ function registerDataTablesButtons(host, options = {}) {
     }
 }
 const _exports = Object.freeze({ createDataTablesExport: _m96.createDataTablesExport, ExportCell: _m5.ExportCell, PdfFont: _m63.PdfFont, writeDataTableTo: writeDataTableTo, exportDataTable: exportDataTable, registerDataTablesButtons: registerDataTablesButtons });
-_modules.set("ba29a6584e94081506bb58fe9378958ba24d0fc6ce3b91e837b67b07e6cd8619", _exports);
+_modules.set("9c1ea87d43e6968c40971d053ee3391db818d0d79c0ed2159da99a7f5d71fe65", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

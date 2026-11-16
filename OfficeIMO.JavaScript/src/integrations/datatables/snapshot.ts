@@ -35,6 +35,13 @@ function customizedStructure(structure: unknown, before: readonly unknown[] | un
   }));
 }
 
+/** A customizeData reorder is visible as a permutation of distinct leaf labels; map each output column to its source. */
+function reorderedSources(before: readonly unknown[] | undefined, after: readonly unknown[]): number[] | undefined {
+  if (!before || before.length !== after.length || new Set(before).size !== before.length) return undefined;
+  const sources = after.map(label => before.indexOf(label));
+  return sources.every(source => source >= 0) && sources.some((source, index) => source !== index) ? sources : undefined;
+}
+
 /** Capture export scope and headings, then produce values in bounded batches using public DataTables APIs. */
 export function createDataTablesExport(host: DataTablesHost, table: DataTablesApi, options: DataTablesOptions = {}): DataTablesExport {
   return captureDataTablesExport(host, table, options);
@@ -89,20 +96,28 @@ export function captureDataTablesExport(host: DataTablesHost, table: DataTablesA
     } } : {}) });
   const leaf = array(member(data, "header"));
   if (leaf.length !== columnIndexes.length) throw new TypeError("Export header must match the selected columns.");
-  const heading = headings(omitted?.header ? undefined : customizedStructure(member(data, "headerStructure"), before?.header, leaf, "header"),
+  // Only structured output reaches the source structures' bottom row; leaf and grouped headings take the leaf labels.
+  const structured = headingMode === "structured" && !omitted?.header;
+  const sourceStructure = omitted?.header ? undefined : member(data, "headerStructure");
+  const heading = headings(structured ? customizedStructure(sourceStructure, before?.header, leaf, "header") : sourceStructure,
     leaf, omitted?.header ? "leaf" : headingMode);
+  const reordered = reorderedSources(before?.header, leaf);
+  if (reordered && heading.rows.length > 1)
+    throw new TypeError("customizeData cannot reorder columns under grouped headings; select headings: 'leaf' or reorder the table's columns.");
+  // Column options and keys follow each column to its new position after a customizeData reorder.
+  const sourceColumns = reordered ? reordered.map(source => columnIndexes[source]!) : columnIndexes;
   for (const index of columnIndexes) if (member(options.columnOptions?.[index], "value") !== undefined)
     throw new TypeError("DataTables columnOptions describes columns; resolve values with project.");
   const columns: readonly Column<readonly ExportValue[]>[] = Object.freeze(copyColumns(leaf.map((label, index) => ({
-    header: text(label), key: "dt:" + columnIndexes[index]!, ...options.columnOptions?.[columnIndexes[index]!],
+    header: text(label), key: "dt:" + sourceColumns[index]!, ...options.columnOptions?.[sourceColumns[index]!],
     ...(heading.groups[index]!.length ? { groups: Object.freeze(heading.groups[index]!) } : {})
   }))).map(column => Object.freeze(column)));
   // Explicit heading overrides also apply to CSV's leaf heading.
   if (!heading.structure) heading.rows[heading.rows.length - 1] = columns.map(column => column.header);
   const headerStructure = heading.structure?.map((row, level) => Object.freeze(row.map((cell, index) => {
     if (!cell || level + (cell.rowSpan ?? 1) !== heading.structure!.length) return cell;
-    const override = options.columnOptions?.[columnIndexes[index]!] ?.header;
-    if ((cell.columnSpan ?? 1) > 1 && columnIndexes.slice(index, index + (cell.columnSpan ?? 1)).some(c => options.columnOptions?.[c]?.header !== undefined))
+    const override = options.columnOptions?.[sourceColumns[index]!] ?.header;
+    if ((cell.columnSpan ?? 1) > 1 && sourceColumns.slice(index, index + (cell.columnSpan ?? 1)).some(c => options.columnOptions?.[c]?.header !== undefined))
       throw new TypeError("A spanning leaf heading cannot have per-column header overrides.");
     return override === undefined ? cell : Object.freeze({ ...cell, value: override });
   })));
@@ -114,7 +129,8 @@ export function captureDataTablesExport(host: DataTablesHost, table: DataTablesA
   const footer = rawFooter == null ? undefined : array(rawFooter).map(value);
   if (footer && footer.length !== columns.length) throw new TypeError("Export footer must match the selected columns.");
   const footerHeading = footer && Array.isArray(footerStructure) && footerStructure.length
-    ? headings(customizedStructure(footerStructure, before?.footer, array(rawFooter), "footer"), footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
+    ? headings(headingMode === "structured" ? customizedStructure(footerStructure, before?.footer, array(rawFooter), "footer") : footerStructure,
+      footer, headingMode === "structured" ? "structured" : "grouped") : undefined;
   const body = mode === "compatibility" ? array(member(data, "body")) : undefined;
   const count = columns.length ? body?.length ?? rowIndexes.length : 0;
   budget.check("maxRows", count);
