@@ -17,7 +17,9 @@ internal static partial class PdfWriter {
             if (!(transformScale > 0D)) return;
             double density = effect.ChoosePixelsPerUnit(BlurredEffectPixelsPerPoint * transformScale,
                 OfficeBlurredShapeEffect.MaximumRasterPixels);
-            byte[] coverage = effect.RenderCoverage(density, cancellationToken, out int pixelWidth, out int pixelHeight);
+            // Unspecified caps and joins keep the PDF defaults the vector shape uses.
+            byte[] coverage = effect.RenderCoverage(density, cancellationToken, out int pixelWidth, out int pixelHeight,
+                OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter);
             PdfImageStream stream = CreateBlurredEffectImage(effect.Color, coverage, pixelWidth, pixelHeight, cancellationToken);
             var imageStyle = new PdfImageStyle { Fit = OfficeImageFit.Stretch };
             var block = new ImageBlock(stream.SoftMask!.Data, 1D, 1D, new OfficeImageInfo(OfficeImageFormat.Png, pixelWidth, pixelHeight),

@@ -13,6 +13,7 @@ internal sealed class OfficeBlurredShapeEffect {
     private const double MarginSigmas = 3D;
     // Two pixels per standard deviation, interpolated, already match an exact Gaussian within a few levels.
     private const double MaximumPixelsPerSigma = 2D;
+    private const double MinimumPixelDeviation = 0.05D;
 
     /// <summary>Pixel budget for one blurred effect; larger effects render at a lower density.</summary>
     internal const long MaximumRasterPixels = 4L * 1024L * 1024L;
@@ -32,6 +33,20 @@ internal sealed class OfficeBlurredShapeEffect {
         // An unspecified join paints as a miter.
         if (silhouette.StrokeColor.HasValue && silhouette.StrokeLineJoin is null or OfficeStrokeLineJoin.Miter) strokeReach *= Math.Max(1D, silhouette.StrokeMiterLimit);
         Margin = Math.Ceiling(strokeReach + sigma * MarginSigmas + 1D);
+        // Paths, polygons and lines can reach outside their declared box; the blur surface follows the geometry.
+        double left = 0D, top = 0D, right = silhouette.Width, bottom = silhouette.Height;
+        if (silhouette.Kind is OfficeShapeKind.Path or OfficeShapeKind.Polygon or OfficeShapeKind.Line) {
+            foreach (OfficeFlattenedPathContour contour in OfficeStrokeGeometry.FlattenShape(silhouette, 1D)) {
+                foreach (OfficePoint point in contour.Points) {
+                    left = Math.Min(left, point.X); top = Math.Min(top, point.Y);
+                    right = Math.Max(right, point.X); bottom = Math.Max(bottom, point.Y);
+                }
+            }
+        }
+        LocalLeft = Math.Floor(left) - Margin;
+        LocalTop = Math.Floor(top) - Margin;
+        LocalWidth = Math.Ceiling(right) + Margin - LocalLeft;
+        LocalHeight = Math.Ceiling(bottom) + Margin - LocalTop;
     }
 
     /// <summary>Shape-local geometry painted in <see cref="Color"/>; it has no transform, clip, effects or gradients.</summary>
@@ -55,16 +70,17 @@ internal sealed class OfficeBlurredShapeEffect {
     /// <summary>The shape's local clip. Writers apply it after the blur, as it bounds everything the shape paints.</summary>
     internal OfficeClipPath? ClipPath { get; }
 
-    /// <summary>Local distance around the shape box that holds the visible blur.</summary>
+    /// <summary>Local distance around the silhouette geometry that holds the visible blur.</summary>
     internal double Margin { get; }
 
-    internal double LocalLeft => -Margin;
+    /// <summary>Shape-local box of the blurred silhouette, including its margin.</summary>
+    internal double LocalLeft { get; }
 
-    internal double LocalTop => -Margin;
+    internal double LocalTop { get; }
 
-    internal double LocalWidth => Silhouette.Width + Margin * 2D;
+    internal double LocalWidth { get; }
 
-    internal double LocalHeight => Silhouette.Height + Margin * 2D;
+    internal double LocalHeight { get; }
 
     /// <summary>Returns the blurred shadow, or <see langword="null"/> for none or a hard (unblurred) shadow.</summary>
     internal static OfficeBlurredShapeEffect? CreateShadow(OfficeShape shape) {
@@ -172,22 +188,37 @@ internal sealed class OfficeBlurredShapeEffect {
     /// <see cref="LocalTop"/>, <see cref="LocalWidth"/> and <see cref="LocalHeight"/> in shape-local units.
     /// <see cref="Opacity"/> is left to the caller.
     /// </summary>
-    internal byte[] RenderCoverage(double pixelsPerUnit, CancellationToken cancellationToken, out int width, out int height) {
-        string? key = CreateCoverageKey(pixelsPerUnit);
+    /// <param name="pixelsPerUnit">Raster density in pixels per shape-local unit.</param>
+    /// <param name="cancellationToken">Cancels rendering and filtering.</param>
+    /// <param name="width">Coverage width in pixels.</param>
+    /// <param name="height">Coverage height in pixels.</param>
+    /// <param name="defaultLineCap">Cap for a silhouette whose source leaves it unspecified, so the blur follows the
+    /// writer's own stroke default (PDF uses butt caps; the raster renderer rounds them).</param>
+    /// <param name="defaultLineJoin">Join for a silhouette whose source leaves it unspecified.</param>
+    internal byte[] RenderCoverage(double pixelsPerUnit, CancellationToken cancellationToken, out int width, out int height,
+        OfficeStrokeLineCap? defaultLineCap = null, OfficeStrokeLineJoin? defaultLineJoin = null) {
+        OfficeShape silhouette = Silhouette;
+        if (silhouette.StrokeColor.HasValue && (silhouette.StrokeLineCap == null && defaultLineCap != null
+            || silhouette.StrokeLineJoin == null && defaultLineJoin != null)) {
+            silhouette = silhouette.Clone();
+            silhouette.StrokeLineCap ??= defaultLineCap;
+            silhouette.StrokeLineJoin ??= defaultLineJoin;
+        }
+        string? key = CreateCoverageKey(silhouette, pixelsPerUnit);
         if (key != null && CoverageCache.TryGet(key, out byte[] cached, out width, out height)) return cached;
-        byte[] coverage = RenderCoverageCore(pixelsPerUnit, cancellationToken, out width, out height);
+        byte[] coverage = RenderCoverageCore(silhouette, pixelsPerUnit, cancellationToken, out width, out height);
         if (key != null) CoverageCache.Add(key, coverage, width, height);
         return coverage;
     }
 
     // Themes repeat one effect on many equal shapes, so primitive silhouettes share their blurred coverage.
     // Paths and polygons are rendered each time rather than keyed by their geometry.
-    private string? CreateCoverageKey(double pixelsPerUnit) {
-        OfficeShape s = Silhouette;
+    private string? CreateCoverageKey(OfficeShape s, double pixelsPerUnit) {
         if (s.Kind != OfficeShapeKind.Rectangle && s.Kind != OfficeShapeKind.RoundedRectangle && s.Kind != OfficeShapeKind.Ellipse) return null;
         return string.Join("|", ((int)s.Kind).ToString(System.Globalization.CultureInfo.InvariantCulture),
             Format(s.Width), Format(s.Height), Format(s.CornerRadius), s.FillColor.HasValue ? "f" : "-",
-            s.StrokeColor.HasValue ? Format(s.StrokeWidth) : "-", s.StrokeLineJoin?.ToString() ?? "-", Format(s.StrokeMiterLimit),
+            s.StrokeColor.HasValue ? Format(s.StrokeWidth) : "-", s.StrokeLineCap?.ToString() ?? "-",
+            s.StrokeLineJoin?.ToString() ?? "-", Format(s.StrokeMiterLimit),
             Format(Sigma), Format(Margin), Format(pixelsPerUnit));
     }
 
@@ -222,10 +253,10 @@ internal sealed class OfficeBlurredShapeEffect {
         }
     }
 
-    private byte[] RenderCoverageCore(double pixelsPerUnit, CancellationToken cancellationToken, out int width, out int height) {
+    private byte[] RenderCoverageCore(OfficeShape shape, double pixelsPerUnit, CancellationToken cancellationToken, out int width, out int height) {
         int pixelWidth = Math.Max(1, (int)Math.Ceiling(LocalWidth * pixelsPerUnit));
         int pixelHeight = Math.Max(1, (int)Math.Ceiling(LocalHeight * pixelsPerUnit));
-        var drawing = new OfficeDrawing(pixelWidth / pixelsPerUnit, pixelHeight / pixelsPerUnit).AddShape(Silhouette, Margin, Margin);
+        var drawing = new OfficeDrawing(pixelWidth / pixelsPerUnit, pixelHeight / pixelsPerUnit).AddShape(shape, -LocalLeft, -LocalTop);
         OfficeRasterImage silhouette = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = pixelsPerUnit,
             CancellationToken = cancellationToken
@@ -235,7 +266,10 @@ internal sealed class OfficeBlurredShapeEffect {
         byte[] pixels = silhouette.PixelBuffer;
         var coverage = new byte[width * height];
         for (int i = 0; i < coverage.Length; i++) coverage[i] = pixels[i * 4 + 3];
-        return OfficeRasterFilters.GaussianBlurCoverage(coverage, width, height, Sigma * pixelsPerUnit, cancellationToken);
+        double deviation = Sigma * pixelsPerUnit;
+        // A deviation far below a pixel leaves the antialiased silhouette unchanged.
+        return deviation < MinimumPixelDeviation ? coverage
+            : OfficeRasterFilters.GaussianBlurCoverage(coverage, width, height, deviation, cancellationToken);
     }
 
     /// <summary>Renders the blurred silhouette as <see cref="Color"/> with the blur as alpha.</summary>

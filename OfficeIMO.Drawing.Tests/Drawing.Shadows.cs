@@ -145,4 +145,34 @@ public partial class DrawingTests {
         Assert.Equal(0.5D, core.Opacity, 6);
         Assert.All(layers.Where(layer => !layer.HasFill), layer => Assert.True(layer.HasStroke));
     }
+
+    [Fact]
+    public void BlurredShadow_FollowsPathGeometryOutsideItsDeclaredBox() {
+        // The path runs well past its 20 x 20 box; its shadow must not be cut at the box edge.
+        OfficeShape path = OfficeShape.Path(20D, 20D,
+            OfficePathCommand.MoveTo(0D, 0D), OfficePathCommand.LineTo(60D, 0D),
+            OfficePathCommand.LineTo(60D, 20D), OfficePathCommand.LineTo(0D, 20D), OfficePathCommand.Close());
+        path.FillColor = OfficeColor.White;
+        path.StrokeWidth = 0D;
+        path.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 0D, 10D, 2D);
+        var drawing = new OfficeDrawing(100D, 60D).AddShape(path, 10D, 10D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        Assert.True(raster.GetPixel(55, 36).R < 32, "The shadow under the part of the path beyond its box is missing.");
+    }
+
+    [Fact]
+    public void BlurredGlow_WithSubpixelRadiusRendersWithoutBlurring() {
+        OfficeShape shape = OfficeShape.Rectangle(20D, 10D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 0, 255), 1D, 0.01D);
+        var drawing = new OfficeDrawing(40D, 30D).AddShape(shape, 10D, 10D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        Assert.Equal(OfficeColor.Blue, raster.GetPixel(20, 15));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(5, 15));
+    }
 }
