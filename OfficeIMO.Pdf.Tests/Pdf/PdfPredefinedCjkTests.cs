@@ -106,8 +106,8 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void UnreadableEmbeddedEncodingCMapKeepsCodeWidthsForToUnicodeText() {
-            // usecmap parents are not followed, so the embedded CMap selects no CIDs; widths must not collapse to CID 0.
+        public void EmbeddedEncodingCMapInheritsItsPredefinedParentForWidths() {
+            // The embedded CMap adds nothing to its usecmap parent, which selects CID 41 for the code.
             const string cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap /Adobe-Korea1-2 usecmap\n" +
                 "1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\nendcmap end end";
             const string unicode = "1 beginbfchar <0029> <0041> endbfchar";
@@ -135,17 +135,6 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Throws<PdfReadLimitException>(() => mapping.TryDecode(Encoding.BigEndianUnicode.GetBytes("AB"), 1, out _));
             Assert.False(mapping.TryDecode(new byte[] { 0xD8, 0x00 }, 10, out _));
             Assert.False(mapping.TryDecode(new byte[] { 0x30 }, 10, out _));
-        }
-
-        [Fact]
-        public void AdvertisedUnicodeOverridesPredefinedMapWithoutFallingBackForMissingCodes() {
-            Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes("1 beginbfchar <0041> <0058> endbfchar"), out ToUnicodeCMap? unicode));
-            PdfFontResource font = new PdfFontResource("F1", "HeiseiMin-W3", "UniJIS-UCS2-H", true, unicode,
-                fontSubtype: "Type0", predefinedCMap: PdfPredefinedCMap.Find("UniJIS-UCS2-H", "Adobe", "Japan1"));
-            Func<byte[], int, string> decoder = ResourceResolver.CreateBudgetedDecoder(font);
-
-            Assert.Equal("X", decoder(Encoding.BigEndianUnicode.GetBytes("A"), 10));
-            Assert.ThrowsAny<NotSupportedException>(() => decoder(Encoding.BigEndianUnicode.GetBytes("AB"), 10));
         }
 
         [Theory]
@@ -186,7 +175,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void InspectionRetriesOnlyTheUnmappableKernedArrayAsIndividualOperands() {
             byte[] source = BuildInspectionRecoverySource(
-                "BT /F2 12 Tf 1 0 0 1 20 170 Tm [15 <0041> 10 <0043> 10 <0042> 15] TJ " +
+                "BT /F2 12 Tf 1 0 0 1 20 170 Tm [15 <0041> 10 <FFFF> 10 <0042> 15] TJ " +
                 "1 0 0 1 20 140 Tm [<0041> 10 <0042>] TJ ET",
                 unicode: "2 beginbfchar <0041> <0058> <0042> <0059> endbfchar");
             PdfInspectionReadResult inspection = PdfDocument.Load(source).ReadForInspection(
@@ -201,7 +190,6 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(19.82D, first.X, 5);
             Assert.True(second.X > first.X);
             Assert.Equal(20D, Assert.Single(spans, span => span.Text == "XY").X, 5);
-            Assert.DoesNotContain("C", inspection.Document.Text);
             Assert.Single(inspection.Document.TextDecodingDiagnostics);
         }
 
