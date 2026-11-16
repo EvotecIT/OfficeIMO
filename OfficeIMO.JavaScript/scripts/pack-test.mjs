@@ -18,7 +18,7 @@ function run(args, cwd) {
 const packed = run([npmCli, "pack", "--pack-destination", output, "--json"], root);
 const manifest = JSON.parse(packed.slice(packed.indexOf("[")));
 for (const file of manifest[0].files) {
-  if (!/^(?:package\.json|README\.md|LICENSE|dist\/.+\.(?:js|d\.ts)|bundles\/officeimo(?:-xlsx|-csv|-pdf|-datatables|-canopyx|-execution)?\.(?:js|mjs))$/.test(file.path))
+  if (!/^(?:package\.json|README\.md|LICENSE|dist\/.+\.(?:js|d\.ts)|bundles\/officeimo(?:-xlsx|-csv|-pdf|-execution|-(?:datatables|canopyx)(?:-adapter)?)?(?:\.min)?\.(?:js|mjs))$/.test(file.path))
     throw new Error("Unexpected shipped file: " + file.path);
 }
 await writeFile(join(output, "archive.json"), JSON.stringify(manifest, null, 2) + "\n");

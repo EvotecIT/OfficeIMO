@@ -24,7 +24,10 @@
     "./xlsx.js": "./bundles/officeimo-xlsx.js",
     "./csv.js": "./bundles/officeimo-csv.js",
     "./pdf.js": "./bundles/officeimo-pdf.js",
-    "./execution.js": "./bundles/officeimo-execution.js"
+    "./execution.js": "./bundles/officeimo-execution.js",
+    "./canopyx-adapter.js": "./bundles/officeimo-canopyx-adapter.js",
+    "./datatables-adapter.js": "./bundles/officeimo-datatables-adapter.js",
+    "./bundles/*": "./bundles/*"
   },
   "files": ["dist", "bundles", "LICENSE", "README.md"],
   "scripts": {
@@ -39,7 +42,7 @@
     "sizes": "node scripts/sizes.mjs",
     "prepack": "npm run check"
   },
-  "devDependencies": { "typescript": "7.0.2" },
+  "devDependencies": { "esbuild": "0.28.2", "typescript": "7.0.2" },
   "engines": { "node": "^22.0.0 || ^24.0.0 || ^25.0.0 || ^26.0.0" },
   "repository": { "type": "git", "url": "git+https://github.com/EvotecIT/OfficeIMO.git", "directory": "OfficeIMO.JavaScript" },
   "keywords": ["officeimo", "xlsx", "csv", "pdf", "excel", "browser", "streaming", "typescript"]

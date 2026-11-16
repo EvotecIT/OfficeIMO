@@ -91,7 +91,7 @@ await writeFile("packed-streamed.xlsx", new Uint8Array(await streamedBlob.arrayB
 assert.equal(await (await csv.writeCsv([[resolved]], { columns: [{ header: "Amount" }], valueMode: "display" })).text(), "Amount\r\n'=display\r\n");
 const manifest = JSON.parse(await readFile("node_modules/@evotecit/officeimo/package.json", "utf8"));
 assert.equal(manifest.dependencies, undefined);
-assert.deepEqual(Object.keys(manifest.devDependencies), ["typescript"]);
+assert.deepEqual(Object.keys(manifest.devDependencies), ["esbuild", "typescript"]);
 // The optional installed entry must execute independently of a document or grid.
 const { port1, port2 } = new MessageChannel(), workerSink = new core.BlobByteSink();
 const handler = handleWorkerExports(port2, ({ rows, sink, signal }) => csvModule.writeCsvTo(rows, sink, {
@@ -104,6 +104,11 @@ try {
   await import("@evotecit/officeimo/execution.js");
   assert.equal(typeof globalThis.OfficeIMO.executeWorkerExport, "function");
 } finally { handler.dispose(); port1.close(); port2.close(); }
+// Installed thin adapters resolve their writers from the shared bundle of the same archive.
+await import("@evotecit/officeimo/classic.js"); await import("@evotecit/officeimo/canopyx-adapter.js");
+assert.equal(typeof globalThis.OfficeIMO.exportCanopy, "function"); assert.equal(globalThis.OfficeIMO.PdfFont, globalThis.OfficeIMO.pdf.PdfFont);
+const sharedModule = await import("@evotecit/officeimo/bundles/officeimo.min.mjs");
+assert.equal((await import("@evotecit/officeimo/bundles/officeimo-datatables-adapter.min.mjs")).PdfFont, sharedModule.PdfFont);
 // The exact installed archive must preserve grouped source ownership across public subpaths.
 const groupedColumns = [{ header: "Measure", key: "amount", type: "number" }, { header: "Location", key: "site" }, { header: "Ready", key: "ready" }];
 const groupedRecords = [{ amount: 2, site: "A", ready: true }, { amount: null, site: "A", ready: false }, { amount: 8, site: "B", ready: true }];
