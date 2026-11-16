@@ -228,6 +228,8 @@ namespace OfficeIMO.Word {
             }
 
             private static bool IsHiddenCommentReferenceRun(Run run) {
+                // Most runs hold no comment reference; answer for them without resolving run properties.
+                if (!WordElementWalker.HasDirectCommentReference(run)) return false;
                 Vanish? vanish = run.RunProperties?.GetFirstChild<Vanish>();
                 return vanish != null &&
                        (vanish.Val == null || vanish.Val.Value) &&

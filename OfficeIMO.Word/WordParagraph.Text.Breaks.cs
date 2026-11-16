@@ -30,15 +30,20 @@ public partial class WordParagraph {
             return null;
         OpenXmlElement? element = _visibleRun ?? _run ?? (OpenXmlElement?)_stdRun ?? _hyperlink ?? (OpenXmlElement?)_simpleField;
         if (element == null && _runs != null) {
-            if (!_runs.Any(run => run.Descendants<Break>().Any(node => !IsTextWrappingBreak(node)))) return null;
+            if (!_runs.Any(ContainsNonTextWrappingBreak)) return null;
             var fields = new Dictionary<int, WordBreakType>();
             ReadComplexFieldResultText(_runs, fields);
             return fields.Count == 0 ? null : fields;
         }
         element ??= (OpenXmlElement?)_stdRun ?? _officeMath ?? (OpenXmlElement?)_mathParagraph;
-        if (element == null || !element.Descendants<Break>().Any(node => !IsTextWrappingBreak(node))) return null;
+        if (element == null || !ContainsNonTextWrappingBreak(element)) return null;
         var breaks = new Dictionary<int, WordBreakType>();
         AppendVisibleText(new StringBuilder(), element, breaks);
         return breaks.Count == 0 ? null : breaks;
     }
+
+    // Walks the element's descendants in place; most runs hold no break, so this avoids a descendant
+    // enumerator per run while answering exactly what Descendants<Break>().Any(...) answers.
+    private static bool ContainsNonTextWrappingBreak(OpenXmlElement element) =>
+        WordElementWalker.DescendantsContain(element, static node => node is Break breakNode && !IsTextWrappingBreak(breakNode));
 }
