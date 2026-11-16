@@ -18,3 +18,18 @@ original upstream licenses are included as `licenses/AdobeCMaps/LICENSE.md` and
 
 Only mapping data is bundled. No Adobe executable, font program or network
 service is required.
+
+## sRGB ICC profile
+
+OfficeIMO.Pdf embeds the unmodified `sRGB_IEC61966-2-1_no_black_scaling.icc` profile from the
+[International Color Consortium profile registry](https://registry.color.org/rgb-registry/black_scaled_2009_srgb)
+as the output intent for PDF/A and PDF/X documents. Copyright International Color Consortium,
+2009. The ICC permission notice is included as `licenses/sRGB-LICENSE.txt` in the NuGet package.
+
+## Adobe Core 14 font metrics
+
+The generated tables in `Rendering/Writer/PdfStandardFontWidths.*.cs` hold advance widths,
+kerning pairs and glyph bounds that `Build/Generate-PdfStandardFontWidths.py` derives from
+Adobe's Core 14 AFM files (AFM 4.1). The Adobe copyright notices are retained in the generated
+files. The permission notice that accompanies the AFM files is included as
+`licenses/Adobe-Core14-AFM-LICENSE.txt` in the NuGet package. No AFM file is redistributed.

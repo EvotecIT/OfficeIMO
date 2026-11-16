@@ -52,3 +52,18 @@ if ($null -ne $result -and
     }
     throw $message
 }
+
+if ($Plan -ne $true -and $Build -ne $false) {
+    $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+    $staging = Join-Path (Join-Path (Split-Path -Parent $ConfigPath) $config.RootPath) $config.StagingPath
+    if (Get-ChildItem -LiteralPath $staging -Filter *.nupkg -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1) {
+        $python = Get-Command python3, python -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $python) {
+            throw 'Python is required to check third-party notices in the built packages.'
+        }
+        & $python.Source "$PSScriptRoot/validate_third_party_notices.py" package $staging
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Built packages do not declare or ship their third-party notices.'
+        }
+    }
+}

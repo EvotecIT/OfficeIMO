@@ -1,5 +1,7 @@
 OfficeIMO.Invoicing.KSeF is distributed under the MIT license.
 
+KSeF authentication and UPO schemas
+
 The unmodified embedded authentication and UPO XSDs are from the Ministry of
 Finance KSeF documentation at commit c50f855ef3ae550396c6a272594047506e220498:
 https://github.com/CIRFMF/ksef-api/tree/c50f855ef3ae550396c6a272594047506e220498

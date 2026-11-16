@@ -15,7 +15,7 @@
     "pdf": "Source print settings; best image quality; no password",
     "nativeTableTitleRowOffset": 1
   },
-  "sourceLicense": "MIT, Jon Connell; see OfficeIMO.IWork/THIRD-PARTY-NOTICES.md at the repository root",
+  "sourceLicense": "MIT, Jon Connell; see OfficeIMO.TestAssets/Documents/IWorkCorpus/THIRD-PARTY-NOTICES.md",
   "pdf": {
     "pageCount": 2,
     "pageBoxesPoints": [
