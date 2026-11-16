@@ -379,8 +379,15 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>
+    /// Word 2010 and earlier layout: keeps repeated header rows with whole body rows only, without the
+    /// first-fragment group. Set by document converters that reproduce those compatibility modes.
+    /// </summary>
+    internal bool KeepsRepeatedHeaderWithWholeRowsOnly { get; set; }
+    /// <summary>
     /// Minimum number of body rows kept with leading header rows when a table starts on a partially occupied page and the group fits on one page.
-    /// Set to zero to allow a header-only first segment. Defaults to two.
+    /// Repeated header rows always stay with at least the first fragment of the following body row, so a long row
+    /// splits instead of leaving the header alone at the bottom of a page. Set to zero to keep only that fragment
+    /// with the header. Defaults to two.
     /// </summary>
     public int MinimumBodyRowsOnFirstPage {
         get => _minimumBodyRowsOnFirstPage;
@@ -709,6 +716,7 @@ public partial class PdfTableStyle {
             HeaderBold = HeaderBold,
             HeaderRowCount = HeaderRowCount,
             RepeatHeaderRowCount = RepeatHeaderRowCount,
+            KeepsRepeatedHeaderWithWholeRowsOnly = KeepsRepeatedHeaderWithWholeRowsOnly,
             MinimumBodyRowsOnFirstPage = MinimumBodyRowsOnFirstPage,
             FooterRowCount = FooterRowCount,
             MinimumBodyRowsOnLastPage = MinimumBodyRowsOnLastPage,

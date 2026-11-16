@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
             double outerX = frame.X;
             double contentWidth = frame.ContentWidth;
 
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
+            double spacingBefore = ResolveContainerSpacingBefore(style);
             var firstVisual = MeasureContainerFirstVisual(container, style, outerX + style.PaddingX.ToPoints(), contentWidth, GetClosingContainerSpace());
             double firstVisualHeight = firstVisual.Height;
             double minimumStartHeight = spacingBefore + style.TopPadding + style.FragmentPaddingReservation + style.FragmentBottomInset.ToPoints() + firstVisualHeight;
@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
             RunningFrameAdmissionAttempt? runningAdmission = null;
             void RemeasureContainerStart() {
                 style = ResolveContainerStyle(container);
-                spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
+                spacingBefore = ResolveContainerSpacingBefore(style);
                 parentLeft = currentOpts.MarginLeft.ToPoints(); parentWidth = width;
                 frame = ResolveContainerFrame(container, style, parentLeft, parentWidth);
                 outerWidth = frame.Width; outerX = frame.X; contentWidth = frame.ContentWidth;
@@ -95,7 +95,7 @@ internal static partial class PdfWriter {
                 while (keepHeight.Value > GetMaximumBlockContinuationHeight() + .001D || ShouldAdvanceForBlockHeight(keepHeight.Value)) {
                     NewBlockFrame();
                     style = ResolveContainerStyle(container);
-                    spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
+                    spacingBefore = ResolveContainerSpacingBefore(style);
                     parentLeft = currentOpts.MarginLeft.ToPoints(); parentWidth = width;
                     keepHeight = MeasureWholeBlockAtFrameStart(container, parentLeft, parentWidth, currentOpts.DefaultFontSize.ToPoints());
                     if (!keepHeight.HasValue)

@@ -10117,3 +10117,7 @@ This affects remote Excel workbook loads, `OfficeIMO.Reader.Web`, remote images 
 - `OfficeRemoteImageLoadOptions.AllowPrivateNetworkAddresses` (unchanged).
 
 `reader.CreateWebReader(options)` and `new OfficeDocumentWebReader(reader, options)` read through this checked transport and follow redirects themselves (at most ten, never from HTTPS to HTTP). The overloads that take your own `HttpClient` leave name resolution, connections and automatic redirects to that client, so for it Reader Web screens only IP literals and `localhost` names, as before, plus each redirect that reaches it; a cross-origin redirect is refused when that client sends default credentials (`Authorization`, `Proxy-Authorization` or `Cookie`). A supplied `HtmlWordExportOptions.HttpClient` gets the same screening.
+
+## PDF repeated table headers
+
+A table with repeated header rows now always starts with at least the first fragment of the following body row. `PdfTableStyle.MinimumBodyRowsOnFirstPage = 0` no longer allows a header-only first segment: the header and that fragment move to the next page together. When the preferred whole rows cannot share one page, the header keeps only the first fragment and the long row splits instead of leaving the header alone at the bottom of a page. Tables whose cells hold block content, such as nested tables, are laid out in whole rows: their repeated header keeps at least the whole first body row, and a first body row taller than the page can still leave the header alone.
