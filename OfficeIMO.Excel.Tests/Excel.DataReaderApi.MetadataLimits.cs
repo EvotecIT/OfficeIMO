@@ -156,16 +156,28 @@ public partial class Excel {
         Assert.Contains("64 bytes", exception.InnerException!.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void XlsbBootstrapMetadataLimitCountsEncodedBytes() {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(32)]
+    public void XlsbBootstrapMetadataLimitCountsEncodedBytes(long declaredLength) {
         byte[] xml = Encoding.UTF8.GetBytes("<root>" + new string('\u00e9', 40) + "</root>");
         Assert.True(xml.Length > 64);
         using var stream = new NonSeekableReadStream(xml);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            XlsbPackageDetector.LoadBoundedXml(stream, maximumBytes: 64));
+            XlsbPackageDetector.LoadBoundedXml(stream, maximumBytes: 64, declaredLength));
 
         Assert.Contains("64 bytes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XlsbBootstrapMetadataUnderstatedPartLengthStillParsesTheWholePart() {
+        byte[] xml = Encoding.UTF8.GetBytes("<root><a>first</a><b>second</b></root>");
+        using var stream = new NonSeekableReadStream(xml);
+
+        XDocument document = XlsbPackageDetector.LoadBoundedXml(stream, maximumBytes: 1024, declaredLength: 10);
+
+        Assert.Equal("second", (string?)document.Root!.Element("b"));
     }
 
     [Fact]
