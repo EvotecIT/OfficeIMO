@@ -21,13 +21,14 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         string? Allowed(bool value) => Loaded() ?? (!value ? Text("Unsupported", "This document does not allow this operation. Inspect its protection and supported content.") : null);
         static KeyGesture Primary(Key key, KeyModifiers extra = KeyModifiers.None) => StudioShortcuts.Primary(key, extra);
         // keys: gestures that run the command anywhere in the window. textEntry: they also run while a text field has focus.
+        // Every explicit guard starts from Loaded(), so a guarded command works on an open document.
         void Add(string id, string title, string description, string category, ICommand operation,
             Func<string?>? guard = null, bool tool = false, string shortcut = "", bool workspace = false,
             KeyGesture[]? keys = null, bool textEntry = false) {
             _byId.Add(id, new StudioCommandItem(id, Text(id + ".Title", title), Text(id + ".Description", description),
                 Text("Category." + category, category), shortcut, tool, operation, guard ?? Idle,
                 workspace ? () => { document.IsFocusReading = false; document.WorkspaceMode = StudioWorkspaceMode.PdfWorkspace; } : null, category,
-                keys, textEntry));
+                keys, textEntry, requiresDocument: guard is not null));
         }
 
         Add("Open", "Open PDF", "Open a PDF in a document tab.", "File", document.OpenCommand, keys: [Primary(Key.O)], textEntry: true);
@@ -81,7 +82,7 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Provenance", "File origin and text integrity", "Assess supported origin records and Unicode findings, review selected carrier removal, and export a report.", "Review", document.ShowProvenanceCommand, tool: true);
         Add("Invoices", "Invoices", "Inspect and validate invoice XML, convert formats, render PDFs, or edit source headers.", "Convert", document.ShowInvoiceWorkbenchCommand, tool: true);
         Add("PublishBook", "Publish a book", "Import manuscripts, organize chapters, review and export an EPUB book.", "Convert", document.ShowBookWorkbenchCommand, tool: true);
-        Add("Jobs", "Jobs", "Review active work and outputs from this session.", "Navigate", document.ShowJobsCommand);
+        Add("Jobs", "Jobs", "Follow active work, saved folder jobs and their results.", "Navigate", document.ShowJobsCommand);
         Add("Ocr", "Make PDF searchable", "Recognize scanned pages and add a searchable text layer.", "Convert", document.ShowOcrCommand, tool: true);
         Add("Assemble", "Assemble PDF", "Combine PDFs, images, Office files, folders, and ZIP archives.", "Organize", document.ShowAssemblyCommand, tool: true);
         Add("Export", "Export page images", "Export selected PDF pages to image files.", "Output", document.ShowPageExportCommand, tool: true);
@@ -142,8 +143,12 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         Add("Tools", "Tools", "Search the document tool catalog.", "Navigate", document.ShowToolsCommand);
         Add("Settings", "Settings", "Change appearance and interface preferences.", "Navigate", document.ShowSettingsCommand, keys: [Primary(Key.OemComma)], textEntry: true);
         Items = _byId.Values.ToArray();
+        Start = new StudioStartGallery(document, this, localizer);
         document.PropertyChanged += OnDocumentChanged;
     }
+
+    /// <summary>The start screen's tool gallery over these commands.</summary>
+    public StudioStartGallery Start { get; }
 
     public IReadOnlyList<StudioCommandItem> Items { get; }
     public StudioCommandItem this[string id] => _byId[id];

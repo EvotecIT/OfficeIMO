@@ -7248,13 +7248,21 @@ Option 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Échec de l'assemblage</value>
   </data>
-  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Choisissez un dossier de sortie local. Utilisez Enregistrer sous pour enregistrer des documents individuels dans le cloud.</value></data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve">
+    <value>Choisissez un dossier de sortie local. Utilisez Enregistrer sous pour enregistrer des documents individuels dans le cloud.</value>
+  </data>
   <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
     <value>« {0} » existe déjà. L’enregistrement le remplacera après les éventuelles étapes de vérification restantes. Continuer ?</value>
   </data>
-  <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Le résultat dépasse la taille de document prise en charge.</value></data>
-  <data name="Output.DestinationChanged" xml:space="preserve"><value>Le fichier de destination a changé. Choisissez un autre emplacement pour conserver les deux versions.</value></data>
-  <data name="Output.VerificationChanged" xml:space="preserve"><value>Le fichier enregistré a changé pendant la vérification. Vérifiez-le avant de réessayer.</value></data>
+  <data name="Output.PublicationTooLarge" xml:space="preserve">
+    <value>Le résultat dépasse la taille de document prise en charge.</value>
+  </data>
+  <data name="Output.DestinationChanged" xml:space="preserve">
+    <value>Le fichier de destination a changé. Choisissez un autre emplacement pour conserver les deux versions.</value>
+  </data>
+  <data name="Output.VerificationChanged" xml:space="preserve">
+    <value>Le fichier enregistré a changé pendant la vérification. Vérifiez-le avant de réessayer.</value>
+  </data>
   <data name="Conversion.SavedJob.OpenSection" xml:space="preserve">
     <value>Tâches de dossier enregistrées</value>
   </data>
@@ -7404,5 +7412,68 @@ Option 2</value>
   </data>
   <data name="Conversion.BatchExport.StoppedResult" xml:space="preserve">
     <value>Arrêté : réussis : {0}, réutilisés : {1}, échoués : {2}, ignorés : {3}. Les fichiers terminés restent disponibles.</value>
+  </data>
+  <data name="Home.Gallery.Title" xml:space="preserve">
+    <value>Ce que Studio sait faire</value>
+  </data>
+  <data name="Home.Gallery.Description" xml:space="preserve">
+    <value>Choisissez un outil pour commencer. Les outils qui travaillent sur un document vous demandent d’abord d’ouvrir un PDF.</value>
+  </data>
+  <data name="Home.Gallery.OpensPdfFirst" xml:space="preserve">
+    <value>Ouvre d’abord un PDF</value>
+  </data>
+  <data name="Home.Gallery.Read" xml:space="preserve">
+    <value>Lire et rechercher</value>
+  </data>
+  <data name="Home.Gallery.Markup" xml:space="preserve">
+    <value>Annoter et réviser</value>
+  </data>
+  <data name="Home.Gallery.Pages" xml:space="preserve">
+    <value>Organiser les pages</value>
+  </data>
+  <data name="Home.Gallery.Edit" xml:space="preserve">
+    <value>Modifier le contenu</value>
+  </data>
+  <data name="Home.Gallery.Forms" xml:space="preserve">
+    <value>Formulaires</value>
+  </data>
+  <data name="Home.Gallery.Scan" xml:space="preserve">
+    <value>Numériser et reconnaître le texte</value>
+  </data>
+  <data name="Home.Gallery.Convert" xml:space="preserve">
+    <value>Convertir</value>
+  </data>
+  <data name="Home.Gallery.Security" xml:space="preserve">
+    <value>Protéger et signer</value>
+  </data>
+  <data name="Home.Gallery.Output" xml:space="preserve">
+    <value>Imprimer et automatiser</value>
+  </data>
+  <data name="Home.Gallery.Workbenches" xml:space="preserve">
+    <value>Espaces de travail pour les gros travaux</value>
+  </data>
+  <data name="Commands.InsertBlankPage.Title" xml:space="preserve">
+    <value>Insérer une page vierge</value>
+  </data>
+  <data name="Commands.InsertBlankPage.Description" xml:space="preserve">
+    <value>Ajoute une page vide après la page actuelle.</value>
+  </data>
+  <data name="Commands.Jobs.Title" xml:space="preserve">
+    <value>Tâches</value>
+  </data>
+  <data name="Commands.Jobs.Description" xml:space="preserve">
+    <value>Suivez le travail en cours, les tâches de dossier enregistrées et leurs résultats.</value>
+  </data>
+  <data name="Commands.PublishBook.Title" xml:space="preserve">
+    <value>Publier un livre</value>
+  </data>
+  <data name="Commands.PublishBook.Description" xml:space="preserve">
+    <value>Importez des manuscrits, organisez les chapitres, relisez et exportez un livre EPUB.</value>
+  </data>
+  <data name="Commands.Provenance.Title" xml:space="preserve">
+    <value>Origine du fichier et intégrité du texte</value>
+  </data>
+  <data name="Commands.Provenance.Description" xml:space="preserve">
+    <value>Évaluez les enregistrements d’origine pris en charge et les constats Unicode, vérifiez la suppression des éléments sélectionnés et exportez un rapport.</value>
   </data>
 </root>

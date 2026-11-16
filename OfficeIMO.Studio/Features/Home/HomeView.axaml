@@ -29,6 +29,33 @@
       <Setter Property="CornerRadius" Value="9" />
       <Setter Property="VerticalAlignment" Value="Top" />
     </Style>
+    <Style Selector="Button.galleryTile">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+    </Style>
+    <Style Selector="Button.galleryTile:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="Button.galleryTile:disabled"><Setter Property="Opacity" Value="0.7" /></Style>
+    <Style Selector="Button.galleryTile:disabled /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /></Style>
+    <Style Selector="Border.galleryGlyph">
+      <Setter Property="Width" Value="30" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="VerticalAlignment" Value="Top" />
+      <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
+    </Style>
+    <Style Selector="Button.galleryTile:pointerover Border.galleryGlyph">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+    </Style>
     <Style Selector="Button.recent">
       <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
       <Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" />
@@ -94,37 +121,37 @@
         <StackPanel x:Name="QuickTasks" Grid.Column="1" Spacing="{StaticResource StudioSpaceM}">
           <TextBlock Text="{loc:Loc Home.QuickTasks}" Classes="groupLabel" />
           <infra:AdaptiveCardPanel MinimumCardWidth="190" ColumnSpacing="{StaticResource StudioSpaceM}" RowSpacing="{StaticResource StudioSpaceM}">
-            <Button Classes="task" Command="{Binding Commands[Assemble]}" AutomationProperties.Name="{loc:Loc Home.Merge}">
+            <Button Classes="task" Command="{Binding Commands.Start[Assemble]}" AutomationProperties.Name="{loc:Loc Home.Merge}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioAccentSoftBrush}"><PathIcon Data="{StaticResource IconMerge}" Width="16" Height="16" Foreground="{DynamicResource StudioAccentBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Merge}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.MergeHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
-            <Button Classes="task" Command="{Binding Commands[Convert]}" AutomationProperties.Name="{loc:Loc Home.Convert}">
+            <Button Classes="task" Command="{Binding Commands.Start[Convert]}" AutomationProperties.Name="{loc:Loc Home.Convert}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioSpineSoftBrush}"><PathIcon Data="{StaticResource IconConvert}" Width="16" Height="16" Foreground="{DynamicResource StudioSpineBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Convert}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.ConvertHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
-            <Button Classes="task" Command="{Binding Commands[Ocr]}" AutomationProperties.Name="{loc:Loc Home.OCR}">
+            <Button Classes="task" Command="{Binding Commands.Start[Ocr]}" AutomationProperties.Name="{loc:Loc Home.OCR}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioWarningSoftBrush}"><PathIcon Data="{StaticResource IconOcr}" Width="16" Height="16" Foreground="{DynamicResource StudioWarningBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.OCR}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.OcrHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
-            <Button Classes="task" Command="{Binding Commands[Optimize]}" AutomationProperties.Name="{loc:Loc Home.Compress}">
+            <Button Classes="task" Command="{Binding Commands.Start[Optimize]}" AutomationProperties.Name="{loc:Loc Home.Compress}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioSuccessSoftBrush}"><PathIcon Data="{StaticResource IconCompress}" Width="16" Height="16" Foreground="{DynamicResource StudioSuccessBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Compress}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.CompressHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
-            <Button Classes="task" Command="{Binding Commands[Protect]}" AutomationProperties.Name="{loc:Loc Home.Protect}" ToolTip.Tip="{Binding Commands[Protect].UnavailableReason}" ToolTip.ShowOnDisabled="True">
+            <Button Classes="task" Command="{Binding Commands.Start[Protect]}" AutomationProperties.Name="{loc:Loc Home.Protect}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioErrorSoftBrush}"><PathIcon Data="{StaticResource IconProtect}" Width="16" Height="16" Foreground="{DynamicResource StudioErrorBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.Protect}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.ProtectHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
               </Grid>
             </Button>
-            <Button Classes="task" Command="{Binding Commands[Tools]}" AutomationProperties.Name="{loc:Loc MainWindow.Tools}">
+            <Button Classes="task" Command="{Binding Commands.Start[Tools]}" AutomationProperties.Name="{loc:Loc MainWindow.Tools}">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                 <Border Classes="taskGlyph" Background="{DynamicResource StudioPanelMutedBrush}"><PathIcon Data="{StaticResource IconTools}" Width="16" Height="16" Foreground="{DynamicResource StudioTextBrush}" /></Border>
                 <StackPanel Grid.Column="1" Spacing="1"><TextBlock Text="{loc:Loc Home.AllTools}" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{loc:Loc Home.AllToolsHint}" Classes="caption" TextWrapping="Wrap" /></StackPanel>
@@ -195,6 +222,49 @@
                   </StackPanel>
                 </Grid>
               </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <!-- Everything Studio does, grouped like the public feature matrix and built from the command catalog. -->
+      <StackPanel x:Name="Gallery" Spacing="{StaticResource StudioSpaceL}">
+        <StackPanel Spacing="{StaticResource StudioSpaceXXS}">
+          <TextBlock Text="{loc:Loc Home.Gallery.Title}" Classes="sectionTitle" />
+          <TextBlock Text="{loc:Loc Home.Gallery.Description}" Classes="muted" />
+        </StackPanel>
+        <ItemsControl ItemsSource="{Binding Commands.Start.Groups}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Spacing="{StaticResource StudioSpaceL}" /></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="shell:StudioStartGroup">
+              <StackPanel Spacing="{StaticResource StudioSpaceS}">
+                <TextBlock Text="{Binding Title}" Classes="groupLabel" TextWrapping="Wrap" />
+                <ItemsControl ItemsSource="{Binding Tiles}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><infra:AdaptiveCardPanel MinimumCardWidth="240" MaximumCardWidth="300" ColumnSpacing="{StaticResource StudioSpaceM}" RowSpacing="{StaticResource StudioSpaceM}" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="shell:StudioStartTile">
+                      <Button Classes="galleryTile" Command="{Binding}"
+                              AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}" ToolTip.Tip="{Binding Description}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
+                          <Border Classes="galleryGlyph">
+                            <PathIcon Data="{Binding Id, Converter={x:Static infra:StudioConverters.CommandIcon}}" Width="15" Height="15" Foreground="{DynamicResource StudioAccentBrush}" />
+                          </Border>
+                          <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Description}" Classes="caption" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{loc:Loc Home.Gallery.OpensPdfFirst}" Classes="caption" FontStyle="Italic" TextWrapping="Wrap"
+                                       IsVisible="{Binding OpensDocumentFirst}" Margin="0,2,0,0" />
+                          </StackPanel>
+                        </Grid>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
