@@ -147,15 +147,16 @@ internal sealed class MarkdownDeferredSourceCapture {
             MarkdownObjectTreeBinder.BindDocument(captured.Document, syntaxTree: null, capturedObjects);
             AppendDetachedObjects(capturedObjects);
 
-            // Replace every deferral first, so reads made while attaching the rest see captured state.
-            // Each captured object then points at the object it describes until the capture ends.
+            // Each captured object points at the object it describes until the capture ends. The
+            // document's objects stay deferred until everything is attached, so a reader on another
+            // thread waits for the capture instead of seeing part of it.
             int paired = 0;
             bool pairing = true;
+            var capturedMetadata = new MetadataBuffer();
             var capturedEnumerator = capturedObjects.GetEnumerator();
             foreach (MarkdownObject markdownObject in recorded) {
                 if (pairing && capturedEnumerator.MoveNext() && capturedEnumerator.Current.GetType() == markdownObject.GetType()) {
-                    markdownObject.AdoptCapturedMetadata(capturedEnumerator.Current);
-                    capturedEnumerator.Current.ForwardCapturedObject(markdownObject);
+                    capturedMetadata.Add(capturedEnumerator.Current.ForwardCapturedObject(markdownObject));
                     paired++;
                 } else {
                     pairing = false;
@@ -176,14 +177,6 @@ internal sealed class MarkdownDeferredSourceCapture {
                 MarkdownSourceSideTables.Adopt(recordedEnumerator.Current, capturedEnumerator.Current);
             }
 
-            // Syntax children kept by containers can still lead to objects of the captured parse, so
-            // those objects get their own source information back.
-            recordedEnumerator = recorded.GetEnumerator();
-            capturedEnumerator = capturedObjects.GetEnumerator();
-            for (int i = 0; i < paired && recordedEnumerator.MoveNext() && capturedEnumerator.MoveNext(); i++) {
-                capturedEnumerator.Current.AdoptCapturedMetadata(recordedEnumerator.Current);
-            }
-
             _document.ClearSemanticAbbreviationDefinitions();
             _ = new MarkdownParseInfo(
                 _document,
@@ -195,6 +188,48 @@ internal sealed class MarkdownDeferredSourceCapture {
                 transformDiagnostics: null,
                 referenceLinkDefinitions: captured.ReferenceLinkDefinitions,
                 abbreviationDefinitions: captured.AbbreviationDefinitions);
+
+            // Publish the syntax nodes last. Syntax children kept by containers can still lead to
+            // objects of the captured parse, so those objects get their own metadata back too.
+            recordedEnumerator = recorded.GetEnumerator();
+            capturedEnumerator = capturedObjects.GetEnumerator();
+            var metadataEnumerator = capturedMetadata.GetEnumerator();
+            for (int i = 0; i < paired && recordedEnumerator.MoveNext() && capturedEnumerator.MoveNext() && metadataEnumerator.MoveNext(); i++) {
+                capturedEnumerator.Current.RestoreCapturedMetadata(metadataEnumerator.Current);
+                recordedEnumerator.Current.PublishCapturedMetadata(metadataEnumerator.Current);
+            }
+        }
+    }
+
+    /// <summary>Append-only metadata list stored in chunks below the large object heap threshold.</summary>
+    private sealed class MetadataBuffer {
+        private const int ChunkSize = 4096;
+        private readonly List<object?[]> _chunks = new();
+        private int _count;
+
+        internal void Add(object? item) {
+            if (_count % ChunkSize == 0) {
+                _chunks.Add(new object?[ChunkSize]);
+            }
+
+            _chunks[_count / ChunkSize][_count % ChunkSize] = item;
+            _count++;
+        }
+
+        internal Enumerator GetEnumerator() => new(this);
+
+        internal struct Enumerator {
+            private readonly MetadataBuffer _buffer;
+            private int _index;
+
+            internal Enumerator(MetadataBuffer buffer) {
+                _buffer = buffer;
+                _index = -1;
+            }
+
+            internal object? Current => _buffer._chunks[_index / ChunkSize][_index % ChunkSize];
+
+            internal bool MoveNext() => ++_index < _buffer._count;
         }
     }
 }

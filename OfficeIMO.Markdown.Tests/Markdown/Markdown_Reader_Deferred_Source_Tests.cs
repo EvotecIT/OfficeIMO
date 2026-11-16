@@ -151,6 +151,33 @@ public sealed class Markdown_Reader_Deferred_Source_Tests {
         Assert.Null(replacement.UrlSourceSpan);
     }
 
+    [Fact]
+    public void Parse_Concurrent_First_Reads_See_Complete_Source_Information() {
+        var expected = MarkdownReader.ParseWithSyntaxTree(RichMarkdown).Document;
+        var expectedSpans = expected.Descendants().Select(item => item.SourceSpan).ToList();
+
+        for (int attempt = 0; attempt < 20; attempt++) {
+            var document = MarkdownDocument.Parse(RichMarkdown);
+            var objects = document.Descendants().ToList();
+            using var start = new Barrier(4);
+            var results = new object?[4];
+            var threads = Enumerable.Range(0, 4)
+                .Select(worker => new Thread(() => {
+                    start.SignalAndWait();
+                    results[worker] = worker % 2 == 0
+                        ? document.ParseInfo
+                        : objects.Select(item => item.SourceSpan).ToList();
+                }))
+                .ToList();
+            threads.ForEach(thread => thread.Start());
+            threads.ForEach(thread => thread.Join());
+
+            Assert.All(results.OfType<MarkdownParseInfo>(), info => Assert.Same(document.ParseInfo, info));
+            Assert.All(results.OfType<List<MarkdownSourceSpan?>>(), spans => Assert.Equal(expectedSpans, spans));
+            Assert.Equal(2, results.OfType<MarkdownParseInfo>().Count());
+        }
+    }
+
     private static string NodeSignature(MarkdownSyntaxNode? node) =>
         node == null ? "<none>" : node.Kind + "|" + node.SourceSpan?.ToString() + "|" + node.Literal;
 }

@@ -15,7 +15,7 @@ public abstract class MarkdownObject {
     /// Every member that reads or writes source information calls this first.
     /// </summary>
     internal void EnsureSourceInformation() {
-        if (_metadata is MarkdownDeferredSourceCapture deferred) {
+        if (System.Threading.Volatile.Read(ref _metadata) is MarkdownDeferredSourceCapture deferred) {
             deferred.Capture();
         }
     }
@@ -36,11 +36,19 @@ public abstract class MarkdownObject {
 
     internal void DeferSourceInformation(MarkdownDeferredSourceCapture capture) => _metadata = capture;
 
-    internal void AdoptCapturedMetadata(MarkdownObject captured) => _metadata = captured._metadata;
-
     // While source capture attaches a source-backed parse to a document, each object of that parse
-    // points at the document's object it describes. Captured objects are discarded afterwards.
-    internal void ForwardCapturedObject(MarkdownObject target) => _metadata = target;
+    // points at the document's object it describes, and gets its own metadata back at the end.
+    internal object? ForwardCapturedObject(MarkdownObject target) {
+        object? metadata = _metadata;
+        _metadata = target;
+        return metadata;
+    }
+
+    internal void RestoreCapturedMetadata(object? metadata) => _metadata = metadata;
+
+    // Completes a deferred object once everything about it is attached; a reader that sees the new
+    // metadata also sees the rest of its source information.
+    internal void PublishCapturedMetadata(object? metadata) => System.Threading.Volatile.Write(ref _metadata, metadata);
 
     internal MarkdownObject? CapturedObjectTarget => _metadata as MarkdownObject;
 
