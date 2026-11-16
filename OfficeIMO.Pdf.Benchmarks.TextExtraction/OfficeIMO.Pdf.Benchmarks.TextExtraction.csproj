@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Opt-in corpus text-extraction comparison. It is outside OfficeIMO.slnx and every solution filter,
+    is never packed, and references third-party engines for measurement only.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <!-- Docnet.Core's PDFium build fails fast under CET shadow stacks (0xC0000409). -->
+    <CETCompat>false</CETCompat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PDFium through Docnet.Core is the text reference engine. -->
+    <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <PackageReference Include="PdfPig" Version="0.1.15" />
+    <!-- PdfOxide (MIT OR Apache-2.0) ships native pdf_oxide libraries behind a .NET binding. -->
+    <PackageReference Include="PdfOxide" Version="0.3.78" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+  </ItemGroup>
+
+</Project>
