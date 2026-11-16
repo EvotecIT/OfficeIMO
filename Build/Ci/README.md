@@ -36,12 +36,16 @@ to the retained graph. Unrestricted discovery reports errors instead of silently
 excluding projects that cannot be evaluated.
 
 The tool runs three times against identical inputs. Different project sets mark
-the report `unstable` and withhold savings. Otherwise, current-only projects are
+the report `unstable` and withhold savings. Stable observations that omit a
+declared consumer of an affected project report `dependency-gaps` and also
+withhold savings. Conditional declarations need investigation in their actual
+MSBuild configuration. Otherwise, current-only projects are
 review candidates, not permission to skip their contracts. Runtime-loaded
 fixtures, native and PowerShell checks, platform conditions and package-consumer
 validation still require their existing rules. Project counts are not build
 minutes; selection timings measure only the comparison overhead. The JSON report
-retains every observation, source revisions, discovery inventory and selected
+retains each completed observation even if a later evaluation fails, source
+revisions, the comparison script hash, discovery inventory and selected
 suites so differences can be investigated.
 
 Version 7.0.1's Git library rejects repositories with `extensions.worktreeConfig`.

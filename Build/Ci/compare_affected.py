@@ -1,6 +1,7 @@
 """Observe selector differences without producing CI selection outputs or building projects."""
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import importlib.util
 import json
 import os
@@ -75,6 +76,21 @@ def differences(current, affected, universe, stable=True):
     }
 
 
+def assess_observations(current, observations, universe, graph):
+    """Consistency alone cannot excuse omitting a declared consumer of an affected project."""
+    stable = all(p == observations[0] for p in observations)
+    affected = set.union(*observations)
+    missing = [{"consumer": consumer, "dependency": dependency}
+               for consumer in sorted(universe - affected)
+               for dependency in sorted(graph.get(consumer, set()) & affected)]
+    return {
+        "status": "unstable" if not stable else "dependency-gaps" if missing else "complete",
+        "affectedProjects": sorted(affected),
+        "missingDeclaredReferences": missing,
+        "differences": differences(current, affected, universe, stable and not missing),
+    }
+
+
 def run_tool(tool, root, base, filter_path, output, name, timeout, inventory=False, exclude=None):
     """Each invocation owns a fresh output directory; errors never become empty selections."""
     command = [tool, "--repository-path", str(root), "--from", base,
@@ -118,7 +134,7 @@ def markdown(report):
              f"- Discovery: `{report['filter'] or 'all projects'}`; dotnet-affected: `{TOOL_VERSION}`",
              f"- Explicit discovery exclusion: `{report.get('excludeDiscovery') or 'none'}`",
              f"- Changed files: {len(report['changedFiles'])}", ""]
-    if report["status"] not in ("complete", "unstable"):
+    if report["status"] not in ("complete", "unstable", "dependency-gaps"):
         lines += [f"Comparison unavailable: {report['error']}", "",
                   "No missed-dependency or savings conclusion can be drawn from this run."]
         return "\n".join(lines) + "\n"
@@ -139,6 +155,14 @@ def markdown(report):
     if report["status"] == "unstable":
         lines += ["**Identical inputs produced different project sets. Savings are withheld.** "
                   "The union above is diagnostic; it is not a complete or safe selection.", ""]
+    if report["missingDeclaredReferences"]:
+        lines += ["**Declared consumers are missing from the observations. Savings are withheld.** "
+                  "These references include conditional declarations; investigate them with the "
+                  "appropriate MSBuild configuration before deciding which are active.", "",
+                  "## Missing declared references", ""]
+        lines += [f"- `{r['consumer']}` references `{r['dependency']}`"
+                  for r in report["missingDeclaredReferences"]]
+        lines.append("")
     for label, key in [("Tool-only dependency candidates", "affectedOnlyDependencyCandidates"),
                        ("Current-only review candidates", "currentOnlyReviewCandidates"),
                        ("Current projects outside discovery", "currentOutsideDiscovery")]:
@@ -164,6 +188,7 @@ def compare(root, base, tool, filter_path, output, timeout, exclude=None):
         "schemaVersion": 1, "status": "incomplete", "coverageAuthority": "Build/Ci/select.py",
         "selectionMode": "PR project selection; existing full-CI overrides remain unchanged",
         "createdUtc": datetime.now(timezone.utc).isoformat(), "head": head, "base": base,
+        "comparisonScriptSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "platform": platform.platform(),
         "evaluationEnvironment": {key: os.environ.get(key) for key in (
             "DOTNET_PROCESSOR_COUNT", "Configuration", "TargetFramework", "TargetFrameworks",
@@ -182,6 +207,7 @@ def compare(root, base, tool, filter_path, output, timeout, exclude=None):
             selector_times.append(round(time.perf_counter() - started, 3))
         report["seconds"]["currentSelector"] = selector_times
         report["currentSelection"] = current
+        graph, _ = selector.project_graph(root, selector.tracked(root))
         version = subprocess.check_output([tool, "--version"], cwd=root, text=True, timeout=30).strip()
         report["toolVersion"] = version
         if version.split("+", 1)[0] != TOOL_VERSION:
@@ -191,20 +217,17 @@ def compare(root, base, tool, filter_path, output, timeout, exclude=None):
         report["discoveredProjects"] = sorted(universe)
         observations = []
         tool_times = []
+        report["observations"] = []
+        report["seconds"]["dotnetAffected"] = tool_times
         for sample in range(3):
             projects, seconds = run_tool(tool, root, base, filter_path, output,
                                          f"affected-{sample + 1}", timeout, exclude=exclude)
             observations.append(projects)
+            report["observations"].append(sorted(projects))
             tool_times.append(seconds)
-        report["observations"] = [sorted(p) for p in observations]
-        report["seconds"]["dotnetAffected"] = tool_times
         report["seconds"]["dotnetAffectedMedian"] = statistics.median(tool_times)
         report["seconds"]["currentSelectorMedian"] = statistics.median(selector_times)
-        stable = all(p == observations[0] for p in observations)
-        affected = set.union(*observations)
-        report["affectedProjects"] = sorted(affected)
-        report["differences"] = differences(set(current["projects"]), affected, universe, stable)
-        report["status"] = "complete" if stable else "unstable"
+        report.update(assess_observations(set(current["projects"]), observations, universe, graph))
     except (OSError, ValueError, RuntimeError, ET.ParseError, re.error, subprocess.SubprocessError) as error:
         report["error"] = str(error)
     return report

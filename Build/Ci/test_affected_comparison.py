@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -31,6 +32,33 @@ class ComparisonTests(unittest.TestCase):
         self.assertIsNone(result["potentialSavings"])
         with self.assertRaisesRegex(ValueError, "discovery inventory"):
             comparison.differences(set(), {"Unknown.csproj"}, set())
+
+    def test_stable_omission_of_declared_consumers_also_withholds_savings(self):
+        result = comparison.assess_observations(
+            {"Core.csproj", "Tests.csproj"}, [{"Core.csproj"}] * 3,
+            {"Core.csproj", "Tests.csproj"}, {"Tests.csproj": {"Core.csproj"}})
+        self.assertEqual("dependency-gaps", result["status"])
+        self.assertEqual([{"consumer": "Tests.csproj", "dependency": "Core.csproj"}],
+                         result["missingDeclaredReferences"])
+        self.assertIsNone(result["differences"]["potentialSavings"])
+
+    def test_later_tool_failure_preserves_completed_observations(self):
+        selector = SimpleNamespace(select=lambda *args: {"projects": ["Core.csproj"]},
+                                   tracked=lambda *args: [], project_graph=lambda *args: ({}, {}))
+        outputs = ["baseline", "revision", "", "", "Core/Input.cs\0"]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            with patch.object(comparison, "git", side_effect=outputs), \
+                    patch.object(comparison, "load_selection", return_value=selector), \
+                    patch.object(comparison.subprocess, "check_output", side_effect=["10.0.404", "7.0.1"]), \
+                    patch.object(comparison, "run_tool", side_effect=[({"Core.csproj"}, .2),
+                                                                     ({"Core.csproj"}, .3), RuntimeError("second evaluation failed")]):
+                result = comparison.compare(root, "base", "tool", None, root, 5)
+        self.assertEqual("incomplete", result["status"])
+        self.assertEqual([["Core.csproj"]], result["observations"])
+        self.assertEqual([.3], result["seconds"]["dotnetAffected"])
+        self.assertEqual("second evaluation failed", result["error"])
+        self.assertNotIn("differences", result)
 
     def test_framework_duplicates_collapse_but_foreign_or_invalid_paths_fail(self):
         with tempfile.TemporaryDirectory() as directory:
