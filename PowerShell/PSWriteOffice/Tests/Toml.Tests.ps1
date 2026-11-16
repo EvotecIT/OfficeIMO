@@ -257,6 +257,7 @@ Describe 'Update-OfficeToml' {
         try {
             foreach ($value in [double]::NaN, [double]::PositiveInfinity) {
                 Update-OfficeToml -Document $document -MergePatch @{ rate = $value } -ErrorAction SilentlyContinue -ErrorVariable failed
+                $failed[0].FullyQualifiedErrorId | Should -Match '^toml-patch-failed'
                 $failed[0].Exception | Should -BeOfType ([ArgumentException])
                 $document.ToString() | Should -BeExactly $text
             }

@@ -52,7 +52,14 @@ public sealed class UpdateOfficeTomlCommand : OfficeDocumentCmdlet<TomlDocument>
             if (patch is string text) {
                 json = text;
             } else {
-                json = TomlPowerShellValue.ToJson(input, out bool truncated);
+                bool truncated;
+                try {
+                    json = TomlPowerShellValue.ToJson(input, out truncated);
+                } catch (ArgumentException error) {
+                    // A value JSON cannot carry, such as NaN or infinity, fails the patch.
+                    WriteError(OfficeError.Create(error, "toml-patch-failed", input, ErrorCategory.InvalidArgument));
+                    return;
+                }
                 if (truncated) WriteWarning("The patch is truncated: objects nested deeper than " + TomlPowerShellValue.MaxDepth + " levels are written as text.");
             }
             report = merge ? document.ApplyMergePatch(json) : document.ApplyJsonPatch(json);
