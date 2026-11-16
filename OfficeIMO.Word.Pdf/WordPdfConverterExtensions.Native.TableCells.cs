@@ -246,8 +246,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                // Fit text applies to each paragraph's own lines, so fitted paragraphs are never joined.
-                int lastIndex = cell.FitText ? i : GetNativeJoinedCellParagraphEnd(cellElements, i, ref rejectedJoinUntil, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
+                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, ref rejectedJoinUntil, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
                 WordParagraph finalParagraph = (WordParagraph)cellElements[lastIndex];
                 List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
                     ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap, inlineImages)

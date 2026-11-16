@@ -160,8 +160,7 @@ exact line endings and glyph appearance.
 Table cells with Fit Text (`w:tcFitText`) fill the cell's text width line by line
 without changing font height: longer lines are condensed with character width
 scaling and shorter lines are spread with character spacing, replacing any authored
-character width and spacing on those lines. Each paragraph in the
-cell fits on its own. Lines containing tabs or inline objects keep their authored
+character width and spacing on those lines. Each visible paragraph in the cell fits on its own. Lines containing tabs or inline objects keep their authored
 layout.
 
 Run kerning (`w:kern`) inherits through document, paragraph, character, and table styles. A positive minimum font size enables kerning at that size and above; zero disables it. Compatible Latin text runs retain pair kerning across color and link changes in paragraphs, table cells, headers, and footers. Font or size changes, disabled kerning, and text separators end that boundary. Numbering labels retain their unkerned advances, including labels with a numbering-level or paragraph-mark kerning setting. Their measurement and rendering use the same feature settings.

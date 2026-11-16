@@ -3,8 +3,8 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    // Keeps a fitted line just inside its frame so measurement and wrapping round-off never wrap it.
-    private const double TableCellFitTextTolerance = 0.5D;
+    // Keeps a fitted line a hair inside its frame so floating-point round-off never wraps it.
+    private const double TableCellFitTextTolerance = 0.05D;
     private const double TableCellFitTextMinimumScaling = 1D;
 
     /// <summary>
@@ -77,7 +77,10 @@ internal static partial class PdfWriter {
     private static double MeasureTableCellFitTextLine(System.Collections.Generic.IReadOnlyList<PdfTextRun> line,
         PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         if (!line.Any(run => !string.IsNullOrEmpty(run.Text))) return 0D;
-        return MeasurePreparedTableTextLineWidth(PrepareTableTextLineWidths(line, baseFont, options)[0], fontSize, 1D, 0D);
+        // Measure through the wrapper itself so font-unit advances, kerning and spacing match what wrapping will see.
+        var layout = WrapRichRunsIntrinsic(line, double.MaxValue, fontSize, baseFont, fontSize * 1.2D, null,
+            DefaultParagraphTabStopWidth, options);
+        return layout.Lines.Count == 0 ? 0D : layout.Lines.Max(wrapped => MeasureRichLineWidth(wrapped, options));
     }
 
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> CondenseTableCellFitTextLine(
@@ -120,6 +123,12 @@ internal static partial class PdfWriter {
                 continue;
             }
 
+            // Splitting would break the joining context of connected scripts; space the whole run instead.
+            if (UsesTableCellFitTextShapingContext(text)) {
+                pieces.Add((run, true));
+                continue;
+            }
+
             int[] boundaries = StringInfo.ParseCombiningCharacters(text);
             int last = boundaries[boundaries.Length - 1];
             if (last > 0) pieces.Add((CreateStyledTextRun(text.Substring(0, last), run, run.StandardFont), true));
@@ -146,6 +155,15 @@ internal static partial class PdfWriter {
         pieces.Select(piece => piece.Spaced
             ? piece.Run.WithCharacterSpacing(OfficeIMO.OfficeLength.Points(extraSpacing))
             : piece.Run).ToArray();
+
+    private static bool UsesTableCellFitTextShapingContext(string text) {
+        foreach (char ch in text) {
+            // Hebrew, Arabic, Syriac, Thaana, N'Ko, Indic, Southeast Asian scripts and Hebrew/Arabic presentation forms.
+            int code = ch;
+            if ((code >= 0x0590 && code <= 0x109F) || (code >= 0xFB1D && code <= 0xFEFC)) return true;
+        }
+        return false;
+    }
 
     private static int CountTableCellFitTextGlyphs(PdfTextRun run, PdfStandardFont baseFont, PdfCreateOptions options) =>
         PrepareTableTextLineWidths(new[] { run }, baseFont, options)

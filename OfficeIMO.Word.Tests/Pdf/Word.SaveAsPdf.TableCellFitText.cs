@@ -93,7 +93,23 @@ public partial class Word {
             pdf.GetPage(1).Letters.Single(letter => letter.Value == "Q").StartBaseLine.X, 1);
     }
 
-    private static byte[] RenderFitTextCell(WordFileFormat format, string text, bool fitText, Action<WordParagraph>? configure = null) {        using WordDocument source = WordDocument.Create();
+    [Fact]
+    public void SaveAsPdf_FitTextCellJoinsParagraphsAcrossAHiddenParagraphMark() {
+        using var pdf = PdfPigDocument.Open(RenderFitTextCell(WordFileFormat.Docx, "Alpha", fitText: true, paragraph => {
+            paragraph._paragraph.ParagraphProperties ??= new DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties();
+            paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties =
+                new DocumentFormat.OpenXml.Wordprocessing.ParagraphMarkRunProperties(new DocumentFormat.OpenXml.Wordprocessing.Vanish());
+            paragraph.AddParagraph("Beta");
+        }));
+        var letters = pdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
+        var fitted = letters.TakeWhile(letter => letter.Value != "Z").ToArray();
+
+        Assert.Equal("AlphaBeta", string.Concat(fitted.Select(letter => letter.Value)));
+        Assert.All(fitted, letter => Assert.Equal(fitted[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
+    }
+
+    private static byte[] RenderFitTextCell(WordFileFormat format, string text, bool fitText, Action<WordParagraph>? configure = null) {
+        using WordDocument source = WordDocument.Create();
         WordTable table = source.AddTable(2, 1, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.Fixed;
         foreach (WordTableRow row in table.Rows) {
