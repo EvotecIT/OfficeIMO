@@ -483,6 +483,21 @@ public sealed partial class PdfPageCanvas {
     public PdfPageCanvas WithBlendMode(OfficeBlendMode blendMode, Action<PdfPageCanvas> build) =>
         Effect(OfficeTransform.Identity, 1D, blendMode, build);
 
+    /// <summary>
+    /// Adds nested content as one isolated transparency group, so blend modes inside it
+    /// composite with the group's own paint rather than with the page underneath.
+    /// </summary>
+    internal PdfPageCanvas IsolatedGroup(Action<PdfPageCanvas> build) {
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (ContainsInteractiveFormContent(nestedCanvas.Items)) {
+            throw new ArgumentException("Interactive form fields cannot be placed inside an isolated transparency group.", nameof(build));
+        }
+        _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, OfficeTransform.Identity, 1D, OfficeBlendMode.Normal) { Isolated = true });
+        return this;
+    }
+
     private static bool ContainsInteractiveFormContent(IReadOnlyList<PdfCanvasItem> items) {
         foreach (PdfCanvasItem item in items) {
             if (item is PdfCanvasFormFieldItem) return true;
@@ -907,4 +922,7 @@ internal sealed class PdfCanvasEffectItem : PdfCanvasItem {
     public OfficeTransform Transform { get; }
     public double Opacity { get; }
     public OfficeBlendMode BlendMode { get; }
+
+    /// <summary>Whether the content is written as its own isolated group even when opaque and unblended.</summary>
+    internal bool Isolated { get; init; }
 }

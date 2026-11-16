@@ -121,7 +121,8 @@ internal static partial class HtmlPdfRenderedConverter {
                         .Then(effectGroup.Transform)
                         .Then(drawingToPage);
                     OfficeDrawing nestedDrawing = effectGroup.Drawing;
-                    target.Effect(pageTransform, effectGroup.Opacity, nested => AddElements(nested, nestedDrawing.Elements));
+                    target.Effect(pageTransform, effectGroup.Opacity, effectGroup.BlendMode,
+                        nested => AddElements(nested, nestedDrawing.Elements));
                     continue;
                 }
                 if (element is OfficeDrawingTilingPattern tilingPattern) {
@@ -244,10 +245,16 @@ internal static partial class HtmlPdfRenderedConverter {
         }
 
         if (source.Elements.Count == 0) return;
+        // An SVG image is its own surface: its blend modes must not reach the page underneath.
+        bool isolate = !visual.BlendsWithBackdrop && ContainsBlendMode(source);
+        void AddRoot(PdfCore.PdfPageCanvas target) {
+            if (isolate) target.IsolatedGroup(group => AddElements(group, source.Elements));
+            else AddElements(target, source.Elements);
+        }
         if (string.IsNullOrWhiteSpace(visual.AlternativeText)) {
-            AddElements(canvas, source.Elements);
+            AddRoot(canvas);
         } else {
-            canvas.Figure(visual.AlternativeText!, figure => AddElements(figure, source.Elements), visual.SemanticSourceOrder);
+            canvas.Figure(visual.AlternativeText!, AddRoot, visual.SemanticSourceOrder);
         }
         double linkX = visual.ImageX * PointsPerCssPixel;
         double linkY = visual.ImageY * PointsPerCssPixel;

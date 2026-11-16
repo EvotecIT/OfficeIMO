@@ -92,6 +92,12 @@ public sealed class HtmlRenderDrawing : HtmlRenderVisual {
 
     internal double ImageHeight => _imageHeight ?? Height;
 
+    /// <summary>
+    /// Whether blend modes inside the drawing composite with the page underneath, as inline SVG does.
+    /// An SVG used as an image is its own isolated surface.
+    /// </summary>
+    internal bool BlendsWithBackdrop { get; init; }
+
     internal static HtmlRenderDrawing CreateShared(
         OfficeDrawing drawing,
         double x,
@@ -111,10 +117,10 @@ public sealed class HtmlRenderDrawing : HtmlRenderVisual {
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderDrawing(_drawing, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText,
             LinkUri, Source, LayoutY + offsetY, clone: false, _imageData, ImageContentType, SourceCrop,
-            _imageX + offsetX, _imageY + offsetY, _imageWidth, _imageHeight);
+            _imageX + offsetX, _imageY + offsetY, _imageWidth, _imageHeight) { BlendsWithBackdrop = BlendsWithBackdrop };
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderDrawing(_drawing, X + offsetX, Y + offsetY, Width, Height, paintOrder, AlternativeText,
             LinkUri, Source, LayoutY, clone: false, _imageData, ImageContentType, SourceCrop,
-            _imageX + offsetX, _imageY + offsetY, _imageWidth, _imageHeight);
+            _imageX + offsetX, _imageY + offsetY, _imageWidth, _imageHeight) { BlendsWithBackdrop = BlendsWithBackdrop };
 }
