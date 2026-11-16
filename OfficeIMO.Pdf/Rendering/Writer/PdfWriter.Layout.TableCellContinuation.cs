@@ -23,7 +23,8 @@ internal static partial class PdfWriter {
                     global::OfficeIMO.OfficeLength.Points(continued ? 0D : paragraph.FirstLineIndent.ToPoints()), paragraph.LineHeight, paragraph.DefaultTabStopWidth,
                     paragraph.TabStops, paragraph.FontSize, paragraph.LineSpacing,
                     paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
-                    paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing));
+                    paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing,
+                    fitText: !continued && paragraph.FitText));
             }
             remainder = CreateTableCellTextLayout(CreateContinuationCell(cell,
                 paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray(), paragraphs),

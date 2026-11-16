@@ -246,7 +246,8 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, ref rejectedJoinUntil, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
+                // Fit text applies to each paragraph's own lines, so fitted paragraphs are never joined.
+                int lastIndex = cell.FitText ? i : GetNativeJoinedCellParagraphEnd(cellElements, i, ref rejectedJoinUntil, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
                 WordParagraph finalParagraph = (WordParagraph)cellElements[lastIndex];
                 List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
                     ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap, inlineImages)
@@ -337,7 +338,8 @@ namespace OfficeIMO.Word.Pdf {
                     tabStops,
                     (paragraphFontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(paragraphFontSize.Value) : (global::OfficeIMO.OfficeLength?)null),
                     lineSpacing, pagination.WidowControl, pagination.KeepTogether ?? false, pagination.KeepWithNext ?? false,
-                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing);
+                    justification.JustificationMode, justification.JustifyExplicitLineBreaks, justification.JustifyLastLine, justification.UseWordJustificationSpacing,
+                    fitText: cell.FitText);
                 paragraphs.Add(cellParagraph);
                 if (blocks != null && !IsNativeNestedTableCellEndCarrier(cellElements, i, lastIndex, paragraph, getMarker, pagination))
                     blocks.Add(cellParagraph.ToBlock());

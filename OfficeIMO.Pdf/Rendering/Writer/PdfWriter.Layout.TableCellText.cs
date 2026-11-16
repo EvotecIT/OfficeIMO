@@ -99,7 +99,7 @@ internal static partial class PdfWriter {
                 paragraph.TabStops,
                 (ScaleTableFontSizeForShrink((paragraph.FontSize?.ToPoints()), runFontSizeScale, minimumShrinkFontSize) is { } points2810874636 ? global::OfficeIMO.OfficeLength.Points(points2810874636) : (global::OfficeIMO.OfficeLength?)null),
                 paragraph.LineSpacing, paragraph.WidowControl, paragraph.KeepTogether, paragraph.KeepWithNext,
-                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing));
+                paragraph.JustificationMode, paragraph.JustifyExplicitLineBreaks, paragraph.JustifyLastLine, paragraph.UseWordJustificationSpacing, paragraph.FitText));
         }
 
         return scaledParagraphs.AsReadOnly();
@@ -127,8 +127,11 @@ internal static partial class PdfWriter {
             var alignmentFrame = wrapWidth > cellInnerWidth
                 ? GetParagraphTextFrame(paragraphStyle, 0D, cellInnerWidth)
                 : paragraphFrame;
+            System.Collections.Generic.IReadOnlyList<PdfTextRun> paragraphRuns = paragraph.FitText
+                ? FitTableCellParagraphText(paragraph.Runs, alignmentFrame.FirstLineWidth, alignmentFrame.Width, baseFont, paragraphFontSize, options)
+                : paragraph.Runs;
             var wrap = WrapRichRunsCoreWithFirstLineOrigin(
-                paragraph.Runs,
+                paragraphRuns,
                 paragraphFrame.Width,
                 paragraphFontSize,
                 baseFont,
