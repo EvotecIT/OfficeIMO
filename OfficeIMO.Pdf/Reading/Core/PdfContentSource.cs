@@ -142,14 +142,18 @@ internal readonly struct PdfByteContentText : IPdfContentText {
             return relative < 0 ? -1 : start + relative;
         }
 #endif
+        if (value.Length == 0) return start;
         int lastStart = start + count - value.Length;
-        byte first = (byte)value[0];
+        // Keywords end in rarer letters than they start with ("obj", "stream"), so candidates are found by the last one.
+        int anchor = value.Length - 1;
+        byte last = (byte)value[anchor];
         for (int index = start; index <= lastStart; index++) {
-            index = Array.IndexOf(_bytes, first, index, lastStart - index + 1);
-            if (index < 0) return -1;
-            int matched = 1;
-            while (matched < value.Length && _bytes[index + matched] == value[matched]) matched++;
-            if (matched == value.Length) return index;
+            int found = PdfByteSearch.IndexOf(_bytes, last, index + anchor, lastStart - index + 1);
+            if (found < 0) return -1;
+            index = found - anchor;
+            int matched = 0;
+            while (matched < anchor && _bytes[index + matched] == value[matched]) matched++;
+            if (matched == anchor) return index;
         }
         return -1;
     }

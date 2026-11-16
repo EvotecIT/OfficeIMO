@@ -254,15 +254,15 @@ internal sealed class PdfIndirectObject : PdfObject {
     internal bool IsValueBuilt => Volatile.Read(ref _value) is not null;
 
     private PdfObject Materialize() {
-        // Deferred objects are internal to the reader, so no other code locks on them.
-        lock (this) {
-            PdfObject? value = _value;
-            if (value is not null) return value;
-            value = _deferred!.Parse(_summary!.Start, _summary.Length);
-            Volatile.Write(ref _value, value);
-            _deferred = null;
-            return value;
-        }
+        // Parsing is a pure function of the retained bytes, so racing readers may each parse, but only the first
+        // published value is kept and every caller returns it. No lock is taken: these objects also live in
+        // identity-hashed sets, and locking an object whose header holds a hash code inflates a sync block.
+        PdfDeferredObjectSource? deferred = Volatile.Read(ref _deferred);
+        if (deferred is null) return Volatile.Read(ref _value)!;
+        PdfObject parsed = deferred.Parse(_summary!.Start, _summary.Length);
+        PdfObject value = Interlocked.CompareExchange(ref _value, parsed, null) ?? parsed;
+        Volatile.Write(ref _deferred, null);
+        return value;
     }
 }
 
@@ -304,7 +304,7 @@ internal sealed class PdfDeferredObjectSource {
 /// top-level facts. It is recorded only for objects whose syntax is complete and unambiguous.
 /// </summary>
 internal sealed class PdfDeferredObjectSummary {
-    internal PdfDeferredObjectSummary(int start, int length, long[] references, string? knownType, string? knownSubtype, bool hasEncryptKey, bool mayCarrySignatureData) {
+    internal PdfDeferredObjectSummary(int start, int length, long[] references, string? knownType, string? knownSubtype, bool hasEncryptKey, bool mayCarrySignatureData, ulong markerNames) {
         Start = start;
         Length = length;
         References = references;
@@ -312,7 +312,13 @@ internal sealed class PdfDeferredObjectSummary {
         KnownSubtype = knownSubtype;
         HasEncryptKey = hasEncryptKey;
         MayCarrySignatureData = mayCarrySignatureData;
+        MarkerNames = markerNames;
     }
+
+    /// <summary>
+    /// One bit for each whole-document feature-marker name that occurs as a key or name value at any depth of the value.
+    /// </summary>
+    internal ulong MarkerNames { get; }
 
     /// <summary>Offset of the object in its source's decoded bytes.</summary>
     internal int Start { get; }

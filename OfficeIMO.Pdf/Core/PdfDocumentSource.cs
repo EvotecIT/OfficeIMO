@@ -33,8 +33,8 @@ internal sealed class PdfDocumentSource {
     internal byte[] Bytes => _bytes;
 
     /// <summary>
-    /// Returns structural marker counts for the immutable source bytes, reusing the last scan made under the same limits.
-    /// Every output derived from this source sizes its read limits from these counts.
+    /// Returns the header and startxref counts of the immutable source bytes, reusing the last scan made under the same
+    /// limits. Every output derived from this source sizes its read limits from these counts.
     /// </summary>
     internal PdfStructuralMarkerCounts GetStructuralMarkers(PdfReadLimits limits) {
         Guard.NotNull(limits, nameof(limits));
@@ -43,7 +43,7 @@ internal sealed class PdfDocumentSource {
             return snapshot.Counts;
         }
 
-        PdfStructuralMarkerCounts counts = PdfSyntax.InspectStructuralMarkers(_bytes, limits);
+        PdfStructuralMarkerCounts counts = PdfSyntax.CountSourceStructuralMarkers(_bytes, limits);
         Volatile.Write(ref _structuralMarkers, new StructuralMarkerSnapshot(limits, counts));
         return counts;
     }
