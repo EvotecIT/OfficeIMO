@@ -128,6 +128,20 @@ public class PdfTableOfContentsReadbackTests {
     }
 
     [Fact]
+    public void TaggedContents_SeparateThePageNumberWhenTheTitleNearlyFillsTheLine() {
+        // Titles from comfortably short up to wrapping, so some leave only a narrow gap before the page number.
+        string[] words = "Quarterly review of identity backup messaging endpoint and network findings with owners and dates".Split(' ');
+        (string, int)[] sections = Enumerable.Range(8, words.Length - 7)
+            .Select(count => (string.Join(" ", words.Take(count)) + " " + count, 1)).ToArray();
+        PdfLogicalListItem[] entries = PdfDocument.Load(CreateContents(Options(tagged: true), sections, startOnNewPage: true))
+            .Read().Pages[0].ListItems.Where(static item => item.IsContentsEntry).ToArray();
+
+        Assert.Equal(sections.Select(static section => section.Item1), entries.Select(static entry => entry.Text));
+        Assert.Equal(Enumerable.Range(2, sections.Length).Select(static page => page.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            entries.Select(static entry => entry.TargetPageLabel));
+    }
+
+    [Fact]
     public void UntaggedContentsWithoutLeaders_KeepNumberedTitles() {
         (string, int)[] sections = { ("Chapter 1", 1), ("Chapter 2", 1), ("Appendix IV", 1) };
         PdfLogicalPage page = PdfDocument.Load(CreateContents(Options(tagged: false), sections, startOnNewPage: true, PdfTabLeaderStyle.None))

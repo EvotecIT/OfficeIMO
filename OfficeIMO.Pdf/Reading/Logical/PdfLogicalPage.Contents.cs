@@ -40,18 +40,24 @@ public sealed partial class PdfLogicalPage {
             var retained = new HashSet<PdfTextSpan>(blocks.SelectMany(static block => block.Spans));
             PdfUnderstandingWord[] titleWords = entry.Title.Where(word => word.SourceRuns.All(retained.Contains)).ToArray();
             var runs = new List<PdfLogicalTextRun>();
-            var words = new List<string>();
+            var builder = new System.Text.StringBuilder();
+            PdfUnderstandingWord? previous = null;
             for (int index = 0; index < titleWords.Length; index++) {
                 PdfUnderstandingWord word = titleWords[index];
                 bool trimmed = entry.LastTitleText is not null && ReferenceEquals(word, entry.Title[entry.Title.Count - 1]);
                 string text = trimmed ? entry.LastTitleText! : word.Text.Trim();
                 if (text.Length == 0) continue;
-                if (runs.Count > 0) runs.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
+                // Ligature and style-change pieces of one word follow each other without a space.
+                if (previous is not null && !PdfDocumentSemanticEnricher.ContinuesContentsWord(previous, word)) {
+                    runs.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
+                    builder.Append(' ');
+                }
                 AddWordRuns(runs, word, text);
-                words.Add(text);
+                builder.Append(text);
+                previous = word;
             }
-            if (words.Count == 0) continue;
-            string title = string.Join(" ", words);
+            if (builder.Length == 0) continue;
+            string title = builder.ToString();
             string[] lineTexts = blocks.Select((_, index) => index == 0 ? title : string.Empty).ToArray();
             result.Add(new PdfLogicalListItem(pageNumber, entry.Level, string.Empty, title, blocks, lineTexts, 0.97D,
                 new[] { entry.Evidence }, runs) {
