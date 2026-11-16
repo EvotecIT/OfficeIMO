@@ -14,7 +14,7 @@ internal static class PdfTransformedPageEditOperations {
 
     internal static readonly string[] PlacedOperations = {
         "StampTextAt", "StampTextDefault", "StampTextBehind", "WatermarkText", "StampImageAt", "StampImageDefault",
-        "CanvasText", "OverlayPage", "Redaction", "SquareFlatten", "FreeTextFlatten", "TextAdd", "ImageAdd", "Bates", "NUp"
+        "CanvasText", "OverlayPage", "OverlayImagePage", "Redaction", "SquareFlatten", "FreeTextFlatten", "TextAdd", "ImageAdd", "Bates", "NUp"
     };
 
     internal static readonly string[] AppendingOperations = PlacedOperations
@@ -45,6 +45,14 @@ internal static class PdfTransformedPageEditOperations {
                 return PdfStamper.StampCanvas(f.Bytes, (canvas, _) => canvas.Text("EDITMARK", Pt(60), Pt(130), Pt(200), Pt(30), Pt(14), Red));
             case "OverlayPage":
                 return PdfStamper.OverlayPage(f.Bytes, OverlaySource(f.DisplaySize), new PdfPageOverlayOptions());
+            case "OverlayImagePage": {
+                // The same block as an image, so a flip applied twice inside the imported page would turn it over.
+                byte[] blank = OverlaySource(f.DisplaySize, drawBlock: false);
+                byte[] source = PdfStamper.StampImage(blank, RedImagePngWithGreenTop(), new PdfImageStampOptions {
+                    X = Pt(150), Y = Pt(f.DisplaySize.Height - 125), Width = Pt(40), Height = Pt(20)
+                });
+                return PdfStamper.OverlayPage(f.Bytes, source, new PdfPageOverlayOptions());
+            }
             case "Redaction": {
                 (double x, double y, double w, double h) = UserRectangle(f, 200, 60, 250, 90);
                 return PdfDocument.Load(f.Bytes).Redactions.Apply(new[] { new PdfRedactionArea(1, x, y, w, h) },
@@ -117,10 +125,13 @@ internal static class PdfTransformedPageEditOperations {
                 if (Math.Abs(red.Left - 60) > 6 || red.Top < 128 || red.Bottom > 165) return $"canvas text {red}";
                 return ExpectAngle(f, edited, "EDITMARK", 0);
             }
-            case "OverlayPage": {
+            case "OverlayPage":
+            case "OverlayImagePage": {
                 Box red = Find(after, Ink.Red);
                 if (red.IsEmpty) return "no overlay";
-                if (Math.Abs(red.Left - 150) > 3 || Math.Abs(red.Top - 105) > 3) return $"overlay red {red} expected at 150,105";
+                // Both blocks start 105 points down; the image's green strip is a quarter of its 20-point height.
+                double redTop = operation == "OverlayPage" ? 105 : 110;
+                if (Math.Abs(red.Left - 150) > 3 || Math.Abs(red.Top - redTop) > 3) return $"overlay red {red} expected at 150,{redTop:0}";
                 return HasStripAbove(after, red) ? null : $"overlay not upright {red}";
             }
             case "Redaction":
@@ -232,10 +243,12 @@ internal static class PdfTransformedPageEditOperations {
         return placed ? null : $"rectangle {red} expected at [{left:0},{top:0} {width:0}x{height:0}]";
     }
 
-    private static byte[] OverlaySource((double Width, double Height) size) {
+    private static byte[] OverlaySource((double Width, double Height) size, bool drawBlock = true) {
         // A red block under a green strip, 150 points from the left and 105 points from the top of the page.
         double top = size.Height - 100D;
-        string content = "0 1 0 rg 150 " + Fmt(top - 5) + " 40 5 re f 1 0 0 rg 150 " + Fmt(top - 25) + " 40 20 re f";
+        string content = drawBlock
+            ? "0 1 0 rg 150 " + Fmt(top - 5) + " 40 5 re f 1 0 0 rg 150 " + Fmt(top - 25) + " 40 20 re f"
+            : "0 0 0 RG 0.1 w 0 0 m 0 0 l S";
         return Serialize(new[] {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",

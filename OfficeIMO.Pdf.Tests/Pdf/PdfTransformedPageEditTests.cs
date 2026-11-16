@@ -128,6 +128,27 @@ public class PdfTransformedPageEditTests {
         Assert.Empty(PdfReadDocument.Open(flattened).Pages[0].GetAnnotations());
     }
 
+    [Theory]
+    [InlineData(1D)]
+    [InlineData(0.5D)]
+    public void FlatteningKeepsTheOpacityOfAShapeCoveringContent(double opacity) {
+        var fixture = new Fixture(ContentShape.Balanced, 0, BoxShape.Origin);
+        // The square covers the right half of the blue mark: opaque hides it, translucent tints it.
+        byte[] annotated = PdfDocument.Load(fixture.Bytes).Annotations.Add(new PdfAnnotationCreateOptions {
+            PageNumber = 1, Subtype = "Square", Rectangle = new double[] { 60, 20, 120, 80 }, Opacity = opacity,
+            Color = new double[] { 1, 0, 0 }, InteriorColor = new double[] { 1, 0, 0 }, GenerateAppearance = true
+        }).Bytes;
+        OfficeIMO.OfficeColor covered = Render(annotated).GetPixel(75, 250);
+        OfficeIMO.OfficeColor uncovered = Render(annotated).GetPixel(40, 250);
+
+        byte[] flattened = PdfDocument.Load(annotated).Annotations.Flatten().Bytes;
+
+        OfficeRasterImage after = Render(flattened);
+        AssertSameColor(covered, after.GetPixel(75, 250));
+        AssertSameColor(uncovered, after.GetPixel(40, 250));
+        Assert.Equal(opacity < 1D, covered.B > 60);
+    }
+
     [Fact]
     public void StampAfterRotatingPageTwiceReadsUprightAndKeepsMarkupAndTheMediaBox() {
         var fixture = new Fixture(ContentShape.Balanced, 0, BoxShape.OffsetMediaBox);
@@ -159,6 +180,12 @@ public class PdfTransformedPageEditTests {
             // Added content may overlap a mark; a moved or mirrored mark leaves its place empty.
             Assert.True(kept.Count * 2 >= original.Count, $"{ink} mark moved: {original} became {kept}");
         }
+    }
+
+    private static void AssertSameColor(OfficeIMO.OfficeColor expected, OfficeIMO.OfficeColor actual) {
+        Assert.InRange(actual.R, expected.R - 3, expected.R + 3);
+        Assert.InRange(actual.G, expected.G - 3, expected.G + 3);
+        Assert.InRange(actual.B, expected.B - 3, expected.B + 3);
     }
 
     private static void AssertSameBox(Box expected, Box actual) {
