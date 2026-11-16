@@ -204,7 +204,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeRasterImage? image = _image;
         bool unclipped = _clipRegion == null;
         if (unclipped && image != null && color.A == 255 && (uint)y < (uint)image.Height && tileRight < image.Width) {
-            BlendOpaqueCoverage(image, y, tileLeft, tileRight, coverage, color);
+            BlendOpaqueCoverage(image, y, tileLeft, tileRight, coverage, color, _opaqueBlendCache ??= new OpaqueBlendCache());
             return;
         }
         for (int x = tileLeft; x <= tileRight; x++) {
@@ -223,22 +223,74 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
+    private OpaqueBlendCache? _opaqueBlendCache;
+
     // Full coverage of an opaque color replaces the pixel, as BlendPixel does, so runs of it are
     // stored directly; partial coverage still blends.
-    private static void BlendOpaqueCoverage(OfficeRasterImage image, int y, int tileLeft, int tileRight, double[] coverage, OfficeColor color) {
+    private static void BlendOpaqueCoverage(OfficeRasterImage image, int y, int tileLeft, int tileRight, double[] coverage, OfficeColor color,
+        OpaqueBlendCache cache) {
         byte[] pixels = image.PixelBuffer;
         int rowOffset = y * image.Width * 4;
+        cache.Use(color);
         for (int x = tileLeft; x <= tileRight; x++) {
             double value = coverage[x - tileLeft];
             if (!(value > 0D)) continue;
             if (value < 0.999D) {
-                image.BlendPixel(x, y, ApplyCoverage(color, value));
+                OfficeColor source = ApplyCoverage(color, value);
+                if (source.A == 0) continue;
+                int offset = rowOffset + x * 4;
+                uint target = ReadPixel(pixels, offset);
+                if (cache.TryGet(source.A, target, out uint blended)) {
+                    WritePixel(pixels, offset, blended);
+                } else {
+                    image.BlendPixel(x, y, source);
+                    cache.Add(source.A, target, ReadPixel(pixels, offset));
+                }
                 continue;
             }
             int end = x + 1;
             while (end <= tileRight && coverage[end - tileLeft] >= 0.999D) end++;
             FillOpaqueRun(pixels, rowOffset + x * 4, end - x, color);
             x = end - 1;
+        }
+    }
+
+    private static uint ReadPixel(byte[] pixels, int offset) =>
+        (uint)pixels[offset] | (uint)pixels[offset + 1] << 8 | (uint)pixels[offset + 2] << 16 | (uint)pixels[offset + 3] << 24;
+
+    private static void WritePixel(byte[] pixels, int offset, uint value) {
+        pixels[offset] = (byte)value; pixels[offset + 1] = (byte)(value >> 8);
+        pixels[offset + 2] = (byte)(value >> 16); pixels[offset + 3] = (byte)(value >> 24);
+    }
+
+    /// <summary>
+    /// Remembers, for one opaque paint color, the pixel each partial-coverage alpha produced over a given
+    /// background pixel. A blend depends only on those three values, so text antialiasing over a uniform
+    /// background reuses the result instead of repeating the floating-point blend for every edge pixel.
+    /// </summary>
+    private sealed class OpaqueBlendCache {
+        private readonly uint[] _targets = new uint[256];
+        private readonly uint[] _results = new uint[256];
+        private readonly bool[] _filled = new bool[256];
+        private OfficeColor _color;
+        private bool _hasColor;
+
+        internal void Use(OfficeColor color) {
+            if (_hasColor && _color.Equals(color)) return;
+            Array.Clear(_filled, 0, _filled.Length);
+            _color = color;
+            _hasColor = true;
+        }
+
+        internal bool TryGet(byte alpha, uint target, out uint result) {
+            result = _results[alpha];
+            return _filled[alpha] && _targets[alpha] == target;
+        }
+
+        internal void Add(byte alpha, uint target, uint result) {
+            _targets[alpha] = target;
+            _results[alpha] = result;
+            _filled[alpha] = true;
         }
     }
 
