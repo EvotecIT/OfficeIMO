@@ -133,6 +133,7 @@ public sealed class OfficeDrawingPortableTests {
         if (evidence != null) Directory.CreateDirectory(evidence);
         foreach (VisualThemeMode mode in new[] { VisualThemeMode.Light, VisualThemeMode.Dark }) {
             var chart = Chart.Create()
+                .ConfigureTitleStyle(style => style.FontWeight = "700")
                 .AddLine("Observed", new[] { new ChartPoint(1,42), new ChartPoint(2,58), new ChartPoint(3,73), new ChartPoint(4,91), new ChartPoint(5,67), new ChartPoint(6,82) })
                 .AddLine("Capacity", new[] { new ChartPoint(1,100), new ChartPoint(2,100), new ChartPoint(3,100), new ChartPoint(4,100), new ChartPoint(5,100), new ChartPoint(6,100) });
             var prepared = chart.Prepare(new OfficeVisualDocumentStyle(Family).CreateContext(themeMode: mode,
