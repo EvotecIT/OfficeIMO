@@ -37,6 +37,27 @@ internal static partial class PdfWriter {
         private readonly Dictionary<string, SvgFormXObject> _byContent = new(StringComparer.Ordinal);
         private long _contentLength;
 
+        // Raster fallbacks by drawing and placed size, so a header or repeated picture is rasterized once
+        // rather than per page and layout pass.
+        private const int MaximumRasters = 64;
+        private const long MaximumRasterBytes = 64L * 1024L * 1024L;
+        private readonly Dictionary<(OfficeDrawing Drawing, long Width, long Height), PdfDocument.PreparedImage> _rasters = new();
+        private long _rasterBytes;
+
+        internal PdfDocument.PreparedImage GetOrAddRaster(OfficeDrawing drawing, double width, double height,
+            Func<PdfDocument.PreparedImage> create) {
+            var key = (drawing, (long)Math.Round(width * 100D), (long)Math.Round(height * 100D));
+            if (_rasters.TryGetValue(key, out PdfDocument.PreparedImage cached)) return cached;
+            PdfDocument.PreparedImage raster = create();
+            long size = raster.Data.LongLength + (raster.PreparedStream?.Data.LongLength ?? 0L) +
+                (raster.PreparedStream?.SoftMask?.Data.LongLength ?? 0L);
+            if (_rasters.Count < MaximumRasters && _rasterBytes + size <= MaximumRasterBytes) {
+                _rasters.Add(key, raster);
+                _rasterBytes += size;
+            }
+            return raster;
+        }
+
         internal bool TryGet(OfficeDrawing drawing, out SvgFormXObject? form) => _byDrawing.TryGetValue(drawing, out form);
 
         /// <summary>Records the Form captured for a drawing, or that it has none, and returns the shared Form.</summary>

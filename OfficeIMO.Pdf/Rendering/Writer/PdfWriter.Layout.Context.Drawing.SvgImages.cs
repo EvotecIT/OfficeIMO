@@ -195,7 +195,8 @@ internal static partial class PdfWriter {
 
         private void RasterizeSvgPageImage(PageImage image, OfficeDrawing vector, string message) {
             currentOpts.AddLayoutDiagnostic("svg-image-raster-fallback", "Image", message, PdfLayoutDiagnosticKind.SimplifiedContent);
-            PdfDocument.PreparedImage raster = PdfDocument.PrepareImageBytes(RasterizeSvgImageForPdf(vector, image.W, image.H), cancellationToken);
+            PdfDocument.PreparedImage raster = svgForms.GetOrAddRaster(vector, image.W, image.H,
+                () => PdfDocument.PrepareImageBytes(RasterizeSvgImageForPdf(vector, image.W, image.H), cancellationToken));
             image.Data = raster.Data;
             image.Info = raster.Info;
             image.PreparedStream = raster.PreparedStream;
