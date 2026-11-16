@@ -212,3 +212,69 @@ Describe 'Test-OfficeToml' {
         (Test-OfficeToml -Text $deep -Untrusted -Detailed).Code | Should -BeLike 'toml-limit*'
     }
 }
+
+Describe 'Update-OfficeToml' {
+    It 'applies a JSON Patch of hashtables in an Open block and changes only the patched lines' {
+        $path = Join-Path $TestDrive 'pyproject.toml'
+        [IO.File]::WriteAllText($path, "[project]`nname = `"demo`"`nversion = `"1.4.0`" # bumped by CI`ndependencies = [`"httpx`"]`n")
+
+        Open-OfficeToml -Path $path {
+            Update-OfficeToml -JsonPatch @(
+                @{ op = 'test'; path = '/project/version'; value = '1.4.0' }
+                @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }
+                @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }
+            )
+        }
+
+        [IO.File]::ReadAllText($path) | Should -BeExactly "[project]`nname = `"demo`"`nversion = `"1.5.0`" # bumped by CI`ndependencies = [`"httpx`", `"click`"]`n"
+    }
+
+    It 'removes keys with merge patch nulls and returns the report' {
+        $document = Open-OfficeToml -Text "[server]`nhost = `"localhost`"`nport = 8080`ndebug = true`n"
+        try {
+            $report = Update-OfficeToml -Document $document -MergePatch @{ server = [ordered]@{ port = 9090; debug = $null } } -PassThru
+            $report.Removed | Should -Be @('server.debug')
+            $report.Replaced | Should -Be @('server.port')
+            $document.ToString() | Should -BeExactly "[server]`nhost = `"localhost`"`nport = 9090`n"
+        } finally {
+            Close-OfficeToml -Document $document
+        }
+    }
+
+    It 'keeps a whole-number double a float' {
+        $document = Open-OfficeToml -Text "rate = 0.5`n"
+        try {
+            Update-OfficeToml -Document $document -MergePatch @{ rate = [double]1 }
+            $document.ToString() | Should -BeExactly "rate = 1.0`n"
+        } finally {
+            Close-OfficeToml -Document $document
+        }
+    }
+
+    It 'rejects NaN and infinity and leaves the document unchanged' {
+        $text = "rate = 0.5`n"
+        $document = Open-OfficeToml -Text $text
+        try {
+            foreach ($value in [double]::NaN, [double]::PositiveInfinity) {
+                Update-OfficeToml -Document $document -MergePatch @{ rate = $value } -ErrorAction SilentlyContinue -ErrorVariable failed
+                $failed[0].FullyQualifiedErrorId | Should -Match '^toml-patch-failed'
+                $failed[0].Exception | Should -BeOfType ([ArgumentException])
+                $document.ToString() | Should -BeExactly $text
+            }
+        } finally {
+            Close-OfficeToml -Document $document
+        }
+    }
+
+    It 'writes a toml-patch-failed error and leaves the document unchanged for a null value' {
+        $text = "name = `"demo`"`n"
+        $document = Open-OfficeToml -Text $text
+        try {
+            Update-OfficeToml -Document $document -JsonPatch '[{ "op": "add", "path": "/name", "value": null }]' -ErrorAction SilentlyContinue -ErrorVariable failed
+            $failed[0].FullyQualifiedErrorId | Should -Match '^toml-patch-failed'
+            $document.ToString() | Should -BeExactly $text
+        } finally {
+            Close-OfficeToml -Document $document
+        }
+    }
+}
