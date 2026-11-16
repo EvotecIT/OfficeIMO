@@ -141,6 +141,23 @@ public partial class PdfFontFamilyTests {
         Assert.Equal(FillThenStroke, Assert.Single(spans, span => span.Text == "☃").TextRenderingMode);
     }
 
+    [Fact]
+    public void PlannedFallbackRunSplitAfterPlanningKeepsItsOffsetOnce() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, ' ', 0x1F600, 0x2603);
+        byte[] bold = ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 0x1F600);
+        var fallbacks = new PdfEmbeddedFontFallbackSet(new[] {
+            new PdfEmbeddedFontFallbackCandidate(new PdfEmbeddedFontFamily("Offset Fallback", regular, bold))
+        });
+        PdfTextRun run = Assert.Single(fallbacks.PlanTextRuns("😀☃"))
+            .WithHorizontalOffset(20D).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(10));
+        byte[] bytes = PdfDocument.Create(fallbacks.RegisterFonts(new PdfCreateOptions { CompressContentStreams = false }))
+            .Paragraph(paragraph => paragraph.AddRuns(new[] { run })).ToBytes();
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan first = Assert.Single(spans, span => span.Text == "😀");
+        Assert.Equal(first.X + 7D, Assert.Single(spans, span => span.Text == "☃").X, 2);
+    }
+
     private static PdfTextSpan[] RenderBoldFallbackRun(PdfEmbeddedFontFamily family, bool compatibilitySlots, string fallbackText) {
         var candidates = new[] { new PdfEmbeddedFontFallbackCandidate(family) };
         PdfEmbeddedFontFallbackSet fallbacks = compatibilitySlots

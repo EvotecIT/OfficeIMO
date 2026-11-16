@@ -135,6 +135,7 @@ public sealed partial class PdfCreateOptions {
                 }
                 split.Add(run.WithText(text).WithResolvedFallbackFontFamily(familyName));
             }
+            PdfTextFallbackPlan.KeepHorizontalOffsetOnFirstGeneratedRun(split);
             return split;
         }
         return new[] { ResolvePlannedNamedFallbackRun(run) };
@@ -166,6 +167,8 @@ public sealed partial class PdfCreateOptions {
                 }
             } else {
                 RegisterNamedFontFamily(candidate.FontFamilySnapshot);
+                // A merged regular-face companion still belongs to the fallback lifecycle.
+                if (candidate.IsRegularFaceCandidate) (_automaticFallbackOwnedNamedFamilyKeys ??= new HashSet<string>(StringComparer.Ordinal)).Add(key);
             }
             RegisterNamedFallbackPlan(candidate);
         }
