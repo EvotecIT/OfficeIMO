@@ -119,7 +119,7 @@ public class PdfAccessibilityCheckTests {
                     Stream("/Type /Metadata /Subtype /XML", Xmp),
                     "<< /Nums [0 [8 0 R 9 0 R]] >>",
                     "<< /Type /StructElem /S /TR /P 6 0 R >>"),
-                    new[] { "01-003", "01-005", "02-001", "09-004", "13-004", "28-004", "28-008", "28-011", "28-012", "31-009" });
+                    new[] { "01-003", "01-004", "01-005", "02-001", "09-004", "13-004", "28-004", "28-008", "28-011", "28-012", "31-009" });
             case "untagged":
                 pageContent = "BT /F1 12 Tf 10 150 Td (Plain) Tj ET 20 20 30 30 re f";
                 return (Build(
@@ -132,6 +132,61 @@ public class PdfAccessibilityCheckTests {
             default:
                 throw new ArgumentOutOfRangeException(nameof(name), name, null);
         }
+    }
+
+    [Theory]
+    [InlineData("xfa-prefixed-dynamic", "25-001", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("xfa-commented-dynamic", "25-001", PdfAccessibilityConditionStatus.Passed)]
+    [InlineData("font-from-graphics-state", "31-009", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("font-inherited-by-form", "31-009", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("table-with-direct-content", "09-004", PdfAccessibilityConditionStatus.Failed)]
+    [InlineData("enclosing-marked-content-language", "11-002", PdfAccessibilityConditionStatus.NotApplicable)]
+    public void CheckAccessibility_ReadsTheConstructThatDecidesTheCondition(string construct, string conditionId, PdfAccessibilityConditionStatus expected) {
+        string catalog = string.Empty, resources = string.Empty, content;
+        var extra = new List<string>();
+        switch (construct) {
+            case "xfa-prefixed-dynamic":
+            case "xfa-commented-dynamic":
+                catalog = "/AcroForm << /Fields [] /XFA [(config) 5 0 R] >>";
+                content = string.Empty;
+                extra.Add(Stream(string.Empty, construct == "xfa-prefixed-dynamic"
+                    ? "<c:config xmlns:c=\"http://www.xfa.org/schema/xci/3.0/\"><c:present><c:pdf><c:dynamicRender>required</c:dynamicRender></c:pdf></c:present></c:config>"
+                    : "<config><!-- <dynamicRender>required</dynamicRender> --><present><pdf><dynamicRender>forbidden</dynamicRender></pdf></present></config>"));
+                break;
+            case "font-from-graphics-state":
+                resources = "/ExtGState << /G1 << /Font [5 0 R 12] >> >>";
+                content = "BT /G1 gs 10 10 Td (x) Tj ET";
+                extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+                break;
+            case "font-inherited-by-form":
+                resources = "/Font << /F1 5 0 R >> /XObject << /X1 6 0 R >>";
+                content = "BT /F1 12 Tf ET /X1 Do";
+                extra.Add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+                extra.Add(Stream("/Type /XObject /Subtype /Form /BBox [0 0 100 100]", "BT 10 10 Td (x) Tj ET"));
+                break;
+            case "table-with-direct-content":
+                catalog = "/MarkInfo << /Marked true >> /StructTreeRoot 5 0 R";
+                content = "/Table <</MCID 0>> BDC 0 0 1 1 re f EMC";
+                extra.Add("<< /Type /StructTreeRoot /K 6 0 R >>");
+                extra.Add("<< /Type /StructElem /S /Table /P 5 0 R /Pg 3 0 R /K 0 >>");
+                break;
+            case "enclosing-marked-content-language":
+                content = "/Span <</Lang (en-US)>> BDC /Span <</ActualText (x)>> BDC 0 0 1 1 re f EMC EMC";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(construct), construct, null);
+        }
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R " + catalog + " >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << " + resources + " >> /Contents 4 0 R >>",
+            Stream(string.Empty, content)
+        };
+        objects.AddRange(extra);
+
+        PdfAccessibilityReport report = PdfDocument.Load(new MemoryStream(Build(objects.ToArray()))).Proof.CheckAccessibility();
+
+        Assert.Equal(expected, report.Conditions.Single(result => result.Condition.ConditionId == conditionId).Status);
     }
 
     private static string Stream(string dictionary, string data) =>

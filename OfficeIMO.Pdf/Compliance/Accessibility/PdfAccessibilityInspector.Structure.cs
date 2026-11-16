@@ -138,6 +138,12 @@ internal sealed partial class PdfAccessibilityInspector {
         }
     }
 
+    // Conditions whose evidence comes from walking the structure tree.
+    private static readonly string[] StructureConditions = {
+        "UA1:7.1-12", "02-001", "02-003", "02-004", "09-004", "09-005", "09-006", "09-007", "09-008", "11-002", "13-004",
+        "14-002", "14-003", "14-006", "14-007", "15-003", "17-002", "19-003", "19-004", "UA1:7.18.4-2"
+    };
+
     private static bool IsStandard(string type) =>
         StandardTypes.Contains(type) || type.Length > 1 && type[0] == 'H' && type.Skip(1).All(static c => c >= '0' && c <= '9') && type[1] != '0';
 
@@ -164,7 +170,9 @@ internal sealed partial class PdfAccessibilityInspector {
             return;
         }
         if (model.Truncated) {
-            Unknown("UA1:7.1-12", "7.1-12", "The structure tree exceeds the inspection limits; deeper elements were not inspected.");
+            foreach (string id in StructureConditions) {
+                Unknown(id, null, "The structure tree exceeds the inspection limits; deeper elements were not inspected.");
+            }
         }
 
         bool usesH = false, usesHn = false;
@@ -264,6 +272,19 @@ internal sealed partial class PdfAccessibilityInspector {
     private void CheckGrouping(StructNode node, string type) {
         string? parent = node.Parent?.StandardType;
         string[] kids = node.Kids.Select(static kid => kid.StandardType ?? string.Empty).ToArray();
+        // ISO 32000-1 Tables 336 to 338 allow these grouping elements only element children, never content.
+        string? groupingCondition = type switch {
+            "Table" or "TR" or "THead" or "TBody" or "TFoot" => "09-004",
+            "L" or "LI" => "09-005",
+            "TOC" => "09-006",
+            "Ruby" => "09-007",
+            "Warichu" => "09-008",
+            _ => null
+        };
+        if (groupingCondition is not null && node.ContentKidCount > 0) {
+            Applies(groupingCondition);
+            Fail(groupingCondition, null, type + " contains content or an object reference directly; it may contain only its permitted child elements.", element: node);
+        }
         switch (type) {
             case "Table": {
                 Applies("09-004");
@@ -360,10 +381,18 @@ internal sealed partial class PdfAccessibilityInspector {
         }
         if (!cells.Any(static cell => cell.StandardType == "TH")) return;
         Applies("15-003");
-        // A table is organised with Headers and IDs only when every data cell names its headers.
+        // A table is organised with Headers and IDs only when every data cell names headers that are TH cells of this table.
+        var headerIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (StructNode cell in cells) {
+            if (cell.StandardType == "TH" && cell.Dictionary.Items.TryGetValue("ID", out PdfObject? idObject) &&
+                Resolve(idObject) is PdfStringObj id && !string.IsNullOrEmpty(id.Value)) {
+                headerIds.Add(id.Value);
+            }
+        }
         StructNode[] dataCells = cells.Where(static cell => cell.StandardType == "TD").ToArray();
         bool usesHeaders = dataCells.Length > 0 && dataCells.All(cell =>
-            ResolveArray(ReadTableAttribute(cell, "Headers")) is PdfArray headers && headers.Items.Count > 0);
+            ResolveArray(ReadTableAttribute(cell, "Headers")) is PdfArray headers && headers.Items.Count > 0 &&
+            headers.Items.All(header => Resolve(header) is PdfStringObj reference && headerIds.Contains(reference.Value)));
         if (usesHeaders) return;
         foreach (StructNode cell in cells) {
             if (cell.StandardType != "TH") continue;

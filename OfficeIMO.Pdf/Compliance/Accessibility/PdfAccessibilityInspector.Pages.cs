@@ -9,6 +9,13 @@ internal sealed partial class PdfAccessibilityInspector {
         "TrapNet", "Watermark", "3D", "Redact", "RichMedia", "Projection"
     };
 
+    // Every condition whose evidence comes from the page content scan, including the font checks it feeds.
+    private static readonly string[] ContentScanConditions = new[] { "01-003", "01-004", "01-005", "11-001", "11-002", "30-001", "30-002" }
+        .Concat(PdfAccessibilityConditions.All
+            .Where(static condition => condition.Checkpoint == "31" && condition.Coverage == PdfAccessibilityCoverage.Automatic)
+            .Select(static condition => condition.ConditionId))
+        .ToArray();
+
     private void CheckPages(StructureModel structure) {
         var fonts = new Dictionary<PdfDictionary, (bool Rendered, int? ObjectNumber, int Page)>(PdfAccessibilityPageContent.ReferenceEqualityComparer<PdfDictionary>.Instance);
         var formInvocations = new Dictionary<int, int>();
@@ -24,7 +31,7 @@ internal sealed partial class PdfAccessibilityInspector {
             try {
                 content = page.ScanAccessibilityContent((stream, mcid) => structure.IsLinked(page.ObjectNumber, stream, mcid), _cancellationToken);
             } catch (Exception exception) when (IsReadFailure(exception)) {
-                foreach (string id in new[] { "01-003", "01-004", "01-005", "11-001", "30-001", "30-002", "31-009" }) {
+                foreach (string id in ContentScanConditions) {
                     Unknown(id, null, "The page content could not be inspected completely: " + exception.Message, pageNumber);
                 }
                 continue;

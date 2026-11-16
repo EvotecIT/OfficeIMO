@@ -26,8 +26,9 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// </example>
 [Cmdlet(VerbsDiagnostic.Test, "OfficePdfAccessibility", DefaultParameterSetName = ParameterSetPath)]
 [OutputType(typeof(PdfAccessibilityReport))]
-public sealed class TestOfficePdfAccessibilityCommand : PSCmdlet
+public sealed class TestOfficePdfAccessibilityCommand : PSCmdlet, IDisposable
 {
+    private readonly CancellationTokenSource _stop = new();
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPath = "Path";
     private const string ParameterSetLiteralPath = "LiteralPath";
@@ -62,6 +63,12 @@ public sealed class TestOfficePdfAccessibilityCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         PdfInspectionSource.Visit(this, ParameterSetName, Path, LiteralPath, Document, LoadOptions, Password,
-            IgnorePermissionRestrictions.IsPresent, document => WriteObject(document.Proof.CheckAccessibility()));
+            IgnorePermissionRestrictions.IsPresent, document => WriteObject(document.Proof.CheckAccessibility(_stop.Token)));
     }
+
+    /// <inheritdoc />
+    protected override void StopProcessing() => _stop.Cancel();
+
+    /// <summary>Releases this invocation's cancellation source.</summary>
+    public void Dispose() => _stop.Dispose();
 }

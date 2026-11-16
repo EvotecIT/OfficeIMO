@@ -46,11 +46,16 @@ never `Passed`.
 - 31-027 accepts simple fonts with a standard encoding, non-symbolic TrueType fonts, unembedded standard 14 Type 1
   fonts and Type 0 fonts with an Adobe GB1, CNS1, Japan1 or Korea1 collection. Type 1 and Type 3 fonts that rely on
   glyph names are `Indeterminate` until the Adobe Glyph List check exists.
-- 31-003 follows veraPDF: it fails when the CIDFont Supplement is greater than the CMap Supplement.
+- 31-003 follows veraPDF: it fails when the CIDFont Supplement is greater than the CMap Supplement. With a
+  predefined CMap the CMap's Supplement isn't carried, so a CIDFont Supplement above 0 is `Indeterminate`.
 - 06-002 accepts `pdfuaid:part` 1 or 2, so PDF/UA-2 files keep their identification; veraPDF's PDF/UA-1 profile
   requires 1.
-- 15-003 treats a table as organised with Headers and IDs only when every TD names its headers. veraPDF resolves
-  each cell's headers instead; the two agree on the veraPDF corpus.
+- 15-003 treats a table as organised with Headers and IDs only when every TD names headers that are TH cells of the
+  same table. veraPDF resolves each cell's headers instead; the two agree on the veraPDF corpus.
+- 09-004 to 09-008 also fail a grouping element (Table, TR, THead, TBody, TFoot, L, LI, TOC, Ruby, Warichu) that
+  holds content directly. veraPDF checks only child elements, so these findings carry no veraPDF rule.
+- Form XObjects inherit the font and rendering mode in effect at `Do`; fonts selected through an ExtGState `Font`
+  entry are checked like fonts selected with `Tf`.
 - Table regularity (veraPDF 7.2-15 and 7.2-41 to 7.2-43) is not checked.
 - When the document permissions deny both copying and accessibility extraction, only the catalog
   MarkInfo, ViewerPreferences, catalog Lang and encryption conditions run; the rest are `Indeterminate`.

@@ -55,19 +55,22 @@ public sealed partial class PdfReadPage {
         var budget = new PageContentBudget(this, cancellationToken);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         PageContentStreamSequence sequence = GetContentStreamSequence(budget);
-        var visitedForms = new HashSet<(int Form, bool Tagged, bool Artifact, int? Mcid, int? McidStream, bool Language)>();
+        // A form scanned once under the same inherited state yields the same evidence; on a repeat paint only
+        // the invocation counts of the forms it paints in turn are replayed.
+        var scannedForms = new Dictionary<(int Form, bool Tagged, bool Artifact, int? Mcid, int? McidStream, bool Language, PdfDictionary? Font, bool Rendered), Dictionary<int, int>>();
         var activeForms = new HashSet<int>();
         long work = 0;
         long maxWork = Math.Max(1L, (long)_limits.MaxContentOperations) * 4L;
-        ScanAccessibilityStream(sequence.Source, null, resources, new AccessibilityScope(false, false, null, null, false), 0);
+        ScanAccessibilityStream(sequence.Source, null, resources, new AccessibilityScope(false, false, null, null, false), null, 0, 0);
         return result;
 
+        // A Form XObject inherits the graphics state at Do, so the caller's font and rendering mode carry in.
         void ScanAccessibilityStream(PdfContentSource source, int? streamObject, PdfDictionary? streamResources,
-            AccessibilityScope inherited, int depth) {
+            AccessibilityScope inherited, PdfDictionary? inheritedFont, int inheritedMode, int depth) {
             var scopes = new Stack<AccessibilityScope>();
             var states = new Stack<(PdfDictionary? Font, int Mode)>();
-            PdfDictionary? font = null;
-            int mode = 0;
+            PdfDictionary? font = inheritedFont;
+            int mode = inheritedMode;
             AccessibilityScope Current() => scopes.Count == 0 ? inherited : scopes.Peek();
 
             PdfContentStreamInterpreter.Interpret(source, _limits.MaxContentOperations, operation => {
@@ -85,15 +88,18 @@ public sealed partial class PdfReadPage {
                         PdfDictionary? named = operation.Name == "BDC" && operation.Operands.Count == 2 && operation.Operands[1] is string propertyName
                             ? ResolvePropertyList(streamResources, propertyName) : null;
                         int? mcid = ReadPropertyMcid(inline, named);
+                        if (mcid.HasValue && streamObject is int formWithMcid) result.FormsWithMcids.Add(formWithMcid);
                         bool artifact = string.Equals(tag, "Artifact", StringComparison.Ordinal);
                         if (artifact && scope.Tagged) result.ArtifactsInTaggedContent++;
-                        if (mcid.HasValue && scope.Artifact) result.TaggedContentInArtifacts++;
+                        // Content keeps the tagged state of an enclosing MCID, so an Artifact opened inside tagged
+                        // content also holds tagged content (veraPDF reports both 7.1-1 and 7.1-2 for it).
+                        if ((mcid.HasValue || scope.Mcid.HasValue) && (artifact || scope.Artifact)) result.TaggedContentInArtifacts++;
                         bool linked = mcid.HasValue && isLinked(streamObject, mcid.Value);
                         string? lang = ReadPropertyText(inline, named, "Lang");
                         if (lang is not null) result.PropertyLanguages.Add(lang);
                         int? nearestMcid = mcid ?? scope.Mcid;
                         int? nearestStream = mcid.HasValue ? streamObject : scope.McidStream;
-                        if (lang is null) {
+                        if (lang is null && !scope.Language) {
                             foreach (string key in PropertyTextKeys) {
                                 if (ReadPropertyText(inline, named, key) is not null) {
                                     result.PropertyTextWithoutLang.Add((nearestStream, nearestMcid, key));
@@ -124,6 +130,15 @@ public sealed partial class PdfReadPage {
                             : null;
                         if (font is not null) result.FontObjectNumbers[font] = fontObject;
                         break;
+                    case "gs":
+                        if (operation.Operands.Count > 0 && operation.Operands[0] is string stateName &&
+                            ResolveNamedResource(streamResources, "ExtGState", stateName, out _, out _) is PdfDictionary graphicsState &&
+                            TryResolveGraphicsStateFont(graphicsState, streamResources, _objects, cancellationToken, out PdfDictionary? stateFont) &&
+                            stateFont is not null) {
+                            font = stateFont;
+                            if (!result.FontObjectNumbers.ContainsKey(stateFont)) result.FontObjectNumbers[stateFont] = GraphicsStateFontObjectNumber(graphicsState, streamResources);
+                        }
+                        break;
                     case "Tr":
                         if (operation.Operands.Count > 0 && operation.Operands[0] is double rendering) mode = (int)rendering;
                         break;
@@ -145,7 +160,7 @@ public sealed partial class PdfReadPage {
                         break;
                     case "Do":
                         if (operation.Operands.Count > 0 && operation.Operands[0] is string xobjectName) {
-                            PaintXObject(xobjectName, streamResources, scope, depth);
+                            PaintXObject(xobjectName, streamResources, scope, font, mode, depth);
                         }
                         break;
                 }
@@ -161,7 +176,7 @@ public sealed partial class PdfReadPage {
             if (!scope.Tagged && !scope.Artifact) result.UntaggedItems++;
         }
 
-        void PaintXObject(string name, PdfDictionary? streamResources, AccessibilityScope scope, int depth) {
+        void PaintXObject(string name, PdfDictionary? streamResources, AccessibilityScope scope, PdfDictionary? font, int mode, int depth) {
             PdfDictionary? xobjects = streamResources is null ? null
                 : ResolveDictionary(streamResources.Items.TryGetValue("XObject", out PdfObject? xobjectsObject) ? xobjectsObject : null);
             if (xobjects is null || !xobjects.Items.TryGetValue(name, out PdfObject? entry)) return;
@@ -176,7 +191,14 @@ public sealed partial class PdfReadPage {
             if (objectNumber is int formNumber) {
                 result.FormInvocations[formNumber] = result.FormInvocations.TryGetValue(formNumber, out int count) ? count + 1 : 1;
                 if (stream.Dictionary.Items.ContainsKey("Ref")) result.ReferenceXObjects.Add(formNumber);
-                if (!visitedForms.Add((formNumber, scope.Tagged, scope.Artifact, scope.Mcid, scope.McidStream, scope.Language)) || !activeForms.Add(formNumber)) return;
+                if (activeForms.Contains(formNumber)) return;
+                if (scannedForms.TryGetValue((formNumber, scope.Tagged, scope.Artifact, scope.Mcid, scope.McidStream, scope.Language, font, mode != 3), out Dictionary<int, int>? nested)) {
+                    foreach (KeyValuePair<int, int> invocation in nested) {
+                        result.FormInvocations[invocation.Key] = result.FormInvocations.TryGetValue(invocation.Key, out int seen) ? seen + invocation.Value : invocation.Value;
+                    }
+                    return;
+                }
+                activeForms.Add(formNumber);
             }
             if (depth + 1 > _limits.MaxContentNestingDepth) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, _limits.MaxContentNestingDepth, depth + 1);
@@ -185,8 +207,16 @@ public sealed partial class PdfReadPage {
                 PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null)
                     ?? streamResources;
                 byte[] decoded = budget.Decode(stream);
-                if (objectNumber is int number && ContainsMcid(decoded)) result.FormsWithMcids.Add(number);
-                ScanAccessibilityStream(PdfContentSource.FromBytes(decoded), objectNumber, formResources, scope, depth + 1);
+                var before = new Dictionary<int, int>(result.FormInvocations);
+                ScanAccessibilityStream(PdfContentSource.FromBytes(decoded), objectNumber, formResources, scope, font, mode, depth + 1);
+                if (objectNumber is int scanned) {
+                    var nested = new Dictionary<int, int>();
+                    foreach (KeyValuePair<int, int> invocation in result.FormInvocations) {
+                        int delta = invocation.Value - (before.TryGetValue(invocation.Key, out int earlier) ? earlier : 0);
+                        if (delta > 0) nested[invocation.Key] = delta;
+                    }
+                    scannedForms[(scanned, scope.Tagged, scope.Artifact, scope.Mcid, scope.McidStream, scope.Language, font, mode != 3)] = nested;
+                }
             } finally {
                 if (objectNumber is int number) activeForms.Remove(number);
             }
@@ -195,15 +225,15 @@ public sealed partial class PdfReadPage {
 
     private static readonly string[] PropertyTextKeys = { "Alt", "ActualText", "E" };
 
-    private static bool ContainsMcid(byte[] content) {
-        // A cheap pre-check; the interpreter confirms real MCIDs while scanning.
-        for (int i = 0; i + 4 < content.Length; i++) {
-            if (content[i] == (byte)'/' && content[i + 1] == (byte)'M' && content[i + 2] == (byte)'C' &&
-                content[i + 3] == (byte)'I' && content[i + 4] == (byte)'D') {
-                return true;
-            }
+    private int? GraphicsStateFontObjectNumber(PdfDictionary graphicsState, PdfDictionary? resources) {
+        if (ResolveObject(graphicsState.Items.TryGetValue("Font", out PdfObject? selection) ? selection : null) is not PdfArray values || values.Items.Count == 0) return null;
+        PdfObject first = values.Items[0];
+        if (first is PdfReference reference) return reference.ObjectNumber;
+        if (ResolveObject(first) is PdfName name) {
+            ResolveNamedResource(resources, "Font", name.Name, out int? objectNumber, out _);
+            return objectNumber;
         }
-        return false;
+        return null;
     }
 
     private PdfDictionary? ResolvePropertyList(PdfDictionary? resources, string name) {

@@ -18,6 +18,7 @@ internal sealed partial class PdfAccessibilityInspector {
     private readonly Dictionary<string, int> _occurrences = new(StringComparer.Ordinal);
     private readonly Dictionary<string, bool> _indeterminate = new(StringComparer.Ordinal);
     private readonly HashSet<string> _applicable = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _failed = new(StringComparer.Ordinal);
     private readonly Dictionary<int, int> _pageNumberByObject = new();
     private PdfDictionary? _catalog;
     private bool _catalogHasLanguage;
@@ -76,8 +77,9 @@ internal sealed partial class PdfAccessibilityInspector {
         var findings = new List<PdfAccessibilityFinding>();
         foreach (PdfAccessibilityCondition condition in PdfAccessibilityConditions.All) {
             _occurrences.TryGetValue(condition.ConditionId, out int occurrences);
-            bool failed = _findings.TryGetValue(condition.ConditionId, out List<PdfAccessibilityFinding>? list) &&
-                list.Any(static finding => finding.Severity == PdfAccessibilityFindingSeverity.Error);
+            // Failures are tracked apart from the retained findings so the finding cap never changes a status.
+            bool failed = _failed.Contains(condition.ConditionId);
+            _findings.TryGetValue(condition.ConditionId, out List<PdfAccessibilityFinding>? list);
             PdfAccessibilityConditionStatus status = condition.Coverage switch {
                 PdfAccessibilityCoverage.ManualReview => PdfAccessibilityConditionStatus.NeedsReview,
                 PdfAccessibilityCoverage.NotChecked => PdfAccessibilityConditionStatus.NotChecked,
@@ -105,6 +107,7 @@ internal sealed partial class PdfAccessibilityInspector {
     private void Add(string conditionId, string? rule, PdfAccessibilityFindingSeverity severity, string message,
         int? page, int? objectNumber, StructNode? element) {
         _applicable.Add(conditionId);
+        if (severity == PdfAccessibilityFindingSeverity.Error) _failed.Add(conditionId);
         _occurrences[conditionId] = _occurrences.TryGetValue(conditionId, out int count) ? count + 1 : 1;
         if (!_findings.TryGetValue(conditionId, out List<PdfAccessibilityFinding>? list)) {
             list = new List<PdfAccessibilityFinding>();
@@ -268,17 +271,39 @@ internal sealed partial class PdfAccessibilityInspector {
             }
         }
         foreach (PdfStream stream in streams) {
-            string text;
+            bool dynamic;
             try {
-                text = PdfEncoding.Latin1GetString(_document.DecodedStreamBudget.DecodeRequired(stream, _objects, _document.ReadOptions.Limits.MaxDecodedStreamBytes, _cancellationToken));
-            } catch (Exception exception) when (IsReadFailure(exception)) {
-                Unknown("25-001", "7.15-1", "The XFA configuration could not be decoded: " + exception.Message);
+                byte[] xml = _document.DecodedStreamBudget.DecodeRequired(stream, _objects, _document.ReadOptions.Limits.MaxDecodedStreamBytes, _cancellationToken);
+                dynamic = XfaRequiresDynamicRender(xml);
+            } catch (Exception exception) when (IsReadFailure(exception) || exception is System.Xml.XmlException) {
+                Unknown("25-001", "7.15-1", "The XFA configuration could not be read as XML: " + exception.Message);
                 continue;
             }
-            if (Regex.IsMatch(text, @"<dynamicRender[^>]*>\s*required\s*</dynamicRender\s*>", RegexOptions.CultureInvariant)) {
+            if (dynamic) {
                 Fail("25-001", "7.15-1", "The XFA configuration sets dynamicRender to required; dynamic XFA forms are not allowed.");
             }
         }
+    }
+
+    // Reads the XML itself, so namespace prefixes, encodings and comments cannot change the answer.
+    private static bool XfaRequiresDynamicRender(byte[] xml) {
+        var settings = new System.Xml.XmlReaderSettings {
+            DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+            XmlResolver = null,
+            ConformanceLevel = System.Xml.ConformanceLevel.Fragment,
+            IgnoreComments = true,
+            IgnoreProcessingInstructions = true
+        };
+        using var reader = System.Xml.XmlReader.Create(new MemoryStream(xml, writable: false), settings);
+        while (reader.Read()) {
+            if (reader.NodeType == System.Xml.XmlNodeType.Element &&
+                string.Equals(reader.LocalName, "dynamicRender", StringComparison.Ordinal) &&
+                !reader.IsEmptyElement &&
+                string.Equals(reader.ReadElementContentAsString().Trim(), "required", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void CheckEncryption() {

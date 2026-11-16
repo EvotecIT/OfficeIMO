@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace OfficeIMO.Pdf;
 
 internal sealed partial class PdfAccessibilityInspector {
@@ -164,6 +162,11 @@ internal sealed partial class PdfAccessibilityInspector {
             int? fontSupplement = fontSystemInfo is null ? null : ReadInteger(fontSystemInfo, "Supplement");
             if (cmapSystemInfo is not null && (fontSupplement is null || cmapSupplement is null || fontSupplement > cmapSupplement)) {
                 Fail("31-003", "7.21.3.1-1", "The CIDSystemInfo Supplement of " + fontName + " is missing or greater than its CMap's.", page, cidObject);
+            } else if (cmapSystemInfo is null && cmapOrdering is not null && fontSupplement is > 0) {
+                // A predefined CMap's Supplement lives in its resource file, which this check does not carry.
+                Unknown("31-003", "7.21.3.1-1", "The CIDSystemInfo Supplement of " + fontName + " is " +
+                    fontSupplement.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "; the Supplement of the predefined CMap " +
+                    cmapName + " is not known to this check.", page, cidObject);
             }
         }
 
@@ -192,13 +195,47 @@ internal sealed partial class PdfAccessibilityInspector {
             Unknown("31-007", "7.21.3.3-2", "The embedded CMap of " + fontName + " could not be decoded: " + exception.Message, page, cmapObject);
             return;
         }
-        Match match = Regex.Match(text, @"/WMode\s+(\d+)", RegexOptions.CultureInvariant);
-        int streamMode = match.Success ? int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
-        if (streamMode != dictionaryMode) {
-            Fail("31-007", "7.21.3.3-2", "The CMap of " + fontName + " declares WMode " + streamMode.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        string streamMode = ReadCMapProgramWMode(text) ?? "0";
+        if (!int.TryParse(streamMode, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int mode) || mode != dictionaryMode) {
+            Fail("31-007", "7.21.3.3-2", "The CMap of " + fontName + " declares WMode " + streamMode +
                 " in its program but " + dictionaryMode.ToString(System.Globalization.CultureInfo.InvariantCulture) + " in its dictionary.", page, cmapObject);
         }
     }
+
+    // Returns the token after the first /WMode key of a CMap program, skipping comments and strings.
+    private static string? ReadCMapProgramWMode(string text) {
+        int i = 0;
+        while (i < text.Length) {
+            char c = text[i];
+            if (c == '%') {
+                while (i < text.Length && text[i] != '\n' && text[i] != '\r') i++;
+            } else if (c == '(') {
+                int depth = 0;
+                for (; i < text.Length; i++) {
+                    if (text[i] == '\\') { i++; continue; }
+                    if (text[i] == '(') depth++;
+                    else if (text[i] == ')' && --depth == 0) { i++; break; }
+                }
+            } else if (c == '<' && i + 1 < text.Length && text[i + 1] != '<') {
+                int end = text.IndexOf('>', i + 1);
+                i = end < 0 ? text.Length : end + 1;
+            } else if (c == '/' && string.CompareOrdinal(text, i, "/WMode", 0, 6) == 0 &&
+                (i + 6 == text.Length || IsCMapDelimiter(text[i + 6]))) {
+                int start = i + 6;
+                while (start < text.Length && IsCMapWhiteSpace(text[start])) start++;
+                int end = start;
+                while (end < text.Length && !IsCMapDelimiter(text[end])) end++;
+                return end > start ? text.Substring(start, end - start) : null;
+            } else {
+                i++;
+            }
+        }
+        return null;
+    }
+
+    private static bool IsCMapWhiteSpace(char c) => c is ' ' or '\t' or '\r' or '\n' or '\f' or '\0';
+
+    private static bool IsCMapDelimiter(char c) => IsCMapWhiteSpace(c) || c is '/' or '(' or ')' or '<' or '>' or '[' or ']' or '{' or '}' or '%';
 
     private bool HasFontFile(PdfDictionary? descriptor) => descriptor is not null &&
         (Resolve(descriptor.Items.TryGetValue("FontFile", out PdfObject? f1) ? f1 : null) is PdfStream ||
