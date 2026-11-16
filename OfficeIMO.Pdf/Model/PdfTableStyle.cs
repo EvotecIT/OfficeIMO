@@ -379,6 +379,13 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>
+    /// Keeps the leading header rows with the first legal fragment of the first body row
+    /// when that group fits in a continuation frame. Unlike <see cref="MinimumBodyRowsOnFirstPage"/>,
+    /// the body row can still split, so a long row neither leaves the header alone at the
+    /// bottom of a page nor moves to the next page as a whole. Defaults to false.
+    /// </summary>
+    public bool KeepHeaderWithFirstBodyFragment { get; set; }
+    /// <summary>
     /// Minimum number of body rows kept with leading header rows when a table starts on a partially occupied page and the group fits on one page.
     /// Set to zero to allow a header-only first segment. Defaults to two.
     /// </summary>
@@ -709,6 +716,7 @@ public partial class PdfTableStyle {
             HeaderBold = HeaderBold,
             HeaderRowCount = HeaderRowCount,
             RepeatHeaderRowCount = RepeatHeaderRowCount,
+            KeepHeaderWithFirstBodyFragment = KeepHeaderWithFirstBodyFragment,
             MinimumBodyRowsOnFirstPage = MinimumBodyRowsOnFirstPage,
             FooterRowCount = FooterRowCount,
             MinimumBodyRowsOnLastPage = MinimumBodyRowsOnLastPage,

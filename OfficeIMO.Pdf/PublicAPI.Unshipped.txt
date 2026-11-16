@@ -1228,3 +1228,5 @@ OfficeIMO.Pdf.PdfReadLimits.MaxClippingIntersectionWorkPerPage.init -> void
 OfficeIMO.Pdf.PdfLogicalListItem.IsContentsEntry.get -> bool
 OfficeIMO.Pdf.PdfLogicalListItem.Link.get -> OfficeIMO.Pdf.PdfLogicalLinkAnnotation?
 OfficeIMO.Pdf.PdfLogicalListItem.TargetPageLabel.get -> string?
+OfficeIMO.Pdf.PdfTableStyle.KeepHeaderWithFirstBodyFragment.get -> bool
+OfficeIMO.Pdf.PdfTableStyle.KeepHeaderWithFirstBodyFragment.set -> void

@@ -724,7 +724,7 @@ internal static partial class PdfWriter {
             double leadingHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) : 0D) + captionHeight;
             int measuredRowCount = firstVisualOnly && !reserveWholeTable ? 1 : rowHeights.Length;
             bool completesFirstRow = true;
-            double rowHeight = firstVisualOnly && allowTableFragments && !reserveWholeTable
+            double rowHeight = firstVisualOnly && (allowTableFragments || style.KeepHeaderWithFirstBodyFragment) && !reserveWholeTable
                 ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap, out completesFirstRow)
                 : firstVisualOnly && !reserveWholeTable
                     ? MeasureTableStartingRows(style, rowHeights, rowGap, leadingHeight, out measuredRowCount)

@@ -66,16 +66,24 @@ internal static partial class PdfWriter {
             }
         }
 
-        if (state.Line == 0 && state.Consumed > 0.001) {
+        // A table below other content in a row frame starts partway down its column, even before it consumes space itself.
+        if (state.Line == 0 && (state.Consumed > 0.001 || state.Y < columnPageStartY - 0.001)) {
             int minimumFirstPageBodyRows = Math.Min(
                 tableStyle.MinimumBodyRowsOnFirstPage,
                 Math.Max(0, table.FooterStartRowIndex - table.HeaderRowCount));
-            if (minimumFirstPageBodyRows > 0) {
+            bool keepHeaderWithFragment = tableStyle.KeepHeaderWithFirstBodyFragment && table.HeaderRowCount > 0 &&
+                table.FooterStartRowIndex > table.HeaderRowCount;
+            if (minimumFirstPageBodyRows > 0 || keepHeaderWithFragment) {
                 int firstPageRowCount = table.HeaderRowCount + minimumFirstPageBodyRows;
-                double firstPageGroupHeight =
-                    tableSpacingBefore +
-                    table.CaptionHeight +
-                    GetTableRowsHeight(table.RowHeights, 0, firstPageRowCount, columnTableRowGap);
+                double prefix = tableSpacingBefore + table.CaptionHeight;
+                double rowsHeight = GetTableRowsHeight(table.RowHeights, 0, firstPageRowCount, columnTableRowGap);
+                if (keepHeaderWithFragment) {
+                    double fragmentGroup = MeasureTableHeaderFirstBodyHeight(tableStyle, table.RowHeights, columnTableRowGap,
+                        row => MeasureColTableFirstLegalRowFragmentHeight(table, row, maxContentHeight));
+                    if (minimumFirstPageBodyRows == 0 || prefix + rowsHeight > maxContentHeight + 0.001D) rowsHeight = 0D;
+                    rowsHeight = Math.Max(rowsHeight, fragmentGroup);
+                }
+                double firstPageGroupHeight = prefix + rowsHeight;
                 if (firstPageGroupHeight <= maxContentHeight + 0.001 &&
                     firstPageGroupHeight > state.Remaining + 0.001) {
                     return false;
@@ -138,32 +146,8 @@ internal static partial class PdfWriter {
         bool AtContinuationPageTop() =>
             Math.Abs(state.Y - columnPageStartY) <= 0.001;
 
-        double MeasureColumnTableRowSegmentHeight(int rowIndex, int startLine, int lineCount, bool suppressCellObjects) {
-            if (startLine == 0 && lineCount == table.RowLineCounts[rowIndex]) return table.RowHeights[rowIndex];
-            double rowLeading = table.RowLeadings[rowIndex];
-            double rowPadTop = GetTableRowMaxPaddingTop(tbColumn, tableStyle, rowIndex, table.Columns);
-            double rowPadBottom = GetTableRowMaxPaddingBottom(tbColumn, tableStyle, rowIndex, table.Columns);
-            double segmentHeight = GetTableRowInitialTextHeight(tbColumn, rowIndex, table.Columns, rowLeading) + rowPadTop + rowPadBottom;
-            var cells = GetTableCellLayouts(tbColumn, rowIndex, table.Columns);
-            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
-                TableCellLayout cell = cells[cellIndex];
-                double cellWidth = GetTableCellWidth(table.ColumnWidths, cell.Column, cell.ColumnSpan, columnGap);
-                double cellPadLeft = GetTableCellPaddingLeft(tableStyle, rowIndex, cell.Column);
-                double cellPadRight = GetTableCellPaddingRight(tableStyle, rowIndex, cell.Column);
-                double innerW = cellWidth - cellPadLeft - cellPadRight;
-                TableCellTextLayout lines = table.RowLines[rowIndex][cell.Column];
-                int sourceStartLine = startLine;
-                int visibleLineCount = Math.Max(0, Math.Min(lineCount, lines.LineCount - sourceStartLine));
-                bool includeObjects = !suppressCellObjects && sourceStartLine == 0;
-                double cellContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW, includeObjects) +
-                    GetTableCellPaddingTop(tableStyle, rowIndex, cell.Column) +
-                    GetTableCellPaddingBottom(tableStyle, rowIndex, cell.Column);
-                segmentHeight = Math.Max(segmentHeight, cellContentHeight);
-            }
-
-            // Keep first-fragment fitting consistent with the configured row height and drawing.
-            return startLine == 0 ? Math.Max(segmentHeight, GetTableRowFixedHeight(tableStyle, rowIndex) ?? GetTableRowMinHeight(tableStyle, rowIndex)) : segmentHeight;
-        }
+        double MeasureColumnTableRowSegmentHeight(int rowIndex, int startLine, int lineCount, bool suppressCellObjects) =>
+            MeasureColTableRowSegmentHeight(table, rowIndex, startLine, lineCount, suppressCellObjects);
 
         int GetColumnTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available, bool requireDefaultFirstFragment = false) {
             int remainingLines = table.RowLineCounts[rowIndex] - startLine;
