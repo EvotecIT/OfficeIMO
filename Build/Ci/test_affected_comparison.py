@@ -50,6 +50,7 @@ class ComparisonTests(unittest.TestCase):
             root = Path(directory).resolve()
             with patch.object(comparison, "git", side_effect=outputs), \
                     patch.object(comparison, "load_selection", return_value=selector), \
+                    patch.object(comparison.platform, "platform", return_value="TestOS"), \
                     patch.object(comparison.subprocess, "check_output", side_effect=["10.0.404", "7.0.1"]), \
                     patch.object(comparison, "run_tool", side_effect=[({"Core.csproj"}, .2),
                                                                      ({"Core.csproj"}, .3), RuntimeError("second evaluation failed")]):
