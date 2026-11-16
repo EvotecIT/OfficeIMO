@@ -431,31 +431,31 @@ internal static class HtmlDocumentParser {
     /// Resolves the effective base URI from a parsed document and optional caller-provided fallback.
     /// </summary>
     // The first HTML <base href> in document order, as the base[href] selector finds it, read with a
-    // pre-order walk over sibling links, which keeps no traversal state however wide the document is.
+    // pre-order walk that keeps one child position per open ancestor. Positions advance by index:
+    // NextSibling searches the parent's child list, which would make wide lists quadratic.
     private static IElement? FindFirstHtmlBaseElementWithHref(IHtmlDocument document) {
-        INode? current = document.FirstChild;
-        while (current != null) {
-            if (current is IElement element) {
-                if (element.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase)
-                    && element.HasAttribute("href")
-                    && string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) {
-                    return element;
-                }
-
-                if (element.FirstChild != null) {
-                    current = element.FirstChild;
-                    continue;
-                }
+        var ancestors = new Stack<(INodeList Children, int Index)>();
+        ancestors.Push((document.ChildNodes, 0));
+        while (ancestors.Count > 0) {
+            var (children, index) = ancestors.Pop();
+            if (index >= children.Length) {
+                continue;
             }
 
-            while (current.NextSibling == null) {
-                current = current.Parent;
-                if (current == null || ReferenceEquals(current, document)) {
-                    return null;
-                }
+            ancestors.Push((children, index + 1));
+            if (children[index] is not IElement element) {
+                continue;
             }
 
-            current = current.NextSibling;
+            if (element.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase)
+                && element.HasAttribute("href")
+                && string.Equals(element.NamespaceUri, "http://www.w3.org/1999/xhtml", StringComparison.Ordinal)) {
+                return element;
+            }
+
+            if (element.ChildNodes.Length > 0) {
+                ancestors.Push((element.ChildNodes, 0));
+            }
         }
 
         return null;
