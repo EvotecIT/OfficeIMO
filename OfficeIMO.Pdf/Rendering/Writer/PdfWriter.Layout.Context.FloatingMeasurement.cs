@@ -2,15 +2,18 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
+        /// <summary>Returns the children of a wrapper that adds no pagination constraint of its own.</summary>
+        private static IReadOnlyList<IPdfBlock>? GetTransparentMeasurementChildren(IPdfBlock? block) => block switch {
+            SemanticBlock semantic => semantic.Blocks,
+            LayerBlock layer => layer.Blocks,
+            FlowBlock flow when !flow.IsReplayable && !flow.Options.KeepTogether && flow.Options.ShowIf == null &&
+                flow.Options.MinimumRemainingHeight.ToPoints() == 0 && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue => flow.StaticBlocks,
+            _ => null
+        };
+
         private static IEnumerable<IPdfBlock> ExpandTransparentMeasurementBlocks(IEnumerable<IPdfBlock> blocks) {
             foreach (var block in blocks) {
-                IReadOnlyList<IPdfBlock>? nested = block switch {
-                    SemanticBlock semantic => semantic.Blocks,
-                    LayerBlock layer => layer.Blocks,
-                    FlowBlock flow when !flow.IsReplayable && !flow.Options.KeepTogether && flow.Options.ShowIf == null &&
-                        flow.Options.MinimumRemainingHeight.ToPoints() == 0 && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Continue => flow.StaticBlocks,
-                    _ => null
-                };
+                IReadOnlyList<IPdfBlock>? nested = GetTransparentMeasurementChildren(block);
                 if (nested != null) {
                     foreach (var child in ExpandTransparentMeasurementBlocks(nested)) yield return child;
                 } else yield return block;

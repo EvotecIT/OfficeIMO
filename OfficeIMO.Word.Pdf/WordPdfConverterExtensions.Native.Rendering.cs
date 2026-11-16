@@ -1030,7 +1030,19 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            pdf.Heading(level, normalizedText, build, align, color, style);
+            // The heading frame starts at the left indent; a positive first-line indent
+            // offsets only the opening line, as in the body paragraph route.
+            double firstLineIndent = paragraphStyle.FirstLineIndent.ToPoints();
+            Action<PdfCore.PdfParagraph> content = firstLineIndent > 0.001D
+                ? builder => {
+                    builder.AddRuns(new[] {
+                        PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineBox(global::OfficeIMO.OfficeLength.Points(firstLineIndent),
+                            global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D)) { IsTextSpacer = true })
+                    });
+                    build(builder);
+                }
+                : build;
+            pdf.Heading(level, normalizedText, content, align, color, style);
         }
 
         private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap, bool hasEquationContent) {

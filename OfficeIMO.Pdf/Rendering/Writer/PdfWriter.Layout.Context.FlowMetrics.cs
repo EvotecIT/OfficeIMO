@@ -201,8 +201,7 @@ internal static partial class PdfWriter {
                 double startY = y;
                 double deepest = y;
                 int inspectedBlocks = 0;
-                for (int blockIndex = startIndex; blockIndex < blocks.Count; blockIndex++) {
-                    IPdfBlock block = blocks[blockIndex];
+                foreach (IPdfBlock block in EnumerateFollowingKeepBlocks(blocks, startIndex)) {
                     if (IsNonVisualFlowMarker(block)) {
                         continue;
                     }
@@ -469,6 +468,11 @@ internal static partial class PdfWriter {
             }
 
             if (block is FlowBlock flow && IsStaticFlow(flow)) {
+                // A kept flow arrives whole, like a kept panel, so a preceding keep reserves all of it.
+                if (flow.Options.KeepTogether && MeasureWholeBlockHeight(flow, frameX, frameWidth, fontSize) is double whole &&
+                    whole <= GetMaximumBlockContinuationHeight() + .001D) {
+                    return (whole, reject);
+                }
                 return MeasureFirstNestedVisual(flow.StaticBlocks!, frameX, frameWidth, fontSize, allowTableFragments, suppressParagraphSpacingBefore, closingSpace);
             }
 
