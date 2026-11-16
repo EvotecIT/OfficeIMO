@@ -6,6 +6,7 @@ internal static class MarkdownInlineMetadataSourceSpans {
     private static readonly ConditionalWeakTable<MarkdownInline, MarkdownInlineAuxiliarySyntaxMetadata> _auxiliaryMetadata = new();
 
     private static MarkdownInlineAuxiliarySyntaxMetadata GetOrCreateAuxiliaryMetadata(MarkdownInline inline) {
+        inline.EnsureSourceInformation();
         if (inline is IMarkdownInlineAuxiliarySyntaxMetadataOwner owner) {
             return owner.AuxiliarySyntaxMetadata ??= new MarkdownInlineAuxiliarySyntaxMetadata();
         }
@@ -13,12 +14,32 @@ internal static class MarkdownInlineMetadataSourceSpans {
         return _auxiliaryMetadata.GetValue(inline, static _ => new MarkdownInlineAuxiliarySyntaxMetadata());
     }
 
-    private static MarkdownInlineAuxiliarySyntaxMetadata? GetAuxiliaryMetadata(MarkdownInline? inline) {
+    private static MarkdownInlineAuxiliarySyntaxMetadata? GetAuxiliaryMetadata(MarkdownInline? inline, bool captureSourceInformation = true) {
+        if (captureSourceInformation) {
+            inline?.EnsureSourceInformation();
+        }
+
         if (inline is IMarkdownInlineAuxiliarySyntaxMetadataOwner owner) {
             return owner.AuxiliarySyntaxMetadata;
         }
 
         return inline != null && _auxiliaryMetadata.TryGetValue(inline, out var metadata) ? metadata : null;
+    }
+
+    /// <summary>Gives <paramref name="target"/> the auxiliary syntax metadata a source-backed parse left on <paramref name="captured"/>.</summary>
+    internal static void AdoptAuxiliaryMetadata(MarkdownInline target, MarkdownInline captured) {
+        if (target is IMarkdownInlineAuxiliarySyntaxMetadataOwner targetOwner) {
+            targetOwner.AuxiliarySyntaxMetadata = ((IMarkdownInlineAuxiliarySyntaxMetadataOwner)captured).AuxiliarySyntaxMetadata;
+            return;
+        }
+
+        // Lookups do not lock the table; most inlines have no entry on either side.
+        if (_auxiliaryMetadata.TryGetValue(captured, out var metadata)) {
+            _auxiliaryMetadata.Remove(target);
+            _auxiliaryMetadata.Add(target, metadata);
+        } else if (_auxiliaryMetadata.TryGetValue(target, out _)) {
+            _auxiliaryMetadata.Remove(target);
+        }
     }
 
     internal static void ReleaseRedundantFormattingMetadata(MarkdownInline inline) {
@@ -48,8 +69,8 @@ internal static class MarkdownInlineMetadataSourceSpans {
         }
     }
 
-    private static MarkdownSyntaxNode? GetBoundChild(MarkdownInline? inline, MarkdownSyntaxKind kind) {
-        MarkdownSyntaxNode? syntaxNode = inline?.BoundSyntaxNode;
+    private static MarkdownSyntaxNode? GetBoundChild(MarkdownInline? inline, MarkdownSyntaxKind kind, bool captureSourceInformation = true) {
+        MarkdownSyntaxNode? syntaxNode = captureSourceInformation ? inline?.BoundSyntaxNode : inline?.BoundSyntaxNodeWithoutCapture;
         if (syntaxNode == null) {
             return null;
         }
@@ -96,8 +117,8 @@ internal static class MarkdownInlineMetadataSourceSpans {
     internal static MarkdownSourceSpan? GetLinkHtmlRelSpan(LinkInline? inline) =>
         inline?.HtmlRelSourceSpan;
 
-    internal static string? GetAutolinkLiteral(LinkInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.AutolinkLiteral;
+    internal static string? GetAutolinkLiteral(LinkInline? inline, bool captureSourceInformation = true) =>
+        GetAuxiliaryMetadata(inline, captureSourceInformation)?.AutolinkLiteral;
 
     internal static void SetImageParts(
         ImageInline? inline,
@@ -191,28 +212,28 @@ internal static class MarkdownInlineMetadataSourceSpans {
         metadata.ClosingMarkerSpan = closingMarkerSpan;
     }
 
-    internal static string? GetOpeningMarker(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.OpeningMarker is { Length: > 0 } marker
+    internal static string? GetOpeningMarker(MarkdownInline? inline, bool captureSourceInformation = true) =>
+        GetAuxiliaryMetadata(inline, captureSourceInformation)?.OpeningMarker is { Length: > 0 } marker
             ? marker
-            : GetBoundChild(inline, MarkdownSyntaxKind.InlineOpeningMarker)?.Literal;
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineOpeningMarker, captureSourceInformation)?.Literal;
 
     internal static MarkdownSourceSpan? GetOpeningMarkerSpan(MarkdownInline? inline) =>
         GetAuxiliaryMetadata(inline)?.OpeningMarkerSpan
             ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineOpeningMarker)?.SourceSpan;
 
-    internal static string? GetSeparatorMarker(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.SeparatorMarker is { Length: > 0 } marker
+    internal static string? GetSeparatorMarker(MarkdownInline? inline, bool captureSourceInformation = true) =>
+        GetAuxiliaryMetadata(inline, captureSourceInformation)?.SeparatorMarker is { Length: > 0 } marker
             ? marker
-            : GetBoundChild(inline, MarkdownSyntaxKind.InlineSeparatorMarker)?.Literal;
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineSeparatorMarker, captureSourceInformation)?.Literal;
 
     internal static MarkdownSourceSpan? GetSeparatorMarkerSpan(MarkdownInline? inline) =>
         GetAuxiliaryMetadata(inline)?.SeparatorMarkerSpan
             ?? GetBoundChild(inline, MarkdownSyntaxKind.InlineSeparatorMarker)?.SourceSpan;
 
-    internal static string? GetClosingMarker(MarkdownInline? inline) =>
-        GetAuxiliaryMetadata(inline)?.ClosingMarker is { Length: > 0 } marker
+    internal static string? GetClosingMarker(MarkdownInline? inline, bool captureSourceInformation = true) =>
+        GetAuxiliaryMetadata(inline, captureSourceInformation)?.ClosingMarker is { Length: > 0 } marker
             ? marker
-            : GetBoundChild(inline, MarkdownSyntaxKind.InlineClosingMarker)?.Literal;
+            : GetBoundChild(inline, MarkdownSyntaxKind.InlineClosingMarker, captureSourceInformation)?.Literal;
 
     internal static MarkdownSourceSpan? GetClosingMarkerSpan(MarkdownInline? inline) =>
         GetAuxiliaryMetadata(inline)?.ClosingMarkerSpan

@@ -23,25 +23,25 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => _childBlocks;
 
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
-    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get => ReadSourceInformation(ref field); set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Source span for the opening colon fence marker.</summary>
-    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Source span for the container info string.</summary>
     public MarkdownSourceSpan? InfoSourceSpan {
-        get => _infoSourceSpan;
+        get => ReadSourceInformation(ref _infoSourceSpan);
         internal set {
-            _infoSourceSpan = value;
+            WriteSourceInformation(ref _infoSourceSpan, value);
             NameSourceSpan = CreateNameSourceSpan(value, Name);
         }
     }
 
     /// <summary>Source span for the first info token used as the rendered CSS class.</summary>
-    public MarkdownSourceSpan? NameSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? NameSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Source span for the closing colon fence marker, when present.</summary>
-    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Creates a custom container block.</summary>
     public CustomContainerBlock(string? info, IEnumerable<IMarkdownBlock>? children = null, int openingFenceLength = 3) {
@@ -228,5 +228,14 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
             endColumn,
             span.StartOffset,
             endOffset);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (CustomContainerBlock)captured;
+        OpeningFenceSourceSpan = source.OpeningFenceSourceSpan;
+        ClosingFenceSourceSpan = source.ClosingFenceSourceSpan;
+        _infoSourceSpan = source._infoSourceSpan;
+        NameSourceSpan = source.NameSourceSpan;
+        SyntaxChildren = map.Retarget(source.SyntaxChildren);
     }
 }

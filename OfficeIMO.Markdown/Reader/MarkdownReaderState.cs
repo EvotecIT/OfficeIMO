@@ -212,11 +212,34 @@ public sealed class MarkdownReaderState {
     internal int NestedBlockDepth { get; set; }
     internal bool DiscardsNestedListSourceRemap { get; set; }
     internal MarkdownPendingGenericAttributeBlock? PendingGenericAttributeBlock { get; set; }
-    internal HashSet<int> LazyQuoteContinuationLines { get; } = new HashSet<int>();
-    internal HashSet<int> QuoteContainerLines { get; } = new HashSet<int>();
-    internal HashSet<int> SuppressedSetextHeadingUnderlineLines { get; } = new HashSet<int>();
-    internal HashSet<int> SuppressedParagraphGenericAttributeStartLines { get; } = new HashSet<int>();
+    internal MarkdownLineIndexSet LazyQuoteContinuationLines { get; } = new MarkdownLineIndexSet();
+    internal MarkdownLineIndexSet QuoteContainerLines { get; } = new MarkdownLineIndexSet();
+    internal MarkdownLineIndexSet SuppressedSetextHeadingUnderlineLines { get; } = new MarkdownLineIndexSet();
+    internal MarkdownLineIndexSet SuppressedParagraphGenericAttributeStartLines { get; } = new MarkdownLineIndexSet();
     internal IReadOnlyList<int>? SourceLineAbsoluteNumbers { get; set; }
+}
+
+/// <summary>A set of zero-based line indexes that allocates its storage on the first added line.</summary>
+internal sealed class MarkdownLineIndexSet {
+    private HashSet<int>? _lines;
+
+    internal int Count => _lines?.Count ?? 0;
+
+    internal bool Contains(int line) => _lines != null && _lines.Contains(line);
+
+    internal void Add(int line) => (_lines ??= new HashSet<int>()).Add(line);
+
+    internal void Clear() => _lines?.Clear();
+
+    internal void CopyTo(MarkdownLineIndexSet target) {
+        if (_lines == null) {
+            return;
+        }
+
+        foreach (int line in _lines) {
+            target.Add(line);
+        }
+    }
 }
 
 internal sealed class MarkdownPendingGenericAttributeBlock {

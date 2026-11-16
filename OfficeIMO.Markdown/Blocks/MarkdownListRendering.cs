@@ -185,13 +185,14 @@ internal static class MarkdownListRendering {
         }
 
         var content = MarkdownEscaper.EscapeRenderedListItemLineStarts(item.RenderMarkdown());
-        if (item.SyntaxChildren.Count == 0) {
+        var syntaxChildren = item.SyntaxChildrenForWriting;
+        if (syntaxChildren == null || syntaxChildren.Count == 0) {
             return content;
         }
 
         var definitions = new List<string>();
-        for (int i = 0; i < item.SyntaxChildren.Count; i++) {
-            var syntaxChild = item.SyntaxChildren[i];
+        for (int i = 0; i < syntaxChildren.Count; i++) {
+            var syntaxChild = syntaxChildren[i];
             if (syntaxChild.Kind != MarkdownSyntaxKind.AbbreviationDefinition
                 || string.IsNullOrWhiteSpace(syntaxChild.Literal)) {
                 continue;

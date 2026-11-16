@@ -50,13 +50,13 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
     internal int ClosingFenceLength { get; private set; } = 3;
     internal int? FencedContentLineCount { get; private set; }
     /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the fenced-block info string when parsed from a fenced source block.</summary>
-    public MarkdownSourceSpan? InfoStringSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? InfoStringSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the fenced payload when source-backed.</summary>
-    public MarkdownSourceSpan? ContentSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ContentSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Source span for the closing fence token when parsed from a closed fenced source block.</summary>
-    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     internal void SetFenceSourceInfo(
         int fenceIndentColumns,
@@ -187,5 +187,13 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
             nodes,
             this,
             attributes: Attributes);
+    }
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (SemanticFencedBlock)captured;
+        OpeningFenceSourceSpan = source.OpeningFenceSourceSpan;
+        InfoStringSourceSpan = source.InfoStringSourceSpan;
+        ContentSourceSpan = source.ContentSourceSpan;
+        ClosingFenceSourceSpan = source.ClosingFenceSourceSpan;
     }
 }

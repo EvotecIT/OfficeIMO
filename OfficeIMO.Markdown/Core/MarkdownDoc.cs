@@ -88,7 +88,11 @@ public partial class MarkdownDocument : MarkdownObject {
     internal IReadOnlyList<MarkdownAbbreviationDefinition>? ParseOwnedAbbreviationDefinitions =>
         _parseResult?.AbbreviationDefinitions ?? _semanticAbbreviationDefinitions;
 
+    internal void ClearSemanticAbbreviationDefinitions() => _semanticAbbreviationDefinitions = null;
+
     private void ClearParseOwnedState() {
+        // Objects leaving the document keep the source information their parse gave them.
+        EnsureSourceInformation();
         _parseResult = null;
         _semanticAbbreviationDefinitions = null;
     }

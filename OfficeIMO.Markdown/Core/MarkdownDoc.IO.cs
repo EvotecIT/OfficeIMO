@@ -9,7 +9,12 @@ public partial class MarkdownDocument : IDisposable {
     /// <summary>Gets the associated path, or null for an in-memory document.</summary>
     public string? FilePath => _filePath;
     /// <summary>Gets the source syntax and transform snapshot, when the document was parsed.</summary>
-    public MarkdownParseInfo? ParseInfo => _parseResult;
+    public MarkdownParseInfo? ParseInfo {
+        get {
+            EnsureSourceInformation();
+            return _parseResult;
+        }
+    }
 
     /// <summary>Parses Markdown text into the document model.</summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) =>

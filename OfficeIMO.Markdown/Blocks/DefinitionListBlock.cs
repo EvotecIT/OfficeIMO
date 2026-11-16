@@ -18,7 +18,13 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     public IReadOnlyList<DefinitionListInlineItem> InlineItems => BuildInlineItems();
     /// <summary>Structured definition body blocks flattened across all groups and definitions.</summary>
     public IReadOnlyList<IMarkdownBlock> ChildBlocks => BuildChildBlocks();
-    internal List<MarkdownSyntaxNode> SyntaxItems { get; } = new List<MarkdownSyntaxNode>();
+    private readonly List<MarkdownSyntaxNode> _syntaxItems = new List<MarkdownSyntaxNode>();
+    internal List<MarkdownSyntaxNode> SyntaxItems {
+        get {
+            EnsureSourceInformation();
+            return _syntaxItems;
+        }
+    }
     internal MarkdownLoadOptions? ReaderOptions { get; private set; }
     internal MarkdownReaderState? ReaderState { get; private set; }
 
@@ -549,20 +555,23 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         return nodes;
     }
 
+    // Writing reads the syntax groups without capturing deferred source information: the semantic
+    // parse records the groups its writing needs.
     private MarkdownSyntaxNode? FindSyntaxGroupForCurrentGroup(DefinitionListGroup group, int preferredIndex) {
-        if (group == null || SyntaxItems.Count == 0) {
+        var syntaxItems = _syntaxItems;
+        if (group == null || syntaxItems.Count == 0) {
             return null;
         }
 
         if (preferredIndex >= 0 &&
-            preferredIndex < SyntaxItems.Count &&
-            IsSyntaxGroupForCurrentGroup(SyntaxItems[preferredIndex], group)) {
-            return SyntaxItems[preferredIndex];
+            preferredIndex < syntaxItems.Count &&
+            IsSyntaxGroupForCurrentGroup(syntaxItems[preferredIndex], group)) {
+            return syntaxItems[preferredIndex];
         }
 
-        for (int i = 0; i < SyntaxItems.Count; i++) {
-            if (IsSyntaxGroupForCurrentGroup(SyntaxItems[i], group)) {
-                return SyntaxItems[i];
+        for (int i = 0; i < syntaxItems.Count; i++) {
+            if (IsSyntaxGroupForCurrentGroup(syntaxItems[i], group)) {
+                return syntaxItems[i];
             }
         }
 
@@ -727,4 +736,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
     }
 
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (DefinitionListBlock)captured;
+        SyntaxItems.Clear();
+        SyntaxItems.AddRange(map.Retarget(source.SyntaxItems)!);
+        ReaderOptions = source.ReaderOptions;
+        ReaderState = source.ReaderState;
+    }
 }

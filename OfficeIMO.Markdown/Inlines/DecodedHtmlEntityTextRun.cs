@@ -12,7 +12,7 @@ internal sealed class DecodedHtmlEntityTextRun : MarkdownInline, IRenderableMark
 
     public string Text { get; }
     internal string? SourceText { get; private set; }
-    internal MarkdownSourceSpan? SourceTextSourceSpan { get; private set; }
+    internal MarkdownSourceSpan? SourceTextSourceSpan { get => ReadSourceInformation(ref field); private set => WriteSourceInformation(ref field, value); }
 
     internal void SetMarkdownSyntaxMetadataSpans(string? sourceText, MarkdownSourceSpan? sourceTextSourceSpan) {
         SourceText = sourceText;
@@ -23,4 +23,9 @@ internal sealed class DecodedHtmlEntityTextRun : MarkdownInline, IRenderableMark
     string IRenderableMarkdownInline.RenderHtml() => HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options);
     void IHtmlAppendableMarkdownInline.AppendHtml(StringBuilder builder) => HtmlTextEncoder.Append(builder, Text, HtmlRenderContext.Options);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (DecodedHtmlEntityTextRun)captured;
+        SourceTextSourceSpan = source.SourceTextSourceSpan;
+    }
 }

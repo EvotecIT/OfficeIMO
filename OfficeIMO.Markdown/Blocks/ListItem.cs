@@ -41,11 +41,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     /// <summary>Whether the task is checked.</summary>
     public bool Checked { get; }
     /// <summary>Source span of the list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? MarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? MarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Exact list marker token (<c>-</c>, <c>*</c>, <c>+</c>, <c>1.</c>, or <c>1)</c>) when parsed from markdown.</summary>
     public string? MarkerText { get; internal set; }
     /// <summary>Source span of the task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TaskMarkerSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TaskMarkerSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
     /// <summary>Exact task marker token (<c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>) when parsed from markdown.</summary>
     public string? TaskMarkerText { get; internal set; }
     internal string GenericAttributeConsumedWhitespace { get; set; } = string.Empty;
@@ -54,8 +54,12 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     public int Level { get; set; }
     /// <summary>Forces paragraph-wrapped loose rendering even when only the first paragraph and child blocks exist.</summary>
     public bool ForceLoose { get; set; }
-    internal List<MarkdownSyntaxNode> SyntaxChildren => _syntaxChildren ??= new List<MarkdownSyntaxNode>(4);
-    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => _syntaxChildren;
+    internal List<MarkdownSyntaxNode> SyntaxChildren => ReadSourceInformation(ref _syntaxChildren) ?? (_syntaxChildren = new List<MarkdownSyntaxNode>(4));
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => ReadSourceInformation(ref _syntaxChildren);
+    // Markdown writing keeps abbreviation definitions found in the item's syntax children. A document
+    // with abbreviation definitions captures source information while parsing, so an item whose
+    // capture is deferred has none, and writing does not capture it.
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildrenForWriting => _syntaxChildren;
 
     /// <summary>Creates a plain list item.</summary>
     public ListItem(InlineSequence content) {
@@ -500,4 +504,11 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
         }
     }
 
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (ListItem)captured;
+        MarkerSourceSpan = source.MarkerSourceSpan;
+        TaskMarkerSourceSpan = source.TaskMarkerSourceSpan;
+        _syntaxChildren = source._syntaxChildren;
+        map.Retarget(_syntaxChildren);
+    }
 }

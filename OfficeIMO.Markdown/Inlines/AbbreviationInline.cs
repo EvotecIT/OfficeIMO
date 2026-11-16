@@ -11,10 +11,10 @@ public sealed class AbbreviationInline : MarkdownInline, IRenderableMarkdownInli
     public string Title { get; }
 
     /// <summary>Source span for the visible abbreviation text when parsed from markdown.</summary>
-    public MarkdownSourceSpan? TextSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TextSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Source span for the abbreviation definition title used by this inline.</summary>
-    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? TitleSourceSpan { get => ReadSourceInformation(ref field); internal set => WriteSourceInformation(ref field, value); }
 
     /// <summary>Creates an abbreviation inline.</summary>
     public AbbreviationInline(string text, string title) {
@@ -41,4 +41,10 @@ public sealed class AbbreviationInline : MarkdownInline, IRenderableMarkdownInli
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
 
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
+
+    internal override void AdoptCapturedSourceInformation(MarkdownObject captured, MarkdownCapturedObjectMap map) {
+        var source = (AbbreviationInline)captured;
+        TextSourceSpan = source.TextSourceSpan;
+        TitleSourceSpan = source.TitleSourceSpan;
+    }
 }
