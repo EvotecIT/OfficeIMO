@@ -248,7 +248,7 @@
                   <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="shell:StudioStartTile">
                       <Button Classes="galleryTile" Command="{Binding}"
-                              AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding Description}" ToolTip.Tip="{Binding Description}">
+                              AutomationProperties.Name="{Binding Title}" AutomationProperties.HelpText="{Binding HelpText}" ToolTip.Tip="{Binding HelpText}">
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{StaticResource StudioSpaceM}">
                           <Border Classes="galleryGlyph">
                             <PathIcon Data="{Binding Id, Converter={x:Static infra:StudioConverters.CommandIcon}}" Width="15" Height="15" Foreground="{DynamicResource StudioAccentBrush}" />
@@ -256,8 +256,6 @@
                           <StackPanel Grid.Column="1" Spacing="2">
                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding Description}" Classes="caption" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{loc:Loc Home.Gallery.OpensPdfFirst}" Classes="caption" FontStyle="Italic" TextWrapping="Wrap"
-                                       IsVisible="{Binding OpensDocumentFirst}" Margin="0,2,0,0" />
                           </StackPanel>
                         </Grid>
                       </Button>

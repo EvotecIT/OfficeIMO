@@ -61,6 +61,7 @@ public sealed class StudioStartTile : ObservableObject, ICommand {
         Command = command;
         command.CanExecuteChanged += (_, _) => {
             OnPropertyChanged(nameof(OpensDocumentFirst));
+            OnPropertyChanged(nameof(HelpText));
             CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         };
     }
@@ -71,6 +72,10 @@ public sealed class StudioStartTile : ObservableObject, ICommand {
     public string Description => Command.Description;
     /// <summary>True when choosing the tile first asks for a PDF to open.</summary>
     public bool OpensDocumentFirst => Command.RequiresDocument && !_document.HasDocument;
+    /// <summary>The tooltip and accessible help: the description, and that a PDF opens first when it does.</summary>
+    public string HelpText => OpensDocumentFirst
+        ? Description + " " + _document.PaneLocalizer.Get("Home.Gallery.OpensPdfFirst") + "."
+        : Description;
 
     public event EventHandler? CanExecuteChanged;
 
