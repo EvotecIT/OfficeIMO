@@ -235,6 +235,9 @@ public sealed class PdfAnnotation {
         Vertices.Count > 0 ||
         InkList.Count > 0;
 
+    /// <summary>True for the text-markup subtypes Highlight, Underline, StrikeOut and Squiggly, whose /QuadPoints mark page text.</summary>
+    public bool IsTextMarkup => Subtype is "Highlight" or "Underline" or "StrikeOut" or "Squiggly";
+
     /// <summary>True when the annotation has a readable color array.</summary>
     public bool HasColor => Color.Count > 0;
 

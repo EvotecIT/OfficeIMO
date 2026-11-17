@@ -260,8 +260,10 @@ public sealed partial class PdfPageInteractionMap {
 
     /// <summary>Joins selected text elements in extraction order, with a space across a gap between words and a line
     /// break between lines where the text does not already contain one.</summary>
-    public string GetSelectedText(double x1, double y1, double x2, double y2) {
-        IReadOnlyList<PdfPageInteractionRegion> selected = SelectText(x1, y1, x2, y2);
+    public string GetSelectedText(double x1, double y1, double x2, double y2) =>
+        JoinSelectedText(SelectText(x1, y1, x2, y2));
+
+    private static string JoinSelectedText(IReadOnlyList<PdfPageInteractionRegion> selected) {
         var text = new StringBuilder();
         for (int i = 0; i < selected.Count; i++) {
             string element = selected[i].Text ?? string.Empty;

@@ -1283,3 +1283,7 @@ OfficeIMO.Pdf.PdfLogicalListItem.Link.get -> OfficeIMO.Pdf.PdfLogicalLinkAnnotat
 OfficeIMO.Pdf.PdfLogicalListItem.TargetPageLabel.get -> string?
 OfficeIMO.Pdf.PdfTextDecodingSource.FontProgram = 7 -> OfficeIMO.Pdf.PdfTextDecodingSource
 OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate.PdfEmbeddedFontFallbackCandidate(OfficeIMO.Pdf.PdfEmbeddedFontFamily! fontFamily) -> void
+OfficeIMO.Pdf.PdfAnnotation.IsTextMarkup.get -> bool
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.IncludeMarkupAnnotations.get -> bool
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.IncludeMarkupAnnotations.set -> void
+OfficeIMO.Pdf.PdfLogicalPage.GetMarkupText(OfficeIMO.Pdf.PdfAnnotation! annotation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string?

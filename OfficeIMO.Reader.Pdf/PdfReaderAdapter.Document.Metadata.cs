@@ -410,6 +410,7 @@ internal static partial class PdfReaderAdapter {
         int visualStyleMetadataCount = 0;
         int pathGeometryMetadataCount = 0;
         int freeTextAppearanceMetadataCount = 0;
+        int coveredTextCount = 0;
         var subtypeCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         var annotationEntries = new List<OfficeDocumentMetadataEntry>();
 
@@ -442,7 +443,9 @@ internal static partial class PdfReaderAdapter {
                     freeTextAppearanceMetadataCount++;
                 }
 
-                annotationEntries.Add(BuildAnnotationMetadataEntry(source, page, GetPageSelectionIndex(source, pageIndex), annotation, annotationIndex));
+                OfficeDocumentMetadataEntry annotationEntry = BuildAnnotationMetadataEntry(source, page, GetPageSelectionIndex(source, pageIndex), annotation, annotationIndex);
+                if (annotationEntry.Attributes.ContainsKey("coveredText")) coveredTextCount++;
+                annotationEntries.Add(annotationEntry);
             }
         }
 
@@ -452,6 +455,7 @@ internal static partial class PdfReaderAdapter {
         AddCountMetadata(entries, "pdf-annotation-visual-style-metadata-count", "pdf.annotation", "VisualStyleMetadataCount", visualStyleMetadataCount);
         AddCountMetadata(entries, "pdf-annotation-path-geometry-metadata-count", "pdf.annotation", "PathGeometryMetadataCount", pathGeometryMetadataCount);
         AddCountMetadata(entries, "pdf-annotation-freetext-appearance-metadata-count", "pdf.annotation.freeText", "AppearanceMetadataCount", freeTextAppearanceMetadataCount);
+        AddCountMetadata(entries, "pdf-annotation-covered-text-count", "pdf.annotation", "CoveredTextCount", coveredTextCount);
         if (annotationCount > 0) {
             AddNumberMetadata(entries, "pdf-annotation-geometry-coverage", "pdf.annotation", "GeometryCoverage", (double)annotationGeometryCount / annotationCount);
             AddNumberMetadata(entries, "pdf-annotation-normal-appearance-coverage", "pdf.annotation", "NormalAppearanceCoverage", (double)annotationAppearanceCount / annotationCount);
@@ -511,6 +515,11 @@ internal static partial class PdfReaderAdapter {
         AddAttribute(attributes, "effectiveFontSize", annotation.EffectiveFontSize);
         AddAttribute(attributes, "effectiveTextColor", annotation.EffectiveTextColor.HasValue ? FormatPdfColor(annotation.EffectiveTextColor.Value) : null);
         AddAttribute(attributes, "effectiveTextAlign", annotation.EffectiveTextAlign?.ToString());
+        if (annotation.IsTextMarkup) {
+            // Text-markup annotations record their author in /T and mark page text through /QuadPoints.
+            AddAttribute(attributes, "author", annotation.Title);
+            AddAttribute(attributes, "coveredText", page.GetMarkupText(annotation));
+        }
 
         return new OfficeDocumentMetadataEntry {
             Id = id,
