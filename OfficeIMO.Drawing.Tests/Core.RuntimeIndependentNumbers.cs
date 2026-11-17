@@ -11,11 +11,20 @@ public sealed class RuntimeIndependentNumberTests {
     // Expected text is what (decimal)value produced on .NET Framework and .NET up to 10,
     // including the scale, so the conversion reads the same on every runtime.
     public static TheoryData<double, string> Doubles => new() {
+        // A native Project cost of 500000 stored one ulp high, as in a real .mpp.
         { NextUp(500000d), "500000" },
         { 0.1, "0.1" },
         { 0.29, "0.29" },
         { -1.1, "-1.1" },
         { 1.5, "1.5" },
+        { 1234.56, "1234.56" },
+        { -0.001, "-0.001" },
+        { 1.4142135623730951, "1.4142135623731" },
+        { 0d, "0" },
+        // Exact ties at the fifteenth digit round to even.
+        { 1000000000000.125, "1000000000000.12" },
+        { -1000000000000.375, "-1000000000000.38" },
+        { 100000000000000.5, "100000000000000" },
         { 123456789.12345679, "123456789.123457" },
         { 1e20, "100000000000000000000" },
         { 79228162514264328797450928128d, "79228162514264300000000000000" },
@@ -61,7 +70,8 @@ public sealed class RuntimeIndependentNumberTests {
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
     [InlineData(79228162514264337593543950336d)]
-    [InlineData(-1e30)]
+    [InlineData(-79228162514264337593543950336d)]
+    [InlineData(1e30)]
     public void ValuesOutsideTheDecimalRangeOverflowLikeTheCast(double value) {
         Assert.Throws<OverflowException>(() => OfficeDecimalConversion.FromDouble(value));
         Assert.False(OfficeDecimalConversion.TryFromDouble(value, out _));
