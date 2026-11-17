@@ -762,7 +762,9 @@ internal static partial class PdfTextDiagnostics {
         int? runIndex,
         PdfTextShapingMode shapingMode,
         TryGetSelectedTextLength tryGetSelectedTextLength) {
-        List<EmbeddedFontFallbackProgram> fallbackFonts = BuildFallbackPrograms(fallbackSet.Candidates);
+        // A fallback set's candidates are fixed at construction, and generated text checks it for every encoded run.
+        List<EmbeddedFontFallbackProgram> fallbackFonts = FallbackProgramsBySet.GetValue(fallbackSet,
+            static set => BuildFallbackPrograms(set.Candidates));
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
         int previousFallbackFontIndex = -1;
 
@@ -1004,6 +1006,8 @@ internal static partial class PdfTextDiagnostics {
 
         return true;
     }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackSet, List<EmbeddedFontFallbackProgram>> FallbackProgramsBySet = new();
 
     private static List<EmbeddedFontFallbackProgram> BuildFallbackPrograms(IEnumerable<PdfEmbeddedFontFallbackCandidate> candidates) {
         var fonts = new List<EmbeddedFontFallbackProgram>();

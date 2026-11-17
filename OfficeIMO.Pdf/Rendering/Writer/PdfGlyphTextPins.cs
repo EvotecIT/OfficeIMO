@@ -26,7 +26,9 @@ internal sealed class PdfGlyphTextPins : IPdfGlyphTextPinner {
     private readonly PdfCanonicalGlyphText _canonical;
     private readonly int _glyphCount;
     private readonly bool _allowAliases;
-    private readonly Dictionary<int, string> _pins = new();
+    // A glyph's pin never changes once set (until Clear), so the common "already pinned to this text" check
+    // runs without the lock; choosing a pin or an alias still takes it.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, string> _pins = new();
     private readonly SortedDictionary<int, int> _aliases = new();
     private readonly object _lock = new();
 
@@ -40,13 +42,14 @@ internal sealed class PdfGlyphTextPins : IPdfGlyphTextPinner {
         code = glyphId;
         if (glyphId <= 0 || string.IsNullOrEmpty(unicodeText)) return false;
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
+        if (_pins.TryGetValue(glyphId, out string? published) && string.Equals(published, unicodeText, StringComparison.Ordinal)) return true;
         lock (_lock) {
             if (!_pins.TryGetValue(glyphId, out string? pinned)) {
                 // Non-cmap glyphs can mean different source strings in separate option contexts.
                 // Keep ActualText for those commands rather than committing a context-local meaning.
                 if (!_canonical.TryGet(glyphId, out string canonical)) return false;
                 pinned = canonical;
-                _pins.Add(glyphId, pinned);
+                _pins.TryAdd(glyphId, pinned);
             }
             if (string.Equals(pinned, unicodeText, StringComparison.Ordinal)) return true;
             if (!_allowAliases || !TryGetSingleScalar(unicodeText, out int scalar) ||
@@ -58,11 +61,9 @@ internal sealed class PdfGlyphTextPins : IPdfGlyphTextPinner {
     }
 
     internal bool TryGetPinned(int glyphId, out string unicodeText) {
-        lock (_lock) {
-            if (_pins.TryGetValue(glyphId, out string? pinned)) {
-                unicodeText = pinned;
-                return true;
-            }
+        if (_pins.TryGetValue(glyphId, out string? pinned)) {
+            unicodeText = pinned;
+            return true;
         }
         unicodeText = string.Empty;
         return false;
@@ -88,7 +89,7 @@ internal sealed class PdfGlyphTextPins : IPdfGlyphTextPinner {
         }
         lock (_lock) {
             foreach (KeyValuePair<int, string> pin in pins) {
-                if (!_pins.ContainsKey(pin.Key)) _pins.Add(pin.Key, pin.Value);
+                _pins.TryAdd(pin.Key, pin.Value);
             }
             foreach (KeyValuePair<int, int> alias in aliases) _aliases[alias.Key] = alias.Value;
         }
