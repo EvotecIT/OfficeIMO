@@ -3,7 +3,6 @@ using System.Net.Sockets;
 using System.Text;
 using OfficeIMO;
 using OfficeIMO.Drawing;
-using OfficeIMO.Internal;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
@@ -15,24 +14,27 @@ namespace OfficeIMO.Tests;
 public sealed class MarkdownNativeOptionsTests {
     [Fact]
     public async Task NativeRemoteImageOptInDownloadsOnceAndLeavesCallerOptionsReusable() {
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        byte[] png = await OfficeRuntimeCompatibility.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "NativeOptionAssets", "OfficeIMO.png"), deadline.Token);
-        Task server = ServeImageAsync(listener, png, deadline.Token);
+        byte[] png = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "NativeOptionAssets", "OfficeIMO.png"));
+        Task server = ServeImageOnce(listener, png);
         try {
             string uri = $"http://127.0.0.1:{port}/image.png";
             using MarkdownDocument source = MarkdownDocument.Parse($"![first]({uri})\n\n![second]({uri})");
+            // The server answers one request; a second download would wait for this timeout and lose an image.
             var options = new MarkdownWordExportOptions { AllowRemoteImages = true, MaximumRemoteImageBytes = png.Length,
-                RemoteImageLoadOptions = new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true } };
-            OfficeConversionResult<WordDocument> converted = await source.ToWordAsync(options, deadline.Token);
+                RemoteImageLoadOptions = new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true, Timeout = TimeSpan.FromMinutes(2) } };
+            OfficeConversionResult<WordDocument> converted = await source.ToWordAsync(options);
             using WordDocument word = converted.Value;
-            await server;
             Assert.True(word.Images.Count == 2, string.Join("\n", converted.Report.Diagnostics.Select(finding => finding.Message)));
+            listener.Stop();
+            await server;
             Assert.Null(options.RemoteImageResolver);
             Assert.True(source.Blocks.Count > 0);
-        } finally { listener.Stop(); try { await server; } catch (OperationCanceledException) { } catch (SocketException) { } }
+        } finally {
+            listener.Stop();
+        }
     }
 
     [Fact]
@@ -196,26 +198,33 @@ public sealed class MarkdownNativeOptionsTests {
         } finally { if (File.Exists(path)) File.Delete(path); }
     }
 
-    private static async Task ServeImageAsync(TcpListener listener, byte[] image, CancellationToken token) {
-        try {
-            using CancellationTokenRegistration stopListening = token.Register(listener.Stop);
-            using TcpClient client = await listener.AcceptTcpClientAsync();
-            using CancellationTokenRegistration closeClient = token.Register(client.Close);
-            using NetworkStream stream = client.GetStream();
-            var bytes = new List<byte>();
-            var buffer = new byte[1024];
-            while (!Encoding.ASCII.GetString(bytes.ToArray()).Contains("\r\n\r\n", StringComparison.Ordinal)) {
-                int read = await stream.ReadAsync(buffer, 0, buffer.Length, token);
-                if (read == 0) throw new EndOfStreamException();
-                bytes.AddRange(buffer.Take(read));
-                if (bytes.Count > 16384) throw new InvalidDataException("Unexpected loopback request size.");
+    /// <summary>
+    /// Answers the first request on a dedicated thread, so the response does not wait for thread-pool threads that
+    /// other tests hold on a busy runner.
+    /// </summary>
+    private static Task ServeImageOnce(TcpListener listener, byte[] image) {
+        var answered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        new Thread(() => {
+            try {
+                using (TcpClient client = listener.AcceptTcpClient())
+                using (NetworkStream stream = client.GetStream()) {
+                    var bytes = new List<byte>();
+                    var buffer = new byte[1024];
+                    while (!Encoding.ASCII.GetString(bytes.ToArray()).Contains("\r\n\r\n", StringComparison.Ordinal)) {
+                        int read = stream.Read(buffer, 0, buffer.Length);
+                        if (read == 0) throw new EndOfStreamException();
+                        bytes.AddRange(buffer.Take(read));
+                        if (bytes.Count > 16384) throw new InvalidDataException("Unexpected loopback request size.");
+                    }
+                    byte[] header = Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {image.Length}\r\nConnection: close\r\n\r\n");
+                    stream.Write(header, 0, header.Length);
+                    stream.Write(image, 0, image.Length);
+                }
+                answered.SetResult(true);
+            } catch (Exception error) {
+                answered.SetException(error);
             }
-            byte[] header = Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {image.Length}\r\nConnection: close\r\n\r\n");
-            await stream.WriteAsync(header, 0, header.Length, token);
-            await stream.WriteAsync(image, 0, image.Length, token);
-        } catch (Exception error) when (token.IsCancellationRequested
-            && (error is SocketException || error is IOException || error is ObjectDisposedException)) {
-            throw new OperationCanceledException("The loopback image server was canceled.", error, token);
-        }
+        }) { IsBackground = true }.Start();
+        return answered.Task;
     }
 }

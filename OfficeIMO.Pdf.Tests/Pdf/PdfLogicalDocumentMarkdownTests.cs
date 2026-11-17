@@ -439,25 +439,111 @@ public partial class PdfDocumentReadResultTests {
     }
 
     [Fact]
-    public void ToMarkdown_RendersDirectDestinationLinkAnnotations() {
+    public void ToMarkdown_ListsDirectDestinationLinkAnnotationsOnlyInListStyle() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildDirectDestinationLinkPdf());
 
-        string markdown = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
-            IncludeLinkAnnotations = true
+        string listed = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
+            IncludeLinkAnnotations = true,
+            LinkStyle = PdfLogicalMarkdownLinkStyle.List
         });
+        string inline = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeLinkAnnotations = true });
 
-        Assert.Contains("[Link: Direct destination link -> page 1, FitRectangle, left 10, bottom 20, right 90, top 144]", markdown, StringComparison.Ordinal);
+        Assert.Contains("[Link: Direct destination link -> page 1, FitRectangle, left 10, bottom 20, right 90, top 144]", listed, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Link:", inline, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ToMarkdown_RendersNamedActionLinkAnnotations() {
+    public void ToMarkdown_ListsNamedActionLinkAnnotationsOnlyInListStyle() {
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildNamedActionLinkPdf());
 
-        string markdown = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
-            IncludeLinkAnnotations = true
+        string listed = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
+            IncludeLinkAnnotations = true,
+            LinkStyle = PdfLogicalMarkdownLinkStyle.List
+        });
+        string inline = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeLinkAnnotations = true });
+
+        Assert.Contains("[Link: Next page action -> named action NextPage]", listed, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Link:", inline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToMarkdown_InlinesWebLinksOnTheirTextAndDropsInternalLinkLines() {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) })
+            .RichBullets(new[] { PdfListItem.Plain("Results section", "ResultsAnchor") })
+            .Paragraph(p => {
+                p.AddText("The source is on ");
+                p.AddLink("the project site", "https://officeimo.com/pdf");
+                p.AddText(" and the scores are in ");
+                p.AddBookmarkLink("the results", "ResultsAnchor");
+                p.AddText(".");
+            })
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
+
+        string inline = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeLinkAnnotations = true });
+        string listed = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
+            IncludeLinkAnnotations = true,
+            LinkStyle = PdfLogicalMarkdownLinkStyle.List
         });
 
-        Assert.Contains("[Link: Next page action -> named action NextPage]", markdown, StringComparison.Ordinal);
+        Assert.Contains("The source is on [the project site](https://officeimo.com/pdf) and the scores are in the results.", inline, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Link:", inline, StringComparison.Ordinal);
+        Assert.Matches(@"\[Link: [^\]]+\]\(https://officeimo\.com/pdf\)", listed);
+        Assert.Matches(@"\[Link: [^\]]+ -> ResultsAnchor\]", listed);
+    }
+
+    [Fact]
+    public void ToMarkdown_InlinesAWebLinkOnThePaintedOccurrenceOfRepeatedText() {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) })
+            .Paragraph(p => {
+                p.AddText("Compare the report with the updated ");
+                p.AddLink("report", "https://officeimo.com/report");
+                p.AddText(" before release.");
+            })
+            .Paragraph(p => {
+                p.AddText("Read ");
+                p.AddLink("here", "https://officeimo.com/read");
+                p.AddText(" and download ");
+                p.AddLink("here", "https://officeimo.com/download");
+                p.AddText(".");
+            })
+            .ToBytes();
+
+        string markdown = PdfDocumentReadResult.Load(pdf).ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeLinkAnnotations = true });
+
+        Assert.Contains("Compare the report with the updated [report](https://officeimo.com/report) before release.", markdown, StringComparison.Ordinal);
+        Assert.Contains("Read [here](https://officeimo.com/read) and download [here](https://officeimo.com/download).", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToMarkdown_ListsAContentsEntryLinkToAnotherFileOnce() {
+        PdfDocument document = PdfDocument.Create().TableOfContents(new PdfTableOfContentsOptions { MaximumLevel = 1 });
+        foreach (string title in new[] { "Overview", "Methods", "Results" }) {
+            document.Section(title, section => section.AddParagraph(title + " body."), new PdfSectionOptions { StartOnNewPage = true });
+        }
+        // Point the first entry at another file. The replacement keeps the object's length, so the cross-reference stays valid.
+        string raw = Encoding.GetEncoding("ISO-8859-1").GetString(document.ToBytes());
+        const string internalAction = "/A << /S /GoTo /D (section-1) >>";
+        string remoteAction = "/A<</S/GoToR/F(r)/D[0/Fit]>>".PadRight(internalAction.Length);
+        Assert.Equal(1, CountOccurrences(raw, internalAction));
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(Encoding.GetEncoding("ISO-8859-1").GetBytes(raw.Replace(internalAction, remoteAction)));
+        PdfLogicalListItem entry = Assert.Single(logical.Pages[0].ListItems, item => item.Text == "Overview");
+        Assert.True(entry.IsContentsEntry);
+        Assert.Equal("r", entry.Link?.RemoteFile);
+
+        string markdown = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeLinkAnnotations = true });
+
+        // The title cannot carry a link to another file, so the target is listed once instead of being dropped.
+        Assert.Equal(1, CountOccurrences(markdown, "[Link: Overview -> remote file r"));
+    }
+
+    [Fact]
+    public void ToMarkdown_ListsAWebLinkWithoutCoveredTextOncePerTarget() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildRepeatedUriLinkPdf());
+
+        string markdown = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeLinkAnnotations = true });
+
+        Assert.Equal(1, CountOccurrences(markdown, "[Link: Report download](https://example.test/report.pdf)"));
     }
 
     [Fact]

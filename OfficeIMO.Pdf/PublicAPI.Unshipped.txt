@@ -1307,3 +1307,8 @@ OfficeIMO.Pdf.PdfAnnotation.IsTextMarkup.get -> bool
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.IncludeMarkupAnnotations.get -> bool
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.IncludeMarkupAnnotations.set -> void
 OfficeIMO.Pdf.PdfLogicalPage.GetMarkupText(OfficeIMO.Pdf.PdfAnnotation! annotation, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string?
+OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle
+OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle.Inline = 0 -> OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle
+OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle.List = 1 -> OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.LinkStyle.get -> OfficeIMO.Pdf.PdfLogicalMarkdownLinkStyle
+OfficeIMO.Pdf.PdfLogicalMarkdownOptions.LinkStyle.set -> void

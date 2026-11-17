@@ -26,7 +26,14 @@ namespace OfficeIMO.Excel {
         public ExcelWorkbookInfo Inspect(ExcelReaderOptions? options = null) => Inspect(options, CancellationToken.None);
 
         /// <summary>Creates the native immutable workbook snapshot with cancellation between source sheets, rows and cells.</summary>
-        public ExcelWorkbookInfo Inspect(ExcelReaderOptions? options, CancellationToken cancellationToken) {
+        public ExcelWorkbookInfo Inspect(ExcelReaderOptions? options, CancellationToken cancellationToken) =>
+            Inspect(options, cancellationToken, includeCellPresentation: true);
+
+        /// <summary>
+        /// Builds the workbook snapshot. Without cell presentation, cells omit their style and rich-text run snapshots,
+        /// which text extraction does not use.
+        /// </summary>
+        internal ExcelWorkbookInfo Inspect(ExcelReaderOptions? options, CancellationToken cancellationToken, bool includeCellPresentation) {
             cancellationToken.ThrowIfCancellationRequested();
             var effectiveOptions = options ?? new ExcelReaderOptions {
                 UseCachedFormulaResult = true,
@@ -54,7 +61,8 @@ namespace OfficeIMO.Excel {
                 var workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
                 var styleContext = StyleInspectionContext.Create(workbookPart, workbookPart.WorkbookStylesPart?.Stylesheet);
-                var sharedStringItems = workbookPart.SharedStringTablePart?
+                // Shared-string items are only needed for rich-text runs; loading them parses the whole table.
+                var sharedStringItems = !includeCellPresentation ? null : workbookPart.SharedStringTablePart?
                     .SharedStringTable?
                     .Elements<SharedStringItem>()
                     .ToList();
@@ -175,11 +183,11 @@ namespace OfficeIMO.Excel {
                                     StoredValue = cell.CellValue?.Text,
                                     StoredValueType = cell.DataType?.InnerText ?? "n",
                                     StyleIndex = cell.StyleIndex?.Value,
-                                    Style = BuildCellStyleSnapshot(styleContext, cell.StyleIndex?.Value),
+                                    Style = includeCellPresentation ? BuildCellStyleSnapshot(styleContext, cell.StyleIndex?.Value) : null,
                                     Hyperlink = hyperlinkMap.TryGetValue(cellReference, out var hyperlink) ? hyperlink : null,
                                     Comment = commentMap.TryGetValue(cellReference, out var comment) ? comment : null,
                                     ThreadedComment = threadedCommentMap.TryGetValue(cellReference, out var threadedComments) ? threadedComments[0] : null,
-                                    RichTextRuns = BuildRichTextRuns(cell, sharedStringItems),
+                                    RichTextRuns = includeCellPresentation ? BuildRichTextRuns(cell, sharedStringItems) : Array.Empty<ExcelRichTextRun>(),
                                 });
                             }
                         }
@@ -394,12 +402,17 @@ namespace OfficeIMO.Excel {
                 });
             }
         }
+        /// <summary>Returns the style snapshot for a cell format, built once per style index and shared by its cells.</summary>
         private static ExcelCellStyleInfo? BuildCellStyleSnapshot(StyleInspectionContext context, uint? styleIndex) {
             if (!styleIndex.HasValue) {
                 return null;
             }
 
-            var cellFormat = context.GetCellFormat(styleIndex.Value);
+            return context.GetOrAddStyleSnapshot(styleIndex.Value, static (ctx, index) => BuildCellStyleSnapshotCore(ctx, index));
+        }
+
+        private static ExcelCellStyleInfo? BuildCellStyleSnapshotCore(StyleInspectionContext context, uint styleIndex) {
+            var cellFormat = context.GetCellFormat(styleIndex);
             if (cellFormat == null) {
                 return null;
             }
@@ -411,7 +424,7 @@ namespace OfficeIMO.Excel {
             bool hasSimpleGradient = context.TryGetSimpleGradientFill(fill, out ExcelGradientFillInfo gradient);
 
             return new ExcelCellStyleInfo {
-                StyleIndex = styleIndex.Value,
+                StyleIndex = styleIndex,
                 NumberFormatId = numberFormatId,
                 NumberFormatCode = context.GetNumberFormatCode(numberFormatId),
                 IsDateLike = context.IsDateLike(numberFormatId),
@@ -663,25 +676,9 @@ namespace OfficeIMO.Excel {
         }
 
         private static string? ExtractBorderStyle(BorderPropertiesType borderSide) {
-            var xml = borderSide.OuterXml;
-            if (string.IsNullOrWhiteSpace(xml)) {
-                return null;
-            }
-
-            const string marker = "style=\"";
-            var index = xml.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-            if (index < 0) {
-                return null;
-            }
-
-            index += marker.Length;
-            var endIndex = xml.IndexOf('"', index);
-            if (endIndex <= index) {
-                return null;
-            }
-
-            var value = xml.Substring(index, endIndex - index);
-            return string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
+            // The attribute text is kept as written, including values outside the schema enumeration.
+            string? value = borderSide.Style?.InnerText;
+            return string.IsNullOrWhiteSpace(value) ? null : value!.Trim().ToLowerInvariant();
         }
 
         private static int? GetActiveWorksheetIndex(Workbook workbook, int sheetCount) {
@@ -780,6 +777,16 @@ namespace OfficeIMO.Excel {
                     stylesheet?.Fills?.Elements<Fill>().ToList() ?? new List<Fill>(),
                     stylesheet?.Borders?.Elements<Border>().ToList() ?? new List<Border>(),
                     numberFormats);
+            }
+
+            private readonly Dictionary<uint, ExcelCellStyleInfo?> _styleSnapshots = new();
+
+            internal ExcelCellStyleInfo? GetOrAddStyleSnapshot(uint styleIndex, Func<StyleInspectionContext, uint, ExcelCellStyleInfo?> build) {
+                if (!_styleSnapshots.TryGetValue(styleIndex, out ExcelCellStyleInfo? snapshot)) {
+                    snapshot = build(this, styleIndex);
+                    _styleSnapshots[styleIndex] = snapshot;
+                }
+                return snapshot;
             }
 
             internal CellFormat? GetCellFormat(uint styleIndex) {

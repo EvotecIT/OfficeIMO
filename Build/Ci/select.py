@@ -73,6 +73,7 @@ def select(root, changed, full=False):
     directly_changed = set()
     wide = full
     wide_paths = []
+    documentation_only = set(config.get("documentation_only", []))
     for path in changed:
         linked_consumers = {project for pattern, consumers in linked_inputs.items()
                             if fnmatch.fnmatchcase(path, pattern) for project in consumers}
@@ -85,7 +86,7 @@ def select(root, changed, full=False):
         # Exclude known prose only after accounting for linked build inputs.
         prose = path.endswith(".md") and (path.startswith("Docs/") or Path(path).name.lower() in
                   ("readme.md", "support.md", "migration.md", "agents.md", "license.md"))
-        if prose or path == ".gitignore":
+        if prose or path in documentation_only or path == ".gitignore":
             continue
         if path.startswith(("Website/", "OfficeIMO.JavaScript/")):
             continue

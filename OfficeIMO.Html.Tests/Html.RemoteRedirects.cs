@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using OfficeIMO.Word;
@@ -32,8 +33,7 @@ public partial class Html {
         var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
             AllowPrivateNetworkAddresses = true,
-            ImageProcessing = WordHtmlImageProcessingMode.Embed,
-            ResourceTimeout = TimeSpan.FromSeconds(8)
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
         if (useUrlTransform) {
             options.ResourceUrlPolicy.ResolvedUrlTransform = url => {
@@ -92,8 +92,7 @@ public partial class Html {
         HtmlWordExportOptions CreateOptions(bool allowPrivate) => new() {
             AllowDocumentStylesheetLinks = true,
             AllowPrivateNetworkAddresses = allowPrivate,
-            ImageProcessing = WordHtmlImageProcessingMode.Embed,
-            ResourceTimeout = TimeSpan.FromSeconds(8)
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
 
         HtmlToWordResult refused = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidenceAsync(CreateOptions(false));
@@ -143,8 +142,7 @@ public partial class Html {
         var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
             AllowPrivateNetworkAddresses = true,
-            ImageProcessing = WordHtmlImageProcessingMode.Embed,
-            ResourceTimeout = TimeSpan.FromSeconds(8)
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
         options.AllowedImageHosts.Add(host);
         options.AllowedStylesheetHosts.Add(host);
@@ -169,93 +167,123 @@ public partial class Html {
         Assert.Null(image.RequestCookie);
     }
 
+    /// <summary>
+    /// Answers one queued response per accepted connection on dedicated threads, so a response does not wait
+    /// for thread-pool threads that other tests on a busy runner are holding.
+    /// </summary>
     private sealed class RedirectTestServer : IDisposable {
         // Clients resolve "localhost" to ::1 before 127.0.0.1. Listening on both loopbacks keeps
-        // a refused IPv6 attempt (about two seconds on Windows) out of each request's timeout.
+        // a refused IPv6 attempt (about two seconds on Windows) out of each request.
         private readonly TcpListener _listener;
         private readonly TcpListener? _ipv6Listener;
-        private Task<TcpClient>? _pendingAccept;
-        private Task<TcpClient>? _pendingIpv6Accept;
-        private volatile bool _disposed;
+        private readonly BlockingCollection<TcpClient> _accepted = new();
+        private readonly CancellationTokenSource _stopped = new();
+        private volatile bool _wasRequested;
+        private volatile string? _requestHost;
+        private volatile string? _requestCookie;
 
         internal RedirectTestServer() {
             for (int attempt = 0; ; attempt++) {
                 _listener = new TcpListener(IPAddress.Loopback, 0);
                 _listener.Start();
                 Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
-                if (!Socket.OSSupportsIPv6) return;
+                if (!Socket.OSSupportsIPv6) break;
                 try {
                     _ipv6Listener = new TcpListener(IPAddress.IPv6Loopback, Port);
                     _ipv6Listener.Start();
-                    return;
+                    break;
                 } catch (SocketException) when (attempt < 20) {
                     _ipv6Listener = null;
                     _listener.Stop();
                 }
             }
+            StartThread(() => AcceptLoop(_listener));
+            if (_ipv6Listener != null) StartThread(() => AcceptLoop(_ipv6Listener));
         }
 
         internal int Port { get; }
-        internal bool WasRequested { get; private set; }
-        internal string? RequestHost { get; private set; }
-        internal string? RequestCookie { get; private set; }
+        internal bool WasRequested => _wasRequested;
+        internal string? RequestHost => _requestHost;
+        internal string? RequestCookie => _requestCookie;
 
-        internal async Task SendAsync(string statusAndHeaders, byte[]? payload = null) {
+        /// <summary>
+        /// Answers the next connection. The task completes once the response is written, or without a request
+        /// once the server is disposed.
+        /// </summary>
+        internal Task SendAsync(string statusAndHeaders, byte[]? payload = null) {
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            StartThread(() => {
+                try {
+                    Respond(statusAndHeaders, payload);
+                    completion.SetResult(true);
+                } catch (Exception exception) {
+                    completion.SetException(exception);
+                }
+            });
+            return completion.Task;
+        }
+
+        private void Respond(string statusAndHeaders, byte[]? payload) {
+            // Disposal cancels the wait and completes the queue; either one ends the wait without a request.
+            TcpClient? client;
             try {
-                using TcpClient client = await AcceptAsync();
-                WasRequested = true;
-                RequestCookie = null;
+                if (!_accepted.TryTake(out client, Timeout.Infinite, _stopped.Token)) return;
+            } catch (OperationCanceledException) {
+                return;
+            }
+
+            using (client) {
+                _requestCookie = null;
                 using NetworkStream stream = client.GetStream();
                 using var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, leaveOpen: true);
                 string? line;
-                while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) {
-                    if (line.StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) {
-                        RequestHost = line.Substring(5).Trim();
+                while (!string.IsNullOrEmpty(line = reader.ReadLine())) {
+                    if (line!.StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) {
+                        _requestHost = line.Substring(5).Trim();
                     } else if (line.StartsWith("Cookie:", StringComparison.OrdinalIgnoreCase)) {
-                        RequestCookie = line.Substring(7).Trim();
+                        _requestCookie = line.Substring(7).Trim();
                     }
                 }
 
                 byte[] header = Encoding.ASCII.GetBytes(
                     $"HTTP/1.1 {statusAndHeaders}\r\nContent-Length: {payload?.Length ?? 0}\r\nConnection: close\r\n\r\n");
-                await stream.WriteAsync(header, 0, header.Length);
+                stream.Write(header, 0, header.Length);
                 if (payload != null) {
-                    await stream.WriteAsync(payload, 0, payload.Length);
+                    stream.Write(payload, 0, payload.Length);
                 }
-            } catch (SocketException) when (_disposed) {
-            } catch (ObjectDisposedException) when (_disposed) {
             }
         }
 
-        private async Task<TcpClient> AcceptAsync() {
-            _pendingAccept ??= _listener.AcceptTcpClientAsync();
-            if (_ipv6Listener == null) {
-                Task<TcpClient> accepted = _pendingAccept;
-                _pendingAccept = null;
-                return await accepted;
+        private void AcceptLoop(TcpListener listener) {
+            while (true) {
+                TcpClient client;
+                try {
+                    client = listener.AcceptTcpClient();
+                } catch (SocketException) {
+                    return;
+                } catch (ObjectDisposedException) {
+                    return;
+                } catch (InvalidOperationException) {
+                    return;
+                }
+                _wasRequested = true;
+                try {
+                    _accepted.Add(client);
+                } catch (InvalidOperationException) {
+                    client.Dispose();
+                    return;
+                }
             }
-
-            // The losing accept stays pending for the next request on this server.
-            _pendingIpv6Accept ??= _ipv6Listener.AcceptTcpClientAsync();
-            Task<TcpClient> first = await Task.WhenAny(_pendingAccept, _pendingIpv6Accept);
-            if (first == _pendingAccept) {
-                _pendingAccept = null;
-            } else {
-                _pendingIpv6Accept = null;
-            }
-            return await first;
         }
+
+        private static void StartThread(ThreadStart work) => new Thread(work) { IsBackground = true }.Start();
 
         public void Dispose() {
-            _disposed = true;
+            _stopped.Cancel();
             _listener.Stop();
             _ipv6Listener?.Stop();
-            Observe(_pendingAccept);
-            Observe(_pendingIpv6Accept);
-        }
-
-        private static void Observe(Task? pending) {
-            pending?.ContinueWith(static task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
+            _accepted.CompleteAdding();
+            while (_accepted.TryTake(out TcpClient? unanswered)) unanswered.Dispose();
         }
     }
 }

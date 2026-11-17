@@ -948,7 +948,8 @@ public sealed class PdfConversionScenarioManifestTests {
         string text = chunk.Markdown ?? chunk.Text;
         Assert.Contains("Reader Degradation Corpus", text, StringComparison.Ordinal);
         Assert.Contains("Accepted degradation marker", text, StringComparison.Ordinal);
-        Assert.Contains("Form and active-content marker", text, StringComparison.Ordinal);
+        // The review link covers this line, so the default Reader profile writes it as a Markdown link on that text.
+        Assert.Contains("[Form and active-content marker](https://example.com/reader-degradation)", text, StringComparison.Ordinal);
         Assert.DoesNotContain("app.alert", text, StringComparison.Ordinal);
         Assert.Contains(logical.GetLinksByUri("https://example.com/reader-degradation"), link => link.Contents == "Review link");
         Assert.NotNull(chunk.FormFields);

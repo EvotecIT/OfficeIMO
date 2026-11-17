@@ -1,4 +1,13 @@
 {
+  "documentation_only": [
+    "Build/LibraryComparisonBenchmarks.md",
+    "Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/linux/html-corpus-acceptance.md",
+    "Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/macos/html-corpus-acceptance.md",
+    "Build/Project/Evidence/2026-09-16/html-h4-visual-acceptance/windows/html-corpus-acceptance.md",
+    "Docs/ROADMAP.md",
+    "Docs/building-and-releasing.md",
+    "Docs/officeimo.html-engine-design.md"
+  ],
   "website_inputs": [
     "Website/**",
     "OfficeIMO.JavaScript/**",

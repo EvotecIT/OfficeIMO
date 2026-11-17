@@ -36,7 +36,10 @@ internal sealed class PdfTestPki : IDisposable {
     private readonly ConcurrentDictionary<string, AsymmetricKeyParameter> _signerKeys = new(StringComparer.OrdinalIgnoreCase);
     private readonly TcpListener _listener;
     private readonly CancellationTokenSource _stop = new();
-    private readonly Task _serverLoop;
+    private readonly Thread _serverThread;
+    private readonly object _clientGate = new();
+    private TcpClient? _activeClient;
+    private Exception? _serverError;
     private readonly bool _ocsp;
     private readonly bool _crl;
     private readonly bool _crlCoversOnlyAuthorities;
@@ -82,7 +85,9 @@ internal sealed class PdfTestPki : IDisposable {
         }
         Root = Load(_rootCertificate.GetEncoded());
         Tsa = ToPlatform(_tsaCertificate, _tsaKey);
-        _serverLoop = Task.Run(ServeAsync);
+        // The platform can synchronously fetch revocation data while worker threads are occupied.
+        _serverThread = new Thread(Serve) { IsBackground = true, Name = "OfficeIMO test PKI responder" };
+        _serverThread.Start();
     }
 
     internal DateTime Now { get; }
@@ -172,13 +177,21 @@ internal sealed class PdfTestPki : IDisposable {
     public void Dispose() {
         _stop.Cancel();
         _listener.Stop();
-        try {
-            _serverLoop.Wait(TimeSpan.FromSeconds(5));
-        } catch (AggregateException) {
+        lock (_clientGate) {
+            _activeClient?.Dispose();
         }
-        _stop.Dispose();
-        Root.Dispose();
-        Tsa.Dispose();
+        try {
+            if (!_serverThread.Join(TimeSpan.FromSeconds(5))) {
+                throw new TimeoutException("The test PKI responder did not stop.");
+            }
+            if (_serverError is not null) {
+                throw new InvalidOperationException("The test PKI responder failed.", _serverError);
+            }
+        } finally {
+            _stop.Dispose();
+            Root.Dispose();
+            Tsa.Dispose();
+        }
     }
 
     private BcCertificate IssueLeaf(string subject, AsymmetricKeyParameter publicKey, DateTime notBefore, DateTime notAfter,
@@ -263,25 +276,46 @@ internal sealed class PdfTestPki : IDisposable {
         return responses.Generate(new TimeStampRequest(request), BigInteger.ValueOf(Interlocked.Increment(ref _serial)), generationTime).GetEncoded();
     }
 
-    private async Task ServeAsync() {
-        while (!_stop.IsCancellationRequested) {
-            TcpClient client;
-            try {
-                client = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
-            } catch (Exception) when (_stop.IsCancellationRequested) {
-                return;
-            } catch (ObjectDisposedException) {
-                return;
+    private void Serve() {
+        try {
+            while (!_stop.IsCancellationRequested) {
+                TcpClient client;
+                try {
+                    client = _listener.AcceptTcpClient();
+                } catch (Exception) when (_stop.IsCancellationRequested) {
+                    return;
+                }
+                lock (_clientGate) {
+                    if (_stop.IsCancellationRequested) {
+                        client.Dispose();
+                        return;
+                    }
+                    _activeClient = client;
+                }
+                try {
+                    Handle(client);
+                } finally {
+                    lock (_clientGate) {
+                        _activeClient = null;
+                    }
+                }
             }
-            _ = Task.Run(() => HandleAsync(client));
+        } catch (Exception error) {
+            _serverError ??= error;
         }
     }
 
-    private async Task HandleAsync(TcpClient client) {
+    private void Handle(TcpClient client) {
         using (client) {
             try {
-                NetworkStream stream = client.GetStream();
-                (string method, string path, byte[] body) = await ReadRequestAsync(stream).ConfigureAwait(false);
+                NetworkStream stream;
+                lock (_clientGate) {
+                    if (_stop.IsCancellationRequested) {
+                        return;
+                    }
+                    stream = client.GetStream();
+                }
+                (string method, string path, byte[] body) = ReadRequest(stream);
                 byte[] response;
                 string contentType;
                 if (method == "POST" && path == "/ocsp") {
@@ -293,22 +327,25 @@ internal sealed class PdfTestPki : IDisposable {
                     response = CreateCrl();
                     contentType = "application/pkix-crl";
                 } else {
-                    await WriteAsync(stream, "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", Array.Empty<byte>()).ConfigureAwait(false);
+                    Write(stream, "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", Array.Empty<byte>());
                     return;
                 }
-                await WriteAsync(stream, "HTTP/1.1 200 OK\r\nContent-Type: " + contentType + "\r\nContent-Length: " + response.Length +
-                    "\r\nConnection: close\r\n\r\n", response).ConfigureAwait(false);
+                Write(stream, "HTTP/1.1 200 OK\r\nContent-Type: " + contentType + "\r\nContent-Length: " + response.Length +
+                    "\r\nConnection: close\r\n\r\n", response);
             } catch (IOException) {
             } catch (SocketException) {
+            } catch (ObjectDisposedException) when (_stop.IsCancellationRequested) {
+            } catch (Exception error) {
+                _serverError ??= error;
             }
         }
     }
 
-    private static async Task<(string Method, string Path, byte[] Body)> ReadRequestAsync(NetworkStream stream) {
+    private static (string Method, string Path, byte[] Body) ReadRequest(NetworkStream stream) {
         var header = new List<byte>();
         var buffer = new byte[1];
         while (header.Count < 65536) {
-            if (await stream.ReadAsync(buffer, 0, 1).ConfigureAwait(false) == 0) break;
+            if (stream.Read(buffer, 0, 1) == 0) break;
             header.Add(buffer[0]);
             int count = header.Count;
             if (count >= 4 && header[count - 4] == '\r' && header[count - 3] == '\n' && header[count - 2] == '\r' && header[count - 1] == '\n') break;
@@ -324,18 +361,18 @@ internal sealed class PdfTestPki : IDisposable {
         var body = new byte[length];
         int read = 0;
         while (read < length) {
-            int chunk = await stream.ReadAsync(body, read, length - read).ConfigureAwait(false);
+            int chunk = stream.Read(body, read, length - read);
             if (chunk == 0) break;
             read += chunk;
         }
         return (requestLine[0], requestLine[1], body);
     }
 
-    private static async Task WriteAsync(NetworkStream stream, string head, byte[] body) {
+    private static void Write(NetworkStream stream, string head, byte[] body) {
         byte[] headBytes = Encoding.ASCII.GetBytes(head);
-        await stream.WriteAsync(headBytes, 0, headBytes.Length).ConfigureAwait(false);
-        await stream.WriteAsync(body, 0, body.Length).ConfigureAwait(false);
-        await stream.FlushAsync().ConfigureAwait(false);
+        stream.Write(headBytes, 0, headBytes.Length);
+        stream.Write(body, 0, body.Length);
+        stream.Flush();
     }
 
     private static AsymmetricCipherKeyPair CreateKey() {
