@@ -218,6 +218,22 @@ public sealed class PdfDrawingGlowTests {
         Assert.Equal(2, PdfDocument.Load(bytes).Reader.Images().Count);
     }
 
+    [Fact]
+    public void BlurredShadowMitersSharpCornersLikeTheVectorShape() {
+        // A 20 degree tip with a 10 pt stroke miters 29 pt past its vertex under PDF's implicit limit of ten,
+        // while the model's default limit of four would bevel it.
+        OfficeShape triangle = OfficeShape.Polygon(new OfficePoint(0D, 0D), new OfficePoint(100D, 17.63D), new OfficePoint(0D, 35.26D));
+        triangle.FillColor = OfficeColor.White;
+        triangle.StrokeColor = OfficeColor.Black;
+        triangle.StrokeWidth = 10D;
+        triangle.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 0D, 80D, 1D);
+        byte[] bytes = PdfDocument.Create(PageOptions(200D, 160D))
+            .Drawing(new OfficeDrawing(200D, 160D).AddShape(triangle, 20D, 20D)).ToBytes();
+
+        OfficeColor tip = ReadRaster(bytes).GetPixel(135, 117);
+        Assert.True(tip.R < 64, $"Expected the shadow's mitered tip, found {tip}.");
+    }
+
     private static PdfCreateOptions PageOptions(double width, double height) => new() {
         PageSetup = {
             Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),

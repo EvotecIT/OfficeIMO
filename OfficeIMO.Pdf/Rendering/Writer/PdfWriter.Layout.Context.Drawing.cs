@@ -47,7 +47,14 @@ internal static partial class PdfWriter {
         private void DrawShapeShadowAt(OfficeIMO.Drawing.OfficeShape shape, double xShape, double bottomY) {
             var shadow = shape.Shadow;
             if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) return;
-            OfficeBlurredShapeEffect? softShadow = OfficeBlurredShapeEffect.CreateShadow(shape);
+            // The silhouette miters like the vector shape, whose compact painter keeps PDF's implicit limit of ten.
+            double miterLimit = PdfPaintMiterLimit(shape);
+            OfficeIMO.Drawing.OfficeShape shadowSource = shape;
+            if (miterLimit != shape.StrokeMiterLimit) {
+                shadowSource = shape.Clone();
+                shadowSource.StrokeMiterLimit = miterLimit;
+            }
+            OfficeBlurredShapeEffect? softShadow = OfficeBlurredShapeEffect.CreateShadow(shadowSource);
             if (softShadow != null) {
                 DrawBlurredShapeEffectAt(softShadow, xShape, bottomY, shape.Height);
                 return;
