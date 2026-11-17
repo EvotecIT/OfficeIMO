@@ -523,6 +523,7 @@ def read_xlsx(path: str) -> Document:
     return doc
 
 
+_DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 _MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
                 "November", "December"]
 
@@ -544,14 +545,26 @@ def _format_date(serial: float, code: str) -> str:
         day = dt.date(1899, 12, 30) + dt.timedelta(days=math.floor(serial))
     except OverflowError:
         return str(serial)
-    section = re.sub(r'\[[^\]]*\]|"[^"]*"|\\|_.|\*.', "", code.split(";")[0])
-    if not re.search(r"[dmyhs]", section, re.I):
+    # Quoted text and escaped characters are literals; [colour], _x padding and *x fill are not displayed text.
+    tokens: list[str] = []
+    kinds: list[str] = []
+    for part in re.findall(r'"[^"]*"|\\.|\[[^\]]*\]|_.|\*.|AM/PM|A/P|y+|m+|d+|h+|s+|.', code.split(";")[0], re.I):
+        if part[0] in "[_*":
+            continue
+        if part[0] == '"':
+            tokens.append(part[1:-1])
+            kinds.append("")
+        elif part[0] == "\\":
+            tokens.append(part[1:])
+            kinds.append("")
+        else:
+            tokens.append(part)
+            kinds.append(part[0].lower() if re.fullmatch(r"[ymdhs]+", part, re.I) else "")
+    if not any(kinds):
         return day.isoformat()
     seconds = min(86399, round((serial - math.floor(serial)) * 86400))
     hour, minute, second = seconds // 3600, seconds // 60 % 60, seconds % 60
-    tokens = re.findall(r"AM/PM|A/P|y+|m+|d+|h+|s+|[^ymdhsAa]+|[Aa]", section, re.I)
     twelve = any(t.upper() in ("AM/PM", "A/P") for t in tokens)
-    kinds = [t[0].lower() if re.fullmatch(r"[ymdhs]+", t, re.I) else "" for t in tokens]
     out = []
     for i, token in enumerate(tokens):
         low = token.lower()
@@ -575,7 +588,8 @@ def _format_date(serial: float, code: str) -> str:
             out.append(_MONTH_NAMES[day.month - 1] if len(low) == 4 else _MONTH_NAMES[day.month - 1][:3] if len(low) == 3
                        else f"{day.month:02d}" if len(low) == 2 else str(day.month))
         elif kinds[i] == "d":
-            out.append(f"{day.day:02d}" if len(low) == 2 else str(day.day) if len(low) == 1 else day.strftime("%a"))
+            out.append(f"{day.day:02d}" if len(low) == 2 else str(day.day) if len(low) == 1
+                       else _DAY_NAMES[day.weekday()] if len(low) >= 4 else _DAY_NAMES[day.weekday()][:3])
         else:
             out.append(token)
     return "".join(out).strip()

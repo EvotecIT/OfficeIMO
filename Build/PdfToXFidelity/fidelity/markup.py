@@ -54,6 +54,16 @@ class _HtmlReader(HTMLParser):
     def _state(self) -> dict:
         return self.stack[-1][1] if self.stack else {"b": False, "i": False, "size": None}
 
+    def _in_list_item(self, skip_top: bool = False) -> bool:
+        """True when the nearest enclosing list, list item or table element is a list item."""
+        stack = self.stack[:-1] if skip_top and self.stack else self.stack
+        for tag, _ in reversed(stack):
+            if tag == "li":
+                return True
+            if tag in ("ul", "ol", "table", "td", "th"):
+                return False
+        return False
+
     def _flush(self):
         self.words.extend(join_segments(self.segments))
         self.segments = []
@@ -91,7 +101,10 @@ class _HtmlReader(HTMLParser):
             return
         if tag == "a" and a.get("href", "").lower().startswith(("http:", "https:", "mailto:", "ftp:")):
             self.doc.links.add(a["href"])
-        if tag in _BLOCK:
+        if tag in ("p", "div") and self._in_list_item():
+            # Paragraphs inside one list item stay one logical item; nested lists still start new items.
+            self.segments.append((" ", False, False, None))
+        elif tag in _BLOCK:
             self._flush()
         state = dict(self._state())
         props = {}
@@ -151,7 +164,9 @@ class _HtmlReader(HTMLParser):
             return
         if self.skip or tag in _VOID:
             return
-        if tag in _BLOCK:
+        if tag in ("p", "div") and self._in_list_item(skip_top=True):
+            self.segments.append((" ", False, False, None))
+        elif tag in _BLOCK:
             self._flush()
         if tag in ("td", "th") and self.tables:
             t = self.tables[-1]
@@ -353,6 +368,7 @@ def read_markdown(path: str) -> Document:
 
     refs, skip = _md_references(lines)
     item: list = []  # open list item: [level, ordered, lines]; wrapped lines continue it
+    footnote_open = False
 
     def flush_para():
         if item:
@@ -368,6 +384,17 @@ def read_markdown(path: str) -> Document:
         if i in skip:  # link reference definitions are not visible text
             i += 1
             continue
+        if footnote_open:
+            if not stripped:
+                i += 1
+                continue
+            if line[:1].isspace():
+                # Indented lines continue the open footnote definition.
+                more = " ".join(w.text for w in _md_inline(stripped, doc, refs))
+                doc.footnotes[-1] = (doc.footnotes[-1] + " " + more).strip()
+                i += 1
+                continue
+            footnote_open = False
         if stripped.startswith("<!--"):
             while i < len(lines) and "-->" not in lines[i]:
                 i += 1
@@ -436,6 +463,7 @@ def read_markdown(path: str) -> Document:
             flush_para()
             doc.footnotes.append(" ".join(w.text for w in _md_inline(m.group(2), doc, refs)))
             doc.footnotes_native = True
+            footnote_open = True
             i += 1
             continue
         m = re.match(r"^(\s*)([-*+•]|\d{1,3}[.)])\s+(.*)$", line)

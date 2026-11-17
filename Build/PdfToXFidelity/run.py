@@ -190,16 +190,30 @@ def cmd_officeimo(args) -> None:
         for path in stale:
             if os.path.exists(path):
                 os.remove(path)
-        try:
-            proc = subprocess.run(["dotnet", args.tool, "convert", e["pdf"], out, ",".join(targets)], timeout=args.timeout,
-                                  stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False)
-            status = "ok" if proc.returncode == 0 and os.path.exists(meta) else f"exit {proc.returncode}"
-        except subprocess.TimeoutExpired:
-            status = "timeout"
-        if status != "ok":
-            with open(meta, "w", encoding="utf-8") as f:
-                json.dump([{"target": t, "status": status} for t in targets], f)
-        return e["id"], status
+        # One process per target: each gets the full timeout, and a slow or hung target cannot discard the others.
+        results = []
+        for target in targets:
+            try:
+                proc = subprocess.run(["dotnet", args.tool, "convert", e["pdf"], out, target], timeout=args.timeout,
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False)
+                status = f"exit {proc.returncode}"
+                if proc.returncode == 0 and os.path.exists(meta):
+                    with open(meta, encoding="utf-8") as f:
+                        recorded = [r for r in json.load(f) if r.get("target") == target]
+                    if recorded:
+                        results.extend(recorded)
+                        continue
+                    status = "no result"
+            except subprocess.TimeoutExpired:
+                status = "timeout"
+            output = os.path.join(out, e["id"] + "." + target)
+            if os.path.exists(output):
+                os.remove(output)
+            results.append({"target": target, "status": status})
+        with open(meta, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=1)
+        failed = [r["target"] + ":" + str(r.get("status")) for r in results if r.get("status") != "ok"]
+        return e["id"], " ".join(failed) or "ok"
 
     with cf.ThreadPoolExecutor(args.parallel) as pool:
         for doc_id, status in pool.map(one, entries):

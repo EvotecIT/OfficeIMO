@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import math
 import re
 
 from .model import Block, Cell, Document, Table, norm_text, split_words
@@ -108,6 +109,42 @@ def parse_number(text: str) -> tuple[float, float] | None:
     if percent:
         value, tol = value / 100, tol / 100
     return (-value if negative else value), tol
+
+
+_TIME = re.compile(r"(?<!\d)(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([AaPp])\.?[Mm]\.?)?")
+
+
+def temporal_key(serial: float) -> tuple:
+    """How a source date/time is compared: by day, by time of day, or by both, to the minute."""
+    day = math.floor(serial)
+    minutes = round((serial - day) * 1440)
+    if minutes in (0, 1440):
+        return ("d", day + minutes // 1440)
+    return ("t", minutes) if day == 0 else ("dt", day * 1440 + minutes)
+
+
+def temporal_keys(serial: float) -> set:
+    """Every key a typed output value satisfies: its day, its time of day and both."""
+    return {temporal_key(serial), ("d", math.floor(serial)), ("t", round((serial - math.floor(serial)) * 1440) % 1440)}
+
+
+def parse_temporal_text(text: str) -> set:
+    """Keys for a displayed date, time or date-time such as "3/15/2023 12:00" or "6:00 PM"."""
+    value = norm_text(text)
+    m = _TIME.search(value)
+    minutes = None
+    if m:
+        hour = int(m.group(1))
+        if m.group(4):
+            hour = hour % 12 + (12 if m.group(4).lower() == "p" else 0)
+        minutes = hour * 60 + int(m.group(2))
+        value = (value[:m.start()] + value[m.end():]).strip(" ,T")
+    days = {math.floor(d) for d in parse_date(value)} if value else set()
+    keys = {("d", d) for d in days}
+    if minutes is not None:
+        keys.add(("t", minutes))
+        keys |= {("dt", d * 1440 + minutes) for d in days}
+    return keys
 
 
 def cell_value(cell: Cell) -> tuple[float, float] | None:

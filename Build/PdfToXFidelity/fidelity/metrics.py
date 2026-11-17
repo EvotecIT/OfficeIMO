@@ -7,7 +7,7 @@ from collections import Counter
 from difflib import SequenceMatcher
 
 from .model import Cell, Document, Table, norm_text, tokens
-from .sheets import cell_value, parse_date, parse_number
+from .sheets import cell_value, parse_date, parse_number, parse_temporal_text, temporal_key, temporal_keys
 
 NA = float("nan")
 
@@ -445,15 +445,16 @@ def sheet_metrics(gold: Document, out: Document) -> dict:
     if dates:
         typed_hits = any_hits = 0
         # Each output cell answers for one source date: typed date serials first, then dates read from text.
-        typed_serials = [math.floor(c.value) if c.kind == "date" and c.value is not None else None for c in out_cells]
-        text_serials = [{math.floor(d) for d in parse_date(c.text)} for c in out_cells]
+        # A source value with a time of day must keep that time (to the minute); a plain date compares by day.
+        typed_keys = [temporal_keys(c.value) if c.kind == "date" and c.value is not None else set() for c in out_cells]
+        text_keys = [parse_temporal_text(c.text) for c in out_cells]
         used_dates: set[int] = set()
         for g in dates[:2000]:
-            serial = math.floor(g.value)
-            hit = next((i for i, s in enumerate(typed_serials) if s == serial and i not in used_dates), None)
+            key = temporal_key(g.value)
+            hit = next((i for i, s in enumerate(typed_keys) if key in s and i not in used_dates), None)
             typed = hit is not None
             if hit is None:
-                hit = next((i for i, s in enumerate(text_serials) if serial in s and i not in used_dates), None)
+                hit = next((i for i, s in enumerate(text_keys) if key in s and i not in used_dates), None)
             if hit is not None:
                 used_dates.add(hit)
             typed_hits += typed
