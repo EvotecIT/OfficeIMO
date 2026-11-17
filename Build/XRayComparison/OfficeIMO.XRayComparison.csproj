@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Opt-in comparison runner. It stays outside OfficeIMO.slnx and every solution filter so the
+       X-Ray packages never enter OfficeIMO restore, build, CI or packages. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="X-Ray.Content" Version="[26.10.7292]" />
+    <PackageReference Include="X-Ray.Office" Version="[26.10.7092]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Reader.Word\OfficeIMO.Reader.Word.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Reader.PowerPoint\OfficeIMO.Reader.PowerPoint.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
+    <ProjectReference Include="..\..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
+  </ItemGroup>
+
+</Project>
