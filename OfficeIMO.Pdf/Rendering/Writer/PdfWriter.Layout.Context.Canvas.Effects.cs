@@ -11,13 +11,14 @@ internal static partial class PdfWriter {
             bool previousHidden = _diagnosticPaintHidden;
             _diagnosticPaintHidden |= item.Opacity <= 0D;
             try {
-                if (item.Opacity >= 1D && item.BlendMode == OfficeBlendMode.Normal) {
+                if (item.Opacity >= 1D && item.BlendMode == OfficeBlendMode.Normal && !item.Isolated) {
                     OfficeTransform transform = ConvertTopLeftCanvasTransform(item.Transform, currentOpts.PageHeight.ToPoints());
                     RenderOpaqueEffectGroupInline(transform, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
                     return;
                 }
 
-                RenderEffectGroup(item.Transform, item.Opacity, item.BlendMode, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)));
+                RenderEffectGroup(item.Transform, item.Opacity, item.BlendMode, () => RenderCanvasBlock(new PdfCanvasBlock(item.Items)),
+                    forceForm: item.Isolated);
             } finally {
                 _diagnosticPaintHidden = previousHidden;
             }

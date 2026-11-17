@@ -256,7 +256,7 @@ internal static partial class PdfWriter {
             PdfCreateOptions frame = GetRunningFrameOptions(source, definition.DistanceFromEdge, 0D);
             using var measure = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
-                drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors);
+                drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors, svgForms: svgForms);
             measure.currentPage = currentPage;
             measure.width = width;
             measure.yStart = start;
@@ -291,7 +291,7 @@ internal static partial class PdfWriter {
                 hasNonFlowTablePaint ? 0D : Math.Max(0D, start - height - .001D));
             using var story = new LayoutContext(frame, cancellationToken: cancellationToken,
                 sharedPageContents: pageContents, isRunningContent: true,
-                drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors);
+                drawingPatternAnnotations: drawingPatternAnnotations, pictureAnchors: pictureAnchors, svgForms: svgForms);
             story.currentPage = currentPage;
             story.width = width;
             story.yStart = start;

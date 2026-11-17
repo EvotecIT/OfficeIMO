@@ -9,9 +9,9 @@ public partial class PdfFontFamilyTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void CoverageStableFallbackPreservesMissingPhysicalItalic(bool bold) {
+    public void FallbackSnapshotPreservesMissingPhysicalItalic(bool bold) {
         byte[] regular = File.ReadAllBytes(Assert.IsType<string>(PdfComplianceTestFonts.FindBundledTrueTypeFont()));
-        var family = new PdfEmbeddedFontFamily("Coverage Proof", regular).CreateCoverageStableFallbackSnapshot();
+        var family = new PdfEmbeddedFontFamily("Coverage Proof", regular).CreateFallbackSnapshot();
         var options = new PdfCreateOptions { CompressContentStreams = false }.RegisterNamedFontFamily(family);
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddText("Coverage italic").SetBold(bold).SetItalic().SetFontFamily(family.FamilyName)).ToBytes();
         Assert.Contains("1 0 0.333 1", Encoding.ASCII.GetString(bytes));

@@ -72,7 +72,7 @@ internal static class PdfStandardFontDictionaryBuilder {
         return sb.ToString();
     }
 
-    internal static string BuildEmbeddedType0FontObject(PdfTrueTypeFontProgram font, int descendantFontObjectId, int toUnicodeObjectId) {
+    internal static string BuildEmbeddedType0FontObject(PdfTrueTypeFontProgram font, int descendantFontObjectId, int toUnicodeObjectId, string? baseFontName = null) {
         Guard.NotNull(font, nameof(font));
         if (descendantFontObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(descendantFontObjectId), "PDF descendant font object number must be positive.");
@@ -84,7 +84,7 @@ internal static class PdfStandardFontDictionaryBuilder {
 
         return "<< /Type /" + PdfSyntaxEscaper.Name(FontType) +
             " /Subtype /" + PdfSyntaxEscaper.Name(Type0Subtype) +
-            " /BaseFont /" + PdfSyntaxEscaper.Name(font.SubsetFontName) +
+            " /BaseFont /" + PdfSyntaxEscaper.Name(baseFontName ?? font.SubsetFontName) +
             " /Encoding /Identity-H" +
             " /DescendantFonts [ " + PdfSyntaxEscaper.IndirectReference(descendantFontObjectId) + " ]" +
             " /ToUnicode " + PdfSyntaxEscaper.IndirectReference(toUnicodeObjectId) +
@@ -110,7 +110,7 @@ internal static class PdfStandardFontDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildCidFontType2DescendantObject(PdfTrueTypeFontProgram font, int descriptorObjectId, int cidToGlyphMapObjectId = 0) {
+    internal static string BuildCidFontType2DescendantObject(PdfTrueTypeFontProgram font, int descriptorObjectId, int cidToGlyphMapObjectId = 0, string? baseFontName = null) {
         Guard.NotNull(font, nameof(font));
         if (descriptorObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(descriptorObjectId), "PDF font descriptor object number must be positive.");
@@ -122,7 +122,7 @@ internal static class PdfStandardFontDictionaryBuilder {
         var sb = new StringBuilder();
         sb.Append("<< /Type /").Append(PdfSyntaxEscaper.Name(FontType))
             .Append(" /Subtype /").Append(PdfSyntaxEscaper.Name(CidFontType2Subtype))
-            .Append(" /BaseFont /").Append(PdfSyntaxEscaper.Name(font.SubsetFontName))
+            .Append(" /BaseFont /").Append(PdfSyntaxEscaper.Name(baseFontName ?? font.SubsetFontName))
             .Append(" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>")
             .Append(" /FontDescriptor ").Append(PdfSyntaxEscaper.IndirectReference(descriptorObjectId))
             .Append(" /DW 500 /W [");
@@ -251,13 +251,13 @@ internal static class PdfStandardFontDictionaryBuilder {
         }
     }
 
-    internal static string BuildTrueTypeFontDescriptorObject(PdfTrueTypeFontProgram font, int fontFileObjectId) {
+    internal static string BuildTrueTypeFontDescriptorObject(PdfTrueTypeFontProgram font, int fontFileObjectId, string? fontName = null) {
         Guard.NotNull(font, nameof(font));
         if (fontFileObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(fontFileObjectId), "PDF embedded font file object number must be positive.");
         }
 
-        return "<< /Type /FontDescriptor /FontName /" + PdfSyntaxEscaper.Name(font.SubsetFontName) +
+        return "<< /Type /FontDescriptor /FontName /" + PdfSyntaxEscaper.Name(fontName ?? font.SubsetFontName) +
             " /Flags " + font.Flags.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " /FontBBox [" + string.Join(" ", font.FontBBox.Select(value => value.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]" +
             " /ItalicAngle " + font.ItalicAngle.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +

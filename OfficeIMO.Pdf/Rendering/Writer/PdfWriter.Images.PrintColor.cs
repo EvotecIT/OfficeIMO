@@ -134,7 +134,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        image.Data = DeflateZlib(cmykRows);
+        image.Data = DeflateZlib(FilterPngScanlines(cmykRows, raster.Width * 4, raster.Height, 4, cancellationToken));
         image.PixelWidth = raster.Width;
         image.PixelHeight = raster.Height;
         image.BitsPerComponent = 8;
@@ -143,7 +143,7 @@ internal static partial class PdfWriter {
         image.DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceCMYK", 4, raster.Width);
         image.SoftMask = hasTransparency && alphaRows != null
             ? new PdfImageStream {
-                Data = DeflateZlib(alphaRows),
+                Data = DeflateZlib(FilterPngScanlines(alphaRows, raster.Width, raster.Height, 1, cancellationToken)),
                 PixelWidth = raster.Width,
                 PixelHeight = raster.Height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, raster.Width)

@@ -50,16 +50,19 @@ namespace OfficeIMO.Excel.Pdf {
             var images = new List<WorksheetImageExportData>();
             foreach (ExcelImage image in workbookSheet.Images.OrderBy(image => image.RowIndex).ThenBy(image => image.ColumnIndex)) {
                 string contentType = image.ContentType;
-                byte[] bytes;
-                // The PDF image writer does not take SVG pictures; their raster fallback carries the same appearance.
-                if (!IsPdfSupportedImageContentType(contentType) && image.TryGetRasterFallback(out byte[] fallback, out string fallbackType)) {
-                    bytes = fallback;
-                    contentType = fallbackType;
-                } else {
-                    bytes = image.ToBytes();
+                byte[] bytes = image.ToBytes();
+                byte[]? vectorBytes = null;
+                // An SVG picture is drawn as vectors; one the PDF writer cannot draw exports its raster fallback.
+                if (OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Svg) {
+                    if (bytes.Length > 0 && PdfCore.PdfDocument.TryPrepareImageKeepingSvg(bytes, default, out byte[] svg, out _, out _)) {
+                        vectorBytes = svg;
+                    } else if (image.TryGetRasterFallback(out byte[] fallback, out string fallbackType)) {
+                        bytes = fallback;
+                        contentType = fallbackType;
+                    }
                 }
 
-                if (!IsPdfSupportedImageContentType(contentType)) {
+                if (vectorBytes == null && !IsPdfSupportedImageContentType(contentType)) {
                     AddWarning(
                         options,
                         sheetName,
@@ -77,7 +80,9 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                if (!TryPreparePdfImageBytes(bytes, contentType, out byte[] preparedBytes, out string? unsupportedReason)) {
+                byte[] preparedBytes = vectorBytes ?? Array.Empty<byte>();
+                string? unsupportedReason = null;
+                if (vectorBytes == null && !TryPreparePdfImageBytes(bytes, contentType, out preparedBytes, out unsupportedReason)) {
                     AddWarning(
                         options,
                         sheetName,

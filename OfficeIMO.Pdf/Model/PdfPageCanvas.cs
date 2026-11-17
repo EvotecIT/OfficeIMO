@@ -349,7 +349,8 @@ public sealed partial class PdfPageCanvas {
             linkUri,
             linkContents,
             useDataSnapshot: true,
-            preparedStream: imageResource.PreparedStream), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder, logicalOrder));
+            preparedStream: imageResource.PreparedStream,
+            svgDrawing: imageResource.SvgDrawing), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder, logicalOrder));
         return this;
     }
 
@@ -483,6 +484,21 @@ public sealed partial class PdfPageCanvas {
     public PdfPageCanvas WithBlendMode(OfficeBlendMode blendMode, Action<PdfPageCanvas> build) =>
         Effect(OfficeTransform.Identity, 1D, blendMode, build);
 
+    /// <summary>
+    /// Adds nested content as one isolated transparency group, so blend modes inside it
+    /// composite with the group's own paint rather than with the page underneath.
+    /// </summary>
+    internal PdfPageCanvas IsolatedGroup(Action<PdfPageCanvas> build) {
+        Guard.NotNull(build, nameof(build));
+        var nestedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(nestedCanvas);
+        if (ContainsInteractiveFormContent(nestedCanvas.Items)) {
+            throw new ArgumentException("Interactive form fields cannot be placed inside an isolated transparency group.", nameof(build));
+        }
+        _items.Add(new PdfCanvasEffectItem(nestedCanvas.Items, OfficeTransform.Identity, 1D, OfficeBlendMode.Normal) { Isolated = true });
+        return this;
+    }
+
     private static bool ContainsInteractiveFormContent(IReadOnlyList<PdfCanvasItem> items) {
         foreach (PdfCanvasItem item in items) {
             if (item is PdfCanvasFormFieldItem) return true;
@@ -589,22 +605,19 @@ internal sealed class PdfCanvasImageResource {
         Bytes = prepared.Data;
         Info = prepared.Info;
         PreparedStream = prepared.PreparedStream;
+        SvgDrawing = prepared.SvgDrawing;
     }
 
     internal byte[] Bytes { get; }
     internal OfficeImageInfo Info { get; }
     internal PdfWriter.PdfImageStream? PreparedStream { get; }
+    internal OfficeDrawing? SvgDrawing { get; }
 
     internal static PdfCanvasImageResource Create(byte[] bytes) {
         Guard.NotNullOrEmpty(bytes, nameof(bytes));
         // Canvas SVG images use the same vector writer as Drawing images. They
         // must not pass through the raster-only PDF image-stream preparer.
-        if (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) && info.Format == OfficeImageFormat.Svg) {
-            byte[] snapshot = (byte[])bytes.Clone();
-            PdfSvgImageReader.Read(snapshot);
-            return Create(new PdfDocument.PreparedImage(snapshot, info, OfficeImageFormat.Svg, wasTranscoded: false));
-        }
-        return Create(PdfDocument.PrepareImageBytes(bytes));
+        return Create(PdfDocument.PrepareImageKeepingSvg(bytes));
     }
 
     internal static PdfCanvasImageResource Create(PdfDocument.PreparedImage prepared) => new(prepared);
@@ -907,4 +920,7 @@ internal sealed class PdfCanvasEffectItem : PdfCanvasItem {
     public OfficeTransform Transform { get; }
     public double Opacity { get; }
     public OfficeBlendMode BlendMode { get; }
+
+    /// <summary>Whether the content is written as its own isolated group even when opaque and unblended.</summary>
+    internal bool Isolated { get; init; }
 }

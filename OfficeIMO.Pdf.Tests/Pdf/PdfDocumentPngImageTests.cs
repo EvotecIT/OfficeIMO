@@ -219,7 +219,9 @@ public class PdfDocumentPngImageTests {
         Assert.Equal("png", image.FileExtension);
         Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
         Assert.Equal(0, PdfPngTestImages.ReadPngInterlaceMethod(image.Bytes));
-        Assert.Equal(PdfPngTestImages.CreateInterlacedRgbExpectedScanlines(), PdfPngTestImages.DecodePngIdat(image.Bytes));
+        byte[] expectedScanlines = PdfPngTestImages.CreateInterlacedRgbExpectedScanlines();
+        byte[] expectedRgb = Enumerable.Range(0, 8).SelectMany(row => expectedScanlines.Skip(row * 25 + 1).Take(24)).ToArray();
+        Assert.Equal(expectedRgb, PdfPngTestImages.DecodeRgb(image.Bytes));
     }
 
     [Fact]
@@ -434,6 +436,46 @@ public class PdfDocumentPngImageTests {
         Assert.Equal(new byte[] { 0, 18, 128, 255, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void Image_WithContinuousToneRgbaPng_PredictsRowsAndKeepsPixels() {
+        const int width = 64, height = 48;
+        var rgba = new byte[width * height * 4];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int offset = (y * width + x) * 4;
+                rgba[offset] = (byte)(x * 4);
+                rgba[offset + 1] = (byte)(y * 5);
+                rgba[offset + 2] = (byte)((x + y) * 2);
+                rgba[offset + 3] = (byte)(40 + x * 2 + y * 3);
+            }
+        }
+
+        byte[] bytes = PdfDocument.Create()
+            .Image(OfficePngWriter.EncodeRgba(width, height, rgba), 64, 48)
+            .ToBytes();
+
+        // Both the color stream and its soft mask declare the PNG predictor, so their rows must use it.
+        var imageStreams = GetImageStreams(bytes);
+        Assert.Equal(2, imageStreams.Count);
+        foreach (PdfStream imageStream in imageStreams) {
+            byte[] scanlines = Inflate(imageStream.Data);
+            int rowLength = scanlines.Length / height;
+            Assert.Contains(Enumerable.Range(0, height), row => scanlines[row * rowLength] != 0);
+        }
+
+        var image = Assert.Single(PdfImageExtractor.ExtractImages(bytes));
+        Assert.True(OfficePngReader.TryDecode(image.Bytes, out OfficeRasterImage? decoded));
+        Assert.Equal(rgba, decoded!.GetPixels());
+    }
+
+    private static byte[] Inflate(byte[] zlib) {
+        using var source = new MemoryStream(zlib, 2, zlib.Length - 6);
+        using var deflate = new System.IO.Compression.DeflateStream(source, System.IO.Compression.CompressionMode.Decompress);
+        using var decoded = new MemoryStream();
+        deflate.CopyTo(decoded);
+        return decoded.ToArray();
     }
 
     private static List<PdfStream> GetImageStreams(byte[] bytes) {

@@ -3647,4 +3647,25 @@ Option 2</value>
   <data name="Conversion.SavedJob.ChooseOutput" xml:space="preserve"><value>Choose the PDF output folder on the left.</value></data>
   <data name="Conversion.SavedJob.NoCheckpoints" xml:space="preserve"><value>No checkpoints; each run follows the saved conflict policy.</value></data>
   <data name="Conversion.BatchExport.StoppedResult" xml:space="preserve"><value>Stopped: {0} completed, {1} reused, {2} failed, {3} skipped. Completed outputs remain available.</value></data>
+  <data name="Home.Gallery.Title" xml:space="preserve"><value>What Studio can do</value></data>
+  <data name="Home.Gallery.Description" xml:space="preserve"><value>Choose a tool to start. Tools that work on a document ask you to open a PDF first.</value></data>
+  <data name="Home.Gallery.OpensPdfFirst" xml:space="preserve"><value>Opens a PDF first</value></data>
+  <data name="Home.Gallery.Read" xml:space="preserve"><value>Read and find</value></data>
+  <data name="Home.Gallery.Markup" xml:space="preserve"><value>Mark up and review</value></data>
+  <data name="Home.Gallery.Pages" xml:space="preserve"><value>Organize pages</value></data>
+  <data name="Home.Gallery.Edit" xml:space="preserve"><value>Edit content</value></data>
+  <data name="Home.Gallery.Forms" xml:space="preserve"><value>Forms</value></data>
+  <data name="Home.Gallery.Scan" xml:space="preserve"><value>Scan and recognize text</value></data>
+  <data name="Home.Gallery.Convert" xml:space="preserve"><value>Convert</value></data>
+  <data name="Home.Gallery.Security" xml:space="preserve"><value>Protect and sign</value></data>
+  <data name="Home.Gallery.Output" xml:space="preserve"><value>Print and automate</value></data>
+  <data name="Home.Gallery.Workbenches" xml:space="preserve"><value>Workbenches for larger jobs</value></data>
+  <data name="Commands.InsertBlankPage.Title" xml:space="preserve"><value>Insert a blank page</value></data>
+  <data name="Commands.InsertBlankPage.Description" xml:space="preserve"><value>Add an empty page after the current page.</value></data>
+  <data name="Commands.Jobs.Title" xml:space="preserve"><value>Jobs</value></data>
+  <data name="Commands.Jobs.Description" xml:space="preserve"><value>Follow active work, saved folder jobs and their results.</value></data>
+  <data name="Commands.PublishBook.Title" xml:space="preserve"><value>Publish a book</value></data>
+  <data name="Commands.PublishBook.Description" xml:space="preserve"><value>Import manuscripts, organize chapters, review and export an EPUB book.</value></data>
+  <data name="Commands.Provenance.Title" xml:space="preserve"><value>File origin and text integrity</value></data>
+  <data name="Commands.Provenance.Description" xml:space="preserve"><value>Assess supported origin records and Unicode findings, review selected carrier removal, and export a report.</value></data>
 </root>

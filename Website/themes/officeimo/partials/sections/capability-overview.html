@@ -1,0 +1,71 @@
+{{~ overview = data.capability_overview ~}}
+{{~ if overview ~}}
+{{~ visible = 4 ~}}
+<section class="imo-container imo-capabilities" aria-labelledby="capabilities-title">
+  <header class="imo-capabilities__intro">
+    <p class="imo-application-eyebrow">Capability overview</p>
+    <h1 id="capabilities-title">What you can do, and where</h1>
+    <p>Each row is a document job. Each column is a way to run it: in your own .NET code, in PowerShell, from the command line or an AI agent, or in Studio. Names link to their guides and reference pages.</p>
+    <ul class="imo-capabilities__totals" aria-label="Totals">
+      <li><b>{{ overview.summary.packageCount }}</b> .NET packages</li>
+      <li><b>{{ overview.summary.commandCount }}</b> PowerShell commands</li>
+      <li><b>{{ overview.summary.toolCount }}</b> MCP tools</li>
+      <li><b>{{ overview.summary.routeCount }}</b> conversion routes</li>
+      <li><b>{{ overview.summary.studioFeatures }}</b> Studio features</li>
+    </ul>
+    <nav class="imo-capabilities__jump" aria-label="Jobs">
+      {{~ for job in overview.jobs ~}}<a href="#job-{{ job.id }}">{{ job.title }}</a>{{~ end ~}}
+    </nav>
+  </header>
+
+  <div class="imo-capabilities__grid" role="table" aria-label="Document jobs by surface">
+    <div class="imo-capabilities__head" role="row">
+      <span role="columnheader">Job</span>
+      {{~ for surface in overview.surfaces ~}}
+      <a role="columnheader" href="{{ surface.url }}" data-surface="{{ surface.id }}">{{ surface.label }}</a>
+      {{~ end ~}}
+    </div>
+    {{~ for job in overview.jobs ~}}
+    <article class="imo-capabilities__row" id="job-{{ job.id }}" role="row" aria-labelledby="job-{{ job.id }}-title">
+      <div class="imo-capabilities__job" role="rowheader">
+        <span class="imo-capabilities__index" aria-hidden="true">{{ for.index + 1 | math.format "00" }}</span>
+        <h2 id="job-{{ job.id }}-title">{{ job.title }}</h2>
+        <p>{{ job.summary }}</p>
+      </div>
+      {{~ for surface in overview.surfaces ~}}
+      {{~ cell = job.cells[surface.id] ~}}
+      <div class="imo-capabilities__cell" role="cell" data-surface="{{ surface.id }}" data-empty="{{ cell.items.size == 0 }}">
+        <p class="imo-capabilities__surface">{{ surface.label }}</p>
+        {{~ if cell.platforms ~}}
+        <ul class="imo-capabilities__platforms" aria-label="Studio on each system">
+          {{~ for platform in cell.platforms ~}}
+          <li data-state="{{ platform.state }}" title="{{ platform.label }}: {{ platform.stateLabel }}"><span aria-hidden="true">{{ platform.short }}</span><span class="imo-visually-hidden">{{ platform.label }}: {{ if platform.state == "not-applicable" }}not part of the app{{ else }}{{ platform.stateLabel }}{{ end }}</span></li>
+          {{~ end ~}}
+        </ul>
+        {{~ end ~}}
+        {{~ if cell.extra != "" ~}}<p class="imo-capabilities__extra">{{ cell.extra }}</p>{{~ end ~}}
+        {{~ if cell.items.size > 0 ~}}
+        <ul class="imo-capabilities__items">
+          {{~ for item in cell.items limit:visible ~}}
+          <li><a href="{{ item.url }}">{{ item.label | html.escape | string.replace "_" "_<wbr>" | string.replace "." ".<wbr>" | string.replace "-" "-<wbr>" }}<span class="imo-visually-hidden"> ({{ surface.label }})</span></a></li>
+          {{~ end ~}}
+        </ul>
+        {{~ if cell.items.size > visible ~}}
+        <details class="imo-capabilities__more"><summary>{{ cell.items.size - visible }} more<span class="imo-visually-hidden"> for {{ job.title | string.downcase }} with {{ surface.label }}</span></summary><ul class="imo-capabilities__items">
+          {{~ for item in cell.items offset:visible ~}}
+          <li><a href="{{ item.url }}">{{ item.label | html.escape | string.replace "_" "_<wbr>" | string.replace "." ".<wbr>" | string.replace "-" "-<wbr>" }}<span class="imo-visually-hidden"> ({{ surface.label }})</span></a></li>
+          {{~ end ~}}
+        </ul></details>
+        {{~ end ~}}
+        <a class="imo-capabilities__guide" href="{{ cell.guide }}">Guide<span class="imo-visually-hidden"> to {{ job.title | string.downcase }} with {{ surface.label }}</span> <span aria-hidden="true">→</span></a>
+        {{~ else ~}}
+        <p class="imo-capabilities__none">Not offered here</p>
+        {{~ end ~}}
+      </div>
+      {{~ end ~}}
+    </article>
+    {{~ end ~}}
+  </div>
+  <p class="imo-capabilities__key">Studio systems: <span data-state="available">available</span> <span data-state="partial">partial</span> <span data-state="planned">planned</span> <span data-state="not-applicable">not in the app</span>&nbsp;· Each system's details are in the <a href="/studio/#features">Studio feature matrix</a>.</p>
+</section>
+{{~ end ~}}

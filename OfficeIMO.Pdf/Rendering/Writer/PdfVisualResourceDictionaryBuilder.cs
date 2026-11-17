@@ -12,6 +12,7 @@ internal static partial class PdfVisualResourceDictionaryBuilder {
     private const int MinimumGradientSubdivisionDepth = 2;
     private const int MaximumGradientSubdivisionDepth = 8;
     private const double GradientTransformTolerance = 1D / 1024D;
+    private const double MinimumGradientSubdivisionSpan = 1D / 65536D;
 
     internal static string BuildExtGStateObject(
         double fillOpacity,
@@ -216,8 +217,10 @@ internal static partial class PdfVisualResourceDictionaryBuilder {
         // Once a midpoint rounds to an endpoint, no distinct PDF boundary can
         // represent another subdivision of this floating-point interval.
         bool canSubdivide = middleOffset > firstOffset && middleOffset < lastOffset;
+        // A hard stop's transition interval is far narrower than a device pixel. Splitting it only
+        // adds near-coincident bounds, so its color error is left to the single endpoint segment.
         bool needsSubdivision = canSubdivide && ((printColorTransform != null && depth < MinimumGradientSubdivisionDepth) ||
-            (depth < MaximumGradientSubdivisionDepth &&
+            (depth < MaximumGradientSubdivisionDepth && lastOffset - firstOffset > MinimumGradientSubdivisionSpan &&
              MaximumMidpointError(startComponents, middleComponents, endComponents) > GradientTransformTolerance));
         if (!needsSubdivision) {
             AddTransformedGradientSample(

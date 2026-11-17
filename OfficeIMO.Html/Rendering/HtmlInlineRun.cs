@@ -165,9 +165,11 @@ internal sealed class HtmlInlineRun {
     internal bool EndsFirstLine { get; set; }
     internal string FirstLineHyphen { get; set; } = string.Empty;
 
-    internal void CompleteTextTransform(string text) {
+    internal void CompleteTextTransform(string text) => CompleteTextTransform(text, text);
+
+    internal void CompleteTextTransform(string text, string logicalText) {
         Text = text;
-        LogicalText = text;
+        LogicalText = logicalText;
         TextTransformPending = false;
     }
 

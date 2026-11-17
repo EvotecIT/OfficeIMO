@@ -78,6 +78,11 @@ internal static partial class PdfWriter {
             CopyBytesWithCancellation(fullRows, sourceRow, normalizedRows, targetRow + 1, fullRowBytes, cancellationToken);
         }
 
+        // Indexed and sub-byte samples compress best unfiltered, as the PNG specification recommends.
+        if (colorType != 3 && bitDepth >= 8) {
+            FilterPngScanlines(normalizedRows, fullRowBytes, height, bitsPerPixel / 8, cancellationToken);
+        }
+
         normalizedCompressedData = DeflateZlib(normalizedRows, cancellationToken);
         return true;
     }

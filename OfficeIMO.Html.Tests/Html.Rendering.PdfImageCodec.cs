@@ -94,8 +94,10 @@ public sealed partial class HtmlRenderingTests {
     private static string ImageHtml(string contentType, string base64, bool drawingEffect) {
         string src = "data:" + contentType + ";base64," + base64;
         if (!drawingEffect) return "<img src='" + src + "'>";
+        // An SVG luminance mask has no native PDF drawing equivalent, so the drawing is rasterized.
         string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'>"
-            + "<g style='mix-blend-mode:multiply'><image href='" + src + "' width='16' height='16'/></g></svg>";
+            + "<mask id='m' maskUnits='userSpaceOnUse' x='0' y='0' width='16' height='16'><rect width='16' height='16' fill='white'/></mask>"
+            + "<g mask='url(#m)'><image href='" + src + "' width='16' height='16'/></g></svg>";
         return "<img width='16' height='16' src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)) + "'>";
     }

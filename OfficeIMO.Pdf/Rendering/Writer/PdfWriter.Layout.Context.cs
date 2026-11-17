@@ -88,8 +88,10 @@ internal static partial class PdfWriter {
             IReadOnlyList<PageNumberInfo>? previousRunningPages = null,
             int previousDocumentPages = 1,
             DrawingPatternAnnotationBudget? drawingPatternAnnotations = null,
-            PictureAnchorState? pictureAnchors = null, System.Threading.CancellationToken cancellationToken = default) {
+            PictureAnchorState? pictureAnchors = null, SvgFormRegistry? svgForms = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             this.pictureAnchors = pictureAnchors ?? new PictureAnchorState();
+            this.svgForms = svgForms ?? new SvgFormRegistry();
             this.drawingPatternAnnotations = drawingPatternAnnotations ?? new DrawingPatternAnnotationBudget();
             currentOpts = options;
             currentPageBaseOptions = options;
@@ -119,7 +121,7 @@ internal static partial class PdfWriter {
                 FlushPage(forceRunningPage || pageDirty || HasCurrentPageNonContentObjects());
                 FinishFootnoteContinuations();
 
-                var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
+                var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic, SvgForms = svgForms };
                 foreach (var p in pages) result.Pages.Add(p);
                 result.HasTableOfContents = encounteredTableOfContents;
                 result.SectionDefinitions.AddRange(encounteredSectionDefinitions);
@@ -239,6 +241,7 @@ internal static partial class PdfWriter {
                 behindTextCanvases.Clear();
             }
             ReportFreeTextAnnotationDiagnostics();
+            BindSvgPageImages();
             foreach (PictureParagraphPlanKey key in pictureAnchors.Paragraphs.Keys.Where(key => key.Page == PicturePage).ToArray())
                 pictureAnchors.Paragraphs.Remove(key);
             currentPage.Content = pageContents.Store(sb);
