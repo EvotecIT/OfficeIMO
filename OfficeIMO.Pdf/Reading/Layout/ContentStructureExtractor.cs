@@ -485,12 +485,14 @@ internal static class ContentStructureExtractor {
         }
 
         // Table detection: prefer banded column inference; fallback to per-line
+        var columnFlowLines = new HashSet<TextLayoutEngine.TextLine>();
         var tables = precomputedTables is null
             ? TableDetector.DetectTablesFromBands(
                 bands,
                 pageHeight,
                 consumeWork,
-                cancellationCheck)
+                cancellationCheck,
+                columnFlowLines)
             : precomputedTables.ToList();
         if (tables.Count > 0) {
             // Clean leaders and add
@@ -523,7 +525,7 @@ internal static class ContentStructureExtractor {
                 foreach (var r in leaderTbl.Rows) AddLeaderRow(page, r[0], r[1]);
             } else {
                 var rows = TableDetector.DetectLineRows(
-                    lines,
+                    columnFlowLines.Count == 0 ? lines : lines.Where(line => !columnFlowLines.Contains(line)).ToList(),
                     pageHeight,
                     consumeWork,
                     cancellationCheck);

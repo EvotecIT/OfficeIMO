@@ -2195,6 +2195,7 @@ public sealed class ReaderPdfModularTests {
             }
         };
         options.MarkdownOptions!.AlignNumericTableColumns = false;
+        options.MarkdownOptions.LinkStyle = PdfLogicalMarkdownLinkStyle.List;
         options.ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
             MinimumConfidence = 0.85,
             RejoinSoftHyphens = false
@@ -2214,6 +2215,7 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(2_048, clone.ReadOptions.Pipeline!.MaxPages);
         Assert.Equal(5_000_000, clone.ReadOptions.Pipeline.MaxWorkUnitsPerPage);
         Assert.False(clone.MarkdownOptions.AlignNumericTableColumns);
+        Assert.Equal(PdfLogicalMarkdownLinkStyle.List, clone.MarkdownOptions.LinkStyle);
         Assert.Equal(options.ReadOptions.PageSelection, clone.ReadOptions.PageSelection);
         Assert.Equal(0.85, clone.ParagraphContinuationOptions!.MinimumConfidence);
         Assert.False(clone.ParagraphContinuationOptions.RejoinSoftHyphens);

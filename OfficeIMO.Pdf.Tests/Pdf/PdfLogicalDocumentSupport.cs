@@ -262,6 +262,39 @@ public partial class PdfDocumentReadResultTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    // Two annotations open the same URI over an empty page area, as a banner image link and its caption hot spot would.
+    private static byte[] BuildRepeatedUriLinkPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R 6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 120 190 180] /Contents (Report download) /A << /S /URI /URI (https://example.test/report.pdf) >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 20 90 42] /Contents (Report download) /A << /S /URI /URI (https://example.test/report.pdf) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildNamedActionLinkPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",

@@ -15,6 +15,7 @@ public sealed partial class OfficeWorkflowRouteSettings {
             ImageDirectory = options.ImageDirectory,
             MaxEmbeddedImageBytes = options.MaxEmbeddedImageBytes,
             IncludeLinkAnnotations = options.IncludeLinkAnnotations,
+            LinkStyle = options.LinkStyle,
             IncludeFormWidgets = options.IncludeFormWidgets,
             IncludeMarkupAnnotations = options.IncludeMarkupAnnotations,
             AlignNumericTableColumns = options.AlignNumericTableColumns,
