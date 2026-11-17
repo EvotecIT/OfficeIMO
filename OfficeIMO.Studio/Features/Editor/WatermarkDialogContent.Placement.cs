@@ -56,8 +56,8 @@ public sealed partial class WatermarkDialogContent {
         e.Pointer.Capture(null);
         e.Handled = true;
         if (!moved) return;
-        model.X = (decimal)Math.Round(placement.X, 2);
-        model.Y = (decimal)Math.Round(placement.Y, 2);
+        model.X = OfficeDecimalConversion.FromDouble(OfficeRounding.Round(placement.X, 2));
+        model.Y = OfficeDecimalConversion.FromDouble(OfficeRounding.Round(placement.Y, 2));
         await model.PreviewCommand.ExecuteAsync(null);
     }
 

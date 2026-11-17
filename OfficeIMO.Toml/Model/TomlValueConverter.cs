@@ -140,7 +140,7 @@ internal static class TomlValueConverter {
             else if (value is long integer) converted = (float)integer;
         } else if (type == typeof(decimal)) {
             if (value is long integer) converted = (decimal)integer;
-            else if (value is double number && !double.IsNaN(number) && !double.IsInfinity(number) && Math.Abs(number) < 7.9e28) converted = (decimal)number;
+            else if (value is double number && !double.IsNaN(number) && !double.IsInfinity(number) && Math.Abs(number) < 7.9e28) converted = OfficeDecimalConversion.FromDouble(number);
         } else if (value is TomlDateTime dateTime) {
             converted = ConvertDateTime(dateTime, type);
         }
