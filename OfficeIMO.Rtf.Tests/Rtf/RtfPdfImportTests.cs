@@ -287,6 +287,57 @@ public class RtfPdfImportTests {
         Assert.True(output.CanWrite);
     }
 
+    [Fact]
+    public void PdfToRtf_GivesEachSeparateListItsOwnNumbering() {
+        var document = PdfCore.PdfDocument.Create();
+        document.AddNumberedList(new[] { "Collect requirements", "Agree on scope" });
+        document.AddParagraph("Follow-up actions.");
+        document.AddNumberedList(new[] { "Add alert", "Rehearse" }, startNumber: 3);
+        document.AddList(new[] { "Loose end" });
+        document.AddParagraph("Options.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Keep", marker: "(a)"), new PdfCore.PdfListItem("Drop", marker: "(b)") });
+        document.AddParagraph("Steps.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Open", marker: "1."), new PdfCore.PdfListItem("Read", marker: "2."), new PdfCore.PdfListItem("Close", marker: "(3)") });
+        document.AddParagraph("Outline.");
+        var flat = new PdfCore.PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Zero };
+        var nested = new PdfCore.PdfListStyle { LeftIndent = global::OfficeIMO.OfficeLength.Points(18), SpacingBefore = global::OfficeIMO.OfficeLength.Zero };
+        document.AddList(new[] { new PdfCore.PdfListItem("Plan", marker: "1.") }, style: flat);
+        document.AddList(new[] { new PdfCore.PdfListItem("Draft", marker: "1.1.") }, style: nested);
+        document.AddList(new[] { new PdfCore.PdfListItem("Build", marker: "2.") }, style: flat);
+        document.AddList(new[] { new PdfCore.PdfListItem("Test", marker: "2.5.") }, style: nested);
+        document.AddParagraph("Excerpt.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Excerpted", marker: "3.2.") }, style: nested);
+        document.AddList(new[] { new PdfCore.PdfListItem("Moved on", marker: "4.3.") }, style: nested);
+        document.AddParagraph("Parts.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Part one", marker: "(I)") }, style: flat);
+        document.AddList(new[] { new PdfCore.PdfListItem("Section", marker: "1.1.") }, style: nested);
+
+        RtfDocument rtf = LoadSemanticPdf(document.ToBytes()).ToRtf(CreateImportOptions());
+        // Readers number from the written list definitions, not from the marker text kept beside each item.
+        RtfDocument reloaded = RtfDocument.Parse(rtf.ToRtf());
+        var numbering = new RtfListNumbering(reloaded);
+        Dictionary<string, string?> markers = reloaded.Paragraphs.ToDictionary(paragraph => paragraph.ToPlainText(), paragraph => numbering.Next(paragraph)?.Text);
+        Assert.Equal("1.", markers["Collect requirements"]);
+        Assert.Equal("3.", markers["Add alert"]);
+        Assert.Equal("4.", markers["Rehearse"]);
+        Assert.Equal("(a)", markers["Keep"]);
+        Assert.Equal("(b)", markers["Drop"]);
+        // Changed punctuation starts a new list; a nested restart, or an outline item without its parent, keeps the parent number.
+        Assert.Equal("(3)", markers["Close"]);
+        Assert.Equal("2.5.", markers["Test"]);
+        Assert.Equal("3.2.", markers["Excerpted"]);
+        Assert.Equal("4.3.", markers["Moved on"]);
+        Assert.Equal("1.1.", markers["Section"]);
+
+        RtfParagraph Item(string text) => Assert.Single(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == text);
+        Assert.Equal(Item("Collect requirements").ListId, Item("Agree on scope").ListId);
+        Assert.Equal(Item("Add alert").ListId, Item("Rehearse").ListId);
+        Assert.NotEqual(Item("Collect requirements").ListId, Item("Add alert").ListId);
+        Assert.Equal(RtfListKind.Decimal, Item("Add alert").ListKind);
+        Assert.Equal(RtfListKind.Bullet, Item("Loose end").ListKind);
+        Assert.NotEqual(Item("Rehearse").ListId, Item("Loose end").ListId);
+    }
+
     private static PdfRtfExportOptions CreateImportOptions() => new PdfRtfExportOptions();
 
     private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>
