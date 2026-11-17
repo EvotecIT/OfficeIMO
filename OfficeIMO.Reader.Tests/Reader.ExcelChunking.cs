@@ -49,6 +49,31 @@ public sealed class ReaderExcelChunkingTests {
         }
     }
 
+    [Fact]
+    public void TruncationNoteCountsTowardMaxChars() {
+        // A single retained row fits MaxChars on its own, but not together with the truncation note.
+        string path = Path.Combine(Path.GetTempPath(), "reader-excel-note-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddSheet("Notes");
+                sheet.Cell(1, 1).SetValue("Id");
+                for (int row = 2; row <= 4; row++) sheet.Cell(row, 1).SetValue(new string((char)('a' + row), 210));
+                document.Save(path);
+            }
+
+            OfficeDocumentReadResult result = new OfficeDocumentReaderBuilder().AddExcelHandler().Build()
+                .ReadDocument(path, new ReaderOptions { MaxChars = 256, MaxTableRows = 1 });
+
+            ReaderChunk[] chunks = result.Chunks.Where(chunk => chunk.Tables is { Count: > 0 }).ToArray();
+            Assert.Contains(chunks, chunk => chunk.Markdown!.Contains("<!-- truncated -->", StringComparison.Ordinal));
+            Assert.All(chunks, chunk => Assert.True(chunk.Markdown!.Length <= 256
+                || chunk.Warnings!.Any(warning => warning.Contains("exceeds MaxChars", StringComparison.Ordinal)),
+                chunk.Markdown.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static string CreateNotesWorkbook() {
         string path = Path.Combine(Path.GetTempPath(), "reader-excel-chunking-" + Guid.NewGuid().ToString("N") + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create();

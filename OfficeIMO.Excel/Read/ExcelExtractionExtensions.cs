@@ -128,7 +128,8 @@ internal static class ExcelExtractionExtensions {
             int partStart = 0;
             bool firstPart = true;
             while (firstPart || partStart < rowList.Count) {
-                int partEnd = MeasureMarkdownPart(title, columns, rowList, partStart, chunking.MaxChars, out bool oversizedRow);
+                int partEnd = MeasureMarkdownPart(title, columns, rowList, partStart, chunking.MaxChars,
+                    truncated ? Environment.NewLine.Length + TruncationNote.Length : 0, out bool oversizedRow);
                 bool lastPart = partEnd >= rowList.Count;
                 List<IReadOnlyList<string>> partRows = partStart == 0 && lastPart
                     ? rowList
@@ -172,9 +173,10 @@ internal static class ExcelExtractionExtensions {
     /// <summary>
     /// Returns the end (exclusive) of the longest run of rows from <paramref name="start"/> whose Markdown table,
     /// including the title and header, fits in <paramref name="maxChars"/>; at least one row is always taken.
+    /// A part that ends the block also reserves <paramref name="finalPartSuffix"/> for the truncation note.
     /// </summary>
     private static int MeasureMarkdownPart(string title, IReadOnlyList<string> columns, IReadOnlyList<IReadOnlyList<string>> rows,
-        int start, int maxChars, out bool oversizedRow) {
+        int start, int maxChars, int finalPartSuffix, out bool oversizedRow) {
         oversizedRow = false;
         int newLine = Environment.NewLine.Length;
         int length = "### ".Length + title.Length + newLine * 2;
@@ -188,13 +190,16 @@ internal static class ExcelExtractionExtensions {
             for (int column = 0; column < columns.Count; column++) {
                 rowLength += EscapedLength(column < row.Count ? row[column] : string.Empty) + 3;
             }
-            if (index > start && length + rowLength > maxChars) break;
-            if (index == start && length + rowLength > maxChars) oversizedRow = true;
+            int needed = length + rowLength + (index == rows.Count - 1 ? finalPartSuffix : 0);
+            if (index > start && needed > maxChars) break;
+            if (index == start && needed > maxChars) oversizedRow = true;
             length += rowLength;
             index++;
         }
         return index;
     }
+
+    private const string TruncationNote = "<!-- truncated -->";
 
     private static int EscapedLength(string? value) {
         if (string.IsNullOrEmpty(value)) return 0;
@@ -252,7 +257,7 @@ internal static class ExcelExtractionExtensions {
 
         if (table.Truncated) {
             sb.AppendLine();
-            sb.AppendLine("<!-- truncated -->");
+            sb.AppendLine(TruncationNote);
         }
 
         return sb.ToString().TrimEnd();
