@@ -9,6 +9,7 @@ keys, salts and nonces, so the bytes change but the contract does not.
 | --- | --- | --- | --- |
 | `r6-saslprep.pdf` | `/V 5 /R 6`, AESV3 | `SaSLprep` (stored after SASLprep) / `owner` | RFC 4013 mapping of `S` U+00AA `SL` U+00AD `prep` before UTF-8 encoding |
 | `r6-unprepared-password.pdf` | `/V 5 /R 6`, AESV3 | `pass` U+00AD `word` (stored without SASLprep) / `owner` | Producers that skipped the SASLprep mapping |
+| `r6-owner-only-padded-entries.pdf` | `/V 5 /R 6`, AESV3, `/P -1052` | empty / `owner` | `/O` and `/U` padded to 127 bytes as Acrobat X and XI write them; only the first 48 bytes are defined |
 | `r6-identity-crypt-filter-stream.pdf` | `/V 5 /R 6`, AESV3 | `open` / `owner` | Page content in clear text behind `/Filter [/Crypt]` with `/Name /Identity` |
 | `r6-crypt-filter-without-method.pdf` | `/V 5 /R 6`, AESV3 | `open` / `owner` | Page content in clear text behind a named crypt filter that omits `/CFM` |
 | `r6-embedded-files-only.pdf` | `/V 5 /R 6`, `/StmF` and `/StrF /Identity`, `/EFF /StdCF` AESV3 `/AuthEvent /EFOpen` | `open` / `owner` | Readable without a password; only the embedded file is encrypted |

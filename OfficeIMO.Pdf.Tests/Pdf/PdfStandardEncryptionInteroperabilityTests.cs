@@ -29,6 +29,46 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
         Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "SaSL-prep" }));
     }
 
+    // Acrobat X/XI pad /O and /U to 127 bytes; only the first 48 carry the hash and salts. Strict mode accepts them too,
+    // because nothing is repaired: the defined bytes are used as stored.
+    [Theory]
+    [InlineData(PdfParsingMode.Lenient)]
+    [InlineData(PdfParsingMode.Strict)]
+    public void Revision6OwnerOnlyFilesWithPaddedPasswordEntriesOpenWithoutPasswordAndWithOwnerPassword(PdfParsingMode mode) {
+        byte[] pdf = Fixture("r6-owner-only-padded-entries.pdf");
+
+        foreach ((string? password, PdfPasswordAuthenticationRole role) in new[] {
+            ((string?)null, PdfPasswordAuthenticationRole.User),
+            ("owner", PdfPasswordAuthenticationRole.Owner)
+        }) {
+            var options = new PdfLoadOptions { Password = password, ParsingMode = mode };
+            PdfDocumentInfo info = PdfInspector.Inspect(pdf, options);
+
+            Assert.Equal("Padded entries R6", info.Metadata.Title);
+            Assert.Equal(6, info.Security.EncryptionRevision);
+            Assert.Equal(-1052, info.Security.EncryptionPermissions);
+            Assert.Equal(role, info.Security.PasswordAuthenticationRole);
+            Assert.Contains("Padded entries R6", Text(pdf, options), StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("O")]
+    [InlineData("U")]
+    public void Revision6PasswordEntriesShorterThan48BytesAreRejected(string entry) {
+        byte[] pdf = Fixture("r6-owner-only-padded-entries.pdf");
+        System.Text.Encoding latin1 = System.Text.Encoding.GetEncoding(28591);
+        string text = latin1.GetString(pdf);
+        // Keep 47 bytes and blank the rest of the hex string so every object offset stays valid.
+        text = System.Text.RegularExpressions.Regex.Replace(text, "/" + entry + @" <([0-9A-F]{254})>", match =>
+            "/" + entry + " <" + match.Groups[1].Value.Substring(0, 94) + ">" + new string(' ', 254 - 94));
+        pdf = latin1.GetBytes(text);
+
+        PdfUnsupportedEncryptionException exception = Assert.Throws<PdfUnsupportedEncryptionException>(() =>
+            PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "owner" }));
+        Assert.Contains("invalid lengths", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void SaslPrepPasswordsWrittenByOfficeIMOOpenWithEquivalentInput() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("S\u00AASL\u00ADprep\u00A0two")))
