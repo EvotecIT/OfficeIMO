@@ -10,8 +10,8 @@ namespace OfficeIMO.Pdf;
 /// wrapper it restores the wrapper's state instead, so the original content escapes the wrapper and edits pick up what it
 /// changes afterwards. Wrappers therefore close every state the original content leaves open, and streams that restore
 /// more states than they saved are replaced by copies whose surplus <c>Q</c> operators are blanked, which keeps the
-/// original page drawing exactly as before. Inline image data is never touched; a stream whose inline image colour space
-/// cannot be resolved is kept as it is.
+/// original page drawing exactly as before. Inline image data is never touched; once an inline image colour space cannot
+/// be resolved, no later restore on the page is blanked.
 /// </remarks>
 internal static class PdfPageContentIsolation {
     /// <summary>The original content entries to wrap, and the restores that close them.</summary>
@@ -105,42 +105,56 @@ internal static class PdfPageContentIsolation {
             decodedEntries.Add(decoded);
         }
 
-        // Inline image data ends where its colour space says, so aliases resolve through the page resources. A stream
-        // with an inline image whose colour space cannot be resolved is never rewritten: its data could hide a Q.
+        // Content streams in a page array form one operator sequence, so they are read as one source: a token that
+        // runs across a stream boundary and the graphics-state depth both carry into the next stream. The added line
+        // feed only separates streams for the scan; surplus offsets are mapped back to the stream that holds them.
+        var starts = new int[entries.Count];
+        byte[] combined = new byte[checked((int)totalBytes + Math.Max(0, entries.Count - 1))];
+        int position = 0;
+        for (int index = 0; index < entries.Count; index++) {
+            if (index > 0) combined[position++] = (byte)'\n';
+            starts[index] = position;
+            Buffer.BlockCopy(decodedEntries[index], 0, combined, position, decodedEntries[index].Length);
+            position += decodedEntries[index].Length;
+        }
+
+        // Inline image data ends where its colour space says, so aliases resolve through the page resources. Once an
+        // inline image colour space cannot be resolved, its data could hide a Q, so no later restore is blanked: the
+        // depth from that point is the same best estimate a viewer makes when it looks for the end of the data.
         PdfDictionary? resources = page is null ? null : ResolveInheritedResources(objects, page);
-        bool unresolvedImage = false;
+        bool uncertain = false;
         int ResolveComponents(PdfObject colorSpace) {
             int count = PdfPrintProductionColorInspector.ResolveInlineImageComponentCountForResources(colorSpace, resources, objects,
                 MaximumObjectDepth, PdfReadLimits.DefaultMaxDecodedStreamBytes);
-            if (count <= 0) unresolvedImage = true;
+            if (count <= 0) uncertain = true;
             return count;
         }
 
-        // Content streams in a page array form one operator sequence, so depth carries across stream boundaries.
         int depth = 0;
-        var surplusRestores = new List<int>[entries.Count];
+        var surplusRestores = new List<int>?[entries.Count];
         try {
-            for (int index = 0; index < entries.Count; index++) {
-                List<int>? surplus = null;
-                unresolvedImage = false;
-                PdfContentStreamInterpreter.InterpretUntil(
-                    PdfContentSource.FromBytes(decodedEntries[index]),
-                    int.MaxValue,
-                    operation => {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        if (operation.Name == "q") {
-                            depth++;
-                        } else if (operation.Name == "Q") {
-                            if (depth > 0) depth--;
-                            else (surplus ??= new List<int>()).Add(operation.OperatorOffset);
+            PdfContentStreamInterpreter.InterpretUntil(
+                PdfContentSource.FromBytes(combined),
+                int.MaxValue,
+                operation => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (operation.Name == "q") {
+                        depth++;
+                    } else if (operation.Name == "Q") {
+                        if (depth > 0) {
+                            depth--;
+                        } else if (!uncertain) {
+                            int offset = operation.OperatorOffset;
+                            int index = Array.BinarySearch(starts, offset);
+                            if (index < 0) index = ~index - 1;
+                            if (index >= 0) (surplusRestores[index] ??= new List<int>()).Add(offset - starts[index]);
                         }
-                        return true;
-                    },
-                    inlineImageComponentCount: name => ResolveComponents(new PdfName(name)),
-                    inlineImageArrayComponentCount: array => ResolveComponents(array),
-                    maxGraphicsStateDepth: int.MaxValue);
-                surplusRestores[index] = unresolvedImage ? null! : surplus!;
-            }
+                    }
+                    return true;
+                },
+                inlineImageComponentCount: name => ResolveComponents(new PdfName(name)),
+                inlineImageArrayComponentCount: array => ResolveComponents(array),
+                maxGraphicsStateDepth: int.MaxValue);
         } catch (Exception exception) when (exception is InvalidDataException or PdfReadLimitException or FormatException) {
             return new Wrapping(entries, 1);
         }

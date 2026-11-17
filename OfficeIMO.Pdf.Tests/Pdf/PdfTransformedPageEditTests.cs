@@ -211,6 +211,27 @@ public class PdfTransformedPageEditTests {
         Assert.Contains("ID abc EI", PdfTestContentText.ReadDecoded(stamped), StringComparison.Ordinal);
     }
 
+    [Theory]
+    // A literal string that runs across a stream boundary: its Q is text, not a restore.
+    [InlineData("BT /F1 12 Tf 20 20 Td (A ", "Q B) Tj ET", "Q B) Tj ET")]
+    // Data of an inline image whose colour space is unknown can end the image early and pose as a restore, so the
+    // depth after it is an estimate and a later restore that may close the saved state is kept.
+    [InlineData("q 1 0 0 1 100 0 cm BI /W 3 /H 1 /BPC 8 /CS /Unknown ID ab EI Q cd EI", "Q 0 0 1 rg 10 10 20 20 re f",
+        "Q 0 0 1 rg 10 10 20 20 re f")]
+    public void IsolationReadsPageStreamsAsOneSequenceBeforeBlankingRestores(string first, string second, string kept) {
+        byte[] pdf = Serialize(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Contents [4 0 R 5 0 R] >>",
+            "<< /Length " + first.Length + " >>\nstream\n" + first + "\nendstream",
+            "<< /Length " + second.Length + " >>\nstream\n" + second + "\nendstream"
+        });
+
+        byte[] stamped = PdfStamper.StampText(pdf, "EDITMARK", new PdfTextStampOptions { Color = Red });
+
+        Assert.Contains(kept, ReadPageContent(stamped), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void AddedTextWithAnExplicitRotationStaysInsideItsRegionOnRotatedPages() {
         var fixture = new Fixture(ContentShape.Balanced, 180, BoxShape.Origin);
@@ -285,6 +306,18 @@ public class PdfTransformedPageEditTests {
         Assert.InRange(red.Left, 34, 40);
         Assert.InRange(red.Bottom, PageHeight - 40, PageHeight - 34);
         Assert.Equal(0D, DisplayAngle(Assert.Single(page.GetTextSpans(), span => span.Text.Contains("EDIT")), 180), 3);
+    }
+
+    private static string ReadPageContent(byte[] pdf) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        PdfDictionary page = Assert.Single(objects.Values.Select(item => item.Value).OfType<PdfDictionary>(),
+            dictionary => dictionary.Get<PdfName>("Type")?.Name == "Page");
+        PdfObject contents = PdfObjectLookup.Resolve(objects, page.Items["Contents"])!;
+        IEnumerable<PdfObject> entries = contents is PdfArray array ? array.Items : new[] { contents };
+        return string.Join("\n", entries.Select(entry => {
+            var stream = (PdfStream)PdfObjectLookup.Resolve(objects, entry)!;
+            return PdfEncoding.Latin1GetString(OfficeIMO.Pdf.Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
+        }));
     }
 
     private static void AssertOriginalMarksUnchanged(OfficeRasterImage before, OfficeRasterImage after) {
