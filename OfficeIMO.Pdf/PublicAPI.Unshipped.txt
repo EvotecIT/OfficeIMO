@@ -1291,4 +1291,5 @@ OfficeIMO.Pdf.PdfLogicalListNumberFormat.LowerLetter = 2 -> OfficeIMO.Pdf.PdfLog
 OfficeIMO.Pdf.PdfLogicalListNumberFormat.UpperLetter = 3 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
 OfficeIMO.Pdf.PdfLogicalListNumberFormat.LowerRoman = 4 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
 OfficeIMO.Pdf.PdfLogicalListNumberFormat.UpperRoman = 5 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfTextDecodingSource.FontProgram = 7 -> OfficeIMO.Pdf.PdfTextDecodingSource
 OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate.PdfEmbeddedFontFallbackCandidate(OfficeIMO.Pdf.PdfEmbeddedFontFamily! fontFamily) -> void

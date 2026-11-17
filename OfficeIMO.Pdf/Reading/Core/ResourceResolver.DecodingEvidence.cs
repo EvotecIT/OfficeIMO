@@ -7,9 +7,17 @@ internal static partial class ResourceResolver {
         cancellationCheck?.Invoke();
         PdfTextDecodingSource source;
         int unmapped = 0;
-        if (preferToUnicode && font.HasToUnicode && font.CMap is not null) {
+        if (HasCompositeTextSources(font)) {
+            source = GetCompositeTextSource(font, bytes, preferToUnicode, cancellationCheck, out unmapped);
+        } else if (preferToUnicode && font.HasToUnicode && font.CMap is not null) {
             source = PdfTextDecodingSource.ToUnicode;
             unmapped = font.CMap.CountUnmappedCodeBytes(bytes, cancellationCheck);
+            if (unmapped > 0 && font.CMap.MaxCodeBytes == 1 && font.FontSubtype != "Type0") {
+                unmapped = 0;
+                foreach (byte code in bytes) {
+                    if (!font.CMap.TryMapCode(new[] { code }, 0, 1, out _) && GetSimpleEncodingText(font, code) == null) unmapped++;
+                }
+            }
         } else if (UsesNamedCompositeEncoding(font) && (!preferToUnicode || !font.HasToUnicode) && font.PredefinedCMap is not null) {
             source = PdfTextDecodingSource.PredefinedCMap;
         } else if (UsesNamedCompositeEncoding(font)) {

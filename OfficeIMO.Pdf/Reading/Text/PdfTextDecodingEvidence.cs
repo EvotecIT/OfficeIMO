@@ -10,12 +10,14 @@ public enum PdfTextDecodingSource {
     PredefinedCMap,
     /// <summary>A font encoding, including its Differences, supplied the text.</summary>
     FontEncoding,
-    /// <summary>The reader used Windows-1252 without a supported declared encoding.</summary>
+    /// <summary>The reader used Windows-1252, or the value of an Identity-encoded code, without a supported mapping.</summary>
     WinAnsiFallback,
     /// <summary>Marked-content ActualText replaced the font-decoded text.</summary>
     ActualText,
     /// <summary>No supported font mapping was available beneath an ActualText replacement.</summary>
-    Unmappable
+    Unmappable,
+    /// <summary>The embedded font program's own Unicode cmap or glyph names supplied the text of a composite font.</summary>
+    FontProgram
 }
 
 /// <summary>Immutable mapping evidence. This describes extraction, not author identity or rendering fidelity.</summary>

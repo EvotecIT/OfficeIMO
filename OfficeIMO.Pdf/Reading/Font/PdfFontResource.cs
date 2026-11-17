@@ -19,6 +19,14 @@ internal sealed partial class PdfFontResource {
     public bool IsVerticalWriting { get; }
     public ToUnicodeCMap? CMap { get; }
     internal Lazy<PdfPredefinedCMap>? PredefinedCMap { get; }
+    /// <summary>CID text from the descendant's Adobe collection or the embedded program, for codes ToUnicode does not map.</summary>
+    internal PdfCidTextFallback? CidTextFallback { get; private set; }
+    /// <summary>True when ToUnicode names Identity-H or Identity-V: each code is its own UTF-16 value.</summary>
+    internal bool HasIdentityToUnicode { get; private set; }
+    internal void SetCompositeTextSources(PdfCidTextFallback? fallback, bool identityToUnicode) {
+        CidTextFallback = fallback;
+        HasIdentityToUnicode = identityToUnicode;
+    }
 
     /// <summary>Byte length of the composite code at <paramref name="offset"/>; two bytes unless a predefined CMap says otherwise.</summary>
     internal int GetCompositeCodeLength(byte[] bytes, int offset) => PredefinedCMap?.Value.GetCodeLength(bytes, offset) ?? 2;
@@ -112,6 +120,8 @@ internal sealed partial class PdfFontResource {
         IsVerticalWriting = source.IsVerticalWriting;
         CMap = source.CMap;
         PredefinedCMap = source.PredefinedCMap;
+        CidTextFallback = source.CidTextFallback;
+        HasIdentityToUnicode = source.HasIdentityToUnicode;
         Differences = source.Differences;
         _embeddedTrueTypeFont = embeddedTrueTypeFont ?? source.EmbeddedTrueTypeFont;
         if (embeddedTrueTypeFont == null) {
