@@ -204,7 +204,7 @@ namespace OfficeIMO.Excel {
             }
 
             try {
-                value = (decimal)number;
+                value = OfficeDecimalConversion.FromDouble(number);
                 return true;
             } catch (OverflowException) {
                 return false;

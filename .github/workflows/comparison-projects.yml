@@ -62,6 +62,7 @@ jobs:
           $projects = @(
             'OfficeIMO.Excel.Benchmarks.LegacyEpPlus/OfficeIMO.Excel.Benchmarks.LegacyEpPlus.csproj',
             'OfficeIMO.Excel.Benchmarks.NPOI/OfficeIMO.Excel.Benchmarks.NPOI.csproj',
+            'OfficeIMO.Pdf.Benchmarks.TextExtraction/OfficeIMO.Pdf.Benchmarks.TextExtraction.csproj',
             'OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler/OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler.csproj',
             'OfficeIMO.Word.Benchmarks/OfficeIMO.Word.Benchmarks.csproj'
           )

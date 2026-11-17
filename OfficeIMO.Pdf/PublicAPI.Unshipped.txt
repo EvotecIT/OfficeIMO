@@ -1291,5 +1291,15 @@ OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageExportMode.get -> OfficeIMO.Pdf.Pdf
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageExportMode.set -> void
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.MaxEmbeddedImageBytes.get -> long
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.MaxEmbeddedImageBytes.set -> void
+OfficeIMO.Pdf.PdfLogicalListItem.IsOrdered.get -> bool
+OfficeIMO.Pdf.PdfLogicalListItem.NumberFormat.get -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfLogicalListItem.Ordinal.get -> int?
+OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfLogicalListNumberFormat.Bullet = 0 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfLogicalListNumberFormat.Number = 1 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfLogicalListNumberFormat.LowerLetter = 2 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfLogicalListNumberFormat.UpperLetter = 3 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfLogicalListNumberFormat.LowerRoman = 4 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
+OfficeIMO.Pdf.PdfLogicalListNumberFormat.UpperRoman = 5 -> OfficeIMO.Pdf.PdfLogicalListNumberFormat
 OfficeIMO.Pdf.PdfTextDecodingSource.FontProgram = 7 -> OfficeIMO.Pdf.PdfTextDecodingSource
 OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate.PdfEmbeddedFontFallbackCandidate(OfficeIMO.Pdf.PdfEmbeddedFontFamily! fontFamily) -> void

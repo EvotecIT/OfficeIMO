@@ -583,9 +583,17 @@ public static partial class PdfHtmlConverterExtensions {
     private static void AppendSemanticPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfHtmlExportOptions options) {
         List<HtmlItem> items = BuildSemanticPageItems(page, options);
         items.Sort(CompareHtmlItems);
+        var lists = new HtmlListWriter(builder);
         for (int i = 0; i < items.Count; i++) {
+            if (items[i].ListItem is { } listItem) {
+                lists.AppendItem(listItem, items[i].Html);
+                continue;
+            }
+
+            lists.Close();
             builder.AppendLine(items[i].Html);
         }
+        lists.Close();
     }
 
     private static List<HtmlItem> BuildSemanticPageItems(PdfCore.PdfLogicalPage page, PdfHtmlExportOptions options) {
@@ -628,17 +636,14 @@ public static partial class PdfHtmlConverterExtensions {
         for (int i = 0; i < page.ListItems.Count; i++) {
             if (!projectedLists.Contains(i)) continue;
             PdfCore.PdfLogicalListItem listItem = page.ListItems[i];
+            // Only the item content is rendered here; the page writer nests consecutive items into <ul>/<ol> lists.
             string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
-                builder.Append("<ul data-pdf-list-level=\"");
-                builder.Append(Math.Max(1, listItem.Level).ToString(CultureInfo.InvariantCulture));
-                builder.Append("\"><li>");
                 AppendHtmlText(builder, listItem.Text);
                 if (listItem.IsContentsEntry && !string.IsNullOrEmpty(listItem.TargetPageLabel)) {
                     AppendHtmlText(builder, " \u2014 " + listItem.TargetPageLabel);
                 }
-                builder.Append("</li></ul>");
             });
-            AddHtmlItem(items, new HtmlItem(listItem.Line.BaselineY, listItem.Line.XStart, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.ListItem, i)), options, ref retainedHtmlCharacters);
+            AddHtmlItem(items, new HtmlItem(listItem.Line.BaselineY, listItem.Line.XStart, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.ListItem, i)) { ListItem = listItem }, options, ref retainedHtmlCharacters);
         }
 
         for (int i = 0; i < page.Tables.Count; i++) {
@@ -1506,5 +1511,8 @@ public static partial class PdfHtmlConverterExtensions {
         public int? ReadingOrderIndex { get; }
 
         public string Html { get; }
+
+        /// <summary>Source list item when <see cref="Html"/> is the content of one list entry.</summary>
+        public PdfCore.PdfLogicalListItem? ListItem { get; set; }
     }
 }

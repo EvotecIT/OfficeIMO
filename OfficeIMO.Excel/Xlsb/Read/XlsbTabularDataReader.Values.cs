@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (IsNumericValueKind(_kinds[ordinal])) {
                 if (ExcelDecimalConversion.TryConvertHundredths(_numbers[ordinal], out decimal hundredths)) return hundredths;
                 try {
-                    return (decimal)_numbers[ordinal];
+                    return OfficeDecimalConversion.FromDouble(_numbers[ordinal]);
                 } catch (OverflowException exception) {
                     throw new InvalidCastException(
                         $"The XLSB numeric value '{_numbers[ordinal]}' cannot be represented as decimal.",
@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
             }
 
-            return Convert.ToDecimal(GetValue(ordinal), _options.Culture);
+            return OfficeDecimalConversion.FromObject(GetValue(ordinal), _options.Culture);
         }
 
         public override DateTime GetDateTime(int ordinal) {

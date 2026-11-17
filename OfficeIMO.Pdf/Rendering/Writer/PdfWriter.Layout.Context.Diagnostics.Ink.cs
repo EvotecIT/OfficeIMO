@@ -75,6 +75,8 @@ internal static partial class PdfWriter {
                 List<OfficeTextInkClip>? sourcePaintClipBuilder = null;
                 List<OfficeTextInkClip>? admittedClipBuilder = null;
                 List<OfficeTextInkClip>? frameClipBuilder = null;
+                List<OfficeTextInkClip>? pageClipBuilder = null;
+                OfficeTextInkClip? secondInkClipCache = null;
                 for (int index = 0; index < lines.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     List<RichSeg> line = lines[index];
@@ -203,6 +205,16 @@ internal static partial class PdfWriter {
                         DiagnosticPaintBounds paintBounds = MeasureDiagnosticPaintBounds(contours);
                         if (imageClips == null && DiagnosticPaintContained(paintBounds, sourceClips, targetClips,
                             frameClip, pageClip, secondClip, transform)) return;
+                        // Each check below can only set its flag. Once a flag is proven for this paragraph, later
+                        // paint cannot change it, so only checks that can still add a finding measure ink.
+                        bool checkOuter = !outerClipped && targetClips.Count > 0 && !DiagnosticClipsContain(targetClips, paintBounds);
+                        OfficeTextInkClip? secondInkClip = secondClip.HasValue
+                            ? secondInkClipCache ??= DiagnosticRectangleClip(secondClip.Value, transform) : null;
+                        bool checkFrame = !(clipsToFrame ? clipped : overflow)
+                            && (!DiagnosticClipContains(frameClip, paintBounds)
+                                || secondInkClip.HasValue && !DiagnosticClipContains(secondInkClip.Value, paintBounds));
+                        bool checkPage = !outsidePage && !DiagnosticClipContains(pageClip, paintBounds);
+                        if (!checkOuter && !checkFrame && !checkPage) return;
                         var intrinsic = intrinsicClipBuilder ??= new List<OfficeTextInkClip>();
                         intrinsic.Clear();
                         if (imageClips != null) foreach (var imageClip in imageClips) intrinsic.Add(DiagnosticMapClip(imageClip, transform));
@@ -219,23 +231,25 @@ internal static partial class PdfWriter {
                         admittedClips.AddRange(targetClips);
                         var admitted = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, admittedClips, cancellationToken);
                         RequireMeasured(admitted.IsMeasured);
-                        if (targetClips.Count > 0 && !DiagnosticClipsContain(targetClips, paintBounds))
-                            outerClipped |= Loss(sourcePaintClips, admittedClips);
-                        if (!admitted.HasInk) return;
+                        if (checkOuter) outerClipped = Loss(sourcePaintClips, admittedClips);
+                        if (!admitted.HasInk || !checkFrame && !checkPage) return;
                         var withFrame = frameClipBuilder ??= new List<OfficeTextInkClip>();
                         withFrame.Clear();
                         withFrame.AddRange(admittedClips);
                         withFrame.Add(frameClip);
-                        OfficeTextInkClip? secondInkClip = secondClip.HasValue ? DiagnosticRectangleClip(secondClip.Value, transform) : null;
                         if (secondInkClip.HasValue) withFrame.Add(secondInkClip.Value);
-                        if (!DiagnosticClipContains(frameClip, paintBounds)
-                            || secondInkClip.HasValue && !DiagnosticClipContains(secondInkClip.Value, paintBounds)) {
-                            if (clipsToFrame) clipped |= Loss(admittedClips, withFrame);
-                            else overflow |= Loss(admittedClips, withFrame);
+                        if (checkFrame) {
+                            if (clipsToFrame) clipped = Loss(admittedClips, withFrame);
+                            else overflow = Loss(admittedClips, withFrame);
                         }
-                        var paintClips = clipsToFrame ? withFrame : admittedClips;
-                        if (!DiagnosticClipContains(pageClip, paintBounds))
-                            outsidePage |= Loss(paintClips, new List<OfficeTextInkClip>(paintClips) { pageClip });
+                        if (checkPage) {
+                            var paintClips = clipsToFrame ? withFrame : admittedClips;
+                            var withPage = pageClipBuilder ??= new List<OfficeTextInkClip>();
+                            withPage.Clear();
+                            withPage.AddRange(paintClips);
+                            withPage.Add(pageClip);
+                            outsidePage = Loss(paintClips, withPage);
+                        }
 
                         bool Loss(List<OfficeTextInkClip> before, List<OfficeTextInkClip> after) {
                             if (!HasAdditionalLoss(contours, before, after)) return false;

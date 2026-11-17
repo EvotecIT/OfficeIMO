@@ -588,7 +588,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override decimal GetDecimal(int ordinal) =>
-                Convert.ToDecimal(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
+                OfficeDecimalConversion.FromObject(GetNonDbNullValue(ordinal, preserveDateSerial: true), _culture);
 
             /// <inheritdoc />
             public override double GetDouble(int ordinal) {

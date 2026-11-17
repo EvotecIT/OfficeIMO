@@ -395,7 +395,7 @@ internal static class OfficeChangeSetJson {
 
         internal void Property(string name, double value) {
             Name(name);
-            Value(() => _output.Append(double.IsNaN(value) || double.IsInfinity(value) ? "null" : Math.Round(value, 3).ToString("0.###", CultureInfo.InvariantCulture)));
+            Value(() => _output.Append(double.IsNaN(value) || double.IsInfinity(value) ? "null" : OfficeRounding.Round(value, 3).ToString("0.###", CultureInfo.InvariantCulture)));
         }
 
         internal void Property(string name, bool value) {

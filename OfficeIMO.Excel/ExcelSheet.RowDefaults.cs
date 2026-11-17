@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
 
             WriteLock(() => {
                 SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
-                sheetFormat.DefaultRowHeight = roundToHundredths ? Math.Round(height, 2) : height;
+                sheetFormat.DefaultRowHeight = roundToHundredths ? OfficeRounding.Round(height, 2) : height;
                 sheetFormat.CustomHeight = true;
                 sheetFormat.ZeroHeight = hidden;
                 if (save) {
@@ -99,7 +99,7 @@ namespace OfficeIMO.Excel {
 
             WriteLock(() => {
                 SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
-                sheetFormat.DefaultColumnWidth = roundToHundredths ? Math.Round(width, 2) : width;
+                sheetFormat.DefaultColumnWidth = roundToHundredths ? OfficeRounding.Round(width, 2) : width;
                 if (save) {
                     WorksheetRoot.Save();
                 }

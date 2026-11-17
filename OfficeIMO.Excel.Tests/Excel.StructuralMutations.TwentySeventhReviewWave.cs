@@ -36,6 +36,16 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Test_NamedStyleApplication_CancellationRollsBackPartialRange() {
+            // Another thread cancels once the first cell carries the style. When the whole range is
+            // styled before that thread runs, the attempt proves nothing, so retry on a new document.
+            for (int attempt = 0; attempt < 5; attempt++) {
+                if (CancelNamedStyleApplicationAfterFirstCell()) return;
+            }
+
+            Assert.Fail("Cancellation never landed while the named style was being applied.");
+        }
+
+        private static bool CancelNamedStyleApplicationAfterFirstCell() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.Cell(1, 1).SetValue("Style source");
@@ -51,20 +61,30 @@ namespace OfficeIMO.Tests {
             uint originalStyle = observed.StyleIndex?.Value ?? 0U;
             using var cancellation = new CancellationTokenSource();
             using var ready = new ManualResetEventSlim();
+            using var finished = new ManualResetEventSlim();
             var canceller = new Thread(() => {
                 ready.Set();
-                while ((observed.StyleIndex?.Value ?? 0U) != appliedStyle) Thread.Yield();
+                while ((observed.StyleIndex?.Value ?? 0U) != appliedStyle) {
+                    if (finished.IsSet) return;
+                    Thread.Yield();
+                }
                 cancellation.Cancel();
             }) { IsBackground = true };
             canceller.Start();
             ready.Wait();
 
-            Assert.ThrowsAny<OperationCanceledException>(() => sheet.ApplyNamedStyle(
-                "Input",
-                "B1:XFD2",
-                maximumCells: 40_000,
-                cancellation.Token));
-            Assert.True(canceller.Join(TimeSpan.FromSeconds(5)));
+            bool cancelled = false;
+            try {
+                sheet.ApplyNamedStyle("Input", "B1:XFD2", maximumCells: 40_000, cancellation.Token);
+            } catch (OperationCanceledException) {
+                cancelled = true;
+            } finally {
+                // The canceller must stop before the token source and events are disposed.
+                finished.Set();
+                Assert.True(canceller.Join(TimeSpan.FromSeconds(5)));
+            }
+
+            if (!cancelled) return false;
 
             Cell restored = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
@@ -72,6 +92,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(sheet.WorksheetPart.Worksheet.Descendants<Cell>(),
                 cell => cell.CellReference?.Value == "XFD1");
             Assert.Empty(document.ValidateOpenXml());
+            return true;
         }
 
         [Fact]

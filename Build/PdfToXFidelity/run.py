@@ -1,0 +1,499 @@
+"""PDF-to-X fidelity evaluation driver.
+
+    python -I run.py corpus    --work <dir> --repo <checkout> [--tagged <pdf.js test/pdfs>]
+    python -I run.py officeimo --work <dir> --tool <OfficeIMO.PdfToXFidelity.Tool.dll>
+    python -I run.py tools     --work <dir> --venv-python <python.exe> [--only pdf2docx,docling,pymupdf4llm,libreoffice]
+    python -I run.py normalize --work <dir>
+    python -I run.py score     --work <dir>
+    python -I run.py visual    --work <dir>
+    python -I run.py report    --work <dir>
+
+LibreOffice and Poppler run inside WSL (`wsl -e soffice`, `pdftoppm`, `pdfinfo`). Comparison tools run as child
+processes from the `comparison` folder with paths passed as arguments.
+"""
+from __future__ import annotations
+
+import argparse
+import concurrent.futures as cf
+import csv
+import filecmp
+import glob
+import json
+import math
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+
+from fidelity import model  # noqa: E402
+from fidelity.markup import parse_struct_text, read_html, read_markdown  # noqa: E402
+from fidelity.metrics import score  # noqa: E402
+from fidelity.ooxml import read_docx, read_pptx, read_xlsx  # noqa: E402
+
+WORD_ASSETS = ["BasicDocument.docx", "BasicDocumentWithSections.docx", "DocumentWithFootNotes.docx",
+               "DocumentWithImages.docx", "DocumentWithTables.docx", "FieldsAndSections.docx",
+               "Issue2510-SymbolBullets.docx", "List Library Bullet Styles.docx", "List Library Numbering Styles.docx",
+               "ListsCreatedByWord.docx", "NestedTables.docx", "TableExamples.docx", "TestDocument365.docx",
+               "sample1.docx", "sample2.docx", "sample3.docx", "ParagraphStyle.docx", "Normal Subscript Superscript.docx"]
+APPLE_ASSETS = ["pages-created-v15.4.docx", "pages-created-tables-v15.4.docx", "pages-created-images-v15.4.docx",
+                "pages-created-layout-v15.4.docx", "pages-created-numbering-v15.4.docx", "pages-everyday-v15.4.docx",
+                "pages-list-continuation-v15.4.docx", "pages-paragraph-list-v15.4.docx", "pages-nine-level-saved-v15.4.docx",
+                "pages-simple-v15.4.docx", "pages-table-borders-v15.4.docx", "pages-mixed-size-orders-v15.4.docx",
+                "list-counter-explicit-v15.4.docx",
+                "numbers-simple-v14.5.xlsx", "numbers-created-v14.5.xlsx", "numbers-formula-formatting-v14.5.xlsx",
+                "numbers-table-borders-v14.5.xlsx", "numbers-banding-v14.5.xlsx", "numbers-cross-table-v14.5.xlsx",
+                "excel-xlookup-optional-v16.113.3.xlsx",
+                "keynote-created-rich-v15.4.pptx", "keynote-created-tables-v15.4.pptx", "keynote-created-images-v15.4.pptx",
+                "keynote-simple-v15.4.pptx", "keynote-slide-links-v15.4.pptx", "keynote-table-borders-v15.4.pptx",
+                "keynote-colors-v15.4.pptx", "list-counter-explicit-v15.4.pptx"]
+EXCEL_ASSETS = ["BasicExcel.xlsx", "SampleFileExcel.xlsx"]
+
+OFFICEIMO_TARGETS = ["docx", "odt", "rtf", "html", "md", "xlsx", "ods", "pptx", "odp"]
+# Which targets are scored for each source family. Semantic targets apply to everything.
+FAMILY_TARGETS = {"word": ["docx", "odt", "rtf", "html", "md", "xlsx", "ods"],
+                  "tagged": ["docx", "odt", "rtf", "html", "md"],
+                  "excel": ["xlsx", "ods", "html", "md", "docx"],
+                  "slides": ["pptx", "odp", "html", "md"]}
+NORMALIZE = {"odt": "docx", "rtf": "docx", "ods": "xlsx", "odp": "pptx"}
+VISUAL_TARGETS = ["docx", "odt", "rtf", "xlsx", "ods", "pptx", "odp"]
+
+
+def wsl_path(path: str) -> str:
+    path = os.path.abspath(path)
+    drive, rest = os.path.splitdrive(path)
+    return "/mnt/" + drive[0].lower() + rest.replace("\\", "/")
+
+
+def soffice(files: list[str], outdir: str, convert_to: str, infilter: str | None = None, timeout: int = 1800) -> None:
+    """Batch conversion through LibreOffice in WSL with a private profile.
+
+    Each destination is removed first, so a failed conversion leaves no file from an earlier run behind and
+    callers can treat an existing destination as the result of this refresh.
+    """
+    if not files:
+        return
+    os.makedirs(outdir, exist_ok=True)
+    ext = convert_to.split(":", 1)[0]
+    for f in files:
+        dest = os.path.join(outdir, os.path.splitext(os.path.basename(f))[0] + "." + ext)
+        if os.path.exists(dest):
+            os.remove(dest)
+    for start in range(0, len(files), 40):
+        cmd = ["wsl", "-e", "soffice", "--headless", "--norestore", "-env:UserInstallation=file:///tmp/pdfx-lo-profile"]
+        if infilter:
+            cmd.append(f"--infilter={infilter}")
+        cmd += ["--convert-to", convert_to, "--outdir", wsl_path(outdir)] + [wsl_path(f) for f in files[start:start + 40]]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=timeout, check=False)
+
+
+def load_manifest(work: str) -> list[dict]:
+    with open(os.path.join(work, "corpus", "manifest.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+# ------------------------------------------------------------------------------------------------ corpus
+
+def cmd_corpus(args) -> None:
+    work = os.path.abspath(args.work)
+    corpus = os.path.join(work, "corpus")
+    src_dir = os.path.join(corpus, "sources")
+    pdf_dir = os.path.join(corpus, "pdf")
+    os.makedirs(src_dir, exist_ok=True)
+    os.makedirs(pdf_dir, exist_ok=True)
+    docs = os.path.join(args.repo, "OfficeIMO.TestAssets", "Documents")
+    entries: list[dict] = []
+
+    def add(source: str, set_name: str, licence: str) -> None:
+        stem = re.sub(r"[^A-Za-z0-9_.-]+", "-", os.path.splitext(os.path.basename(source))[0]).strip("-")
+        ext = os.path.splitext(source)[1].lower()
+        family = {".docx": "word", ".xlsx": "excel", ".pptx": "slides"}[ext]
+        doc_id = f"{set_name}--{stem}{'-' + ext[1:] if ext != '.docx' else ''}"
+        dest = os.path.join(src_dir, doc_id + ext)
+        pdf = os.path.join(pdf_dir, doc_id + ".pdf")
+        # A changed source invalidates its PDF, so every source/PDF pair comes from the same revision.
+        if not (os.path.exists(dest) and filecmp.cmp(source, dest, shallow=False)) and os.path.exists(pdf):
+            os.remove(pdf)
+        shutil.copyfile(source, dest)
+        entries.append({"id": doc_id, "family": family, "source": dest, "pdf": pdf,
+                        "producer": "libreoffice", "set": set_name, "licence": licence})
+
+    generated = os.path.join(work, "tmp", "generated")
+    subprocess.run([args.venv_python, "-I", os.path.join(HERE, "generate_sources.py"), generated], check=True)
+    for path in sorted(glob.glob(os.path.join(generated, "*.*"))):
+        add(path, "generated", "generated by this harness")
+    for name in WORD_ASSETS + EXCEL_ASSETS:
+        add(os.path.join(docs, name), "testassets", "OfficeIMO repository test assets (MIT)")
+    for name in APPLE_ASSETS:
+        add(os.path.join(docs, "IWorkCorpus", "native-exports", name), "iwork-exports",
+            "OfficeIMO IWorkCorpus native exports (see IWorkCorpus/THIRD-PARTY-NOTICES.md)")
+    for path in sorted(glob.glob(os.path.join(docs, "WordPageFootnotes", "*.docx"))):
+        add(path, "word-footnotes", "OfficeIMO WordPageFootnotes fixtures (MIT)")
+    # LibreOffice is the independent PDF producer for every source.
+    soffice([e["source"] for e in entries if not os.path.exists(e["pdf"])], pdf_dir, "pdf")
+    # The footnote fixtures also carry Microsoft Word PDFs: a second producer for the same sources.
+    for path in sorted(glob.glob(os.path.join(docs, "WordPageFootnotes", "*.microsoft-word.pdf"))):
+        stem = os.path.basename(path).replace(".microsoft-word.pdf", "")
+        base = next((e for e in entries if e["set"] == "word-footnotes" and e["id"].endswith("--" + stem)), None)
+        if base:
+            doc_id = base["id"].replace("word-footnotes--", "word-footnotes-msword--")
+            dest = os.path.join(pdf_dir, doc_id + ".pdf")
+            shutil.copyfile(path, dest)
+            entries.append(dict(base, id=doc_id, pdf=dest, producer="microsoft-word", set="word-footnotes-msword"))
+    if args.tagged:
+        struct_dir = os.path.join(corpus, "struct")
+        os.makedirs(struct_dir, exist_ok=True)
+        for path in sorted(glob.glob(os.path.join(args.tagged, "*.pdf"))):
+            with open(path, "rb") as f:
+                head = f.read()
+            if b"StructTreeRoot" not in head or len(head) > 4_000_000:
+                continue
+            try:
+                proc = subprocess.run(["wsl", "-e", "pdfinfo", "-struct-text", wsl_path(path)], capture_output=True, timeout=30)
+            except subprocess.TimeoutExpired:
+                continue
+            text = proc.stdout.decode("utf-8", "replace")
+            gold = parse_struct_text(text)
+            if len(gold.reading_words()) < 30 or not gold.blocks:
+                continue
+            doc_id = "pdfjs-tagged--" + os.path.splitext(os.path.basename(path))[0]
+            dest = os.path.join(pdf_dir, doc_id + ".pdf")
+            shutil.copyfile(path, dest)
+            with open(os.path.join(struct_dir, doc_id + ".txt"), "w", encoding="utf-8") as f:
+                f.write(text)
+            entries.append({"id": doc_id, "family": "tagged", "source": os.path.join(struct_dir, doc_id + ".txt"),
+                            "pdf": dest, "producer": "original", "set": "pdfjs-tagged",
+                            "licence": "pdf.js test corpus (Apache-2.0 repository; individual files keep their origin)"})
+    entries = [e for e in entries if os.path.exists(e["pdf"])]
+    with open(os.path.join(corpus, "manifest.json"), "w", encoding="utf-8") as f:
+        json.dump(entries, f, indent=1)
+    print(f"{len(entries)} documents")
+
+
+# ------------------------------------------------------------------------------------------------ conversions
+
+def cmd_officeimo(args) -> None:
+    work = os.path.abspath(args.work)
+    out = os.path.join(work, "outputs", "officeimo")
+    os.makedirs(out, exist_ok=True)
+    entries = load_manifest(work)
+
+    def one(e):
+        targets = [t for t in OFFICEIMO_TARGETS if t in FAMILY_TARGETS[e["family"]]]
+        meta = os.path.join(out, e["id"] + ".officeimo.json")
+        # Results from an earlier run must not stand in for this one if the process dies before writing its own.
+        stale = [meta] + [os.path.join(out, e["id"] + "." + t) for t in targets]
+        stale += [os.path.join(out, "normalized", t, e["id"] + "." + NORMALIZE[t]) for t in targets if t in NORMALIZE]
+        for path in stale:
+            if os.path.exists(path):
+                os.remove(path)
+        # One process per target: each gets the full timeout, and a slow or hung target cannot discard the others.
+        results = []
+        for target in targets:
+            try:
+                proc = subprocess.run(["dotnet", args.tool, "convert", e["pdf"], out, target], timeout=args.timeout,
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False)
+                status = f"exit {proc.returncode}"
+                if proc.returncode == 0 and os.path.exists(meta):
+                    with open(meta, encoding="utf-8") as f:
+                        recorded = [r for r in json.load(f) if r.get("target") == target]
+                    if recorded:
+                        results.extend(recorded)
+                        continue
+                    status = "no result"
+            except subprocess.TimeoutExpired:
+                status = "timeout"
+            output = os.path.join(out, e["id"] + "." + target)
+            if os.path.exists(output):
+                os.remove(output)
+            results.append({"target": target, "status": status})
+        with open(meta, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=1)
+        failed = [r["target"] + ":" + str(r.get("status")) for r in results if r.get("status") != "ok"]
+        return e["id"], " ".join(failed) or "ok"
+
+    with cf.ThreadPoolExecutor(args.parallel) as pool:
+        for doc_id, status in pool.map(one, entries):
+            print(doc_id, status, flush=True)
+
+
+def cmd_tools(args) -> None:
+    work = os.path.abspath(args.work)
+    entries = load_manifest(work)
+    only = set(args.only.split(",")) if args.only else {"pdf2docx", "docling", "pymupdf4llm", "libreoffice"}
+    scripts = os.path.join(HERE, "comparison")
+    env = dict(os.environ, HF_HOME=os.path.join(work, "tmp", "hf"), TEMP=os.path.join(work, "tmp"), TMP=os.path.join(work, "tmp"))
+    jobs = os.path.join(work, "tmp", "jobs")
+    os.makedirs(jobs, exist_ok=True)
+
+    def fresh(out: str) -> str:
+        # A runner that fails before writing its first log entry must not leave an earlier run's log in force.
+        log = os.path.join(out, "_log.json")
+        if os.path.exists(log):
+            os.remove(log)
+        return out
+
+    def batch(tool: str, families: set[str]) -> str:
+        rows = [{"id": e["id"], "pdf": e["pdf"]} for e in entries if e["family"] in families]
+        path = os.path.join(jobs, tool + ".json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(rows, f)
+        return path
+
+    word_like = {"word", "tagged", "excel"}
+    if "pdf2docx" in only:
+        out = fresh(os.path.join(work, "outputs", "pdf2docx"))
+        subprocess.run([args.venv_python, "-I", os.path.join(scripts, "run_pdf2docx.py"), batch("pdf2docx", word_like), out],
+                       env=env, check=False)
+    if "pymupdf4llm" in only:
+        out = fresh(os.path.join(work, "outputs", "pymupdf4llm"))
+        subprocess.run([args.venv_python, "-I", os.path.join(scripts, "run_pymupdf4llm.py"),
+                        batch("pymupdf4llm", set(FAMILY_TARGETS)), out], env=env, check=False)
+    if "docling" in only:
+        out = fresh(os.path.join(work, "outputs", "docling"))
+        subprocess.run([args.venv_python, "-I", os.path.join(scripts, "run_docling.py"), batch("docling", set(FAMILY_TARGETS)), out],
+                       env=env, check=False)
+    if "libreoffice" in only:
+        out = os.path.join(work, "outputs", "libreoffice")
+        os.makedirs(out, exist_ok=True)
+        soffice([e["pdf"] for e in entries if e["family"] in word_like], out, "docx:MS Word 2007 XML", "writer_pdf_import")
+        soffice([e["pdf"] for e in entries if e["family"] == "slides"], out, "pptx", "impress_pdf_import")
+
+
+def cmd_normalize(args) -> None:
+    """Opens OpenDocument and RTF outputs in LibreOffice and saves them as OOXML for one shared reader."""
+    work = os.path.abspath(args.work)
+    src = os.path.join(work, "outputs", "officeimo")
+    norm = os.path.join(src, "normalized")
+    for ext, target in NORMALIZE.items():
+        files = sorted(glob.glob(os.path.join(src, "*." + ext)))
+        soffice(files, os.path.join(norm, ext), target)
+
+
+# ------------------------------------------------------------------------------------------------ scoring
+
+def read_output(path: str, ext: str) -> model.Document:
+    if ext in ("docx",):
+        return read_docx(path)
+    if ext == "xlsx":
+        return read_xlsx(path)
+    if ext == "pptx":
+        return read_pptx(path)
+    if ext == "html":
+        return read_html(path)
+    if ext == "md":
+        return read_markdown(path)
+    raise ValueError(ext)
+
+
+def read_gold(e: dict) -> model.Document:
+    if e["family"] == "tagged":
+        with open(e["source"], encoding="utf-8") as f:
+            return parse_struct_text(f.read())
+    return {"word": read_docx, "excel": read_xlsx, "slides": read_pptx}[e["family"]](e["source"])
+
+
+COMPARISONS = [("pdf2docx", "docx", {"word", "tagged", "excel"}), ("libreoffice", "docx", {"word", "tagged", "excel"}),
+               ("libreoffice", "pptx", {"slides"}), ("docling", "md", set(FAMILY_TARGETS)),
+               ("docling", "html", set(FAMILY_TARGETS)), ("pymupdf4llm", "md", set(FAMILY_TARGETS)),
+               ("pdfoxide", "md", set(FAMILY_TARGETS)), ("pdfoxide", "html", set(FAMILY_TARGETS))]
+# Runners that record each job in _log.json. Their outputs count only with a recorded success.
+LOGGED_TOOLS = {"pdf2docx", "docling", "pymupdf4llm"}
+
+
+def officeimo_status(work: str, e: dict) -> dict[str, str]:
+    """Recorded OfficeIMO outcome per target; unreadable metadata marks every target as an error."""
+    meta = os.path.join(work, "outputs", "officeimo", e["id"] + ".officeimo.json")
+    if not os.path.exists(meta):
+        return {}
+    try:
+        with open(meta, encoding="utf-8") as f:
+            return {r["target"]: str(r.get("status", "error")) for r in json.load(f)}
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return {t: "metadata unreadable: " + type(exc).__name__ for t in OFFICEIMO_TARGETS}
+
+
+def conversion_status(work: str, tool: str, e: dict, target: str) -> str:
+    """Recorded outcome of one raw conversion output (before normalization)."""
+    if tool == "officeimo":
+        s = officeimo_status(work, e).get(target, "missing")
+        return s if s != "ok" or os.path.exists(os.path.join(work, "outputs", tool, e["id"] + "." + target)) else "missing"
+    folder = os.path.join(work, "outputs", tool)
+    if not os.path.exists(os.path.join(folder, e["id"] + "." + target)):
+        return "error"
+    statuses = _tool_status(folder, tool in LOGGED_TOOLS)
+    if "*" in statuses:
+        return statuses["*"]
+    return statuses.get(e["id"], "unconfirmed" if tool in LOGGED_TOOLS else "ok")
+
+
+def outputs_for(work: str, e: dict) -> list[tuple[str, str, str | None, str]]:
+    """(tool, target, path or None, status) for every scored conversion of one document."""
+    rows = []
+    oi = os.path.join(work, "outputs", "officeimo")
+    for target in FAMILY_TARGETS[e["family"]]:
+        s = conversion_status(work, "officeimo", e, target)
+        if target in NORMALIZE:
+            path = os.path.join(oi, "normalized", target, e["id"] + "." + NORMALIZE[target])
+            if s == "ok" and not os.path.exists(path):
+                s = "unreadable"
+        else:
+            path = os.path.join(oi, e["id"] + "." + target)
+        rows.append(("officeimo", target, path if s == "ok" and os.path.exists(path) else None, s))
+    for tool, target, families in COMPARISONS:
+        if e["family"] not in families or target not in FAMILY_TARGETS[e["family"]]:
+            continue
+        folder = os.path.join(work, "outputs", tool)
+        if not os.path.isdir(folder):
+            continue
+        status = conversion_status(work, tool, e, target)
+        rows.append((tool, target, os.path.join(folder, e["id"] + "." + target) if status == "ok" else None, status))
+    return rows
+
+
+_STATUS_CACHE: dict[str, dict[str, str]] = {}
+
+
+def _tool_status(folder: str, logged: bool) -> dict[str, str]:
+    """Per-document outcome from a comparison runner's _log.json; a file left by a failed or earlier run is not a success.
+
+    A damaged log marks every output of that tool as an error (key "*") instead of failing the whole document.
+    """
+    if folder not in _STATUS_CACHE:
+        statuses: dict[str, str] = {}
+        log = os.path.join(folder, "_log.json")
+        if os.path.exists(log):
+            try:
+                with open(log, encoding="utf-8") as f:
+                    for row in json.load(f):
+                        raw = str(row.get("status", ""))
+                        statuses[row["id"]] = "ok" if raw in ("ok", "ConversionStatus.SUCCESS") else raw[:80] or "error"
+            except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+                statuses = {"*": "log unreadable: " + type(exc).__name__}
+        elif logged:
+            statuses = {"*": "unconfirmed"}
+        _STATUS_CACHE[folder] = statuses
+    return _STATUS_CACHE[folder]
+
+
+def _score_one(work: str, e: dict) -> list[dict]:
+    gold = read_gold(e)
+    results = []
+    for tool, target, path, status in outputs_for(work, e):
+        ext = NORMALIZE.get(target, target)
+        out = model.Document()
+        if path:
+            try:
+                out = read_output(path, ext)
+            except Exception as exc:  # unreadable output counts as an empty conversion
+                status = "unreadable: " + type(exc).__name__
+        row = {"id": e["id"], "set": e["set"], "family": e["family"], "producer": e["producer"], "tool": tool,
+               "target": target, "status": status}
+        row.update(score(gold, out))
+        results.append(row)
+    return results
+
+
+def cmd_score(args) -> None:
+    work = os.path.abspath(args.work)
+    entries = load_manifest(work)
+    rows = []
+    failed = []
+    with cf.ProcessPoolExecutor(args.parallel) as pool:
+        futures = {pool.submit(_score_one, work, e): e["id"] for e in entries}
+        for future in cf.as_completed(futures):
+            try:
+                rows.extend(future.result())
+            except Exception as exc:  # noqa: BLE001 - reported below; a partial results.csv would change the denominator
+                failed.append(futures[future])
+                print("score failed", futures[future], f"{type(exc).__name__}: {exc}", flush=True)
+    if failed:
+        sys.exit(f"scoring failed for {len(failed)} documents; results.csv was not written")
+    rows.sort(key=lambda r: (r["id"], r["tool"], r["target"]))
+    write_csv(os.path.join(work, "results.csv"), rows)
+    print(f"{len(rows)} scored conversions")
+
+
+def write_csv(path: str, rows: list[dict]) -> None:
+    keys: list[str] = []
+    for r in rows:
+        for k in r:
+            if k not in keys:
+                keys.append(k)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, keys)
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: (round(v, 4) if isinstance(v, float) and not math.isnan(v) else ("" if isinstance(v, float) else v))
+                        for k, v in r.items()})
+
+
+# ------------------------------------------------------------------------------------------------ visual
+
+def cmd_visual(args) -> None:
+    from fidelity.visual import compare_pdfs
+
+    work = os.path.abspath(args.work)
+    entries = load_manifest(work)
+    vis = os.path.join(work, "tmp", "visual")
+    jobs = []
+    # Every expected conversion gets a row; a missing or failed output renders nothing and scores 0.
+    for tool, families in (("officeimo", set(FAMILY_TARGETS)), ("pdf2docx", {"word", "tagged", "excel"}),
+                           ("libreoffice", set(FAMILY_TARGETS))):
+        folder = os.path.join(work, "outputs", tool)
+        if not os.path.isdir(folder):
+            continue
+        for target in VISUAL_TARGETS:
+            expected = [e for e in entries if e["family"] in families and target in FAMILY_TARGETS[e["family"]]
+                        and (tool == "officeimo" or target in ("docx", "pptx"))]
+            if not expected:
+                continue
+            out = os.path.join(vis, tool, target)
+            # Only conversions recorded as successful are rendered; a file kept from a failed job scores 0.
+            ok = [conversion_status(work, tool, e, target) == "ok" for e in expected]
+            sources = [os.path.join(folder, e["id"] + "." + target) for e in expected]
+            # Re-render when the conversion output is newer than its rendered PDF.
+            stale = []
+            for p, good in zip(sources, ok):
+                rendered = os.path.join(out, os.path.basename(p).rsplit(".", 1)[0] + ".pdf")
+                if good and (not os.path.exists(rendered) or os.path.getmtime(rendered) < os.path.getmtime(p)):
+                    stale.append(p)
+            soffice(stale, out, "pdf")
+            for e, good in zip(expected, ok):
+                rendered = os.path.join(out, e["id"] + ".pdf")
+                jobs.append((tool, target, e["id"], e["pdf"], rendered if good else rendered + ".missing"))
+    rows = []
+    with cf.ThreadPoolExecutor(args.parallel) as pool:
+        for job, res in zip(jobs, pool.map(lambda j: compare_pdfs(j[3], j[4], os.path.join(vis, "png")), jobs)):
+            rows.append({"id": job[2], "tool": job[0], "target": job[1], **res})
+    write_csv(os.path.join(work, "visual.csv"), rows)
+    print(f"{len(rows)} visual comparisons")
+
+
+def cmd_report(args) -> None:
+    from fidelity.report import write_report
+
+    write_report(os.path.abspath(args.work))
+
+
+def main() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("command", choices=["corpus", "officeimo", "tools", "normalize", "score", "visual", "report"])
+    p.add_argument("--work", required=True)
+    p.add_argument("--repo", default=os.path.abspath(os.path.join(HERE, "..", "..")))
+    p.add_argument("--tagged")
+    p.add_argument("--tool")
+    p.add_argument("--venv-python", default=sys.executable)
+    p.add_argument("--only")
+    p.add_argument("--parallel", type=int, default=8)
+    p.add_argument("--timeout", type=int, default=300)
+    args = p.parse_args()
+    {"corpus": cmd_corpus, "officeimo": cmd_officeimo, "tools": cmd_tools, "normalize": cmd_normalize,
+     "score": cmd_score, "visual": cmd_visual, "report": cmd_report}[args.command](args)
+
+
+if __name__ == "__main__":
+    main()

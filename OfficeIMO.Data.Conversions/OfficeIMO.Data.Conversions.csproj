@@ -38,6 +38,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\*.cs" Link="SharedSource\Numerics\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="System.Buffers" />
     <Using Include="System.Globalization" />
     <Using Include="System.Text" />

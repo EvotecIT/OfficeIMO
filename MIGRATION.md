@@ -5373,6 +5373,19 @@ with `NotSupportedException` before sending a request; pass credentials through
 legacy PowerPoint theme payloads and HTML site bundles now treat a non-empty ZIP entry
 with a missing or zero compressed size as exceeding the compression-ratio limit.
 
+## PDF stamps and added content follow page rotation
+
+Text and image stamps, watermarks, `PdfDocument.Text.Add`, `PdfDocument.Images.Add` and
+free text annotations created with `PdfDocument.Annotations.Add` now read upright on pages
+with `/Rotate`. `PdfTextStampOptions.RotationDegrees` and `PdfImageStampOptions.RotationDegrees`
+are measured on the displayed page, and default stamp positions are 36 points from the
+lower-left corner of the displayed page, inside the crop box. Code that added the page
+rotation to `RotationDegrees` itself should stop doing so. Explicit `X` and `Y` remain
+user-space coordinates from the unrotated PDF origin, so keep any offsets they carry; on a
+rotated page the stamp now grows right and up on the displayed page from that point.
+`PdfTextEditOptions.RotationDegrees` keeps its user-space meaning; leave it unset to add
+upright text.
+
 ## PDF read limits open larger valid files by default
 
 `PdfReadLimits` defaults now accept single objects of up to 16,000,000 characters and
@@ -10122,3 +10135,9 @@ This affects remote Excel workbook loads, `OfficeIMO.Reader.Web`, remote images 
 ## PDF repeated table headers
 
 A table with repeated header rows now always starts with at least the first fragment of the following body row. `PdfTableStyle.MinimumBodyRowsOnFirstPage = 0` no longer allows a header-only first segment: the header and that fragment move to the next page together. When the preferred whole rows cannot share one page, the header keeps only the first fragment and the long row splits instead of leaving the header alone at the bottom of a page. Tables whose cells hold block content, such as nested tables, are laid out in whole rows: their repeated header keeps at least the whole first body row, and a first body row taller than the page can still leave the header alone.
+
+## PDF list nesting and numbering
+
+PDF lists converted to Word, OpenDocument, RTF and HTML keep their bullet or numbering style and their nesting, and each separate list is numbered on its own instead of counting on from the previous one. Word, RTF and HTML output also keep the number a list starts at, and RTF list definitions keep lettered and Roman numbering. `PdfLogicalListItem.Level` now also follows indentation when the PDF draws nested items only by indenting them (including tagged PDFs whose producer tags each level as a separate list), and `NumberFormat`, `IsOrdered` and `Ordinal` describe the marker.
+
+Semantic PDF-to-HTML output nests list items in `<ul>` and `<ol>` elements, with `type` for lettered and Roman numbering and `start` when a list does not begin at 1. Each item is no longer wrapped in its own `<ul data-pdf-list-level="N">`; read the nesting of the list elements instead of that attribute. Word-to-ODT conversion writes nested Word list items as nested ODT lists, and a numbered list that starts at another number keeps it as the first item's `text:start-value`. The `list-levels` mapping now appears only for items that skip a level or are deeper than ten levels.

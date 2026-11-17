@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
             double factor = Math.Abs(significance);
             if (Math.Abs(value) < (double)decimal.MaxValue && factor < (double)decimal.MaxValue) {
                 try {
-                    decimal number = (decimal)value, multiple = (decimal)factor;
+                    decimal number = OfficeDecimalConversion.FromDouble(value), multiple = OfficeDecimalConversion.FromDouble(factor);
                     // Decimal has 28 fractional places: below 1E-14 it may
                     // lose more than the intended 15-significant-digit normalization.
                     bool numberKeepsPrecision = Math.Abs(value) >= 1E-14 || DecimalToDouble(number) == value;

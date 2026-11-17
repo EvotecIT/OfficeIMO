@@ -1,0 +1,63 @@
+name: Test on the next .NET runtime
+
+# Runs the net10.0 test builds on a newer .NET runtime by rolling them forward, so
+# behaviour changes in the next runtime show up before consumers upgrade.
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: .NET runtime channel to roll the net10.0 tests forward to
+        required: true
+        default: '11.0'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - OfficeIMO.Drawing.Tests
+          - OfficeIMO.Excel.Tests
+          - OfficeIMO.CSV.Tests
+          - OfficeIMO.Data.Conversions.Tests
+          - OfficeIMO.Email.Tests
+          - OfficeIMO.Project.Tests
+          - OfficeIMO.Access.Tests
+          - OfficeIMO.Yaml.Tests
+          - OfficeIMO.Toml.Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CHANNEL: ${{ inputs.channel }}
+      PROJECT: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: ./.github/actions/nuget-cache
+      - name: Install the .NET ${{ inputs.channel }} runtime
+        run: |
+          curl -sSL https://dot.net/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+          bash "$RUNNER_TEMP/dotnet-install.sh" --runtime dotnet --channel "$CHANNEL" --install-dir "$RUNNER_TEMP/dotnet-next" --no-path
+      - name: Build ${{ matrix.project }} for net10.0
+        run: dotnet build "$PROJECT/$PROJECT.csproj" --configuration Release --framework net10.0 -m:1
+      - name: Test ${{ matrix.project }} on .NET ${{ inputs.channel }}
+        run: |
+          # The separate runtime directory holds only the newer runtime, so Major roll-forward
+          # cannot fall back to net10.0; vstest launches the test host with the same host.
+          vstest="$DOTNET_ROOT/sdk/$(dotnet --version)/vstest.console.dll"
+          DOTNET_ROOT="$RUNNER_TEMP/dotnet-next" DOTNET_ROLL_FORWARD=Major \
+            "$RUNNER_TEMP/dotnet-next/dotnet" "$vstest" "$PROJECT/bin/Release/net10.0/$PROJECT.dll" \
+            --TestCaseFilter:"Category!=Performance" --logger:"trx;LogFileName=$PROJECT.trx" --ResultsDirectory:TestResults
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: next-runtime-${{ matrix.project }}
+          path: TestResults
+          if-no-files-found: warn

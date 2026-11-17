@@ -280,9 +280,9 @@ namespace OfficeIMO.Excel {
             // such as 1.255. Decimal conversion normalizes the input's 15 significant digits.
             if (Math.Abs(value) < (double)decimal.MaxValue) {
                 try {
-                    decimal number = (decimal)value;
+                    decimal number = OfficeDecimalConversion.FromDouble(value);
                     if (digits >= 0) return (double)decimal.Round(number, digits, mode);
-                    decimal scale = (decimal)Math.Pow(10, -digits);
+                    decimal scale = OfficeDecimalConversion.FromDouble(Math.Pow(10, -digits));
                     return (double)(decimal.Round(number / scale, 0, mode) * scale);
                 } catch (OverflowException) {
                     // Rounding can cross decimal's upper bound; doubles still represent it.

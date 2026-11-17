@@ -523,7 +523,7 @@ internal static class DataValueConverter {
         }
 #endif
         try {
-            result = Convert.ChangeType(value, effectiveType, culture);
+            result = OfficeDecimalConversion.ChangeType(value, effectiveType, culture);
             return true;
         } catch (Exception ex) {
             error = errorValuePolicy == DataMappingErrorValuePolicy.Redact

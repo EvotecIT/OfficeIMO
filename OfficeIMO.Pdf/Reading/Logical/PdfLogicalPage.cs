@@ -660,7 +660,11 @@ public sealed partial class PdfLogicalPage {
         var result = new List<PdfLogicalListItem>(Math.Max(listItems.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
         AddContentsItems(pageNumber, textBlocks, analysis, links, result, represented);
+        int firstVisualItem = result.Count;
         AddTaggedListItems(pageNumber, textBlocks, semanticByTextBlock, analysis, result, represented);
+        // Some producers tag "List Bullet 2" items as separate flat lists, so tagged items also take
+        // the nesting their indentation shows.
+        var indentationLevelled = new HashSet<PdfLogicalListItem>(result.Skip(firstVisualItem));
         var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
             PdfLogicalTextBlock block = textBlocks[blockIndex];
@@ -692,6 +696,7 @@ public sealed partial class PdfLogicalPage {
                     lineTexts,
                     semantic?.Confidence,
                     semantic?.Evidence));
+                if (semantic?.Level is null) indentationLevelled.Add(result[result.Count - 1]);
                 for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) represented.Add(lines[lineIndex]);
             }
         }
@@ -719,10 +724,169 @@ public sealed partial class PdfLogicalPage {
                 lineTexts,
                 semantic?.Confidence,
                 semantic?.Evidence));
+            if (semantic?.Level is null) indentationLevelled.Add(result[result.Count - 1]);
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) represented.Add(lines[lineIndex]);
         }
 
+        // Tagged items are collected before untagged ones; both passes read the items in reading order.
+        var layout = new ListLayout(textBlocks, represented);
+        List<PdfLogicalListItem> visualItems = layout.InReadingOrder(result.Skip(firstVisualItem));
+        AssignIndentationLevels(visualItems, layout, indentationLevelled);
+        ResolveAmbiguousMarkers(visualItems, layout);
         return result.AsReadOnly();
+    }
+
+    /// <summary>Reading-order positions of the page's lines, and which of them belong to list items.</summary>
+    private sealed class ListLayout {
+        private readonly List<PdfLogicalTextBlock> _textBlocks;
+        private readonly HashSet<PdfLogicalTextBlock> _listLines;
+        private readonly Dictionary<PdfLogicalTextBlock, int> _positions;
+
+        internal ListLayout(List<PdfLogicalTextBlock> textBlocks, HashSet<PdfLogicalTextBlock> listLines) {
+            _textBlocks = textBlocks;
+            _listLines = listLines;
+            _positions = new Dictionary<PdfLogicalTextBlock, int>(textBlocks.Count);
+            // Walk backwards so a block listed twice keeps its first position.
+            for (int index = textBlocks.Count - 1; index >= 0; index--) _positions[textBlocks[index]] = index;
+        }
+
+        internal List<PdfLogicalListItem> InReadingOrder(IEnumerable<PdfLogicalListItem> items) {
+            List<PdfLogicalListItem> list = items.ToList();
+            if (!list.TrueForAll(item => _positions.ContainsKey(item.Line))) return list;
+            return list.OrderBy(item => _positions[item.Line]).ToList();
+        }
+
+        /// <summary>
+        /// True when a paragraph that is not part of a list lies between the two items. Text indented past both
+        /// markers is a wrapped line of the item above, not a paragraph.
+        /// </summary>
+        internal bool HasTextBetween(PdfLogicalListItem previous, PdfLogicalListItem next) {
+            double markerStart = Math.Min(previous.Line.XStart, next.Line.XStart) + 1D;
+            int from = -1;
+            foreach (PdfLogicalTextBlock line in previous.Lines) {
+                if (_positions.TryGetValue(line, out int position)) from = Math.Max(from, position);
+            }
+            if (from < 0 || !_positions.TryGetValue(next.Line, out int to)) return false;
+            for (int index = from + 1; index < to; index++) {
+                PdfLogicalTextBlock block = _textBlocks[index];
+                if (!_listLines.Contains(block) && block.XStart <= markerStart && !string.IsNullOrWhiteSpace(block.Text)) return true;
+            }
+            return false;
+        }
+    }
+
+    /// <summary>Reads "(v)" after "(iv)" as Roman and "(i)" after "(h)" as a letter, within each run of list items.</summary>
+    private static void ResolveAmbiguousMarkers(List<PdfLogicalListItem> items, ListLayout layout) {
+        var previous = new Dictionary<int, PdfLogicalListMarker>();
+        for (int index = 0; index < items.Count; index++) {
+            PdfLogicalListItem item = items[index];
+            if (index > 0 && !ContinuesList(items[index - 1], item, layout)) previous.Clear();
+            foreach (int deeper in previous.Keys.Where(level => level > item.Level).ToList()) previous.Remove(deeper);
+            PdfLogicalListMarker marker = item.MarkerInfo;
+            if (previous.TryGetValue(item.Level, out PdfLogicalListMarker before)) {
+                marker = marker.ResolveBeside(before, item.Marker);
+                item.MarkerInfo = marker;
+            } else if (FindNextAtLevel(items, index, layout) is PdfLogicalListItem next) {
+                // The first item has no item before it: "(i)" followed by "(j)" is a letter, "(v)" followed by "(vi)" Roman.
+                marker = marker.ResolveBeside(next.MarkerInfo, item.Marker);
+                item.MarkerInfo = marker;
+            }
+            previous[item.Level] = marker;
+        }
+    }
+
+    private static PdfLogicalListItem? FindNextAtLevel(List<PdfLogicalListItem> items, int index, ListLayout layout) {
+        int level = items[index].Level;
+        for (int next = index + 1; next < items.Count && ContinuesList(items[next - 1], items[next], layout); next++) {
+            if (items[next].Level < level) return null;
+            if (items[next].Level == level) return items[next];
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Many PDFs show nesting only by indentation: "• Archive" drawn 18 pt right of "• Retire" is its child.
+    /// Items that follow each other closely, with no other text between them, form one list; within it each distinct
+    /// indentation of the item text is one level deeper. A dotted number ("1.2") keeps the deeper of its own and its
+    /// indentation level.
+    /// </summary>
+    private static void AssignIndentationLevels(List<PdfLogicalListItem> items, ListLayout layout, HashSet<PdfLogicalListItem> eligible) {
+        int groupStart = 0;
+        for (int index = 0; index <= items.Count; index++) {
+            if (index < items.Count && index > groupStart && ContinuesList(items[index - 1], items[index], layout)) continue;
+            if (index > groupStart) AssignGroupLevels(items, groupStart, index, eligible);
+            groupStart = index;
+        }
+    }
+
+    private static bool ContinuesList(PdfLogicalListItem previous, PdfLogicalListItem next, ListLayout layout) {
+        double previousBaseline = previous.Lines[previous.Lines.Count - 1].BaselineY;
+        double gap = previousBaseline - next.Line.BaselineY;
+        double size = Math.Max(Math.Max(previous.Line.FontSize, next.Line.FontSize), 1D);
+        return gap > 0D && gap <= size * 3D && !layout.HasTextBetween(previous, next);
+    }
+
+    private static void AssignGroupLevels(List<PdfLogicalListItem> items, int start, int end, HashSet<PdfLogicalListItem> eligible) {
+        if (end - start < 2) return;
+        var markers = new double[end - start];
+        var bodies = new double[end - start];
+        bool measured = true;
+        double size = 0D;
+        for (int index = start; index < end; index++) {
+            if (!eligible.Contains(items[index])) return;
+            markers[index - start] = items[index].Line.XStart;
+            if (TryGetBodyStart(items[index], out double body)) bodies[index - start] = body;
+            else measured = false;
+            size = Math.Max(size, items[index].Line.FontSize);
+        }
+
+        // A nested item moves both its marker and its text right. Labels of different widths move only one of them:
+        // the marker when labels are right-aligned ("i." and "viii."), the text when a space follows a left-aligned
+        // label ("1." and "100.").
+        double step = Math.Max(6D, size * 0.75D);
+        int[] markerLevels = IndentationLevels(markers, step);
+        int[] bodyLevels = measured ? IndentationLevels(bodies, step) : markerLevels;
+        for (int index = start; index < end; index++) {
+            PdfLogicalListItem item = items[index];
+            item.Level = Math.Max(item.Level, Math.Min(markerLevels[index - start], bodyLevels[index - start]));
+        }
+    }
+
+    /// <summary>Numbers distinct indentations from 1; a nesting step is wider than one marker character.</summary>
+    private static int[] IndentationLevels(double[] positions, double step) {
+        double[] indents = (double[])positions.Clone();
+        Array.Sort(indents);
+        var levelStarts = new List<double> { indents[0] };
+        for (int i = 1; i < indents.Length; i++) {
+            if (indents[i] - levelStarts[levelStarts.Count - 1] > step) levelStarts.Add(indents[i]);
+        }
+
+        var levels = new int[positions.Length];
+        for (int index = 0; index < positions.Length; index++) {
+            levels[index] = 1;
+            for (int level = 1; level < levelStarts.Count; level++) {
+                if (positions[index] - levelStarts[level] >= -step / 2D) levels[index] = level + 1;
+            }
+        }
+        return levels;
+    }
+
+    /// <summary>Where the item's text starts after its marker; the line start when the line holds no marker.</summary>
+    private static bool TryGetBodyStart(PdfLogicalListItem item, out double x) {
+        PdfLogicalTextBlock line = item.Line;
+        x = line.XStart;
+        string text = line.Text;
+        int first = 0;
+        while (first < text.Length && char.IsWhiteSpace(text[first])) first++;
+        if (item.Text.Length == 0 || first == text.Length) return false;
+        // The item text runs on over wrapped lines; its first word is on this one.
+        int probeLength = 0;
+        while (probeLength < item.Text.Length && probeLength < 12 && !char.IsWhiteSpace(item.Text[probeLength])) probeLength++;
+        if (probeLength == 0) return false;
+        string probe = item.Text.Substring(0, probeLength);
+        if (string.CompareOrdinal(text, first, probe, 0, probe.Length) == 0) return true;
+        int body = text.IndexOf(probe, first + 1, StringComparison.Ordinal);
+        return body > first && PdfLogicalInlineText.TryGetCharacterStart(line, body, out x);
     }
 
     private static bool PreservesListContinuationOwnership(PdfUnderstandingSemanticElement semantic) {

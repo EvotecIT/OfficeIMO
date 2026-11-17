@@ -143,7 +143,7 @@ namespace OfficeIMO.Excel {
             : _inner.GetDateTime(ordinal);
 
         public override decimal GetDecimal(int ordinal) => IsSampledRow
-            ? Convert.ToDecimal(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
+            ? OfficeDecimalConversion.FromObject(GetNonDbNullValue(ordinal, preserveSerial: true), _culture)
             : _inner.GetDecimal(ordinal);
 
         public override double GetDouble(int ordinal) => IsSampledRow

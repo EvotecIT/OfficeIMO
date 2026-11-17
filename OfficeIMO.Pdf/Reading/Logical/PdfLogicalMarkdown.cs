@@ -393,7 +393,7 @@ public static class PdfLogicalMarkdownExtensions {
     private static string RenderListItem(PdfLogicalListItem item, Stack<(int Level, int ContentIndent)> parents,
         out bool requiresBlankLine) {
         int level = Math.Max(item.Level, 1);
-        string marker = FormatListMarker(item.Marker);
+        string marker = FormatListMarker(item.Marker, item.MarkerInfo);
         bool startsNestedList = parents.Count > 0 && parents.Peek().Level < level;
         // A non-one ordered list needs a blank line after its parent's paragraph to preserve its start number.
         requiresBlankLine = startsNestedList && marker is not ("-" or "1." or "1)");
@@ -438,7 +438,7 @@ public static class PdfLogicalMarkdownExtensions {
         return builder.ToString();
     }
 
-    private static string FormatListMarker(string marker) {
+    private static string FormatListMarker(string marker, PdfLogicalListMarker parsed) {
         string trimmed = marker.Trim();
         if (trimmed.Length == 0) {
             return "-";
@@ -449,6 +449,12 @@ public static class PdfLogicalMarkdownExtensions {
             return last == '.' || last == ')'
                 ? trimmed
                 : trimmed + ".";
+        }
+
+        // CommonMark numbers lists only with digits, so "c)" or "iv." keep their position as "3)" or "4.".
+        if (parsed.Ordinal.HasValue) {
+            bool parenthesis = parsed.Suffix.Length > 0 && parsed.Suffix[parsed.Suffix.Length - 1] == ')';
+            return parsed.Ordinal.Value.ToString(CultureInfo.InvariantCulture) + (parenthesis ? ")" : ".");
         }
 
         return "-";

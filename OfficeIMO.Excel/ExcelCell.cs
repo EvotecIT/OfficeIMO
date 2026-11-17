@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
                 return typed;
             }
 
-            return (T?)Convert.ChangeType(value, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
+            return (T?)OfficeDecimalConversion.ChangeType(value, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
         }
 
         /// <summary>

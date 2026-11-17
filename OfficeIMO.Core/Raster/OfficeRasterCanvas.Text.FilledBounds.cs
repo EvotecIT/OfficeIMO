@@ -36,11 +36,26 @@ public sealed partial class OfficeRasterCanvas {
         MeasureNominalFilledContourBoundsCore(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
             IReadOnlyList<OfficeTextInkClip>? clips, int admittedClipCount, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        var edges = new List<InkBoundEdge>();
-        var boundaries = new List<double>();
-        var rules = new List<OfficeFillRule> { rule };
+        // Diagnostics measure many small paints in a row. The working lists are borrowed per thread and returned
+        // afterwards, so repeated calls reuse their capacity; a nested or failed call simply starts a new set.
+        InkBoundScratch scratch = InkBoundScratch.Rent();
+        try {
+            return MeasureNominalFilledContourBoundsCore(contours, rule, clips, admittedClipCount, scratch, cancellationToken);
+        } finally {
+            InkBoundScratch.Return(scratch);
+        }
+    }
+
+    private static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
+        MeasureNominalFilledContourBoundsCore(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
+            IReadOnlyList<OfficeTextInkClip>? clips, int admittedClipCount, InkBoundScratch scratch, CancellationToken cancellationToken) {
+        List<InkBoundEdge> edges = scratch.Edges;
+        List<double> boundaries = scratch.Boundaries;
+        List<OfficeFillRule> rules = scratch.Rules;
+        rules.Add(rule);
         if (!AddContours(contours, 0)) return Unmeasured();
-        if (clips != null) foreach (OfficeTextInkClip clip in clips) {
+        if (clips != null) for (int clipIndex = 0; clipIndex < clips.Count; clipIndex++) {
+            OfficeTextInkClip clip = clips[clipIndex];
             if (clip.FilledContours == null) continue;
             if (rules.Count > 64) return Unmeasured();
             rules.Add(clip.FillRule);
@@ -68,11 +83,11 @@ public sealed partial class OfficeRasterCanvas {
             }
         }
         boundaries.Sort();
-        var crossings = new List<(double X, int Edge)>();
+        List<(double X, int Edge)> crossings = scratch.Crossings;
         double left = double.PositiveInfinity, top = double.PositiveInfinity;
         double right = double.NegativeInfinity, bottom = double.NegativeInfinity;
         bool hasInk = false, isClipped = false;
-        var winding = new int[rules.Count];
+        int[] winding = scratch.Winding(rules.Count);
         for (int band = 1; band < boundaries.Count; band++) {
             cancellationToken.ThrowIfCancellationRequested();
             double low = boundaries[band - 1], high = boundaries[band];
@@ -89,8 +104,8 @@ public sealed partial class OfficeRasterCanvas {
                     crossings.Add((x, edge));
                 }
             }
-            crossings.Sort((a, b) => a.X.CompareTo(b.X));
-            Array.Clear(winding, 0, winding.Length);
+            crossings.Sort(CompareCrossings);
+            Array.Clear(winding, 0, rules.Count);
             int index = 0, previousEdge = -1;
             double previousX = 0D;
             while (index < crossings.Count) {
@@ -123,12 +138,14 @@ public sealed partial class OfficeRasterCanvas {
         }
         bool IsInside(int group) => rules[group] == OfficeFillRule.NonZero ? winding[group] != 0 : (winding[group] & 1) != 0;
 
-        bool AddContours(IEnumerable<IReadOnlyList<OfficePoint>> source, int group) {
-            foreach (var contour in source) {
+        bool AddContours(IReadOnlyList<IReadOnlyList<OfficePoint>> source, int group) {
+            for (int contourIndex = 0; contourIndex < source.Count; contourIndex++) {
+                IReadOnlyList<OfficePoint> contour = source[contourIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 if (contour.Count < 3) continue;
                 OfficePoint start = contour[contour.Count - 1];
-                foreach (OfficePoint end in contour) {
+                for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                    OfficePoint end = contour[pointIndex];
                     if (!IsFinite(start.X) || !IsFinite(start.Y) || !IsFinite(end.X) || !IsFinite(end.Y)) return false;
                     if (start.Y != end.Y) {
                         edges.Add(new InkBoundEdge(start, end, group)); boundaries.Add(start.Y); boundaries.Add(end.Y);
@@ -140,6 +157,45 @@ public sealed partial class OfficeRasterCanvas {
             return true;
         }
         static (double, double, double, double, bool, bool, bool) Unmeasured() => (0D, 0D, 0D, 0D, false, false, false);
+    }
+
+    private static readonly Comparison<(double X, int Edge)> CompareCrossings = static (a, b) => a.X.CompareTo(b.X);
+
+    private sealed class InkBoundScratch {
+        // Larger buffers come from rare oversized paints; they are not kept for the thread.
+        private const int RetainedEdgeCapacity = 4097;
+        private const int RetainedBoundaryCapacity = 16384;
+
+        [ThreadStatic]
+        private static InkBoundScratch? _cached;
+
+        private int[] _winding = new int[4];
+
+        internal List<InkBoundEdge> Edges { get; } = new();
+        internal List<double> Boundaries { get; } = new();
+        internal List<OfficeFillRule> Rules { get; } = new();
+        internal List<(double X, int Edge)> Crossings { get; } = new();
+
+        internal int[] Winding(int count) {
+            if (_winding.Length < count) _winding = new int[Math.Max(count, _winding.Length * 2)];
+            return _winding;
+        }
+
+        internal static InkBoundScratch Rent() {
+            InkBoundScratch? scratch = _cached;
+            _cached = null;
+            return scratch ?? new InkBoundScratch();
+        }
+
+        internal static void Return(InkBoundScratch scratch) {
+            if (scratch.Edges.Capacity > RetainedEdgeCapacity || scratch.Boundaries.Capacity > RetainedBoundaryCapacity
+                || scratch.Crossings.Capacity > RetainedEdgeCapacity) return;
+            scratch.Edges.Clear();
+            scratch.Boundaries.Clear();
+            scratch.Rules.Clear();
+            scratch.Crossings.Clear();
+            _cached = scratch;
+        }
     }
 
     private readonly struct InkBoundEdge {

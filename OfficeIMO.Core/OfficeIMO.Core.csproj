@@ -92,6 +92,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Web" />
     <Compile Include="..\OfficeIMO.SharedSource\IO\OfficeFileCommitClaim.cs" Link="Internal\IO\OfficeFileCommitClaim.cs" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\*.cs" Link="Internal\Compound\%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\*.cs" Link="Internal\Numerics\%(Filename)%(Extension)" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

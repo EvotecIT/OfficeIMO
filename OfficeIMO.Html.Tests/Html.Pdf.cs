@@ -1348,7 +1348,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains("body.officeimo-pdf-semantic .pdf-page", html, StringComparison.Ordinal);
         Assert.Contains("<h1>Logical Heading</h1>", html, StringComparison.Ordinal);
         Assert.Contains("<p>Logical readback marker.</p>", html, StringComparison.Ordinal);
-        Assert.Contains("<ul data-pdf-list-level=\"1\"><li>Detected logical bullet</li></ul>", html, StringComparison.Ordinal);
+        Assert.Contains("<ul><li>Detected logical bullet</li></ul>", html, StringComparison.Ordinal);
         Assert.Contains("<table>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Code</th>", html, StringComparison.Ordinal);
         Assert.Contains("<th class=\"pdf-numeric\" style=\"text-align:right\">Qty</th>", html, StringComparison.Ordinal);

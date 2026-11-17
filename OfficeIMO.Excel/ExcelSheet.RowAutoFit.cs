@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Round to reasonable precision and return desired height
-            return hasContent ? Math.Round(maxHeight, 2) : 0;
+            return hasContent ? OfficeRounding.Round(maxHeight, 2) : 0;
         }
 
         private void ApplyAutoFitWrapText(Cell cell, uint styleIndex) {
@@ -284,7 +284,7 @@ namespace OfficeIMO.Excel {
         private static void SetRowHeightCore(Row row, double height, bool roundToHundredths = true) {
             height = NormalizeRowHeight(height);
             if (height > 0) {
-                row.Height = roundToHundredths ? Math.Round(height, 2) : height;
+                row.Height = roundToHundredths ? OfficeRounding.Round(height, 2) : height;
                 row.CustomHeight = true;
             } else {
                 row.Height = null;

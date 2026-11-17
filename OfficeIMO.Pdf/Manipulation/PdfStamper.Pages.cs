@@ -417,7 +417,7 @@ internal static partial class PdfStamper {
             bool alreadyIsolated = isolationId is not null && entries.Items.Any(item =>
                 IsWatermark(objects, item, isolationId, out var stream)
                 && stream!.Dictionary.Get<PdfBoolean>("OfficeIMOWatermarkBehind")?.Value == false);
-            if (!alreadyIsolated) existingContents = IsolateContents(objects, existingContents, ref nextObjectNumber);
+            if (!alreadyIsolated) existingContents = IsolateContents(objects, page, existingContents, ref nextObjectNumber);
         }
         PdfArray contents = BuildContentsArray(objects, existingContents, stampObjectNumber, behindContent);
         if (objects[stampObjectNumber].Value is PdfStream replacement
