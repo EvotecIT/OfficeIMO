@@ -784,11 +784,24 @@ public sealed partial class PdfLogicalPage {
             foreach (int deeper in previous.Keys.Where(level => level > item.Level).ToList()) previous.Remove(deeper);
             PdfLogicalListMarker marker = item.MarkerInfo;
             if (previous.TryGetValue(item.Level, out PdfLogicalListMarker before)) {
-                marker = marker.ResolveAfter(before, item.Marker);
+                marker = marker.ResolveBeside(before, item.Marker);
+                item.MarkerInfo = marker;
+            } else if (FindNextAtLevel(items, index, layout) is PdfLogicalListItem next) {
+                // The first item has no item before it: "(i)" followed by "(j)" is a letter, "(v)" followed by "(vi)" Roman.
+                marker = marker.ResolveBeside(next.MarkerInfo, item.Marker);
                 item.MarkerInfo = marker;
             }
             previous[item.Level] = marker;
         }
+    }
+
+    private static PdfLogicalListItem? FindNextAtLevel(List<PdfLogicalListItem> items, int index, ListLayout layout) {
+        int level = items[index].Level;
+        for (int next = index + 1; next < items.Count && ContinuesList(items[next - 1], items[next], layout); next++) {
+            if (items[next].Level < level) return null;
+            if (items[next].Level == level) return items[next];
+        }
+        return null;
     }
 
     /// <summary>

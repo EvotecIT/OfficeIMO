@@ -294,16 +294,17 @@ internal static class PdfRtfConverter {
 
     /// <summary>
     /// Gives each source list its own RTF list, so a second list starts again instead of counting on from the first.
-    /// A level that changes its numbering style, or a number that does not follow on, starts a new list. Each level
-    /// of the list definition takes its format (bullet, decimal, letter or Roman, with the source punctuation) and
-    /// start value from the first item drawn at that level.
+    /// A level that changes its numbering style or punctuation, or a number that does not follow on, starts a new
+    /// list. Each level of the list definition takes its format (bullet, decimal, letter or Roman, with the source
+    /// punctuation) and start value from the first item drawn at that level.
     /// </summary>
     private sealed class SourceListNumbering {
         private const int MaximumLevels = 9;
         private readonly RtfDocument _document;
-        private readonly PdfCore.PdfLogicalListNumberFormat?[] _formats = new PdfCore.PdfLogicalListNumberFormat?[MaximumLevels];
+        private readonly PdfCore.PdfLogicalListMarker?[] _markers = new PdfCore.PdfLogicalListMarker?[MaximumLevels];
         private readonly int[] _starts = new int[MaximumLevels];
         private readonly int?[] _counters = new int?[MaximumLevels];
+        private readonly bool[] _carried = new bool[MaximumLevels];
         private RtfListDefinition? _definition;
         private int _nextId = 1;
         private int _currentId;
@@ -315,21 +316,33 @@ internal static class PdfRtfConverter {
         internal void End() => _currentId = 0;
 
         internal int Assign(int level, PdfCore.PdfLogicalListMarker marker) {
-            if (_currentId == 0 || !Continues(level, marker)) Start();
-            if (_formats[level] == null) ConfigureLevel(level, marker);
+            if (_currentId == 0) Start(carriedLevels: 0);
+            else if (!Continues(level, marker)) Start(carriedLevels: level);
+            if (_markers[level] == null) ConfigureLevel(level, marker, Math.Max(0, marker.Ordinal ?? 1));
             _counters[level] = marker.Ordinal ?? (_counters[level] + 1 ?? _starts[level]);
             for (int deeper = level + 1; deeper < MaximumLevels; deeper++) _counters[deeper] = null;
             return _currentId;
         }
 
         private bool Continues(int level, PdfCore.PdfLogicalListMarker marker) {
-            PdfCore.PdfLogicalListNumberFormat? format = _formats[level];
-            if (format == null) return true;
-            if (format.Value != marker.Format) return false;
+            // A parent level carried into a restarted list only shows its number; its next item needs a list that
+            // counts on from there.
+            if (_carried[level]) return false;
+            if (_markers[level] is not PdfCore.PdfLogicalListMarker current) return true;
+            if (current.Format != marker.Format || current.Prefix != marker.Prefix || current.Suffix != marker.Suffix) return false;
             return !marker.Ordinal.HasValue || marker.Ordinal.Value == (_counters[level] + 1 ?? _starts[level]);
         }
 
-        private void Start() {
+        /// <summary>
+        /// Starts a new list. A nested list that restarts keeps its parent levels, at their current numbers, so
+        /// "2.5" after "2." still shows the 2.
+        /// </summary>
+        private void Start(int carriedLevels) {
+            var parents = new (PdfCore.PdfLogicalListMarker Marker, int Number)?[carriedLevels];
+            for (int level = 0; level < carriedLevels; level++) {
+                if (_markers[level] is PdfCore.PdfLogicalListMarker marker) parents[level] = (marker, _counters[level] ?? _starts[level]);
+            }
+
             _currentId = _nextId++;
             _definition = _document.AddListDefinition(_currentId, "PDF list");
             _document.AddListOverride(_currentId, _currentId);
@@ -339,14 +352,22 @@ internal static class PdfRtfConverter {
                 listLevel.Text = "\u2022";
                 listLevel.LeftIndentTwips = 720 + level * 360;
                 listLevel.FirstLineIndentTwips = -360;
-                _formats[level] = null;
+                _markers[level] = null;
                 _starts[level] = 1;
                 _counters[level] = null;
+                _carried[level] = false;
+            }
+
+            for (int level = 0; level < carriedLevels; level++) {
+                if (parents[level] is not { } parent) continue;
+                ConfigureLevel(level, parent.Marker, parent.Number);
+                _counters[level] = parent.Number;
+                _carried[level] = true;
             }
         }
 
-        private void ConfigureLevel(int level, PdfCore.PdfLogicalListMarker marker) {
-            _formats[level] = marker.Format;
+        private void ConfigureLevel(int level, PdfCore.PdfLogicalListMarker marker, int start) {
+            _markers[level] = marker;
             if (!marker.IsOrdered) return;
             RtfListLevel listLevel = _definition!.Levels[level];
             listLevel.Kind = RtfListKind.Decimal;
@@ -365,8 +386,8 @@ internal static class PdfRtfConverter {
                 if (shown < level) levelText.Append('.');
             }
             listLevel.Text = levelText.Append(suffix).ToString();
-            _starts[level] = Math.Max(0, marker.Ordinal ?? 1);
-            listLevel.StartAt = _starts[level];
+            _starts[level] = start;
+            listLevel.StartAt = start;
         }
     }
 

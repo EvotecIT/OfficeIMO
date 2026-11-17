@@ -296,6 +296,15 @@ public class RtfPdfImportTests {
         document.AddList(new[] { "Loose end" });
         document.AddParagraph("Options.");
         document.AddList(new[] { new PdfCore.PdfListItem("Keep", marker: "(a)"), new PdfCore.PdfListItem("Drop", marker: "(b)") });
+        document.AddParagraph("Steps.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Open", marker: "1."), new PdfCore.PdfListItem("Read", marker: "2."), new PdfCore.PdfListItem("Close", marker: "(3)") });
+        document.AddParagraph("Outline.");
+        var flat = new PdfCore.PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Zero };
+        var nested = new PdfCore.PdfListStyle { LeftIndent = global::OfficeIMO.OfficeLength.Points(18), SpacingBefore = global::OfficeIMO.OfficeLength.Zero };
+        document.AddList(new[] { new PdfCore.PdfListItem("Plan", marker: "1.") }, style: flat);
+        document.AddList(new[] { new PdfCore.PdfListItem("Draft", marker: "1.1.") }, style: nested);
+        document.AddList(new[] { new PdfCore.PdfListItem("Build", marker: "2.") }, style: flat);
+        document.AddList(new[] { new PdfCore.PdfListItem("Test", marker: "2.5.") }, style: nested);
 
         RtfDocument rtf = LoadSemanticPdf(document.ToBytes()).ToRtf(CreateImportOptions());
         // Readers number from the written list definitions, not from the marker text kept beside each item.
@@ -307,6 +316,9 @@ public class RtfPdfImportTests {
         Assert.Equal("4.", markers["Rehearse"]);
         Assert.Equal("(a)", markers["Keep"]);
         Assert.Equal("(b)", markers["Drop"]);
+        // Changed punctuation starts a new list; a nested restart keeps its parent's number.
+        Assert.Equal("(3)", markers["Close"]);
+        Assert.Equal("2.5", markers["Test"]);
 
         RtfParagraph Item(string text) => Assert.Single(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == text);
         Assert.Equal(Item("Collect requirements").ListId, Item("Agree on scope").ListId);

@@ -48,6 +48,24 @@ public class PdfLogicalListNumberingTests {
             text => Assert.Equal(1, Assert.Single(page.ListItems, item => item.Text == text).Level));
     }
 
+    [Fact]
+    public void Read_ResolvesAnAmbiguousFirstMarkerFromTheItemAfterIt() {
+        var document = PdfDocument.Create();
+        document.AddList(new[] { new PdfListItem("Ninth", marker: "(i)"), new PdfListItem("Tenth", marker: "(j)") });
+
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(document.ToBytes(), new PdfTextLayoutOptions { ForceSingleColumn = true }).Pages);
+
+        Assert.Equal((1, PdfLogicalListNumberFormat.LowerLetter, (int?)9), Describe(Assert.Single(page.ListItems, item => item.Text == "Ninth")));
+    }
+
+    [Fact]
+    public void ListMarkers_ReadDecimalDigitsOutsideTheBasicPlane() {
+        PdfLogicalListMarker marker = PdfLogicalListMarker.Parse("\U0001D7DA.");
+
+        Assert.Equal(PdfLogicalListNumberFormat.Number, marker.Format);
+        Assert.Equal(2, marker.Ordinal);
+    }
+
     private static (int Level, PdfLogicalListNumberFormat Format, int? Ordinal) Describe(PdfLogicalListItem item) =>
         (item.Level, item.NumberFormat, item.Ordinal);
 
@@ -56,7 +74,7 @@ public class PdfLogicalListNumberingTests {
     [InlineData("(h)", "(i)", PdfLogicalListNumberFormat.LowerLetter, 9)]
     [InlineData("C.", "D.", PdfLogicalListNumberFormat.UpperLetter, 4)]
     public void ListMarkers_ReadSingleCharactersInTheirListContext(string previous, string marker, PdfLogicalListNumberFormat format, int ordinal) {
-        PdfLogicalListMarker resolved = PdfLogicalListMarker.Parse(marker).ResolveAfter(PdfLogicalListMarker.Parse(previous), marker);
+        PdfLogicalListMarker resolved = PdfLogicalListMarker.Parse(marker).ResolveBeside(PdfLogicalListMarker.Parse(previous), marker);
 
         Assert.Equal(format, resolved.Format);
         Assert.Equal(ordinal, resolved.Ordinal);

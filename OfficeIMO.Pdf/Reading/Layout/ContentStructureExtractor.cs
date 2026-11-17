@@ -976,7 +976,7 @@ internal static class ContentStructureExtractor {
         return index;
     }
 
-    private static bool TryGetDecimalDigit(
+    internal static bool TryGetDecimalDigit(
         string text,
         int index,
         out int digit,

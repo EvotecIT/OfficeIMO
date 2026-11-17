@@ -418,7 +418,9 @@ namespace OfficeIMO.Pdf.Word {
 
             List<PdfCore.PdfLogicalLinkAnnotation>? candidates = null;
             foreach (PdfCore.PdfLogicalLinkAnnotation link in page.Links) {
-                if (consumedLinks.Contains(link) || !lines.Any(line => OverlapsTextBlock(link, line)) ||
+                // A link already used by an earlier paragraph still links the text it covers here; consumption only
+                // keeps it from being written again as a standalone link.
+                if (!lines.Any(line => OverlapsTextBlock(link, line)) ||
                     !TryResolveWordLinkTarget(link, options, navigation, out _)) {
                     continue;
                 }

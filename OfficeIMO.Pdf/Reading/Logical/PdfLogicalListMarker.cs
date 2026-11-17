@@ -81,20 +81,20 @@ internal readonly struct PdfLogicalListMarker {
     }
 
     /// <summary>
-    /// Reads a single-character marker in the light of the item before it at the same level: "(v)" after "(iv)" is
+    /// Reads a single-character marker in the light of a neighbouring item at the same level: "(v)" after "(iv)" is
     /// Roman 5 rather than the letter v, and "(i)" after "(h)" is the letter i rather than Roman 1.
     /// </summary>
-    internal PdfLogicalListMarker ResolveAfter(PdfLogicalListMarker previous, string? marker) {
+    internal PdfLogicalListMarker ResolveBeside(PdfLogicalListMarker neighbour, string? marker) {
         bool letter = Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.UpperLetter;
         bool roman = Format is PdfLogicalListNumberFormat.LowerRoman or PdfLogicalListNumberFormat.UpperRoman;
-        bool previousLetter = previous.Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.UpperLetter;
-        bool previousRoman = previous.Format is PdfLogicalListNumberFormat.LowerRoman or PdfLogicalListNumberFormat.UpperRoman;
-        if (!(letter && previousRoman) && !(roman && previousLetter)) return this;
+        bool neighbourLetter = neighbour.Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.UpperLetter;
+        bool neighbourRoman = neighbour.Format is PdfLogicalListNumberFormat.LowerRoman or PdfLogicalListNumberFormat.UpperRoman;
+        if (!(letter && neighbourRoman) && !(roman && neighbourLetter)) return this;
 
         string core = (marker ?? string.Empty).Trim();
         core = core.Substring(Prefix.Length, core.Length - Prefix.Length - Suffix.Length);
         bool lower = IsLower(core);
-        bool sameCase = lower == (previous.Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.LowerRoman);
+        bool sameCase = lower == (neighbour.Format is PdfLogicalListNumberFormat.LowerLetter or PdfLogicalListNumberFormat.LowerRoman);
         if (!sameCase) return this;
         if (letter && TryParseRoman(core, out int value)) {
             return new PdfLogicalListMarker(lower ? PdfLogicalListNumberFormat.LowerRoman : PdfLogicalListNumberFormat.UpperRoman, value, Prefix, Suffix);
@@ -110,11 +110,13 @@ internal readonly struct PdfLogicalListMarker {
 
     private static bool TryParseDecimal(string value, out int number) {
         number = 0;
-        if (value.Length == 0 || value.Length > 9) return false;
-        foreach (char ch in value) {
-            int digit = (int)char.GetNumericValue(ch);
-            if (!char.IsDigit(ch) || digit < 0) return false;
+        if (value.Length == 0) return false;
+        // Decimal digits outside the Basic Multilingual Plane ("𝟙") are surrogate pairs.
+        int digits = 0;
+        for (int index = 0; index < value.Length;) {
+            if (++digits > 9 || !ContentStructureExtractor.TryGetDecimalDigit(value, index, out int digit, out int consumed)) return false;
             number = number * 10 + digit;
+            index += consumed;
         }
         return true;
     }

@@ -13,9 +13,10 @@ namespace OfficeIMO.Pdf.Word {
         private sealed class SourceListNumbering {
             private const int MaximumLevels = 9;
             private readonly WordDocument _document;
-            private readonly PdfCore.PdfLogicalListNumberFormat?[] _formats = new PdfCore.PdfLogicalListNumberFormat?[MaximumLevels];
+            private readonly PdfCore.PdfLogicalListMarker?[] _markers = new PdfCore.PdfLogicalListMarker?[MaximumLevels];
             private readonly int[] _starts = new int[MaximumLevels];
             private readonly int?[] _counters = new int?[MaximumLevels];
+            private readonly bool[] _carried = new bool[MaximumLevels];
             private WordList? _list;
 
             internal SourceListNumbering(WordDocument document) {
@@ -27,9 +28,10 @@ namespace OfficeIMO.Pdf.Word {
             internal WordParagraph AddItem(PdfCore.PdfLogicalListItem item) {
                 int level = Math.Max(0, Math.Min(MaximumLevels - 1, item.Level - 1));
                 PdfCore.PdfLogicalListMarker marker = item.MarkerInfo;
-                if (_list == null || !Continues(level, marker)) Start();
+                if (_list == null) Start(carriedLevels: 0);
+                else if (!Continues(level, marker)) Start(carriedLevels: level);
                 WordList list = _list!;
-                if (_formats[level] == null) ConfigureLevel(list, level, marker);
+                if (_markers[level] == null) ConfigureLevel(list, level, marker, Math.Max(0, marker.Ordinal ?? 1));
 
                 _counters[level] = marker.Ordinal ?? (_counters[level] + 1 ?? _starts[level]);
                 for (int deeper = level + 1; deeper < MaximumLevels; deeper++) _counters[deeper] = null;
@@ -37,30 +39,49 @@ namespace OfficeIMO.Pdf.Word {
             }
 
             private bool Continues(int level, PdfCore.PdfLogicalListMarker marker) {
-                PdfCore.PdfLogicalListNumberFormat? format = _formats[level];
-                if (format == null) return true;
-                if (format.Value != marker.Format) return false;
+                // A parent level carried into a restarted list only shows its number; its next item needs a list
+                // that counts on from there.
+                if (_carried[level]) return false;
+                if (_markers[level] is not PdfCore.PdfLogicalListMarker current) return true;
+                if (current.Format != marker.Format || current.Prefix != marker.Prefix || current.Suffix != marker.Suffix) return false;
                 if (!marker.Ordinal.HasValue) return true;
                 // Word numbers the next item from the counter; a marker that does not follow is a new list.
                 int expected = _counters[level] + 1 ?? _starts[level];
                 return marker.Ordinal.Value == expected;
             }
 
-            private void Start() {
+            /// <summary>
+            /// Starts a new numbering instance. A nested list that restarts keeps its parent levels, at their current
+            /// numbers, so "2.5" after "2." still shows the 2.
+            /// </summary>
+            private void Start(int carriedLevels) {
+                var parents = new (PdfCore.PdfLogicalListMarker Marker, int Number)?[carriedLevels];
+                for (int level = 0; level < carriedLevels; level++) {
+                    if (_markers[level] is PdfCore.PdfLogicalListMarker marker) parents[level] = (marker, _counters[level] ?? _starts[level]);
+                }
+
                 WordList list = _document.AddCustomList();
                 for (int level = 0; level < MaximumLevels; level++) {
                     WordListLevel listLevel = list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.Bullet));
                     listLevel.IndentationLeft = OfficeLength.Points(36D + level * 18D);
                     listLevel.IndentationHanging = OfficeLength.Points(18D);
-                    _formats[level] = null;
+                    _markers[level] = null;
                     _starts[level] = 1;
                     _counters[level] = null;
+                    _carried[level] = false;
                 }
                 _list = list;
+
+                for (int level = 0; level < carriedLevels; level++) {
+                    if (parents[level] is not { } parent) continue;
+                    ConfigureLevel(list, level, parent.Marker, parent.Number);
+                    _counters[level] = parent.Number;
+                    _carried[level] = true;
+                }
             }
 
-            private void ConfigureLevel(WordList list, int level, PdfCore.PdfLogicalListMarker marker) {
-                _formats[level] = marker.Format;
+            private void ConfigureLevel(WordList list, int level, PdfCore.PdfLogicalListMarker marker, int start) {
+                _markers[level] = marker;
                 if (!marker.IsOrdered) return;
                 WordListLevel listLevel = list.Numbering.Levels[level];
                 listLevel.NumberFormat = marker.Format switch {
@@ -78,8 +99,8 @@ namespace OfficeIMO.Pdf.Word {
                     if (shown < level) levelText.Append('.');
                 }
                 listLevel.LevelText = levelText.Append(suffix).ToString();
-                _starts[level] = Math.Max(0, marker.Ordinal ?? 1);
-                listLevel.StartNumberingValue = _starts[level];
+                _starts[level] = start;
+                listLevel.StartNumberingValue = start;
             }
         }
     }

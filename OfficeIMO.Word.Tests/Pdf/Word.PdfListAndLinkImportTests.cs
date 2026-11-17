@@ -97,6 +97,9 @@ public partial class Word {
                 paragraph.AddLink("Alpha", "https://example.com/alpha");
                 paragraph.AddText("/");
                 paragraph.AddLink("Beta", "https://example.com/beta");
+                paragraph.AddText(" and ");
+                paragraph.AddLink("Data", "https://example.com/data");
+                paragraph.AddLink("Base", "https://example.com/base");
                 paragraph.AddText(" today.");
             })
             .ToBytes();
@@ -106,10 +109,10 @@ public partial class Word {
         Body body = GetPdfSemanticBody(package);
 
         Paragraph paragraph = Assert.Single(body.Elements<Paragraph>(), item => ReadParagraphText(item).Length > 0);
-        Assert.Equal("Read OpenAI notes and Alpha/Beta today.", ReadParagraphText(paragraph));
+        Assert.Equal("Read OpenAI notes and Alpha/Beta and DataBase today.", ReadParagraphText(paragraph));
         Dictionary<string, Uri> targets = package.MainDocumentPart!.HyperlinkRelationships.ToDictionary(item => item.Id, item => item.Uri);
         Assert.Equal(
-            new[] { ("AI", "https://example.com/ai"), ("Alpha", "https://example.com/alpha"), ("Beta", "https://example.com/beta") },
+            new[] { ("AI", "https://example.com/ai"), ("Alpha", "https://example.com/alpha"), ("Beta", "https://example.com/beta"), ("Data", "https://example.com/data"), ("Base", "https://example.com/base") },
             paragraph.Elements<Hyperlink>().Select(link => (ReadHyperlinkText(link), targets[link.Id!.Value!].OriginalString)));
     }
 }

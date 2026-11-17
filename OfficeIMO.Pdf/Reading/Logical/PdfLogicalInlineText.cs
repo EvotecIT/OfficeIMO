@@ -150,7 +150,8 @@ internal static class PdfLogicalInlineText {
                     }
                     int partEnd = partStart;
                     while (partEnd < wordEnd && char.IsLetterOrDigit(text[partEnd])) partEnd++;
-                    AssignMostCommonOwner(owners, measuredOwners, partStart, partEnd);
+                    // Two links inside one run of letters ("Open" and "AI" of "OpenAI") keep their drawn boundaries.
+                    if (!HasSeveralLinks(measuredOwners, partStart, partEnd)) AssignMostCommonOwner(owners, measuredOwners, partStart, partEnd);
                     partStart = partEnd;
                 }
             } else {
@@ -229,8 +230,9 @@ internal static class PdfLogicalInlineText {
 
     /// <summary>The link drawn over most characters of a word; null when most of it is outside every link.</summary>
     private static PdfLogicalLinkAnnotation? MostCommonOwner(PdfLogicalLinkAnnotation?[] owners, int start, int end) {
-        PdfLogicalLinkAnnotation? best = null;
-        int bestCount = 0;
+        // One pass; a line has only the few links that overlap it, so the tally stays short.
+        var links = new List<PdfLogicalLinkAnnotation>(2);
+        var counts = new List<int>(2);
         int unowned = 0;
         for (int index = start; index < end; index++) {
             PdfLogicalLinkAnnotation? owner = owners[index];
@@ -238,13 +240,21 @@ internal static class PdfLogicalInlineText {
                 unowned++;
                 continue;
             }
-            int count = 0;
-            for (int other = start; other < end; other++) {
-                if (ReferenceEquals(owners[other], owner)) count++;
+            int slot = 0;
+            while (slot < links.Count && !ReferenceEquals(links[slot], owner)) slot++;
+            if (slot == links.Count) {
+                links.Add(owner);
+                counts.Add(0);
             }
-            if (count > bestCount) {
-                best = owner;
-                bestCount = count;
+            counts[slot]++;
+        }
+
+        PdfLogicalLinkAnnotation? best = null;
+        int bestCount = 0;
+        for (int slot = 0; slot < links.Count; slot++) {
+            if (counts[slot] > bestCount) {
+                best = links[slot];
+                bestCount = counts[slot];
             }
         }
         return bestCount > unowned ? best : null;
