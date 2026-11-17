@@ -5,7 +5,8 @@ namespace OfficeIMO.Word.OpenDocument;
 public static partial class WordOpenDocumentConversionExtensions {
     /// <summary>
     /// Writes consecutive Word list paragraphs as ODT lists, nesting a deeper item inside the item before it. A
-    /// change between bullets and numbers at a level, or an ordered counter that starts again, begins a new list.
+    /// change between bullets and numbers at a level, or an ordered counter that starts again, begins a new list, which
+    /// keeps the number Word shows for its first item.
     /// </summary>
     private sealed class OdtNestedLists {
         private const int MaximumDepth = 10;
@@ -32,7 +33,8 @@ public static partial class WordOpenDocumentConversionExtensions {
                 if (current.Ordered != ordered || restarted) _open.RemoveAt(_open.Count - 1);
             }
 
-            if (_open.Count == 0 || _open[_open.Count - 1].Level < level) {
+            bool opensList = _open.Count == 0 || _open[_open.Count - 1].Level < level;
+            if (opensList) {
                 // ODT nests one level per list, so an item that skips a level sits one level below the item before it.
                 int expectedLevel = _open.Count == 0 ? 0 : _open[_open.Count - 1].Level + 1;
                 if (level > expectedLevel && level == sourceLevel) flattenedLevels++;
@@ -45,6 +47,8 @@ public static partial class WordOpenDocumentConversionExtensions {
 
             OpenList owner = _open[_open.Count - 1];
             OdtListItem item = owner.List.AddItem();
+            // A new ordered list counts from 1; Word numbering that restarts at another number keeps it.
+            if (opensList && ordered && paragraph.ListIndex is int start && start != 1 && start >= 0) item.StartValue = start;
             owner.LastItem = item;
             owner.LastIndex = paragraph.ListIndex;
             return item;

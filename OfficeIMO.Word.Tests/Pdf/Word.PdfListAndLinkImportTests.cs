@@ -86,4 +86,30 @@ public partial class Word {
         Assert.Equal(new Uri("https://example.com/project"), targets[links[0].Id!.Value!]);
         Assert.Equal(new Uri("https://example.org/archive"), targets[links[1].Id!.Value!]);
     }
+
+    [Fact]
+    public void PdfSemanticImport_KeepsLinksThatCoverPartOfAWord() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => {
+                paragraph.AddText("Read Open");
+                paragraph.AddLink("AI", "https://example.com/ai");
+                paragraph.AddText(" notes and ");
+                paragraph.AddLink("Alpha", "https://example.com/alpha");
+                paragraph.AddText("/");
+                paragraph.AddLink("Beta", "https://example.com/beta");
+                paragraph.AddText(" today.");
+            })
+            .ToBytes();
+
+        using OfficeWordDocument imported = LoadSemanticPdf(pdf).ConvertToWordWithEvidence().Value;
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(imported.ToBytes()), false);
+        Body body = GetPdfSemanticBody(package);
+
+        Paragraph paragraph = Assert.Single(body.Elements<Paragraph>(), item => ReadParagraphText(item).Length > 0);
+        Assert.Equal("Read OpenAI notes and Alpha/Beta today.", ReadParagraphText(paragraph));
+        Dictionary<string, Uri> targets = package.MainDocumentPart!.HyperlinkRelationships.ToDictionary(item => item.Id, item => item.Uri);
+        Assert.Equal(
+            new[] { ("AI", "https://example.com/ai"), ("Alpha", "https://example.com/alpha"), ("Beta", "https://example.com/beta") },
+            paragraph.Elements<Hyperlink>().Select(link => (ReadHyperlinkText(link), targets[link.Id!.Value!].OriginalString)));
+    }
 }

@@ -13,7 +13,7 @@ internal static class PdfRtfConverter {
         PdfCore.PdfLogicalContentProjection.RequireComplete(source, readOptions.CancellationToken);
         RtfDocument document = RtfDocument.Create();
         var runStyles = new RunStyleCatalog(document);
-        var lists = new RtfListNumbering();
+        var lists = new SourceListNumbering(document);
         AddUnsupportedContentDiagnostics(source, readOptions);
 
         if (readOptions.IncludeMetadata) {
@@ -76,7 +76,7 @@ internal static class PdfRtfConverter {
         RtfDocument document,
         PdfRtfExportOptions options,
         RunStyleCatalog runStyles,
-        RtfListNumbering lists,
+        SourceListNumbering lists,
         bool pageBreakBeforeFirstParagraph) {
         var consumed = new HashSet<PdfCore.PdfLogicalTextBlock>();
         bool emittedPageContent = false;
@@ -145,11 +145,11 @@ internal static class PdfRtfConverter {
         RtfDocument document,
         PdfCore.PdfLogicalListItem item,
         RunStyleCatalog runStyles,
-        RtfListNumbering lists) {
+        SourceListNumbering lists) {
         PdfCore.PdfLogicalListMarker marker = item.MarkerInfo;
         RtfListKind kind = marker.IsOrdered ? RtfListKind.Decimal : RtfListKind.Bullet;
         int level = Math.Max(0, Math.Min(8, item.Level - 1));
-        int listId = lists.Assign(level, kind, marker.Ordinal);
+        int listId = lists.Assign(level, marker);
         RtfParagraph paragraph = document.AddParagraph();
         AppendStyledRuns(paragraph, item.Runs, item.Text, runStyles);
         if (item.IsContentsEntry && !string.IsNullOrEmpty(item.TargetPageLabel)) paragraph.AddText(" \u2014 " + item.TargetPageLabel);
@@ -293,34 +293,82 @@ internal static class PdfRtfConverter {
     }
 
     /// <summary>
-    /// Gives each source list its own RTF list id, so a second list starts again instead of counting on from the
-    /// first. A level that changes between bullets and numbers, or a number that does not follow on, starts a new list.
+    /// Gives each source list its own RTF list, so a second list starts again instead of counting on from the first.
+    /// A level that changes its numbering style, or a number that does not follow on, starts a new list. Each level
+    /// of the list definition takes its format (bullet, decimal, letter or Roman, with the source punctuation) and
+    /// start value from the first item drawn at that level.
     /// </summary>
-    private sealed class RtfListNumbering {
+    private sealed class SourceListNumbering {
         private const int MaximumLevels = 9;
-        private readonly RtfListKind?[] _kinds = new RtfListKind?[MaximumLevels];
+        private readonly RtfDocument _document;
+        private readonly PdfCore.PdfLogicalListNumberFormat?[] _formats = new PdfCore.PdfLogicalListNumberFormat?[MaximumLevels];
+        private readonly int[] _starts = new int[MaximumLevels];
         private readonly int?[] _counters = new int?[MaximumLevels];
+        private RtfListDefinition? _definition;
         private int _nextId = 1;
         private int _currentId;
 
+        internal SourceListNumbering(RtfDocument document) {
+            _document = document;
+        }
+
         internal void End() => _currentId = 0;
 
-        internal int Assign(int level, RtfListKind kind, int? ordinal) {
-            bool continues = _currentId != 0 && (_kinds[level] == null || (_kinds[level] == kind &&
-                (!ordinal.HasValue || ordinal.Value == (_counters[level] + 1 ?? 1))));
-            if (!continues) {
-                _currentId = _nextId++;
-                Array.Clear(_kinds, 0, _kinds.Length);
-                Array.Clear(_counters, 0, _counters.Length);
-            }
-
-            _kinds[level] ??= kind;
-            _counters[level] = ordinal ?? (_counters[level] + 1 ?? 1);
+        internal int Assign(int level, PdfCore.PdfLogicalListMarker marker) {
+            if (_currentId == 0 || !Continues(level, marker)) Start();
+            if (_formats[level] == null) ConfigureLevel(level, marker);
+            _counters[level] = marker.Ordinal ?? (_counters[level] + 1 ?? _starts[level]);
             for (int deeper = level + 1; deeper < MaximumLevels; deeper++) _counters[deeper] = null;
             return _currentId;
         }
-    }
 
+        private bool Continues(int level, PdfCore.PdfLogicalListMarker marker) {
+            PdfCore.PdfLogicalListNumberFormat? format = _formats[level];
+            if (format == null) return true;
+            if (format.Value != marker.Format) return false;
+            return !marker.Ordinal.HasValue || marker.Ordinal.Value == (_counters[level] + 1 ?? _starts[level]);
+        }
+
+        private void Start() {
+            _currentId = _nextId++;
+            _definition = _document.AddListDefinition(_currentId, "PDF list");
+            _document.AddListOverride(_currentId, _currentId);
+            for (int level = 0; level < MaximumLevels; level++) {
+                RtfListLevel listLevel = _definition.AddLevel(RtfListKind.Bullet);
+                listLevel.NumberFormat = 23;
+                listLevel.Text = "\u2022";
+                listLevel.LeftIndentTwips = 720 + level * 360;
+                listLevel.FirstLineIndentTwips = -360;
+                _formats[level] = null;
+                _starts[level] = 1;
+                _counters[level] = null;
+            }
+        }
+
+        private void ConfigureLevel(int level, PdfCore.PdfLogicalListMarker marker) {
+            _formats[level] = marker.Format;
+            if (!marker.IsOrdered) return;
+            RtfListLevel listLevel = _definition!.Levels[level];
+            listLevel.Kind = RtfListKind.Decimal;
+            listLevel.NumberFormat = marker.Format switch {
+                PdfCore.PdfLogicalListNumberFormat.UpperRoman => 1,
+                PdfCore.PdfLogicalListNumberFormat.LowerRoman => 2,
+                PdfCore.PdfLogicalListNumberFormat.UpperLetter => 3,
+                PdfCore.PdfLogicalListNumberFormat.LowerLetter => 4,
+                _ => 0
+            };
+            string suffix = marker.Suffix.Length == 0 && marker.Prefix.Length == 0 && !marker.IncludesParentNumbers ? "." : marker.Suffix;
+            var levelText = new System.Text.StringBuilder(marker.Prefix);
+            // "1.2" repeats its parent numbers, written as "%1.%2".
+            for (int shown = marker.IncludesParentNumbers ? 0 : level; shown <= level; shown++) {
+                levelText.Append('%').Append((shown + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                if (shown < level) levelText.Append('.');
+            }
+            listLevel.Text = levelText.Append(suffix).ToString();
+            _starts[level] = Math.Max(0, marker.Ordinal ?? 1);
+            listLevel.StartAt = _starts[level];
+        }
+    }
 
     private static int PointsToTwips(double points) {
         if (points <= 0 || double.IsNaN(points) || double.IsInfinity(points)) {

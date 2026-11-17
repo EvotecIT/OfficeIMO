@@ -131,7 +131,9 @@ internal static class PdfLogicalInlineText {
         }
 
         // Link rectangles are drawn by hand and can end inside a word; a word belongs to the link covering most of
-        // it. Punctuation at its edges ("archive." or "(page)") keeps its own measured position.
+        // it. Punctuation at its edges ("archive." or "(page)") keeps its own measured position. A word that two
+        // links share ("Alpha/Beta" with a link over each part) is decided part by part.
+        var measuredOwners = (PdfLogicalLinkAnnotation?[])owners.Clone();
         for (int wordStart = 0; wordStart < text.Length;) {
             if (!char.IsLetterOrDigit(text[wordStart])) {
                 wordStart++;
@@ -140,9 +142,30 @@ internal static class PdfLogicalInlineText {
             int wordEnd = wordStart;
             while (wordEnd < text.Length && !char.IsWhiteSpace(text[wordEnd])) wordEnd++;
             while (wordEnd > wordStart + 1 && !char.IsLetterOrDigit(text[wordEnd - 1])) wordEnd--;
-            PdfLogicalLinkAnnotation? owner = MostCommonOwner(owners, wordStart, wordEnd);
-            for (int index = wordStart; index < wordEnd; index++) owners[index] = owner;
+            if (HasSeveralLinks(measuredOwners, wordStart, wordEnd)) {
+                for (int partStart = wordStart; partStart < wordEnd;) {
+                    if (!char.IsLetterOrDigit(text[partStart])) {
+                        partStart++;
+                        continue;
+                    }
+                    int partEnd = partStart;
+                    while (partEnd < wordEnd && char.IsLetterOrDigit(text[partEnd])) partEnd++;
+                    AssignMostCommonOwner(owners, measuredOwners, partStart, partEnd);
+                    partStart = partEnd;
+                }
+            } else {
+                AssignMostCommonOwner(owners, measuredOwners, wordStart, wordEnd);
+            }
             wordStart = wordEnd;
+        }
+
+        // A link that covers only part of a word ("AI" in "OpenAI") would lose all its text to the word around it
+        // and then be written again on its own; it keeps the characters drawn under it instead.
+        foreach (PdfLogicalLinkAnnotation link in candidates) {
+            if (Array.IndexOf(owners, link) >= 0 || Array.IndexOf(measuredOwners, link) < 0) continue;
+            for (int index = 0; index < text.Length; index++) {
+                if (owners[index] is null && ReferenceEquals(measuredOwners[index], link)) owners[index] = link;
+            }
         }
 
         // Spaces between two words of the same link belong to it; spaces at its edges do not.
@@ -156,6 +179,52 @@ internal static class PdfLogicalInlineText {
         }
 
         return owners;
+    }
+
+    /// <summary>Finds where the character at <paramref name="index"/> of the line text begins on the page.</summary>
+    internal static bool TryGetCharacterStart(PdfLogicalTextBlock line, int index, out double x) {
+        x = 0D;
+        string text = line.Text;
+        int cursor = 0;
+        foreach (PdfTextSpan span in line.Spans) {
+            if (string.IsNullOrEmpty(span.Text)) continue;
+            if (!PdfLogicalTextBlock.TryFindNormalizedSpan(text, span.Text, cursor, out int start, out int end)) continue;
+            cursor = end;
+            if (index < start || index >= end) continue;
+            if (Math.Abs(span.RotationDegrees) > 0.5D) return false;
+            string spanText = span.Text;
+            if (PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries) &&
+                boundaries.Length == spanText.Length + 1) {
+                // Non-space characters of the line and the span correspond one to one (TryFindNormalizedSpan).
+                int preceding = 0;
+                for (int position = start; position < index; position++) {
+                    if (!char.IsWhiteSpace(text[position])) preceding++;
+                }
+                int source = 0;
+                while (source < spanText.Length && (char.IsWhiteSpace(spanText[source]) || preceding-- > 0)) source++;
+                x = span.X + boundaries[source];
+            } else {
+                x = span.X + span.Advance * (index - start) / Math.Max(1, end - start);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static void AssignMostCommonOwner(PdfLogicalLinkAnnotation?[] owners, PdfLogicalLinkAnnotation?[] measured, int start, int end) {
+        PdfLogicalLinkAnnotation? owner = MostCommonOwner(measured, start, end);
+        for (int index = start; index < end; index++) owners[index] = owner;
+    }
+
+    private static bool HasSeveralLinks(PdfLogicalLinkAnnotation?[] owners, int start, int end) {
+        PdfLogicalLinkAnnotation? first = null;
+        for (int index = start; index < end; index++) {
+            PdfLogicalLinkAnnotation? owner = owners[index];
+            if (owner is null) continue;
+            if (first is null) first = owner;
+            else if (!ReferenceEquals(first, owner)) return true;
+        }
+        return false;
     }
 
     /// <summary>The link drawn over most characters of a word; null when most of it is outside every link.</summary>

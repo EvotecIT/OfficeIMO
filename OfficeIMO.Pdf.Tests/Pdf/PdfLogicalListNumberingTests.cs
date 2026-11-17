@@ -23,6 +23,31 @@ public class PdfLogicalListNumberingTests {
         Assert.True(Item("Draft notes").IsOrdered);
     }
 
+    [Fact]
+    public void Read_KeepsFlatListsFlatAcrossRightAlignedMarkersAndInterveningParagraphs() {
+        var flat = new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Zero, SpacingAfter = global::OfficeIMO.OfficeLength.Zero };
+        var indented = new PdfListStyle { LeftIndent = global::OfficeIMO.OfficeLength.Points(18), SpacingBefore = global::OfficeIMO.OfficeLength.Zero, SpacingAfter = global::OfficeIMO.OfficeLength.Zero };
+        var numbers = new PdfListStyle {
+            SpacingBefore = global::OfficeIMO.OfficeLength.Zero,
+            MarkerAlign = OfficeAlignment.Right,
+            MarkerWidth = global::OfficeIMO.OfficeLength.Points(36)
+        };
+        var document = PdfDocument.Create();
+        // Right-aligned labels: "100." starts two digits left of "1." while both item texts line up.
+        document.AddList(new[] { new PdfListItem("Scope", marker: "1."), new PdfListItem("Budget", marker: "2."), new PdfListItem("Review", marker: "100.") }, style: numbers);
+        // A tight paragraph keeps the lists within one line spacing of each other; only the text between separates them.
+        var tight = new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Zero, SpacingAfter = global::OfficeIMO.OfficeLength.Zero };
+        document.AddParagraph("Separate notes follow.", style: tight);
+        document.AddList(new[] { "Reduce backlog" }, style: flat);
+        document.AddParagraph("Then, on its own:", style: tight);
+        document.AddList(new[] { "Archive exports" }, style: indented);
+
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(document.ToBytes(), new PdfTextLayoutOptions { ForceSingleColumn = true }).Pages);
+
+        Assert.All(new[] { "Scope", "Review", "Reduce backlog", "Archive exports" },
+            text => Assert.Equal(1, Assert.Single(page.ListItems, item => item.Text == text).Level));
+    }
+
     private static (int Level, PdfLogicalListNumberFormat Format, int? Ordinal) Describe(PdfLogicalListItem item) =>
         (item.Level, item.NumberFormat, item.Ordinal);
 

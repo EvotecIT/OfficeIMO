@@ -35,6 +35,16 @@ public sealed class OdtListItem {
         _element = element;
     }
 
+    /// <summary>Number this item shows in an ordered list, restarting the count; null continues the list's count.</summary>
+    public long? StartValue {
+        get => _element.Attribute(OdfNamespaces.Text + "start-value") is XAttribute attribute ? long.Parse(attribute.Value, CultureInfo.InvariantCulture) : null;
+        set {
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+            _element.SetAttributeValue(OdfNamespaces.Text + "start-value", value?.ToString(CultureInfo.InvariantCulture));
+            _document.MarkPartDirty("content.xml");
+        }
+    }
+
     /// <summary>Paragraphs directly contained by this item.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => _element.Elements()
         .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")

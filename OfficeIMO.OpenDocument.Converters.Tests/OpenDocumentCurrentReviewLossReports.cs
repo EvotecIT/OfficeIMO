@@ -730,13 +730,22 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         list.AddItem("Sibling");
         source.AddParagraph("Between");
         source.AddListBulleted().AddItem("Bullet");
+        source.AddParagraph("Later");
+        WordList later = source.AddListNumbered();
+        later.Numbering.Levels[0].StartNumberingValue = 3;
+        later.AddItem("Third");
+        later.AddItem("Fourth");
 
         OdfConversionResult<OdtDocument> conversion = source.ConvertToOpenDocumentWithEvidence();
         XElement body = conversion.Value.Package.GetXml("content.xml").Descendants(OdfNamespaces.Office + "text").Single();
 
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "list-levels");
         List<XElement> topLists = body.Elements(OdfNamespaces.Text + "list").ToList();
-        Assert.Equal(2, topLists.Count);
+        Assert.Equal(3, topLists.Count);
+        // The later list keeps the number Word starts it at; the item after it counts on.
+        Assert.Equal(new[] { "3", null }, topLists[2].Elements(OdfNamespaces.Text + "list-item")
+            .Select(item => (string?)item.Attribute(OdfNamespaces.Text + "start-value")));
+        Assert.Null((string?)topLists[0].Element(OdfNamespaces.Text + "list-item")!.Attribute(OdfNamespaces.Text + "start-value"));
         List<XElement> parents = topLists[0].Elements(OdfNamespaces.Text + "list-item").ToList();
         Assert.Equal(new[] { "Parent", "Sibling" }, parents.Select(item => item.Element(OdfNamespaces.Text + "p")!.Value));
         XElement child = parents[0].Element(OdfNamespaces.Text + "list")!.Element(OdfNamespaces.Text + "list-item")!;

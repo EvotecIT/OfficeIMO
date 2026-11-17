@@ -292,10 +292,21 @@ public class RtfPdfImportTests {
         var document = PdfCore.PdfDocument.Create();
         document.AddNumberedList(new[] { "Collect requirements", "Agree on scope" });
         document.AddParagraph("Follow-up actions.");
-        document.AddNumberedList(new[] { "Add alert", "Rehearse" });
+        document.AddNumberedList(new[] { "Add alert", "Rehearse" }, startNumber: 3);
         document.AddList(new[] { "Loose end" });
+        document.AddParagraph("Options.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Keep", marker: "(a)"), new PdfCore.PdfListItem("Drop", marker: "(b)") });
 
         RtfDocument rtf = LoadSemanticPdf(document.ToBytes()).ToRtf(CreateImportOptions());
+        // Readers number from the written list definitions, not from the marker text kept beside each item.
+        RtfDocument reloaded = RtfDocument.Parse(rtf.ToRtf());
+        var numbering = new RtfListNumbering(reloaded);
+        Dictionary<string, string?> markers = reloaded.Paragraphs.ToDictionary(paragraph => paragraph.ToPlainText(), paragraph => numbering.Next(paragraph)?.Text);
+        Assert.Equal("1.", markers["Collect requirements"]);
+        Assert.Equal("3.", markers["Add alert"]);
+        Assert.Equal("4.", markers["Rehearse"]);
+        Assert.Equal("(a)", markers["Keep"]);
+        Assert.Equal("(b)", markers["Drop"]);
 
         RtfParagraph Item(string text) => Assert.Single(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == text);
         Assert.Equal(Item("Collect requirements").ListId, Item("Agree on scope").ListId);
