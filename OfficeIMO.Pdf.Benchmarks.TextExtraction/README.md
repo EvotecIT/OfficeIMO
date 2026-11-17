@@ -41,7 +41,7 @@ dotnet $runner summary --output <out>
 dotnet $runner parity --output <out>
 ```
 
-- `run` writes `results-<mode>-<suites>-shard<i>of<n>.csv`, with one row per file and engine. `--write-text` also stores each extracted text under `<out>/texts/<engine>/<suite>/`. Use `--shard i/n` to split a long cold run into shorter sessions.
+- `run` writes `results-<mode>-<suites>-<engines>-shard<i>of<n>.csv`, with one row per file and engine, so runs with different `--engines` selections keep separate files. `--write-text` also stores each extracted text under `<out>/texts/<engine>/<suite>/`. Use `--shard i/n` to split a long cold run into shorter sessions.
 - `summary` writes `summary.md` and `metrics.csv`, with the file count, pass rate, mean, p50, p99 and maximum milliseconds over successful files, plus errors, timeouts and crashes per suite and engine.
 - `parity` compares the stored texts in pairs (by default each engine against PDFium, and OfficeIMO against PdfOxide) and writes `parity.csv`:
   - **Normalisation:** texts are NFKC-normalised, control characters are removed and whitespace collapses.

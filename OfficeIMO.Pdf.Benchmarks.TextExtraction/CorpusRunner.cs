@@ -46,7 +46,9 @@ internal static class CorpusRunner {
         }
 
         Directory.CreateDirectory(output);
-        string resultsPath = Path.Combine(output, $"results-{mode}-{string.Join('+', suites.Select(static s => s.Suite))}-shard{shard}of{shardCount}.csv");
+        // Runs with different engine selections write separate files; the summary keeps the newest row per engine.
+        string resultsPath = Path.Combine(output,
+            $"results-{mode}-{string.Join('+', suites.Select(static s => s.Suite))}-{string.Join('+', engines)}-shard{shard}of{shardCount}.csv");
         using var csv = new StreamWriter(resultsPath, append: false, new UTF8Encoding(false));
         csv.WriteLine("suite,file,engine,mode,status,ms,wall_ms,chars,error_type,error_site,error_message");
 
