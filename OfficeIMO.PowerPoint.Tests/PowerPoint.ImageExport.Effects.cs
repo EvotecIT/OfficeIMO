@@ -20,8 +20,12 @@ namespace OfficeIMO.Tests {
             shape.SetShadow(OfficeColor.Parse("000000"), distance: OfficeIMO.OfficeLength.Points(16), angleDegrees: 45, transparencyPercent: 0);
 
             OfficeImageExportResult svg = slide.ToImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { Scale = 1D });
+            // The 4 pt blur is a native SVG Gaussian with a 2 pt standard deviation. The SVG reader approximates
+            // it with offset copies, so the shadow core reads back near black rather than exactly black.
+            Assert.Contains("<feGaussianBlur stdDeviation=\"2\"", System.Text.Encoding.UTF8.GetString(svg.Bytes));
             OfficeRasterImage svgImage = ReadSvgOutput(svg);
-            Assert.Equal(OfficeColor.FromRgb(0, 0, 0), svgImage.GetPixel(83, 53));
+            OfficeColor svgCore = svgImage.GetPixel(83, 53);
+            Assert.True(svgCore.R < 32 && svgCore.R == svgCore.G && svgCore.G == svgCore.B, $"Expected a near-black shadow core, found {svgCore}.");
             Assert.True(ContainsVisibleNonWhitePixel(svgImage, 93, 35, 8, 14), "Expected the shadow halo in SVG output.");
             AssertNoUnexpectedDiagnostics(svg.Diagnostics);
 

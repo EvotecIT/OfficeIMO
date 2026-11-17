@@ -16,12 +16,20 @@ internal sealed partial class PublisherPageProjector {
                 || shape.StrokeColor is OfficeColor { A: > 0 });
             // Disabled native lines retain their stored width but paint no stroke.
             double padding = 1 + (paintsStroke ? Math.Max(0, shape.StrokeWidth) / 2 * Math.Max(2, miterLimit) : 0);
-            foreach (OfficeShadowLayer layer in OfficeDrawingRasterRenderer.CreateShadowLayers(shape)) {
-                OfficeShadow shadow = shape.Shadow!;
-                // Use the renderer's actual expansion/stroke plan, retaining
-                // square caps and soft miter joins without reserving hidden ink.
-                double shadowPadding = layer.Expansion + (layer.HasStroke ? layer.StrokeWidth / 2 * Math.Max(2, miterLimit) : 0);
-                padding = Math.Max(padding, 1 + shadowPadding + Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY)));
+            // A blurred shadow or glow reaches its Gaussian tail beyond the shape box.
+            OfficeBlurredShapeEffect? softShadow = OfficeBlurredShapeEffect.CreateShadow(shape);
+            if (softShadow != null)
+                padding = Math.Max(padding, 1 + softShadow.Margin + Math.Max(Math.Abs(softShadow.OffsetX), Math.Abs(softShadow.OffsetY)));
+            OfficeBlurredShapeEffect? glow = OfficeBlurredShapeEffect.CreateGlow(shape);
+            if (glow != null) padding = Math.Max(padding, 1 + glow.Margin);
+            if (softShadow == null) {
+                foreach (OfficeShadowLayer layer in OfficeDrawingRasterRenderer.CreateShadowLayers(shape)) {
+                    OfficeShadow shadow = shape.Shadow!;
+                    // Use the renderer's hard-shadow plan, retaining square caps
+                    // and miter joins without reserving hidden ink.
+                    double shadowPadding = layer.Expansion + (layer.HasStroke ? layer.StrokeWidth / 2 * Math.Max(2, miterLimit) : 0);
+                    padding = Math.Max(padding, 1 + shadowPadding + Math.Max(Math.Abs(shadow.OffsetX), Math.Abs(shadow.OffsetY)));
+                }
             }
             if (paintsStroke)
                 foreach (OfficeLineMarker? marker in new[] { shape.StrokeStartMarker, shape.StrokeEndMarker })
