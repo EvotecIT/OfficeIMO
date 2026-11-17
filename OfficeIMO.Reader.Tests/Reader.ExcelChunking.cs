@@ -74,6 +74,27 @@ public sealed class ReaderExcelChunkingTests {
         }
     }
 
+    [Fact]
+    public void HeaderLongerThanMaxCharsIsKeptWholeWithAWarning() {
+        string header = new string('h', 300);
+        string path = Path.Combine(Path.GetTempPath(), "reader-excel-header-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                document.AddSheet("Notes").Cell(1, 1).SetValue(header);
+                document.Save(path);
+            }
+
+            OfficeDocumentReadResult result = new OfficeDocumentReaderBuilder().AddExcelHandler().Build()
+                .ReadDocument(path, new ReaderOptions { MaxChars = 256 });
+
+            ReaderChunk chunk = Assert.Single(result.Chunks, candidate => candidate.Tables is { Count: > 0 });
+            Assert.Contains("| " + header + " |", chunk.Markdown, StringComparison.Ordinal);
+            Assert.Contains(chunk.Warnings!, warning => warning.Contains("header exceed MaxChars", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static string CreateNotesWorkbook() {
         string path = Path.Combine(Path.GetTempPath(), "reader-excel-chunking-" + Guid.NewGuid().ToString("N") + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create();

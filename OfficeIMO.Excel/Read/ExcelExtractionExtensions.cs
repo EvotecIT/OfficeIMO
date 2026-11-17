@@ -135,7 +135,7 @@ internal static class ExcelExtractionExtensions {
             bool firstPart = true;
             while (firstPart || partStart < rowList.Count) {
                 int partEnd = MeasureMarkdownPart(title, columns, rowList, partStart, chunking.MaxChars,
-                    truncated ? Environment.NewLine.Length + TruncationNote.Length : 0, out bool oversizedRow);
+                    truncated ? Environment.NewLine.Length + TruncationNote.Length : 0, out bool oversizedRow, out bool oversizedHeader);
                 bool lastPart = partEnd >= rowList.Count;
                 List<IReadOnlyList<string>> partRows = partStart == 0 && lastPart
                     ? rowList
@@ -151,7 +151,8 @@ internal static class ExcelExtractionExtensions {
                 string md = RenderMarkdownTable(table);
                 var warnings = new List<string>(2);
                 if (truncationWarning != null && lastPart) warnings.Add(truncationWarning);
-                if (oversizedRow) warnings.Add("A table row with its header exceeds MaxChars; the row was kept whole in its own chunk.");
+                if (oversizedHeader) warnings.Add("The table title and header exceed MaxChars; they were kept whole.");
+                else if (oversizedRow) warnings.Add("A table row with its header exceeds MaxChars; the row was kept whole in its own chunk.");
                 yield return CreateChunk(sourcePath, sheetName, range, chunkIndex++, firstPart ? chunk.StartRow : firstSourceRow + partStart,
                     md, md, table, warnings.Count == 0 ? null : warnings.ToArray());
                 firstPart = false;
@@ -182,13 +183,15 @@ internal static class ExcelExtractionExtensions {
     /// A part that ends the block also reserves <paramref name="finalPartSuffix"/> for the truncation note.
     /// </summary>
     private static int MeasureMarkdownPart(string title, IReadOnlyList<string> columns, IReadOnlyList<IReadOnlyList<string>> rows,
-        int start, int maxChars, int finalPartSuffix, out bool oversizedRow) {
+        int start, int maxChars, int finalPartSuffix, out bool oversizedRow, out bool oversizedHeader) {
         oversizedRow = false;
         int newLine = Environment.NewLine.Length;
         int length = "### ".Length + title.Length + newLine * 2;
         length += 1 + newLine;
         foreach (string header in columns) length += EscapedLength(header) + 3;
         length += 1 + newLine + columns.Count * " --- |".Length;
+        // Rendered Markdown drops the final line break; a header-only part also carries the note when truncated.
+        oversizedHeader = length - newLine + (rows.Count == 0 ? finalPartSuffix : 0) > maxChars;
         int index = start;
         while (index < rows.Count) {
             IReadOnlyList<string> row = rows[index];
