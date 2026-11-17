@@ -49,6 +49,21 @@ public sealed class PdfClippedImageImportTests {
     }
 
     [Fact]
+    public void MarkdownExportsEachDistinctCropOfOneImageResourceOnce() {
+        // The same image is drawn three times: its left half, its right half, and its left half again elsewhere.
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
+            "q 20 30 40 40 re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\n" +
+            "q 60 90 40 40 re W n q 80 0 0 40 20 90 cm /Im1 Do Q Q\n" +
+            "q 40 0 40 20 re W n q 80 0 0 20 40 0 cm /Im1 Do Q Q\n"));
+
+        List<byte[]> images = ExtractDataUris(logical.ExtractMarkdown()).ToList();
+
+        Assert.Equal(2, images.Count);
+        Assert.Contains(images, static bytes => HasPixels(bytes, ImageSize / 2, ImageSize, Red, Red));
+        Assert.Contains(images, static bytes => HasPixels(bytes, ImageSize / 2, ImageSize, Blue, Blue));
+    }
+
+    [Fact]
     public void CropOfAMirroredImageKeepsTheSourcePixelsTheClipShows() {
         // A negative horizontal scale draws the blue source columns on the left of the placement.
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateSplitImagePdf("20 30 40 40", "-80 0 0 40 100 30"));
@@ -137,6 +152,11 @@ public sealed class PdfClippedImageImportTests {
         Assert.Equal(right, raster.GetPixel(width - 1, height / 2));
     }
 
+    private static bool HasPixels(byte[] bytes, int width, int height, OfficeColor left, OfficeColor right) =>
+        OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? raster) &&
+        raster!.Width == width && raster.Height == height &&
+        raster.GetPixel(0, height / 2) == left && raster.GetPixel(width - 1, height / 2) == right;
+
     private static IEnumerable<byte[]> ExtractDataUris(string text) {
         const string Marker = ";base64,";
         int index = 0;
@@ -150,8 +170,11 @@ public sealed class PdfClippedImageImportTests {
     }
 
     /// <summary>A 160 pt page with one 10x10 RGB image: red left columns, blue right columns.</summary>
-    private static byte[] CreateSplitImagePdf(string? clip, string matrix, string? clipPath = null) {
-        string content = "q " + (clipPath ?? (clip == null ? string.Empty : clip + " re W n ")) + " q " + matrix + " cm /Im1 Do Q Q\n";
+    private static byte[] CreateSplitImagePdf(string? clip, string matrix, string? clipPath = null) =>
+        CreateImagePdf("q " + (clipPath ?? (clip == null ? string.Empty : clip + " re W n ")) + " q " + matrix + " cm /Im1 Do Q Q\n");
+
+    /// <summary>A 160 pt page whose content stream draws the split image resource <c>/Im1</c>.</summary>
+    private static byte[] CreateImagePdf(string content) {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
         byte[] pixels = new byte[ImageSize * ImageSize * 3];
         for (int y = 0; y < ImageSize; y++) {

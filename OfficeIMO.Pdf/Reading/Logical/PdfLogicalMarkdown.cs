@@ -107,7 +107,10 @@ public static class PdfLogicalMarkdownExtensions {
         var items = new List<MarkdownItem>();
         int sequence = 0;
         bool writeImages = options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None || options.IncludeImagePlaceholders;
+        // Images with any output (picture or placeholder), and the distinct visible crops already exported: one
+        // image resource drawn with different clips shows different content, while repeats of one crop are dropped.
         HashSet<int>? emittedImages = null;
+        HashSet<(int Image, int Left, int Top, int Right, int Bottom)>? emittedCrops = null;
         Stack<(int Level, int ContentIndent)>? listParents = null;
 
         IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
@@ -138,8 +141,8 @@ public static class PdfLogicalMarkdownExtensions {
                 case PdfLogicalReadingOrderKind.Image when writeImages &&
                     item.HasGeometry && !item.IsClipped && item.PlacementIndex >= 0:
                     PdfLogicalImage image = page.Images[item.SourceIndex];
-                    if (emittedImages?.Contains(item.SourceIndex) == true) continue;
-                    markdown = FormatImage(page, item.SourceIndex, image.Placements[item.PlacementIndex], options);
+                    markdown = FormatImage(page, item.SourceIndex, image.Placements[item.PlacementIndex], options, ref emittedCrops,
+                        allowPlaceholder: emittedImages?.Contains(item.SourceIndex) != true);
                     if (markdown.Length > 0) (emittedImages ??= new HashSet<int>()).Add(item.SourceIndex);
                     break;
                 default: continue;
@@ -164,17 +167,18 @@ public static class PdfLogicalMarkdownExtensions {
 
         if (writeImages) {
             for (int i = 0; i < page.Images.Count; i++) {
-                if (emittedImages?.Contains(i) == true) continue;
                 PdfLogicalImage image = page.Images[i];
-                string markdown = string.Empty;
-                for (int placementIndex = 0; placementIndex < image.Placements.Count && markdown.Length == 0; placementIndex++) {
-                    markdown = FormatImage(page, i, image.Placements[placementIndex], options, allowPlaceholder: false);
+                bool emitted = emittedImages?.Contains(i) == true;
+                for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
+                    string markdown = FormatImage(page, i, image.Placements[placementIndex], options, ref emittedCrops, allowPlaceholder: false);
+                    if (markdown.Length == 0) continue;
+                    items.Add(new MarkdownItem(null, 0, sequence++, markdown));
+                    emitted = true;
                 }
-                if (markdown.Length == 0 && options.IncludeImagePlaceholders &&
+                if (!emitted && options.IncludeImagePlaceholders &&
                     (image.Placements.Count == 0 || PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image))) {
-                    markdown = FormatImagePlaceholder(image);
+                    items.Add(new MarkdownItem(null, 0, sequence++, FormatImagePlaceholder(image)));
                 }
-                if (markdown.Length > 0) items.Add(new MarkdownItem(null, 0, sequence++, markdown));
             }
         }
 
@@ -218,10 +222,13 @@ public static class PdfLogicalMarkdownExtensions {
         int imageIndex,
         PdfImagePlacement placement,
         PdfLogicalMarkdownOptions options,
-        bool allowPlaceholder = true) {
+        ref HashSet<(int Image, int Left, int Top, int Right, int Bottom)>? emittedCrops,
+        bool allowPlaceholder) {
         PdfLogicalImage image = page.Images[imageIndex];
         PdfImagePlacementImportAssessment assessment = PdfImagePlacementImportPolicy.Analyze(page, image, placement);
         if (assessment.IsSuppressed) return string.Empty;
+        var cropKey = GetVisibleCropKey(imageIndex, assessment.Crop);
+        if (emittedCrops?.Contains(cropKey) == true) return string.Empty;
         if (options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None &&
             assessment.CanImport &&
             page.RotationDegrees % 360 == 0 &&
@@ -235,10 +242,24 @@ public static class PdfLogicalMarkdownExtensions {
                 : bytes.LongLength <= options.MaxEmbeddedImageBytes
                     ? "data:" + mimeType + ";base64," + Convert.ToBase64String(bytes)
                     : null;
-            if (source != null) return "![" + EscapeInline(PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)) + "](" + source + ")";
+            if (source != null) {
+                (emittedCrops ??= new HashSet<(int Image, int Left, int Top, int Right, int Bottom)>()).Add(cropKey);
+                return "![" + EscapeInline(PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)) + "](" + source + ")";
+            }
         }
 
         return allowPlaceholder && options.IncludeImagePlaceholders ? FormatImagePlaceholder(image) : string.Empty;
+    }
+
+    private static (int Image, int Left, int Top, int Right, int Bottom) GetVisibleCropKey(int imageIndex, PdfImagePlacementCrop? crop) {
+        const double scale = 10000D;
+        return crop is null
+            ? (imageIndex, 0, 0, 0, 0)
+            : (imageIndex,
+                (int)Math.Round(crop.SourceLeft * scale),
+                (int)Math.Round(crop.SourceTop * scale),
+                (int)Math.Round(crop.SourceRight * scale),
+                (int)Math.Round(crop.SourceBottom * scale));
     }
 
     private static string WriteImageFile(PdfLogicalImage image, int imageIndex, PdfImagePlacement placement, byte[] bytes, string extension, PdfLogicalMarkdownOptions options) {
