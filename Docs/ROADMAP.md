@@ -1043,3 +1043,5 @@ Use the [native codec structure and qualification record](../Build/Publisher/Wri
 ## Completion rule
 
 Remove an item when its public API, compatibility boundary, tests, generated evidence, and user documentation agree. GitHub Releases records delivered history, while `MIGRATION.md` retains only upgrade actions; this file does not retain completed milestones.
+
+<!-- Docs-only CI verification. -->
