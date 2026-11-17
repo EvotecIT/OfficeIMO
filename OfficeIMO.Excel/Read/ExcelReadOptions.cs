@@ -273,6 +273,12 @@ namespace OfficeIMO.Excel {
         public Func<ExcelCellContext, ExcelCellValue>? CellValueConverter { get; set; }
 
         /// <summary>
+        /// Displayed-text mode used by extraction readers: numeric cells with a formatted style become the text that
+        /// format displays. Null keeps typed values.
+        /// </summary>
+        internal ExcelCellDisplayText? DisplayText { get; set; }
+
+        /// <summary>
         /// Optional type conversion hook used by typed readers (ReadColumnAs/ReadRowsAs/ReadRangeAs and object mapping).
         /// If it returns ok=true, its value is used; otherwise the built-in converter is used.
         /// </summary>
