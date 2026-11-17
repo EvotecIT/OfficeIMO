@@ -52,7 +52,7 @@ foreach ($project in $projects) {
             "-bl:$DiagnosticsDirectory/$name-test-{}.binlog"
         )
         $steps.Add($test)
-        if ($test.exit_code -eq 0 -and $name -eq 'Drawing-CodeGlyphX') {
+        if ($test.exit_code -eq 0 -and $path -eq 'OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj') {
             foreach ($adapter in @('Drawing', 'Word', 'Excel', 'PowerPoint', 'Pdf')) {
                 $steps.Add((Invoke-DotnetStep "$name / pack $adapter" @(
                     'pack', "OfficeIMO.$adapter.CodeGlyphX/OfficeIMO.$adapter.CodeGlyphX.csproj",

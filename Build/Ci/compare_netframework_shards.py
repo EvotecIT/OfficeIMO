@@ -9,22 +9,26 @@ import xml.etree.ElementTree as ET
 
 
 NS = {"t": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
+CODEGLYPH_TEST_PROJECT = "OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj"
 
 
-def read_layout(directory, expected):
-    if len(expected) != len(set(expected)):
-        raise ValueError(f"Duplicated project executions in {directory}")
+def read_layout(directory, contracts):
+    """Validate one artifact against the selected path-to-name contracts."""
     records = [row for path in directory.rglob("execution.json") for row in json.loads(path.read_text(encoding="utf-8-sig"))]
-    if Counter(r["project"] for r in records) != Counter(expected):
+    projects = [row["project"] for row in records]
+    if not projects or len(projects) != len(set(projects)):
         raise ValueError(f"Missing or duplicated project executions in {directory}")
     for row in records:
+        name = contracts.get(row["project"])
+        if name is None or row["name"] != name:
+            raise ValueError(f'Unknown project or mismatched contract name: {row["project"]} / {row["name"]}')
         names = [step["name"] for step in row["steps"]]
-        obligations = [f'{row["name"]} / restore', f'{row["name"]} / net472']
-        if row["name"] == "Drawing-CodeGlyphX":
-            obligations += [f'Drawing-CodeGlyphX / pack {p}' for p in ("Drawing", "Word", "Excel", "PowerPoint", "Pdf")]
+        obligations = [f"{name} / restore", f"{name} / net472"]
+        if row["project"] == CODEGLYPH_TEST_PROJECT:
+            obligations += [f'{name} / pack {p}' for p in ("Drawing", "Word", "Excel", "PowerPoint", "Pdf")]
         if names != obligations or any(s["exit_code"] != 0 for s in row["steps"]):
             raise ValueError(f'Failed or missing execution obligations: {row["project"]}')
-    results = {Path(p).stem: Counter() for p in expected}
+    results = {Path(p).stem: Counter() for p in projects}
     files = Counter()
     for path in directory.rglob("*.trx"):
         tree = ET.parse(path)
@@ -51,10 +55,14 @@ def read_layout(directory, expected):
         files[assembly] += 1
     if files != Counter({name: 1 for name in results}):
         raise ValueError(f"Missing or duplicate per-project TRX in {directory}: {files}")
-    return results, sum(s["seconds"] for r in records for s in r["steps"])
+    return results, sum(s["seconds"] for r in records for s in r["steps"]), projects
 
 
 def compare(directory, expected, rounds=3):
+    contracts = {row["project"]: row["name"] for row in expected}
+    if (len(contracts) != len(expected) or len(set(contracts.values())) != len(expected)
+            or len({Path(p).stem for p in contracts}) != len(expected)):
+        raise ValueError("Selected contracts require unique project paths, names and test assemblies")
     report = []
     reference = None
     environment = None
@@ -66,6 +74,7 @@ def compare(directory, expected, rounds=3):
                 raise ValueError(f"No artifacts for sample {sample} / {layout}")
             # Artifacts remain separate so overwritten TRX or manifests cannot hide duplicates.
             records = []
+            executed = []
             seconds = 0
             for artifact in artifacts:
                 metadata = list(artifact.rglob("environment.json"))
@@ -77,12 +86,13 @@ def compare(directory, expected, rounds=3):
                 if environment is not None and current != environment:
                     raise ValueError(f"Source, SDK or runner environment differs in {artifact}: {current}")
                 environment = current
-                manifests = list(artifact.rglob("execution.json"))
-                projects = [r["project"] for p in manifests for r in json.loads(p.read_text(encoding="utf-8-sig"))]
-                results, elapsed = read_layout(artifact, projects)
+                results, elapsed, projects = read_layout(artifact, contracts)
+                executed.extend(projects)
                 records.extend(results.items())
                 seconds += elapsed
-            if Counter(name for name, _ in records) != Counter(Path(p).stem for p in expected):
+            if Counter(executed) != Counter(contracts.keys()):
+                raise ValueError(f"Executed project paths differ from selected inventory: {sample} / {layout}")
+            if Counter(name for name, _ in records) != Counter(Path(p).stem for p in contracts):
                 raise ValueError(f"Missing or duplicated selected projects: {sample} / {layout}")
             layouts[layout] = dict(records)
             report.append({"sample": sample, "layout": layout, "jobs": len(artifacts), "command_seconds": seconds,
@@ -121,7 +131,7 @@ def main():
     parser.add_argument("--run-id")
     args = parser.parse_args()
     config = json.loads(Path(__file__).with_name("pr-suites.json").read_text())
-    report = compare(args.directory, [r["project"] for r in config["windows"]])
+    report = compare(args.directory, config["windows"])
     if args.repo and args.run_id:
         add_job_timings(report, args.repo, args.run_id)
     summary = {"samples": report, "parity": "identical test identities, outcomes and pack obligations in all samples"}
