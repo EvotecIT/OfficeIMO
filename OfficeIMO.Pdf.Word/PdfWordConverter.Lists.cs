@@ -31,7 +31,10 @@ namespace OfficeIMO.Pdf.Word {
                 if (_list == null) Start(carriedLevels: 0);
                 else if (!Continues(level, marker)) Start(carriedLevels: level);
                 WordList list = _list!;
-                if (_markers[level] == null) ConfigureLevel(list, level, marker, Math.Max(0, marker.Ordinal ?? 1));
+                if (_markers[level] == null) {
+                    SeedParents(list, level, marker);
+                    ConfigureLevel(list, level, marker, Math.Max(0, marker.Ordinal ?? 1));
+                }
 
                 _counters[level] = marker.Ordinal ?? (_counters[level] + 1 ?? _starts[level]);
                 for (int deeper = level + 1; deeper < MaximumLevels; deeper++) _counters[deeper] = null;
@@ -78,6 +81,18 @@ namespace OfficeIMO.Pdf.Word {
                     ConfigureLevel(list, level, parent.Marker, parent.Number);
                     _counters[level] = parent.Number;
                     _carried[level] = true;
+                }
+            }
+
+            /// <summary>An outline number with no parent item before it ("2.5" first) sets up the parents it shows.</summary>
+            private void SeedParents(WordList list, int level, PdfCore.PdfLogicalListMarker marker) {
+                if (!marker.IncludesParentNumbers || marker.ParentNumbers.Count != level) return;
+                for (int parent = 0; parent < level; parent++) {
+                    if (_markers[parent] != null) continue;
+                    int number = marker.ParentNumbers[parent];
+                    ConfigureLevel(list, parent, PdfCore.PdfLogicalListMarker.Parse(number.ToString(CultureInfo.InvariantCulture) + "."), number);
+                    _counters[parent] = number;
+                    _carried[parent] = true;
                 }
             }
 

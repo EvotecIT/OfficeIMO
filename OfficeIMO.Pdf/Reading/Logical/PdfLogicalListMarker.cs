@@ -23,8 +23,9 @@ public enum PdfLogicalListNumberFormat {
 
 /// <summary>Classifies list markers ("•", "3.", "(b)", "iv)") into a numbering style, ordinal and punctuation.</summary>
 internal readonly struct PdfLogicalListMarker {
-    private PdfLogicalListMarker(PdfLogicalListNumberFormat format, int? ordinal, string prefix, string suffix, bool includesParentNumbers = false) {
+    private PdfLogicalListMarker(PdfLogicalListNumberFormat format, int? ordinal, string prefix, string suffix, bool includesParentNumbers = false, int[]? parentNumbers = null) {
         IncludesParentNumbers = includesParentNumbers;
+        ParentNumbers = parentNumbers ?? Array.Empty<int>();
         Format = format;
         Ordinal = ordinal;
         Prefix = prefix;
@@ -47,6 +48,9 @@ internal readonly struct PdfLogicalListMarker {
     /// <summary>True for outline numbers such as "1.2" that repeat the parent item's number.</summary>
     internal bool IncludesParentNumbers { get; }
 
+    /// <summary>The parent numbers an outline marker shows: 2 for "2.5"; empty when the marker shows none.</summary>
+    internal IReadOnlyList<int> ParentNumbers { get; }
+
     internal static PdfLogicalListMarker Parse(string? marker) {
         string trimmed = marker?.Trim() ?? string.Empty;
         int start = 0;
@@ -62,12 +66,14 @@ internal readonly struct PdfLogicalListMarker {
         int lastSeparator = core.Length - 1;
         while (lastSeparator >= 0 && core[lastSeparator] is not ('.' or '\uFF0E')) lastSeparator--;
         bool includesParentNumbers = lastSeparator >= 0;
+        int[]? parentNumbers = null;
         if (includesParentNumbers) {
+            parentNumbers = ParseParentNumbers(core.Substring(0, lastSeparator));
             core = core.Substring(lastSeparator + 1);
             if (core.Length == 0) return Bullet;
         }
 
-        if (TryParseDecimal(core, out int number)) return new PdfLogicalListMarker(PdfLogicalListNumberFormat.Number, number, prefix, suffix, includesParentNumbers);
+        if (TryParseDecimal(core, out int number)) return new PdfLogicalListMarker(PdfLogicalListNumberFormat.Number, number, prefix, suffix, includesParentNumbers, parentNumbers);
 
         // Letters and numerals need punctuation; a bare "o" or "v" is a bullet glyph or a word.
         if (prefix.Length == 0 && suffix.Length == 0) return Bullet;
@@ -129,6 +135,15 @@ internal readonly struct PdfLogicalListMarker {
                 char.ToLowerInvariant(core[0]) - 'a' + 1, Prefix, Suffix);
         }
         return this;
+    }
+
+    private static int[]? ParseParentNumbers(string value) {
+        string[] parts = value.Split('.', '．');
+        var numbers = new int[parts.Length];
+        for (int index = 0; index < parts.Length; index++) {
+            if (!TryParseDecimal(parts[index], out numbers[index])) return null;
+        }
+        return numbers;
     }
 
     private static PdfLogicalListMarker Bullet => new PdfLogicalListMarker(PdfLogicalListNumberFormat.Bullet, null, string.Empty, string.Empty);

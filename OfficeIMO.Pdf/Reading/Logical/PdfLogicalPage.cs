@@ -879,7 +879,11 @@ public sealed partial class PdfLogicalPage {
         int first = 0;
         while (first < text.Length && char.IsWhiteSpace(text[first])) first++;
         if (item.Text.Length == 0 || first == text.Length) return false;
-        string probe = item.Text.Substring(0, Math.Min(item.Text.Length, 12));
+        // The item text runs on over wrapped lines; its first word is on this one.
+        int probeLength = 0;
+        while (probeLength < item.Text.Length && probeLength < 12 && !char.IsWhiteSpace(item.Text[probeLength])) probeLength++;
+        if (probeLength == 0) return false;
+        string probe = item.Text.Substring(0, probeLength);
         if (string.CompareOrdinal(text, first, probe, 0, probe.Length) == 0) return true;
         int body = text.IndexOf(probe, first + 1, StringComparison.Ordinal);
         return body > first && PdfLogicalInlineText.TryGetCharacterStart(line, body, out x);

@@ -318,7 +318,10 @@ internal static class PdfRtfConverter {
         internal int Assign(int level, PdfCore.PdfLogicalListMarker marker) {
             if (_currentId == 0) Start(carriedLevels: 0);
             else if (!Continues(level, marker)) Start(carriedLevels: level);
-            if (_markers[level] == null) ConfigureLevel(level, marker, Math.Max(0, marker.Ordinal ?? 1));
+            if (_markers[level] == null) {
+                SeedParents(level, marker);
+                ConfigureLevel(level, marker, Math.Max(0, marker.Ordinal ?? 1));
+            }
             _counters[level] = marker.Ordinal ?? (_counters[level] + 1 ?? _starts[level]);
             for (int deeper = level + 1; deeper < MaximumLevels; deeper++) _counters[deeper] = null;
             return _currentId;
@@ -364,6 +367,18 @@ internal static class PdfRtfConverter {
                 ConfigureLevel(level, parent.Marker, parent.Number);
                 _counters[level] = parent.Number;
                 _carried[level] = true;
+            }
+        }
+
+        /// <summary>An outline number with no parent item before it ("2.5" first) sets up the parents it shows.</summary>
+        private void SeedParents(int level, PdfCore.PdfLogicalListMarker marker) {
+            if (!marker.IncludesParentNumbers || marker.ParentNumbers.Count != level) return;
+            for (int parent = 0; parent < level; parent++) {
+                if (_markers[parent] != null) continue;
+                int number = marker.ParentNumbers[parent];
+                ConfigureLevel(parent, PdfCore.PdfLogicalListMarker.Parse(number.ToString(System.Globalization.CultureInfo.InvariantCulture) + "."), number);
+                _counters[parent] = number;
+                _carried[parent] = true;
             }
         }
 

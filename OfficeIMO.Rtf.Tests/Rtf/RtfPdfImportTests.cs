@@ -305,6 +305,8 @@ public class RtfPdfImportTests {
         document.AddList(new[] { new PdfCore.PdfListItem("Draft", marker: "1.1.") }, style: nested);
         document.AddList(new[] { new PdfCore.PdfListItem("Build", marker: "2.") }, style: flat);
         document.AddList(new[] { new PdfCore.PdfListItem("Test", marker: "2.5.") }, style: nested);
+        document.AddParagraph("Excerpt.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Excerpted", marker: "3.2.") }, style: nested);
 
         RtfDocument rtf = LoadSemanticPdf(document.ToBytes()).ToRtf(CreateImportOptions());
         // Readers number from the written list definitions, not from the marker text kept beside each item.
@@ -316,9 +318,10 @@ public class RtfPdfImportTests {
         Assert.Equal("4.", markers["Rehearse"]);
         Assert.Equal("(a)", markers["Keep"]);
         Assert.Equal("(b)", markers["Drop"]);
-        // Changed punctuation starts a new list; a nested restart keeps its parent's number.
+        // Changed punctuation starts a new list; a nested restart, or an outline item without its parent, keeps the parent number.
         Assert.Equal("(3)", markers["Close"]);
         Assert.Equal("2.5.", markers["Test"]);
+        Assert.Equal("3.2.", markers["Excerpted"]);
 
         RtfParagraph Item(string text) => Assert.Single(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == text);
         Assert.Equal(Item("Collect requirements").ListId, Item("Agree on scope").ListId);
