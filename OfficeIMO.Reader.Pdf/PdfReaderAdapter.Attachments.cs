@@ -66,7 +66,8 @@ internal static partial class PdfReaderAdapter {
         if (remainingAttachmentBytes <= 0) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.AttachmentBytes, attachmentBudget.Maximum, attachmentBudget.Maximum + 1L);
         }
-        bool streamLimited = attachmentBudget.MaxDecodedStreamBytes < Math.Min(maximum, remainingAttachmentBytes);
+        // On a tie the native decoded-stream limit wins, so an over-limit stream stays a terminal native quota.
+        bool streamLimited = attachmentBudget.MaxDecodedStreamBytes <= Math.Min(maximum, remainingAttachmentBytes);
         bool aggregateLimited = !streamLimited && remainingAttachmentBytes < maximum;
         maximum = Math.Min(maximum, Math.Min(remainingAttachmentBytes, attachmentBudget.MaxDecodedStreamBytes));
 

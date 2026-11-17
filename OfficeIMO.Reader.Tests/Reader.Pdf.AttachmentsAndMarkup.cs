@@ -1,6 +1,8 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
+using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Pdf;
+using System.Text;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -100,6 +102,24 @@ public sealed class ReaderPdfAttachmentsAndMarkupTests {
     }
 
     [Fact]
+    public void ReadDocument_ReportsTheDecodedStreamLimitWhenItEqualsMaxInputBytes() {
+        // A Flate-compressed Markdown attachment keeps the PDF under the shared limit while its decoded payload exceeds it.
+        byte[] markdown = Encoding.ASCII.GetBytes(string.Concat(Enumerable.Repeat("Repeated attachment text. ", 800)));
+        const int limit = 4_096;
+        byte[] outer = BuildPdfWithFlateAttachment("notes.md", markdown);
+        Assert.True(outer.Length < limit && markdown.Length > limit);
+        var pdfOptions = new ReaderPdfOptions {
+            ReadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = limit } }
+        };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler(pdfOptions).AddMarkdownHandler().Build();
+
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() =>
+            reader.ReadDocument(outer, "outer.pdf", new ReaderOptions { MaxInputBytes = limit }));
+
+        Assert.Equal("Pdf.DecodedStreamBytes", error.LimitName);
+    }
+
+    [Fact]
     public void ReadDocument_AppliesTheReadContractsDecodedStreamLimitToAttachments() {
         byte[] inner = CreatePdf("Attachment larger than the stream limit");
         PdfDocument outer = PdfDocument.Create(new PdfCreateOptions().AddEmbeddedFile("inner.pdf", inner, "application/pdf"));
@@ -186,6 +206,49 @@ public sealed class ReaderPdfAttachmentsAndMarkupTests {
             "[StrikeOut: \"Operating costs stayed flat\"]",
             markdown.Replace("\r\n", "\n").Replace("\n", Environment.NewLine), StringComparison.Ordinal);
         Assert.DoesNotContain("General remark", markdown, StringComparison.Ordinal);
+    }
+
+    private static byte[] BuildPdfWithFlateAttachment(string fileName, byte[] payload) {
+        const string nl = "\n";
+        byte[] compressed = Zlib(payload);
+        string page = "BT /F1 12 Tf 72 700 Td (Cover page) Tj ET";
+        var parts = new List<byte[]>();
+        var offsets = new List<int>();
+        int length = 0;
+        void Add(string text) => AddBytes(Encoding.ASCII.GetBytes(text));
+        void AddBytes(byte[] bytes) { parts.Add(bytes); length += bytes.Length; }
+        void Object(int number, string body) { offsets.Add(length); Add(number + " 0 obj" + nl + body + nl + "endobj" + nl); }
+        Add("%PDF-1.7" + nl);
+        Object(1, "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(" + fileName + ") 6 0 R] >> >> >>");
+        Object(2, "<< /Type /Pages /Count 1 /Kids [3 0 R] >>");
+        Object(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 800] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>");
+        Object(4, "<< /Length " + page.Length + " >>" + nl + "stream" + nl + page + nl + "endstream");
+        Object(5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+        Object(6, "<< /Type /Filespec /F (" + fileName + ") /UF (" + fileName + ") /EF << /F 7 0 R >> >>");
+        offsets.Add(length);
+        Add("7 0 obj" + nl + "<< /Type /EmbeddedFile /Subtype /text#2Fmarkdown /Filter /FlateDecode /Length " + compressed.Length + " >>" + nl + "stream" + nl);
+        AddBytes(compressed);
+        Add(nl + "endstream" + nl + "endobj" + nl);
+        int xref = length;
+        var table = new StringBuilder("xref" + nl + "0 8" + nl + "0000000000 65535 f " + nl);
+        foreach (int offset in offsets) table.Append(offset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)).Append(" 00000 n " + nl);
+        table.Append("trailer" + nl + "<< /Root 1 0 R /Size 8 >>" + nl + "startxref" + nl).Append(xref).Append(nl + "%%EOF" + nl);
+        Add(table.ToString());
+        return parts.SelectMany(part => part).ToArray();
+    }
+
+    // zlib framing (RFC 1950) around raw Deflate, available on every target framework.
+    private static byte[] Zlib(byte[] data) {
+        using var output = new MemoryStream();
+        output.WriteByte(0x78); output.WriteByte(0x9C);
+        using (var deflate = new System.IO.Compression.DeflateStream(output, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true)) {
+            deflate.Write(data, 0, data.Length);
+        }
+        uint a = 1, b = 0;
+        foreach (byte value in data) { a = (a + value) % 65521; b = (b + a) % 65521; }
+        uint adler = (b << 16) | a;
+        output.WriteByte((byte)(adler >> 24)); output.WriteByte((byte)(adler >> 16)); output.WriteByte((byte)(adler >> 8)); output.WriteByte((byte)adler);
+        return output.ToArray();
     }
 
     private static string Sha256(byte[] bytes) {
