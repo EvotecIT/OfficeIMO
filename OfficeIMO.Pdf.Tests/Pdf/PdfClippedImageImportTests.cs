@@ -95,19 +95,22 @@ public sealed class PdfClippedImageImportTests {
         }
     }
 
-    [Fact]
-    public void CropOfAJpegIgnoresItsExifOrientation() {
-        // EXIF orientation 3 would turn the image 180 degrees and put the blue columns where the clip keeps red ones.
+    [Theory]
+    [InlineData("0 0 160 160", ImageSize)]     // whole image: the JPEG is carried over
+    [InlineData("20 30 40 40", ImageSize / 2)] // cropped: the visible pixels are re-encoded
+    public void JpegExifOrientationDoesNotTurnTheExportedImage(string clip, int width) {
+        // EXIF orientation 3 would turn the image 180 degrees and put the blue columns on the left.
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
-            "q 20 30 40 40 re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\n", jpegExifOrientation: 3));
+            "q " + clip + " re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\n", jpegExifOrientation: 3));
 
-        byte[] crop = Assert.Single(ExtractDataUris(logical.ExtractMarkdown()));
+        byte[] exported = Assert.Single(ExtractDataUris(logical.ExtractMarkdown()));
 
-        Assert.True(OfficeRasterImageDecoder.TryDecode(crop, out OfficeRasterImage? raster));
-        Assert.Equal(ImageSize / 2, raster!.Width);
+        // Decoded the way a browser shows it, with any EXIF orientation applied.
+        Assert.True(OfficeRasterImageDecoder.TryDecode(exported, out OfficeRasterImage? raster));
+        Assert.Equal(width, raster!.Width);
         Assert.Equal(ImageSize, raster.Height);
-        OfficeColor pixel = raster.GetPixel(raster.Width / 2, raster.Height / 2);
-        Assert.True(pixel.R > 200 && pixel.B < 60, "Expected the red source columns, got " + pixel + ".");
+        OfficeColor pixel = raster.GetPixel(0, raster.Height / 2);
+        Assert.True(pixel.R > 200 && pixel.B < 60, "Expected the red source columns on the left, got " + pixel + ".");
     }
 
     [Fact]

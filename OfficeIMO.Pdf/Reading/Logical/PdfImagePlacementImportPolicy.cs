@@ -210,8 +210,9 @@ internal static class PdfImagePlacementImportPolicy {
 
     /// <summary>
     /// Returns the image file an adapter embeds for an importable placement. Without a crop this is the extracted
-    /// payload unchanged. With a crop the pixels are decoded, cut to the clip and written as PNG, so the output never
-    /// carries pixels the PDF hides. False means the payload could not be cropped and the image must be omitted.
+    /// payload, with any JPEG EXIF orientation neutralized because the placement matrix alone positions PDF image
+    /// samples. With a crop the pixels are decoded, cut to the clip and written as PNG, so the output never carries
+    /// pixels the PDF hides. False means the payload could not be prepared and the image must be omitted.
     /// </summary>
     internal static bool TryGetVisibleImagePayload(
         PdfLogicalImage image,
@@ -223,9 +224,13 @@ internal static class PdfImagePlacementImportPolicy {
         PdfExtractedImage source = image.SourceImage;
         PdfImagePlacementCrop? crop = assessment.Crop;
         if (crop == null) {
-            bytes = source.Bytes;
             mimeType = source.MimeType ?? string.Empty;
             fileExtension = source.FileExtension ?? string.Empty;
+            try {
+                bytes = (byte[])source.GetDrawingBytes(CancellationToken.None).Clone();
+            } catch (NotSupportedException) {
+                bytes = Array.Empty<byte>();
+            }
             return bytes.Length > 0;
         }
 
