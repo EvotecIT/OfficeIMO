@@ -130,6 +130,10 @@ internal readonly struct PdfLogicalListMarker {
         if (letter && TryParseRoman(core, out int value)) {
             return new PdfLogicalListMarker(lower ? PdfLogicalListNumberFormat.LowerRoman : PdfLogicalListNumberFormat.UpperRoman, value, Prefix, Suffix);
         }
+        // "(cc)" between "(bb)" and "(dd)" is a repeated letter, not Roman 200.
+        if (roman && core.Length > 1 && TryParseLetters(core, out int letters)) {
+            return new PdfLogicalListMarker(lower ? PdfLogicalListNumberFormat.LowerLetter : PdfLogicalListNumberFormat.UpperLetter, letters, Prefix, Suffix);
+        }
         if (roman && core.Length == 1) {
             return new PdfLogicalListMarker(lower ? PdfLogicalListNumberFormat.LowerLetter : PdfLogicalListNumberFormat.UpperLetter,
                 char.ToLowerInvariant(core[0]) - 'a' + 1, Prefix, Suffix);
@@ -138,7 +142,7 @@ internal readonly struct PdfLogicalListMarker {
     }
 
     private static int[]? ParseParentNumbers(string value) {
-        string[] parts = value.Split('.', '．');
+        string[] parts = value.Split('.', '\uFF0E');
         var numbers = new int[parts.Length];
         for (int index = 0; index < parts.Length; index++) {
             if (!TryParseDecimal(parts[index], out numbers[index])) return null;

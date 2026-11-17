@@ -82,6 +82,7 @@ public class PdfLogicalListNumberingTests {
     [InlineData("(iv)", "(v)", PdfLogicalListNumberFormat.LowerRoman, 5)]
     [InlineData("(h)", "(i)", PdfLogicalListNumberFormat.LowerLetter, 9)]
     [InlineData("C.", "D.", PdfLogicalListNumberFormat.UpperLetter, 4)]
+    [InlineData("(bb)", "(cc)", PdfLogicalListNumberFormat.LowerLetter, 29)]
     public void ListMarkers_ReadSingleCharactersInTheirListContext(string previous, string marker, PdfLogicalListNumberFormat format, int ordinal) {
         PdfLogicalListMarker resolved = PdfLogicalListMarker.Parse(marker).ResolveBeside(PdfLogicalListMarker.Parse(previous), marker);
 

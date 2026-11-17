@@ -45,6 +45,8 @@ namespace OfficeIMO.Pdf.Word {
                 // A parent level carried into a restarted list only shows its number; its next item needs a list
                 // that counts on from there.
                 if (_carried[level]) return false;
+                // "4.3" after "3.2" belongs under another parent, which the list has to show.
+                if (!MatchesParents(level, marker)) return false;
                 if (_markers[level] is not PdfCore.PdfLogicalListMarker current) return true;
                 if (current.Format != marker.Format || current.Prefix != marker.Prefix || current.Suffix != marker.Suffix ||
                     current.IncludesParentNumbers != marker.IncludesParentNumbers) return false;
@@ -84,13 +86,22 @@ namespace OfficeIMO.Pdf.Word {
                 }
             }
 
+            private bool MatchesParents(int level, PdfCore.PdfLogicalListMarker marker) {
+                if (!marker.IncludesParentNumbers || marker.ParentNumbers.Count != level) return true;
+                for (int parent = 0; parent < level; parent++) {
+                    if (_counters[parent] is int number && number != marker.ParentNumbers[parent]) return false;
+                }
+                return true;
+            }
+
             /// <summary>An outline number with no parent item before it ("2.5" first) sets up the parents it shows.</summary>
             private void SeedParents(WordList list, int level, PdfCore.PdfLogicalListMarker marker) {
                 if (!marker.IncludesParentNumbers || marker.ParentNumbers.Count != level) return;
                 for (int parent = 0; parent < level; parent++) {
-                    if (_markers[parent] != null) continue;
                     int number = marker.ParentNumbers[parent];
-                    ConfigureLevel(list, parent, PdfCore.PdfLogicalListMarker.Parse(number.ToString(CultureInfo.InvariantCulture) + "."), number);
+                    // A parent carried into a restarted list takes the number the outline item shows.
+                    if (_markers[parent] != null && (!_carried[parent] || _counters[parent] == number)) continue;
+                    ConfigureLevel(list, parent, _markers[parent] ?? PdfCore.PdfLogicalListMarker.Parse(number.ToString(CultureInfo.InvariantCulture) + "."), number);
                     _counters[parent] = number;
                     _carried[parent] = true;
                 }

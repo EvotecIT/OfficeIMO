@@ -307,6 +307,10 @@ public class RtfPdfImportTests {
         document.AddList(new[] { new PdfCore.PdfListItem("Test", marker: "2.5.") }, style: nested);
         document.AddParagraph("Excerpt.");
         document.AddList(new[] { new PdfCore.PdfListItem("Excerpted", marker: "3.2.") }, style: nested);
+        document.AddList(new[] { new PdfCore.PdfListItem("Moved on", marker: "4.3.") }, style: nested);
+        document.AddParagraph("Parts.");
+        document.AddList(new[] { new PdfCore.PdfListItem("Part one", marker: "(I)") }, style: flat);
+        document.AddList(new[] { new PdfCore.PdfListItem("Section", marker: "1.1.") }, style: nested);
 
         RtfDocument rtf = LoadSemanticPdf(document.ToBytes()).ToRtf(CreateImportOptions());
         // Readers number from the written list definitions, not from the marker text kept beside each item.
@@ -322,6 +326,8 @@ public class RtfPdfImportTests {
         Assert.Equal("(3)", markers["Close"]);
         Assert.Equal("2.5.", markers["Test"]);
         Assert.Equal("3.2.", markers["Excerpted"]);
+        Assert.Equal("4.3.", markers["Moved on"]);
+        Assert.Equal("1.1.", markers["Section"]);
 
         RtfParagraph Item(string text) => Assert.Single(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == text);
         Assert.Equal(Item("Collect requirements").ListId, Item("Agree on scope").ListId);
