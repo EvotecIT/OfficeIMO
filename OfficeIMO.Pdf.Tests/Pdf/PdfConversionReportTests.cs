@@ -232,6 +232,35 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_SaveAppendsOnlyNewLinkedSourceWarningsInOrder() {
+        var report = new PdfConversionReport();
+        report.Add(new PdfConversionWarning("OfficeIMO.Tests", "Existing", "cell:A1", "Text was clipped."));
+        PdfDocumentConversionResult result = new PdfDocumentConversionResult(
+                PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Linked refresh proof")),
+                report)
+            .WithAdditionalWarnings(new[] { new PdfConversionWarning("OfficeIMO.Adapter", "Projected", "sheet:1", "Adapter note.") });
+        Assert.Equal(new[] { "Projected", "Existing" }, result.Warnings.Select(warning => warning.Code));
+
+        report.Add(new PdfConversionWarning("OfficeIMO.Tests", "Existing", "cell:A1", "Text was clipped."));
+        report.Add(new PdfConversionWarning("OfficeIMO.Tests", "Existing", "cell:A1", "Text was clipped.", PdfConversionWarningSeverity.Error));
+        report.Add(new PdfConversionWarning("OfficeIMO.Other", "Existing", "cell:A1", "Text was clipped."));
+        report.Add(new PdfConversionWarning("OfficeIMO.Tests", "SaveTime", "cell:B2", "Text was clipped."));
+        report.Add(new PdfConversionWarning("OfficeIMO.Tests", "SaveTime", "cell:B2", "Text was clipped."));
+
+        result.ToBytes();
+
+        Assert.Equal(
+            new[] {
+                "OfficeIMO.Adapter|Projected|Warning",
+                "OfficeIMO.Tests|Existing|Warning",
+                "OfficeIMO.Tests|Existing|Error",
+                "OfficeIMO.Other|Existing|Warning",
+                "OfficeIMO.Tests|SaveTime|Warning"
+            },
+            result.Warnings.Select(warning => warning.Converter + "|" + warning.Code + "|" + warning.Severity));
+    }
+
+    [Fact]
     public void PdfDocumentConversionResult_FailedSerializationPreservesRecordedDiagnostics() {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
