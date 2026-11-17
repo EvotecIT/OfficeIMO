@@ -224,9 +224,10 @@ public partial class Html {
         }
 
         private void Respond(string statusAndHeaders, byte[]? payload) {
-            TcpClient client;
+            // Disposal cancels the wait and completes the queue; either one ends the wait without a request.
+            TcpClient? client;
             try {
-                client = _accepted.Take(_stopped.Token);
+                if (!_accepted.TryTake(out client, Timeout.Infinite, _stopped.Token)) return;
             } catch (OperationCanceledException) {
                 return;
             }
