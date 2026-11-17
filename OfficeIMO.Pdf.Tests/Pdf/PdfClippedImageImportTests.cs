@@ -97,6 +97,17 @@ public sealed class PdfClippedImageImportTests {
     }
 
     [Fact]
+    public void TextExtractionOrdersClippedImagesWithoutDecodingThem() {
+        // The image's samples exceed the decoded-stream limit, so any attempt to decode them throws.
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 4096 } };
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateOversizedImagePdf(), null, options);
+
+        Assert.Contains("Visible text", logical.Text, StringComparison.Ordinal);
+        PdfLogicalImage image = Assert.Single(Assert.Single(logical.Pages).Images);
+        Assert.Throws<PdfReadLimitException>(() => image.SourceImage.Bytes);
+    }
+
+    [Fact]
     public void HtmlEmbedsACropOfAJpeg2000ImageAsPng() {
         // Browsers cannot show JPEG 2000, but the crop is re-encoded as PNG and can be embedded.
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
@@ -311,6 +322,37 @@ public sealed class PdfClippedImageImportTests {
         output.Write(pixels, 0, pixels.Length);
         Write(output, "\nendstream\nendobj\n");
         Write(output, "trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    /// <summary>A page with text and a clipped 100x100 RGB image whose zlib stream decodes to 30,000 bytes.</summary>
+    private static byte[] CreateOversizedImagePdf() {
+        byte[] content = System.Text.Encoding.ASCII.GetBytes(
+            "q 20 30 40 40 re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\nBT /F1 12 Tf 20 120 Td (Visible text) Tj ET\n");
+        byte[] samples = new byte[100 * 100 * 3];
+        using var compressed = new MemoryStream();
+        compressed.WriteByte(0x78);
+        compressed.WriteByte(0x9C);
+        using (var deflate = new System.IO.Compression.DeflateStream(compressed, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true)) {
+            deflate.Write(samples, 0, samples.Length);
+        }
+        // Adler-32 of all-zero samples: the low sum stays 1 and the high sum is the sample count.
+        int high = samples.Length % 65521;
+        compressed.Write(new byte[] { (byte)(high >> 8), (byte)high, 0, 1 }, 0, 4);
+        byte[] image = compressed.ToArray();
+
+        using var output = new MemoryStream();
+        Write(output, "%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        Write(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
+        Write(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /XObject << /Im1 5 0 R >> " +
+            "/Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>\nendobj\n");
+        Write(output, "4 0 obj\n<< /Length " + content.Length + " >>\nstream\n");
+        output.Write(content, 0, content.Length);
+        Write(output, "endstream\nendobj\n");
+        Write(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 100 /Height 100 /ColorSpace /DeviceRGB /BitsPerComponent 8 " +
+            "/Filter /FlateDecode /Length " + image.Length + " >>\nstream\n");
+        output.Write(image, 0, image.Length);
+        Write(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n");
         return output.ToArray();
     }
 

@@ -209,6 +209,25 @@ internal static class PdfImagePlacementImportPolicy {
     }
 
     /// <summary>
+    /// Bounds of the visible part of a placement in page user space, from its matrix and clip alone. Reading order uses
+    /// this, so it never reads, decodes or validates the image payload.
+    /// </summary>
+    internal static (double X, double Y, double Width, double Height) GetVisibleGeometry(
+        PdfLogicalPage page,
+        PdfLogicalImage image,
+        PdfImagePlacement placement) {
+        Guard.NotNull(page, nameof(page));
+        Guard.NotNull(image, nameof(image));
+        Guard.NotNull(placement, nameof(placement));
+        if (placement.IsAxisAligned && IsFinite(placement.B) && IsFinite(placement.C) &&
+            TryResolveVisibleRectangle(page, image, placement, out PdfImagePlacementCrop? crop) && crop != null) {
+            return (crop.X, crop.Y, crop.Width, crop.Height);
+        }
+
+        return (placement.X, placement.Y, placement.Width, placement.Height);
+    }
+
+    /// <summary>
     /// Returns the image file an adapter embeds for an importable placement. Without a crop this is the extracted
     /// payload, with any JPEG EXIF orientation neutralized because the placement matrix alone positions PDF image
     /// samples. With a crop the pixels are decoded, cut to the clip and written as PNG, so the output never carries
