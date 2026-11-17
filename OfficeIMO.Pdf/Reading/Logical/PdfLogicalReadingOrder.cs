@@ -538,7 +538,9 @@ internal static partial class PdfLogicalReadingOrderAnalysis {
             if (image.Placements.Count == 0) AddMissing(PdfLogicalReadingOrderKind.Image, index, -1);
             for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
                 PdfImagePlacement placement = image.Placements[placementIndex];
-                Add(PdfLogicalReadingOrderKind.Image, index, placementIndex, placement.X, placement.Y, placement.X + placement.Width, placement.Y + placement.Height);
+                // A clip that cuts into the image leaves only part of it visible; order the figure by that part.
+                (double x, double y, double width, double height) = PdfImagePlacementImportPolicy.Analyze(page, image, placement).GetVisibleBounds(placement);
+                Add(PdfLogicalReadingOrderKind.Image, index, placementIndex, x, y, x + width, y + height);
             }
         }
         for (int index = 0; index < page.Links.Count; index++) {

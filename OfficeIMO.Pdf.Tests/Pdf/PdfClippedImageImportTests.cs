@@ -130,20 +130,22 @@ public sealed class PdfClippedImageImportTests {
         Assert.Contains("height=\"10\" style=\"transform:scale(-1,1);\">", html, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void EachCropKeepsItsReadingPositionAroundText() {
+    [Theory]
+    [InlineData("80 0 0 40 20 20", ImageSize)] // the lower placement sits wholly below the text
+    [InlineData("80 0 0 120 20 20", 3)]        // it reaches above the text, but the clip keeps only its lowest rows
+    public void EachCropKeepsItsReadingPositionAroundText(string lowerMatrix, int lowerHeight) {
         // The left half is drawn above the text and the right half below it.
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
             "q 20 110 40 40 re W n q 80 0 0 40 20 110 cm /Im1 Do Q Q\n" +
             "BT /F1 12 Tf 20 85 Td (Between the crops) Tj ET\n" +
-            "q 60 20 40 40 re W n q 80 0 0 40 20 20 cm /Im1 Do Q Q\n"));
+            "q 60 20 40 40 re W n q " + lowerMatrix + " cm /Im1 Do Q Q\n"));
 
         string html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile()).Value;
         foreach (string output in new[] { logical.ExtractMarkdown(), html }) {
             int text = output.IndexOf("Between the crops", StringComparison.Ordinal);
             Assert.True(text > 0, output);
             Assert.True(HasPixels(Assert.Single(ExtractDataUris(output.Substring(0, text))), ImageSize / 2, ImageSize, Red, Red));
-            Assert.True(HasPixels(Assert.Single(ExtractDataUris(output.Substring(text))), ImageSize / 2, ImageSize, Blue, Blue));
+            Assert.True(HasPixels(Assert.Single(ExtractDataUris(output.Substring(text))), ImageSize / 2, lowerHeight, Blue, Blue));
         }
     }
 
