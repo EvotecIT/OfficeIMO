@@ -6643,6 +6643,15 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## Excel Reader Markdown chunks
+
+Reader no longer cuts an Excel chunk's Markdown and text at `ReaderOptions.MaxChars` and appends
+`<!-- truncated -->`. A row block whose Markdown table would exceed `MaxChars` is now split between rows into
+several chunks, each repeating the sheet title and header row, so every row appears in the output. Large sheets
+therefore produce more chunks, and chunk ids after the first split carry the first sheet row of their part. A row
+that is longer than `MaxChars` on its own is kept whole in its own chunk with a warning. Code that counted Excel
+chunks or looked for the truncation marker needs updating; `MaxTableRows` truncation is unchanged and still warns.
+
 ## Excel Reader cell text
 
 Reader extraction of XLSX, XLSM, XLSB, XLS and SpreadsheetML workbooks now returns cell text as each cell's number
