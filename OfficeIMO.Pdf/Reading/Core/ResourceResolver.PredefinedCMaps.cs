@@ -3,7 +3,8 @@ namespace OfficeIMO.Pdf {
     internal static partial class ResourceResolver {
         // A custom encoding stream can use an official-looking CMapName without the official semantics.
         // Only an actual predefined name and compatible descendant ROS select bundled mappings; an embedded
-        // CMap contributes its own code-to-CID ranges, which the descendant's Adobe collection then maps to Unicode.
+        // CMap contributes its own codespace and code-to-CID ranges, which the descendant's Adobe collection then
+        // maps to Unicode. Without a bundled collection the embedded CMap still splits text into its codes.
         private static Lazy<PdfPredefinedCMap>? ResolvePredefinedCMap(
             PdfDictionary font,
             Dictionary<int, PdfIndirectObject> objects) {
@@ -21,10 +22,11 @@ namespace OfficeIMO.Pdf {
             string ordering = ReadString("Ordering") ?? string.Empty;
             PdfObject? encoding = ResolveObject(encodingObject, objects);
             if (encoding is PdfName name) return PdfPredefinedCMap.Find(name.Name, registry, ordering);
-            if (encoding is not PdfStream stream || !PdfPredefinedCMap.HasUnicodeCollection(registry, ordering)) return null;
+            if (encoding is not PdfStream stream) return null;
+            string? unicodeOrdering = PdfPredefinedCMap.HasUnicodeCollection(registry, ordering) ? ordering : null;
             return new Lazy<PdfPredefinedCMap>(() => {
                 byte[]? data = Filters.StreamDecoder.Decode(stream, objects);
-                return data == null ? PdfPredefinedCMap.Empty : PdfPredefinedCMap.FromEmbeddedCMap(data, ordering);
+                return data == null ? PdfPredefinedCMap.Empty : PdfPredefinedCMap.FromEmbeddedCMap(data, unicodeOrdering);
             });
         }
 

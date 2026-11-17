@@ -539,6 +539,9 @@ internal static partial class ResourceResolver {
             fontDescriptorFlags,
             ResolvePredefinedCMap(fontVal, objects),
             hasDeclaredEncoding);
+        if (string.Equals(resource.FontSubtype, "Type0", StringComparison.Ordinal)) {
+            resource.SetCompositeTextSources(CreateCidTextFallback(fontVal, objects, embeddedProgram), HasIdentityToUnicode(fontVal, objects));
+        }
         if (!hasDeclaredEncoding && cffKind == "Type1" && cffStream != null) {
             resource.SetBuiltinEncoding(() => {
                 byte[]? data = TryReadEmbeddedCffProgram(fontVal, objects, out _);
@@ -1090,14 +1093,51 @@ internal static partial class ResourceResolver {
             case "fl": value = "fl"; return true;
             case "ffi": value = "ffi"; return true;
             case "ffl": value = "ffl"; return true;
+            // The glyph list keeps the cedilla letters for these names; composing the comma below would give U+021A/U+021B.
+            case "Tcommaaccent": value = "Ţ"; return true;
+            case "tcommaaccent": value = "ţ"; return true;
             default:
                 // Symbol and ZapfDingbats glyph names (Greek, mathematical and dingbat names).
                 if (PdfFontEncodingNames.TryGetSymbolUnicode(glyphName, out int symbolic)) {
                     value = char.ConvertFromUtf32(symbolic);
                     return true;
                 }
-                return false;
+                return TryDecodeAccentedLetterGlyphName(glyphName, out value);
         }
+    }
+
+    private static readonly (string Suffix, string Marks)[] AccentGlyphNameSuffixes = {
+        ("hungarumlaut", "\u030B"), ("commaaccent", "\u0326\u0327"), ("circumflex", "\u0302"), ("dotaccent", "\u0307"),
+        ("dieresis", "\u0308"), ("cedilla", "\u0327"), ("ogonek", "\u0328"), ("macron", "\u0304"), ("acute", "\u0301"),
+        ("grave", "\u0300"), ("tilde", "\u0303"), ("breve", "\u0306"), ("caron", "\u030C"), ("ring", "\u030A")
+    };
+
+    // Glyph-list names of accented Latin letters are a base letter followed by an accent name ("ccaron", "uring").
+    // The letter is the base letter composed with the accent's combining mark, when Unicode has that precomposed letter.
+    // "commaaccent" names a comma below, which Unicode encodes as a cedilla for G, K, L, N and R.
+    private static bool TryDecodeAccentedLetterGlyphName(string glyphName, out string? value) {
+        value = null;
+        if (glyphName.Length < 5 || !IsAsciiLetter(glyphName[0])) return false;
+        foreach ((string suffix, string marks) in AccentGlyphNameSuffixes) {
+            if (glyphName.Length != suffix.Length + 1 || !glyphName.EndsWith(suffix, System.StringComparison.Ordinal)) continue;
+            foreach (char mark in marks) {
+                string composed;
+                try {
+                    composed = (glyphName[0].ToString() + mark).Normalize(System.Text.NormalizationForm.FormC);
+                } catch (PlatformNotSupportedException) {
+                    // Invariant-globalization hosts may not compose non-ASCII text.
+                    return false;
+                }
+                if (composed.Length == 1) {
+                    value = composed;
+                    return true;
+                }
+            }
+            return false;
+        }
+        return false;
+
+        static bool IsAsciiLetter(char value) => value is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
     }
 
     private static bool TryDecodeCompositeGlyphName(string glyphName, out string? value) {

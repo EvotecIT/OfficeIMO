@@ -125,7 +125,12 @@ internal sealed class PdfFontResourceCache {
             foreach (string destination in font.Differences.Values) differencesBytes += destination.Length * (long)sizeof(char);
         }
         long type3Bytes = font.Type3?.EstimatedRetainedBytes ?? 0;
-        return embeddedBytes + drawingBytes + cmapBytes + differencesBytes + type3Bytes + 1024L;
+        // A composite text fallback holds its own copy of a program that did not load as the embedded font.
+        long fallbackBytes = font.CidTextFallback?.PendingProgramBytes is byte[] fallbackProgram &&
+            !ReferenceEquals(fallbackProgram, font.EmbeddedTrueTypeFont)
+                ? fallbackProgram.LongLength
+                : 0;
+        return embeddedBytes + drawingBytes + cmapBytes + differencesBytes + type3Bytes + fallbackBytes + 1024L;
     }
 }
 

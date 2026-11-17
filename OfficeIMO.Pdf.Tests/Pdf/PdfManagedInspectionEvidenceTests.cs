@@ -138,20 +138,28 @@ public sealed class PdfManagedInspectionEvidenceTests {
     [InlineData("Type1", "WinAnsiEncoding")]
     [InlineData("Type0", "Identity-H")]
     public void DecodingEvidenceDistinguishesToUnicodeRawFallbackEncodingAndActualText(string fontSubtype, string encodingName) {
+        // ToUnicode maps only A. A simple font's declared encoding supplies B; an Identity font without a
+        // character collection or embedded program has nothing but the raw byte fallback.
+        bool encodingCompletesMap = fontSubtype == "Type1";
         byte[] mapped = BuildMappedDocument(encoding: encodingName, fontSubtype: fontSubtype);
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(mapped).Pages[0].GetTextSpans());
         Assert.Equal("\u03A9B", span.Text);
         Assert.Equal(PdfTextDecodingSource.ToUnicode, span.DecodingEvidence.Source);
-        Assert.True(span.DecodingEvidence.UsedFallback);
-        Assert.Equal(1, span.DecodingEvidence.UnmappedCodeBytes);
+        Assert.Equal(!encodingCompletesMap, span.DecodingEvidence.UsedFallback);
+        Assert.Equal(encodingCompletesMap ? 0 : 1, span.DecodingEvidence.UnmappedCodeBytes);
         PdfTextSpan encoding = Assert.Single(PdfReadDocument.Open(mapped,
             new PdfLoadOptions { PreferToUnicode = false }).Pages[0].GetTextSpans());
-        Assert.Equal("AB", encoding.Text);
+        // Without ToUnicode an unmapped Identity code is one glyph and keeps its own value as one character.
+        Assert.Equal(fontSubtype == "Type0" ? "䅂" : "AB", encoding.Text);
         Assert.Equal(fontSubtype == "Type1" ? PdfTextDecodingSource.FontEncoding : PdfTextDecodingSource.WinAnsiFallback,
             encoding.DecodingEvidence.Source);
         Assert.Equal(fontSubtype == "Type0", encoding.DecodingEvidence.UsedFallback);
-        Assert.Throws<PdfUnsupportedTextMappingException>(() => PdfDocument.Load(mapped,
-            new PdfLoadOptions { UseWinAnsiFallback = false }).Read());
+        if (encodingCompletesMap) {
+            Assert.Equal("\u03A9B", PdfDocument.Load(mapped, new PdfLoadOptions { UseWinAnsiFallback = false }).Read().Text.Trim());
+        } else {
+            Assert.Throws<PdfUnsupportedTextMappingException>(() => PdfDocument.Load(mapped,
+                new PdfLoadOptions { UseWinAnsiFallback = false }).Read());
+        }
 
         byte[] actualText = BuildMappedDocument(actualText: true, encoding: encodingName, fontSubtype: fontSubtype);
         PdfTextSpan replacement = Assert.Single(PdfReadDocument.Open(actualText).Pages[0].GetTextSpans());
@@ -167,7 +175,8 @@ public sealed class PdfManagedInspectionEvidenceTests {
         PdfTextSpan strictReplacement = Assert.Single(PdfReadDocument.Open(actualText,
             new PdfLoadOptions { UseWinAnsiFallback = false }).Pages[0].GetTextSpans());
         Assert.Equal(PdfTextDecodingSource.ActualText, strictReplacement.DecodingEvidence.Source);
-        Assert.Equal(PdfTextDecodingSource.Unmappable, strictReplacement.DecodingEvidence.UnderlyingSource);
+        Assert.Equal(encodingCompletesMap ? PdfTextDecodingSource.ToUnicode : PdfTextDecodingSource.Unmappable,
+            strictReplacement.DecodingEvidence.UnderlyingSource);
         Assert.Equal(0, strictReplacement.DecodingEvidence.UnmappedCodeBytes);
         byte[] fallback = BuildMappedDocument(includeToUnicode: false, encoding: null, baseFont: "UnknownFont");
         PdfTextSpan fallbackSpan = Assert.Single(PdfReadDocument.Open(fallback).Pages[0].GetTextSpans());
@@ -374,9 +383,9 @@ public sealed class PdfManagedInspectionEvidenceTests {
     }
 
     private static byte[] BuildCompositeEvidenceDocument(bool includeToUnicode, bool complete, bool actualText) {
-        // The named composite decoder requires complete coverage. FFFF has no predefined
-        // Unicode mapping, but remains a valid painted CID 0 for ActualText geometry.
-        string codes = includeToUnicode || complete ? "30423044" : "3042FFFF";
+        // The named composite decoder requires complete coverage. A code ToUnicode omits falls back to the character
+        // collection; FFFF has no predefined Unicode mapping, but remains a valid painted CID 0 for ActualText geometry.
+        string codes = complete ? "30423044" : "3042FFFF";
         string content = "BT /F1 12 Tf 20 100 Td <" + codes + "> Tj ET";
         if (actualText) content = "/Span << /ActualText (Replacement) >> BDC " + content + " EMC";
         string unicode = complete ? "2 beginbfchar\n<3042> <3042>\n<3044> <3044>\nendbfchar"

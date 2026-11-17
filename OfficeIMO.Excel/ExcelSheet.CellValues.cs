@@ -56,13 +56,24 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        /// <summary>
+        /// Rejects writes into dynamic arrays before a batch is applied. The write index scans the worksheet and
+        /// workbook parts, so it is built and read under the document write lock that concurrent batch writers apply under.
+        /// </summary>
+        /// <returns><see langword="true"/> when the sheet has dynamic array ranges.</returns>
+        private bool EnsureCellValuesOutsideDynamicArrays(IReadOnlyList<(int Row, int Column, object Value)> list) =>
+            Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
+                EnsureDynamicArrayWriteIndex();
+                if (SpillOwnership.WriteRanges.Count == 0) return false;
+                for (int i = 0; i < list.Count; i++) EnsureDynamicArrayCellWritable(list[i].Row, list[i].Column);
+                return true;
+            });
+
         private void CellValuesCore(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode, CancellationToken ct, bool preserveMissingValues) {
             ArgumentNullException.ThrowIfNull(cells);
             var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
-            EnsureDynamicArrayWriteIndex();
-            if (SpillOwnership.WriteRanges.Count > 0)
-                foreach (var item in list) EnsureDynamicArrayCellWritable(item.Row, item.Column);
+            bool hasDynamicArrays = EnsureCellValuesOutsideDynamicArrays(list);
             DirectCellValuesSaveCandidate? appendSaveCandidate = null;
 
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
@@ -106,7 +117,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (list.Count >= PendingDirectCellValueMinimumCellCount
-                && SpillOwnership.WriteRanges.Count == 0
+                && !hasDynamicArrays
                 && TryBufferFreshSheetCellValues(list, preserveMissingValues, ct)) {
                 return;
             }

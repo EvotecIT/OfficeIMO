@@ -315,7 +315,7 @@ public sealed partial class PdfTableCell {
 }
 
 internal sealed class PdfTableCellParagraph {
-    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, global::OfficeIMO.OfficeLength spacingAfter = default, OfficeAlignment? align = null, global::OfficeIMO.OfficeLength spacingBefore = default, global::OfficeIMO.OfficeLength leftIndent = default, global::OfficeIMO.OfficeLength rightIndent = default, global::OfficeIMO.OfficeLength firstLineIndent = default, double? lineHeight = null, global::OfficeIMO.OfficeLength? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, global::OfficeIMO.OfficeLength? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false, PdfJustificationMode justificationMode = PdfJustificationMode.Words, bool justifyExplicitLineBreaks = false, bool justifyLastLine = false, bool useWordJustificationSpacing = false) {
+    public PdfTableCellParagraph(System.Collections.Generic.IEnumerable<PdfTextRun> runs, global::OfficeIMO.OfficeLength spacingAfter = default, OfficeAlignment? align = null, global::OfficeIMO.OfficeLength spacingBefore = default, global::OfficeIMO.OfficeLength leftIndent = default, global::OfficeIMO.OfficeLength rightIndent = default, global::OfficeIMO.OfficeLength firstLineIndent = default, double? lineHeight = null, global::OfficeIMO.OfficeLength? defaultTabStopWidth = null, System.Collections.Generic.IEnumerable<PdfTabStop>? tabStops = null, global::OfficeIMO.OfficeLength? fontSize = null, PdfLineSpacing? lineSpacing = null, bool? widowControl = null, bool keepTogether = false, bool keepWithNext = false, PdfJustificationMode justificationMode = PdfJustificationMode.Words, bool justifyExplicitLineBreaks = false, bool justifyLastLine = false, bool useWordJustificationSpacing = false, bool fitText = false) {
         Guard.NotNull(runs, nameof(runs));
         if (spacingBefore.ToPoints() < 0 || double.IsNaN(spacingBefore.ToPoints()) || double.IsInfinity(spacingBefore.ToPoints())) {
             throw new System.ArgumentOutOfRangeException(nameof(spacingBefore), "Table cell paragraph spacing must be a non-negative finite value.");
@@ -379,6 +379,7 @@ internal sealed class PdfTableCellParagraph {
         JustifyExplicitLineBreaks = justifyExplicitLineBreaks;
         JustifyLastLine = justifyLastLine;
         UseWordJustificationSpacing = useWordJustificationSpacing;
+        FitText = fitText;
         Runs = snapshot.AsReadOnly();
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
@@ -423,6 +424,9 @@ internal sealed class PdfTableCellParagraph {
     public bool JustifyLastLine { get; }
     internal bool UseWordJustificationSpacing { get; }
 
+    /// <summary>Stretches or condenses each source line to fill the paragraph's cell width without changing font height.</summary>
+    internal bool FitText { get; }
+
     public double? LineHeight { get; }
 
     public global::OfficeIMO.OfficeLength? DefaultTabStopWidth { get; }
@@ -444,6 +448,6 @@ internal sealed class PdfTableCellParagraph {
         return new RichParagraphBlock(Runs, Align ?? OfficeAlignment.Left, null, style);
     }
 
-    internal PdfTableCellParagraph WithRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs) => new PdfTableCellParagraph(runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing);
-    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing);
+    internal PdfTableCellParagraph WithRuns(System.Collections.Generic.IEnumerable<PdfTextRun> runs) => new PdfTableCellParagraph(runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing, FitText);
+    internal PdfTableCellParagraph Clone() => new PdfTableCellParagraph(Runs, SpacingAfter, Align, SpacingBefore, LeftIndent, RightIndent, FirstLineIndent, LineHeight, DefaultTabStopWidth, TabStops, FontSize, LineSpacing, WidowControl, KeepTogether, KeepWithNext, JustificationMode, JustifyExplicitLineBreaks, JustifyLastLine, UseWordJustificationSpacing, FitText);
 }

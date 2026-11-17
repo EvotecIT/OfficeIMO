@@ -158,9 +158,18 @@ Run character width (`w:w`) and tracking (`w:spacing`) flow through document,
 table, paragraph and character styles, with direct formatting and explicit resets
 taking precedence. Body text, list markers, table cells, hyperlinks and header/footer
 paragraphs, including generated page fields, retain the effective values. Width scaling preserves font height;
-tracking remains an advance in page points. These saved run settings do not
-implement the separate dynamic table-cell Fit Text policy. Font substitution can
-still change exact line endings and glyph appearance.
+tracking remains an advance in page points. Font substitution can still change
+exact line endings and glyph appearance.
+
+Table cells with Fit Text (`w:tcFitText`) fill the cell's text width line by line
+without changing font height: longer lines are condensed with character width
+scaling and shorter lines are spread with character spacing, replacing any authored
+character width and spacing on those lines. Lines ending in Hebrew, Arabic or another
+connected script are widened with character width scaling so their letters stay joined,
+and so is a line with a single visible character.
+Each visible paragraph in the cell fits on its own. Lines containing tabs or inline
+objects keep their authored layout, and cells that also hold a nested table keep
+their existing layout.
 
 Run kerning (`w:kern`) inherits through document, paragraph, character, and table styles. A positive minimum font size enables kerning at that size and above; zero disables it. Compatible Latin text runs retain pair kerning across color and link changes in paragraphs, table cells, headers, and footers. Font or size changes, disabled kerning, and text separators end that boundary. Numbering labels retain their unkerned advances, including labels with a numbering-level or paragraph-mark kerning setting. Their measurement and rendering use the same feature settings.
 

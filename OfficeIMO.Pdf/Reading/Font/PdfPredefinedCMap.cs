@@ -8,19 +8,27 @@ namespace OfficeIMO.Pdf {
     /// <summary>Offline Adobe predefined CJK CMaps and their character collections' CID-to-Unicode maps.</summary>
     /// <remarks>Bundled data covers the predefined CMaps of Adobe-GB1, Adobe-CNS1, Adobe-Japan1, Adobe-Korea1 and
     /// Adobe-KR. Each collection is one embedded resource; a CMap and a Unicode map are inflated only when a
-    /// document first names them. A document-supplied encoding CMap contributes two-byte code-to-CID ranges alone,
-    /// parsed within the fixed 65,536-code table.</remarks>
+    /// document first names them. A document-supplied encoding CMap contributes its own one- to four-byte codespace
+    /// and code-to-CID ranges, optionally over a bundled parent named by usecmap.</remarks>
     internal sealed partial class PdfPredefinedCMap {
         private static readonly ConcurrentDictionary<string, Lazy<PdfPredefinedCMap>> Bundled = new(StringComparer.Ordinal);
         private static readonly ConcurrentDictionary<string, Lazy<CollectionIndex>> Collections = new(StringComparer.Ordinal);
         private static readonly ConcurrentDictionary<string, Lazy<CidUnicodeMap>> CollectionUnicode = new(StringComparer.Ordinal);
+        private static readonly CidUnicodeMap NoUnicode = new(Array.Empty<int>(), null);
         private static readonly Regex CodespaceSectionRegex = new(@"begincodespacerange([\s\S]*?)endcodespacerange", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
         private static readonly Regex CidRangeSectionRegex = new(@"begincidrange([\s\S]*?)endcidrange", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
         private static readonly Regex CidCharSectionRegex = new(@"begincidchar([\s\S]*?)endcidchar", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
-        private static readonly Regex HexCodeRegex = new(@"<\s*([0-9A-Fa-f]{1,8})\s*>", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
-        private static readonly Regex CidRangeEntryRegex = new(@"<\s*([0-9A-Fa-f]{4})\s*>\s*<\s*([0-9A-Fa-f]{4})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
-        private static readonly Regex CidCharEntryRegex = new(@"<\s*([0-9A-Fa-f]{4})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex NotdefRangeSectionRegex = new(@"beginnotdefrange([\s\S]*?)endnotdefrange", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex NotdefCharSectionRegex = new(@"beginnotdefchar([\s\S]*?)endnotdefchar", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex UseCMapRegex = new(@"/([^\s/<>\[\]{}()%]+)\s+usecmap", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex CodespaceEntryRegex = new(@"<\s*([0-9A-Fa-f]{1,8})\s*>\s*<\s*([0-9A-Fa-f]{1,8})\s*>", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex CidRangeEntryRegex = new(@"<\s*([0-9A-Fa-f]{1,8})\s*>\s*<\s*([0-9A-Fa-f]{1,8})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
+        private static readonly Regex CidCharEntryRegex = new(@"<\s*([0-9A-Fa-f]{1,8})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
         private const long MaximumEmbeddedCMapAssignments = 1_000_000L;
+        // Every code is matched against the codespace ranges in turn, so their count bounds the work per code.
+        private const int MaximumEmbeddedCodespaceRanges = 1024;
+        // Overlapping entries resolve by declaration order, which needs ordered insertion; producers write sorted maps.
+        private const int MaximumOverlappingEmbeddedRuns = 4096;
         private const int MaximumCodeLength = 4;
         private const string UnicodeEntry = "#Unicode";
 
@@ -73,43 +81,108 @@ namespace OfficeIMO.Pdf {
             string.Equals(registry, "Adobe", StringComparison.Ordinal) && IsBundledOrdering(ordering);
 
         /// <summary>
-        /// Reads the two-byte code-to-CID ranges of an embedded encoding CMap. Returns <see cref="Empty"/> when the
-        /// CMap uses other code lengths, a usecmap parent, or malformed ranges, so text keeps the unmapped diagnostic.
+        /// Reads an embedded encoding CMap: its codespace ranges and code-to-CID mappings of one to four bytes, over a
+        /// bundled parent named by usecmap. <paramref name="unicodeOrdering"/> names the bundled Adobe collection that
+        /// maps the selected CIDs to Unicode, or is null when the descendant's collection has no bundled map; the CMap
+        /// then still splits text into codes and selects CIDs for widths and other character maps.
+        /// Returns <see cref="Empty"/> for an unknown parent or malformed ranges, so text keeps the unmapped diagnostic.
         /// </summary>
-        internal static PdfPredefinedCMap FromEmbeddedCMap(byte[] data, string ordering) {
-            if (!IsBundledOrdering(ordering)) return Empty;
+        internal static PdfPredefinedCMap FromEmbeddedCMap(byte[] data, string? unicodeOrdering) {
             string text = Encoding.ASCII.GetString(data);
-            if (text.Contains("usecmap")) return Empty;
-            MatchCollection codespaces = CodespaceSectionRegex.Matches(text);
-            if (codespaces.Count == 0) return Empty;
-            foreach (Match section in codespaces) {
-                foreach (Match code in HexCodeRegex.Matches(section.Groups[1].Value)) {
-                    if (code.Groups[1].Value.Length != 4) return Empty;
-                }
+            PdfPredefinedCMap? parent = null;
+            Match useCMap = UseCMapRegex.Match(text);
+            if (useCMap.Success) {
+                string parentName = useCMap.Groups[1].Value;
+                if (GetBundledOrdering(parentName) == null) return Empty;
+                parent = Bundled.GetOrAdd(parentName, static key => new Lazy<PdfPredefinedCMap>(() => Load(key))).Value;
             }
 
-            var cids = new ushort[65536];
+            var codespace = new List<CodespaceRange>();
+            foreach (Match section in CodespaceSectionRegex.Matches(text)) {
+                foreach (Match entry in CodespaceEntryRegex.Matches(section.Groups[1].Value)) {
+                    if (!TryReadCode(entry.Groups[1].Value, out int length, out _) ||
+                        !TryReadCode(entry.Groups[2].Value, out int highLength, out _) || highLength != length ||
+                        codespace.Count >= MaximumEmbeddedCodespaceRanges) return Empty;
+                    codespace.Add(new CodespaceRange(length, ReadHexBytes(entry.Groups[1].Value), ReadHexBytes(entry.Groups[2].Value)));
+                }
+            }
+            if (parent != null) codespace.AddRange(parent._codespace);
+            if (codespace.Count == 0) return Empty;
+
+            var cids = new RunBuilder?[MaximumCodeLength + 1];
+            var notdef = new RunBuilder?[MaximumCodeLength + 1];
             long assignments = 0L;
-            foreach (Match section in CidRangeSectionRegex.Matches(text)) {
-                foreach (Match entry in CidRangeEntryRegex.Matches(section.Groups[1].Value)) {
-                    int first = Convert.ToInt32(entry.Groups[1].Value, 16);
-                    int last = Convert.ToInt32(entry.Groups[2].Value, 16);
-                    int cid = int.Parse(entry.Groups[3].Value, CultureInfo.InvariantCulture);
-                    if (first > last || (long)cid + (last - first) > ushort.MaxValue) return Empty;
-                    assignments += last - first + 1;
-                    if (assignments > MaximumEmbeddedCMapAssignments) return Empty;
-                    for (int code = first; code <= last; code++) cids[code] = (ushort)(cid + code - first);
+            if (!ReadSections(CidRangeSectionRegex, CidCharSectionRegex, cids, constant: false) ||
+                !ReadSections(NotdefRangeSectionRegex, NotdefCharSectionRegex, notdef, constant: true)) return Empty;
+            CodeRuns?[]? cidRuns = BuildRuns(cids, constant: false);
+            CodeRuns?[]? notdefRuns = BuildRuns(notdef, constant: true);
+            if (cidRuns == null || notdefRuns == null) return Empty;
+
+            ulong hash = 14695981039346656037UL;
+            foreach (byte value in data) hash = (hash ^ value) * 1099511628211UL;
+            CidUnicodeMap unicode = unicodeOrdering != null && IsBundledOrdering(unicodeOrdering) ? GetCollectionUnicode(unicodeOrdering) : NoUnicode;
+            return new PdfPredefinedCMap("embedded:" + hash.ToString("x16", CultureInfo.InvariantCulture),
+                codespace.ToArray(), cidRuns, notdefRuns, parent, unicode);
+
+            // Range and single-code sections are read in declaration order, so a later mapping overrides an earlier one
+            // whichever section kind declares it. A notdef range maps every code to one CID; a CID range increments it.
+            bool ReadSections(Regex rangeSectionRegex, Regex charSectionRegex, RunBuilder?[] target, bool constant) {
+                var sections = rangeSectionRegex.Matches(text).Cast<Match>().Select(static match => (Match: match, Range: true))
+                    .Concat(charSectionRegex.Matches(text).Cast<Match>().Select(static match => (Match: match, Range: false)))
+                    .OrderBy(static section => section.Match.Index);
+                foreach ((Match section, bool range) in sections) {
+                    string body = section.Groups[1].Value;
+                    if (range) {
+                        foreach (Match entry in CidRangeEntryRegex.Matches(body)) {
+                            if (!TryReadCode(entry.Groups[1].Value, out int length, out uint first) ||
+                                !TryReadCode(entry.Groups[2].Value, out int lastLength, out uint last) || lastLength != length) return false;
+                            int cid = int.Parse(entry.Groups[3].Value, CultureInfo.InvariantCulture);
+                            if (first > last || cid > ushort.MaxValue || !constant && (long)cid + (last - first) > ushort.MaxValue) return false;
+                            assignments += (long)last - first + 1L;
+                            if (assignments > MaximumEmbeddedCMapAssignments) return false;
+                            (target[length] ??= new RunBuilder()).Add(first, last, cid);
+                        }
+                    } else {
+                        foreach (Match entry in CidCharEntryRegex.Matches(body)) {
+                            if (!TryReadCode(entry.Groups[1].Value, out int length, out uint code)) return false;
+                            int cid = int.Parse(entry.Groups[2].Value, CultureInfo.InvariantCulture);
+                            if (cid > ushort.MaxValue || ++assignments > MaximumEmbeddedCMapAssignments) return false;
+                            (target[length] ??= new RunBuilder()).Add(code, code, cid);
+                        }
+                    }
                 }
+                return true;
             }
-            foreach (Match section in CidCharSectionRegex.Matches(text)) {
-                foreach (Match entry in CidCharEntryRegex.Matches(section.Groups[1].Value)) {
-                    int cid = int.Parse(entry.Groups[2].Value, CultureInfo.InvariantCulture);
-                    if (cid > ushort.MaxValue || ++assignments > MaximumEmbeddedCMapAssignments) return Empty;
-                    cids[Convert.ToInt32(entry.Groups[1].Value, 16)] = (ushort)cid;
-                }
-            }
-            return new PdfPredefinedCMap(cids, GetCollectionUnicode(ordering));
         }
+
+        // A code is one to four whole bytes of hexadecimal digits.
+        private static bool TryReadCode(string hex, out int length, out uint value) {
+            length = hex.Length / 2;
+            value = 0;
+            if ((hex.Length & 1) != 0 || length is < 1 or > MaximumCodeLength) return false;
+            value = Convert.ToUInt32(hex, 16);
+            return true;
+        }
+
+        private static byte[] ReadHexBytes(string hex) {
+            var bytes = new byte[hex.Length / 2];
+            for (int index = 0; index < bytes.Length; index++) bytes[index] = Convert.ToByte(hex.Substring(2 * index, 2), 16);
+            return bytes;
+        }
+
+        private static CodeRuns?[]? BuildRuns(RunBuilder?[] builders, bool constant) {
+            var runs = new CodeRuns?[builders.Length];
+            for (int length = 0; length < builders.Length; length++) {
+                if (builders[length] == null) continue;
+                runs[length] = builders[length]!.Build(constant);
+                if (runs[length] == null) return null;
+            }
+            return runs;
+        }
+
+        /// <summary>The CID text of a bundled Adobe collection; false for an unbundled ordering or an unmapped CID.</summary>
+        internal static bool TryAppendCollectionText(string ordering, int cid, StringBuilder text) =>
+            IsBundledOrdering(ordering) && GetCollectionUnicode(ordering).TryAppend(cid, text);
 
         /// <summary>
         /// Returns the byte length of the code starting at <paramref name="offset"/>. The result can exceed the remaining
@@ -489,6 +562,67 @@ namespace OfficeIMO.Pdf {
                 }
                 cid = 0;
                 return false;
+            }
+        }
+
+        // Collects one code length's mappings of an embedded CMap. A later declaration overrides an earlier one.
+        private sealed class RunBuilder {
+            private readonly List<(uint First, uint Last, int Cid)> _runs = new();
+            private bool _ordered = true;
+
+            internal void Add(uint first, uint last, int cid) {
+                if (_runs.Count > 0 && first <= _runs[_runs.Count - 1].Last) _ordered = false;
+                _runs.Add((first, last, cid));
+            }
+
+            internal CodeRuns? Build(bool constant) {
+                List<(uint First, uint Last, int Cid)> runs = _runs;
+                if (!_ordered) {
+                    runs = _runs.Select(static (run, order) => (Run: run, Order: order))
+                        .OrderBy(static item => item.Run.First).ThenBy(static item => item.Order)
+                        .Select(static item => item.Run).ToList();
+                    bool overlaps = false;
+                    for (int index = 1; index < runs.Count && !overlaps; index++) overlaps = runs[index].First <= runs[index - 1].Last;
+                    if (overlaps) {
+                        if (_runs.Count > MaximumOverlappingEmbeddedRuns) return null;
+                        runs = ResolveOverlaps(constant);
+                    }
+                }
+                var first = new uint[runs.Count];
+                var last = new uint[runs.Count];
+                var cids = new int[runs.Count];
+                for (int index = 0; index < runs.Count; index++) {
+                    first[index] = runs[index].First;
+                    last[index] = runs[index].Last;
+                    cids[index] = runs[index].Cid;
+                }
+                return new CodeRuns(first, last, cids, constant);
+            }
+
+            // Walks declarations from the last; each keeps only the codes no later declaration assigned.
+            private List<(uint First, uint Last, int Cid)> ResolveOverlaps(bool constant) {
+                var assigned = new List<(uint First, uint Last, int Cid)>();
+                for (int declaration = _runs.Count - 1; declaration >= 0; declaration--) {
+                    (uint first, uint last, int cid) = _runs[declaration];
+                    long next = first;
+                    int index = 0;
+                    while (index < assigned.Count && assigned[index].Last < first) index++;
+                    while (next <= last) {
+                        uint gapEnd = index < assigned.Count && assigned[index].First <= last ? assigned[index].First - 1U : last;
+                        if (index < assigned.Count && assigned[index].First <= next) {
+                            next = (long)assigned[index].Last + 1L;
+                            index++;
+                            continue;
+                        }
+                        if (next <= gapEnd) {
+                            int pieceCid = constant ? cid : cid + (int)(next - first);
+                            assigned.Insert(index, ((uint)next, gapEnd, pieceCid));
+                            index++;
+                        }
+                        next = (long)gapEnd + 1L;
+                    }
+                }
+                return assigned;
             }
         }
 

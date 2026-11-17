@@ -372,6 +372,18 @@ internal sealed class ToUnicodeCMap {
         return allMapped;
     }
 
+    /// <summary>Maps exactly one code of <paramref name="length"/> bytes, without combining shorter entries.</summary>
+    internal bool TryMapCode(byte[] bytes, int offset, int length, out string text) {
+        text = string.Empty;
+        if (length < 1 || length > MaxSourceCodeBytes || offset < 0 || offset + length > bytes.Length ||
+            !TryGetMapping(bytes, offset, length, out string? mapped) || mapped is null) return false;
+        text = mapped;
+        return true;
+    }
+
+    /// <summary>Byte length of the longest source code.</summary>
+    internal int MaxCodeBytes => _maxKeyBytes;
+
     /// <summary>Counts raw fallback bytes without materializing a second decoded text buffer.</summary>
     internal int CountUnmappedCodeBytes(byte[] bytes, Action? cancellationCheck) {
         int unmapped = 0;

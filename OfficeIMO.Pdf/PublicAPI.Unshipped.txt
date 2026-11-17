@@ -1291,4 +1291,5 @@ OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageExportMode.get -> OfficeIMO.Pdf.Pdf
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.ImageExportMode.set -> void
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.MaxEmbeddedImageBytes.get -> long
 OfficeIMO.Pdf.PdfLogicalMarkdownOptions.MaxEmbeddedImageBytes.set -> void
+OfficeIMO.Pdf.PdfTextDecodingSource.FontProgram = 7 -> OfficeIMO.Pdf.PdfTextDecodingSource
 OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate.PdfEmbeddedFontFallbackCandidate(OfficeIMO.Pdf.PdfEmbeddedFontFamily! fontFamily) -> void
