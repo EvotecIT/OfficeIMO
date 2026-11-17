@@ -6629,6 +6629,20 @@ XPS input kinds. Use `OfficeDocumentReadResultSchema.GetJsonSchema()` for the cu
 artifact. Native logical order is retained in `ReaderLocation.LogicalOrder`; physical
 page citations remain separate. Null order values retain existing container order.
 
+## Excel Reader cell text
+
+Reader extraction of XLSX, XLSM, XLSB, XLS and SpreadsheetML workbooks now returns cell text as each cell's number
+format displays it: `3.2%` instead of `0.032`, `$31,200` instead of `31200`, `2024-01-15` instead of
+`2024-01-15T00:00:00.0000000`, and `TRUE` instead of `True`. General numbers use up to 15 significant digits, so
+`0.30000000000000004` reads `0.3`. This applies to chunk text, Markdown tables and `ReaderTable` rows, including
+header cells. Formatting uses the invariant culture unless `ReaderExcelOptions.CellTextCulture` is set; the
+current thread culture does not change the output.
+
+To keep the previous stored values, register the handler with
+`new ReaderExcelOptions { CellText = ReaderExcelCellText.Raw }`, or pass the same option through
+`ReaderAllOptions.Excel`. Indexes and tests that compared extracted spreadsheet text with raw values need either
+that option or updated expectations.
+
 ## TOML Reader identity and transport
 
 Register `.AddTomlHandler()` from `OfficeIMO.Reader.Toml`, or use `AddAllOfficeIMOHandlers()`, to ingest `.toml` files as path, type and value rows.

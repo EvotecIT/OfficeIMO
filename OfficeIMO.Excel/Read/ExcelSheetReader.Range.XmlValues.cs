@@ -58,6 +58,15 @@ namespace OfficeIMO.Excel {
             if (cellReader.IsEmptyElement) {
                 return null;
             }
+            if (_opt.DisplayText is { } display && !preserveDateSerial && _opt.CellValueConverter == null) {
+                XmlCellKind displayKind = ParseXmlCellKind(cellType);
+                if (CellKindCanUseDateStyle(displayKind) || displayKind == XmlCellKind.Date) {
+                    XmlStyleAttribute displayStyle = ReadXmlStyleAttribute(cellReader);
+                    if (displayStyle.Valid && display.IsFormatted(displayStyle.Index)) {
+                        return ConvertRaw(ReadXmlCellRaw(cellReader, 0, 0, displayKind, readStyleIndex: true)).TypedValue;
+                    }
+                }
+            }
             if (preserveDateSerial && _opt.TreatDatesUsingNumberFormat
                 && CellKindCanUseDateStyle(ParseXmlCellKind(cellType))
                 && IsDateStyleAttribute(ReadXmlStyleAttribute(cellReader))) {

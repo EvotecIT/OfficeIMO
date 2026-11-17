@@ -457,6 +457,10 @@ namespace OfficeIMO.Excel {
             }
 
             uint? styleIndex = cell.StyleIndex?.Value;
+            if (_opt.CellValueConverter == null && TryFormatDisplayText(typeHint, styleIndex, rawText, out string displayed)) {
+                value = displayed;
+                return true;
+            }
             if (!NeedsStyleForConversion(typeHint, rawText, styleIndex)) {
                 styleIndex = null;
             }
@@ -465,6 +469,15 @@ namespace OfficeIMO.Excel {
                 ? converted
                 : ConvertByHints(typeHint, styleIndex ?? cell.StyleIndex?.Value, rawText, inlineText);
             return true;
+        }
+
+        /// <summary>Applies displayed-text mode to a numeric or ISO date cell whose style has a number format.</summary>
+        private bool TryFormatDisplayText(CellValues? type, uint? styleIndex, string? rawText, out string text) {
+            text = string.Empty;
+            ExcelCellDisplayText? display = _opt.DisplayText;
+            if (display == null || rawText == null || !display.IsFormatted(styleIndex)) return false;
+            bool numeric = type == null || type == CellValues.Number;
+            return display.TryFormatRaw(numeric, type == CellValues.Date, rawText, styleIndex, out text);
         }
 
         private bool NeedsStyleForConversion(CellValues? typeHint, string? rawText, uint? styleIndex) {
@@ -545,6 +558,11 @@ namespace OfficeIMO.Excel {
 
         private CellRaw ConvertRaw(CellRaw raw) {
             raw.CustomValueHandled = false;
+            if (_opt.CellValueConverter == null && (!raw.HasFormula || _opt.UseCachedFormulaResult)
+                && TryFormatDisplayText(raw.TypeHint, raw.StyleIndex, raw.RawText, out string displayed)) {
+                raw.TypedValue = displayed;
+                return raw;
+            }
             if (raw.HasFormula) {
                 if (_opt.UseCachedFormulaResult && raw.RawText != null) {
                     raw.TypedValue = TryConvertWithoutCustomHook(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out var cachedValue)
@@ -687,6 +705,7 @@ namespace OfficeIMO.Excel {
                 var ctx = new ExcelCellContext(type.ToOfficeEnum(), styleIndex, rawText, inlineText, _opt.Culture);
                 var res = hook(ctx);
                 if (res.Handled) { customHandled = true; return res.Value; }
+                if (TryFormatDisplayText(type, styleIndex, rawText, out string displayed)) return displayed;
             }
             if (!string.IsNullOrEmpty(inlineText)) return inlineText;
 

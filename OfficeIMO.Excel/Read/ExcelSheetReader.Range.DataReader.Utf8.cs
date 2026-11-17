@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel {
             private const int StringCacheSampleSize = 512;
             private const byte DateStyleCellKindFlag = 0x80;
             private const byte CalendarStyleCellKindFlag = 0x40;
-            private const byte CellKindMask = 0x3F;
+            private const byte DisplayFormatCellKindFlag = 0x20;
+            private const byte CellKindMask = 0x1F;
             private const int SharedStringIndexValueLength = -2;
 
             private readonly ExcelSheetReader _owner;
@@ -385,6 +386,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReadOnlySpan<byte> value = _buffer!.AsSpan(start, length);
+                if ((encodedCellKind & DisplayFormatCellKindFlag) != 0
+                    && TryReadDisplayText(cellKind, start, length, value, out string displayed)) {
+                    objectValue = displayed;
+                    return;
+                }
                 switch (cellKind) {
                     case Utf8CellKind.SharedString:
                         if (TryParseInt32(value, out int sharedStringIndex)) {
@@ -1032,6 +1038,81 @@ namespace OfficeIMO.Excel {
                 objectValue = value;
             }
 
+            /// <summary>
+            /// Formats a cell flagged as carrying a display number format. The flag is set from the style index while
+            /// the row is indexed; the index itself is read back from the cell's start tag, which precedes the value.
+            /// </summary>
+            private bool TryReadDisplayText(Utf8CellKind cellKind, int start, int length, ReadOnlySpan<byte> value, out string text) {
+                text = string.Empty;
+                ExcelCellDisplayText? display = _options.DisplayText;
+                if (display == null || !TryFindCellStyleIndex(start, out uint styleIndex)) return false;
+                if (cellKind == Utf8CellKind.Date) {
+                    return display.TryFormatIsoDate(DecodeString(start, length), styleIndex, out text);
+                }
+                if (!TryParseDouble(TrimAsciiWhitespace(value), out double number)) return false;
+                text = display.FormatNumber(number, styleIndex);
+                return true;
+            }
+
+            /// <summary>Reads the <c>s</c> attribute of the cell element that contains the value at <paramref name="valueStart"/>.</summary>
+            private bool TryFindCellStyleIndex(int valueStart, out uint styleIndex) {
+                styleIndex = 0;
+                byte[] buffer = _buffer!;
+                int limit = Math.Max(0, valueStart - MaximumCellPrefixBytes);
+                for (int position = valueStart - 1; position >= limit; position--) {
+                    if (buffer[position] != (byte)'<') continue;
+                    int nameStart = position + 1;
+                    if (nameStart >= valueStart || buffer[nameStart] == (byte)'/') continue;
+                    int nameEnd = nameStart;
+                    while (nameEnd < valueStart && !IsXmlNameDelimiter(buffer[nameEnd])) nameEnd++;
+                    int localStart = nameStart;
+                    for (int i = nameStart; i < nameEnd; i++) {
+                        if (buffer[i] == (byte)':') localStart = i + 1;
+                    }
+                    if (nameEnd - localStart != 1 || buffer[localStart] != (byte)'c') continue;
+                    return TryReadStyleAttribute(buffer, nameEnd, valueStart, out styleIndex);
+                }
+                return false;
+            }
+
+            private const int MaximumCellPrefixBytes = 64 * 1024;
+
+            private static bool IsXmlWhitespace(byte value) =>
+                value == 0x20 || value == 0x09 || value == 0x0D || value == 0x0A;
+
+            private static bool IsXmlNameDelimiter(byte value) =>
+                IsXmlWhitespace(value) || value == (byte)'>' || value == (byte)'/';
+
+            private static bool TryReadStyleAttribute(byte[] buffer, int position, int end, out uint styleIndex) {
+                styleIndex = 0;
+                while (position < end && buffer[position] != (byte)'>') {
+                    while (position < end && IsXmlWhitespace(buffer[position])) position++;
+                    int nameStart = position;
+                    while (position < end && buffer[position] != (byte)'=' && buffer[position] != (byte)'>'
+                        && !IsXmlWhitespace(buffer[position])) position++;
+                    int nameEnd = position;
+                    while (position < end && buffer[position] != (byte)'"' && buffer[position] != 0x27 && buffer[position] != (byte)'>') position++;
+                    if (position >= end || buffer[position] == (byte)'>') return false;
+                    byte quote = buffer[position++];
+                    int valueStart = position;
+                    while (position < end && buffer[position] != quote) position++;
+                    if (position >= end) return false;
+                    if (nameEnd - nameStart == 1 && buffer[nameStart] == (byte)'s') {
+                        uint parsed = 0;
+                        if (valueStart == position) return false;
+                        for (int i = valueStart; i < position; i++) {
+                            uint digit = (uint)(buffer[i] - (byte)'0');
+                            if (digit > 9U || parsed > (uint.MaxValue - digit) / 10U) return false;
+                            parsed = parsed * 10U + digit;
+                        }
+                        styleIndex = parsed;
+                        return true;
+                    }
+                    position++;
+                }
+                return false;
+            }
+
             private bool IsDateStyle(int styleIndex) {
                 if (styleIndex < 0 || !TreatDatesForIndex) {
                     return false;
@@ -1182,6 +1263,10 @@ namespace OfficeIMO.Excel {
 
             private byte EncodeCellKind(Utf8CellKind kind, int styleIndex) {
                 byte encoded = (byte)kind;
+                if ((kind == Utf8CellKind.Number || kind == Utf8CellKind.Date) && styleIndex >= 0
+                    && _options.DisplayText is { } display && display.IsFormatted((uint)styleIndex)) {
+                    encoded |= DisplayFormatCellKindFlag;
+                }
                 if (kind == Utf8CellKind.Number && styleIndex >= 0 && IsDateStyle(styleIndex)) {
                     encoded |= DateStyleCellKindFlag;
                     if (_owner.Styles.IsDateSystemShiftStyle((uint)styleIndex)) encoded |= CalendarStyleCellKindFlag;

@@ -8,7 +8,8 @@ internal static class ExcelRichMapping {
         ExcelWorkbookInfo snapshot,
         ReaderOptions readerOptions,
         ReaderExcelOptions options,
-        OfficeDocumentReadResult result) {
+        OfficeDocumentReadResult result,
+        ExcelCellDisplayText? display = null) {
         result.Source.Title = snapshot.Title;
         result.Source.Author = snapshot.Author;
         result.Source.Subject = snapshot.Subject;
@@ -28,7 +29,7 @@ internal static class ExcelRichMapping {
             .ToArray();
         ExcelRangeSelection? selectedRange = ParseExcelRangeSelection(options.A1Range);
         OfficeDocumentLink[] links = BuildExcelLinks(worksheets, result.Source.Path, selectedRange).ToArray();
-        ReaderTable[] ownerTables = BuildExcelOwnerTables(worksheets, result.Source.Path, readerOptions.MaxTableRows, selectedRange).ToArray();
+        ReaderTable[] ownerTables = BuildExcelOwnerTables(worksheets, result.Source.Path, readerOptions.MaxTableRows, selectedRange, display).ToArray();
         IReadOnlyList<ReaderTable> tables = MergeExcelTables(ownerTables, result.Tables);
         IReadOnlyList<OfficeDocumentPage> pages = BuildExcelPages(result.Pages, result.Blocks, tables, result.Assets, links);
 
@@ -120,7 +121,8 @@ internal static class ExcelRichMapping {
         IReadOnlyList<ExcelWorksheetInfo> worksheets,
         string? sourcePath,
         int maxRows,
-        ExcelRangeSelection? selectedRange) {
+        ExcelRangeSelection? selectedRange,
+        ExcelCellDisplayText? display) {
         int tableIndex = 0;
         foreach (ExcelWorksheetInfo sheet in worksheets) {
             Dictionary<(int Row, int Column), ExcelCellInfo> cells = sheet.Cells.ToDictionary(static cell => (cell.Row, cell.Column));
@@ -139,7 +141,7 @@ internal static class ExcelRichMapping {
                             && tableColumnIndex < table.Columns.Count
                             && !string.IsNullOrWhiteSpace(table.Columns[tableColumnIndex].Name)
                                 ? table.Columns[tableColumnIndex].Name
-                                : GetExcelCellText(cells, table.StartRow, startColumn + index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture));
+                                : GetExcelCellText(cells, table.StartRow, startColumn + index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture), display);
                     })
                     .ToArray();
                 int firstDataRow = Math.Max(projectedRange.Value.StartRow, table.StartRow + (table.HasHeaderRow ? 1 : 0));
@@ -149,7 +151,7 @@ internal static class ExcelRichMapping {
                 var rows = new List<IReadOnlyList<string>>(emittedRows);
                 for (int row = firstDataRow; row < firstDataRow + emittedRows; row++) {
                     rows.Add(Enumerable.Range(0, columnCount)
-                        .Select(index => GetExcelCellText(cells, row, startColumn + index, string.Empty))
+                        .Select(index => GetExcelCellText(cells, row, startColumn + index, string.Empty, display))
                         .ToArray());
                 }
 
@@ -244,9 +246,13 @@ internal static class ExcelRichMapping {
         IReadOnlyDictionary<(int Row, int Column), ExcelCellInfo> cells,
         int row,
         int column,
-        string fallback) {
+        string fallback,
+        ExcelCellDisplayText? display) {
         if (!cells.TryGetValue((row, column), out ExcelCellInfo? cell) || cell.Value == null) return fallback;
-        string? value = Convert.ToString(cell.Value, CultureInfo.InvariantCulture);
+        string? value = display == null ? Convert.ToString(cell.Value, CultureInfo.InvariantCulture)
+            : display.TryFormatRaw(cell.StoredValueType == "n", cell.StoredValueType == "d", cell.StoredValue, cell.StyleIndex, out string formatted)
+                ? formatted
+                : display.FormatUnstyled(cell.Value) ?? Convert.ToString(cell.Value, CultureInfo.InvariantCulture);
         return string.IsNullOrWhiteSpace(value) ? fallback : value!;
     }
 
