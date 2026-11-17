@@ -81,12 +81,31 @@ public sealed partial class OfficeRasterCanvas {
             _transformedTextBudget.ChargeIntermediateSurfacePixels((long)cached.Width * cached.Height);
             return cached;
         }
-        _transformedTextBudget.ChargeIntermediateSurfacePixels(
-            OfficeRasterResampler.GetAdditionalHighQualityPixelBufferCost(image.Width, image.Height, width, height));
+        long cost = OfficeRasterResampler.GetAdditionalHighQualityPixelBufferCost(image.Width, image.Height, width, height);
+        long retainedBytes = checked((long)Width * Height * 4L);
+        // A single area pass needs float scratch proportional to the source height (or width).
+        // When that does not fit the remaining budget, average the source one row at a time instead.
+        // Not cached: a later render with room for the single pass should get that result.
+        if (cost > _transformedTextBudget.GetRemainingIntermediateSurfacePixels(long.MaxValue) &&
+            TryMinifyByStreamingArea(image, width, height, retainedBytes, out OfficeRasterImage streamed)) return streamed;
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(cost);
         OfficeRasterImage filtered = OfficeRasterResampler.Resize(image, width, height, OfficeRasterResamplingMode.Area,
-            OfficeRasterResamplingColorSpace.EncodedSrgb, checked((long)Width * Height * 4L), _cancellationToken);
+            OfficeRasterResamplingColorSpace.EncodedSrgb, retainedBytes, _cancellationToken);
         ImageCache?.AddFiltered(image, width, height, filtered);
         return filtered;
+    }
+
+    private bool TryMinifyByStreamingArea(OfficeRasterImage image, int width, int height, long retainedBytes,
+        out OfficeRasterImage filtered) {
+        filtered = image;
+        long cost = OfficeRasterResampler.GetStreamingAreaPixelCost(width, height);
+        // The same managed ceiling as the single pass, counting the canvas and the decoded source.
+        if (cost > _transformedTextBudget.GetRemainingIntermediateSurfacePixels(long.MaxValue) ||
+            !OfficeRasterResampler.TryGetStreamingAreaWorkingSetBytes(image.Width, image.Height, width, height,
+                retainedBytes, out _)) return false;
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(cost);
+        filtered = OfficeRasterResampler.MinifyByStreamingArea(image, width, height, _cancellationToken);
+        return true;
     }
 
     private static int ReducedSamplingDimension(int original, double footprint) =>

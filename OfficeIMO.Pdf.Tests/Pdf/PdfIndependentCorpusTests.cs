@@ -23,10 +23,6 @@ public sealed class PdfIndependentCorpusTests {
     private static readonly Dictionary<string, KnownFailure> KnownFailures = new(StringComparer.Ordinal) {
         ["qpdf-inline-images"] = new(
             "Ghostscript 5.50 inline images at 600 dpi exceed the managed raster limits.",
-            Stage.Render),
-        ["nara-jfk-104-10003-10041"] = new(
-            "The 16.4-megapixel scan on a letter-size page exceeds the 16-megapixel display limit, " +
-            "although the requested output is at most 1600 px.",
             Stage.Render)
     };
 
