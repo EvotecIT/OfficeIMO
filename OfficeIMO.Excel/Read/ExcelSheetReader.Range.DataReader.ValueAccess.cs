@@ -73,9 +73,9 @@ namespace OfficeIMO.Excel {
             public override decimal GetDecimal(int ordinal) {
                 if (TryGetUnloadedDecimal(ordinal, out decimal indexedValue)) return indexedValue;
                 return TryGetPrimitiveDouble(ordinal, out double value)
-                    ? Convert.ToDecimal(value)
+                    ? OfficeDecimalConversion.FromDouble(value)
                     : TryGetCachedDecimal(ordinal, out decimal decimalValue) ? decimalValue
-                    : Convert.ToDecimal(GetNonDbNullValue(ordinal), _culture);
+                    : OfficeDecimalConversion.FromObject(GetNonDbNullValue(ordinal), _culture);
             }
 
             /// <inheritdoc />

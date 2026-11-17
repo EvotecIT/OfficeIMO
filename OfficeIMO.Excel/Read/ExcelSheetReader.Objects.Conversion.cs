@@ -906,7 +906,7 @@ namespace OfficeIMO.Excel {
 
                 if (destType == typeof(decimal)) {
                     if (value is decimal decimalValue) return decimalValue;
-                    return Convert.ToDecimal(value, culture);
+                    return OfficeDecimalConversion.FromObject(value, culture);
                 }
 
                 if (destType == typeof(DateTime)) {
@@ -916,7 +916,7 @@ namespace OfficeIMO.Excel {
                     return null;
                 }
 
-                return Convert.ChangeType(value, destType, culture);
+                return OfficeDecimalConversion.ChangeType(value, destType, culture);
             } catch {
                 return null;
             }

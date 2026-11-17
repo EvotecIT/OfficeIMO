@@ -115,12 +115,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ValidateReadableOrdinal(ordinal);
             if (_kinds[ordinal] is ValueKind.Number or ValueKind.Date) {
                 try {
-                    return (decimal)_numbers[ordinal];
+                    return OfficeDecimalConversion.FromDouble(_numbers[ordinal]);
                 } catch (OverflowException) {
                     throw new InvalidCastException($"The XLS numeric value '{_numbers[ordinal]}' cannot be represented as decimal.");
                 }
             }
-            return Convert.ToDecimal(GetValue(ordinal), _options.Culture);
+            return OfficeDecimalConversion.FromObject(GetValue(ordinal), _options.Culture);
         }
 
         public override DateTime GetDateTime(int ordinal) {
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private object GetNumericValue(double value) {
             if (_options.NumericAsDecimal && !double.IsNaN(value) && !double.IsInfinity(value)) {
                 try {
-                    return (decimal)value;
+                    return OfficeDecimalConversion.FromDouble(value);
                 } catch (OverflowException) {
                     // Preserve a finite value that decimal cannot represent as double.
                 }

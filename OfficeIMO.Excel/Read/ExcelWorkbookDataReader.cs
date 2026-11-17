@@ -807,7 +807,7 @@ namespace OfficeIMO.Excel {
                 return typed;
             }
 
-            return (T)Convert.ChangeType(value, destinationType, _culture);
+            return (T)OfficeDecimalConversion.ChangeType(value, destinationType, _culture)!;
         }
 
         /// <inheritdoc />

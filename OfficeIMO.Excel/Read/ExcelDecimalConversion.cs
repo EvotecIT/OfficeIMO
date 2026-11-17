@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel {
     /// <summary>Converts common binary worksheet numbers to decimal without the general IEEE conversion.</summary>
     internal static class ExcelDecimalConversion {
         /// <summary>
-        /// Produces exactly <c>(decimal)value</c> when the double equals an integer number of hundredths
+        /// Produces exactly <see cref="OfficeDecimalConversion.FromDouble"/> when the double equals an integer number of hundredths
         /// within the Int32 range, which covers binary RK cells. Other values return false so callers keep
         /// the ordinary conversion. Equivalence was checked for every hundredth in that range.
         /// </summary>

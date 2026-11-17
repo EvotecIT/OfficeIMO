@@ -316,7 +316,7 @@ namespace OfficeIMO.Excel {
                     return static (value, culture) => {
                         try {
                             if (value is decimal decimalValue) return decimalValue;
-                            return Convert.ToDecimal(value, culture);
+                            return OfficeDecimalConversion.FromObject(value, culture);
                         } catch {
                             return null;
                         }

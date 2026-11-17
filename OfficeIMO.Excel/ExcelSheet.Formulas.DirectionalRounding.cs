@@ -8,10 +8,10 @@ namespace OfficeIMO.Excel {
             // moving an exact decimal boundary (for example, 0.29 at two places).
             if (Math.Abs(value) < (double)decimal.MaxValue) {
                 try {
-                    decimal number = (decimal)value;
+                    decimal number = OfficeDecimalConversion.FromDouble(value);
                     // Preserve nonzero inputs below decimal's precision for ROUNDUP.
                     if (number != 0 || value == 0) {
-                        decimal scale = (decimal)factor;
+                        decimal scale = OfficeDecimalConversion.FromDouble(factor);
                         decimal shifted = number * scale;
                         if (awayFromZero && shifted == 0 && number != 0) return Math.Sign(value) * Math.Pow(10, -digits);
                         decimal rounded = awayFromZero
