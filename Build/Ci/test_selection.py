@@ -71,6 +71,8 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(4, len(result["ubuntu"]["include"]))
         self.assertEqual({"net8.0", "net10.0"}, {r["framework"] for r in result["ubuntu"]["include"]})
         self.assertEqual(2, len(result["windows"]["include"]))
+        self.assertCountEqual(result["windows"]["include"],
+                              [p for s in result["windows_shards"]["include"] for p in s["projects"]])
 
     def test_shared_source_and_fixtures_fail_open(self):
         for path in ["OfficeIMO.SharedSource/Xml.cs", "OfficeIMO.TestAssets/image.png", "Directory.Build.props", ".github/workflows/dotnet-tests.yml"]:
@@ -121,6 +123,7 @@ class SelectionTests(unittest.TestCase):
         self.assertFalse(result["ubuntu_enabled"])
         self.assertFalse(result["windows_enabled"])
         self.assertEqual("none", result["ubuntu"]["include"][0]["partition"])
+        self.assertEqual([{"name": "none", "projects": []}], result["windows_shards"]["include"])
 
     def test_website_only_selects_website_without_library_tests(self):
         result = self.choose("Website/static/js/app.js")
