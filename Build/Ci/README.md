@@ -9,6 +9,11 @@ Linked source and resource inputs also select their consumers. A directly
 changed test project without a declared executable route fails selection so a
 new project cannot silently receive a passing aggregate without running tests.
 
+The `documentation_only` list records reviewed prose paths whose mentions in
+source or evidence do not establish a build or test dependency. Linked inputs
+and fixture rules still take precedence. Website routing is independent, so a
+roadmap edit still checks the site's links to roadmap sections.
+
 Ordinary PRs run affected Windows .NET Framework contracts and the newest Linux
 TFM. The smaller platform matrices retain Windows, Linux and macOS on the newest
 TFM. The macOS smoke retains its full-run TFM and uses the newest TFM on PRs; its PR build includes only the projects it executes. Full runs retain the original macOS solution build. Website, JavaScript,
