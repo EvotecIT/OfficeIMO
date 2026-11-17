@@ -1794,7 +1794,7 @@ public sealed class HtmlPdfTests {
 
         Assert.Contains("<figure class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
-        Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<figcaption", html, StringComparison.Ordinal);
     }
 
     [Fact]

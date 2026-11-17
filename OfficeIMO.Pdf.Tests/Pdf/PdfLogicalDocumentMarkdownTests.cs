@@ -43,17 +43,19 @@ public partial class PdfDocumentReadResultTests {
         Assert.Contains("| Code | Name | Qty |", markdown, StringComparison.Ordinal);
         Assert.Contains("| --- | --- | ---: |", markdown, StringComparison.Ordinal);
         Assert.Contains("| A-100 | Alpha | 2 |", markdown, StringComparison.Ordinal);
-        Assert.Contains("[Image: page 1", markdown, StringComparison.Ordinal);
+        Assert.Contains("](data:image/png;base64,", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("[Image:", markdown, StringComparison.Ordinal);
         AssertContainsInOrder(normalizedMarkdown,
             "#LogicalHeading",
             "Logicalreadbackmarker.",
             "-Detectedlogicalbullet",
             "|Code|Name|Qty|",
-            "[Image:page1");
+            "](data:image/png;base64,");
 
         string withoutImages = logical.ExtractMarkdown(new PdfLogicalMarkdownOptions {
-            IncludeImagePlaceholders = false
+            ImageExportMode = PdfLogicalMarkdownImageExportMode.None
         });
+        Assert.DoesNotContain("data:image/", withoutImages, StringComparison.Ordinal);
         Assert.DoesNotContain("[Image:", withoutImages, StringComparison.Ordinal);
     }
 

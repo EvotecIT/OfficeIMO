@@ -68,7 +68,7 @@ internal static class OfficeImageExporter
                     htmlOptions ?? new PdfHtmlExportOptions { ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly, IncludeImagePlaceholders = false }, cancellationToken); break;
                 case ".pdf": using (var searchable = review.ApplyAll(cancellationToken).Document) searchable.Save(temporaryPath); break;
                 case ".txt": WriteText(temporaryPath, review.Ocr.Text); break;
-                case ".md": WriteText(temporaryPath, document.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false })); break;
+                case ".md": WriteText(temporaryPath, document.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false, ImageExportMode = PdfLogicalMarkdownImageExportMode.None })); break;
                 case ".json": WriteText(temporaryPath, document.ExportStructured(PdfStructuredExportFormat.Json)); break;
                 case ".csv":
                     using (var text = new StreamWriter(temporaryPath, false, new UTF8Encoding(false)))
@@ -103,7 +103,7 @@ internal static class OfficeImageExporter
         string text;
         switch (extension) {
             case ".txt": text = review.Ocr.Text; break;
-            case ".md": text = document.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false }); break;
+            case ".md": text = document.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false, ImageExportMode = PdfLogicalMarkdownImageExportMode.None }); break;
             case ".json": text = document.ExportStructured(PdfStructuredExportFormat.Json); break;
             case ".html": text = review.Ocr.ToHtml(captured.PdfHtml ?? new PdfHtmlExportOptions {
                 ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly, IncludeImagePlaceholders = false }, out projection, token); break;

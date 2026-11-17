@@ -146,26 +146,33 @@ namespace OfficeIMO.Pdf.Word {
                 return false;
             }
 
-            string extension = ResolveImageExtension(source);
+            string extension = assessment.Crop == null ? ResolveImageExtension(source) : "png";
             if (string.IsNullOrWhiteSpace(extension)) {
                 AddImageSkippedWarning(image, "PDF image file extension could not be resolved for Word embedding.");
+                return false;
+            }
+            if (!PdfCore.PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] imageBytes, out _, out _)) {
+                AddImageSkippedWarning(image, "The visible part of the clipped PDF image could not be decoded for cropping.");
                 return false;
             }
 
             string fileName = BuildImageFileName(image, extension);
             double? width = null;
             double? height = null;
-            if (options.PreserveImagePlacementSize && placement != null && placement.Width > 0 && placement.Height > 0) {
+            (double visibleX, double visibleY, double visibleWidth, double visibleHeight) = placement == null
+                ? (0D, 0D, 0D, 0D)
+                : assessment.GetVisibleBounds(placement);
+            if (options.PreserveImagePlacementSize && placement != null && visibleWidth > 0 && visibleHeight > 0) {
                 if (page.RotationDegrees != 0) {
                     double userUnit = page.UserUnit.GetValueOrDefault(1D);
-                    width = PdfPointsToWordPixels(placement.Width * userUnit);
-                    height = PdfPointsToWordPixels(placement.Height * userUnit);
+                    width = PdfPointsToWordPixels(visibleWidth * userUnit);
+                    height = PdfPointsToWordPixels(visibleHeight * userUnit);
                 } else {
                     PdfCore.PdfSelectionQuad visualBounds = page.MapUserSpaceRectangleToVisual(
-                        placement.X,
-                        placement.Y,
-                        placement.X + placement.Width,
-                        placement.Y + placement.Height);
+                        visibleX,
+                        visibleY,
+                        visibleX + visibleWidth,
+                        visibleY + visibleHeight);
                     width = PdfPointsToWordPixels(visualBounds.Right - visualBounds.Left);
                     height = PdfPointsToWordPixels(visualBounds.Bottom - visualBounds.Top);
                 }
@@ -173,7 +180,7 @@ namespace OfficeIMO.Pdf.Word {
 
             WordParagraph? imageParagraph = null;
             try {
-                using var stream = new MemoryStream(source.Bytes);
+                using var stream = new MemoryStream(imageBytes);
                 imageParagraph = document.AddParagraph();
                 ApplyCompactSpacing(imageParagraph);
                 string description = GetImageAlternativeText(image, placement);
@@ -195,10 +202,10 @@ namespace OfficeIMO.Pdf.Word {
                 if (floatImage) {
                     imageParagraph.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(0.05));
                     PdfCore.PdfSelectionQuad visual = page.MapUserSpaceRectangleToVisual(
-                        placement!.X,
-                        placement.Y,
-                        placement.X + placement.Width,
-                        placement.Y + placement.Height);
+                        visibleX,
+                        visibleY,
+                        visibleX + visibleWidth,
+                        visibleY + visibleHeight);
                     WordImageTextWrapping wrapping = hasOverlappingTextAfter
                         ? WordImageTextWrapping.BehindText
                         : WordImageTextWrapping.InFrontOfText;
@@ -212,7 +219,7 @@ namespace OfficeIMO.Pdf.Word {
                             OfficeConversionLossKind.Approximation,
                             new Dictionary<string, string> {
                                 ["ResourceName"] = image.ResourceName,
-                                ["ImagePaintOrder"] = placement.PaintOrder.ToString(CultureInfo.InvariantCulture)
+                                ["ImagePaintOrder"] = placement!.PaintOrder.ToString(CultureInfo.InvariantCulture)
                             });
                     }
                     embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength1 ? OfficeIMO.OfficeLength.Pixels(imageLength1) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength2 ? OfficeIMO.OfficeLength.Pixels(imageLength2) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { Wrapping = wrapping, AltText = description });
@@ -220,7 +227,7 @@ namespace OfficeIMO.Pdf.Word {
                     embeddedImage.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
                     embeddedImage.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Left));
                     embeddedImage.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(PdfPointsToEmu(visual.Top));
-                    embeddedImage.ZOrder = imageContext.GetZOrder(placement);
+                    embeddedImage.ZOrder = imageContext.GetZOrder(placement!);
                 } else {
                     embeddedImage = imageParagraph.AddImage(stream, fileName, (width is { } imageLength3 ? OfficeIMO.OfficeLength.Pixels(imageLength3) : (OfficeIMO.OfficeLength? )null), (height is { } imageLength4 ? OfficeIMO.OfficeLength.Pixels(imageLength4) : (OfficeIMO.OfficeLength? )null), options: new OfficeIMO.Word.WordImageOptions { AltText = description });
                     if (placement != null && page.RotationDegrees != 0) {
@@ -302,19 +309,8 @@ namespace OfficeIMO.Pdf.Word {
         /// Uses the source alternative text or the detected figure caption. Internal resource names describe nothing to
         /// a reader, so an image without either gets an empty description rather than a synthetic one.
         /// </summary>
-        internal static string GetImageAlternativeText(PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement? placement) {
-            PdfCore.PdfUnderstandingImageRegion? region = null;
-            for (int index = 0; index < image.Regions.Count; index++) {
-                if (placement == null || ReferenceEquals(image.Regions[index].Placement, placement)) {
-                    region = image.Regions[index];
-                    break;
-                }
-            }
-            region ??= image.PrimaryRegion;
-            if (!string.IsNullOrWhiteSpace(region?.AlternativeText)) return region!.AlternativeText!.Trim();
-            string? caption = region?.Caption?.Region.Text;
-            return string.IsNullOrWhiteSpace(caption) ? string.Empty : caption!.Trim();
-        }
+        internal static string GetImageAlternativeText(PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement? placement) =>
+            PdfCore.PdfImagePlacementImportPolicy.GetAlternativeText(image, placement);
 
         private static void GetOverlappingTextPaintOrder(
             PdfCore.PdfLogicalPage page,

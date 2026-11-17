@@ -11,6 +11,9 @@ public sealed partial class OfficeWorkflowRouteSettings {
         : new PdfLogicalMarkdownOptions {
             IncludePageSeparators = options.IncludePageSeparators,
             IncludeImagePlaceholders = options.IncludeImagePlaceholders,
+            ImageExportMode = options.ImageExportMode,
+            ImageDirectory = options.ImageDirectory,
+            MaxEmbeddedImageBytes = options.MaxEmbeddedImageBytes,
             IncludeLinkAnnotations = options.IncludeLinkAnnotations,
             IncludeFormWidgets = options.IncludeFormWidgets,
             IncludeMarkupAnnotations = options.IncludeMarkupAnnotations,

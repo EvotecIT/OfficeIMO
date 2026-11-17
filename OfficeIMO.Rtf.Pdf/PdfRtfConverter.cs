@@ -41,8 +41,10 @@ internal static class PdfRtfConverter {
         PdfRtfExportOptions options) {
         AddOmissionWarning(options, "TABLES_NOT_IMPORTED", "Table", source.Tables.Count,
             "Detected PDF tables are not reconstructed by the semantic RTF importer.");
-        AddOmissionWarning(options, "IMAGES_NOT_IMPORTED", "Image", source.Images.Count,
-            "Detected PDF images are not embedded by the semantic RTF importer.");
+        if (!options.ImportImages) {
+            AddOmissionWarning(options, "IMAGES_NOT_IMPORTED", "Image", source.Images.Count,
+                "Detected PDF images were not embedded because ImportImages is false.");
+        }
         AddOmissionWarning(options, "LINKS_NOT_IMPORTED", "LinkAnnotation", source.Links.Count,
             "PDF link annotations are not reconstructed by the semantic RTF importer.");
         AddOmissionWarning(options, "FORM_WIDGETS_NOT_IMPORTED", "FormWidget", source.FormWidgets.Count,
@@ -81,11 +83,24 @@ internal static class PdfRtfConverter {
         var consumed = new HashSet<PdfCore.PdfLogicalTextBlock>();
         bool emittedPageContent = false;
         bool pendingPageBreak = pageBreakBeforeFirstParagraph;
+        List<PageImage> images = options.ImportImages ? CollectPageImages(page, options) : new List<PageImage>();
+        int nextImage = 0;
 
         foreach (PdfCore.PdfLogicalTextBlock block in page.TextBlocks) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (consumed.Contains(block)) {
                 continue;
+            }
+
+            // Images enter the text flow before the first block that starts below their top edge.
+            double blockTop = block.BaselineY + Math.Max(0D, block.FontSize) * 0.8D;
+            while (nextImage < images.Count && images[nextImage].Top >= blockTop) {
+                RtfParagraph imageParagraph = AddImageParagraph(document, images[nextImage++]);
+                if (pendingPageBreak) {
+                    imageParagraph.PageBreakBefore = true;
+                    pendingPageBreak = false;
+                }
+                emittedPageContent = true;
             }
 
             RtfParagraph? paragraph = null;
@@ -119,9 +134,131 @@ internal static class PdfRtfConverter {
             emittedPageContent = true;
         }
 
+        while (nextImage < images.Count) {
+            RtfParagraph imageParagraph = AddImageParagraph(document, images[nextImage++]);
+            if (pendingPageBreak) {
+                imageParagraph.PageBreakBefore = true;
+                pendingPageBreak = false;
+            }
+            emittedPageContent = true;
+        }
+
         if (!emittedPageContent && pendingPageBreak && options.IncludeEmptyPages) {
             document.AddParagraph().PageBreakBefore = true;
         }
+    }
+
+    /// <summary>
+    /// Collects the image placements that can be carried over as RTF pictures, top to bottom. Placements the
+    /// import policy refuses are reported and never leave text behind.
+    /// </summary>
+    private static List<PageImage> CollectPageImages(PdfCore.PdfLogicalPage page, PdfRtfExportOptions options) {
+        var images = new List<PageImage>();
+        foreach (PdfCore.PdfLogicalImage image in page.Images) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            foreach (PdfCore.PdfImagePlacement placement in image.Placements) {
+                PdfCore.PdfImagePlacementImportAssessment assessment =
+                    PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
+                if (assessment.IsSuppressed) continue;
+                if (!assessment.CanImport) {
+                    AddImageOmission(options, image, GetOmissionCode(assessment.Disposition),
+                        "The PDF image was not embedded because its placement cannot be reproduced safely as an RTF picture.");
+                    continue;
+                }
+                if (assessment.HasNonDefaultOpacity || assessment.HasNonNormalBlendMode) {
+                    AddImageOmission(options, image,
+                        assessment.HasNonNormalBlendMode
+                            ? OfficeDiagnosticCodes.ImageUnsupportedBlendModeNotSafelyEditable
+                            : OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable,
+                        "The PDF image was not embedded because RTF pictures cannot reproduce its opacity or blend mode.");
+                    continue;
+                }
+                if (page.RotationDegrees % 360 != 0 || placement.A < 0D || placement.D < 0D) {
+                    AddImageOmission(options, image, OfficeDiagnosticCodes.ImageTransformNotSafelyEditable,
+                        "The PDF image was not embedded because its page rotation or mirroring is not represented by an RTF picture.");
+                    continue;
+                }
+                if (!PdfCore.PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] bytes, out string mimeType, out _) ||
+                    !TryResolveRtfPicture(bytes, mimeType, out RtfImageFormat format, out byte[] pictureBytes)) {
+                    AddImageOmission(options, image, OfficeDiagnosticCodes.ImageDataUnavailable,
+                        "The PDF image was not embedded because its data could not be written as a PNG or JPEG RTF picture.");
+                    continue;
+                }
+
+                // Bounds are in page user space; /UserUnit scales them to physical points.
+                (double x, double y, double width, double height) = assessment.GetVisibleBounds(placement);
+                double userUnit = page.UserUnit.GetValueOrDefault(1D);
+                images.Add(new PageImage(format, pictureBytes, y + height, width * userUnit, height * userUnit,
+                    PdfCore.PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)));
+            }
+        }
+
+        images.Sort(static (left, right) => right.Top.CompareTo(left.Top));
+        return images;
+    }
+
+    private static bool TryResolveRtfPicture(byte[] bytes, string mimeType, out RtfImageFormat format, out byte[] pictureBytes) {
+        pictureBytes = bytes;
+        if (string.Equals(mimeType, "image/png", StringComparison.OrdinalIgnoreCase)) {
+            format = RtfImageFormat.Png;
+            return true;
+        }
+        if (string.Equals(mimeType, "image/jpeg", StringComparison.OrdinalIgnoreCase)) {
+            format = RtfImageFormat.Jpeg;
+            return true;
+        }
+
+        format = RtfImageFormat.Png;
+        return global::OfficeIMO.Drawing.OfficeImagePngConverter.TryConvertToPng(bytes, out pictureBytes);
+    }
+
+    private static RtfParagraph AddImageParagraph(RtfDocument document, PageImage image) {
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.SetParagraphSpacing(afterTwips: 120);
+        RtfImage picture = paragraph.AddImage(image.Format, image.Bytes);
+        picture.DesiredWidthTwips = Math.Max(1, PointsToTwips(image.Width));
+        picture.DesiredHeightTwips = Math.Max(1, PointsToTwips(image.Height));
+        if (image.Description.Length > 0) picture.Description = image.Description;
+        return paragraph;
+    }
+
+    private static string GetOmissionCode(PdfCore.PdfImagePlacementImportDisposition disposition) => disposition switch {
+        PdfCore.PdfImagePlacementImportDisposition.OmitClippedPixels => OfficeDiagnosticCodes.ImageClipNotSafelyEditable,
+        PdfCore.PdfImagePlacementImportDisposition.OmitSoftMask => OfficeDiagnosticCodes.ImagePlacementSoftMaskNotSafelyEditable,
+        PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedBlendMode => OfficeDiagnosticCodes.ImageUnsupportedBlendModeNotSafelyEditable,
+        PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedPaintEffect => OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable,
+        PdfCore.PdfImagePlacementImportDisposition.OmitUnsupportedTransform => OfficeDiagnosticCodes.ImageTransformNotSafelyEditable,
+        PdfCore.PdfImagePlacementImportDisposition.OmitUnappliedDecode => OfficeDiagnosticCodes.ImageDecodeNotSafelyEditable,
+        _ => OfficeDiagnosticCodes.ImageTransparencyMaskNotResolved
+    };
+
+    private static void AddImageOmission(PdfRtfExportOptions options, PdfCore.PdfLogicalImage image, string code, string message) {
+        options.Report.Add(new PdfCore.PdfConversionWarning(
+            "OfficeIMO.Rtf.Pdf",
+            code,
+            "Page " + image.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/Image",
+            message,
+            PdfCore.PdfConversionWarningSeverity.Warning,
+            global::OfficeIMO.OfficeConversionLossKind.Omission,
+            details: new Dictionary<string, string> { ["ResourceName"] = image.ResourceName }));
+    }
+
+    private sealed class PageImage {
+        internal PageImage(RtfImageFormat format, byte[] bytes, double top, double width, double height, string description) {
+            Format = format;
+            Bytes = bytes;
+            Top = top;
+            Width = width;
+            Height = height;
+            Description = description;
+        }
+
+        internal RtfImageFormat Format { get; }
+        internal byte[] Bytes { get; }
+        internal double Top { get; }
+        internal double Width { get; }
+        internal double Height { get; }
+        internal string Description { get; }
     }
 
     private static RtfParagraph AddHeading(

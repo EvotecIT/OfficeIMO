@@ -20,6 +20,7 @@ public sealed class ReaderPdfOptions {
         MarkdownOptions = new PdfLogicalMarkdownOptions {
             IncludePageSeparators = false,
             IncludeImagePlaceholders = true,
+            ImageExportMode = PdfLogicalMarkdownImageExportMode.None,
             IncludeLinkAnnotations = true,
             IncludeFormWidgets = true,
             IncludeMarkupAnnotations = true
@@ -110,6 +111,9 @@ public sealed class ReaderPdfOptions {
         return new PdfLogicalMarkdownOptions {
             IncludePageSeparators = options.IncludePageSeparators,
             IncludeImagePlaceholders = options.IncludeImagePlaceholders,
+            ImageExportMode = options.ImageExportMode,
+            ImageDirectory = options.ImageDirectory,
+            MaxEmbeddedImageBytes = options.MaxEmbeddedImageBytes,
             IncludeLinkAnnotations = options.IncludeLinkAnnotations,
             IncludeFormWidgets = options.IncludeFormWidgets,
             IncludeMarkupAnnotations = options.IncludeMarkupAnnotations,

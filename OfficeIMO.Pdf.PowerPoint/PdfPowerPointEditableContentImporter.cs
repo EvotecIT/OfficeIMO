@@ -364,20 +364,30 @@ public static partial class PdfPowerPointConverterExtensions {
                     limitReached |= imported >= limit;
                     continue;
                 }
+                if (!PdfCore.PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(
+                        image, assessment, out byte[] imageBytes, out _, out _)) {
+                    AddEditableImagePlacementWarning(warnings, image, new PdfCore.PdfImagePlacementImportAssessment(
+                        PdfCore.PdfImagePlacementImportDisposition.OmitClippedPixels, assessment.Opacity, assessment.BlendMode));
+                    omitted++;
+                    continue;
+                }
+                OfficeImageFormat imageFormat = assessment.Crop == null ? format : OfficeImageFormat.Png;
+                (double visibleX, double visibleY, double visibleWidth, double visibleHeight) =
+                    assessment.GetVisibleBounds(sourcePlacement);
                 PdfCore.PdfVisualBounds visual = page.TransformBoundsToVisual(
-                    sourcePlacement.X,
-                    sourcePlacement.Y,
-                    sourcePlacement.X + sourcePlacement.Width,
-                    sourcePlacement.Y + sourcePlacement.Height);
+                    visibleX,
+                    visibleY,
+                    visibleX + visibleWidth,
+                    visibleY + visibleHeight);
                 EditableBounds bounds = placement.Map(visual.Left, visual.Top, visual.Width, visual.Height);
                 double pageRotation = NormalizeRotation(page.RotationDegrees);
                 if (pageRotation is 90D or 270D) {
                     bounds = bounds.SwapDimensionsAroundCenter();
                 }
-                using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
+                using var stream = new MemoryStream(imageBytes, writable: false);
                 PptCore.PowerPointImage picture = slide.AddImage(
                     stream,
-                    format,
+                    imageFormat,
                     OfficeIMO.OfficeLength.Points(bounds.Left),
                     OfficeIMO.OfficeLength.Points(bounds.Top),
                     OfficeIMO.OfficeLength.Points(bounds.Width),

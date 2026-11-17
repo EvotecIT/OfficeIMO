@@ -9,8 +9,26 @@ public sealed class PdfLogicalMarkdownOptions {
     /// <summary>Emit horizontal-rule separators between logical pages.</summary>
     public bool IncludePageSeparators { get; set; } = true;
 
-    /// <summary>Emit readable placeholders for image elements discovered in the logical model.</summary>
-    public bool IncludeImagePlaceholders { get; set; } = true;
+    /// <summary>
+    /// Emit readable placeholder text for images that are not exported as Markdown images. False by default, so an image
+    /// that cannot be carried over never adds text to the document body.
+    /// </summary>
+    public bool IncludeImagePlaceholders { get; set; }
+
+    /// <summary>
+    /// How images are written. The default embeds each image as a base64 data URI; <see cref="PdfLogicalMarkdownImageExportMode.File"/>
+    /// writes image files to <see cref="ImageDirectory"/> and references them by file name.
+    /// </summary>
+    public PdfLogicalMarkdownImageExportMode ImageExportMode { get; set; } = PdfLogicalMarkdownImageExportMode.Base64;
+
+    /// <summary>
+    /// Directory that receives image files when <see cref="ImageExportMode"/> is <see cref="PdfLogicalMarkdownImageExportMode.File"/>.
+    /// Null uses the current working directory.
+    /// </summary>
+    public string? ImageDirectory { get; set; }
+
+    /// <summary>Maximum image size embedded as one base64 data URI. Larger images are left out. The default is 32 MiB.</summary>
+    public long MaxEmbeddedImageBytes { get; set; } = 32L * 1024L * 1024L;
 
     /// <summary>Emit a link annotation section for supported URI, named-destination, direct-destination, named-action, and remote GoTo links.</summary>
     public bool IncludeLinkAnnotations { get; set; }
@@ -27,6 +45,20 @@ public sealed class PdfLogicalMarkdownOptions {
 
     /// <summary>Markdown text used between pages when <see cref="IncludePageSeparators"/> is true.</summary>
     public string PageSeparator { get; set; } = "---";
+}
+
+/// <summary>
+/// How a logical PDF Markdown export writes images.
+/// </summary>
+public enum PdfLogicalMarkdownImageExportMode {
+    /// <summary>Embed images as base64 data URIs.</summary>
+    Base64 = 0,
+
+    /// <summary>Write images to <see cref="PdfLogicalMarkdownOptions.ImageDirectory"/> and reference them by relative file name.</summary>
+    File = 1,
+
+    /// <summary>Leave images out.</summary>
+    None = 2
 }
 
 /// <summary>
@@ -78,10 +110,11 @@ public static class PdfLogicalMarkdownExtensions {
     private static List<MarkdownItem> BuildPageItems(PdfLogicalPage page, PdfLogicalMarkdownOptions options) {
         var items = new List<MarkdownItem>();
         int sequence = 0;
-        HashSet<PdfImagePlacement>? figurePlacements = options.IncludeImagePlaceholders
-            ? CollectFigurePlacements(page.Images)
-            : null;
+        bool writeImages = options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None || options.IncludeImagePlaceholders;
+        // Images with any output (picture or placeholder), and the distinct visible crops already exported: one
+        // image resource drawn with different clips shows different content, while repeats of one crop are dropped.
         HashSet<int>? emittedImages = null;
+        HashSet<(int Image, int Left, int Top, int Right, int Bottom)>? emittedCrops = null;
         Stack<(int Level, int ContentIndent)>? listParents = null;
 
         IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
@@ -109,12 +142,12 @@ public static class PdfLogicalMarkdownExtensions {
                 case PdfLogicalReadingOrderKind.TextBlock:
                     markdown = EscapeInline(page.TextBlocks[item.SourceIndex].Text);
                     break;
-                case PdfLogicalReadingOrderKind.Image when figurePlacements is not null &&
+                case PdfLogicalReadingOrderKind.Image when writeImages &&
                     item.HasGeometry && !item.IsClipped && item.PlacementIndex >= 0:
                     PdfLogicalImage image = page.Images[item.SourceIndex];
-                    if (!figurePlacements.Contains(image.Placements[item.PlacementIndex]) ||
-                        !(emittedImages ??= new HashSet<int>()).Add(item.SourceIndex)) continue;
-                    markdown = FormatImagePlaceholder(image);
+                    markdown = FormatImage(page, item.SourceIndex, image.Placements[item.PlacementIndex], options, ref emittedCrops,
+                        allowPlaceholder: emittedImages?.Contains(item.SourceIndex) != true);
+                    if (markdown.Length > 0) (emittedImages ??= new HashSet<int>()).Add(item.SourceIndex);
                     break;
                 default: continue;
             }
@@ -136,10 +169,20 @@ public static class PdfLogicalMarkdownExtensions {
             }
         }
 
-        if (options.IncludeImagePlaceholders) {
+        if (writeImages) {
             for (int i = 0; i < page.Images.Count; i++) {
-                if (emittedImages?.Contains(i) == true) continue;
-                items.Add(new MarkdownItem(null, 0, sequence++, FormatImagePlaceholder(page.Images[i])));
+                PdfLogicalImage image = page.Images[i];
+                bool emitted = emittedImages?.Contains(i) == true;
+                for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
+                    string markdown = FormatImage(page, i, image.Placements[placementIndex], options, ref emittedCrops, allowPlaceholder: false);
+                    if (markdown.Length == 0) continue;
+                    items.Add(new MarkdownItem(null, 0, sequence++, markdown));
+                    emitted = true;
+                }
+                if (!emitted && options.IncludeImagePlaceholders &&
+                    (image.Placements.Count == 0 || PdfImagePlacementImportPolicy.HasVisiblePlacement(page, image))) {
+                    items.Add(new MarkdownItem(null, 0, sequence++, FormatImagePlaceholder(image)));
+                }
             }
         }
 
@@ -199,15 +242,80 @@ public static class PdfLogicalMarkdownExtensions {
         return string.Join(" ", value!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
-    private static HashSet<PdfImagePlacement>? CollectFigurePlacements(IReadOnlyList<PdfLogicalImage> images) {
-        HashSet<PdfImagePlacement>? placements = null;
-        foreach (PdfLogicalImage image in images) {
-            foreach (PdfUnderstandingImageRegion region in image.Regions) {
-                if (region.IsFigure) (placements ??= new HashSet<PdfImagePlacement>()).Add(region.Placement);
+    /// <summary>
+    /// Writes one image placement as a Markdown image. Placements that cannot be carried over safely are left out
+    /// (or become a placeholder only when the caller asked for placeholders); clipped placements carry only their
+    /// visible pixels.
+    /// </summary>
+    private static string FormatImage(
+        PdfLogicalPage page,
+        int imageIndex,
+        PdfImagePlacement placement,
+        PdfLogicalMarkdownOptions options,
+        ref HashSet<(int Image, int Left, int Top, int Right, int Bottom)>? emittedCrops,
+        bool allowPlaceholder) {
+        PdfLogicalImage image = page.Images[imageIndex];
+        PdfImagePlacementImportAssessment assessment = PdfImagePlacementImportPolicy.Analyze(page, image, placement);
+        if (assessment.IsSuppressed) return string.Empty;
+        var cropKey = GetVisibleCropKey(image, imageIndex, assessment);
+        if (emittedCrops?.Contains(cropKey) == true) return string.Empty;
+        if (options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None &&
+            assessment.CanImport &&
+            page.RotationDegrees % 360 == 0 &&
+            placement.A >= 0D && placement.D >= 0D &&
+            !assessment.HasNonDefaultOpacity &&
+            !assessment.HasNonNormalBlendMode &&
+            PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] bytes, out string mimeType, out string extension) &&
+            OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(mimeType)) {
+            string? source = options.ImageExportMode == PdfLogicalMarkdownImageExportMode.File
+                ? WriteImageFile(image, imageIndex, placement, bytes, extension, options)
+                : bytes.LongLength <= options.MaxEmbeddedImageBytes
+                    ? "data:" + mimeType + ";base64," + Convert.ToBase64String(bytes)
+                    : null;
+            if (source != null) {
+                (emittedCrops ??= new HashSet<(int Image, int Left, int Top, int Right, int Bottom)>()).Add(cropKey);
+                return "![" + EscapeInline(PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)) + "](" + source + ")";
             }
         }
 
-        return placements;
+        return allowPlaceholder && options.IncludeImagePlaceholders ? FormatImagePlaceholder(image) : string.Empty;
+    }
+
+    private static (int Image, int Left, int Top, int Right, int Bottom) GetVisibleCropKey(
+        PdfLogicalImage image,
+        int imageIndex,
+        PdfImagePlacementImportAssessment assessment) {
+        (int left, int top, int right, int bottom) = PdfImagePlacementImportPolicy.GetVisibleCropPixels(image.Width, image.Height, assessment);
+        return (imageIndex, left, top, right, bottom);
+    }
+
+    private static string WriteImageFile(PdfLogicalImage image, int imageIndex, PdfImagePlacement placement, byte[] bytes, string extension, PdfLogicalMarkdownOptions options) {
+        string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
+        Directory.CreateDirectory(directory);
+        // Page number and image position keep names readable; resource names can collide after sanitizing, so they
+        // are not used. The content hash keeps exports that share a directory from replacing each other's images:
+        // a name that already exists holds the same bytes.
+        var name = new StringBuilder("pdf-p");
+        name.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("-image");
+        name.Append((imageIndex + 1).ToString(CultureInfo.InvariantCulture));
+        int placementIndex = 0;
+        while (placementIndex < image.Placements.Count && !ReferenceEquals(image.Placements[placementIndex], placement)) placementIndex++;
+        if (placementIndex > 0) name.Append('-').Append((placementIndex + 1).ToString(CultureInfo.InvariantCulture));
+        name.Append('-');
+#if NET6_0_OR_GREATER
+        byte[] hash = System.Security.Cryptography.SHA256.HashData(bytes);
+#else
+        byte[] hash;
+        using (var sha256 = System.Security.Cryptography.SHA256.Create()) {
+            hash = sha256.ComputeHash(bytes);
+        }
+#endif
+        for (int i = 0; i < 8; i++) name.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
+        string normalizedExtension = string.IsNullOrEmpty(extension) ? ".png" : (extension[0] == '.' ? extension : "." + extension);
+        string fileName = name.Append(normalizedExtension).ToString();
+        string path = Path.Combine(directory, fileName);
+        if (!File.Exists(path)) File.WriteAllBytes(path, bytes);
+        return fileName;
     }
 
     private static string FormatImagePlaceholder(PdfLogicalImage image) {
