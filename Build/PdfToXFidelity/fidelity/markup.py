@@ -7,7 +7,7 @@ from html.parser import HTMLParser
 
 from .model import Block, Cell, Document, Table, Word, join_segments, norm_text, split_words
 
-_BLOCK = {"p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br", "section", "article", "header", "footer", "aside",
+_BLOCK = {"p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "section", "article", "header", "footer", "aside",
           "blockquote", "pre", "caption", "figcaption", "dt", "dd", "tr", "td", "th", "table", "ul", "ol", "hr", "figure",
           "main", "nav", "body", "address", "summary", "details"}
 _SKIP = {"script", "style", "head", "title", "template", "noscript", "svg", "math"}
@@ -61,8 +61,9 @@ class _HtmlReader(HTMLParser):
             cell = self.tables[-1].get("cell")
             if cell is not None:
                 cell.extend(self.words)
-            self.words = []
-            return
+                self.words = []
+                return
+            # Text inside a table but outside any cell (a caption) stays in reading order as its own block.
         kind, level, ordered = self.kind
         if self.footnote_depth:
             self.note_words.extend(w.text for w in self.words)
@@ -82,6 +83,11 @@ class _HtmlReader(HTMLParser):
             return
         if tag == "img":
             self.doc.images += 1
+            return
+        if tag == "br":
+            # A line break is whitespace inside the current heading, list item or paragraph, not a new block.
+            s = self._state()
+            self.segments.append((" ", s["b"], s["i"], s["size"]))
             return
         if tag == "a" and a.get("href", "").lower().startswith(("http:", "https:", "mailto:", "ftp:")):
             self.doc.links.add(a["href"])
@@ -225,6 +231,9 @@ _AUTOLINK = re.compile(r"<((?:https?|mailto|ftp):[^>\s]+)>")
 _TAG = re.compile(r"<[^>]+>")
 
 
+_LITERAL_OPEN, _LITERAL_CLOSE = "\ue000", "\ue001"  # private-use markers around set-aside literal text
+
+
 def _md_inline(text: str, doc: Document) -> list[Word]:
     doc.images += len(re.findall(r"!\[[^\]]*\]\(", text)) + len(re.findall(r"<img\b", text, re.I))
     for m in _INLINE_LINK.finditer(text):
@@ -234,10 +243,19 @@ def _md_inline(text: str, doc: Document) -> list[Word]:
         doc.links.add(m.group(1))
     text = _INLINE_LINK.sub(lambda m: "" if m.group(0).startswith("!") else m.group(1), text)
     text = _AUTOLINK.sub(lambda m: m.group(1), text)
+    # Code spans and escaped angle brackets are literal text, so they are set aside before HTML tags are stripped.
+    literals: list[str] = []
+
+    def stash(m):
+        literals.append(m.group(0))
+        return _LITERAL_OPEN + str(len(literals) - 1) + _LITERAL_CLOSE
+
+    text = re.sub(r"(`+).+?\1|\\[<>]", stash, text)
     text = re.sub(r"<br\s*/?>", " ", text, flags=re.I)
     text = _TAG.sub("", text)
     text = re.sub(r"\[\^[^\]]+\]", "", text)  # footnote references
     text = html.unescape(text)
+    text = re.sub(_LITERAL_OPEN + r"(\d+)" + _LITERAL_CLOSE, lambda m: literals[int(m.group(1))], text)
     segments: list[tuple[str, bool, bool, float | None]] = []
     bold = italic = False
     i = 0

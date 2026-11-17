@@ -1,6 +1,7 @@
 """Independent DOCX, XLSX and PPTX readers built on the package XML, without OfficeIMO or Office libraries."""
 from __future__ import annotations
 
+import math
 import posixpath
 import re
 import zipfile
@@ -380,6 +381,17 @@ def _scientific(code: str) -> tuple[int, int, bool] | None:
     return len(m.group(1) or ""), len(m.group(3)), m.group(2) == "+"
 
 
+def _round_half_away(value: float, decimals: int) -> float:
+    """Rounds as spreadsheet displays do: midpoints away from zero (49382.5 shows as 49383), unlike round()."""
+    from decimal import ROUND_HALF_UP, Context, Decimal
+
+    if not math.isfinite(value):
+        return value
+    # Enough precision for any double's integer part plus the requested decimals.
+    context = Context(prec=400, rounding=ROUND_HALF_UP)
+    return float(Decimal(repr(value)).quantize(Decimal(1).scaleb(-decimals), context=context))
+
+
 def _format_scientific(value: float, decimals: int, exponent_digits: int, plus: bool) -> str:
     mantissa, exponent = format(value, f".{decimals}E").split("E")
     power = int(exponent)
@@ -466,7 +478,7 @@ def read_xlsx(path: str) -> Document:
                             # 0.00E+00 shows 1.23E-05; its decimals describe the mantissa, not a tolerance on the value.
                             text, decimals = _format_scientific(shown, *scientific), None
                         else:
-                            shown = round(shown, decimals) if decimals is not None else shown
+                            shown = _round_half_away(shown, decimals) if decimals is not None else shown
                             text = format(shown, ".15g")
                         text += "%" if percent else ""
                         cell = SheetCell(r, col, text, "number", value, decimals, percent)
@@ -510,28 +522,47 @@ def _iso_to_serial(value: str) -> float | None:
 
 
 def _format_date(serial: float, code: str) -> str:
-    """The date as its number format displays it (English month names), so text metrics see what the PDF shows."""
+    """The date or time as its number format displays it (English month names), so text metrics see what the PDF shows."""
     import datetime as dt
 
     try:
-        day = dt.date(1899, 12, 30) + dt.timedelta(days=int(serial))
+        day = dt.date(1899, 12, 30) + dt.timedelta(days=math.floor(serial))
     except OverflowError:
         return str(serial)
     section = re.sub(r'\[[^\]]*\]|"[^"]*"|\\|_.|\*.', "", code.split(";")[0])
-    if not re.search(r"[dmy]", section, re.I):
+    if not re.search(r"[dmyhs]", section, re.I):
         return day.isoformat()
+    seconds = min(86399, round((serial - math.floor(serial)) * 86400))
+    hour, minute, second = seconds // 3600, seconds // 60 % 60, seconds % 60
+    tokens = re.findall(r"AM/PM|A/P|y+|m+|d+|h+|s+|[^ymdhsAa]+|[Aa]", section, re.I)
+    twelve = any(t.upper() in ("AM/PM", "A/P") for t in tokens)
+    kinds = [t[0].lower() if re.fullmatch(r"[ymdhs]+", t, re.I) else "" for t in tokens]
     out = []
-    for token in re.findall(r"y+|m+|d+|[^ymd]+", section, re.I):
+    for i, token in enumerate(tokens):
         low = token.lower()
-        if low.startswith("y"):
+        if low.startswith("m") and kinds[i] == "m":
+            # m after an hour or before a second is minutes, otherwise month.
+            before = next((k for k in reversed(kinds[:i]) if k), "")
+            after = next((k for k in kinds[i + 1:] if k), "")
+            if before == "h" or after == "s":
+                out.append(f"{minute:02d}" if len(low) > 1 else str(minute))
+                continue
+        if token.upper() in ("AM/PM", "A/P"):
+            out.append(("AM" if hour < 12 else "PM")[: 1 if token.upper() == "A/P" else 2])
+        elif kinds[i] == "h":
+            h = (hour % 12 or 12) if twelve else hour
+            out.append(f"{h:02d}" if len(low) > 1 else str(h))
+        elif kinds[i] == "s":
+            out.append(f"{second:02d}" if len(low) > 1 else str(second))
+        elif kinds[i] == "y":
             out.append(f"{day.year:04d}" if len(low) > 2 else f"{day.year % 100:02d}")
-        elif low.startswith("m"):
+        elif kinds[i] == "m":
             out.append(_MONTH_NAMES[day.month - 1] if len(low) == 4 else _MONTH_NAMES[day.month - 1][:3] if len(low) == 3
                        else f"{day.month:02d}" if len(low) == 2 else str(day.month))
-        elif low.startswith("d"):
+        elif kinds[i] == "d":
             out.append(f"{day.day:02d}" if len(low) == 2 else str(day.day) if len(low) == 1 else day.strftime("%a"))
         else:
-            out.append(re.sub(r"[hs:AMP/]+$", "", token) if re.search(r"[hs]", token) else token)
+            out.append(token)
     return "".join(out).strip()
 
 

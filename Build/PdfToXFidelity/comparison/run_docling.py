@@ -10,7 +10,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from _batch import write_log  # noqa: E402
-from docling.datamodel.base_models import InputFormat
+from docling.datamodel.base_models import ConversionStatus, InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
 
@@ -37,7 +37,8 @@ for job in jobs:
             f.write(document.export_to_markdown())
         with open(os.path.join(out_dir, job["id"] + ".html"), "w", encoding="utf-8") as f:
             f.write(document.export_to_html())
-        status = str(result.status)
+        # PARTIAL_SUCCESS keeps whatever pages converted; only a full conversion is scored as a success.
+        status = "ok" if result.status == ConversionStatus.SUCCESS else str(result.status)
     except Exception as exc:  # recorded and scored as a failed conversion
         status = "error: " + type(exc).__name__ + ": " + str(exc)[:200]
     log.append({"id": job["id"], "status": status, "seconds": round(time.perf_counter() - start, 2)})

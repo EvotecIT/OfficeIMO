@@ -215,6 +215,13 @@ def cmd_tools(args) -> None:
     jobs = os.path.join(work, "tmp", "jobs")
     os.makedirs(jobs, exist_ok=True)
 
+    def fresh(out: str) -> str:
+        # A runner that fails before writing its first log entry must not leave an earlier run's log in force.
+        log = os.path.join(out, "_log.json")
+        if os.path.exists(log):
+            os.remove(log)
+        return out
+
     def batch(tool: str, families: set[str]) -> str:
         rows = [{"id": e["id"], "pdf": e["pdf"]} for e in entries if e["family"] in families]
         path = os.path.join(jobs, tool + ".json")
@@ -224,15 +231,15 @@ def cmd_tools(args) -> None:
 
     word_like = {"word", "tagged", "excel"}
     if "pdf2docx" in only:
-        out = os.path.join(work, "outputs", "pdf2docx")
+        out = fresh(os.path.join(work, "outputs", "pdf2docx"))
         subprocess.run([args.venv_python, "-I", os.path.join(scripts, "run_pdf2docx.py"), batch("pdf2docx", word_like), out],
                        env=env, check=False)
     if "pymupdf4llm" in only:
-        out = os.path.join(work, "outputs", "pymupdf4llm")
+        out = fresh(os.path.join(work, "outputs", "pymupdf4llm"))
         subprocess.run([args.venv_python, "-I", os.path.join(scripts, "run_pymupdf4llm.py"),
                         batch("pymupdf4llm", set(FAMILY_TARGETS)), out], env=env, check=False)
     if "docling" in only:
-        out = os.path.join(work, "outputs", "docling")
+        out = fresh(os.path.join(work, "outputs", "docling"))
         subprocess.run([args.venv_python, "-I", os.path.join(scripts, "run_docling.py"), batch("docling", set(FAMILY_TARGETS)), out],
                        env=env, check=False)
     if "libreoffice" in only:
@@ -349,7 +356,7 @@ def _tool_status(folder: str, logged: bool) -> dict[str, str]:
                 with open(log, encoding="utf-8") as f:
                     for row in json.load(f):
                         raw = str(row.get("status", ""))
-                        statuses[row["id"]] = "ok" if raw == "ok" or raw.endswith("SUCCESS") else raw[:80] or "error"
+                        statuses[row["id"]] = "ok" if raw in ("ok", "ConversionStatus.SUCCESS") else raw[:80] or "error"
             except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
                 statuses = {"*": "log unreadable: " + type(exc).__name__}
         elif logged:

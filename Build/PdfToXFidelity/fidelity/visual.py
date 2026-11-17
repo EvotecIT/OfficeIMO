@@ -31,8 +31,11 @@ _locks: dict[str, threading.Lock] = {}
 _locks_guard = threading.Lock()
 
 
-def render(pdf: str, png_dir: str) -> list[np.ndarray]:
-    """Rasterises once per PDF; parallel jobs for the same source wait for the first render to finish."""
+def render(pdf: str, png_dir: str) -> list[np.ndarray] | None:
+    """Rasterises once per PDF; parallel jobs for the same source wait for the first render to finish.
+
+    Returns None when rasterisation fails, so a tool failure is not mistaken for a blank or missing page.
+    """
     stat = os.stat(pdf)
     # Path, size and modification time: a re-rendered PDF gets fresh page images.
     key = hashlib.sha1(f"{os.path.abspath(pdf)}|{stat.st_size}|{stat.st_mtime_ns}".encode()).hexdigest()[:16]
@@ -53,7 +56,7 @@ def render(pdf: str, png_dir: str) -> list[np.ndarray]:
             if not rendered:
                 # A failed render is not cached, so the next run retries it.
                 shutil.rmtree(staging, ignore_errors=True)
-                return []
+                return None
             os.replace(staging, folder)
     pages = sorted(glob.glob(os.path.join(folder, "p-*.png")))
     return [np.asarray(Image.open(p).convert("L"), dtype=np.float64) for p in pages]
@@ -95,9 +98,12 @@ def _fit(img: np.ndarray, shape) -> np.ndarray:
 
 def compare_pdfs(source_pdf: str, output_pdf: str, png_dir: str) -> dict:
     src = render(source_pdf, png_dir)
+    # A missing output (failed conversion or LibreOffice render) scores 0; a failed rasterisation is unmeasured.
     out = render(output_pdf, png_dir) if os.path.exists(output_pdf) else []
-    if not src:
-        return {"visual_layout": float("nan"), "visual_ssim": float("nan"), "blank_ssim": float("nan"), "src_pages": 0, "out_pages": len(out)}
+    if not src or out is None:
+        return {"visual_layout": float("nan"), "visual_ssim": float("nan"), "blank_ssim": float("nan"),
+                "src_pages": len(src or []), "out_pages": len(out or []),
+                "render_error": "source" if not src else "output"}
     n = max(len(src), len(out))
     scores, blanks, layout = [], [], []
     for i in range(n):
@@ -114,4 +120,4 @@ def compare_pdfs(source_pdf: str, output_pdf: str, png_dir: str) -> dict:
             scores.append(0.0)
             layout.append(0.0)
     return {"visual_layout": sum(layout) / n, "visual_ssim": sum(scores) / n, "blank_ssim": sum(blanks) / n,
-            "src_pages": len(src), "out_pages": len(out)}
+            "src_pages": len(src), "out_pages": len(out), "render_error": ""}

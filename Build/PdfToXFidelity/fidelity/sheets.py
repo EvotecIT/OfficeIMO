@@ -26,7 +26,7 @@ def parse_date(text: str) -> list[float]:
     out = []
     m = _NAMED_DATE.match(value)
     if m and m.group(2).lower() in _MONTHS:
-        year = int(m.group(3)) + (2000 if len(m.group(3)) == 2 else 0)
+        year = _full_year(int(m.group(3)))
         try:
             out.append(float((dt.date(year, _MONTHS[m.group(2).lower()], int(m.group(1))) - _EPOCH).days))
         except ValueError:
@@ -40,7 +40,7 @@ def parse_date(text: str) -> list[float]:
         if order == ("m", "d", "y"):
             readings.append({"d": parts["m"], "m": parts["d"], "y": parts["y"]})
         for p in readings:
-            year = p["y"] + (2000 if p["y"] < 50 else 1900 if p["y"] < 100 else 0)
+            year = _full_year(p["y"])
             try:
                 out.append(float((dt.date(year, p["m"], p["d"]) - _EPOCH).days))
             except ValueError:
@@ -48,6 +48,12 @@ def parse_date(text: str) -> list[float]:
     return out
 
 
+def _full_year(year: int) -> int:
+    """Two-digit years follow the spreadsheet rule: 00-49 are 20xx, 50-99 are 19xx."""
+    return year + (2000 if year < 50 else 1900 if year < 100 else 0)
+
+
+_SCIENTIFIC = re.compile(r"(\d+)(?:[.,](\d+))?[eE]([+-]?\d+)")
 _CURRENCY = re.compile(r"[$€£¥₹]|zł|kr|chf|eur|usd|pln|gbp|sek", re.I)
 
 
@@ -68,6 +74,15 @@ def parse_number(text: str) -> tuple[float, float] | None:
     if s.endswith("-"):
         negative, s = True, s[:-1].strip()
     s = s.replace(" ", "").replace("'", "")
+    sci = _SCIENTIFIC.fullmatch(s)
+    if sci:
+        # 1.23E-05: the mantissa's decimals set the displayed precision, scaled by the exponent.
+        scale = 10.0 ** int(sci.group(3))
+        frac = sci.group(2) or ""
+        value, tol = float(sci.group(1) + "." + (frac or "0")) * scale, 0.5 * 10 ** (-len(frac)) * scale
+        if percent:
+            value, tol = value / 100, tol / 100
+        return (-value if negative else value), tol
     if not re.fullmatch(r"\d[\d.,]*", s):
         return None
     decimals = 0
@@ -163,5 +178,5 @@ def sheet_regions(doc: Document, cells: dict, merges: list) -> None:
 
 
 def _merged_gap(last_row: int, next_row: int, spans: dict) -> int:
-    # Rows covered by a vertical merge do not split a region.
-    return max((rs - 1 for (r, _), (rs, _) in spans.items() if r <= last_row < r + rs), default=0)
+    # Rows still covered by a vertical merge after last_row do not split a region.
+    return max((r + rs - 1 - last_row for (r, _), (rs, _) in spans.items() if r <= last_row < r + rs), default=0)

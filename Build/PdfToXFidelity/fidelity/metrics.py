@@ -224,6 +224,7 @@ class _CellBag:
     def __init__(self, table: Table):
         self.keys: Counter = Counter()
         numbers = []
+        self.dates: list[set[float]] = []
         for row in table.rows:
             for c in row:
                 if not norm_text(c.text):
@@ -233,12 +234,15 @@ class _CellBag:
                     numbers.append(value)
                     continue
                 dates = parse_date(c.text)
-                self.keys["d:" + format(min(dates), ".0f") if dates else norm_text(c.text).casefold()] += 1
+                if dates:
+                    self.dates.append(set(dates))  # every reading of an ambiguous date, as cell_cost accepts
+                else:
+                    self.keys[norm_text(c.text).casefold()] += 1
         numbers.sort()
         self.values = [v for v, _ in numbers]
         self.tols = [t for _, t in numbers]
         self.max_tol = max(self.tols, default=0.0)
-        self.size = sum(self.keys.values()) + len(numbers)
+        self.size = sum(self.keys.values()) + len(numbers) + len(self.dates)
 
     def overlap(self, other: "_CellBag") -> int:
         """Size of a one-to-one matching between the two bags."""
@@ -253,6 +257,12 @@ class _CellBag:
                     inter += 1
                     break
                 i += 1
+        taken = [False] * len(other.dates)
+        for candidates in self.dates:
+            k = next((k for k, o in enumerate(other.dates) if not taken[k] and candidates & o), None)
+            if k is not None:
+                taken[k] = True
+                inter += 1
         return inter
 
 
@@ -340,12 +350,16 @@ def object_metrics(gold: Document, out: Document) -> dict:
     if gold.footnotes:
         out_bag = Counter(out.reading_words(include_optional=True))
         text_hits = native_hits = 0
+        native_used: set[int] = set()
         for note in gold.footnotes:
             nt = Counter(tokens(note))
             if nt and sum((nt & out_bag).values()) / sum(nt.values()) >= 0.8:
                 text_hits += 1
-            if out.footnotes_native and any(text_similarity(note, o) >= 0.8 for o in out.footnotes):
-                native_hits += 1
+            if out.footnotes_native:
+                k = next((k for k, o in enumerate(out.footnotes) if k not in native_used and text_similarity(note, o) >= 0.8), None)
+                if k is not None:
+                    native_used.add(k)
+                    native_hits += 1
         res["footnote_text"] = text_hits / len(gold.footnotes)
         res["footnote_native"] = native_hits / len(gold.footnotes)
     else:
@@ -417,7 +431,8 @@ def sheet_metrics(gold: Document, out: Document) -> dict:
                 if typed:
                     used.add(i)
                     return "typed"
-                hit = hit or i
+                if hit is None:
+                    hit = i
         if hit is not None:
             used.add(hit)
             return "text"
