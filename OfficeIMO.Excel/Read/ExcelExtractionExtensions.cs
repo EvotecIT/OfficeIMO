@@ -137,7 +137,8 @@ internal static class ExcelExtractionExtensions {
                     Title = title,
                     Columns = columns,
                     Rows = partRows,
-                    TotalRowCount = lastPart && firstPart ? totalRows : partRows.Count,
+                    // The last part also accounts for rows MaxTableRows dropped from the block.
+                    TotalRowCount = lastPart ? partRows.Count + (totalRows - rowList.Count) : partRows.Count,
                     Truncated = truncated && lastPart
                 };
                 string md = RenderMarkdownTable(table);

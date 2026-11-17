@@ -5,22 +5,13 @@ using Xunit;
 namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderExcelChunkingTests {
+    private const int DataRows = 300;
+
     [Fact]
     public void LongSheetMarkdownSplitsBetweenRowsWithoutDroppingAny() {
-        const int dataRows = 300;
-        string path = Path.Combine(Path.GetTempPath(), "reader-excel-chunking-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        const int dataRows = DataRows;
+        string path = CreateNotesWorkbook();
         try {
-            using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddSheet("Notes");
-                sheet.Cell(1, 1).SetValue("Id");
-                sheet.Cell(1, 2).SetValue("Note");
-                for (int row = 2; row <= dataRows + 1; row++) {
-                    sheet.Cell(row, 1).SetValue("row-" + (row - 1));
-                    sheet.Cell(row, 2).SetValue("A note long enough to fill a chunk quickly | with a pipe " + new string('x', 40));
-                }
-                document.Save(path);
-            }
-
             OfficeDocumentReadResult result = new OfficeDocumentReaderBuilder().AddExcelHandler().Build()
                 .ReadDocument(path, new ReaderOptions { MaxChars = 2_000 });
 
@@ -39,5 +30,36 @@ public sealed class ReaderExcelChunkingTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void SplittingABlockCappedByMaxTableRowsKeepsTheOmittedRowCount() {
+        string path = CreateNotesWorkbook();
+        try {
+            OfficeDocumentReadResult result = new OfficeDocumentReaderBuilder().AddExcelHandler().Build()
+                .ReadDocument(path, new ReaderOptions { MaxChars = 2_000, MaxTableRows = 50 });
+
+            ReaderTable[] tables = result.Chunks.Where(chunk => chunk.Tables is { Count: > 0 }).Select(chunk => chunk.Tables![0]).ToArray();
+            Assert.True(tables.Length > 2);
+            Assert.Equal(100, tables.Sum(table => table.Rows.Count));
+            Assert.Equal(DataRows, tables.Sum(table => table.TotalRowCount));
+            Assert.Equal(2, tables.Count(table => table.Truncated));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    private static string CreateNotesWorkbook() {
+        string path = Path.Combine(Path.GetTempPath(), "reader-excel-chunking-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Notes");
+        sheet.Cell(1, 1).SetValue("Id");
+        sheet.Cell(1, 2).SetValue("Note");
+        for (int row = 2; row <= DataRows + 1; row++) {
+            sheet.Cell(row, 1).SetValue("row-" + (row - 1));
+            sheet.Cell(row, 2).SetValue("A note long enough to fill a chunk quickly | with a pipe " + new string('x', 40));
+        }
+        document.Save(path);
+        return path;
     }
 }
