@@ -63,12 +63,16 @@ public class PdfLogicalListNumberingTests {
         Assert.Equal((1, PdfLogicalListNumberFormat.LowerLetter, (int?)9), Describe(Assert.Single(page.ListItems, item => item.Text == "Ninth")));
     }
 
-    [Fact]
-    public void ListMarkers_ReadDecimalDigitsOutsideTheBasicPlane() {
-        PdfLogicalListMarker marker = PdfLogicalListMarker.Parse("\U0001D7DA.");
+    [Theory]
+    [InlineData("\U0001D7DA.", PdfLogicalListNumberFormat.Number, 2)]
+    [InlineData("(aa)", PdfLogicalListNumberFormat.LowerLetter, 27)]
+    [InlineData("(bb)", PdfLogicalListNumberFormat.LowerLetter, 28)]
+    [InlineData("AB.", PdfLogicalListNumberFormat.UpperLetter, 28)]
+    public void ListMarkers_ReadDigitsOutsideTheBasicPlaneAndLettersPastZ(string text, PdfLogicalListNumberFormat format, int ordinal) {
+        PdfLogicalListMarker marker = PdfLogicalListMarker.Parse(text);
 
-        Assert.Equal(PdfLogicalListNumberFormat.Number, marker.Format);
-        Assert.Equal(2, marker.Ordinal);
+        Assert.Equal(format, marker.Format);
+        Assert.Equal(ordinal, marker.Ordinal);
     }
 
     private static (int Level, PdfLogicalListNumberFormat Format, int? Ordinal) Describe(PdfLogicalListItem item) =>

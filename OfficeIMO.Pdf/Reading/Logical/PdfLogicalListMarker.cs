@@ -75,9 +75,34 @@ internal readonly struct PdfLogicalListMarker {
             return new PdfLogicalListMarker(IsLower(core) ? PdfLogicalListNumberFormat.LowerRoman : PdfLogicalListNumberFormat.UpperRoman, roman, prefix, suffix);
         }
 
-        if (core.Length == 1 && core[0] is >= 'a' and <= 'z') return new PdfLogicalListMarker(PdfLogicalListNumberFormat.LowerLetter, core[0] - 'a' + 1, prefix, suffix);
-        if (core.Length == 1 && core[0] is >= 'A' and <= 'Z') return new PdfLogicalListMarker(PdfLogicalListNumberFormat.UpperLetter, core[0] - 'A' + 1, prefix, suffix);
+        if (TryParseLetters(core, out int letters)) {
+            return new PdfLogicalListMarker(IsLower(core) ? PdfLogicalListNumberFormat.LowerLetter : PdfLogicalListNumberFormat.UpperLetter, letters, prefix, suffix);
+        }
         return Bullet;
+    }
+
+    /// <summary>
+    /// Reads "a" to "z", and labels past "z": a repeated letter counts on as Word numbers them ("aa" 27, "bb" 28),
+    /// other pairs count in base 26 ("ab" 28).
+    /// </summary>
+    private static bool TryParseLetters(string value, out int number) {
+        number = 0;
+        if (value.Length is 0 or > 3) return false;
+        char first = value[0];
+        bool lower = first is >= 'a' and <= 'z';
+        if (!lower && first is not (>= 'A' and <= 'Z')) return false;
+        char baseLetter = lower ? 'a' : 'A';
+        bool repeated = true;
+        foreach (char ch in value) {
+            if (ch < baseLetter || ch > baseLetter + 25) return false;
+            repeated &= ch == first;
+        }
+        if (repeated) {
+            number = (value.Length - 1) * 26 + first - baseLetter + 1;
+            return true;
+        }
+        foreach (char ch in value) number = number * 26 + ch - baseLetter + 1;
+        return true;
     }
 
     /// <summary>
