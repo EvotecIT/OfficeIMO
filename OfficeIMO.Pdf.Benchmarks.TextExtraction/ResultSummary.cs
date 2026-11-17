@@ -15,13 +15,23 @@ internal static class ResultSummary {
         // the most recently written result wins.
         var latest = new Dictionary<(string Mode, string Suite, string File, string Engine), Row>();
         int rowCount = 0;
+        int skipped = 0;
         foreach (string path in Directory.EnumerateFiles(output, pattern).OrderBy(static path => File.GetLastWriteTimeUtc(path))) {
             foreach (string[] fields in ReadCsv(path).Skip(1)) {
-                var row = new Row(fields[0], fields[1], fields[2], fields[3], fields[4],
-                    double.Parse(fields[5], CultureInfo.InvariantCulture), double.Parse(fields[6], CultureInfo.InvariantCulture));
+                // A cancelled or still-running shard can leave its last row cut short.
+                if (fields.Length < 7
+                    || !double.TryParse(fields[5], NumberStyles.Float, CultureInfo.InvariantCulture, out double ms)
+                    || !double.TryParse(fields[6], NumberStyles.Float, CultureInfo.InvariantCulture, out double wallMs)) {
+                    skipped++;
+                    continue;
+                }
+                var row = new Row(fields[0], fields[1], fields[2], fields[3], fields[4], ms, wallMs);
                 latest[(row.Mode, row.Suite, row.File, row.Engine)] = row;
                 rowCount++;
             }
+        }
+        if (skipped > 0) {
+            Console.Error.WriteLine($"{skipped} malformed or truncated rows were skipped.");
         }
         if (rowCount > latest.Count) {
             Console.Error.WriteLine($"{rowCount - latest.Count} duplicate rows from overlapping shards were counted once, using the newest result file.");
