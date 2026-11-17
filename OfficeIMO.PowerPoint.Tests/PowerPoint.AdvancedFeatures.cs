@@ -429,6 +429,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ChartAddedToLoadedPresentationAllocatesAxisIdsAboveExistingCharts() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            try {
+                uint existingId;
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
+                    presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
+                        new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 1d }) }));
+                    ChartSpace chart = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!;
+                    // Far ahead of the shared seed, so only reading the loaded deck can move past it.
+                    existingId = PowerPointChartAxisIdGenerator.GetNextId() + 100000U;
+                    uint[] oldIds = chart.Descendants<AxisId>().Select(axis => axis.Val!.Value).Distinct().ToArray();
+                    foreach (AxisId axis in chart.Descendants<AxisId>())
+                        axis.Val = existingId + (uint)Array.IndexOf(oldIds, axis.Val!.Value);
+                    presentation.Save();
+                }
+
+                using PowerPointDocument loaded = PowerPointDocument.Load(filePath);
+                loaded.AddSlide().AddChart(OfficeChartType.ColumnClustered,
+                    new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("New", new[] { 2d }) }));
+                Assert.All(loaded.Slides.Last().SlidePart.ChartParts.Single().ChartSpace!.Descendants<AxisId>(),
+                    axis => Assert.True(axis.Val!.Value > existingId + 1U, $"Axis id {axis.Val!.Value} is not above the loaded deck's ids."));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void BackgroundColor_ReplacesExistingBackgroundImageFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");

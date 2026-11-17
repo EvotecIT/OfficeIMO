@@ -211,6 +211,7 @@ public sealed partial class PdfLogicalPage {
             pageAnalysis,
             includesImages: includeImages, includesFormWidgets: includeFormWidgets);
         logicalPage._visualPrimitiveCountsSource = visualCountsSource;
+        if (annotations.Exists(static annotation => annotation.IsTextMarkup)) logicalPage._markupTextSource = page;
         logicalPage._omittedArtifactTextSpanCountSource = deferredCancellationToken =>
             page.CountOmittedArtifactTextSpans(deferredCancellationToken, recoverDecodableText);
         logicalPage._vectorFiguresSource = vectorFiguresSource ?? (includeImages

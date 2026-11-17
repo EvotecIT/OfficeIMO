@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -27,7 +28,68 @@ public partial class WordDocument {
             _retainedColorScheme = DefaultPackageColorSchemes.GetOrAdd(_defaultPackageType, ReadDefaultPackageColorScheme);
             return;
         }
+        // An unloaded theme is not parsed into a DOM just to keep its color scheme; only that element is read.
+        if (themePart != null && !themePart.IsRootElementLoaded && TryReadUnloadedColorScheme(themePart, out A.ColorScheme? scheme)) {
+            _retainedColorScheme = scheme;
+            return;
+        }
         _retainedColorScheme = ReadColorScheme;
+    }
+
+    /// <summary>
+    /// Reads <c>a:theme/a:themeElements/a:clrScheme</c> (first of each, as the typed accessors resolve it) from the
+    /// part stream. The rest of the part is still read so malformed XML falls back to the DOM and its exception.
+    /// </summary>
+    private static bool TryReadUnloadedColorScheme(ThemePart themePart, out A.ColorScheme? scheme) {
+        const string DrawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        scheme = null;
+        XmlReaderSettings? settings = WordStyleDefinitionsReader.CreateStreamingSettings(themePart);
+        if (settings == null) return false;
+        try {
+            using Stream stream = themePart.GetStream(FileMode.Open, FileAccess.Read);
+            using XmlReader reader = XmlReader.Create(stream, settings);
+            if (reader.MoveToContent() != XmlNodeType.Element || reader.NamespaceURI != DrawingNamespace || reader.LocalName != "theme") return false;
+            string? outerXml = null;
+            bool seenThemeElements = false;
+            if (!reader.IsEmptyElement) {
+                int rootDepth = reader.Depth;
+                reader.Read();
+                while (!reader.EOF && reader.Depth > rootDepth) {
+                    if (reader.NodeType != XmlNodeType.Element) {
+                        reader.Read();
+                        continue;
+                    }
+                    if (reader.Depth == rootDepth + 1 && !seenThemeElements &&
+                        reader.NamespaceURI == DrawingNamespace && reader.LocalName == "themeElements") {
+                        seenThemeElements = true;
+                        if (reader.IsEmptyElement) {
+                            reader.Read();
+                            continue;
+                        }
+                        int elementsDepth = reader.Depth;
+                        reader.Read();
+                        while (!reader.EOF && reader.Depth > elementsDepth) {
+                            if (reader.NodeType != XmlNodeType.Element) {
+                                reader.Read();
+                            } else if (outerXml == null && reader.Depth == elementsDepth + 1 &&
+                                reader.NamespaceURI == DrawingNamespace && reader.LocalName == "clrScheme") {
+                                outerXml = reader.ReadOuterXml();
+                            } else {
+                                reader.Skip();
+                            }
+                        }
+                        continue;
+                    }
+                    reader.Skip();
+                }
+            }
+            while (reader.Read()) {
+            }
+            scheme = outerXml == null ? null : new A.ColorScheme(outerXml);
+            return true;
+        } catch (XmlException) {
+            return false;
+        }
     }
 
     private static A.ColorScheme? ReadDefaultPackageColorScheme(WordprocessingDocumentType documentType) {

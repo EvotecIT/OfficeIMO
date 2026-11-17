@@ -69,6 +69,8 @@ internal static partial class PdfWriter {
         private bool _suppressCanvasAccessibilityWrappers;
         private bool _suppressCanvasStructureRegistration;
         private bool _suppressCanvasActualTextChildren;
+        // Drawings in one pass measure with the same faces; share their parsed canvases.
+        private readonly DrawingTextMeasurementCanvases drawingTextCanvases = new DrawingTextMeasurementCanvases();
         private PageStructElement? _canvasStructureParentElement;
         private readonly System.Collections.Generic.List<FlowSemanticScope> flowSemanticScopes = new System.Collections.Generic.List<FlowSemanticScope>();
         private bool stopDocumentFlow;

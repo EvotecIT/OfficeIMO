@@ -275,7 +275,7 @@ same shape either way. Nested reads inherit the text profile.
 
 ## Nested results and qualified capabilities
 
-ZIP and email reads keep each delegated source's rich result in `NestedDocuments`, alongside the existing
+ZIP, email and PDF attachment reads keep each delegated source's rich result in `NestedDocuments`, alongside the existing
 flattened chunks. Each item supplies its virtual `Path` and complete `Document`, including available links,
 forms, metadata, diagnostics and assets. Identifiers inside a child result remain local to that child.
 Asset payload bytes stay in memory when requested and remain excluded from JSON transport.

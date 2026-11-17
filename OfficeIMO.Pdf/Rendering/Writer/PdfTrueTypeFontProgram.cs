@@ -27,6 +27,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _shortMeasurements = new();
         _shortGlyphRuns = new();
         _scalarCoverageProofs = new();
+        _shapedRuns = new();
         _fontUnitLayoutMetrics = new PdfFontUnitLayoutMetrics(_data);
         LineMetrics = OfficeOpenTypeLineMetrics.TryRead(_data);
         DecorationMetrics = OfficeOpenTypeDecorationMetrics.TryRead(_data);
@@ -76,6 +77,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _shortGlyphRuns = source._shortGlyphRuns;
         _shortMeasurements = source._shortMeasurements;
         _scalarCoverageProofs = source._scalarCoverageProofs;
+        _shapedRuns = source._shapedRuns;
         SharedIdentity = source.SharedIdentity;
         SubsettingForbidden = source.SubsettingForbidden;
     }
@@ -201,7 +203,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             if (cached.SourceShapingResult != null || cached.IsAutomaticallyShaped) options.ProviderShapedTextRecorder?.Invoke(text, FontName, false, true);
             return cached;
         }
-        PdfGlyphRun result = ShapeUncachedText(text, options);
+        PdfGlyphRun result = ShapeAndRecordUsage(text, options, allowMemo: !cacheable);
         if (cacheable && !result.HasMissingGlyphs) _shortGlyphRuns.Add(text, options, result, result.Glyphs.Count);
         return result;
     }
@@ -291,6 +293,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return;
         }
 
+        if (TryCaptureGlyphUsage(glyphId, unicodeScalar, text: null)) return;
+
         lock (_usageLock) {
             RecordGlyphUsageHoldingLock(glyphId, unicodeScalar);
         }
@@ -355,6 +359,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
 
         unicodeText = OfficeArabicTextShaper.ToLogicalText(unicodeText);
+        if (TryCaptureGlyphUsage(glyphId, scalar: 0, unicodeText)) return;
 
         lock (_usageLock) {
             RecordNormalizedGlyphUsage(glyphId, unicodeText);

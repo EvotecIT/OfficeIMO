@@ -8,6 +8,10 @@ public sealed partial class OfficeRasterCanvas {
 
     internal void ShareCffOperationBudget(OfficeRasterCanvas canvas) => ShareCffOperationBudget(canvas._cffOperationBudget);
 
+    // A cached measurement canvas serves several independent callers; each charges its own allowance.
+    internal void UseCffOperationBudget(OfficeCffOperationBudget budget) =>
+        _cffOperationBudget = budget ?? throw new ArgumentNullException(nameof(budget));
+
     internal OfficeCffOperationBudget CreateCffExecutionBudget() => _cffOperationBudget.CreateExecutionScope();
 
     // Reset a transformed run's measurement sequence to match its fresh paint

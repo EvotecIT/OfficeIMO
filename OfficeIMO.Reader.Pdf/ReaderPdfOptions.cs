@@ -22,7 +22,8 @@ public sealed class ReaderPdfOptions {
             IncludeImagePlaceholders = true,
             ImageExportMode = PdfLogicalMarkdownImageExportMode.None,
             IncludeLinkAnnotations = true,
-            IncludeFormWidgets = true
+            IncludeFormWidgets = true,
+            IncludeMarkupAnnotations = true
         }
     };
 
@@ -64,6 +65,14 @@ public sealed class ReaderPdfOptions {
     public double MinimumMixedPageImageAreaRatio { get; set; } = 0.25D;
 
     /// <summary>
+    /// Reads embedded files and portfolio items through the active Reader's handlers as nested documents, sharing the
+    /// operation's nested input, depth and document budgets. Their chunks follow the page chunks and each rich result is
+    /// kept in <see cref="OfficeDocumentReadResult.NestedDocuments"/>. Only reads through an <see cref="OfficeDocumentReader"/>
+    /// with a handler for the attachment can extract it. Default: true.
+    /// </summary>
+    public bool IncludeAttachmentContent { get; set; } = true;
+
+    /// <summary>
     /// Creates a defensive copy for handler registration reuse.
     /// </summary>
     public ReaderPdfOptions Clone() {
@@ -79,7 +88,8 @@ public sealed class ReaderPdfOptions {
             ParagraphContinuationOptions = CloneParagraphContinuationOptions(ParagraphContinuationOptions),
             ChunkByPage = ChunkByPage,
             IncludeMixedPageOcrCandidates = IncludeMixedPageOcrCandidates,
-            MinimumMixedPageImageAreaRatio = MinimumMixedPageImageAreaRatio
+            MinimumMixedPageImageAreaRatio = MinimumMixedPageImageAreaRatio,
+            IncludeAttachmentContent = IncludeAttachmentContent
         };
     }
 
@@ -106,6 +116,7 @@ public sealed class ReaderPdfOptions {
             MaxEmbeddedImageBytes = options.MaxEmbeddedImageBytes,
             IncludeLinkAnnotations = options.IncludeLinkAnnotations,
             IncludeFormWidgets = options.IncludeFormWidgets,
+            IncludeMarkupAnnotations = options.IncludeMarkupAnnotations,
             AlignNumericTableColumns = options.AlignNumericTableColumns,
             PageSeparator = options.PageSeparator
         };

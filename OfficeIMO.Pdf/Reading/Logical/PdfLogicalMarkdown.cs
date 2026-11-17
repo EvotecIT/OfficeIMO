@@ -36,6 +36,10 @@ public sealed class PdfLogicalMarkdownOptions {
     /// <summary>Emit a form widget section for AcroForm widgets placed on pages.</summary>
     public bool IncludeFormWidgets { get; set; }
 
+    /// <summary>Emit an annotation section at the end of each page for Highlight, Underline, StrikeOut and Squiggly annotations,
+    /// with the annotation type, author, the page text it covers and its comment.</summary>
+    public bool IncludeMarkupAnnotations { get; set; }
+
     /// <summary>Right-align table columns in Markdown when all non-empty body cells look numeric.</summary>
     public bool AlignNumericTableColumns { get; set; } = true;
 
@@ -209,7 +213,33 @@ public static class PdfLogicalMarkdownExtensions {
             }
         }
 
+        if (options.IncludeMarkupAnnotations) {
+            // Positionless items sort after the page content, so markup annotations form a section at the end of the page.
+            for (int i = 0; i < page.Annotations.Count; i++) {
+                string? markdown = FormatMarkupAnnotation(page, page.Annotations[i]);
+                if (markdown is not null) items.Add(new MarkdownItem(null, 0, sequence++, markdown));
+            }
+        }
+
         return items;
+    }
+
+    private static string? FormatMarkupAnnotation(PdfLogicalPage page, PdfAnnotation annotation) {
+        if (!annotation.IsTextMarkup) return null;
+        string? covered = CollapseWhitespace(page.GetMarkupText(annotation));
+        string? note = CollapseWhitespace(annotation.Contents ?? annotation.RichContentsPlainText);
+        if (covered is null && note is null) return null;
+        var builder = new StringBuilder("[").Append(annotation.Subtype);
+        string? author = CollapseWhitespace(annotation.Title);
+        if (author is not null) builder.Append(" by ").Append(EscapeInline(author, escapeLinePrefix: false));
+        if (covered is not null) builder.Append(": \"").Append(EscapeInline(covered, escapeLinePrefix: false)).Append('"');
+        if (note is not null) builder.Append("; note: ").Append(EscapeInline(note, escapeLinePrefix: false));
+        return builder.Append(']').ToString();
+    }
+
+    private static string? CollapseWhitespace(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return string.Join(" ", value!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     /// <summary>

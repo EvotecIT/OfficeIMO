@@ -16,6 +16,7 @@ public sealed partial class OfficeWorkflowRouteSettings {
             MaxEmbeddedImageBytes = options.MaxEmbeddedImageBytes,
             IncludeLinkAnnotations = options.IncludeLinkAnnotations,
             IncludeFormWidgets = options.IncludeFormWidgets,
+            IncludeMarkupAnnotations = options.IncludeMarkupAnnotations,
             AlignNumericTableColumns = options.AlignNumericTableColumns,
             PageSeparator = options.PageSeparator
         };
