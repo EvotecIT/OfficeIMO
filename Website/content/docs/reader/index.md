@@ -88,6 +88,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 | Images | Reader.Image | png, jpg, gif, tiff, webp, svg +7 more | ✓ |
 | ZIP archives | Reader.Zip | zip; entries go to the other registered handlers | ✓ |
 | Plain text | Reader.Core | txt, log; plus a fallback for unknown payloads | ✓ |
+| Source code | Reader.Core | cs, ps1, py, js, ts, java, go, rs, c, cpp, sql, sh +62 more; extensionless scripts by their `#!` line | ✓ |
 | OCR enrichment | Reader.Ocr | Adds recognized text to other handlers' candidates | |
 | HTTP input | Reader.Web | `reader.CreateWebReader(...)` with your `HttpClient` | |
 
