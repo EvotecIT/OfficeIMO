@@ -529,28 +529,25 @@ public sealed partial class PdfDocumentConversionResult : IOfficeResult<PdfDocum
     }
 
     private void RefreshConversionReport() {
+        // Appends each source warning that has no equivalent in the result report yet, in source order.
+        // Warnings appended here count as present for later source warnings, so duplicates collapse to the first.
         IReadOnlyList<PdfConversionWarning> sourceWarnings = _sourceReport.Warnings;
+        if (sourceWarnings.Count == 0) {
+            return;
+        }
+
+        IReadOnlyList<PdfConversionWarning> current = Report.Warnings;
+        var known = new HashSet<PdfConversionWarningIdentity>();
+        for (int i = 0; i < current.Count; i++) {
+            known.Add(new PdfConversionWarningIdentity(current[i]));
+        }
+
         for (int i = 0; i < sourceWarnings.Count; i++) {
             PdfConversionWarning warning = sourceWarnings[i];
-            if (!ContainsEquivalentWarning(Report.Warnings, warning)) {
+            if (known.Add(new PdfConversionWarningIdentity(warning))) {
                 Report.Add(warning);
             }
         }
-    }
-
-    private static bool ContainsEquivalentWarning(IReadOnlyList<PdfConversionWarning> warnings, PdfConversionWarning candidate) {
-        for (int i = 0; i < warnings.Count; i++) {
-            PdfConversionWarning warning = warnings[i];
-            if (string.Equals(warning.Converter, candidate.Converter, StringComparison.Ordinal) &&
-                string.Equals(warning.Code, candidate.Code, StringComparison.Ordinal) &&
-                string.Equals(warning.Source, candidate.Source, StringComparison.Ordinal) &&
-                string.Equals(warning.Message, candidate.Message, StringComparison.Ordinal) &&
-                warning.Severity == candidate.Severity && warning.LossKind == candidate.LossKind) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static bool ShouldCaptureSaveDiagnostics(PdfConversionProofOptions options) =>

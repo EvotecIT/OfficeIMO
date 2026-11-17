@@ -109,6 +109,8 @@ namespace OfficeIMO.Excel.Pdf {
                 ? sheetReader.ReadCellStyleIndexes(normalizedRange)
                 : null;
             bool useStreamedStyleIndexes = boundedRead && styleIndexes != null;
+            // Cells share few distinct style indexes, and the workbook styles stay unchanged during this read.
+            var stylesByIndex = new Dictionary<uint, ExcelCellStyleInfo>();
             for (int row = 0; row < rowCount; row++) {
                 for (int column = 0; column < columnCount; column++) {
                     int sourceRow = visibility?.RowOffsets[row] ?? row;
@@ -124,8 +126,8 @@ namespace OfficeIMO.Excel.Pdf {
                     }
 
                     ExcelCellStyleInfo style = useStreamedStyleIndexes
-                        ? workbookSheet.GetCellStyleByIndex(styleIndex!.Value)
-                        : workbookSheet.Cell(firstRow + sourceRow, firstColumn + sourceColumn).GetStyle();
+                        ? workbookSheet.GetCellStyleByIndex(styleIndex!.Value, stylesByIndex)
+                        : workbookSheet.GetCellStyle(firstRow + sourceRow, firstColumn + sourceColumn, stylesByIndex);
                     if (HasPdfExportStyle(style, defaultFontFamily)) {
                         styles[row, column] = style;
                         hasAnyStyle = true;
