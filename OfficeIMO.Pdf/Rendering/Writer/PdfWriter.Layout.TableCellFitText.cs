@@ -140,7 +140,8 @@ internal static partial class PdfWriter {
             PdfTextRun run = line[index];
             string text = run.Text ?? string.Empty;
             if (index != lastTextRun) {
-                pieces.Add((run, index < lastTextRun && text.Length > 0));
+                // Spacing after each glyph would pull joined letters apart, so connected scripts stay unspaced.
+                pieces.Add((run, index < lastTextRun && text.Length > 0 && !UsesTableCellFitTextShapingContext(text)));
                 continue;
             }
 

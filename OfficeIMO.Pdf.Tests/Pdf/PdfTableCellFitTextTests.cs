@@ -42,6 +42,36 @@ public sealed class PdfTableCellFitTextTests {
     }
 
     [Fact]
+    public void FitTextSpreadsOnlyTheDigitsAfterAConnectedScriptRun() {
+        // The spacing that widens the line goes to the digits; spacing the Arabic word would pull its joined letters apart.
+        var runs = new[] { PdfTextRun.Normal("\u0633\u0644\u0627\u0645"), PdfTextRun.Normal(" 12") };
+        var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, fitText: true) });
+        var table = new PdfTableStyle {
+            HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0),
+            BorderWidth = global::OfficeIMO.OfficeLength.Points(0), FontSize = global::OfficeIMO.OfficeLength.Points(12)
+        };
+        byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "NotoSansArabic-Regular.ttf"));
+        var options = new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Noto Arabic");
+        byte[] bytes = PdfDocument.Create(builder => builder.Content(content =>
+            content.Canvas(canvas => canvas.Table(new[] { new[] { cell } }, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30),
+                global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(120), table))), options).ToBytes();
+
+        string content = PdfTestContentText.ReadDecoded(bytes);
+        double[] spacings = System.Text.RegularExpressions.Regex.Matches(content, @"(-?[0-9.]+) Tc\b")
+            .Cast<System.Text.RegularExpressions.Match>()
+            .Select(match => double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        using var pdf = PdfPigDocument.Open(bytes);
+        var arabic = pdf.GetPage(1).Letters.Where(letter => letter.Value.Any(ch => (ch >= 0x0600 && ch <= 0x06FF) || (ch >= 0xFB50 && ch <= 0xFEFF)))
+            .OrderBy(letter => letter.StartBaseLine.X).ToArray();
+
+        Assert.Contains(spacings, spacing => spacing > 1D);
+        Assert.NotEmpty(arabic);
+        for (int index = 1; index < arabic.Length; index++) {
+            Assert.InRange(arabic[index].StartBaseLine.X - arabic[index - 1].EndBaseLine.X, -0.5D, 0.5D);
+        }
+    }
+
+    [Fact]
     public void FitTextRefitsAuthoredLinesThatContinueIntoAWiderColumn() {
         string text = string.Join("\n", Enumerable.Range(1, 24).Select(index => "Line" + index.ToString("D2")));
         var runs = new[] { PdfTextRun.Normal(text) };
