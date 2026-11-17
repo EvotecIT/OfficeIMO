@@ -40,12 +40,13 @@ public sealed class PdfClippedImageImportTests {
         AssertEveryTargetCarriesOneImage(logical, ImageSize, ImageSize, Red, Blue);
     }
 
-    [Fact]
-    public void ClipThatCutsIntoTheImageCropsItToTheVisiblePixels() {
-        // The clip keeps the left half of the placement, which shows the red source columns.
-        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateSplitImagePdf("20 30 40 40", "80 0 0 40 20 30"));
+    [Theory]
+    [InlineData("20 30 40 40", ImageSize / 2)] // the left half of the placement: the red source columns
+    [InlineData("20 30 8 40", 1)]              // exactly one source pixel wide
+    public void ClipThatCutsIntoTheImageCropsItToTheVisiblePixels(string clip, int width) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateSplitImagePdf(clip, "80 0 0 40 20 30"));
 
-        AssertEveryTargetCarriesOneImage(logical, ImageSize / 2, ImageSize, Red, Red);
+        AssertEveryTargetCarriesOneImage(logical, width, ImageSize, Red, Red);
     }
 
     [Fact]
@@ -123,6 +124,26 @@ public sealed class PdfClippedImageImportTests {
             WordImage image = Assert.Single(word.Value.Images);
             Assert.True(image.HorizontalFlip);
             AssertPixels(image.ToBytes(), ImageSize / 2, ImageSize, Blue, Blue);
+        }
+
+        string html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile()).Value;
+        Assert.Contains("height=\"10\" style=\"transform:scale(-1,1);\">", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EachCropKeepsItsReadingPositionAroundText() {
+        // The left half is drawn above the text and the right half below it.
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
+            "q 20 110 40 40 re W n q 80 0 0 40 20 110 cm /Im1 Do Q Q\n" +
+            "BT /F1 12 Tf 20 85 Td (Between the crops) Tj ET\n" +
+            "q 60 20 40 40 re W n q 80 0 0 40 20 20 cm /Im1 Do Q Q\n"));
+
+        string html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile()).Value;
+        foreach (string output in new[] { logical.ExtractMarkdown(), html }) {
+            int text = output.IndexOf("Between the crops", StringComparison.Ordinal);
+            Assert.True(text > 0, output);
+            Assert.True(HasPixels(Assert.Single(ExtractDataUris(output.Substring(0, text))), ImageSize / 2, ImageSize, Red, Red));
+            Assert.True(HasPixels(Assert.Single(ExtractDataUris(output.Substring(text))), ImageSize / 2, ImageSize, Blue, Blue));
         }
     }
 
@@ -263,7 +284,7 @@ public sealed class PdfClippedImageImportTests {
         Write(output, "%PDF-1.7\n");
         Write(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         Write(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
-        Write(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] " + pageEntries + " /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        Write(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] " + pageEntries + " /Resources << /XObject << /Im1 5 0 R >> /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 4 0 R >>\nendobj\n");
         Write(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         Write(output, "endstream\nendobj\n");

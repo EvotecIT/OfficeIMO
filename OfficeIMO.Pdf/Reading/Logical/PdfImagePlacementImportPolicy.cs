@@ -376,9 +376,11 @@ internal static class PdfImagePlacementImportPolicy {
                     placement.D < 0D ? fractionTop : fractionBottom);
 
                 // A clip that leaves less than one whole source pixel has nothing safe to show. The unrounded size is
-                // checked first, because rounding both trimmed edges can still leave one pixel.
-                if ((image.Width > 0 && (1D - fractionLeft - fractionRight) * image.Width < 1D) ||
-                    (image.Height > 0 && (1D - fractionTop - fractionBottom) * image.Height < 1D) ||
+                // checked first, because rounding both trimmed edges can still leave one pixel. The small margin keeps
+                // an exactly one-pixel crop that floating-point arithmetic lands just below 1.
+                const double WholePixel = 1D - 1e-9D;
+                if ((image.Width > 0 && (1D - fractionLeft - fractionRight) * image.Width < WholePixel) ||
+                    (image.Height > 0 && (1D - fractionTop - fractionBottom) * image.Height < WholePixel) ||
                     (image.Width > 0 && image.Width - ToPixels(crop.SourceLeft, image.Width) - ToPixels(crop.SourceRight, image.Width) < 1) ||
                     (image.Height > 0 && image.Height - ToPixels(crop.SourceTop, image.Height) - ToPixels(crop.SourceBottom, image.Height) < 1)) {
                     crop = null;
