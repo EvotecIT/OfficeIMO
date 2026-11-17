@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
                 int index = value < Start ? 0 : value > End ? Labels.Items.Count - 1
                     : IntegerRange ? Math.Min((int)Math.Floor((value - Start) / Interval) + 1,
                         Labels.Items.Count - 2)
-                    : Math.Min((int)decimal.Floor(((decimal)value - DecimalStart) / DecimalInterval) + 1,
+                    : Math.Min((int)decimal.Floor((OfficeDecimalConversion.FromDouble(value) - DecimalStart) / DecimalInterval) + 1,
                         Labels.Items.Count - 2);
                 return Labels.Items[index];
             }
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     index = (int)offset;
                 } else {
-                    decimal offset = ((decimal)number - DecimalStart) / DecimalInterval;
+                    decimal offset = (OfficeDecimalConversion.FromDouble(number) - DecimalStart) / DecimalInterval;
                     if (offset != decimal.Truncate(offset) || offset < 0 || offset >= Labels.Items.Count - 2)
                         return false;
                     index = (int)offset;
@@ -75,8 +75,8 @@ namespace OfficeIMO.Excel {
             return new PivotNumericGrouping {
                 Start = start, End = end, Interval = interval,
                 IntegerRange = integerRange,
-                DecimalStart = integerRange ? 0 : (decimal)start,
-                DecimalInterval = integerRange ? 0 : (decimal)interval,
+                DecimalStart = integerRange ? 0 : OfficeDecimalConversion.FromDouble(start),
+                DecimalInterval = integerRange ? 0 : OfficeDecimalConversion.FromDouble(interval),
                 SavedItems = items, Labels = new PivotFieldValues(labels),
                 SourceGrouping = ExcelPivotGrouping.Number(field.Name?.Value ?? string.Empty, interval, start, end)
             };
@@ -88,9 +88,9 @@ namespace OfficeIMO.Excel {
                 || !TryGetNumericGroupSpan(start, end, interval, out int span))
                 return null;
             bool integerRange = IsIntegerNumericGroup(start, end, interval);
-            decimal decimalStart = integerRange ? 0 : (decimal)start;
-            decimal decimalEnd = integerRange ? 0 : (decimal)end;
-            decimal decimalInterval = integerRange ? 0 : (decimal)interval;
+            decimal decimalStart = integerRange ? 0 : OfficeDecimalConversion.FromDouble(start);
+            decimal decimalEnd = integerRange ? 0 : OfficeDecimalConversion.FromDouble(end);
+            decimal decimalInterval = integerRange ? 0 : OfficeDecimalConversion.FromDouble(interval);
             var labels = new List<PivotFieldValue>(span + 2) {
                 PivotFieldValue.FromText("<" + (integerRange ? FormatIntegerGroupNumber(start)
                     : start.ToString("R", CultureInfo.InvariantCulture)))
@@ -135,9 +135,9 @@ namespace OfficeIMO.Excel {
                 span = (int)integerCount;
                 return true;
             }
-            decimal decimalInterval = (decimal)interval;
+            decimal decimalInterval = OfficeDecimalConversion.FromDouble(interval);
             if (decimalInterval <= 0) return false;
-            decimal count = decimal.Ceiling(((decimal)end - (decimal)start) / decimalInterval);
+            decimal count = decimal.Ceiling((OfficeDecimalConversion.FromDouble(end) - OfficeDecimalConversion.FromDouble(start)) / decimalInterval);
             if (count < 1 || count > 99_998) return false;
             span = (int)count;
             return true;

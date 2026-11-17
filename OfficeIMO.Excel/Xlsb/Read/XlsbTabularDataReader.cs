@@ -654,7 +654,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             }
 
             try {
-                value = (decimal)number;
+                value = OfficeDecimalConversion.FromDouble(number);
                 return true;
             } catch (OverflowException) {
                 value = default;

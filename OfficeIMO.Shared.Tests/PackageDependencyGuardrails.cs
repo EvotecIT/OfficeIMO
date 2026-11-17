@@ -512,6 +512,8 @@ public sealed class PackageDependencyGuardrailTests {
                 "OfficeIMO.SharedSource/IO/OfficeFileCommitClaim.cs",
                 "OfficeIMO.SharedSource/IO/PooledUtf8TextWriter.Bytes.cs",
                 "OfficeIMO.SharedSource/IO/PooledUtf8TextWriter.cs",
+                "OfficeIMO.SharedSource/Numerics/OfficeDecimalConversion.cs",
+                "OfficeIMO.SharedSource/Numerics/OfficeRounding.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlContractMappings.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlHiddenData.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",

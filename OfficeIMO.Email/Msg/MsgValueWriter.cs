@@ -32,7 +32,7 @@ internal static class MsgValueWriter {
             case MapiPropertyType.Floating64:
                 return EncodeDouble(Convert.ToDouble(value, CultureInfo.InvariantCulture));
             case MapiPropertyType.Currency:
-                return EncodeInt64(decimal.ToInt64(Convert.ToDecimal(value, CultureInfo.InvariantCulture) * 10000m));
+                return EncodeInt64(decimal.ToInt64(OfficeDecimalConversion.FromObject(value, CultureInfo.InvariantCulture) * 10000m));
             case MapiPropertyType.FloatingTime:
                 return EncodeDouble(ConvertDateTime(value).ToOADate());
             case MapiPropertyType.Boolean:

@@ -470,7 +470,7 @@ internal static class YamlSchemaResolver {
         if (IsNaN(s) || IsInfinity(s.Slice(i))) return false;
         if (schema == YamlSchema.Yaml11 && s.IndexOf(':') >= 0) {
             if (!TryParseSexagesimalFloat(s, out double approximate)) return false;
-            value = (decimal)approximate;
+            value = OfficeDecimalConversion.FromDouble(approximate);
             return true;
         }
         return ParseDecimalText(s, out value);

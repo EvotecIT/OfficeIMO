@@ -211,7 +211,7 @@ public sealed class OutlookUserPropertyCollection : IReadOnlyCollection<OutlookU
                 break;
             case OutlookUserPropertyType.Currency:
                 if (IsNumeric(value)) return new NormalizedValue(MapiPropertyType.Currency,
-                    Convert.ToDecimal(value, CultureInfo.InvariantCulture));
+                    OfficeDecimalConversion.FromObject(value, CultureInfo.InvariantCulture));
                 break;
             case OutlookUserPropertyType.Boolean:
                 if (value is bool boolean) return new NormalizedValue(MapiPropertyType.Boolean, boolean);

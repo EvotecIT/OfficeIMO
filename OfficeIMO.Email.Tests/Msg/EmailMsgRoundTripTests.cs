@@ -4,6 +4,19 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailMsgRoundTripTests {
+    // 0.29 is stored as a double just below 0.29; scaling its full binary value by 10000 would
+    // truncate the currency to 0.2899.
+    [Fact]
+    public void CurrencyPropertiesGivenAsDoublesKeepTheirDecimalValue() {
+        var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "Currency" };
+        source.MapiProperties.Add(new MapiProperty(0x66AB, MapiPropertyType.Currency, 0.29d));
+
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(bytes);
+
+        Assert.Equal(0.29m, result.Document.MapiProperties.Single(property => property.PropertyId == 0x66AB).Value);
+    }
+
     [Fact]
     public void RoundTripsMessageRecipientsAttachmentsEmbeddedMessagesAndUnknownProperties() {
         EmailDocument child = new EmailDocument {

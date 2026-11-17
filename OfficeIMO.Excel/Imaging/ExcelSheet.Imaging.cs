@@ -732,7 +732,7 @@ namespace OfficeIMO.Excel {
                 return options.DefaultRowHeight.ToPixels();
             }
 
-            return Math.Max(1D, Math.Round(definition.StoredHeight.Value * 96D / 72D, 2));
+            return Math.Max(1D, OfficeRounding.Round(definition.StoredHeight.Value * 96D / 72D, 2));
         }
 
         private sealed class WorksheetImageRangeResolution {

@@ -759,7 +759,7 @@ public static partial class ParallelRowMappingExtensions {
         private TValue ConvertValue<TValue>(int ordinal) {
             object value = GetValue(ordinal);
             if (value is TValue typed) return typed;
-            return (TValue)Convert.ChangeType(value, typeof(TValue), _schema.Culture);
+            return (TValue)OfficeDecimalConversion.ChangeType(value, typeof(TValue), _schema.Culture)!;
         }
 
         private static long CopyField<TValue>(

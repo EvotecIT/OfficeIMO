@@ -643,7 +643,7 @@ public sealed partial class StructuredDataReader : DbDataReader {
     };
 
     /// <inheritdoc />
-    public override decimal GetDecimal(int ordinal) => System.Convert.ToDecimal(GetValue(ordinal), CultureInfo.InvariantCulture);
+    public override decimal GetDecimal(int ordinal) => OfficeDecimalConversion.FromObject(GetValue(ordinal), CultureInfo.InvariantCulture);
 
     /// <inheritdoc />
     public override double GetDouble(int ordinal) => System.Convert.ToDouble(GetValue(ordinal), CultureInfo.InvariantCulture);
