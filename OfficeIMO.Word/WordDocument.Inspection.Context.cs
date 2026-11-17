@@ -13,6 +13,8 @@ namespace OfficeIMO.Word {
             internal bool IncludeImageBytes { get; set; } = true;
             internal CancellationToken CancellationToken { get; set; }
             internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
+            /// <summary>Styles read from the unloaded styles part for this pass, or null when the loaded DOM is used.</summary>
+            internal WordStyleDefinitionsReader.StyleDefinitionSet? StreamedStyles { get; set; }
             internal IReadOnlyDictionary<WordParagraph, WordDocumentTraversal.ResolvedListMarker> ListMarkers { get; }
             private Dictionary<(string? CharacterStyleId, string? ParagraphStyleId, bool? Caps, bool? SmallCaps), WordCapsStyle> CapsStyles { get; } = new();
 
@@ -20,11 +22,11 @@ namespace OfficeIMO.Word {
             internal WordCapsStyle CapsStyleFor(WordParagraph paragraph) {
                 var direct = paragraph.GetDirectCapsOverrides();
                 if (direct.Caps.HasValue && direct.SmallCaps.HasValue)
-                    return paragraph.ResolveEffectiveCapsStyle(direct);
+                    return paragraph.ResolveEffectiveCapsStyle(direct, StreamedStyles);
                 var key = (CharacterStyleId: paragraph.CharacterStyleId, ParagraphStyleId: paragraph.StyleId,
                     Caps: direct.Caps, SmallCaps: direct.SmallCaps);
                 if (!CapsStyles.TryGetValue(key, out WordCapsStyle style)) {
-                    style = paragraph.ResolveEffectiveCapsStyle(direct);
+                    style = paragraph.ResolveEffectiveCapsStyle(direct, StreamedStyles);
                     CapsStyles.Add(key, style);
                 }
                 return style;
