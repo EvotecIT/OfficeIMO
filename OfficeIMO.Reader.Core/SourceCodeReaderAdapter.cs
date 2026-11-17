@@ -187,6 +187,7 @@ internal static class SourceCodeReaderAdapter {
         }
         string fence = new('`', Math.Max(3, longestRun + 1));
         string body = code.EndsWith("\n", StringComparison.Ordinal) ? code : code + "\n";
-        return fence + (language ?? string.Empty) + "\n" + body + fence;
+        // The closing fence ends its line, so continuation chunks joined into document Markdown open a new fence.
+        return fence + (language ?? string.Empty) + "\n" + body + fence + "\n";
     }
 }

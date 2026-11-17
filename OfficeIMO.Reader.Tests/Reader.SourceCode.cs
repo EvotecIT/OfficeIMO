@@ -22,7 +22,7 @@ public sealed class ReaderSourceCodeTests {
         Assert.Contains(OfficeDocumentReaderBuilderSourceCodeExtensions.HandlerId, result.CapabilitiesUsed);
         ReaderChunk chunk = Assert.Single(result.Chunks);
         Assert.Equal("function Get-Fence {\n    '```'\n}\n", chunk.Text);
-        Assert.Equal("````powershell\nfunction Get-Fence {\n    '```'\n}\n````", chunk.Markdown);
+        Assert.Equal("````powershell\nfunction Get-Fence {\n    '```'\n}\n````\n", chunk.Markdown);
         Assert.Equal((1, 3), (chunk.Location.StartLine, chunk.Location.EndLine));
         OfficeDocumentMetadataEntry language = Assert.Single(result.Metadata, entry => entry.Id == "source-code-language");
         Assert.Equal("powershell", language.Value);
@@ -50,6 +50,12 @@ public sealed class ReaderSourceCodeTests {
         }
         Assert.Contains(result.Chunks, chunk => !chunk.Text.EndsWith("\n", StringComparison.Ordinal) && chunk.Location.StartLine == 21);
         Assert.Equal(41, result.Chunks[result.Chunks.Count - 1].Location.EndLine);
+
+        // The document Markdown keeps one closed fence per chunk; no fence line runs into the next one.
+        string[] fenceLines = result.Markdown!.Split('\n').Where(text => text.StartsWith("```", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(result.Chunks.Count * 2, fenceLines.Length);
+        Assert.All(fenceLines.Where((_, index) => index % 2 == 0), text => Assert.Equal("```csharp", text));
+        Assert.All(fenceLines.Where((_, index) => index % 2 == 1), text => Assert.Equal("```", text));
     }
 
     [Fact]
