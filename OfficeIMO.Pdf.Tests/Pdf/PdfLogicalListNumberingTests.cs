@@ -24,7 +24,7 @@ public class PdfLogicalListNumberingTests {
     }
 
     [Fact]
-    public void Read_KeepsFlatListsFlatAcrossRightAlignedMarkersAndInterveningParagraphs() {
+    public void Read_KeepsFlatListsFlatAcrossMarkerWidthsAndInterveningParagraphs() {
         var flat = new PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Zero, SpacingAfter = global::OfficeIMO.OfficeLength.Zero };
         var indented = new PdfListStyle { LeftIndent = global::OfficeIMO.OfficeLength.Points(18), SpacingBefore = global::OfficeIMO.OfficeLength.Zero, SpacingAfter = global::OfficeIMO.OfficeLength.Zero };
         var numbers = new PdfListStyle {
@@ -41,10 +41,15 @@ public class PdfLogicalListNumberingTests {
         document.AddList(new[] { "Reduce backlog" }, style: flat);
         document.AddParagraph("Then, on its own:", style: tight);
         document.AddList(new[] { "Archive exports" }, style: indented);
+        // Left-aligned labels followed by a space: the text after "100." starts two digits right of the text after "1.".
+        document.AddParagraph("Numbered by hand:", style: tight);
+        document.AddList(new[] { new PdfListItem("Opening", marker: "1.") }, style: flat);
+        document.AddList(new[] { new PdfListItem("Middle", marker: "2.") }, style: flat);
+        document.AddList(new[] { new PdfListItem("Closing", marker: "100.") }, style: flat);
 
         PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(document.ToBytes(), new PdfTextLayoutOptions { ForceSingleColumn = true }).Pages);
 
-        Assert.All(new[] { "Scope", "Review", "Reduce backlog", "Archive exports" },
+        Assert.All(new[] { "Scope", "Review", "Reduce backlog", "Archive exports", "Opening", "Closing" },
             text => Assert.Equal(1, Assert.Single(page.ListItems, item => item.Text == text).Level));
     }
 

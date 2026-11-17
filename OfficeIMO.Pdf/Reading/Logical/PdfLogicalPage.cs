@@ -828,39 +828,47 @@ public sealed partial class PdfLogicalPage {
 
     private static void AssignGroupLevels(List<PdfLogicalListItem> items, int start, int end, HashSet<PdfLogicalListItem> eligible) {
         if (end - start < 2) return;
-        var positions = new double[end - start];
+        var markers = new double[end - start];
+        var bodies = new double[end - start];
         bool measured = true;
         double size = 0D;
         for (int index = start; index < end; index++) {
             if (!eligible.Contains(items[index])) return;
-            if (TryGetBodyStart(items[index], out double body)) positions[index - start] = body;
+            markers[index - start] = items[index].Line.XStart;
+            if (TryGetBodyStart(items[index], out double body)) bodies[index - start] = body;
             else measured = false;
             size = Math.Max(size, items[index].Line.FontSize);
         }
-        // The item text shows the nesting; the marker start moves with the marker width when labels are
-        // right-aligned ("i." and "viii.").
-        if (!measured) {
-            for (int index = start; index < end; index++) positions[index - start] = items[index].Line.XStart;
-        }
 
-        // A nesting step is wider than the difference one marker character makes.
+        // A nested item moves both its marker and its text right. Labels of different widths move only one of them:
+        // the marker when labels are right-aligned ("i." and "viii."), the text when a space follows a left-aligned
+        // label ("1." and "100.").
         double step = Math.Max(6D, size * 0.75D);
+        int[] markerLevels = IndentationLevels(markers, step);
+        int[] bodyLevels = measured ? IndentationLevels(bodies, step) : markerLevels;
+        for (int index = start; index < end; index++) {
+            PdfLogicalListItem item = items[index];
+            item.Level = Math.Max(item.Level, Math.Min(markerLevels[index - start], bodyLevels[index - start]));
+        }
+    }
+
+    /// <summary>Numbers distinct indentations from 1; a nesting step is wider than one marker character.</summary>
+    private static int[] IndentationLevels(double[] positions, double step) {
         double[] indents = (double[])positions.Clone();
         Array.Sort(indents);
         var levelStarts = new List<double> { indents[0] };
         for (int i = 1; i < indents.Length; i++) {
             if (indents[i] - levelStarts[levelStarts.Count - 1] > step) levelStarts.Add(indents[i]);
         }
-        if (levelStarts.Count < 2) return;
 
-        for (int index = start; index < end; index++) {
-            PdfLogicalListItem item = items[index];
-            int indentLevel = 1;
+        var levels = new int[positions.Length];
+        for (int index = 0; index < positions.Length; index++) {
+            levels[index] = 1;
             for (int level = 1; level < levelStarts.Count; level++) {
-                if (positions[index - start] - levelStarts[level] >= -step / 2D) indentLevel = level + 1;
+                if (positions[index] - levelStarts[level] >= -step / 2D) levels[index] = level + 1;
             }
-            item.Level = Math.Max(item.Level, indentLevel);
         }
+        return levels;
     }
 
     /// <summary>Where the item's text starts after its marker; the line start when the line holds no marker.</summary>
