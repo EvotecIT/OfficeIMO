@@ -1,5 +1,6 @@
 using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Features;
 using DocumentFormat.OpenXml.Packaging;
 
 namespace OfficeIMO.PowerPoint {
@@ -9,7 +10,22 @@ namespace OfficeIMO.PowerPoint {
         // OfficeIMO match what the desktop client produces.
         private const long BaseAxisId = 48650112L;
 
-        internal static void Initialize(PresentationPart presentationPart) {
+        /// <summary>
+        /// Raises the shared seed above the axis identifiers already in this package before it
+        /// allocates new ones. Loading does not pay for this: it parses every chart part, and
+        /// reading or converting a presentation never allocates an axis identifier.
+        /// </summary>
+        internal static void EnsureSeeded(OpenXmlPackage package) {
+            if (package is not PresentationDocument document) return;
+            PowerPointDocument? owner = document.Features.Get<PowerPointDocument>();
+            if (owner != null) {
+                if (owner.ChartAxisSeedApplied) return;
+                owner.ChartAxisSeedApplied = true;
+            }
+            Initialize(document.PresentationPart!);
+        }
+
+        private static void Initialize(PresentationPart presentationPart) {
             if (presentationPart == null) {
                 return;
             }
