@@ -21,7 +21,8 @@ namespace OfficeIMO.Word {
             using var styleCatalogScope = WordListNumberingResolver.BeginReadOnlyPass(this);
             var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup(),
                 WordDocumentTraversal.BuildResolvedListMarkers(this)) {
-                IncludeImageBytes = includeImageBytes, CancellationToken = cancellationToken
+                IncludeImageBytes = includeImageBytes, CancellationToken = cancellationToken,
+                StreamedStyles = WordListNumberingResolver.GetCachedStyleCatalog(this).StreamedStyleDefinitions
             };
             var snapshot = new WordDocumentInfo {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
@@ -365,6 +366,19 @@ namespace OfficeIMO.Word {
 
         private IReadOnlyDictionary<string, string?> BuildParagraphStyleNameLookup() {
             var lookup = new Dictionary<string, string?>(StringComparer.Ordinal);
+            // The pass's style catalog already read an unloaded styles part as a stream; reuse it rather than load the DOM.
+            WordStyleDefinitionsReader.StyleDefinitionSet? streamed =
+                WordListNumberingResolver.GetCachedStyleCatalog(this).StreamedStyleDefinitions;
+            if (streamed != null) {
+                foreach (WordStyleDefinitionsReader.StyleDefinition candidate in streamed.Styles) {
+                    string? styleId = candidate.StyleId;
+                    if (!string.IsNullOrWhiteSpace(styleId) && !lookup.ContainsKey(styleId!)) {
+                        lookup.Add(styleId!, candidate.Name);
+                    }
+                }
+                return lookup;
+            }
+
             var styles = _wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (styles == null) return lookup;
 
