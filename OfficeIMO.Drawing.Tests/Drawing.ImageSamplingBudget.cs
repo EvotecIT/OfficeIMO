@@ -31,23 +31,24 @@ public sealed class DrawingImageSamplingBudgetTests {
     [InlineData(2)]
     public void MinificationIncludesOutputAndFloatScratchInTheSharedPixelBudget(int route) {
         var source = new OfficeRasterImage(16, 16, OfficeColor.Red);
-        var canvas = new OfficeRasterCanvas(new OfficeRasterImage(8, 8));
-        canvas.ChargeIntermediateSurfacePixels(256, 831);
-        void Draw() {
+        OfficeRasterCanvas Draw(long maximumPixels) {
+            var output = new OfficeRasterImage(8, 8);
+            var canvas = new OfficeRasterCanvas(output);
+            canvas.ChargeIntermediateSurfacePixels(256, maximumPixels);
             if (route == 0) canvas.DrawImage(source, new OfficeImageProjection(new OfficeImagePlacement(0, 0, 8, 8)));
             else canvas.DrawAffineImage(source, OfficeTransform.Scale(.5D, .5D), 1D,
                 route == 1 ? OfficeBlendMode.Normal : OfficeBlendMode.Multiply);
+            Assert.Equal(OfficeColor.Red, output.GetPixel(4, 4));
+            return canvas;
         }
-        Assert.Throws<OfficeImageExportLimitException>(Draw);
-        Assert.Equal(256, canvas.TransformedTextBudget.IntermediatePixels);
 
-        var exact = new OfficeRasterCanvas(new OfficeRasterImage(8, 8));
-        exact.ChargeIntermediateSurfacePixels(256, 832);
-        if (route == 0) exact.DrawImage(source, new OfficeImageProjection(new OfficeImagePlacement(0, 0, 8, 8)));
-        else exact.DrawAffineImage(source, OfficeTransform.Scale(.5D, .5D), 1D,
-            route == 1 ? OfficeBlendMode.Normal : OfficeBlendMode.Multiply);
         // 256 decoded pixels + 64 destination pixels + 512 floats of four bytes each.
-        Assert.Equal(832, exact.TransformedTextBudget.IntermediatePixels);
+        Assert.Equal(832, Draw(832).TransformedTextBudget.IntermediatePixels);
+        // Without room for the float scratch, whole 2x2 blocks are averaged instead:
+        // 64 destination pixels + one row of eight four-channel double accumulators.
+        Assert.Equal(384, Draw(831).TransformedTextBudget.IntermediatePixels);
+        Assert.Equal(384, Draw(384).TransformedTextBudget.IntermediatePixels);
+        Assert.Throws<OfficeImageExportLimitException>(() => Draw(383));
     }
 
     [Fact]
