@@ -36,6 +36,65 @@ public sealed class ReaderPdfAttachmentsAndMarkupTests {
         Assert.Contains("Embedded quarterly notes", attachmentChunk.Markdown ?? attachmentChunk.Text, StringComparison.Ordinal);
         Assert.Equal(1, attachmentChunk.Location.Page);
         Assert.Same(result.Chunks[result.Chunks.Count - 1], attachmentChunk);
+        // The chunk's source identity describes the attachment bytes, not the containing PDF.
+        Assert.Equal(Sha256(inner), attachmentChunk.SourceHash);
+        Assert.NotEqual(result.Chunks[0].SourceHash, attachmentChunk.SourceHash);
+    }
+
+    [Fact]
+    public void ReadDocument_KeepsAttachmentTablesOutOfTheContainingPdfPages() {
+        byte[] inner = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.AddText("Attached table"))
+            .Table(new[] { new[] { "Code", "Name", "Qty" }, new[] { "A-100", "Alpha", "2" }, new[] { "B-200", "Beta", "14" } },
+                style: new PdfTableStyle { HeaderRowCount = 1 })
+            .ToBytes();
+        PdfDocument outer = PdfDocument.Create(new PdfCreateOptions().AddEmbeddedFile("table.pdf", inner, "application/pdf"));
+        outer.Paragraph(paragraph => paragraph.AddText("Cover page without tables"));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(outer.ToBytes(), "outer.pdf");
+
+        Assert.NotEmpty(Assert.Single(result.NestedDocuments).Document.Tables);
+        Assert.Empty(result.Tables);
+        Assert.Empty(Assert.Single(result.Pages).Tables);
+    }
+
+    [Fact]
+    public void ReadDocument_RootsAnAttachmentsOwnAttachmentsAtTheOutermostSource() {
+        PdfDocument middle = PdfDocument.Create(new PdfCreateOptions().AddEmbeddedFile("leaf.pdf", CreatePdf("Leaf content"), "application/pdf"));
+        middle.Paragraph(paragraph => paragraph.AddText("Middle content"));
+        PdfDocument outer = PdfDocument.Create(new PdfCreateOptions().AddEmbeddedFile("middle.pdf", middle.ToBytes(), "application/pdf"));
+        outer.Paragraph(paragraph => paragraph.AddText("Outer content"));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(outer.ToBytes(), "outer.pdf");
+
+        const string middlePath = "outer.pdf!/attachments/0000/middle.pdf";
+        const string leafPath = middlePath + "!/attachments/0000/leaf.pdf";
+        OfficeDocumentNestedResult middleResult = Assert.Single(result.NestedDocuments);
+        Assert.Equal(middlePath, middleResult.Path);
+        Assert.Equal(leafPath, Assert.Single(middleResult.Document.NestedDocuments).Path);
+        Assert.Contains("Middle content", Assert.Single(result.Chunks, chunk => chunk.Location.Path == middlePath).Markdown, StringComparison.Ordinal);
+        Assert.Contains("Leaf content", Assert.Single(result.Chunks, chunk => chunk.Location.Path == leafPath).Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadDocument_EnforcesThePdfAggregateAttachmentLimitAcrossAttachments() {
+        byte[] first = CreatePdf("First attachment");
+        byte[] second = CreatePdf("Second attachment");
+        PdfDocument outer = PdfDocument.Create(new PdfCreateOptions()
+            .AddEmbeddedFile("first.pdf", first, "application/pdf")
+            .AddEmbeddedFile("second.pdf", second, "application/pdf"));
+        outer.Paragraph(paragraph => paragraph.AddText("Cover page"));
+        // Each attachment fits on its own; together they exceed the document's attachment allowance.
+        var pdfOptions = new ReaderPdfOptions {
+            LoadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxTotalAttachmentBytes = Math.Max(first.Length, second.Length) + 16 } }
+        };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler(pdfOptions).Build();
+
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => reader.ReadDocument(outer.ToBytes(), "outer.pdf"));
+
+        Assert.Equal("Pdf.AttachmentBytes", error.LimitName);
     }
 
     [Fact]
@@ -110,6 +169,11 @@ public sealed class ReaderPdfAttachmentsAndMarkupTests {
             "[StrikeOut: \"Operating costs stayed flat\"]",
             markdown.Replace("\r\n", "\n").Replace("\n", Environment.NewLine), StringComparison.Ordinal);
         Assert.DoesNotContain("General remark", markdown, StringComparison.Ordinal);
+    }
+
+    private static string Sha256(byte[] bytes) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        return string.Concat(sha.ComputeHash(bytes).Select(value => value.ToString("x2", System.Globalization.CultureInfo.InvariantCulture)));
     }
 
     private static byte[] CreatePdf(string text) {

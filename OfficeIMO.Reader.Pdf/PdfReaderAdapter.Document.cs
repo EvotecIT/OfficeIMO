@@ -176,7 +176,9 @@ internal static partial class PdfReaderAdapter {
         string markdown = BuildMarkdown(pages, markdownOptions);
         ReaderChunk[] chunks = Read(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken, pdf)
             .Concat(BuildInspectionWarningChunks(inspection, source)).ToArray();
-        ReaderTable[] tables = DocumentReaderEngine.ExtractTables(chunks, cancellationToken).ToArray();
+        // Attachment tables and visuals belong to their nested documents, not to this PDF's pages.
+        ReaderChunk[] ownChunks = chunks.Where(chunk => !IsAttachmentChunk(chunk, source)).ToArray();
+        ReaderTable[] tables = DocumentReaderEngine.ExtractTables(ownChunks, cancellationToken).ToArray();
         OfficeDocumentBlock[] blocks = BuildDocumentBlocks(pages, source).ToArray();
         OfficeDocumentAsset[] assets = BuildDocumentAssets(pages, source).ToArray();
         OfficeDocumentLink[] links = BuildDocumentLinks(pages, source).ToArray();
@@ -207,7 +209,7 @@ internal static partial class PdfReaderAdapter {
             Links = links,
             Forms = forms,
             OcrCandidates = ocrCandidates,
-            Visuals = chunks
+            Visuals = ownChunks
                 .Where(chunk => chunk.Visuals != null)
                 .SelectMany(chunk => chunk.Visuals!)
                 .ToArray(),

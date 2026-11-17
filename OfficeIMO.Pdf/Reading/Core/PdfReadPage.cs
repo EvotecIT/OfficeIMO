@@ -136,7 +136,7 @@ public sealed partial class PdfReadPage {
         GetInteractionTextSpans(int.MaxValue, int.MaxValue, default);
 
     internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans(int maximumSpans, int maximumCharacters,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         (double Width, double Height) size = GetVisualPageSize();
@@ -162,7 +162,8 @@ public sealed partial class PdfReadPage {
             useLogicalTextFilters: true,
             includeArtifactText: true,
             onTextSpan: ChargeSpan,
-            cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested,
+            onUnmappableText: onUnmappableText);
     }
 
     // Only MediaBox and CropBox decide the boundary box, so skip reading the rest of the page geometry.

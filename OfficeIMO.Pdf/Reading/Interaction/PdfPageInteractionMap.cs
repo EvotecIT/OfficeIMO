@@ -286,10 +286,13 @@ public sealed partial class PdfPageInteractionMap {
         double pageHeight,
         PdfPageInteractionOptions options,
         List<PdfPageInteractionRegion> regions,
-        Func<PdfContentOrderKey?, string?> watermarkIdentity) {
-        IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
+        Func<PdfContentOrderKey?, string?> watermarkIdentity,
+        IReadOnlyList<PdfTextSpan>? sourceSpans = null,
+        CancellationToken cancellationToken = default) {
+        IReadOnlyList<PdfTextSpan> spans = sourceSpans ?? page.GetInteractionTextSpans();
         int textIndex = 0;
         for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfTextSpan span = spans[spanIndex];
             bool ocrText = span.TextRenderingMode == 3 && !span.IsType3Font && options.IncludeTextRenderingMode3;
             if (string.IsNullOrEmpty(span.Text) || (!span.IsVisible && !options.IncludeInvisibleText && !ocrText)) {
