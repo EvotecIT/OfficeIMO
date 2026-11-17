@@ -11,7 +11,9 @@ internal static partial class PdfReaderAdapter {
         IReadOnlyList<PdfAttachmentInfo> attachments = document.Attachments;
         if (attachments.Count == 0) yield break;
         bool portfolio = pdf.Portfolio is not null;
-        var attachmentBudget = new AttachmentByteBudget(pdf.ReadOptions.Limits.MaxTotalAttachmentBytes);
+        // The document was opened with the load contract; the semantic read contract can tighten its limits further.
+        PdfReadLimits limits = GetEffectiveReadOptions(readerOptions, pdfOptions).Limits;
+        var attachmentBudget = new AttachmentByteBudget(limits.MaxTotalAttachmentBytes, limits.MaxDecodedStreamBytes);
         for (int index = 0; index < attachments.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfAttachmentInfo attachment = attachments[index];
@@ -64,13 +66,17 @@ internal static partial class PdfReaderAdapter {
         if (remainingAttachmentBytes <= 0) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.AttachmentBytes, attachmentBudget.Maximum, attachmentBudget.Maximum + 1L);
         }
-        bool aggregateLimited = remainingAttachmentBytes < maximum;
-        maximum = Math.Min(maximum, remainingAttachmentBytes);
+        bool streamLimited = attachmentBudget.MaxDecodedStreamBytes < Math.Min(maximum, remainingAttachmentBytes);
+        bool aggregateLimited = !streamLimited && remainingAttachmentBytes < maximum;
+        maximum = Math.Min(maximum, Math.Min(remainingAttachmentBytes, attachmentBudget.MaxDecodedStreamBytes));
 
         byte[] payload;
         try {
             payload = pdf.Attachments.Extract(attachment, Math.Max(1L, maximum), cancellationToken).PayloadWithoutCopy;
         } catch (PdfReadLimitException error) when (error.Kind == PdfReadLimitKind.AttachmentBytes && error.Limit == maximum) {
+            if (streamLimited) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedStreamBytes, attachmentBudget.MaxDecodedStreamBytes, error.Actual);
+            }
             if (aggregateLimited) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.AttachmentBytes, attachmentBudget.Maximum,
                     attachmentBudget.Maximum - remainingAttachmentBytes + error.Actual);
@@ -125,12 +131,14 @@ internal static partial class PdfReaderAdapter {
         path is not null && (string.Equals(path, containerPath, StringComparison.Ordinal) ||
             path.StartsWith(containerPath + "!/", StringComparison.Ordinal));
 
-    // Charges each distinct embedded stream once against PdfReadLimits.MaxTotalAttachmentBytes for the whole document.
+    // Charges each distinct embedded stream once against the effective MaxTotalAttachmentBytes for the whole document
+    // and carries the effective per-stream decode limit.
     private sealed class AttachmentByteBudget {
         private readonly HashSet<int> _charged = new HashSet<int>();
         private long _used;
-        internal AttachmentByteBudget(long maximum) { Maximum = maximum; }
+        internal AttachmentByteBudget(long maximum, long maxDecodedStreamBytes) { Maximum = maximum; MaxDecodedStreamBytes = maxDecodedStreamBytes; }
         internal long Maximum { get; }
+        internal long MaxDecodedStreamBytes { get; }
         internal long Remaining(PdfAttachmentInfo attachment) =>
             IsCharged(attachment) ? long.MaxValue : Maximum - _used;
         internal void Charge(PdfAttachmentInfo attachment, long bytes) {

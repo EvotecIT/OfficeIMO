@@ -78,8 +78,11 @@ public sealed class ReaderPdfAttachmentsAndMarkupTests {
         Assert.Contains("Leaf content", Assert.Single(result.Chunks, chunk => chunk.Location.Path == leafPath).Markdown, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void ReadDocument_EnforcesThePdfAggregateAttachmentLimitAcrossAttachments() {
+    // Limits apply whether they arrive with the load contract or only with the semantic read contract.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadDocument_EnforcesThePdfAggregateAttachmentLimitAcrossAttachments(bool throughReadOptions) {
         byte[] first = CreatePdf("First attachment");
         byte[] second = CreatePdf("Second attachment");
         PdfDocument outer = PdfDocument.Create(new PdfCreateOptions()
@@ -87,14 +90,28 @@ public sealed class ReaderPdfAttachmentsAndMarkupTests {
             .AddEmbeddedFile("second.pdf", second, "application/pdf"));
         outer.Paragraph(paragraph => paragraph.AddText("Cover page"));
         // Each attachment fits on its own; together they exceed the document's attachment allowance.
-        var pdfOptions = new ReaderPdfOptions {
-            LoadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxTotalAttachmentBytes = Math.Max(first.Length, second.Length) + 16 } }
-        };
+        var limited = new PdfLoadOptions { Limits = new PdfReadLimits { MaxTotalAttachmentBytes = Math.Max(first.Length, second.Length) + 16 } };
+        var pdfOptions = throughReadOptions ? new ReaderPdfOptions { ReadOptions = limited } : new ReaderPdfOptions { LoadOptions = limited };
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler(pdfOptions).Build();
 
         ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => reader.ReadDocument(outer.ToBytes(), "outer.pdf"));
 
         Assert.Equal("Pdf.AttachmentBytes", error.LimitName);
+    }
+
+    [Fact]
+    public void ReadDocument_AppliesTheReadContractsDecodedStreamLimitToAttachments() {
+        byte[] inner = CreatePdf("Attachment larger than the stream limit");
+        PdfDocument outer = PdfDocument.Create(new PdfCreateOptions().AddEmbeddedFile("inner.pdf", inner, "application/pdf"));
+        outer.Paragraph(paragraph => paragraph.AddText("Cover page"));
+        var pdfOptions = new ReaderPdfOptions {
+            ReadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = inner.Length - 1 } }
+        };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPdfHandler(pdfOptions).Build();
+
+        ReaderAdmissionLimitException error = Assert.Throws<ReaderAdmissionLimitException>(() => reader.ReadDocument(outer.ToBytes(), "outer.pdf"));
+
+        Assert.Equal("Pdf.DecodedStreamBytes", error.LimitName);
     }
 
     [Fact]
