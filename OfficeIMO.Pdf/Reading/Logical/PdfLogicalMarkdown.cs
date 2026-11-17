@@ -227,7 +227,7 @@ public static class PdfLogicalMarkdownExtensions {
         PdfLogicalImage image = page.Images[imageIndex];
         PdfImagePlacementImportAssessment assessment = PdfImagePlacementImportPolicy.Analyze(page, image, placement);
         if (assessment.IsSuppressed) return string.Empty;
-        var cropKey = GetVisibleCropKey(imageIndex, assessment.Crop);
+        var cropKey = GetVisibleCropKey(image, imageIndex, assessment);
         if (emittedCrops?.Contains(cropKey) == true) return string.Empty;
         if (options.ImageExportMode != PdfLogicalMarkdownImageExportMode.None &&
             assessment.CanImport &&
@@ -251,31 +251,40 @@ public static class PdfLogicalMarkdownExtensions {
         return allowPlaceholder && options.IncludeImagePlaceholders ? FormatImagePlaceholder(image) : string.Empty;
     }
 
-    private static (int Image, int Left, int Top, int Right, int Bottom) GetVisibleCropKey(int imageIndex, PdfImagePlacementCrop? crop) {
-        const double scale = 10000D;
-        return crop is null
-            ? (imageIndex, 0, 0, 0, 0)
-            : (imageIndex,
-                (int)Math.Round(crop.SourceLeft * scale),
-                (int)Math.Round(crop.SourceTop * scale),
-                (int)Math.Round(crop.SourceRight * scale),
-                (int)Math.Round(crop.SourceBottom * scale));
+    private static (int Image, int Left, int Top, int Right, int Bottom) GetVisibleCropKey(
+        PdfLogicalImage image,
+        int imageIndex,
+        PdfImagePlacementImportAssessment assessment) {
+        (int left, int top, int right, int bottom) = PdfImagePlacementImportPolicy.GetVisibleCropPixels(image.Width, image.Height, assessment);
+        return (imageIndex, left, top, right, bottom);
     }
 
     private static string WriteImageFile(PdfLogicalImage image, int imageIndex, PdfImagePlacement placement, byte[] bytes, string extension, PdfLogicalMarkdownOptions options) {
         string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
         Directory.CreateDirectory(directory);
-        // Page number and image position on the page keep names unique within one export; resource names can
-        // collide after sanitizing, so they are not used.
+        // Page number and image position keep names readable; resource names can collide after sanitizing, so they
+        // are not used. The content hash keeps exports that share a directory from replacing each other's images:
+        // a name that already exists holds the same bytes.
         var name = new StringBuilder("pdf-p");
         name.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture)).Append("-image");
         name.Append((imageIndex + 1).ToString(CultureInfo.InvariantCulture));
         int placementIndex = 0;
         while (placementIndex < image.Placements.Count && !ReferenceEquals(image.Placements[placementIndex], placement)) placementIndex++;
         if (placementIndex > 0) name.Append('-').Append((placementIndex + 1).ToString(CultureInfo.InvariantCulture));
+        name.Append('-');
+#if NET6_0_OR_GREATER
+        byte[] hash = System.Security.Cryptography.SHA256.HashData(bytes);
+#else
+        byte[] hash;
+        using (var sha256 = System.Security.Cryptography.SHA256.Create()) {
+            hash = sha256.ComputeHash(bytes);
+        }
+#endif
+        for (int i = 0; i < 8; i++) name.Append(hash[i].ToString("x2", CultureInfo.InvariantCulture));
         string normalizedExtension = string.IsNullOrEmpty(extension) ? ".png" : (extension[0] == '.' ? extension : "." + extension);
         string fileName = name.Append(normalizedExtension).ToString();
-        File.WriteAllBytes(Path.Combine(directory, fileName), bytes);
+        string path = Path.Combine(directory, fileName);
+        if (!File.Exists(path)) File.WriteAllBytes(path, bytes);
         return fileName;
     }
 

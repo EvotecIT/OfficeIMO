@@ -183,8 +183,10 @@ internal static class PdfRtfConverter {
                     continue;
                 }
 
+                // Bounds are in page user space; /UserUnit scales them to physical points.
                 (double x, double y, double width, double height) = assessment.GetVisibleBounds(placement);
-                images.Add(new PageImage(format, pictureBytes, y + height, width, height,
+                double userUnit = page.UserUnit.GetValueOrDefault(1D);
+                images.Add(new PageImage(format, pictureBytes, y + height, width * userUnit, height * userUnit,
                     PdfCore.PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)));
             }
         }

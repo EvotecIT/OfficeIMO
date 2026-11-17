@@ -779,99 +779,122 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalImage image,
         PdfHtmlExportOptions options,
         long retainedHtmlCharacters) {
-        bool hasSafePlacement = TrySelectSafeImagePlacement(
-            page,
-            image,
-            options,
-            out PdfCore.PdfImagePlacementImportAssessment assessment,
-            out bool hasVisiblePlacement,
-            out PdfCore.PdfImagePlacement? selectedPlacement);
+        List<(PdfCore.PdfImagePlacementImportAssessment Assessment, PdfCore.PdfImagePlacement Placement)> safePlacements =
+            CollectSafeImagePlacements(page, image, options, out bool hasVisiblePlacement);
         if (!hasVisiblePlacement) return string.Empty;
-        if (hasSafePlacement && page.RotationDegrees % 360 != 0) {
+        if (safePlacements.Count > 0 && page.RotationDegrees % 360 != 0) {
             ReportHtmlImagePageRotationOmission(image, options);
-            hasSafePlacement = false;
+            safePlacements.Clear();
         }
 
         // An image that cannot be embedded is reported in the conversion report. It adds body text only when the
         // caller explicitly asked for placeholder output.
-        bool placeholderOnly = options.ImageExportMode == PdfHtmlImageExportMode.PlaceholderOnly;
-        string? source = null;
-        // The figure markup around the data URI needs room in the same output budget.
-        const int FigureMarkupAllowance = 1024;
-        int remainingCharacters = options.MaximumOutputCharacters is { } maximum
-            ? (int)Math.Min(int.MaxValue, Math.Max(0L, maximum - retainedHtmlCharacters - FigureMarkupAllowance))
-            : int.MaxValue;
-        if (!placeholderOnly &&
-            (!hasSafePlacement || !TryBuildEmbeddedImageDataUri(image, assessment, options, remainingCharacters, out source))) {
-            return string.Empty;
+        if (options.ImageExportMode == PdfHtmlImageExportMode.PlaceholderOnly) {
+            return RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+                options.EmittedImagePlaceholderCount++;
+                AppendImageFigureStart(builder, image);
+                builder.Append("<figcaption>Image: ");
+                AppendHtmlText(builder, image.ResourceName);
+                builder.Append(" (");
+                builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
+                builder.Append('x');
+                builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+                if (!string.IsNullOrWhiteSpace(image.MimeType)) {
+                    builder.Append(", ");
+                    AppendHtmlText(builder, image.MimeType!);
+                }
+
+                builder.Append(")</figcaption></figure>");
+            });
         }
 
+        // Each distinct visible crop becomes its own figure. The figure markup is measured without its data URI, so
+        // the URI gets exactly the output budget that remains.
+        var figures = new List<(PdfCore.PdfImagePlacementImportAssessment Assessment, PdfCore.PdfImagePlacement Placement, string Source)>();
+        long figureCharacters = 0L;
+        foreach ((PdfCore.PdfImagePlacementImportAssessment assessment, PdfCore.PdfImagePlacement placement) in safePlacements) {
+            int markupCharacters = 0;
+            int remainingCharacters = int.MaxValue;
+            if (options.MaximumOutputCharacters is { } maximum) {
+                var markup = new StringBuilder();
+                AppendEmbeddedImageFigure(markup, image, assessment, placement, string.Empty);
+                markupCharacters = markup.Length;
+                remainingCharacters = (int)Math.Min(int.MaxValue,
+                    Math.Max(0L, maximum - retainedHtmlCharacters - figureCharacters - markupCharacters));
+            }
+
+            if (!TryBuildEmbeddedImageDataUri(image, assessment, options, remainingCharacters, out string? source)) continue;
+            figures.Add((assessment, placement, source!));
+            figureCharacters += markupCharacters + source!.Length;
+        }
+
+        if (figures.Count == 0) return string.Empty;
         return RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
-            options.EmittedImagePlaceholderCount++;
-            builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
-            builder.Append(HtmlAttribute(image.ResourceName));
-            builder.Append("\" data-page-number=\"");
-            builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
-            builder.Append("\">");
-            if (source != null) {
+            foreach ((PdfCore.PdfImagePlacementImportAssessment assessment, PdfCore.PdfImagePlacement placement, string source) in figures) {
+                options.EmittedImagePlaceholderCount++;
                 ReportHtmlImagePlacementAssessment(image, assessment, options, imageEmbedded: true);
-                (int pixelWidth, int pixelHeight) = PdfCore.PdfImagePlacementImportPolicy.GetVisiblePixelSize(image.Width, image.Height, assessment);
-                builder.Append("<img src=\"");
-                builder.Append(HtmlAttribute(source));
-                builder.Append("\" alt=\"");
-                builder.Append(HtmlAttribute(PdfCore.PdfImagePlacementImportPolicy.GetAlternativeText(image, selectedPlacement)));
-                builder.Append("\" width=\"");
-                builder.Append(pixelWidth.ToString(CultureInfo.InvariantCulture));
-                builder.Append("\" height=\"");
-                builder.Append(pixelHeight.ToString(CultureInfo.InvariantCulture));
-                AppendHtmlImageEffectStyle(builder, assessment, selectedPlacement);
-                builder.Append("\"></figure>");
-                return;
+                AppendEmbeddedImageFigure(builder, image, assessment, placement, source);
             }
-
-            builder.Append("<figcaption>Image: ");
-            AppendHtmlText(builder, image.ResourceName);
-            builder.Append(" (");
-            builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
-            builder.Append('x');
-            builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
-            if (!string.IsNullOrWhiteSpace(image.MimeType)) {
-                builder.Append(", ");
-                AppendHtmlText(builder, image.MimeType!);
-            }
-
-            builder.Append(")</figcaption></figure>");
         });
     }
 
-    private static bool TrySelectSafeImagePlacement(
+    private static void AppendImageFigureStart(StringBuilder builder, PdfCore.PdfLogicalImage image) {
+        builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
+        builder.Append(HtmlAttribute(image.ResourceName));
+        builder.Append("\" data-page-number=\"");
+        builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
+        builder.Append("\">");
+    }
+
+    private static void AppendEmbeddedImageFigure(
+        StringBuilder builder,
+        PdfCore.PdfLogicalImage image,
+        PdfCore.PdfImagePlacementImportAssessment assessment,
+        PdfCore.PdfImagePlacement placement,
+        string source) {
+        AppendImageFigureStart(builder, image);
+        (int pixelWidth, int pixelHeight) = PdfCore.PdfImagePlacementImportPolicy.GetVisiblePixelSize(image.Width, image.Height, assessment);
+        builder.Append("<img src=\"");
+        builder.Append(HtmlAttribute(source));
+        builder.Append("\" alt=\"");
+        builder.Append(HtmlAttribute(PdfCore.PdfImagePlacementImportPolicy.GetAlternativeText(image, placement)));
+        builder.Append("\" width=\"");
+        builder.Append(pixelWidth.ToString(CultureInfo.InvariantCulture));
+        builder.Append("\" height=\"");
+        builder.Append(pixelHeight.ToString(CultureInfo.InvariantCulture));
+        AppendHtmlImageEffectStyle(builder, assessment, placement);
+        builder.Append("\"></figure>");
+    }
+
+    /// <summary>
+    /// Reports every placement's assessment and returns the importable placements with distinct visible crops, in
+    /// page order. One image drawn through different clips shows different pixels; repeats of one crop are dropped.
+    /// </summary>
+    private static List<(PdfCore.PdfImagePlacementImportAssessment Assessment, PdfCore.PdfImagePlacement Placement)> CollectSafeImagePlacements(
         PdfCore.PdfLogicalPage page,
         PdfCore.PdfLogicalImage image,
         PdfHtmlExportOptions options,
-        out PdfCore.PdfImagePlacementImportAssessment selected,
-        out bool hasVisiblePlacement,
-        out PdfCore.PdfImagePlacement? selectedPlacement) {
-        selected = PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null);
-        selectedPlacement = null;
+        out bool hasVisiblePlacement) {
+        var selected = new List<(PdfCore.PdfImagePlacementImportAssessment Assessment, PdfCore.PdfImagePlacement Placement)>();
         hasVisiblePlacement = false;
         if (image.Placements.Count == 0) {
-            ReportHtmlImagePlacementAssessment(image, selected, options);
-            return false;
+            ReportHtmlImagePlacementAssessment(image, PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement: null), options);
+            return selected;
         }
 
-        bool found = false;
+        HashSet<(int Left, int Top, int Right, int Bottom)>? crops = null;
         for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
-            PdfCore.PdfImagePlacementImportAssessment assessment =
-                PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, image.Placements[placementIndex]);
+            PdfCore.PdfImagePlacement placement = image.Placements[placementIndex];
+            PdfCore.PdfImagePlacementImportAssessment assessment = PdfCore.PdfImagePlacementImportPolicy.Analyze(page, image, placement);
             ReportHtmlImagePlacementAssessment(image, assessment, options);
             hasVisiblePlacement |= !assessment.IsSuppressed;
-            if (!found && assessment.CanImport) {
-                selected = assessment;
-                selectedPlacement = image.Placements[placementIndex];
-                found = true;
+            if (assessment.CanImport &&
+                (crops ??= new HashSet<(int Left, int Top, int Right, int Bottom)>()).Add(
+                    PdfCore.PdfImagePlacementImportPolicy.GetVisibleCropPixels(image.Width, image.Height, assessment))) {
+                selected.Add((assessment, placement));
             }
         }
-        return found;
+        return selected;
     }
 
     private static void AppendHtmlImageEffectStyle(

@@ -49,18 +49,50 @@ public sealed class PdfClippedImageImportTests {
     }
 
     [Fact]
-    public void MarkdownExportsEachDistinctCropOfOneImageResourceOnce() {
+    public void MarkdownAndHtmlExportEachDistinctCropOfOneImageResourceOnce() {
         // The same image is drawn three times: its left half, its right half, and its left half again elsewhere.
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
             "q 20 30 40 40 re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\n" +
             "q 60 90 40 40 re W n q 80 0 0 40 20 90 cm /Im1 Do Q Q\n" +
             "q 40 0 40 20 re W n q 80 0 0 20 40 0 cm /Im1 Do Q Q\n"));
 
-        List<byte[]> images = ExtractDataUris(logical.ExtractMarkdown()).ToList();
+        string html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile()).Value;
+        foreach (string output in new[] { logical.ExtractMarkdown(), html }) {
+            List<byte[]> images = ExtractDataUris(output).ToList();
+            Assert.Equal(2, images.Count);
+            Assert.Contains(images, static bytes => HasPixels(bytes, ImageSize / 2, ImageSize, Red, Red));
+            Assert.Contains(images, static bytes => HasPixels(bytes, ImageSize / 2, ImageSize, Blue, Blue));
+        }
+    }
 
-        Assert.Equal(2, images.Count);
-        Assert.Contains(images, static bytes => HasPixels(bytes, ImageSize / 2, ImageSize, Red, Red));
-        Assert.Contains(images, static bytes => HasPixels(bytes, ImageSize / 2, ImageSize, Blue, Blue));
+    [Fact]
+    public void MarkdownImageFilesFromSeparateExportsShareADirectoryWithoutReplacingEachOther() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-markdown-" + Guid.NewGuid().ToString("N"));
+        try {
+            var options = new PdfLogicalMarkdownOptions { ImageExportMode = PdfLogicalMarkdownImageExportMode.File, ImageDirectory = directory };
+            // Both documents name their only image the same way by page and position; only the pixels differ.
+            string left = PdfDocumentReadResult.Load(CreateSplitImagePdf("20 30 40 40", "80 0 0 40 20 30")).ExtractMarkdown(options);
+            string right = PdfDocumentReadResult.Load(CreateSplitImagePdf("60 30 40 40", "80 0 0 40 20 30")).ExtractMarkdown(options);
+
+            AssertPixels(File.ReadAllBytes(Path.Combine(directory, GetImageFileName(left))), ImageSize / 2, ImageSize, Red, Red);
+            AssertPixels(File.ReadAllBytes(Path.Combine(directory, GetImageFileName(right))), ImageSize / 2, ImageSize, Blue, Blue);
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RtfPictureSizeAppliesThePageUserUnit() {
+        // /UserUnit 2 makes the 80 x 40 unit placement (and its 40 x 40 unit crop) twice as large in physical points.
+        foreach ((string clip, int widthTwips) in new[] { ("0 0 160 160", 80 * 2 * 20), ("20 30 40 40", 40 * 2 * 20) }) {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
+                "q " + clip + " re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\n", pageEntries: "/UserUnit 2"));
+
+            using RtfDocument rtf = logical.ToRtf();
+            RtfImage picture = Assert.IsType<RtfImage>(Assert.Single(rtf.Paragraphs.SelectMany(static paragraph => paragraph.Inlines)));
+            Assert.Equal(widthTwips, picture.DesiredWidthTwips);
+            Assert.Equal(40 * 2 * 20, picture.DesiredHeightTwips);
+        }
     }
 
     [Fact]
@@ -76,10 +108,11 @@ public sealed class PdfClippedImageImportTests {
         }
     }
 
-    [Fact]
-    public void NonRectangularClipIsReportedWithoutBodyText() {
-        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(
-            CreateSplitImagePdf(clip: null, "80 0 0 40 20 30", clipPath: "20 30 m 100 30 l 60 70 l h W n"));
+    [Theory]
+    [InlineData(null, "20 30 m 100 30 l 60 70 l h W n")] // not a rectangle
+    [InlineData("47.2 30 5.6 40", null)]                   // leaves 0.7 of a source pixel; each trimmed edge rounds down
+    public void ClipThatCannotBeRepresentedIsReportedWithoutBodyText(string? clip, string? clipPath) {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateSplitImagePdf(clip, "80 0 0 40 20 30", clipPath));
 
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
@@ -152,6 +185,11 @@ public sealed class PdfClippedImageImportTests {
         Assert.Equal(right, raster.GetPixel(width - 1, height / 2));
     }
 
+    private static string GetImageFileName(string markdown) {
+        int start = markdown.IndexOf("](", StringComparison.Ordinal) + 2;
+        return markdown.Substring(start, markdown.IndexOf(')', start) - start);
+    }
+
     private static bool HasPixels(byte[] bytes, int width, int height, OfficeColor left, OfficeColor right) =>
         OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? raster) &&
         raster!.Width == width && raster.Height == height &&
@@ -174,7 +212,7 @@ public sealed class PdfClippedImageImportTests {
         CreateImagePdf("q " + (clipPath ?? (clip == null ? string.Empty : clip + " re W n ")) + " q " + matrix + " cm /Im1 Do Q Q\n");
 
     /// <summary>A 160 pt page whose content stream draws the split image resource <c>/Im1</c>.</summary>
-    private static byte[] CreateImagePdf(string content) {
+    private static byte[] CreateImagePdf(string content, string pageEntries = "") {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
         byte[] pixels = new byte[ImageSize * ImageSize * 3];
         for (int y = 0; y < ImageSize; y++) {
@@ -191,7 +229,7 @@ public sealed class PdfClippedImageImportTests {
         Write(output, "%PDF-1.7\n");
         Write(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
         Write(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n");
-        Write(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        Write(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 160 160] " + pageEntries + " /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
         Write(output, "4 0 obj\n<< /Length " + contentBytes.Length + " >>\nstream\n");
         output.Write(contentBytes, 0, contentBytes.Length);
         Write(output, "endstream\nendobj\n");

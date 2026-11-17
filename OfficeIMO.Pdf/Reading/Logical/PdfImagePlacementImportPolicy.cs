@@ -275,6 +275,19 @@ internal static class PdfImagePlacementImportPolicy {
             Math.Max(1, height - ToPixels(crop.SourceTop, height) - ToPixels(crop.SourceBottom, height)));
     }
 
+    /// <summary>
+    /// Source pixels the visible payload trims from each edge of an image of the given size, all zero when the whole
+    /// image is visible. Placements with the same trims export the same pixels.
+    /// </summary>
+    internal static (int Left, int Top, int Right, int Bottom) GetVisibleCropPixels(int width, int height, PdfImagePlacementImportAssessment assessment) {
+        if (assessment.Crop is not { } crop) return (0, 0, 0, 0);
+        return (
+            ToPixels(crop.SourceLeft, width),
+            ToPixels(crop.SourceTop, height),
+            ToPixels(crop.SourceRight, width),
+            ToPixels(crop.SourceBottom, height));
+    }
+
     private static int ToPixels(double fraction, int pixels) =>
         Math.Max(0, Math.Min(pixels, (int)Math.Round(fraction * pixels, MidpointRounding.AwayFromZero)));
 
@@ -352,8 +365,11 @@ internal static class PdfImagePlacementImportPolicy {
                     placement.A < 0D ? fractionLeft : fractionRight,
                     placement.D < 0D ? fractionTop : fractionBottom);
 
-                // A clip that leaves less than one whole source pixel has nothing safe to show.
-                if ((image.Width > 0 && image.Width - ToPixels(crop.SourceLeft, image.Width) - ToPixels(crop.SourceRight, image.Width) < 1) ||
+                // A clip that leaves less than one whole source pixel has nothing safe to show. The unrounded size is
+                // checked first, because rounding both trimmed edges can still leave one pixel.
+                if ((image.Width > 0 && (1D - fractionLeft - fractionRight) * image.Width < 1D) ||
+                    (image.Height > 0 && (1D - fractionTop - fractionBottom) * image.Height < 1D) ||
+                    (image.Width > 0 && image.Width - ToPixels(crop.SourceLeft, image.Width) - ToPixels(crop.SourceRight, image.Width) < 1) ||
                     (image.Height > 0 && image.Height - ToPixels(crop.SourceTop, image.Height) - ToPixels(crop.SourceBottom, image.Height) < 1)) {
                     crop = null;
                     return false;
