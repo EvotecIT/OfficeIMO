@@ -82,42 +82,29 @@ public sealed partial class OfficeRasterCanvas {
             return cached;
         }
         long cost = OfficeRasterResampler.GetAdditionalHighQualityPixelBufferCost(image.Width, image.Height, width, height);
+        long retainedBytes = checked((long)Width * Height * 4L);
+        // A single area pass needs float scratch proportional to the source height (or width).
+        // When that does not fit the remaining budget, average the source one row at a time instead.
+        // Not cached: a later render with room for the single pass should get that result.
         if (cost > _transformedTextBudget.GetRemainingIntermediateSurfacePixels(long.MaxValue) &&
-            TryPrefilterInBoxStages(image, width, height, out OfficeRasterImage staged)) {
-            // Not cached: a later render with room for the single area pass should get that result.
-            return staged;
-        }
+            TryMinifyByStreamingArea(image, width, height, retainedBytes, out OfficeRasterImage streamed)) return streamed;
         _transformedTextBudget.ChargeIntermediateSurfacePixels(cost);
         OfficeRasterImage filtered = OfficeRasterResampler.Resize(image, width, height, OfficeRasterResamplingMode.Area,
-            OfficeRasterResamplingColorSpace.EncodedSrgb, checked((long)Width * Height * 4L), _cancellationToken);
+            OfficeRasterResamplingColorSpace.EncodedSrgb, retainedBytes, _cancellationToken);
         ImageCache?.AddFiltered(image, width, height, filtered);
         return filtered;
     }
 
-    // A large source minified in one area pass needs float scratch proportional to the
-    // source height (or width). When that does not fit the remaining budget, average whole
-    // source blocks first and finish with a short area pass from the reduced image.
-    private bool TryPrefilterInBoxStages(OfficeRasterImage image, int width, int height, out OfficeRasterImage filtered) {
+    private bool TryMinifyByStreamingArea(OfficeRasterImage image, int width, int height, long retainedBytes,
+        out OfficeRasterImage filtered) {
         filtered = image;
-        int factorX = Math.Max(1, image.Width / width);
-        int factorY = Math.Max(1, image.Height / height);
-        if (factorX == 1 && factorY == 1) return false;
-        long boxCost = OfficeRasterResampler.GetIntegerBoxReductionPixelCost(image.Width, image.Height, factorX, factorY);
-        int boxWidth = (int)((image.Width + (long)factorX - 1L) / factorX);
-        int boxHeight = (int)((image.Height + (long)factorY - 1L) / factorY);
-        long finishCost = boxWidth == width && boxHeight == height
-            ? 0L
-            : OfficeRasterResampler.GetAdditionalHighQualityPixelBufferCost(boxWidth, boxHeight, width, height);
-        if (boxCost > _transformedTextBudget.GetRemainingIntermediateSurfacePixels(long.MaxValue) - finishCost) return false;
-        _transformedTextBudget.ChargeIntermediateSurfacePixels(boxCost);
-        OfficeRasterImage reduced = OfficeRasterResampler.ReduceByIntegerBox(image, factorX, factorY, _cancellationToken);
-        if (finishCost == 0L) {
-            filtered = reduced;
-            return true;
-        }
-        _transformedTextBudget.ChargeIntermediateSurfacePixels(finishCost);
-        filtered = OfficeRasterResampler.Resize(reduced, width, height, OfficeRasterResamplingMode.Area,
-            OfficeRasterResamplingColorSpace.EncodedSrgb, checked((long)Width * Height * 4L), _cancellationToken);
+        long cost = OfficeRasterResampler.GetStreamingAreaPixelCost(width, height);
+        // The same managed ceiling as the single pass, counting the canvas and the decoded source.
+        if (cost > _transformedTextBudget.GetRemainingIntermediateSurfacePixels(long.MaxValue) ||
+            !OfficeRasterResampler.TryGetStreamingAreaWorkingSetBytes(image.Width, image.Height, width, height,
+                retainedBytes, out _)) return false;
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(cost);
+        filtered = OfficeRasterResampler.MinifyByStreamingArea(image, width, height, _cancellationToken);
         return true;
     }
 
