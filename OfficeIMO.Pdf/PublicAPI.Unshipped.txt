@@ -1281,3 +1281,4 @@ static OfficeIMO.Pdf.PdfAccessibilityConditions.Get(string! conditionId) -> Offi
 OfficeIMO.Pdf.PdfLogicalListItem.IsContentsEntry.get -> bool
 OfficeIMO.Pdf.PdfLogicalListItem.Link.get -> OfficeIMO.Pdf.PdfLogicalLinkAnnotation?
 OfficeIMO.Pdf.PdfLogicalListItem.TargetPageLabel.get -> string?
+OfficeIMO.Pdf.PdfEmbeddedFontFallbackCandidate.PdfEmbeddedFontFallbackCandidate(OfficeIMO.Pdf.PdfEmbeddedFontFamily! fontFamily) -> void

@@ -101,14 +101,14 @@ internal static partial class PdfWriter {
         }
 
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows, cancellationToken),
+            Data = DeflateZlib(FilterPngScanlines(baseRows, width, height, 1, cancellationToken), cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
         };
         if (alphaRows != null) {
             image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows, cancellationToken),
+                Data = DeflateZlib(FilterPngScanlines(alphaRows, width, height, 1, cancellationToken), cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
@@ -116,6 +116,15 @@ internal static partial class PdfWriter {
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Applies PNG row filters to scanlines written with filter type 0 when they compress smaller, so the PNG
+    /// predictor that the image dictionary declares is used for photos, gradients and logos.
+    /// </summary>
+    private static byte[] FilterPngScanlines(byte[] scanlines, int rowBytes, int height, int bytesPerPixel, CancellationToken cancellationToken) {
+        global::OfficeIMO.Drawing.OfficePngWriter.PredictScanlinesWhenSmaller(scanlines, rowBytes, height, bytesPerPixel, cancellationToken);
+        return scanlines;
     }
 
     private static string BuildPngPredictorDictionarySuffix(string colorSpace, int colors, int width, int bitDepth = 8) =>

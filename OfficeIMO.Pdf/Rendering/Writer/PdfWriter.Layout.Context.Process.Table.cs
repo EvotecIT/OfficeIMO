@@ -336,14 +336,28 @@ internal static partial class PdfWriter {
             int minimumFirstPageBodyRows = Math.Min(
                 style.MinimumBodyRowsOnFirstPage,
                 Math.Max(0, footerStartRowIndex - headerRowCount));
-            if (!skipInitialHeaderRows && minimumFirstPageBodyRows > 0) {
+            bool keepHeaderWithFragment = KeepsRepeatedHeaderWithFirstBodyFragment(style, tb.Rows.Count);
+            if (!skipInitialHeaderRows && (minimumFirstPageBodyRows > 0 || keepHeaderWithFragment)) {
                 int firstPageRowCount = headerRowCount + minimumFirstPageBodyRows;
-                double FirstPageGroupHeight() =>
-                    tableSpacingBefore +
-                    (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter.ToPoints()) +
-                    GetTableRowsHeight(rowHeights, 0, firstPageRowCount, rowGapPx);
+                double FirstPageGroupHeight() {
+                    double prefix = tableSpacingBefore +
+                        (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter.ToPoints());
+                    double rowsHeight = GetTableRowsHeight(rowHeights, 0, firstPageRowCount, rowGapPx);
+                    if (!keepHeaderWithFragment) return prefix + rowsHeight;
+                    double capacity = MaximumContinuationHeight();
+                    double fragmentGroup = MeasureTableHeaderFirstBodyHeight(style, rowHeights, rowGapPx,
+                        row => MeasureTableFirstBodyPlacementHeight(tb, style, preparedRows, cols, colPixel, colGapPx, row, capacity));
+                    // Whole preferred rows that cannot share one frame give way to the header and the body row's first
+                    // fragment. A new frame drops the table's spacing before, so it does not count against capacity.
+                    if (minimumFirstPageBodyRows == 0 || prefix - tableSpacingBefore + rowsHeight > capacity + 0.001D) {
+                        firstPageRowCount = headerRowCount;
+                        rowsHeight = 0D;
+                    }
+                    return prefix + Math.Max(rowsHeight, fragmentGroup);
+                }
                 double firstPageGroupHeight = FirstPageGroupHeight();
-                if (firstPageGroupHeight <= MaximumContinuationHeight() + 0.001D &&
+                // The group moves only when it fits a fresh frame, where the spacing before is dropped.
+                if (firstPageGroupHeight - tableSpacingBefore <= MaximumContinuationHeight() + 0.001D &&
                     (y - firstPageGroupHeight < TableBottom() || !TryReserveTableGroup(0, firstPageRowCount,
                         y - tableSpacingBefore - (captionLines == null ? 0D : captionHeight + style.CaptionSpacingAfter.ToPoints()),
                         y - firstPageGroupHeight, commit: false)) &&

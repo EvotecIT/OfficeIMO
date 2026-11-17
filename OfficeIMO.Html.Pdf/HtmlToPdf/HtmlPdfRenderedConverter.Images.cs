@@ -57,6 +57,8 @@ internal static partial class HtmlPdfRenderedConverter {
 
     // Cache lifetime follows one export: a codec failure or a resource decision must not
     // leak into another export that uses different providers or limits.
+    private const double DefaultEffectRasterDpi = 300D;
+
     private sealed class PdfImageResourceCache {
         private readonly Dictionary<byte[], Dictionary<string, PdfCore.PdfCanvasImageResource?>> _resources = new();
         private readonly OfficeRasterDecodeOptions _decodeOptions;
@@ -65,8 +67,13 @@ internal static partial class HtmlPdfRenderedConverter {
         internal IOfficeRasterImageCodec? ImageCodec => _decodeOptions.ImageCodec;
         internal long MaximumPixels => _decodeOptions.MaximumDecodedPixels;
 
+        /// <summary>Raster scale, per CSS pixel, for paint that native PDF cannot carry.</summary>
+        /// <remarks>A requested <see cref="OfficeImageExportOptions.TargetDpi"/> sets the density; otherwise print density.</remarks>
+        internal double EffectRasterScale { get; }
+
         internal PdfImageResourceCache(HtmlPdfExportOptions options, PdfCore.PdfConversionReport conversionReport, CancellationToken cancellationToken) {
             _conversionReport = conversionReport;
+            EffectRasterScale = (options.TargetDpi ?? DefaultEffectRasterDpi) / HtmlRenderOptions.CssPixelsPerInch;
             _decodeOptions = new OfficeRasterDecodeOptions {
                 ImageCodec = options.ImageCodec,
                 MaximumDecodedPixels = System.Math.Min(options.MaximumRasterPixels, 50_000_000L),

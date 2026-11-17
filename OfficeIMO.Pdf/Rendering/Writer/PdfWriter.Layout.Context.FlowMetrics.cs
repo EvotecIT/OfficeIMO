@@ -463,7 +463,7 @@ internal static partial class PdfWriter {
                 var visual = MeasureWithContainerPaddingReservation(style, () =>
                     MeasureFirstNestedVisual(container.Blocks, containerFrame.X + style.PaddingX.ToPoints(), contentWidth, fontSize,
                         allowTableFragments, suppressParagraphSpacingBefore, closingSpace.Include(style)));
-                return (ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints()) + style.TopPadding + style.FragmentPaddingReservation +
+                return (ResolveContainerSpacingBefore(style) + style.TopPadding + style.FragmentPaddingReservation +
                     style.FragmentBottomInset.ToPoints() + visual.Height, visual.Overflow);
             }
 
@@ -684,7 +684,8 @@ internal static partial class PdfWriter {
                 bool reserveWhole = firstVisualOnly && style.KeepTogether && style.Position == null;
                 double before = ResolveTopLevelSpacingBefore(style.SpacingBefore.ToPoints());
                 double rowsHeight = firstVisualOnly && !reserveWhole
-                    ? MeasureTableStartingRows(style, geometry.Rows.Heights, geometry.Gap, before, out _)
+                    ? MeasureTableStartingRows(style, geometry.Rows.Heights, geometry.Gap, before, out _,
+                        GetTableFirstPageBodyRowPreference(style, geometry.Rows.Heights.Length))
                     : GetTableRowsHeight(geometry.Rows.Heights, 0, geometry.Rows.Heights.Length, geometry.Gap);
                 return before + rowsHeight +
                     (firstVisualOnly && !reserveWhole ? 0D : style.SpacingAfter.ToPoints());
@@ -725,10 +726,20 @@ internal static partial class PdfWriter {
             int measuredRowCount = firstVisualOnly && !reserveWholeTable ? 1 : rowHeights.Length;
             bool completesFirstRow = true;
             double rowHeight = firstVisualOnly && allowTableFragments && !reserveWholeTable
-                ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap, out completesFirstRow)
+                ? MeasureTableFirstFragmentHeight(table, style, prepared, columns, columnLayout.Widths, columnGap,
+                    out completesFirstRow, out measuredRowCount)
                 : firstVisualOnly && !reserveWholeTable
                     ? MeasureTableStartingRows(style, rowHeights, rowGap, leadingHeight, out measuredRowCount)
                     : GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
+            // Starting rows that would leave a repeated header by itself reserve the group placement starts with.
+            if (firstVisualOnly && !allowTableFragments && !reserveWholeTable && measuredRowCount <= style.HeaderRowCount &&
+                MeasureTableHeaderStartingGroup(table, style, prepared, columns, columnLayout.Widths, columnGap,
+                    GetMeasuredContinuationFrameHeight(), out bool completesGroup, out int groupRows) is double headerGroup &&
+                headerGroup > rowHeight) {
+                rowHeight = headerGroup;
+                measuredRowCount = groupRows;
+                completesFirstRow = completesGroup;
+            }
             double tableHeight = leadingHeight + rowHeight;
             if (style.Position != null) return tableHeight;
             if (!firstVisualOnly) return tableHeight + style.SpacingAfter.ToPoints();
@@ -737,11 +748,12 @@ internal static partial class PdfWriter {
                 (completesTable ? closingSpace.Padding : 0D);
         }
 
-        private double MeasureTableStartingRows(PdfTableStyle style, double[] heights, double gap, double leadingHeight, out int count) {
+        private double MeasureTableStartingRows(PdfTableStyle style, double[] heights, double gap, double leadingHeight, out int count,
+            int? minimumBodyRows = null) {
             int rowCount = heights.Length;
             int bodyRows = Math.Max(0, rowCount - style.HeaderRowCount - style.FooterRowCount);
             count = style.Position != null ? Math.Min(1, rowCount)
-                : Math.Min(rowCount, Math.Max(1, style.HeaderRowCount + Math.Min(style.MinimumBodyRowsOnFirstPage, bodyRows)));
+                : Math.Min(rowCount, Math.Max(1, style.HeaderRowCount + Math.Min(minimumBodyRows ?? style.MinimumBodyRowsOnFirstPage, bodyRows)));
             double capacity = count > 1 ? GetMaximumTableContinuationFrameHeight(style, GetFullPageContentHeight()) : double.PositiveInfinity;
             double height = 0D;
             for (int row = 0; row < count; row++) {

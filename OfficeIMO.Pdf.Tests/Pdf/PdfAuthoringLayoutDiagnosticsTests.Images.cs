@@ -45,6 +45,21 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void SvgInlineReportsOnlyVisiblePaintBeyondTheTextFrame(bool visible) {
+        var report = new PdfConversionReport();
+        byte[] svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='40'>" +
+            "<rect width='24' height='40' fill='#ff0000' fill-opacity='" + (visible ? "0.5" : "0") + "'/></svg>");
+        var image = new PdfInlineImage(svg, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(40));
+        byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Text(new[] { PdfTextRun.Inline(image) },
+            global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120),
+            global::OfficeIMO.OfficeLength.Points(18))).ToBytes(options: new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        Assert.Empty(PdfImageExtractor.ExtractImagePlacements(bytes));
+        Assert.Equal(visible, report.Warnings.Any(warning => warning.Code == "canvas-text-paint-clipped"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RasterInlineOmittedBeforeRowPaintStillReportsOnlyNonzeroAlpha(bool visible) {
         var report = new PdfConversionReport();
         byte[] png = PdfPngTestImages.CreateRgbaPng(255, 0, 0, visible ? (byte)128 : (byte)0);

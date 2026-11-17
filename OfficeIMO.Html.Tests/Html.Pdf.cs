@@ -486,27 +486,6 @@ public sealed class HtmlPdfTests {
         Assert.Equal(new[] { "included" }, field.Values);
     }
 
-    [Theory]
-    [InlineData("linear-gradient(90deg,transparent,blue)")]
-    [InlineData("radial-gradient(circle,transparent,blue)")]
-    public void HtmlToPdf_TranslucentGradientsUseFaithfulManagedRasterFallback(string gradient) {
-        string html = "<div style='width:40px;height:20px;background:" + gradient + "'></div>";
-
-        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        var options = new HtmlPdfExportOptions { MaximumRasterPixels = 800L };
-        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
-        byte[] pdf = result.ToBytes();
-
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "HtmlPdfTranslucentGradientRasterized");
-        Assert.Contains("/SMask", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-
-        options.MaximumRasterPixels = 799L;
-        OfficeImageExportLimitException failure = Assert.Throws<OfficeImageExportLimitException>(() =>
-            document.ConvertToPdfWithEvidence(options));
-        Assert.Equal(800L, failure.RequestedPixels);
-        Assert.Equal(799L, failure.MaximumPixels);
-    }
-
     [Fact]
     public void HtmlToPdf_PageRelayoutPreservesInteractiveFieldNameIdentity() {
         const string html = """

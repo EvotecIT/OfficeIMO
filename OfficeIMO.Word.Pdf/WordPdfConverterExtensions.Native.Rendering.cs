@@ -1044,7 +1044,43 @@ namespace OfficeIMO.Word.Pdf {
                     build(builder);
                 }
                 : build;
-            pdf.Heading(level, normalizedText, content, align, color, style);
+            if (ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph)) is not { } fill) {
+                pdf.Heading(level, normalizedText, content, align, color, style);
+                return;
+            }
+
+            // The shading fills the heading's text frame between its indents and excludes the spacing
+            // around it, so the panel owns that spacing and the keep. Border rules stay with the caller.
+            var panelStyle = new PdfCore.PdfPanelStyle {
+                Background = fill,
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(0D),
+                PaddingTopOverride = 0D,
+                PaddingBottomOverride = 0D,
+                LeftInset = global::OfficeIMO.OfficeLength.Points(style.LeftIndent),
+                RightInset = global::OfficeIMO.OfficeLength.Points(style.RightIndent),
+                RepeatFragmentDecoration = true,
+                SpacingBefore = style.SpacingBefore,
+                ApplySpacingBeforeAtTop = style.ApplySpacingBeforeAtTop,
+                SpacingAfter = global::OfficeIMO.OfficeLength.Points(style.GetSpacingAfter(style.GetLeading(style.GetFontSize(level)))),
+                ClipSpacingAfterAtFrameEnd = true,
+                KeepWithNext = style.KeepWithNext
+            };
+            style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+            style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
+            style.LeftIndent = 0D;
+            style.RightIndent = 0D;
+            // Automatic text resolves against the painted fill while the heading content is built here.
+            global::OfficeIMO.OfficeColor? headingColor = color;
+            if (ResolveNativeParagraphDefaultColor(paragraph) == null) {
+                using NativePaintedPanelScope scope = EnterNativePaintedPanel(paragraph, fill);
+                headingColor = ResolveNativeAutomaticTextColor(paragraph) ?? color;
+            }
+            pdf.Panel(panel => panel.Heading(level, normalizedText, builder => {
+                using NativePaintedPanelScope paintedPanel = EnterNativePaintedPanel(paragraph, fill);
+                content(builder);
+            }, align, headingColor, style), panelStyle);
         }
 
         private static string GetNativeHeadingText(string content, IReadOnlyList<WordParagraph> runs, WordParagraph paragraph, NativeFontMap nativeFontMap, bool hasEquationContent) {

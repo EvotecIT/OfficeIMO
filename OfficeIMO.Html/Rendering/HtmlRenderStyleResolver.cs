@@ -13,7 +13,6 @@ internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlRenderOperationBudget _operationBudget;
     private readonly double _rootFontSize;
     private readonly Dictionary<IElement, HashSet<string>> _reportedUnsupportedColors = new Dictionary<IElement, HashSet<string>>();
-    private readonly HashSet<IElement> _reportedSmallCapsApproximations = new HashSet<IElement>();
     private double _viewportWidth;
     private double _viewportHeight;
     private double _activeContainerWidth = double.NaN;
@@ -349,16 +348,6 @@ internal sealed partial class HtmlRenderStyleResolver {
             HyphenateLimitLast = ResolveHyphenateLimitLast(computed.GetValue("hyphenate-limit-last"), parent?.HyphenateLimitLast),
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
-        if (approximateSmallCaps && _reportedSmallCapsApproximations.Add(element)) {
-            _diagnostics.Add(
-                "OfficeIMO.Html.Renderer",
-                HtmlRenderDiagnosticCodes.FontVariantApproximated,
-                "CSS small-caps were synthesized from capitals at reduced size because the font's own small-cap glyphs are not used.",
-                HtmlDiagnosticSeverity.Warning,
-                DescribeSource(element),
-                "font-variant-caps=" + fontVariantCaps,
-                OfficeConversionLossKind.Approximation);
-        }
         ResolveTabSize(
             computed.GetValue("tab-size"),
             computed.IsInheritedValue("tab-size"),

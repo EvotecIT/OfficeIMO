@@ -118,6 +118,10 @@ Table borders follow the Word style and direct cell settings: `nil` suppresses a
 
 Collapsed borders and authored cell margins contribute to row spacing and page or column fitting. Ordinary flow tables clear their leading and trailing border paint; continued rows use the border clearance at their new frame, and repeated headers retain their source spacing. Text in vertically merged cells that cross a page boundary can still appear on the earlier page. That fragmentation remains outside the qualified layout mapping.
 
+In Word 2013 and later layout, a table with repeated header rows keeps those rows with the first fragment of the following row that can legally start a page. A long row splits instead of moving to the next page as a whole, and the header is never left alone at the bottom of a page. Earlier compatibility modes and native DOC keep the header with the whole first row.
+
+Shaded headings paint their paragraph fill behind the heading lines, between the paragraph indents, and keep their outline entry, tag, links and keep-with-next behaviour.
+
 Set `cell.TextDirection` to `WordTextDirection.TopToBottomRightToLeft` or `WordTextDirection.BottomToTopLeftToRight` to export Latin cell text with a quarter turn. Borders and padding retain their physical page axes, and inline pictures remain upright at their authored size. Automatic turned text rows use paragraph-mark size and line spacing instead of increasing their height with the visible run font; exact row heights retain their source box. Automatic column widths use the visible text's cross-axis line box. A turned cell's text, objects and links are consumed on its first row fragment when a neighboring cell continues onto another page. Flow, column and canvas tables share the resolved text shrink scale.
 
 East Asian vertical glyph layout and exact automatic sizing for cells with hidden end marks or embedded objects remain outside the qualified mapping. Font metrics and source compatibility settings can still affect absolute cell geometry.

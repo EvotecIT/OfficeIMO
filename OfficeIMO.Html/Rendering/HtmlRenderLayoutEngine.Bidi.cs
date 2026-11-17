@@ -105,6 +105,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result.OrderBy(static item => item.LogicalOrder).ToArray();
     }
 
+    // Selected OpenType features, such as font small caps, change glyph advances. The line measured
+    // the shaped run, so each spaced piece is placed with the same shaped width.
+    private double MeasureSpacedPaintText(string text, HtmlRenderBoxStyle style, OfficeFontInfo font) =>
+        !style.TextFeatureSettings.IsDefault && TryMeasureWithConfiguredProvider(text, style, out double shaped)
+            ? shaped
+            : MeasureText(text, font, style.FontDescriptor);
+
     private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x,
         int? logicalOrder = null, bool bidiResolved = false) {
         var result = new List<InlinePaintSegment>();
@@ -116,7 +123,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D) {
             for (int index = 0; index < elements.Count; index++) {
                 string element = elements[index];
-                double glyphWidth = MeasureText(element, effectiveFont, segment.Run.Style.FontDescriptor);
+                double glyphWidth = MeasureSpacedPaintText(element, segment.Run.Style, effectiveFont);
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
                     + (IsWordSpacingSeparator(element) ? segment.Run.Style.WordSpacing : 0D);
@@ -133,7 +140,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int end = start + 1;
             while (end < elements.Count && IsWordSpacingSeparator(elements[end]) == whitespace) end++;
             string text = string.Concat(elements.Skip(start).Take(end - start));
-            double glyphWidth = MeasureText(text, effectiveFont, segment.Run.Style.FontDescriptor);
+            double glyphWidth = MeasureSpacedPaintText(text, segment.Run.Style, effectiveFont);
             double advance = glyphWidth + (whitespace ? segment.Run.Style.WordSpacing * (end - start) : 0D);
             result.Add(new InlinePaintSegment(text, cursor, Math.Max(0.01D, glyphWidth), advance,
                 logicalOrder ?? start, bidiResolved));

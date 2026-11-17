@@ -80,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     viewportHeight: useSvgViewport ? placement.FullHeight : null,
                     requireAuthoredRasterSafety: IsInlineSvgElement(element)) && svgDrawing != null) {
                     AddSvgImageVisual(objectVisuals, svgDrawing, bytes, imageX, imageY, placement, alternativeText,
-                        link, sourceDescription, GetSemanticSourceOrder(element));
+                        link, sourceDescription, GetSemanticSourceOrder(element), blendsWithBackdrop: IsInlineSvgElement(element));
                     addedObject = true;
                 }
             } else {
@@ -455,7 +455,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? alternativeText,
         string? link,
         string sourceDescription,
-        int? semanticSourceOrder) {
+        int? semanticSourceOrder,
+        bool blendsWithBackdrop) {
         double visibleX = imageX + placement.X;
         double visibleY = imageY + placement.Y;
         if (!placement.SourceCrop.HasCrop) {
@@ -471,7 +472,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 sourceDescription,
                 imageBytes: imageBytes,
                 imageContentType: "image/svg+xml",
-                sourceCrop: placement.SourceCrop) { SemanticSourceOrder = semanticSourceOrder });
+                sourceCrop: placement.SourceCrop) { SemanticSourceOrder = semanticSourceOrder, BlendsWithBackdrop = blendsWithBackdrop });
             return;
         }
 
@@ -493,7 +494,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             imageX: visibleX,
             imageY: visibleY,
             imageWidth: placement.Width,
-            imageHeight: placement.Height) { SemanticSourceOrder = semanticSourceOrder };
+            imageHeight: placement.Height) { SemanticSourceOrder = semanticSourceOrder, BlendsWithBackdrop = blendsWithBackdrop };
         visuals.Add(new HtmlRenderClipGroup(
             visibleX,
             visibleY,

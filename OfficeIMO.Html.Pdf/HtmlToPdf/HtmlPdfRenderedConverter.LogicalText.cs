@@ -93,7 +93,8 @@ internal static partial class HtmlPdfRenderedConverter {
             double logicalHeight = Math.Min(group.Height, 12D);
             ClipBounds clip = activeClip ?? new ClipBounds(0D, 0D, surfaceWidth, surfaceHeight);
             var carrier = clip.ConstrainLogicalRectangle(group.X, group.Y, group.Width, logicalHeight);
-            if (carrier.X != group.X || carrier.Y != group.Y || carrier.Width != group.Width || carrier.Height != logicalHeight) {
+            if (group.ExtractsAtPaintBounds
+                || carrier.X != group.X || carrier.Y != group.Y || carrier.Width != group.Width || carrier.Height != logicalHeight) {
                 canvas.ActualText(logicalText, carrier.X * PointsPerCssPixel, carrier.Y * PointsPerCssPixel,
                     carrier.Width * PointsPerCssPixel, carrier.Height * PointsPerCssPixel,
                     nested => nested.AddItems(content.Items), logicalOrder: group.SemanticSourceOrder);

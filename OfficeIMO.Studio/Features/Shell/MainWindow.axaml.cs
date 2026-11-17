@@ -177,6 +177,7 @@ public sealed partial class MainWindow : Window {
             bookPublicationGuard: new StudioWorkflowPublicationGuard((path, _) => TabHost.CanPublishBookPath(document, path)),
             sharedWorkbenches: _applicationDocument);
         document.Session = _session;
+        document.PresentedDocument = () => ViewModel;
         document.FileDialogs = FileDialogs;
         document.CreateSignatureDialog = kind => new Features.Sign.SignatureDialog(kind, _services.Localizer).ShowDialog<StudioSignatureDraft?>(this);
         ConfigureAssistantHost(document);
