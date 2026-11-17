@@ -23,7 +23,8 @@ internal static partial class PdfWriter {
     /// <summary>
     /// Measurement canvases for one layout pass. Parsing a font face is far more expensive than
     /// measuring with it, so every drawing in the pass reuses the canvas for the same face bytes,
-    /// family, style and shaping configuration instead of rebuilding it per drawing.
+    /// family, style and shaping configuration instead of rebuilding it per drawing. CFF execution
+    /// budgets are not shared: each drawing's metrics charge their own allowance per face.
     /// </summary>
     private sealed class DrawingTextMeasurementCanvases {
         private const int MaximumCanvases = 256;
@@ -32,17 +33,25 @@ internal static partial class PdfWriter {
         private readonly object gate = new object();
 
         internal OfficeRasterCanvas? GetOrCreate(byte[] data, string family, OfficeFontStyle style, PdfCreateOptions options,
-            System.Threading.CancellationToken cancellationToken) {
+            Dictionary<OfficeRasterCanvas, OfficeCffOperationBudget> budgets, System.Threading.CancellationToken cancellationToken) {
             var key = (data, family, style, options.TextShapingProvider, options.EffectiveTextShapingLanguage);
             lock (gate) {
-                if (canvases.TryGetValue(key, out OfficeRasterCanvas? canvas)) return canvas;
-                var fonts = new OfficeFontFaceCollection();
-                if (fonts.TryAdd(family, data, style)) {
-                    canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
-                        options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
+                if (!canvases.TryGetValue(key, out OfficeRasterCanvas? canvas)) {
+                    var fonts = new OfficeFontFaceCollection();
+                    if (fonts.TryAdd(family, data, style)) {
+                        canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
+                            options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
+                    }
+                    if (canvases.Count >= MaximumCanvases) canvases.Clear();
+                    canvases[key] = canvas;
                 }
-                if (canvases.Count >= MaximumCanvases) canvases.Clear();
-                canvases[key] = canvas;
+                if (canvas != null) {
+                    if (!budgets.TryGetValue(canvas, out OfficeCffOperationBudget? budget)) {
+                        budget = new OfficeCffOperationBudget();
+                        budgets.Add(canvas, budget);
+                    }
+                    canvas.UseCffOperationBudget(budget);
+                }
                 return canvas;
             }
         }
@@ -59,6 +68,8 @@ internal static partial class PdfWriter {
     private static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options,
         DrawingTextMeasurementCanvases? canvases, System.Threading.CancellationToken cancellationToken) {
         canvases ??= new DrawingTextMeasurementCanvases();
+        // One allowance per face for this metrics instance, matching a canvas built for it alone.
+        var budgets = new Dictionary<OfficeRasterCanvas, OfficeCffOperationBudget>();
         return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont, MeasureFeatures,
             MeasureSegmentHorizontalPaint, Prepare);
 
@@ -87,7 +98,7 @@ internal static partial class PdfWriter {
                     data = embedded!.DataSnapshot;
                 }
                 OfficeRasterCanvas? canvas = data != null
-                    ? canvases.GetOrCreate(data, measuredFamily, style, options, cancellationToken) : null;
+                    ? canvases.GetOrCreate(data, measuredFamily, style, options, budgets, cancellationToken) : null;
                 yield return (part, canvas, measuredFamily, selectedFont, syntheticOblique, syntheticBold);
             }
         }

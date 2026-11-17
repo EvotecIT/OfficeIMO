@@ -298,6 +298,15 @@ namespace OfficeIMO.Tests {
                 Assert.False(reopenedProperties.IsRootElementLoaded);
                 Assert.True(PowerPointPackageFingerprint.HasApplicationSignatureFlag(reopened, serializedLength));
                 Assert.False(reopenedProperties.IsRootElementLoaded);
+
+                // The package's configured character limit still bounds the signature-flag read.
+                using PresentationDocument limited = PresentationDocument.Open(filePath, false,
+                    new OpenSettings { MaxCharactersInPart = 16 });
+                Assert.ThrowsAny<System.Xml.XmlException>(() =>
+                    PowerPointPackageFingerprint.HasApplicationSignatureFlag(limited, serializedLength));
+                using PresentationDocument sufficient = PresentationDocument.Open(filePath, false,
+                    new OpenSettings { MaxCharactersInPart = serializedLength });
+                Assert.True(PowerPointPackageFingerprint.HasApplicationSignatureFlag(sufficient, serializedLength));
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

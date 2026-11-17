@@ -187,7 +187,7 @@ namespace OfficeIMO.PowerPoint {
             // for strict namespaces. One flag needs only the root's direct children.
             bool? streamed;
             using (Stream stream = propertiesPart.GetStream(FileMode.Open, FileAccess.Read)) {
-                streamed = TryFindDigitalSignatureChild(stream);
+                streamed = TryFindDigitalSignatureChild(stream, document.MaxCharactersInPart);
             }
             // An unexpected root keeps the typed loader's handling.
             return streamed ?? propertiesPart.Properties?.DigitalSignature != null;
@@ -198,8 +198,10 @@ namespace OfficeIMO.PowerPoint {
         private const string StrictExtendedPropertiesNamespace =
             "http://purl.oclc.org/ooxml/officeDocument/extendedProperties";
 
-        private static bool? TryFindDigitalSignatureChild(Stream stream) {
+        private static bool? TryFindDigitalSignatureChild(Stream stream, long maximumCharacters) {
+            // The package's configured part limit applies here exactly as it does to a typed root load.
             var settings = new XmlReaderSettings {
+                MaxCharactersInDocument = maximumCharacters > 0 ? maximumCharacters : 0,
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
                 IgnoreComments = true,
