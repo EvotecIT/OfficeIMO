@@ -192,8 +192,11 @@ internal static class PdfPageContentIsolation {
                         depth--;
                     } else if (!uncertain) {
                         int offset = operation.OperatorOffset;
+                        // Empty streams share their start with the next one; the byte belongs to the last stream starting
+                        // at or before it.
                         int index = Array.BinarySearch(starts, offset);
                         if (index < 0) index = ~index - 1;
+                        while (index >= 0 && index + 1 < starts.Length && starts[index + 1] <= offset) index++;
                         if (index >= 0) (surplus[index] ??= new List<int>()).Add(offset - starts[index]);
                     }
                 }

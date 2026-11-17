@@ -211,6 +211,27 @@ public class PdfTransformedPageEditTests {
         Assert.Contains("ID abc EI", PdfTestContentText.ReadDecoded(stamped), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void SurplusRestoreAfterAnEmptyContentStreamStaysANoOp() {
+        // The empty stream starts where the next one does; the surplus Q must still be found in the stream that holds it.
+        const string content = "Q 1 0 0 1 100 0 cm 0 0 1 rg 10 10 20 20 re f";
+        byte[] pdf = Serialize(new[] {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Contents [4 0 R 5 0 R] >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream"
+        });
+
+        byte[] stamped = PdfStamper.StampText(pdf, "EDITMARK", new PdfTextStampOptions { Color = Red });
+
+        IReadOnlyList<PdfViewerPaint> paints = PdfViewerGeometry.Paint(stamped);
+        PdfViewerPaint rectangle = Assert.Single(paints, paint => paint.Kind == "path");
+        Assert.Equal((110D, 10D, 130D, 30D), (rectangle.A, rectangle.B, rectangle.C, rectangle.D));
+        PdfViewerPaint text = Assert.Single(paints, paint => paint.Kind == "text");
+        Assert.Equal((36D, 36D), (text.E, text.F));
+    }
+
     [Theory]
     // A literal string that runs across a stream boundary: its Q is text, not a restore.
     [InlineData("BT /F1 12 Tf 20 20 Td (A ", "Q B) Tj ET", "Q B) Tj ET")]
