@@ -5,25 +5,33 @@ using System.Globalization;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static CellFormat GetBaseCellFormat(Stylesheet stylesheet, uint styleIndex) {
+        private static CellFormat GetBaseCellFormat(Stylesheet stylesheet, uint styleIndex) =>
+            FindCellFormat(stylesheet, styleIndex) is { } baseFormat
+                ? (CellFormat)baseFormat.CloneNode(true)
+                : new CellFormat { NumberFormatId = 0U, FontId = 0U, FillId = 0U, BorderId = 0U, FormatId = 0U };
+
+        /// <summary>
+        /// Returns the stylesheet's own cell format at <paramref name="styleIndex"/>, or null when there is none.
+        /// The element is live: callers that change a format clone it first (<see cref="GetBaseCellFormat"/>).
+        /// </summary>
+        private static CellFormat? FindCellFormat(Stylesheet stylesheet, uint styleIndex) {
             if (BatchFor(stylesheet) is { } batch) {
-                return batch.CellFormat(styleIndex) is { } cached
-                    ? (CellFormat)cached.CloneNode(true)
-                    : new CellFormat { NumberFormatId = 0U, FontId = 0U, FillId = 0U, BorderId = 0U, FormatId = 0U };
-            }
-            var cellFormats = stylesheet.CellFormats?.Elements<CellFormat>().ToList();
-            var baseFormat = cellFormats?.ElementAtOrDefault((int)styleIndex);
-            if (baseFormat != null) {
-                return (CellFormat)baseFormat.CloneNode(true);
+                return batch.CellFormat(styleIndex);
             }
 
-            return new CellFormat {
-                NumberFormatId = 0U,
-                FontId = 0U,
-                FillId = 0U,
-                BorderId = 0U,
-                FormatId = 0U
-            };
+            CellFormats? cellFormats = stylesheet.CellFormats;
+            if (cellFormats == null || styleIndex > int.MaxValue) {
+                return null;
+            }
+
+            int remaining = (int)styleIndex;
+            foreach (CellFormat format in cellFormats.Elements<CellFormat>()) {
+                if (remaining-- == 0) {
+                    return format;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
