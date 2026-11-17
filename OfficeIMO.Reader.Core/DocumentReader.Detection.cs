@@ -220,6 +220,9 @@ internal static partial class DocumentReaderEngine {
         ReaderDetectionResult detection,
         bool pathInput,
         out ReaderHandlerDescriptor handler) {
+        if (TryResolveShebangHandler(detection, pathInput, out handler)) {
+            return true;
+        }
         if (TryResolveCustomHandlerByKind(detection.Kind, pathInput, out handler)) {
             return true;
         }
@@ -229,6 +232,21 @@ internal static partial class DocumentReaderEngine {
         }
 
         return TryResolveCustomHandlerByKind(ReaderInputKind.Zip, pathInput, out handler);
+    }
+
+    private const string ShebangEvidencePrefix = "text:shebang:";
+
+    /// <summary>Routes an extensionless script to the handler that owns its interpreter's file extension.</summary>
+    private static bool TryResolveShebangHandler(ReaderDetectionResult detection, bool pathInput,
+        out ReaderHandlerDescriptor handler) {
+        handler = null!;
+        if (detection.Kind != ReaderInputKind.Text) return false;
+        foreach (string evidence in detection.Evidence) {
+            if (!evidence.StartsWith(ShebangEvidencePrefix, StringComparison.Ordinal)) continue;
+            return TryResolveCustomHandlerByExtension(evidence.Substring(ShebangEvidencePrefix.Length), out handler) &&
+                   (pathInput ? handler.SupportsPathInput : handler.SupportsStreamInput);
+        }
+        return false;
     }
 
     private static void ReconcileValidatedExtension(ReaderDetectionResult detection,
@@ -601,6 +619,9 @@ internal static partial class DocumentReaderEngine {
         if (lower.StartsWith("<!doctype html", StringComparison.Ordinal) ||
             lower.StartsWith("<html", StringComparison.Ordinal)) {
             return DetectionCandidate.High(ReaderInputKind.Html, "text/html", "text:html-root");
+        }
+        if (ReaderSourceCodeLanguages.TryGetExtensionFromShebang(text, out string scriptExtension)) {
+            return DetectionCandidate.Low(ReaderInputKind.Text, "text/plain", ShebangEvidencePrefix + scriptExtension);
         }
         string xmlProbe = trimmed;
         if (TryGetXmlRoot(xmlProbe, out string qualifiedRootName, out string rootTag, out string xmlDocumentType)) {

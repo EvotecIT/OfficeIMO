@@ -55,6 +55,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
         };
         builder
             .AddPlainTextHandlers()
+            .AddSourceCodeHandler()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
             .AddChmHandler(configured.Chm)
