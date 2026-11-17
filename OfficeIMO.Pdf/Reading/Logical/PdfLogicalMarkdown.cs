@@ -30,8 +30,15 @@ public sealed class PdfLogicalMarkdownOptions {
     /// <summary>Maximum image size embedded as one base64 data URI. Larger images are left out. The default is 32 MiB.</summary>
     public long MaxEmbeddedImageBytes { get; set; } = 32L * 1024L * 1024L;
 
-    /// <summary>Emit a link annotation section for supported URI, named-destination, direct-destination, named-action, and remote GoTo links.</summary>
+    /// <summary>Carry link annotations into the Markdown. <see cref="LinkStyle"/> chooses how they are written.</summary>
     public bool IncludeLinkAnnotations { get; set; }
+
+    /// <summary>
+    /// How link annotations are written when <see cref="IncludeLinkAnnotations"/> is true. The default,
+    /// <see cref="PdfLogicalMarkdownLinkStyle.Inline"/>, turns web and mail links into Markdown links on the text they cover
+    /// and leaves out links that only move within the document.
+    /// </summary>
+    public PdfLogicalMarkdownLinkStyle LinkStyle { get; set; } = PdfLogicalMarkdownLinkStyle.Inline;
 
     /// <summary>Emit a form widget section for AcroForm widgets placed on pages.</summary>
     public bool IncludeFormWidgets { get; set; }
@@ -45,6 +52,23 @@ public sealed class PdfLogicalMarkdownOptions {
 
     /// <summary>Markdown text used between pages when <see cref="IncludePageSeparators"/> is true.</summary>
     public string PageSeparator { get; set; } = "---";
+}
+
+/// <summary>
+/// How a logical PDF Markdown export writes link annotations.
+/// </summary>
+public enum PdfLogicalMarkdownLinkStyle {
+    /// <summary>
+    /// Web and mail links become Markdown links on the page text they cover. A link whose text cannot be matched, and a
+    /// link to another PDF file or with an unsupported URI scheme, is listed once per target. Links to destinations
+    /// inside the document (citations, cross-references, page jumps) and viewer actions add nothing, because the text
+    /// they cover is already in the body.
+    /// </summary>
+    Inline = 0,
+
+    /// <summary>Every supported link annotation adds its own <c>[Link: ...]</c> line at the link's position, including
+    /// internal destinations and viewer actions.</summary>
+    List = 1
 }
 
 /// <summary>
@@ -64,7 +88,7 @@ public enum PdfLogicalMarkdownImageExportMode {
 /// <summary>
 /// Markdown rendering helpers for the first-party logical PDF read model.
 /// </summary>
-public static class PdfLogicalMarkdownExtensions {
+public static partial class PdfLogicalMarkdownExtensions {
     /// <summary>
     /// Renders the logical PDF document as Markdown using headings, paragraphs, lists, tables, and optional annotations from the existing logical model.
     /// </summary>
@@ -116,6 +140,9 @@ public static class PdfLogicalMarkdownExtensions {
         HashSet<int>? emittedImages = null;
         HashSet<(int Image, int Left, int Top, int Right, int Bottom)>? emittedCrops = null;
         Stack<(int Level, int ContentIndent)>? listParents = null;
+        PdfLogicalMarkdownInlineLinks? inlineLinks = options.IncludeLinkAnnotations && options.LinkStyle == PdfLogicalMarkdownLinkStyle.Inline
+            ? PdfLogicalMarkdownInlineLinks.Create(page)
+            : null;
 
         IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
             PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent);
@@ -126,21 +153,23 @@ public static class PdfLogicalMarkdownExtensions {
                 case PdfLogicalReadingOrderKind.Heading:
                     PdfLogicalHeading heading = page.Headings[item.SourceIndex];
                     int level = Math.Min(Math.Max(heading.Level, 1), 6);
-                    markdown = new string('#', level) + " " + EscapeInline(heading.Text, escapeLinePrefix: false);
+                    markdown = new string('#', level) + " " + RenderInline(heading.Text, heading.Lines, inlineLinks, escapeLinePrefix: false);
                     break;
                 case PdfLogicalReadingOrderKind.Paragraph:
-                    markdown = EscapeInline(page.Paragraphs[item.SourceIndex].Text);
+                    PdfLogicalParagraph paragraph = page.Paragraphs[item.SourceIndex];
+                    markdown = RenderInline(paragraph.Text, paragraph.Lines, inlineLinks);
                     break;
                 case PdfLogicalReadingOrderKind.ListItem:
                     PdfLogicalListItem listItem = page.ListItems[item.SourceIndex];
                     listParents ??= new Stack<(int Level, int ContentIndent)>();
-                    markdown = RenderListItem(listItem, listParents, out requiresBlankLine);
+                    markdown = RenderListItem(listItem, listParents, inlineLinks, out requiresBlankLine);
                     break;
                 case PdfLogicalReadingOrderKind.Table:
                     markdown = RenderTable(page.Tables[item.SourceIndex], options);
                     break;
                 case PdfLogicalReadingOrderKind.TextBlock:
-                    markdown = EscapeInline(page.TextBlocks[item.SourceIndex].Text);
+                    PdfLogicalTextBlock textBlock = page.TextBlocks[item.SourceIndex];
+                    markdown = RenderInline(textBlock.Text, new[] { textBlock }, inlineLinks);
                     break;
                 case PdfLogicalReadingOrderKind.Image when writeImages &&
                     item.HasGeometry && !item.IsClipped && item.PlacementIndex >= 0:
@@ -186,7 +215,17 @@ public static class PdfLogicalMarkdownExtensions {
             }
         }
 
-        if (options.IncludeLinkAnnotations) {
+        if (options.IncludeLinkAnnotations && options.LinkStyle == PdfLogicalMarkdownLinkStyle.Inline) {
+            // Links whose text was not found in the body, and links to other files, are listed once per target.
+            IEnumerable<PdfLogicalMarkdownInlineLinks.UnplacedLink> unplaced = inlineLinks?.GetUnplacedLinks() ??
+                Enumerable.Empty<PdfLogicalMarkdownInlineLinks.UnplacedLink>();
+            foreach (PdfLogicalMarkdownInlineLinks.UnplacedLink link in unplaced) {
+                string markdown = link.IsSafeUri
+                    ? "[Link: " + EscapeInline(link.Label) + "](" + EscapeLinkTarget(link.Target) + ")"
+                    : "[Link: " + EscapeInline(link.Label) + " -> " + EscapeInline(link.Target) + "]";
+                items.Add(new MarkdownItem(link.Annotation.Y2, link.Annotation.X1, sequence++, markdown));
+            }
+        } else if (options.IncludeLinkAnnotations) {
             for (int i = 0; i < page.Links.Count; i++) {
                 PdfLogicalLinkAnnotation link = page.Links[i];
                 string? target = FormatLinkAnnotationTarget(link);
@@ -421,7 +460,7 @@ public static class PdfLogicalMarkdownExtensions {
     }
 
     private static string RenderListItem(PdfLogicalListItem item, Stack<(int Level, int ContentIndent)> parents,
-        out bool requiresBlankLine) {
+        PdfLogicalMarkdownInlineLinks? inlineLinks, out bool requiresBlankLine) {
         int level = Math.Max(item.Level, 1);
         string marker = FormatListMarker(item.Marker, item.MarkerInfo);
         bool startsNestedList = parents.Count > 0 && parents.Peek().Level < level;
@@ -436,7 +475,44 @@ public static class PdfLogicalMarkdownExtensions {
         }
 
         parents.Push((level, indent + marker.Length + 1));
-        return new string(' ', indent) + marker + " " + (item.IsContentsEntry ? RenderContentsEntry(item) : EscapeInline(item.Text));
+        return new string(' ', indent) + marker + " " +
+            (item.IsContentsEntry ? RenderContentsEntry(item) : RenderInline(item.Text, item.Lines, inlineLinks));
+    }
+
+    /// <summary>Escapes body text and, when inline links are active, wraps the text each web link covers in a Markdown link.</summary>
+    private static string RenderInline(string text, IReadOnlyList<PdfLogicalTextBlock> lines, PdfLogicalMarkdownInlineLinks? inlineLinks,
+        bool escapeLinePrefix = true) {
+        List<(int Start, int End, string Target)>? ranges = inlineLinks?.Place(text, lines);
+        if (ranges is null || ranges.Count == 0) return EscapeInline(text, escapeLinePrefix);
+
+        var builder = new StringBuilder(text.Length + ranges.Count * 32);
+        int position = 0;
+        foreach ((int start, int end, string target) in ranges) {
+            AppendEscaped(builder, text, position, start);
+            builder.Append('[');
+            AppendEscaped(builder, text, start, end);
+            builder.Append("](").Append(EscapeLinkTarget(target)).Append(')');
+            position = end;
+        }
+        AppendEscaped(builder, text, position, text.Length);
+
+        string value = builder.ToString().Trim();
+        if (!escapeLinePrefix || value.Length == 0) return value;
+        var prefixed = new StringBuilder(value);
+        EscapeLinePrefix(prefixed);
+        return prefixed.ToString();
+    }
+
+    private static void AppendEscaped(StringBuilder builder, string text, int start, int end) {
+        for (int i = start; i < end; i++) {
+            char ch = text[i];
+            if (ch is '\r' or '\n') {
+                builder.Append(' ');
+                continue;
+            }
+            if (ch is '\\' or '`' or '*' or '_' or '[' or ']' or '<' or '>') builder.Append('\\');
+            builder.Append(ch);
+        }
     }
 
     private static string RenderContentsEntry(PdfLogicalListItem item) {

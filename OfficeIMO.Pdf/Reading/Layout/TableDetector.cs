@@ -122,7 +122,8 @@ internal static partial class TableDetector {
         // Wrapped-row recovery can complete sentences that were not visible in
         // the initial bands. Recheck prose evidence on the final candidate.
         tables.RemoveAll(table => table.Kind != "leaders" &&
-            HasNarrativeColumnEvidence(table) && HasColumnMajorSourceOrder(table));
+            ((HasNarrativeColumnEvidence(table) && HasColumnMajorSourceOrder(table)) ||
+             IsPageColumnFlowProse(table, pageLines)));
         return tables;
     }
 
