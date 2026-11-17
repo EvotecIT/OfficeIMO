@@ -168,13 +168,18 @@ function Get-PageContent([string] $Text) { return , $latin1.GetBytes("BT /F1 18 
 # Revision 6 (AESV3) or revision 7 (AESV4). Modes: Document encrypts strings and streams; IdentityContentStream leaves the
 # page content in clear text behind a /Crypt stream filter naming /Identity; DefaultMethodContentStream does the same through a
 # named crypt filter that omits /CFM, which defaults to /None; EmbeddedFilesOnly encrypts only the embedded
-# file (/StmF and /StrF /Identity, /EFF /StdCF, /AuthEvent /EFOpen).
-function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $OwnerPassword, [string] $Method, [string] $Text, [string] $Mode = 'Document') {
+# file (/StmF and /StrF /Identity, /EFF /StdCF, /AuthEvent /EFOpen). PadPasswordEntriesTo appends random bytes to /O and /U
+# after they are computed, as Acrobat X and XI do (127 bytes); only the first 48 bytes carry the hash and salts.
+function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $OwnerPassword, [string] $Method, [string] $Text, [string] $Mode = 'Document', [int] $Permissions = -4, [int] $PadPasswordEntriesTo = 48) {
     $version = if ($Method -eq 'AESV4') { 6 } else { 5 }
     $revision = if ($Method -eq 'AESV4') { 7 } else { 6 }
-    $permissions = -4
+    $permissions = $Permissions
     $fileKey = Get-RandomBytes 32
     $entries = New-EncryptionEntries $UserPassword $OwnerPassword $fileKey $permissions
+    if ($PadPasswordEntriesTo -gt 48) {
+        $entries.O = Join-Bytes @($entries.O, (Get-RandomBytes ($PadPasswordEntriesTo - 48)))
+        $entries.U = Join-Bytes @($entries.U, (Get-RandomBytes ($PadPasswordEntriesTo - 48)))
+    }
     $content = Get-PageContent $Text
     $title = ConvertTo-PdfTextString $Text
     $catalogExtra = ''
@@ -231,6 +236,8 @@ New-ModernFixture 'r6-unprepared-password.pdf' $utf8.GetBytes("pass$([char]0x00A
 New-ModernFixture 'r6-identity-crypt-filter-stream.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Identity stream R6' 'IdentityContentStream'
 New-ModernFixture 'r6-crypt-filter-without-method.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Default method R6' 'DefaultMethodContentStream'
 New-ModernFixture 'r6-embedded-files-only.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Attachments only R6' 'EmbeddedFilesOnly'
+# Owner password only (empty user password) with /O and /U padded to 127 bytes and copying denied, like Acrobat XI output.
+New-ModernFixture 'r6-owner-only-padded-entries.pdf' @() $utf8.GetBytes('owner') 'AESV3' 'Padded entries R6' -Permissions -1052 -PadPasswordEntriesTo 127
 New-ModernFixture 'r7-aes-gcm.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV4' 'AES-GCM R7'
 New-Revision3Fixture 'r3-rc4-40-default-length.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'RC4 40 R3'
 New-Revision3Fixture 'r3-rc4-128-without-length.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'RC4 128 R3' 2 16
