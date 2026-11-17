@@ -43,7 +43,7 @@ jobs:
           FULL_CI: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
         run: |
           python3 - <<'PY'
-          import fnmatch, functools, importlib.util, os, subprocess
+          import fnmatch, functools, importlib.util, json, os, subprocess
           from pathlib import Path
 
           build, force_full = True, False
@@ -58,13 +58,15 @@ jobs:
               selector = importlib.util.module_from_spec(spec)
               spec.loader.exec_module(selector)
               _, linked = selector.project_graph(Path.cwd(), selector.tracked(Path.cwd()))
+              config = json.loads(Path('Build/Ci/pr-suites.json').read_text())
+              documentation_only = set(config.get('documentation_only', []))
 
               @functools.lru_cache(maxsize=None)
               def consumed(path):
                   parts = path.lower().split('/')
                   return (any('test' in part or part in ('fixtures', 'schema', 'schemas', 'generated') for part in parts[:-1])
                           or path.startswith(('Website/Apps/', 'Website/data/', 'Website/static/data/', 'OfficeIMO.SharedSource/'))
-                          or (path.startswith(('Docs/', 'docs/')) and subprocess.run(
+                          or (path not in documentation_only and path.startswith(('Docs/', 'docs/')) and subprocess.run(
                               # Generated support reports have distinct officeimo.*
                               # names. Generic README/SUPPORT basenames would match
                               # unrelated files rather than a segmented consumer.
@@ -77,7 +79,8 @@ jobs:
               def prose(path):
                   if consumed(path):
                       return False
-                  return (path.startswith('Website/')
+                  # Reviewed prose may still be an input to the independent website selector.
+                  return (path in documentation_only or path.startswith('Website/')
                           or (path.startswith(('Docs/', 'docs/')) and path.endswith(('.md', '.png', '.jpg', '.svg')))
                           or (path.endswith('.md') and '/' not in path)
                           or (path.endswith('.md') and Path(path).name.lower() in ('readme.md', 'support.md', 'compatibility.md')))
