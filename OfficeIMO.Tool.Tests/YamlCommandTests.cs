@@ -22,7 +22,8 @@ public sealed class YamlCommandTests : IDisposable {
     }
 
     private string File(string name, string text, bool byteOrderMark = false) {
-        string path = Path.Combine(_directory, name);
+        // Names use '/', but directory enumeration reports the platform separator, so expected paths must too.
+        string path = Path.Combine(_directory, name.Replace('/', Path.DirectorySeparatorChar));
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         System.IO.File.WriteAllText(path, text, new UTF8Encoding(byteOrderMark));
         return path;

@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel {
         private System.Collections.Generic.IEqualityComparer<string> _tableNameComparer = System.StringComparer.OrdinalIgnoreCase;
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
+        private readonly object _sheetCacheRebuildGate = new();
         private bool _customDocumentPropertiesDirty;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
 
@@ -261,10 +262,14 @@ namespace OfficeIMO.Excel {
 
         private void RebuildSheetCacheLocked()
         {
-            var elements = ReadSheetElements();
-            UpdateSheetIdCache(elements);
-            _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
-            _sheetCacheDirty = false;
+            // Readers in a no-lock scope (GetPivotTables, for one) rebuild the cache while holding only the shared
+            // workbook read lock, so several can arrive together; the rebuild writes shared state, so they take turns.
+            lock (_sheetCacheRebuildGate) {
+                var elements = ReadSheetElements();
+                UpdateSheetIdCache(elements);
+                _cachedSheets = SheetCachingEnabled ? MaterializeSheets(elements) : null;
+                _sheetCacheDirty = false;
+            }
         }
 
         private void EnsureSheetCacheInitialized(ReaderWriterLockSlim? lck)
