@@ -1093,6 +1093,9 @@ internal static partial class ResourceResolver {
             case "fl": value = "fl"; return true;
             case "ffi": value = "ffi"; return true;
             case "ffl": value = "ffl"; return true;
+            // The glyph list keeps the cedilla letters for these names; composing the comma below would give U+021A/U+021B.
+            case "Tcommaaccent": value = "Ţ"; return true;
+            case "tcommaaccent": value = "ţ"; return true;
             default:
                 // Symbol and ZapfDingbats glyph names (Greek, mathematical and dingbat names).
                 if (PdfFontEncodingNames.TryGetSymbolUnicode(glyphName, out int symbolic)) {

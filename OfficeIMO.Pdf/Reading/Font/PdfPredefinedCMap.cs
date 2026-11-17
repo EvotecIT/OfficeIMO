@@ -25,6 +25,8 @@ namespace OfficeIMO.Pdf {
         private static readonly Regex CidRangeEntryRegex = new(@"<\s*([0-9A-Fa-f]{1,8})\s*>\s*<\s*([0-9A-Fa-f]{1,8})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
         private static readonly Regex CidCharEntryRegex = new(@"<\s*([0-9A-Fa-f]{1,8})\s*>\s*(\d{1,5})", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(2));
         private const long MaximumEmbeddedCMapAssignments = 1_000_000L;
+        // Every code is matched against the codespace ranges in turn, so their count bounds the work per code.
+        private const int MaximumEmbeddedCodespaceRanges = 1024;
         // Overlapping entries resolve by declaration order, which needs ordered insertion; producers write sorted maps.
         private const int MaximumOverlappingEmbeddedRuns = 4096;
         private const int MaximumCodeLength = 4;
@@ -99,7 +101,8 @@ namespace OfficeIMO.Pdf {
             foreach (Match section in CodespaceSectionRegex.Matches(text)) {
                 foreach (Match entry in CodespaceEntryRegex.Matches(section.Groups[1].Value)) {
                     if (!TryReadCode(entry.Groups[1].Value, out int length, out _) ||
-                        !TryReadCode(entry.Groups[2].Value, out int highLength, out _) || highLength != length) return Empty;
+                        !TryReadCode(entry.Groups[2].Value, out int highLength, out _) || highLength != length ||
+                        codespace.Count >= MaximumEmbeddedCodespaceRanges) return Empty;
                     codespace.Add(new CodespaceRange(length, ReadHexBytes(entry.Groups[1].Value), ReadHexBytes(entry.Groups[2].Value)));
                 }
             }
@@ -109,10 +112,8 @@ namespace OfficeIMO.Pdf {
             var cids = new RunBuilder?[MaximumCodeLength + 1];
             var notdef = new RunBuilder?[MaximumCodeLength + 1];
             long assignments = 0L;
-            if (!ReadRanges(CidRangeSectionRegex, CidRangeEntryRegex, cids) ||
-                !ReadSingles(CidCharSectionRegex, CidCharEntryRegex, cids) ||
-                !ReadRanges(NotdefRangeSectionRegex, CidRangeEntryRegex, notdef) ||
-                !ReadSingles(NotdefCharSectionRegex, CidCharEntryRegex, notdef)) return Empty;
+            if (!ReadSections(CidRangeSectionRegex, CidCharSectionRegex, cids, constant: false) ||
+                !ReadSections(NotdefRangeSectionRegex, NotdefCharSectionRegex, notdef, constant: true)) return Empty;
             CodeRuns?[]? cidRuns = BuildRuns(cids, constant: false);
             CodeRuns?[]? notdefRuns = BuildRuns(notdef, constant: true);
             if (cidRuns == null || notdefRuns == null) return Empty;
@@ -123,28 +124,31 @@ namespace OfficeIMO.Pdf {
             return new PdfPredefinedCMap("embedded:" + hash.ToString("x16", CultureInfo.InvariantCulture),
                 codespace.ToArray(), cidRuns, notdefRuns, parent, unicode);
 
-            bool ReadRanges(Regex sectionRegex, Regex entryRegex, RunBuilder?[] target) {
-                foreach (Match section in sectionRegex.Matches(text)) {
-                    foreach (Match entry in entryRegex.Matches(section.Groups[1].Value)) {
-                        if (!TryReadCode(entry.Groups[1].Value, out int length, out uint first) ||
-                            !TryReadCode(entry.Groups[2].Value, out int lastLength, out uint last) || lastLength != length) return false;
-                        int cid = int.Parse(entry.Groups[3].Value, CultureInfo.InvariantCulture);
-                        if (first > last || (long)cid + (last - first) > ushort.MaxValue) return false;
-                        assignments += (long)last - first + 1L;
-                        if (assignments > MaximumEmbeddedCMapAssignments) return false;
-                        (target[length] ??= new RunBuilder()).Add(first, last, cid);
-                    }
-                }
-                return true;
-            }
-
-            bool ReadSingles(Regex sectionRegex, Regex entryRegex, RunBuilder?[] target) {
-                foreach (Match section in sectionRegex.Matches(text)) {
-                    foreach (Match entry in entryRegex.Matches(section.Groups[1].Value)) {
-                        if (!TryReadCode(entry.Groups[1].Value, out int length, out uint code)) return false;
-                        int cid = int.Parse(entry.Groups[2].Value, CultureInfo.InvariantCulture);
-                        if (cid > ushort.MaxValue || ++assignments > MaximumEmbeddedCMapAssignments) return false;
-                        (target[length] ??= new RunBuilder()).Add(code, code, cid);
+            // Range and single-code sections are read in declaration order, so a later mapping overrides an earlier one
+            // whichever section kind declares it. A notdef range maps every code to one CID; a CID range increments it.
+            bool ReadSections(Regex rangeSectionRegex, Regex charSectionRegex, RunBuilder?[] target, bool constant) {
+                var sections = rangeSectionRegex.Matches(text).Cast<Match>().Select(static match => (Match: match, Range: true))
+                    .Concat(charSectionRegex.Matches(text).Cast<Match>().Select(static match => (Match: match, Range: false)))
+                    .OrderBy(static section => section.Match.Index);
+                foreach ((Match section, bool range) in sections) {
+                    string body = section.Groups[1].Value;
+                    if (range) {
+                        foreach (Match entry in CidRangeEntryRegex.Matches(body)) {
+                            if (!TryReadCode(entry.Groups[1].Value, out int length, out uint first) ||
+                                !TryReadCode(entry.Groups[2].Value, out int lastLength, out uint last) || lastLength != length) return false;
+                            int cid = int.Parse(entry.Groups[3].Value, CultureInfo.InvariantCulture);
+                            if (first > last || cid > ushort.MaxValue || !constant && (long)cid + (last - first) > ushort.MaxValue) return false;
+                            assignments += (long)last - first + 1L;
+                            if (assignments > MaximumEmbeddedCMapAssignments) return false;
+                            (target[length] ??= new RunBuilder()).Add(first, last, cid);
+                        }
+                    } else {
+                        foreach (Match entry in CidCharEntryRegex.Matches(body)) {
+                            if (!TryReadCode(entry.Groups[1].Value, out int length, out uint code)) return false;
+                            int cid = int.Parse(entry.Groups[2].Value, CultureInfo.InvariantCulture);
+                            if (cid > ushort.MaxValue || ++assignments > MaximumEmbeddedCMapAssignments) return false;
+                            (target[length] ??= new RunBuilder()).Add(code, code, cid);
+                        }
                     }
                 }
                 return true;

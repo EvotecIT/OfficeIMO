@@ -119,22 +119,22 @@ public sealed class PdfCompositeCidTextTests {
     // letters spelled as a base letter and an accent.
     [Fact]
     public void PartialSimpleToUnicodeReadsOmittedCodesThroughDifferences() {
-        string content = "BT /F1 12 Tf 20 100 Td <01020341> Tj ET";
+        string content = "BT /F1 12 Tf 20 100 Td <0102030441> Tj ET";
         byte[] pdf = BuildPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /Type /Encoding /BaseEncoding /WinAnsiEncoding " +
-                "/Differences [1 /ccaron /uring /Scommaaccent] >> /ToUnicode 6 0 R >>",
+                "/Differences [1 /ccaron /uring /Scommaaccent /tcommaaccent] >> /ToUnicode 6 0 R >>",
             Stream(content),
             Stream("1 beginbfchar <41> <0058> endbfchar"));
 
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(pdf).Pages[0].GetTextSpans());
 
-        Assert.Equal("čůȘX", span.Text);
+        Assert.Equal("čůȘţX", span.Text);
         Assert.Equal(PdfTextDecodingSource.ToUnicode, span.DecodingEvidence.Source);
         Assert.False(span.DecodingEvidence.UsedFallback);
-        Assert.Equal("čůȘX", PdfDocument.Load(pdf, new PdfLoadOptions { UseWinAnsiFallback = false }).Read().Text.Trim());
+        Assert.Equal("čůȘţX", PdfDocument.Load(pdf, new PdfLoadOptions { UseWinAnsiFallback = false }).Read().Text.Trim());
     }
 
     private static byte[] BuildCompositePdf(string encoding, string ordering, string codes, string? toUnicode = null,

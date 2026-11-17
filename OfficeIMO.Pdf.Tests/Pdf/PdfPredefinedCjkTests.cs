@@ -86,8 +86,34 @@ namespace OfficeIMO.Tests.Pdf {
         [Theory]
         [InlineData("<0000> <47FF>", "1 begincidrange\n<0000> <00ff> 0\nendcidrange", "00290046004D004D0050", "Hello")]
         [InlineData("<0000> <FFFF>", "1 begincidchar\n<D800> 41\nendcidchar", "D800", "H")]
+        // A notdef range maps every code to one CID, so a full-range entry does not overflow the CID space.
+        [InlineData("<0000> <FFFF>", "1 beginnotdefrange\n<0000> <FFFF> 1\nendnotdefrange\n1 begincidchar\n<D800> 41\nendcidchar", "D800", "H")]
+        // A later declaration overrides an earlier one across range and single-code sections.
+        [InlineData("<0000> <FFFF>", "1 begincidchar\n<D800> 1\nendcidchar\n1 begincidrange\n<D800> <D801> 41\nendcidrange", "D800", "H")]
         public void EmbeddedEncodingCMapDecodesThroughTheDescendantCollectionWithoutToUnicode(
             string codespace, string mappings, string code, string expected) {
+            Assert.Contains(expected, PdfReadDocument.Open(BuildEmbeddedKoreaCMapPdf(codespace, mappings, code)).Pages[0].ExtractText(), StringComparison.Ordinal);
+        }
+
+        // Each code is matched against every codespace range, so an embedded CMap with more ranges than the limit is not used.
+        [Theory]
+        [InlineData(1024, true)]
+        [InlineData(1025, false)]
+        public void EmbeddedEncodingCMapCodespaceRangesAreBounded(int ranges, bool decodes) {
+            var codespace = new StringBuilder();
+            for (int index = 0; index < ranges - 1; index++) codespace.AppendFormat(System.Globalization.CultureInfo.InvariantCulture, "<{0:X4}> <{0:X4}>\n", index);
+            codespace.Append("<D800> <D800>");
+
+            PdfReadPage page = PdfReadDocument.Open(BuildEmbeddedKoreaCMapPdf(codespace.ToString(), "1 begincidchar\n<D800> 41\nendcidchar", "D800")).Pages[0];
+
+            if (decodes) {
+                Assert.Contains("H", page.ExtractText(), StringComparison.Ordinal);
+            } else {
+                Assert.Throws<PdfUnsupportedTextMappingException>(() => page.ExtractText());
+            }
+        }
+
+        private static byte[] BuildEmbeddedKoreaCMapPdf(string codespace, string mappings, string code) {
             string cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n" +
                 "/CMapName /Adobe-Korea1-2 def /CMapType 1 def\n1 begincodespacerange\n" + codespace + "\nendcodespacerange\n" +
                 mappings + "\nendcmap CMapName currentdict /CMap defineresource pop end end";
@@ -101,8 +127,7 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream",
                 "<< /Type /CMap /CMapName /Adobe-Korea1-2 /CIDSystemInfo << /Registry (Adobe) /Ordering (Korea1) /Supplement 2 >> /Length " + cmap.Length + " >>\nstream\n" + cmap + "\nendstream"
             });
-
-            Assert.Contains(expected, PdfReadDocument.Open(pdf).Pages[0].ExtractText(), StringComparison.Ordinal);
+            return pdf;
         }
 
         [Fact]

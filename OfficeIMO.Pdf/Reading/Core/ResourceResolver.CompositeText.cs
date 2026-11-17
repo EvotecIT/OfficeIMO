@@ -17,15 +17,19 @@ internal static partial class ResourceResolver {
         }
 
         Func<Func<int, string?>?>? program = null;
+        byte[]? programBytes = null;
         string? descendantSubtype = descendant.Get<PdfName>("Subtype")?.Name;
         if (string.Equals(descendantSubtype, "CIDFontType2", StringComparison.Ordinal) && trueTypeProgram != null) {
             byte[]? cidToGlyph = TryReadCidToGlyphMap(font, objects);
-            if (cidToGlyph != null) program = () => CreateTrueTypeCidText(trueTypeProgram, cidToGlyph);
+            if (cidToGlyph != null) {
+                program = () => CreateTrueTypeCidText(trueTypeProgram, cidToGlyph);
+                programBytes = trueTypeProgram;
+            }
         } else if (string.Equals(descendantSubtype, "CIDFontType0", StringComparison.Ordinal) &&
             ResolveEmbeddedCffStream(font, objects, out _) != null) {
             program = () => CreateCffCidText(font, objects);
         }
-        return collection == null && program == null ? null : new PdfCidTextFallback(collection, program);
+        return collection == null && program == null ? null : new PdfCidTextFallback(collection, program, programBytes);
 
         string ReadInfoString(PdfDictionary dictionary, string key) =>
             dictionary.Items.TryGetValue(key, out PdfObject? value) && ResolveObject(value, objects) is PdfStringObj text

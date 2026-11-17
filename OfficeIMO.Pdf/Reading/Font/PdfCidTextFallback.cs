@@ -9,11 +9,17 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfCidTextFallback {
     private readonly string? _collectionOrdering;
     private readonly Lazy<Func<int, string?>?>? _program;
+    private readonly byte[]? _programBytes;
 
-    internal PdfCidTextFallback(string? collectionOrdering, Func<Func<int, string?>?>? programFactory) {
+    // programBytes is the font program the factory reads; it stays reachable until the first program lookup.
+    internal PdfCidTextFallback(string? collectionOrdering, Func<Func<int, string?>?>? programFactory, byte[]? programBytes = null) {
         _collectionOrdering = collectionOrdering;
         _program = programFactory == null ? null : new Lazy<Func<int, string?>?>(programFactory);
+        _programBytes = programFactory == null ? null : programBytes;
     }
+
+    /// <summary>The font program bytes held for a lookup that has not run yet, for retention accounting.</summary>
+    internal byte[]? PendingProgramBytes => _program is { IsValueCreated: false } ? _programBytes : null;
 
     /// <summary>Appends the text of <paramref name="cid"/> and returns its source, or null when neither source maps it.</summary>
     internal PdfTextDecodingSource? TryAppend(int cid, StringBuilder text) {
