@@ -7,14 +7,45 @@ internal static partial class PdfWriter {
     private sealed class DrawingTextMetricsState {
         private readonly PdfCreateOptions options;
         private readonly System.Threading.CancellationToken cancellationToken;
+        private readonly DrawingTextMeasurementCanvases? canvases;
         private OfficeDrawingTextMetrics? value;
 
-        internal DrawingTextMetricsState(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken) {
+        internal DrawingTextMetricsState(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken,
+            DrawingTextMeasurementCanvases? canvases = null) {
             this.options = options;
             this.cancellationToken = cancellationToken;
+            this.canvases = canvases;
         }
 
-        internal OfficeDrawingTextMetrics Value => value ??= CreateDrawingTextMetrics(options, cancellationToken);
+        internal OfficeDrawingTextMetrics Value => value ??= CreateDrawingTextMetrics(options, canvases, cancellationToken);
+    }
+
+    /// <summary>
+    /// Measurement canvases for one layout pass. Parsing a font face is far more expensive than
+    /// measuring with it, so every drawing in the pass reuses the canvas for the same face bytes,
+    /// family, style and shaping configuration instead of rebuilding it per drawing.
+    /// </summary>
+    private sealed class DrawingTextMeasurementCanvases {
+        private const int MaximumCanvases = 256;
+        private readonly Dictionary<(byte[] Data, string Family, OfficeFontStyle Style, IOfficeTextShapingProvider? Shaping, string? Language), OfficeRasterCanvas?> canvases =
+            new Dictionary<(byte[], string, OfficeFontStyle, IOfficeTextShapingProvider?, string?), OfficeRasterCanvas?>();
+        private readonly object gate = new object();
+
+        internal OfficeRasterCanvas? GetOrCreate(byte[] data, string family, OfficeFontStyle style, PdfCreateOptions options,
+            System.Threading.CancellationToken cancellationToken) {
+            var key = (data, family, style, options.TextShapingProvider, options.EffectiveTextShapingLanguage);
+            lock (gate) {
+                if (canvases.TryGetValue(key, out OfficeRasterCanvas? canvas)) return canvas;
+                var fonts = new OfficeFontFaceCollection();
+                if (fonts.TryAdd(family, data, style)) {
+                    canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
+                        options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
+                }
+                if (canvases.Count >= MaximumCanvases) canvases.Clear();
+                canvases[key] = canvas;
+                return canvas;
+            }
+        }
     }
 
     // Font selection stays in PDF options; native geometry is measured by the shared font engine.
@@ -22,8 +53,12 @@ internal static partial class PdfWriter {
         return CreateDrawingTextMetrics(options).MeasureText;
     }
 
-    internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken = default) {
-        var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
+    internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options, System.Threading.CancellationToken cancellationToken = default) =>
+        CreateDrawingTextMetrics(options, null, cancellationToken);
+
+    private static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfCreateOptions options,
+        DrawingTextMeasurementCanvases? canvases, System.Threading.CancellationToken cancellationToken) {
+        canvases ??= new DrawingTextMeasurementCanvases();
         return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont, MeasureFeatures,
             MeasureSegmentHorizontalPaint, Prepare);
 
@@ -51,19 +86,8 @@ internal static partial class PdfWriter {
                 } else if (options.TryGetEmbeddedStandardFont(selectedFont, out PdfEmbeddedFont? embedded)) {
                     data = embedded!.DataSnapshot;
                 }
-                OfficeRasterCanvas? canvas = null;
-                if (data != null) {
-                    var key = (data, measuredFamily, style);
-                    if (!metrics.TryGetValue(key, out canvas)) {
-                        var fonts = new OfficeFontFaceCollection();
-                        if (fonts.TryAdd(measuredFamily, data, style)) {
-                            canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
-                                options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
-                        }
-                        if (metrics.Count >= 256) metrics.Clear();
-                        metrics[key] = canvas;
-                    }
-                }
+                OfficeRasterCanvas? canvas = data != null
+                    ? canvases.GetOrCreate(data, measuredFamily, style, options, cancellationToken) : null;
                 yield return (part, canvas, measuredFamily, selectedFont, syntheticOblique, syntheticBold);
             }
         }

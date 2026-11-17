@@ -297,7 +297,7 @@ namespace OfficeIMO.Tests {
                     PowerPointPackageFingerprint.HasApplicationSignatureFlag(reopened, serializedLength - 1));
                 Assert.False(reopenedProperties.IsRootElementLoaded);
                 Assert.True(PowerPointPackageFingerprint.HasApplicationSignatureFlag(reopened, serializedLength));
-                Assert.True(reopenedProperties.IsRootElementLoaded);
+                Assert.False(reopenedProperties.IsRootElementLoaded);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
