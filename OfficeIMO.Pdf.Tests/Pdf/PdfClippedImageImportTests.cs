@@ -96,6 +96,21 @@ public sealed class PdfClippedImageImportTests {
     }
 
     [Fact]
+    public void CropOfAJpegIgnoresItsExifOrientation() {
+        // EXIF orientation 3 would turn the image 180 degrees and put the blue columns where the clip keeps red ones.
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
+            "q 20 30 40 40 re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\n", jpegExifOrientation: 3));
+
+        byte[] crop = Assert.Single(ExtractDataUris(logical.ExtractMarkdown()));
+
+        Assert.True(OfficeRasterImageDecoder.TryDecode(crop, out OfficeRasterImage? raster));
+        Assert.Equal(ImageSize / 2, raster!.Width);
+        Assert.Equal(ImageSize, raster.Height);
+        OfficeColor pixel = raster.GetPixel(raster.Width / 2, raster.Height / 2);
+        Assert.True(pixel.R > 200 && pixel.B < 60, "Expected the red source columns, got " + pixel + ".");
+    }
+
+    [Fact]
     public void CropOfAMirroredImageKeepsTheSourcePixelsTheClipShows() {
         // A negative horizontal scale draws the blue source columns on the left of the placement.
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateSplitImagePdf("20 30 40 40", "-80 0 0 40 100 30"));
@@ -211,18 +226,34 @@ public sealed class PdfClippedImageImportTests {
     private static byte[] CreateSplitImagePdf(string? clip, string matrix, string? clipPath = null) =>
         CreateImagePdf("q " + (clipPath ?? (clip == null ? string.Empty : clip + " re W n ")) + " q " + matrix + " cm /Im1 Do Q Q\n");
 
-    /// <summary>A 160 pt page whose content stream draws the split image resource <c>/Im1</c>.</summary>
-    private static byte[] CreateImagePdf(string content, string pageEntries = "") {
+    /// <summary>
+    /// A 160 pt page whose content stream draws the split image resource <c>/Im1</c>, stored as raw RGB samples or,
+    /// with <paramref name="jpegExifOrientation"/>, as a DCT image whose EXIF orientation PDF viewers ignore.
+    /// </summary>
+    private static byte[] CreateImagePdf(string content, string pageEntries = "", int? jpegExifOrientation = null) {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
+        var raster = new OfficeRasterImage(ImageSize, ImageSize, Blue);
         byte[] pixels = new byte[ImageSize * ImageSize * 3];
         for (int y = 0; y < ImageSize; y++) {
             for (int x = 0; x < ImageSize; x++) {
                 int offset = (y * ImageSize + x) * 3;
                 OfficeColor color = x < ImageSize / 2 ? Red : Blue;
+                raster.SetPixel(x, y, color);
                 pixels[offset] = color.R;
                 pixels[offset + 1] = color.G;
                 pixels[offset + 2] = color.B;
             }
+        }
+        string filter = string.Empty;
+        if (jpegExifOrientation is { } orientation) {
+            byte[] exif = {
+                (byte)'I', (byte)'I', 42, 0, 8, 0, 0, 0,
+                1, 0, 0x12, 1, 3, 0, 1, 0, 0, 0, (byte)orientation, 0, 0, 0, 0, 0, 0, 0
+            };
+            pixels = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
+                Quality = 95, Subsampling = OfficeJpegSubsampling.Y444, Metadata = new OfficeJpegMetadata(exif: exif)
+            });
+            filter = " /Filter /DCTDecode";
         }
 
         using var output = new MemoryStream();
@@ -234,7 +265,7 @@ public sealed class PdfClippedImageImportTests {
         output.Write(contentBytes, 0, contentBytes.Length);
         Write(output, "endstream\nendobj\n");
         Write(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width " + ImageSize + " /Height " + ImageSize +
-            " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length " + pixels.Length + " >>\nstream\n");
+            " /ColorSpace /DeviceRGB /BitsPerComponent 8" + filter + " /Length " + pixels.Length + " >>\nstream\n");
         output.Write(pixels, 0, pixels.Length);
         Write(output, "\nendstream\nendobj\n");
         Write(output, "trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n");

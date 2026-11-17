@@ -233,7 +233,12 @@ internal static class PdfImagePlacementImportPolicy {
         mimeType = "image/png";
         fileExtension = ".png";
         if (!source.IsImageFile) return false;
-        if (!OfficeRasterImageDecoder.TryDecode(source.EncodedBytes, out OfficeRasterImage? raster) || raster == null) return false;
+        // The placement matrix positions PDF image samples; EXIF orientation would move pixels the crop fractions select.
+        if (!OfficeRasterImageDecoder.TryDecode(
+                source.EncodedBytes,
+                options: new OfficeRasterDecodeOptions { ApplyExifOrientation = false },
+                out OfficeRasterImage? raster,
+                out _) || raster == null) return false;
 
         int left = ToPixels(crop.SourceLeft, raster.Width);
         int right = ToPixels(crop.SourceRight, raster.Width);
