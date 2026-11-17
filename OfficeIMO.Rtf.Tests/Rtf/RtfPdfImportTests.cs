@@ -318,7 +318,7 @@ public class RtfPdfImportTests {
         Assert.Equal("(b)", markers["Drop"]);
         // Changed punctuation starts a new list; a nested restart keeps its parent's number.
         Assert.Equal("(3)", markers["Close"]);
-        Assert.Equal("2.5", markers["Test"]);
+        Assert.Equal("2.5.", markers["Test"]);
 
         RtfParagraph Item(string text) => Assert.Single(rtf.Paragraphs, paragraph => paragraph.ToPlainText() == text);
         Assert.Equal(Item("Collect requirements").ListId, Item("Agree on scope").ListId);

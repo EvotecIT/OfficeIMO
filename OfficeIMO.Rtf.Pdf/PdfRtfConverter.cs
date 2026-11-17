@@ -329,7 +329,8 @@ internal static class PdfRtfConverter {
             // counts on from there.
             if (_carried[level]) return false;
             if (_markers[level] is not PdfCore.PdfLogicalListMarker current) return true;
-            if (current.Format != marker.Format || current.Prefix != marker.Prefix || current.Suffix != marker.Suffix) return false;
+            if (current.Format != marker.Format || current.Prefix != marker.Prefix || current.Suffix != marker.Suffix ||
+                current.IncludesParentNumbers != marker.IncludesParentNumbers) return false;
             return !marker.Ordinal.HasValue || marker.Ordinal.Value == (_counters[level] + 1 ?? _starts[level]);
         }
 
@@ -378,7 +379,7 @@ internal static class PdfRtfConverter {
                 PdfCore.PdfLogicalListNumberFormat.LowerLetter => 4,
                 _ => 0
             };
-            string suffix = marker.Suffix.Length == 0 && marker.Prefix.Length == 0 && !marker.IncludesParentNumbers ? "." : marker.Suffix;
+            string suffix = marker.Suffix.Length == 0 && marker.Prefix.Length == 0 ? "." : marker.Suffix;
             var levelText = new System.Text.StringBuilder(marker.Prefix);
             // "1.2" repeats its parent numbers, written as "%1.%2".
             for (int shown = marker.IncludesParentNumbers ? 0 : level; shown <= level; shown++) {
