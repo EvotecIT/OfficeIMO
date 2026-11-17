@@ -134,7 +134,7 @@ internal static partial class PdfWriter {
 
         string colorSpace = baseChannels == 1 ? "/DeviceGray" : "/DeviceRGB";
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows, cancellationToken),
+            Data = DeflateZlib(FilterPngScanlines(baseRows, width * baseChannels * 2, height, baseChannels * 2, cancellationToken), cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             BitsPerComponent = 16,
@@ -143,7 +143,7 @@ internal static partial class PdfWriter {
 
         if (alphaRows != null) {
             image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows, cancellationToken),
+                Data = DeflateZlib(FilterPngScanlines(alphaRows, width * 2, height, 2, cancellationToken), cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 BitsPerComponent = 16,
@@ -184,7 +184,7 @@ internal static partial class PdfWriter {
                     Scale16BitSampleToByte(ReadUInt16BigEndian(samples, (row * stride + sample) * 2));
             }
         }
-        image.Data = DeflateZlib(rows, cancellationToken);
+        image.Data = DeflateZlib(FilterPngScanlines(rows, stride, source.PixelHeight, channels, cancellationToken), cancellationToken);
         image.BitsPerComponent = 8;
         image.DictionarySuffix = image.DictionarySuffix.Replace("/BitsPerComponent 16", "/BitsPerComponent 8");
         if (image.SoftMask != null) image.SoftMask = PrepareImageStreamForVersion(image.SoftMask, version, cancellationToken);

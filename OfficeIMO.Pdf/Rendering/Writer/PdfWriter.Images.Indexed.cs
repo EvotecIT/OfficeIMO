@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
         };
         if (alphaRows != null) {
             image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows, cancellationToken),
+                Data = DeflateZlib(FilterPngScanlines(alphaRows, width, height, 1, cancellationToken), cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
