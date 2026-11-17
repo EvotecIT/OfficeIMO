@@ -11,14 +11,15 @@ internal static partial class PdfStamper {
             indirect.Value is not PdfDictionary pageDictionary ||
             !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) return;
 
-        pageDictionary.Items["Contents"] = IsolateContents(objects, contentsObject, ref nextObjectNumber);
+        pageDictionary.Items["Contents"] = IsolateContents(objects, pageDictionary, contentsObject, ref nextObjectNumber);
     }
 
     private static PdfArray IsolateContents(
         Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary page,
         PdfObject contentsObject,
         ref int nextObjectNumber) {
-        return PdfPageContentIsolation.Isolate(objects, contentsObject, ref nextObjectNumber);
+        return PdfPageContentIsolation.Isolate(objects, page, contentsObject, ref nextObjectNumber);
     }
 
     private static Dictionary<string, PdfObject> BuildPageOverrides(

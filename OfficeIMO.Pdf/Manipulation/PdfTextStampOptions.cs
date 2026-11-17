@@ -56,13 +56,13 @@ public sealed class PdfTextStampOptions : IPdfOperationCancellation {
 
     /// <summary>
     /// Physical X coordinate of the text baseline origin from the unrotated PDF origin.
-    /// When null, stamps use 36 points and watermarks center in the effective page box.
+    /// When null, stamps sit 36 points from the lower-left corner of the displayed page and watermarks center in it.
     /// </summary>
     public global::OfficeIMO.OfficeLength? X { get; set; }
 
     /// <summary>
     /// Physical Y coordinate of the text baseline origin from the unrotated PDF origin.
-    /// When null, stamps use 36 points and watermarks center in the effective page box.
+    /// When null, stamps sit 36 points from the lower-left corner of the displayed page and watermarks center in it.
     /// </summary>
     public global::OfficeIMO.OfficeLength? Y { get; set; }
 
@@ -94,7 +94,8 @@ public sealed class PdfTextStampOptions : IPdfOperationCancellation {
     public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>
-    /// Text rotation in degrees around the text origin.
+    /// Counter-clockwise text rotation in degrees around the text origin, relative to the displayed page. On a page with
+    /// /Rotate, unrotated text reads upright as the page is viewed.
     /// </summary>
     public double RotationDegrees {
         get => _rotationDegrees;

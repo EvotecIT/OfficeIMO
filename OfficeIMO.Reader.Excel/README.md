@@ -28,6 +28,42 @@ error. A numeric name such as `"2"` remains a name. Positional selection is reso
 once per workbook and applies to chunks, rich content, assets and inspection
 without changing the registered options. A position outside the workbook fails.
 
+## Cell text
+
+Extracted cell text is what each cell's number format displays, because that is what a reader of the workbook
+sees and what questions about it refer to:
+
+| Stored value | Number format | Extracted text |
+| --- | --- | --- |
+| `0.032` | `0.0%` | `3.2%` |
+| `31200` | `"$"#,##0` | `$31,200` |
+| `45306` | `yyyy-mm-dd` | `2024-01-15` |
+| `0.5625` | `h:mm AM/PM` | `1:30 PM` |
+| `1.25` | `# ?/?` | `1 1/4` |
+| `12345.678` | `0.00E+00` | `1.23E+04` |
+| `0.30000000000000004` | General | `0.3` |
+| `1` (boolean) | | `TRUE` |
+
+The same text appears in chunk text, Markdown tables and `ReaderTable` rows for XLSX, XLSM, XLSB, XLS and
+SpreadsheetML input. Formatting uses the invariant culture so a workbook produces the same text on every machine;
+workbooks do not record the locale they were edited in. Set `CellTextCulture` to display separators for a
+specific culture. Literal currency symbols and locale tags in a format are kept as written. Each style's number
+format is resolved once per workbook, not per cell. Text cells, including shared strings, keep their stored text.
+A cell without its own style uses its row's custom style, otherwise its column's style, as
+`ExcelCell.GetFormattedText()` does. Numbers read as `decimal` through `ReadOptions.NumericAsDecimal` display the same way.
+
+Set `CellText = ReaderExcelCellText.Raw` for stored values instead: invariant numbers, ISO 8601 timestamps for
+date-formatted cells and `True`/`False` booleans.
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddExcelHandler(new ReaderExcelOptions { CellText = ReaderExcelCellText.Raw })
+    .Build();
+```
+
+OpenDocument spreadsheets are read by `OfficeIMO.Reader.OpenDocument`, which uses the display text stored in the
+file.
+
 ## Project an open workbook
 
 With `OfficeIMO.Reader.Excel` imported, call `document.ReadDocument(sourceName,

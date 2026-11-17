@@ -1018,6 +1018,7 @@ _Dependency footprint:_ only OfficeIMO Latex.Markdown and Markdown.Pdf; no addit
 - [x] Normalized Markdown/text chunks, tables, visuals, assets, locations, hashes, metadata, diagnostics, and rich results
 - [x] Explicit handler registration with stable capability manifests and `OfficeIMO`/`Custom` origins
 - [x] Plain-text and unknown-payload fallbacks without a format-engine dependency
+- [x] Source-code files with fenced, language-tagged Markdown, language metadata and shebang detection
 
 _Dependency footprint:_ no OfficeIMO format-engine dependency; only `System.Text.Json` on compatibility targets.
 

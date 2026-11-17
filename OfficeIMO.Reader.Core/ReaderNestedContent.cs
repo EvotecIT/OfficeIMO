@@ -66,6 +66,29 @@ public static class ReaderNestedContent {
         return result;
     }
 
+    /// <summary>Appends an extension implied by the declared media type when an attachment name has none, so the
+    /// active handler set can be selected by name.</summary>
+    internal static string ResolveSourceName(string fileName, string? mediaType) {
+        string extension;
+        try { extension = Path.GetExtension(fileName); } catch (ArgumentException) { extension = string.Empty; }
+        if (!string.IsNullOrWhiteSpace(extension)) return fileName;
+        string? implied = mediaType?.Trim().ToLowerInvariant() switch {
+            "application/pdf" => ".pdf",
+            "text/plain" => ".txt",
+            "text/html" => ".html",
+            "text/rtf" or "application/rtf" => ".rtf",
+            "text/csv" => ".csv",
+            "text/markdown" => ".md",
+            "message/rfc822" => ".eml",
+            "application/vnd.ms-outlook" => ".msg",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => ".docx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" => ".xlsx",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation" => ".pptx",
+            _ => null
+        };
+        return implied == null ? fileName : fileName + implied;
+    }
+
     /// <summary>Reserves decoded input bytes before an archive adapter allocates an entry payload.</summary>
     internal static void ReserveDecodedInput(long bytes) => ReaderReadScope.Current?.Budget?.ReserveNestedInput(bytes);
     internal static void MarkReservedPayload(byte[] bytes) => ReaderReadScope.Current?.Budget?.MarkReservedPayload(bytes);

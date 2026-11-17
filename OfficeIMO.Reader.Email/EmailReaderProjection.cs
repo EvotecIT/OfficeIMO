@@ -311,25 +311,6 @@ internal static partial class EmailReaderProjection {
         return clone;
     }
 
-    private static string ResolveAttachmentSourceName(string fileName, string? contentType) {
-        if (!string.IsNullOrWhiteSpace(TryExtension(fileName))) return fileName;
-        string? extension = contentType?.Trim().ToLowerInvariant() switch {
-            "application/pdf" => ".pdf",
-            "text/plain" => ".txt",
-            "text/html" => ".html",
-            "text/rtf" or "application/rtf" => ".rtf",
-            "text/csv" => ".csv",
-            "text/markdown" => ".md",
-            "message/rfc822" => ".eml",
-            "application/vnd.ms-outlook" => ".msg",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => ".docx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" => ".xlsx",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation" => ".pptx",
-            _ => null
-        };
-        return extension == null ? fileName : fileName + extension;
-    }
-
     private static bool IsPlainTextAttachment(string sourceName, string? contentType) =>
         string.Equals(TryExtension(sourceName), ".txt", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(contentType, "text/plain", StringComparison.OrdinalIgnoreCase);

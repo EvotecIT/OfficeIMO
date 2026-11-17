@@ -35,6 +35,16 @@ public sealed class OdtListItem {
         _element = element;
     }
 
+    /// <summary>Number this item shows in an ordered list, restarting the count; null continues the list's count.</summary>
+    public long? StartValue {
+        get => _element.Attribute(OdfNamespaces.Text + "start-value") is XAttribute attribute ? long.Parse(attribute.Value, CultureInfo.InvariantCulture) : null;
+        set {
+            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+            _element.SetAttributeValue(OdfNamespaces.Text + "start-value", value?.ToString(CultureInfo.InvariantCulture));
+            _document.MarkPartDirty("content.xml");
+        }
+    }
+
     /// <summary>Paragraphs directly contained by this item.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => _element.Elements()
         .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
@@ -47,5 +57,16 @@ public sealed class OdtListItem {
         _element.Add(paragraph);
         _document.MarkPartDirty("content.xml");
         return new OdtParagraph(_document, paragraph);
+    }
+
+    /// <summary>Adds a list nested one level below this item, after its paragraphs.</summary>
+    /// <param name="ordered">True for a numbered list; false for bullets.</param>
+    public OdtList AddList(bool ordered = false) {
+        int level = _element.Ancestors(OdfNamespaces.Text + "list").Count() + 1;
+        string styleName = OdfListStyleStore.Create(_document, ordered, listLevel: Math.Min(10, level));
+        var list = new XElement(OdfNamespaces.Text + "list", new XAttribute(OdfNamespaces.Text + "style-name", styleName));
+        _element.Add(list);
+        _document.MarkPartDirty("content.xml");
+        return new OdtList(_document, list);
     }
 }

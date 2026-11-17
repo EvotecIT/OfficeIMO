@@ -148,7 +148,7 @@ jobs:
     if: needs.coverage.outputs.build == 'true'
     name: Generate proof bundle
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Checkout code
         uses: actions/checkout@v7

@@ -33,6 +33,7 @@ namespace OfficeIMO.PowerPoint {
             byte[]? workbookBytes = embedded != null ? OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind) : null;
             Action? preserveBindings = embedded != null ? OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
                 chartPart, data.Series.Select(series => series.Values.Count).ToArray()) : null;
+            PowerPointChartAxisIdGenerator.EnsureSeeded(chartPart.OpenXmlPackage);
             OfficeOpenXmlChartWriter.UpdateSharedChartData(chartPart, data, chartKind,
                 ColorTheme);
             preserveBindings?.Invoke();

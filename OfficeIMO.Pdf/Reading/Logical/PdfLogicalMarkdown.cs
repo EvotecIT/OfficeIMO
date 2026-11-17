@@ -18,6 +18,10 @@ public sealed class PdfLogicalMarkdownOptions {
     /// <summary>Emit a form widget section for AcroForm widgets placed on pages.</summary>
     public bool IncludeFormWidgets { get; set; }
 
+    /// <summary>Emit an annotation section at the end of each page for Highlight, Underline, StrikeOut and Squiggly annotations,
+    /// with the annotation type, author, the page text it covers and its comment.</summary>
+    public bool IncludeMarkupAnnotations { get; set; }
+
     /// <summary>Right-align table columns in Markdown when all non-empty body cells look numeric.</summary>
     public bool AlignNumericTableColumns { get; set; } = true;
 
@@ -166,7 +170,33 @@ public static class PdfLogicalMarkdownExtensions {
             }
         }
 
+        if (options.IncludeMarkupAnnotations) {
+            // Positionless items sort after the page content, so markup annotations form a section at the end of the page.
+            for (int i = 0; i < page.Annotations.Count; i++) {
+                string? markdown = FormatMarkupAnnotation(page, page.Annotations[i]);
+                if (markdown is not null) items.Add(new MarkdownItem(null, 0, sequence++, markdown));
+            }
+        }
+
         return items;
+    }
+
+    private static string? FormatMarkupAnnotation(PdfLogicalPage page, PdfAnnotation annotation) {
+        if (!annotation.IsTextMarkup) return null;
+        string? covered = CollapseWhitespace(page.GetMarkupText(annotation));
+        string? note = CollapseWhitespace(annotation.Contents ?? annotation.RichContentsPlainText);
+        if (covered is null && note is null) return null;
+        var builder = new StringBuilder("[").Append(annotation.Subtype);
+        string? author = CollapseWhitespace(annotation.Title);
+        if (author is not null) builder.Append(" by ").Append(EscapeInline(author, escapeLinePrefix: false));
+        if (covered is not null) builder.Append(": \"").Append(EscapeInline(covered, escapeLinePrefix: false)).Append('"');
+        if (note is not null) builder.Append("; note: ").Append(EscapeInline(note, escapeLinePrefix: false));
+        return builder.Append(']').ToString();
+    }
+
+    private static string? CollapseWhitespace(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        return string.Join(" ", value!.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
     private static HashSet<PdfImagePlacement>? CollectFigurePlacements(IReadOnlyList<PdfLogicalImage> images) {
@@ -285,7 +315,7 @@ public static class PdfLogicalMarkdownExtensions {
     private static string RenderListItem(PdfLogicalListItem item, Stack<(int Level, int ContentIndent)> parents,
         out bool requiresBlankLine) {
         int level = Math.Max(item.Level, 1);
-        string marker = FormatListMarker(item.Marker);
+        string marker = FormatListMarker(item.Marker, item.MarkerInfo);
         bool startsNestedList = parents.Count > 0 && parents.Peek().Level < level;
         // A non-one ordered list needs a blank line after its parent's paragraph to preserve its start number.
         requiresBlankLine = startsNestedList && marker is not ("-" or "1." or "1)");
@@ -330,7 +360,7 @@ public static class PdfLogicalMarkdownExtensions {
         return builder.ToString();
     }
 
-    private static string FormatListMarker(string marker) {
+    private static string FormatListMarker(string marker, PdfLogicalListMarker parsed) {
         string trimmed = marker.Trim();
         if (trimmed.Length == 0) {
             return "-";
@@ -341,6 +371,12 @@ public static class PdfLogicalMarkdownExtensions {
             return last == '.' || last == ')'
                 ? trimmed
                 : trimmed + ".";
+        }
+
+        // CommonMark numbers lists only with digits, so "c)" or "iv." keep their position as "3)" or "4.".
+        if (parsed.Ordinal.HasValue) {
+            bool parenthesis = parsed.Suffix.Length > 0 && parsed.Suffix[parsed.Suffix.Length - 1] == ')';
+            return parsed.Ordinal.Value.ToString(CultureInfo.InvariantCulture) + (parenthesis ? ")" : ".");
         }
 
         return "-";

@@ -25,6 +25,12 @@ internal static class ExcelExtractionExtensions {
         /// When true, emit a Markdown preview table in <see cref="ExcelExtractChunk.Markdown"/>. Default: true.
         /// </summary>
         public bool EmitMarkdownTable { get; set; } = true;
+
+        /// <summary>
+        /// When set, values the reader left typed are written as Excel displays them under the General format:
+        /// numbers with up to 15 significant digits in this culture and booleans as TRUE or FALSE.
+        /// </summary>
+        public IFormatProvider? DisplayProvider { get; set; }
     }
 
     /// <summary>
@@ -81,7 +87,7 @@ internal static class ExcelExtractionExtensions {
                 if (extract.HeadersInFirstRow && chunk.Rows.Length > 0) {
                     headers.Clear();
                     var hdrRow = chunk.Rows[0];
-                    for (int c = 0; c < chunk.ColCount; c++) headers.Add(ToCellString(hdrRow[c], fallback: $"Column{c + 1}"));
+                    for (int c = 0; c < chunk.ColCount; c++) headers.Add(ToCellString(hdrRow[c], $"Column{c + 1}", extract.DisplayProvider));
                 } else {
                     headers.Clear();
                     for (int c = 0; c < chunk.ColCount; c++) headers.Add($"Column{c + 1}");
@@ -94,7 +100,7 @@ internal static class ExcelExtractionExtensions {
             for (int r = startRowOffset; r < chunk.RowCount; r++) {
                 var row = chunk.Rows[r];
                 var cells = new string[chunk.ColCount];
-                for (int c = 0; c < chunk.ColCount; c++) cells[c] = ToCellString(row[c], fallback: string.Empty);
+                for (int c = 0; c < chunk.ColCount; c++) cells[c] = ToCellString(row[c], string.Empty, extract.DisplayProvider);
                 rowList.Add(cells);
             }
 
@@ -211,8 +217,14 @@ internal static class ExcelExtractionExtensions {
         return length;
     }
 
-    private static string ToCellString(object? value, string fallback) {
+    private static string ToCellString(object? value, string fallback, IFormatProvider? display) {
         if (value == null) return fallback;
+        if (display != null) {
+            if (value is double number) return OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue(number, display);
+            // NumericAsDecimal reads numbers as decimal; they display the same way.
+            if (value is decimal amount) return OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue((double)amount, display);
+            if (value is bool flag) return flag ? "TRUE" : "FALSE";
+        }
         if (value is DateTime dt) return dt.ToString("o", CultureInfo.InvariantCulture);
         if (value is DateTimeOffset dto) return dto.ToString("o", CultureInfo.InvariantCulture);
         if (value is IFormattable f) return f.ToString(null, CultureInfo.InvariantCulture) ?? fallback;

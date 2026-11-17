@@ -141,6 +141,28 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 ```
 
+For source code, `AddSourceCodeHandler()` reads common programming, scripting and configuration files
+(`.cs`, `.ps1`, `.psm1`, `.py`, `.js`, `.ts`, `.java`, `.go`, `.rs`, `.c`, `.cpp`, `.h`, `.sql`, `.sh`, `.ini` and more):
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddPlainTextHandlers()
+    .AddSourceCodeHandler()
+    .Build();
+
+OfficeDocumentReadResult script = reader.ReadDocument("deploy.ps1");
+string? language = script.Metadata.FirstOrDefault(entry => entry.Id == "source-code-language")?.Value; // "powershell"
+```
+
+`Text` keeps the source verbatim with LF line breaks. `Markdown` wraps each chunk in a fenced block tagged with the
+language, using a longer fence when the code itself contains backticks. Chunks split on line boundaries and carry
+their start and end lines. The `source-code.document` metadata reports the language (with its display name and
+whether the extension or a `#!` line identified it) and the line count. Extensionless scripts whose first line is a
+shebang such as `#!/usr/bin/env python3` are routed to this handler by content detection. Decoding follows the
+plain-text rules below; input containing NUL bytes outside UTF-16 or UTF-32 is refused with
+`InvalidDataException`. JSON, YAML, TOML, XML, Markdown, CSV, HTML, LaTeX and the other structured formats stay with
+their own readers; this handler does not claim their extensions. `AddAllOfficeIMOHandlers()` includes it.
+
 `OfficeDocumentReader.Default` intentionally has no format handlers. This keeps Core honest: adding a format is an
 explicit package and builder decision, while every built reader remains immutable and instance-scoped.
 
@@ -223,7 +245,7 @@ Folder and detailed path reads run the same configured processors as single-docu
 
 Plain-text handlers recognize UTF-8, UTF-16 and UTF-32 BOMs. Without a BOM they use UTF-8 or the supplied
 `TextEncoding`. Replacement decoding emits a warning; `ThrowOnInvalidTextBytes` rejects malformed bytes.
-BOMs override `TextEncoding`. These options apply to plain-text handlers; other formats use their own
+BOMs override `TextEncoding`. These options apply to the plain-text and source-code handlers; other formats use their own
 codec policies. Chunk boundaries preserve Unicode surrogate pairs, and line breaks normalize to LF.
 
 ## Text and metadata projection
@@ -275,7 +297,7 @@ same shape either way. Nested reads inherit the text profile.
 
 ## Nested results and qualified capabilities
 
-ZIP and email reads keep each delegated source's rich result in `NestedDocuments`, alongside the existing
+ZIP, email and PDF attachment reads keep each delegated source's rich result in `NestedDocuments`, alongside the existing
 flattened chunks. Each item supplies its virtual `Path` and complete `Document`, including available links,
 forms, metadata, diagnostics and assets. Identifiers inside a child result remain local to that child.
 Asset payload bytes stay in memory when requested and remain excluded from JSON transport.

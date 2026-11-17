@@ -33,14 +33,17 @@ namespace OfficeIMO.Pdf.Word {
             public PdfCore.PdfLogicalLinkAnnotation? Link { get; private set; }
             public string? LinkText { get; private set; }
 
-            public static ImportItem ForHeading(PdfCore.PdfLogicalHeading heading, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.Heading, y, sequence, readingOrderIndex) { Heading = heading, Link = link, LinkText = linkText };
+            /// <summary>Text split where link annotations begin and end; null when no link is drawn over the text.</summary>
+            public IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? LinkedText { get; private set; }
 
-            public static ImportItem ForParagraph(PdfCore.PdfLogicalParagraph paragraph, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.Paragraph, y, sequence, readingOrderIndex) { Paragraph = paragraph, Link = link, LinkText = linkText };
+            public static ImportItem ForHeading(PdfCore.PdfLogicalHeading heading, double y, int sequence, int? readingOrderIndex, IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? linkedText) =>
+                new ImportItem(ImportItemKind.Heading, y, sequence, readingOrderIndex) { Heading = heading, LinkedText = linkedText };
 
-            public static ImportItem ForTextBlock(PdfCore.PdfLogicalTextBlock block, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
-                new ImportItem(ImportItemKind.TextBlock, y, sequence, readingOrderIndex) { TextBlock = block, Link = link, LinkText = linkText };
+            public static ImportItem ForParagraph(PdfCore.PdfLogicalParagraph paragraph, double y, int sequence, int? readingOrderIndex, IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? linkedText) =>
+                new ImportItem(ImportItemKind.Paragraph, y, sequence, readingOrderIndex) { Paragraph = paragraph, LinkedText = linkedText };
+
+            public static ImportItem ForTextBlock(PdfCore.PdfLogicalTextBlock block, double y, int sequence, int? readingOrderIndex, IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? linkedText) =>
+                new ImportItem(ImportItemKind.TextBlock, y, sequence, readingOrderIndex) { TextBlock = block, LinkedText = linkedText };
 
             public static ImportItem ForListItem(PdfCore.PdfLogicalListItem listItem, double y, int sequence, int? readingOrderIndex) =>
                 new ImportItem(ImportItemKind.ListItem, y, sequence, readingOrderIndex) { ListItem = listItem };

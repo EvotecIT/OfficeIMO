@@ -235,6 +235,8 @@ var chunks = reader.EnumerateFolder("KnowledgeBase", new ReaderFolderOptions {
 - Passive action summaries without executable payloads.
 - Image placeholders and visual geometry when available.
 - Link annotations and typed form fields when available.
+- For Highlight, Underline, StrikeOut and Squiggly annotations, the page text each one covers, recovered from its quad points. The `pdf.annotation` metadata entry carries it as `coveredText`, with `author` and the comment as the entry value, and the default profile's page Markdown ends with one line per markup annotation, such as `[Highlight by Alice: "covered text"; note: comment]`. Set `MarkdownOptions.IncludeMarkupAnnotations = false` to leave it out of Markdown.
+- Embedded files and portfolio items read as nested documents when the active Reader has a handler for them, as ZIP members and email attachments are. Each one is kept in `NestedDocuments` under `<source>!/attachments/<index>/<name>`, its chunks follow the page chunks, and its `pdf.container.attachment` metadata records the name, MIME type, sizes and whether it is an attachment or a portfolio item. Decoding is bounded by the operation's nested-input budget and `MaxInputBytes` before allocation, by the PDF decoded-stream limits, and across all attachments by `PdfReadLimits.MaxTotalAttachmentBytes`. An attachment's own attachments keep their full path under the outermost source, and attachment tables stay with their nested document. Set `IncludeAttachmentContent = false` to keep attachments as metadata only.
 - A source-neutral normalized-document-to-PDF projection with page, asset, link,
   and form policies plus merged conversion evidence.
 

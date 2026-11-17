@@ -9,6 +9,9 @@ public sealed class PdfConversionReport : OfficeConversionReport {
     private readonly List<PdfConversionWarning> _warnings = new();
     private readonly List<PdfConversionReport> _linkedReports = new();
     private readonly IReadOnlyList<PdfConversionWarning> _readOnlyWarnings;
+    private IReadOnlyList<PdfConversionWarning>? _mergedWarnings;
+    private long _mergedVersion;
+    private long _version;
     private bool _isReadOnly;
 
     /// <summary>Creates an empty mutable report for one in-progress converter operation.</summary>
@@ -26,6 +29,13 @@ public sealed class PdfConversionReport : OfficeConversionReport {
                 return _readOnlyWarnings;
             }
 
+            // The merged view is rebuilt only after this report or a linked report changes. A caller that kept an
+            // earlier view keeps its contents, because a change produces a new list instead of editing the old one.
+            long version = Version;
+            if (_mergedWarnings != null && _mergedVersion == version) {
+                return _mergedWarnings;
+            }
+
             int capacity = _warnings.Count;
             foreach (PdfConversionReport report in _linkedReports) {
                 capacity += report.Warnings.Count;
@@ -37,7 +47,22 @@ public sealed class PdfConversionReport : OfficeConversionReport {
                 warnings.AddRange(report.Warnings);
             }
 
-            return warnings;
+            _mergedWarnings = warnings.AsReadOnly();
+            _mergedVersion = version;
+            return _mergedWarnings;
+        }
+    }
+
+    // Every change increments the changed report's own counter and no counter decreases, so the sum over this
+    // report and its linked reports changes whenever anything visible through Warnings changes.
+    private long Version {
+        get {
+            long version = _version;
+            foreach (PdfConversionReport report in _linkedReports) {
+                version += report.Version;
+            }
+
+            return version;
         }
     }
 
@@ -141,6 +166,7 @@ public sealed class PdfConversionReport : OfficeConversionReport {
         Guard.NotNull(warning, nameof(warning));
         EnsureMutable();
         _warnings.Add(warning);
+        _version++;
         PdfOutputDiagnosticScope.Capture(this, warning);
     }
 
@@ -188,6 +214,7 @@ public sealed class PdfConversionReport : OfficeConversionReport {
         EnsureMutable();
         _warnings.Clear();
         _linkedReports.Clear();
+        _version++;
     }
 
     internal void LinkReport(PdfConversionReport report) {
@@ -198,11 +225,13 @@ public sealed class PdfConversionReport : OfficeConversionReport {
         }
 
         _linkedReports.Add(report);
+        _version++;
     }
 
     internal void ClearLinkedReports() {
         EnsureMutable();
         _linkedReports.Clear();
+        _version++;
     }
 
     private void EnsureMutable() {

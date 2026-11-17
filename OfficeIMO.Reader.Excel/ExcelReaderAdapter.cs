@@ -18,7 +18,9 @@ internal static partial class ExcelReaderAdapter {
         A1Range = source?.A1Range,
         HeadersInFirstRow = source?.HeadersInFirstRow ?? true,
         ChunkRows = Math.Max(1, source?.ChunkRows ?? 200),
-        ReadOptions = source?.ReadOptions?.Clone()
+        ReadOptions = source?.ReadOptions?.Clone(),
+        CellText = source?.CellText ?? ReaderExcelCellText.Formatted,
+        CellTextCulture = source?.CellTextCulture ?? System.Globalization.CultureInfo.InvariantCulture
         };
     }
 
@@ -40,7 +42,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
         using ExcelDocument document = LoadForProjection(path, readerOptions, cancellationToken, out var sourceWarnings);
-        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
+        using ExcelDocumentReader reader = CreateProjectionReader(document, options, out ExcelCellDisplayText? display);
         options = ResolveSheet(options, reader);
         IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, warnings, cancellationToken).ToArray();
@@ -53,7 +55,7 @@ internal static partial class ExcelReaderAdapter {
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, path);
         ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false);
-        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result, display);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
@@ -64,7 +66,7 @@ internal static partial class ExcelReaderAdapter {
         ReaderExcelOptions options,
         CancellationToken cancellationToken) {
         using ExcelDocument document = LoadForProjection(stream, sourceName, readerOptions, cancellationToken, out var sourceWarnings);
-        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
+        using ExcelDocumentReader reader = CreateProjectionReader(document, options, out ExcelCellDisplayText? display);
         options = ResolveSheet(options, reader);
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
         IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
@@ -78,7 +80,7 @@ internal static partial class ExcelReaderAdapter {
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, logicalName);
         ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false);
-        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result, display);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
 
@@ -90,7 +92,7 @@ internal static partial class ExcelReaderAdapter {
         CancellationToken cancellationToken,
         IReadOnlyList<string>? sourceWarnings = null,
         string capabilityId = OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId) {
-        using ExcelDocumentReader reader = NativeReaderAdmission.Load(() => document.CreateReader(options.ReadOptions));
+        using ExcelDocumentReader reader = CreateProjectionReader(document, options, out ExcelCellDisplayText? display);
         options = ResolveSheet(options, reader);
         IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, sourceName, readerOptions, options,
@@ -104,8 +106,21 @@ internal static partial class ExcelReaderAdapter {
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, sourceName);
         ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false);
-        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result);
+        result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result, display);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
+    }
+
+    /// <summary>Opens the tabular reader with displayed-text conversion when formatted cell text is selected.</summary>
+    internal static ExcelDocumentReader CreateProjectionReader(ExcelDocument document, ReaderExcelOptions options) =>
+        CreateProjectionReader(document, options, out _);
+
+    internal static ExcelDocumentReader CreateProjectionReader(ExcelDocument document, ReaderExcelOptions options,
+        out ExcelCellDisplayText? display) {
+        ExcelReaderOptions? readOptions = options.CellText == ReaderExcelCellText.Formatted
+            ? ExcelCellDisplayText.Apply(document, options.ReadOptions, options.CellTextCulture)
+            : options.ReadOptions;
+        display = readOptions?.DisplayText;
+        return NativeReaderAdmission.Load(() => document.CreateReader(readOptions));
     }
 
     private static void AttachWarningsWhenEmpty(OfficeDocumentReadResult result, IReadOnlyList<ReaderChunk> chunks,
@@ -202,7 +217,8 @@ internal static partial class ExcelReaderAdapter {
                          new ExcelExtractionExtensions.ExcelExtractOptions {
                              HeadersInFirstRow = options.HeadersInFirstRow,
                              ChunkRows = options.ChunkRows,
-                             EmitMarkdownTable = readerOptions.Projection == ReaderProjection.Full
+                             EmitMarkdownTable = readerOptions.Projection == ReaderProjection.Full,
+                             DisplayProvider = options.CellText == ReaderExcelCellText.Formatted ? options.CellTextCulture : null
                          },
                          chunking,
                          sourceName,

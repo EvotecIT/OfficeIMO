@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel {
             private const int StringCacheSampleSize = 512;
             private const byte DateStyleCellKindFlag = 0x80;
             private const byte CalendarStyleCellKindFlag = 0x40;
-            private const byte CellKindMask = 0x3F;
+            private const byte DisplayFormatCellKindFlag = 0x20;
+            private const byte CellKindMask = 0x1F;
             private const int SharedStringIndexValueLength = -2;
 
             private readonly ExcelSheetReader _owner;
@@ -385,6 +386,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 ReadOnlySpan<byte> value = _buffer!.AsSpan(start, length);
+                if ((encodedCellKind & DisplayFormatCellKindFlag) != 0
+                    ? TryReadDisplayText(cellKind, start, length, value, out string displayed)
+                    : (cellKind == Utf8CellKind.Number || cellKind == Utf8CellKind.Date) && _options.DisplayText != null
+                        && TryReadInheritedDisplayText(ordinal, cellKind, start, length, value, out displayed)) {
+                    objectValue = displayed;
+                    return;
+                }
                 switch (cellKind) {
                     case Utf8CellKind.SharedString:
                         if (TryParseInt32(value, out int sharedStringIndex)) {
@@ -1032,6 +1040,171 @@ namespace OfficeIMO.Excel {
                 objectValue = value;
             }
 
+            /// <summary>
+            /// Formats a cell flagged as carrying a display number format. The flag is set from the style index while
+            /// the row is indexed; the index itself is read back from the cell's start tag, which precedes the value.
+            /// </summary>
+            private bool TryReadDisplayText(Utf8CellKind cellKind, int start, int length, ReadOnlySpan<byte> value, out string text) {
+                text = string.Empty;
+                ExcelCellDisplayText? display = _options.DisplayText;
+                if (display == null || !TryFindElementStart(start, CellElementName, out int tagEnd)
+                    || !TryReadUIntAttribute(_buffer!, tagEnd, start, StyleAttributeName, out bool present, out uint styleIndex)
+                    || !present) {
+                    return false;
+                }
+                return TryFormatDisplayValue(display, cellKind, start, length, value, styleIndex, out text);
+            }
+
+            /// <summary>
+            /// Formats an unflagged numeric or date cell that has no <c>s</c> attribute of its own through the custom style
+            /// of its row or the style of its column.
+            /// </summary>
+            private bool TryReadInheritedDisplayText(int ordinal, Utf8CellKind cellKind, int start, int length, ReadOnlySpan<byte> value, out string text) {
+                text = string.Empty;
+                ExcelCellDisplayText? display = _options.DisplayText;
+                if (display == null || !InheritedDisplayStylesPossible()) return false;
+                byte[] buffer = _buffer!;
+                if (!TryFindElementStart(start, CellElementName, out int cellTagEnd)
+                    || !TryReadUIntAttribute(buffer, cellTagEnd, start, StyleAttributeName, out bool explicitStyle, out _)
+                    || explicitStyle) {
+                    return false;
+                }
+                uint? rowStyle = GetSelectedRowDisplayStyle(cellTagEnd);
+                uint? inherited = _owner.ResolveInheritedDisplayStyle(rowStyle, _firstColumn + ordinal);
+                return inherited.HasValue && TryFormatDisplayValue(display, cellKind, start, length, value, inherited.Value, out text);
+            }
+
+            private bool TryFormatDisplayValue(ExcelCellDisplayText display, Utf8CellKind cellKind, int start, int length,
+                ReadOnlySpan<byte> value, uint styleIndex, out string text) {
+                text = string.Empty;
+                if (cellKind == Utf8CellKind.Date) {
+                    return display.TryFormatIsoDate(DecodeString(start, length), styleIndex, out text);
+                }
+                // Entity-encoded number text is decoded before parsing, as the typed value path does.
+                double number;
+                if (value.IndexOf((byte)'&') >= 0) {
+                    if (!double.TryParse(DecodeString(start, length).Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out number)) return false;
+                } else if (!TryParseDouble(TrimAsciiWhitespace(value), out number)) {
+                    return false;
+                }
+                text = display.FormatNumber(number, styleIndex);
+                return true;
+            }
+
+            private static readonly byte[] CellElementName = { (byte)'c' };
+            private static readonly byte[] RowElementName = { (byte)'r', (byte)'o', (byte)'w' };
+            private static readonly byte[] StyleAttributeName = { (byte)'s' };
+            private static readonly byte[] CustomFormatAttributeName = Encoding.ASCII.GetBytes("customFormat");
+            private int _displayRowStylePhysicalRow = -1;
+            private uint? _displayRowStyle;
+            private int _inheritedDisplayStylesPossible = -1;
+
+            /// <summary>
+            /// Row inheritance needs a row with <c>customFormat</c>; when the whole worksheet is indexed and holds none,
+            /// only column styles can apply.
+            /// </summary>
+            private bool InheritedDisplayStylesPossible() {
+                if (_inheritedDisplayStylesPossible < 0) {
+                    bool rowStyles = _streaming || _buffer!.AsSpan(0, _length).IndexOf(CustomFormatAttributeName) >= 0;
+                    _inheritedDisplayStylesPossible = rowStyles || _owner.HasFormattedColumnStyles ? 1 : 0;
+                }
+                return _inheritedDisplayStylesPossible == 1;
+            }
+
+            /// <summary>Reads the custom style of the selected row once, from the row start tag before its first cell.</summary>
+            private uint? GetSelectedRowDisplayStyle(int cellTagEnd) {
+                if (_displayRowStylePhysicalRow == _selectedPhysicalRow) return _displayRowStyle;
+                _displayRowStylePhysicalRow = _selectedPhysicalRow;
+                _displayRowStyle = null;
+                byte[] buffer = _buffer!;
+                if (TryFindElementStart(cellTagEnd, RowElementName, out int rowTagEnd, MaximumRowPrefixBytes)
+                    && TryReadAttributeValue(buffer, rowTagEnd, buffer.Length, CustomFormatAttributeName, out int formatStart, out int formatEnd)
+                    && (formatEnd - formatStart == 1 && buffer[formatStart] == (byte)'1'
+                        || formatEnd - formatStart == 4 && buffer[formatStart] == (byte)'t')
+                    && TryReadUIntAttribute(buffer, rowTagEnd, buffer.Length, StyleAttributeName, out bool present, out uint rowStyle)
+                    && present) {
+                    _displayRowStyle = rowStyle;
+                }
+                return _displayRowStyle;
+            }
+
+            /// <summary>
+            /// Finds the nearest start tag with the given local name before <paramref name="before"/> and returns the
+            /// position just after its name, where its attributes begin.
+            /// </summary>
+            private bool TryFindElementStart(int before, byte[] localName, out int nameEnd, int maximumDistance = MaximumCellPrefixBytes) {
+                nameEnd = -1;
+                byte[] buffer = _buffer!;
+                int limit = Math.Max(0, before - maximumDistance);
+                for (int position = before - 1; position >= limit; position--) {
+                    if (buffer[position] != (byte)'<') continue;
+                    int nameStart = position + 1;
+                    if (nameStart >= before || buffer[nameStart] == (byte)'/') continue;
+                    int end = nameStart;
+                    while (end < before && !IsXmlNameDelimiter(buffer[end])) end++;
+                    int localStart = nameStart;
+                    for (int i = nameStart; i < end; i++) {
+                        if (buffer[i] == (byte)':') localStart = i + 1;
+                    }
+                    if (buffer.AsSpan(localStart, end - localStart).SequenceEqual(localName)) {
+                        nameEnd = end;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            private const int MaximumCellPrefixBytes = 64 * 1024;
+            private const int MaximumRowPrefixBytes = 16 * 1024 * 1024;
+
+            private static bool IsXmlWhitespace(byte value) =>
+                value == 0x20 || value == 0x09 || value == 0x0D || value == 0x0A;
+
+            private static bool IsXmlNameDelimiter(byte value) =>
+                IsXmlWhitespace(value) || value == (byte)'>' || value == (byte)'/';
+
+            /// <summary>Reads an unsigned attribute; false only when the tag cannot be parsed or the value is not a number.</summary>
+            private static bool TryReadUIntAttribute(byte[] buffer, int position, int end, byte[] name, out bool present, out uint value) {
+                value = 0;
+                present = TryReadAttributeValue(buffer, position, end, name, out int valueStart, out int valueEnd);
+                if (!present) return true;
+                if (valueStart == valueEnd) return false;
+                uint parsed = 0;
+                for (int i = valueStart; i < valueEnd; i++) {
+                    uint digit = (uint)(buffer[i] - (byte)'0');
+                    if (digit > 9U || parsed > (uint.MaxValue - digit) / 10U) return false;
+                    parsed = parsed * 10U + digit;
+                }
+                value = parsed;
+                return true;
+            }
+
+            /// <summary>Finds an unprefixed attribute in the start tag whose attributes begin at <paramref name="position"/>.</summary>
+            private static bool TryReadAttributeValue(byte[] buffer, int position, int end, byte[] name, out int valueStart, out int valueEnd) {
+                valueStart = valueEnd = -1;
+                while (position < end && buffer[position] != (byte)'>') {
+                    while (position < end && IsXmlWhitespace(buffer[position])) position++;
+                    if (position < end && buffer[position] == (byte)'/') { position++; continue; }
+                    int nameStart = position;
+                    while (position < end && buffer[position] != (byte)'=' && buffer[position] != (byte)'>'
+                        && !IsXmlWhitespace(buffer[position])) position++;
+                    int nameEnd = position;
+                    while (position < end && buffer[position] != (byte)'"' && buffer[position] != 0x27 && buffer[position] != (byte)'>') position++;
+                    if (position >= end || buffer[position] == (byte)'>') return false;
+                    byte quote = buffer[position++];
+                    int start = position;
+                    while (position < end && buffer[position] != quote) position++;
+                    if (position >= end) return false;
+                    if (buffer.AsSpan(nameStart, nameEnd - nameStart).SequenceEqual(name)) {
+                        valueStart = start;
+                        valueEnd = position;
+                        return true;
+                    }
+                    position++;
+                }
+                return false;
+            }
+
             private bool IsDateStyle(int styleIndex) {
                 if (styleIndex < 0 || !TreatDatesForIndex) {
                     return false;
@@ -1182,6 +1355,10 @@ namespace OfficeIMO.Excel {
 
             private byte EncodeCellKind(Utf8CellKind kind, int styleIndex) {
                 byte encoded = (byte)kind;
+                if ((kind == Utf8CellKind.Number || kind == Utf8CellKind.Date) && styleIndex >= 0
+                    && _options.DisplayText is { } display && display.IsFormatted((uint)styleIndex)) {
+                    encoded |= DisplayFormatCellKindFlag;
+                }
                 if (kind == Utf8CellKind.Number && styleIndex >= 0 && IsDateStyle(styleIndex)) {
                     encoded |= DateStyleCellKindFlag;
                     if (_owner.Styles.IsDateSystemShiftStyle((uint)styleIndex)) encoded |= CalendarStyleCellKindFlag;

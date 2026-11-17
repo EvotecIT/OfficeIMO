@@ -76,12 +76,13 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
             : new OfficeOpenTypeGlyphPositioning[tokens.Count];
         if (!allowDiagnosedFallback && kerningValue > 0 &&
             !CanRepresentExplicitKerning(font, tokens, request, positioning)) return null;
-        var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
-        var advanceAdjustments = new List<int>(tokens.Count);
+        if (tokens.Count == 0) return null;
+        var glyphs = new OfficeShapedGlyph[tokens.Count];
+        var advanceAdjustments = new int[tokens.Count];
         for (int index = 0; index < tokens.Count; index++) {
             OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
             request.CancellationToken.ThrowIfCancellationRequested();
-            glyphs.Add(token.IsUnicodeContinuation
+            glyphs[index] = token.IsUnicodeContinuation
                 ? OfficeShapedGlyph.CreateUnicodeContinuation(
                     token.GlyphId,
                     token.TextIndex,
@@ -92,13 +93,13 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
                     token.UnicodeText,
                     token.TextIndex,
                     positioning[index].XPlacement,
-                    offsetY: 0));
-            advanceAdjustments.Add(positioning[index].XAdvance);
+                    offsetY: 0);
+            advanceAdjustments[index] = positioning[index].XAdvance;
         }
 
         int[]? clusterStarts = tokens.Any(token => token.ClusterStart != token.TextIndex)
             ? tokens.Select(token => token.ClusterStart).ToArray() : null;
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, resolvedDirection, clusterStarts);
+        return OfficeTextShapingResult.FromOwnedBuffers(glyphs, advanceAdjustments, resolvedDirection, clusterStarts);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(

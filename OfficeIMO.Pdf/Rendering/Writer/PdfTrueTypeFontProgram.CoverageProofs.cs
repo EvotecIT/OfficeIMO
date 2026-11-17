@@ -12,20 +12,25 @@ internal sealed partial class PdfTrueTypeFontProgram {
         private const int MaximumTextLength = 256;
         private const int MaximumCharacters = 16_384;
         private readonly object _lock = new();
-        private readonly HashSet<string> _texts = new(StringComparer.Ordinal);
+        // Checked for every measured string but changed at most MaximumEntries times, so readers use the
+        // published set without locking and writers replace it with a copy.
+        private volatile HashSet<string> _texts = new(StringComparer.Ordinal);
         private int _characters;
 
         internal bool Contains(string text) {
             if (text.Length == 0 || text.Length > MaximumTextLength) return false;
-            lock (_lock) return _texts.Contains(text);
+            return _texts.Contains(text);
         }
 
         internal void Add(string text) {
             if (text.Length == 0 || text.Length > MaximumTextLength) return;
             foreach (char character in text) if (character < 32 || character > 126) return;
             lock (_lock) {
-                if (_texts.Count >= MaximumEntries || text.Length > MaximumCharacters - _characters) return;
-                if (_texts.Add(text)) _characters += text.Length;
+                HashSet<string> current = _texts;
+                if (current.Count >= MaximumEntries || text.Length > MaximumCharacters - _characters || current.Contains(text)) return;
+                var next = new HashSet<string>(current, StringComparer.Ordinal) { text };
+                _characters += text.Length;
+                _texts = next;
             }
         }
     }

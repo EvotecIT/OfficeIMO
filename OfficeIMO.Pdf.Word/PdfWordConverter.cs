@@ -39,8 +39,7 @@ namespace OfficeIMO.Pdf.Word {
             ReportDocumentReconstructionBoundaries(source, options);
 
             bool emittedContent = false;
-            WordList? bulletList = null;
-            WordList? numberedList = null;
+            var sourceLists = new SourceListNumbering(target);
             ImportNavigationMap navigation = BuildNavigationMap(source, options);
             var imageOverlapBudget = new ImageOverlapBudget(options);
             var pageItems = new List<ImportItem>[source.Pages.Count];
@@ -102,16 +101,16 @@ namespace OfficeIMO.Pdf.Word {
                     WordParagraph? emittedParagraph = null;
                     switch (item.Kind) {
                         case ImportItemKind.Heading:
-                            emittedParagraph = AddHeading(target, item.Heading!, item.Link, item.LinkText, options, navigation, typographyScale);
+                            emittedParagraph = AddHeading(target, item.Heading!, item.LinkedText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.Paragraph:
-                            emittedParagraph = AddParagraph(target, item.Paragraph!, item.Link, item.LinkText, options, navigation, typographyScale);
+                            emittedParagraph = AddParagraph(target, item.Paragraph!, item.LinkedText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.TextBlock:
-                            emittedParagraph = AddTextBlock(target, item.TextBlock!, item.Link, item.LinkText, options, navigation, typographyScale);
+                            emittedParagraph = AddTextBlock(target, item.TextBlock!, item.LinkedText, options, navigation, typographyScale);
                             break;
                         case ImportItemKind.ListItem:
-                            emittedParagraph = AddListItem(target, item.ListItem!, ref bulletList, ref numberedList, options, typographyScale);
+                            emittedParagraph = AddListItem(item.ListItem!, sourceLists, typographyScale);
                             break;
                         case ImportItemKind.Table:
                             // Word joins adjacent tables into one grid; a small empty paragraph keeps them apart.
@@ -140,6 +139,8 @@ namespace OfficeIMO.Pdf.Word {
                     }
                     if (item.Kind != ImportItemKind.FormWidget) formRowParagraph = null;
                     if (itemEmitted) previousWasTable = item.Kind == ImportItemKind.Table;
+                    // Anything written between two list items ends the list; the next item starts a new one.
+                    if (itemEmitted && item.Kind != ImportItemKind.ListItem) sourceLists.End();
                     if (emittedParagraph != null && navigation.TryGetItemAnchor(page.PageNumber, itemIndex, out string? itemAnchor)) {
                         emittedParagraph.AddBookmark(itemAnchor!);
                     }
@@ -199,8 +200,8 @@ namespace OfficeIMO.Pdf.Word {
                         NoteFigureLabel(heading.Line, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i));
                         continue;
                     }
-                    PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, heading.Line, options, navigation, consumedLinks);
-                    items.Add(ImportItem.ForHeading(heading, heading.Line.BaselineY, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i), link, link == null ? null : heading.Text));
+                    items.Add(ImportItem.ForHeading(heading, heading.Line.BaselineY, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i),
+                        SegmentImportableLinks(page, heading.Lines, options, navigation, consumedLinks)));
                 }
             }
 
@@ -214,8 +215,8 @@ namespace OfficeIMO.Pdf.Word {
                     }
                     if (options.ImportTables && !projectedParagraphs.Contains(i) &&
                         paragraph.Lines.Count > 0 && paragraph.Lines.All(static line => line.IsTableContent)) continue;
-                    PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, paragraph, options, navigation, consumedLinks);
-                    items.Add(ImportItem.ForParagraph(paragraph, paragraph.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i), link, link == null ? null : paragraph.Text));
+                    items.Add(ImportItem.ForParagraph(paragraph, paragraph.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i),
+                        SegmentImportableLinks(page, paragraph.Lines, options, navigation, consumedLinks)));
                 }
 
                 for (int i = 0; i < page.TextBlocks.Count; i++) {
@@ -231,14 +232,12 @@ namespace OfficeIMO.Pdf.Word {
                         continue;
                     }
 
-                    PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, block, options, navigation, consumedLinks);
                     items.Add(ImportItem.ForTextBlock(
                         block,
                         block.BaselineY,
                         sequence++,
                         GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i),
-                        link,
-                        link == null ? null : block.Text));
+                        SegmentImportableLinks(page, new[] { block }, options, navigation, consumedLinks)));
                 }
             }
 
@@ -403,9 +402,13 @@ namespace OfficeIMO.Pdf.Word {
             }
         }
 
-        private static PdfCore.PdfLogicalLinkAnnotation? FindOverlappingImportableLink(
+        /// <summary>
+        /// Splits the text where importable links are drawn over it, so each hyperlink covers only its own words.
+        /// Returns null when no link covers any of the text; links that cover text are consumed.
+        /// </summary>
+        private static IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? SegmentImportableLinks(
             PdfCore.PdfLogicalPage page,
-            PdfCore.PdfLogicalTextBlock textBlock,
+            IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines,
             PdfWordExportOptions options,
             ImportNavigationMap navigation,
             HashSet<PdfCore.PdfLogicalLinkAnnotation> consumedLinks) {
@@ -413,47 +416,32 @@ namespace OfficeIMO.Pdf.Word {
                 return null;
             }
 
-            for (int i = 0; i < page.Links.Count; i++) {
-                PdfCore.PdfLogicalLinkAnnotation link = page.Links[i];
-                if (consumedLinks.Contains(link) || !TryResolveWordLinkTarget(link, options, navigation, out _)) {
+            List<PdfCore.PdfLogicalLinkAnnotation>? candidates = null;
+            foreach (PdfCore.PdfLogicalLinkAnnotation link in page.Links) {
+                // A link already used by an earlier paragraph still links the text it covers here; consumption only
+                // keeps it from being written again as a standalone link.
+                if (!lines.Any(line => OverlapsTextBlock(link, line)) ||
+                    !TryResolveWordLinkTarget(link, options, navigation, out _)) {
                     continue;
                 }
 
-                if (OverlapsTextBlock(link, textBlock)) {
-                    consumedLinks.Add(link);
-                    return link;
-                }
+                (candidates ??= new List<PdfCore.PdfLogicalLinkAnnotation>()).Add(link);
+            }
+            if (candidates == null) return null;
+
+            List<PdfCore.PdfLogicalInlineSegment> segments = PdfCore.PdfLogicalInlineText.Segment(lines, candidates);
+            bool linked = false;
+            foreach (PdfCore.PdfLogicalInlineSegment segment in segments) {
+                if (segment.Link == null) continue;
+                consumedLinks.Add(segment.Link);
+                linked = true;
             }
 
-            return null;
+            return linked ? segments : null;
         }
 
-        private static PdfCore.PdfLogicalLinkAnnotation? FindOverlappingImportableLink(
-            PdfCore.PdfLogicalPage page,
-            PdfCore.PdfLogicalParagraph paragraph,
-            PdfWordExportOptions options,
-            ImportNavigationMap navigation,
-            HashSet<PdfCore.PdfLogicalLinkAnnotation> consumedLinks) {
-            if (!options.ImportUriLinks && !options.ImportInternalLinks) {
-                return null;
-            }
-
-            for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
-                PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, paragraph.Lines[lineIndex], options, navigation, consumedLinks);
-                if (link != null) {
-                    return link;
-                }
-            }
-
-            return null;
-        }
-
-        private static bool OverlapsTextBlock(PdfCore.PdfLogicalLinkAnnotation link, PdfCore.PdfLogicalTextBlock textBlock) {
-            const double tolerance = 2D;
-            bool yOverlaps = textBlock.BaselineY >= link.Y1 - tolerance && textBlock.BaselineY <= link.Y2 + tolerance;
-            bool xOverlaps = Math.Min(link.X2, textBlock.XEnd) - Math.Max(link.X1, textBlock.XStart) > tolerance;
-            return yOverlaps && xOverlaps;
-        }
+        private static bool OverlapsTextBlock(PdfCore.PdfLogicalLinkAnnotation link, PdfCore.PdfLogicalTextBlock textBlock) =>
+            PdfCore.PdfLogicalInlineText.Overlaps(link, textBlock);
 
         private static string GetOverlappingText(PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalLinkAnnotation link) {
             return string.Join(" ", page.TextBlocks
@@ -556,20 +544,13 @@ namespace OfficeIMO.Pdf.Word {
         private static WordParagraph AddHeading(
             WordDocument document,
             PdfCore.PdfLogicalHeading heading,
-            PdfCore.PdfLogicalLinkAnnotation? link,
-            string? linkText,
+            IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? linkedText,
             PdfWordExportOptions options,
             ImportNavigationMap navigation,
             double typographyScale) {
-            WordParagraph paragraph = link == null
+            WordParagraph paragraph = linkedText == null
                 ? AddStyledParagraph(document, heading.Lines, options, typographyScale)
-                : AddHyperlinkParagraph(
-                    document,
-                    link,
-                    string.IsNullOrWhiteSpace(linkText) ? heading.Text : linkText!,
-                    options,
-                    navigation,
-                    heading.FontSize > 0D ? ScaleEditableFontSize(heading.FontSize, typographyScale) : null);
+                : AddLinkedParagraph(document, linkedText, heading.FontSize, options, navigation, typographyScale);
             paragraph.SetStyle(MapHeadingStyle(heading.Level));
             paragraph.KeepWithNext = true;
             if (heading.FontSize > 0) {
@@ -581,43 +562,64 @@ namespace OfficeIMO.Pdf.Word {
         private static WordParagraph AddParagraph(
             WordDocument document,
             PdfCore.PdfLogicalParagraph paragraph,
-            PdfCore.PdfLogicalLinkAnnotation? link,
-            string? linkText,
+            IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? linkedText,
             PdfWordExportOptions options,
             ImportNavigationMap navigation,
             double typographyScale) {
-            if (link == null) {
-                return AddStyledParagraph(document, paragraph.Lines, options, typographyScale);
-            }
-
-            return AddHyperlinkParagraph(
-                document,
-                link,
-                string.IsNullOrWhiteSpace(linkText) ? paragraph.Text : linkText!,
-                options,
-                navigation,
-                ScaleEditableFontSize(GetFirstPositiveFontSize(paragraph.Lines), typographyScale));
+            return linkedText == null
+                ? AddStyledParagraph(document, paragraph.Lines, options, typographyScale)
+                : AddLinkedParagraph(document, linkedText, GetFirstPositiveFontSize(paragraph.Lines) ?? 0D, options, navigation, typographyScale);
         }
 
         private static WordParagraph AddTextBlock(
             WordDocument document,
             PdfCore.PdfLogicalTextBlock block,
-            PdfCore.PdfLogicalLinkAnnotation? link,
-            string? linkText,
+            IReadOnlyList<PdfCore.PdfLogicalInlineSegment>? linkedText,
             PdfWordExportOptions options,
             ImportNavigationMap navigation,
             double typographyScale) {
-            if (link == null) {
-                return AddStyledParagraph(document, new[] { block }, options, typographyScale);
+            return linkedText == null
+                ? AddStyledParagraph(document, new[] { block }, options, typographyScale)
+                : AddLinkedParagraph(document, linkedText, block.FontSize, options, navigation, typographyScale);
+        }
+
+        /// <summary>Writes styled text in which each link annotation becomes a hyperlink over only the words it covers.</summary>
+        private static WordParagraph AddLinkedParagraph(
+            WordDocument document,
+            IReadOnlyList<PdfCore.PdfLogicalInlineSegment> segments,
+            double fallbackFontSize,
+            PdfWordExportOptions options,
+            ImportNavigationMap navigation,
+            double typographyScale) {
+            WordParagraph paragraph = document.AddParagraph();
+            ApplySourceParagraphSpacing(paragraph, options);
+            HashSet<PdfCore.PdfLogicalLinkAnnotation>? reported = null;
+            foreach (PdfCore.PdfLogicalInlineSegment segment in segments) {
+                PdfCore.PdfLogicalTextRun? run = segment.Run;
+                double fontSize = run != null && run.FontSize > 0D ? run.FontSize : fallbackFontSize;
+                if (segment.Link == null || !TryResolveWordLinkTarget(segment.Link, options, navigation, out WordLinkTarget target)) {
+                    if (run == null) {
+                        paragraph.AddText(segment.Text);
+                    } else {
+                        AppendStyledRuns(paragraph, new[] { new PdfCore.PdfLogicalTextRun(segment.Text, run.SourceSpan) }, segment.Text, fallbackFontSize, typographyScale);
+                    }
+                    continue;
+                }
+
+                PdfCore.PdfLogicalLinkAnnotation link = segment.Link;
+                string page = link.PageNumber.ToString(CultureInfo.InvariantCulture);
+                WordParagraph hyperlink = target.IsUri
+                    ? paragraph.AddHyperLink(segment.Text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + page).Paragraph
+                    : paragraph.AddHyperLink(segment.Text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + page).Paragraph;
+                if (fontSize > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(fontSize, typographyScale));
+                if (segment.IsBold) hyperlink.SetBold();
+                if (segment.IsItalic) hyperlink.SetItalic();
+                if ((reported ??= new HashSet<PdfCore.PdfLogicalLinkAnnotation>()).Add(link)) {
+                    ReportReconstructedLink(link, target, segment.Text, options);
+                }
             }
 
-            return AddHyperlinkParagraph(
-                document,
-                link,
-                string.IsNullOrWhiteSpace(linkText) ? block.Text : linkText!,
-                options,
-                navigation,
-                ScaleEditableFontSize(GetFirstPositiveFontSize(new[] { block }), typographyScale));
+            return paragraph;
         }
 
         private static readonly System.Text.RegularExpressions.Regex LeaderLinePattern = new System.Text.RegularExpressions.Regex(
@@ -756,7 +758,16 @@ namespace OfficeIMO.Pdf.Word {
             WordParagraph hyperlink;
             if (target.IsUri) {
                 hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
-                if (fontSizePoints > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(BoundEditableFontSize(fontSizePoints.Value));
+            } else {
+                hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
+            }
+            if (fontSizePoints > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(BoundEditableFontSize(fontSizePoints.Value));
+            ReportReconstructedLink(link, target, text, options);
+            return paragraph;
+        }
+
+        private static void ReportReconstructedLink(PdfCore.PdfLogicalLinkAnnotation link, WordLinkTarget target, string text, PdfWordExportOptions options) {
+            if (target.IsUri) {
                 AddWarning(
                     options,
                     "pdf-uri-link-reconstructed",
@@ -767,11 +778,9 @@ namespace OfficeIMO.Pdf.Word {
                         ["Uri"] = link.Uri ?? string.Empty,
                         ["Text"] = text
                     });
-                return paragraph;
+                return;
             }
 
-            hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
-            if (fontSizePoints > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(BoundEditableFontSize(fontSizePoints.Value));
             AddWarning(
                 options,
                 "pdf-internal-link-reconstructed",
@@ -784,7 +793,6 @@ namespace OfficeIMO.Pdf.Word {
                     ["DestinationName"] = link.DestinationName ?? string.Empty,
                     ["DestinationPageNumber"] = link.DestinationPageNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty
                 });
-            return paragraph;
         }
 
         private static double? GetFirstPositiveFontSize(IReadOnlyList<PdfCore.PdfLogicalTextBlock> lines) {
@@ -839,17 +847,10 @@ namespace OfficeIMO.Pdf.Word {
         }
 
         private static WordParagraph AddListItem(
-            WordDocument document,
             PdfCore.PdfLogicalListItem item,
-            ref WordList? bulletList,
-            ref WordList? numberedList,
-            PdfWordExportOptions options,
+            SourceListNumbering lists,
             double typographyScale) {
-            bool bullet = item.IsContentsEntry || IsBulletMarker(item.Marker);
-            WordList list = bullet
-                ? bulletList ??= document.AddListBulleted()
-                : numberedList ??= document.AddListNumbered();
-            WordParagraph paragraph = list.AddItem((string?)null, Math.Max(0, item.Level - 1));
+            WordParagraph paragraph = lists.AddItem(item);
             AppendStyledRuns(paragraph, item.Runs, item.Text, item.Line.FontSize, typographyScale);
             if (item.IsContentsEntry && !string.IsNullOrEmpty(item.TargetPageLabel)) paragraph.AddText(" \u2014 " + item.TargetPageLabel);
             ApplyCompactSpacing(paragraph);
@@ -867,19 +868,6 @@ namespace OfficeIMO.Pdf.Word {
         private static void ApplyCompactSpacing(WordParagraph paragraph) {
             paragraph.LineSpacingBefore = OfficeLength.Zero;
             paragraph.LineSpacingAfter = OfficeLength.Zero;
-        }
-
-        private static bool IsBulletMarker(string marker) {
-            string trimmed = marker.Trim();
-            if (trimmed.Length == 0) {
-                return false;
-            }
-
-            return trimmed == "\u2022" ||
-                trimmed == "\u25CF" ||
-                trimmed == "-" ||
-                trimmed == "*" ||
-                trimmed == "\u00B7";
         }
 
         private static void AddTable(

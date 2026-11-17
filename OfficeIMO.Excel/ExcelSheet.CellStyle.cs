@@ -20,6 +20,30 @@ namespace OfficeIMO.Excel {
             return GetCellStyleByIndex(cell.StyleIndex?.Value ?? 0U);
         }
 
+        /// <summary>Reads a cell's style, resolving its style index through a read-pass <paramref name="cache"/>.</summary>
+        internal ExcelCellStyleInfo GetCellStyle(int row, int column, Dictionary<uint, ExcelCellStyleInfo> cache) {
+            Cell? cell = TryGetExistingCell(row, column);
+            if (cell == null) {
+                return new ExcelCellStyleInfo();
+            }
+
+            return GetCellStyleByIndex(cell.StyleIndex?.Value ?? 0U, cache);
+        }
+
+        /// <summary>
+        /// Resolves a style index through <paramref name="cache"/>, so a read pass over many cells resolves each
+        /// distinct index once. Entries are shared between cells and must not be modified; a cache is valid only
+        /// while the workbook styles do not change, so callers keep it for one read pass.
+        /// </summary>
+        internal ExcelCellStyleInfo GetCellStyleByIndex(uint styleIndex, Dictionary<uint, ExcelCellStyleInfo> cache) {
+            if (!cache.TryGetValue(styleIndex, out ExcelCellStyleInfo? style)) {
+                style = GetCellStyleByIndex(styleIndex);
+                cache.Add(styleIndex, style);
+            }
+
+            return style;
+        }
+
         internal ExcelCellStyleInfo GetCellStyleByIndex(uint styleIndex) {
             WorkbookPart? workbookPart = _excelDocument.WorkbookPartRoot;
             Stylesheet? stylesheet = workbookPart?.WorkbookStylesPart?.Stylesheet;
@@ -29,7 +53,9 @@ namespace OfficeIMO.Excel {
                 };
             }
 
-            CellFormat format = GetBaseCellFormat(stylesheet, styleIndex);
+            // Only read here, so the stylesheet's own element serves without a copy.
+            CellFormat format = FindCellFormat(stylesheet, styleIndex)
+                ?? new CellFormat { NumberFormatId = 0U, FontId = 0U, FillId = 0U, BorderId = 0U, FormatId = 0U };
             Font? font = stylesheet.Fonts?.Elements<Font>().ElementAtOrDefault((int)(format.FontId?.Value ?? 0U));
             Fill? fill = stylesheet.Fills?.Elements<Fill>().ElementAtOrDefault((int)(format.FillId?.Value ?? 0U));
             Border? border = stylesheet.Borders?.Elements<Border>().ElementAtOrDefault((int)(format.BorderId?.Value ?? 0U));

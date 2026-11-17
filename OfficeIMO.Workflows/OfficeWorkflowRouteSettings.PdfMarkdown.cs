@@ -13,6 +13,7 @@ public sealed partial class OfficeWorkflowRouteSettings {
             IncludeImagePlaceholders = options.IncludeImagePlaceholders,
             IncludeLinkAnnotations = options.IncludeLinkAnnotations,
             IncludeFormWidgets = options.IncludeFormWidgets,
+            IncludeMarkupAnnotations = options.IncludeMarkupAnnotations,
             AlignNumericTableColumns = options.AlignNumericTableColumns,
             PageSeparator = options.PageSeparator
         };

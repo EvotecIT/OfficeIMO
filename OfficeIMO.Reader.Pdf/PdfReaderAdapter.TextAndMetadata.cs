@@ -48,9 +48,10 @@ internal static partial class PdfReaderAdapter {
 
     private static OfficeDocumentReadResult BuildTextAndMetadataResult(PdfDocumentReadResult document, SourceMetadata source,
         ReaderOptions options, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges,
-        CancellationToken token, PdfInspectionReadResult? inspection) {
+        CancellationToken token, PdfInspectionReadResult? inspection, PdfDocument? pdf = null) {
         IReadOnlyList<PdfLogicalPage> pages = applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages;
         ReaderChunk[] chunks = ReadTextAndMetadataChunks(pages, source, options, token, pdfOptions.ChunkByPage)
+            .Concat(ReadAttachmentChunks(pdf, document, source, options, pdfOptions, token))
             .Concat(BuildInspectionWarningChunks(inspection, source)).ToArray();
         var metadata = BuildDocumentMetadata(document, source, preflight, applyPageRanges ? pages : null,
             Array.Empty<ReaderTable>(), Array.Empty<OfficeDocumentOcrCandidate>(), pdfOptions, textAndMetadata: true).ToList();
