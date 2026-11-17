@@ -1037,10 +1037,11 @@ public static partial class PdfHtmlConverterExtensions {
             return false;
         }
 
+        // A crop is re-encoded as PNG, so the browser check applies to the payload actually embedded.
         PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
         if (!sourceImage.IsImageFile ||
-            !OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(sourceImage.MimeType) ||
-            !PdfCore.PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] payload, out string mimeType, out _)) {
+            !PdfCore.PdfImagePlacementImportPolicy.TryGetVisibleImagePayload(image, assessment, out byte[] payload, out string mimeType, out _) ||
+            !OfficeIMO.Drawing.OfficeImageInfo.IsBrowserPreviewSafeContentType(mimeType)) {
             AddWarning(
                 options,
                 OfficeDiagnosticCodes.ImageDataUnavailable,

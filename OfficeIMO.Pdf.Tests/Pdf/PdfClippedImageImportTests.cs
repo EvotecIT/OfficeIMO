@@ -96,6 +96,18 @@ public sealed class PdfClippedImageImportTests {
         }
     }
 
+    [Fact]
+    public void HtmlEmbedsACropOfAJpeg2000ImageAsPng() {
+        // Browsers cannot show JPEG 2000, but the crop is re-encoded as PNG and can be embedded.
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(CreateImagePdf(
+            "q 20 30 40 40 re W n q 80 0 0 40 20 30 cm /Im1 Do Q Q\n", jpeg2000: true));
+
+        string html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile()).Value;
+
+        Assert.Contains("data:image/png;base64,", html, StringComparison.Ordinal);
+        AssertPixels(Assert.Single(ExtractDataUris(html)), ImageSize / 2, ImageSize, Red, Red);
+    }
+
     [Theory]
     [InlineData("0 0 160 160", ImageSize)]     // whole image: the JPEG is carried over
     [InlineData("20 30 40 40", ImageSize / 2)] // cropped: the visible pixels are re-encoded
@@ -254,9 +266,10 @@ public sealed class PdfClippedImageImportTests {
 
     /// <summary>
     /// A 160 pt page whose content stream draws the split image resource <c>/Im1</c>, stored as raw RGB samples or,
-    /// with <paramref name="jpegExifOrientation"/>, as a DCT image whose EXIF orientation PDF viewers ignore.
+    /// with <paramref name="jpegExifOrientation"/>, as a DCT image whose EXIF orientation PDF viewers ignore, or with
+    /// <paramref name="jpeg2000"/>, as the same picture in the independent JPEG 2000 fixture.
     /// </summary>
-    private static byte[] CreateImagePdf(string content, string pageEntries = "", int? jpegExifOrientation = null) {
+    private static byte[] CreateImagePdf(string content, string pageEntries = "", int? jpegExifOrientation = null, bool jpeg2000 = false) {
         byte[] contentBytes = System.Text.Encoding.ASCII.GetBytes(content);
         var raster = new OfficeRasterImage(ImageSize, ImageSize, Blue);
         byte[] pixels = new byte[ImageSize * ImageSize * 3];
@@ -280,6 +293,9 @@ public sealed class PdfClippedImageImportTests {
                 Quality = 95, Subsampling = OfficeJpegSubsampling.Y444, Metadata = new OfficeJpegMetadata(exif: exif)
             });
             filter = " /Filter /DCTDecode";
+        } else if (jpeg2000) {
+            pixels = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures", "Interoperability", "Scans", "split-rgb.jp2"));
+            filter = " /Filter /JPXDecode";
         }
 
         using var output = new MemoryStream();

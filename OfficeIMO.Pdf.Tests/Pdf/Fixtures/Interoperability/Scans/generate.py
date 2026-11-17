@@ -42,3 +42,8 @@ for options in (1, 4, 5):
 # Independent JPEG 2000 samples exercise the PDF boundary with and without opacity.
 for mode, color in (("RGB", (255, 0, 0)), ("RGBA", (255, 0, 0, 0))):
     Image.new(mode, (1, 1), color).save(root / ("red-" + mode.lower() + ".jp2"), format="JPEG2000")
+
+# A lossless 10x10 sample, red on the left and blue on the right, lets crops of a JPEG 2000 image be checked by colour.
+split = Image.new("RGB", (10, 10), (0, 0, 255))
+split.paste((255, 0, 0), (0, 0, 5, 10))
+split.save(root / "split-rgb.jp2", format="JPEG2000")
