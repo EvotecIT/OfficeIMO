@@ -542,7 +542,7 @@ public static partial class OfficeDrawingRasterRenderer {
             .Then(OfficeTransform.Scale(scale, scale));
         if (!canvas.IntersectsVisibleSurface(pixelTransform, Math.Ceiling(effect.LocalWidth * density),
                 Math.Ceiling(effect.LocalHeight * density))) return;
-        long surfacePixels = (long)Math.Ceiling(effect.LocalWidth * density) * (long)Math.Ceiling(effect.LocalHeight * density);
+        long surfacePixels = effect.GetPixelCount(density);
         canvas.ChargeIntermediateSurfacePixels(surfacePixels, maximumRasterPixels);
         IDisposable? clipScope = null;
         try {

@@ -108,7 +108,9 @@ internal sealed class OfficeBlurredShapeEffect {
         double opacity = Math.Min(1D, glow.Opacity) * glow.Color.A / 255D;
         double sigma = glow.Radius * GlowSigmaPerRadius;
         double growth = (Math.Max(0D, shape.StrokeWidth) + glow.Radius) / 2D;
-        if (OfficeShadowLayerPlanner.CanExpand(shape) && HasOpaqueSolidFill(shape)) {
+        // An ellipse grown along its axes is not its constant-distance outline unless it is a circle.
+        if (OfficeShadowLayerPlanner.CanExpand(shape) && HasOpaqueSolidFill(shape)
+            && (shape.Kind != OfficeShapeKind.Ellipse || shape.Width == shape.Height)) {
             // An opaque fill hides the inside of the halo, so the grown shape filled is the same silhouette and
             // far cheaper to rasterize than a wide round-joined outline.
             OfficeShape expanded = OfficeShadowLayerPlanner.CreateExpandedShape(shape, growth);
@@ -183,8 +185,21 @@ internal sealed class OfficeBlurredShapeEffect {
         double density = Math.Min(outputPixelsPerUnit, MaximumPixelsPerSigma / Sigma);
         double area = LocalWidth * LocalHeight;
         if (area > 0D && density * density * area > maximumPixels) density = Math.Sqrt(maximumPixels / area);
-        return Math.Max(density, 1E-6D);
+        density = Math.Max(density, 1E-6D);
+        // The surface rounds both sides up, so shrink until the rounded size fits the budget too.
+        for (int attempt = 0; attempt < 16; attempt++) {
+            long pixels = GetPixelCount(density);
+            if (pixels <= maximumPixels) break;
+            density *= Math.Sqrt((double)maximumPixels / pixels) * 0.999D;
+        }
+        return density;
     }
+
+    /// <summary>Pixel count of the blurred surface at <paramref name="pixelsPerUnit"/>.</summary>
+    internal long GetPixelCount(double pixelsPerUnit) =>
+        GetPixelSize(LocalWidth, pixelsPerUnit) * (long)GetPixelSize(LocalHeight, pixelsPerUnit);
+
+    private static int GetPixelSize(double length, double pixelsPerUnit) => Math.Max(1, (int)Math.Ceiling(length * pixelsPerUnit));
 
     /// <summary>
     /// Renders the blurred silhouette coverage, one byte per pixel, whose pixels cover <see cref="LocalLeft"/>,
@@ -219,7 +234,7 @@ internal sealed class OfficeBlurredShapeEffect {
     private string? CreateCoverageKey(OfficeShape s, double pixelsPerUnit) {
         if (s.Kind != OfficeShapeKind.Rectangle && s.Kind != OfficeShapeKind.RoundedRectangle && s.Kind != OfficeShapeKind.Ellipse) return null;
         return string.Join("|", ((int)s.Kind).ToString(System.Globalization.CultureInfo.InvariantCulture),
-            Format(s.Width), Format(s.Height), Format(s.CornerRadius), s.FillColor.HasValue ? "f" : "-",
+            Format(s.Width), Format(s.Height), Format(s.CornerRadius), s.FillColor.HasValue ? "f" : "-", s.CrispEdges ? "c" : "-",
             s.StrokeColor.HasValue ? Format(s.StrokeWidth) : "-", s.StrokeLineCap?.ToString() ?? "-",
             s.StrokeLineJoin?.ToString() ?? "-", Format(s.StrokeMiterLimit),
             Format(Sigma), Format(Margin), Format(pixelsPerUnit));
@@ -257,8 +272,8 @@ internal sealed class OfficeBlurredShapeEffect {
     }
 
     private byte[] RenderCoverageCore(OfficeShape shape, double pixelsPerUnit, CancellationToken cancellationToken, out int width, out int height) {
-        int pixelWidth = Math.Max(1, (int)Math.Ceiling(LocalWidth * pixelsPerUnit));
-        int pixelHeight = Math.Max(1, (int)Math.Ceiling(LocalHeight * pixelsPerUnit));
+        int pixelWidth = GetPixelSize(LocalWidth, pixelsPerUnit);
+        int pixelHeight = GetPixelSize(LocalHeight, pixelsPerUnit);
         var drawing = new OfficeDrawing(pixelWidth / pixelsPerUnit, pixelHeight / pixelsPerUnit).AddShape(shape, -LocalLeft, -LocalTop);
         OfficeRasterImage silhouette = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
             Scale = pixelsPerUnit,
