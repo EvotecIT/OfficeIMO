@@ -308,7 +308,13 @@ internal sealed class PdfTestPki : IDisposable {
     private void Handle(TcpClient client) {
         using (client) {
             try {
-                NetworkStream stream = client.GetStream();
+                NetworkStream stream;
+                lock (_clientGate) {
+                    if (_stop.IsCancellationRequested) {
+                        return;
+                    }
+                    stream = client.GetStream();
+                }
                 (string method, string path, byte[] body) = ReadRequest(stream);
                 byte[] response;
                 string contentType;
