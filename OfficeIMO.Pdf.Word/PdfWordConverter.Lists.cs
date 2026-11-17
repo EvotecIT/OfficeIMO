@@ -128,6 +128,8 @@ namespace OfficeIMO.Pdf.Word {
                 listLevel.LevelText = levelText.Append(suffix).ToString();
                 _starts[level] = start;
                 listLevel.StartNumberingValue = start;
+                // "1.1" under a Roman or lettered parent still shows the parent as a number.
+                if (marker.IncludesParentNumbers && marker.Format == PdfCore.PdfLogicalListNumberFormat.Number) listLevel.LegalNumbering = true;
             }
         }
     }

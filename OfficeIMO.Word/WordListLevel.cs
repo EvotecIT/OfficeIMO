@@ -260,6 +260,15 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Gets or sets whether this level shows the numbers of the levels above it as Arabic numerals ("1.1" under "I"), Word's legal numbering (<c>w:isLgl</c>).</summary>
+        public bool LegalNumbering {
+            get => _level.IsLegalNumberingStyle is IsLegalNumberingStyle legal && (legal.Val?.Value ?? true);
+            set {
+                _level.IsLegalNumberingStyle?.Remove();
+                if (value) _level.AddChild(new IsLegalNumberingStyle(), true);
+            }
+        }
+
         /// <summary>Gets or sets the numbering format of this list level.</summary>
         public WordNumberFormat NumberFormat {
             get => _level.NumberingFormat?.Val?.Value.ToOfficeEnum() ?? WordNumberFormat.Decimal;

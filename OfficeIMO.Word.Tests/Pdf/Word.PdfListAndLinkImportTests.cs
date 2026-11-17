@@ -62,6 +62,32 @@ public partial class Word {
     }
 
     [Fact]
+    public void PdfSemanticImport_ShowsDecimalOutlineNumbersUnderARomanParent() {
+        var flat = new PdfCore.PdfListStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Zero };
+        var nested = new PdfCore.PdfListStyle { LeftIndent = global::OfficeIMO.OfficeLength.Points(18), SpacingBefore = global::OfficeIMO.OfficeLength.Zero };
+        var document = PdfCore.PdfDocument.Create();
+        document.AddList(new[] { new PdfCore.PdfListItem("Part one", marker: "(I)") }, style: flat);
+        document.AddList(new[] { new PdfCore.PdfListItem("Section", marker: "1.1.") }, style: nested);
+
+        using OfficeWordDocument imported = LoadSemanticPdf(document.ToBytes()).ConvertToWordWithEvidence().Value;
+        byte[] docx = imported.ToBytes();
+        using (WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(docx), false)) {
+            Paragraph section = Assert.Single(GetPdfSemanticBody(package).Elements<Paragraph>(), item => ReadParagraphText(item) == "Section");
+            NumberingProperties properties = section.ParagraphProperties!.NumberingProperties!;
+            Numbering numbering = package.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+            NumberingInstance instance = numbering.Elements<NumberingInstance>().Single(item => item.NumberID!.Value == properties.NumberingId!.Val!.Value);
+            Level level = numbering.Elements<AbstractNum>().Single(item => item.AbstractNumberId!.Value == instance.AbstractNumId!.Val!.Value)
+                .Elements<Level>().Single(item => item.LevelIndex!.Value == properties.NumberingLevelReference!.Val!.Value);
+            Assert.NotNull(level.IsLegalNumberingStyle);
+        }
+
+        // Without legal numbering Word would show the Roman parent: "I.1.".
+        using OfficeWordDocument reloaded = OfficeWordDocument.Load(new MemoryStream(docx));
+        var markers = global::OfficeIMO.Word.WordDocumentTraversal.BuildListMarkers(reloaded);
+        Assert.Equal(new[] { (0, "(I)"), (1, "1.1.") }, markers.Values.OrderBy(entry => entry.Level).Select(entry => (entry.Level, entry.Marker)));
+    }
+
+    [Fact]
     public void PdfSemanticImport_LinksCoverOnlyTheirOwnWordsWithoutRepeatingTheLine() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => {
