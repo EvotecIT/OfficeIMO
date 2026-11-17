@@ -17,6 +17,9 @@ public sealed class ProjectNumberTests {
     [InlineData(-0.001, "-0.001")]
     [InlineData(1.4142135623730951, "1.41421356237310")]
     [InlineData(0d, "0")]
+    [InlineData(1000000000000.125, "1000000000000.12")] // exact ties round to even on every runtime
+    [InlineData(-1000000000000.375, "-1000000000000.38")]
+    [InlineData(100000000000000.5, "100000000000000")]
     public void RoundsToFifteenSignificantDigits(double input, string expected) =>
         Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), ProjectNumber.ToDecimal(input));
 
