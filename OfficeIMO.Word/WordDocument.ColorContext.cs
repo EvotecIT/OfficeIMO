@@ -43,13 +43,11 @@ public partial class WordDocument {
     private static bool TryReadUnloadedColorScheme(ThemePart themePart, out A.ColorScheme? scheme) {
         const string DrawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
         scheme = null;
+        XmlReaderSettings? settings = WordStyleDefinitionsReader.CreateStreamingSettings(themePart);
+        if (settings == null) return false;
         try {
             using Stream stream = themePart.GetStream(FileMode.Open, FileAccess.Read);
-            using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                CloseInput = false
-            });
+            using XmlReader reader = XmlReader.Create(stream, settings);
             if (reader.MoveToContent() != XmlNodeType.Element || reader.NamespaceURI != DrawingNamespace || reader.LocalName != "theme") return false;
             string? outerXml = null;
             bool seenThemeElements = false;

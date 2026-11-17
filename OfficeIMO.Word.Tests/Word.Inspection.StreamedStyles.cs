@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -58,6 +59,49 @@ public partial class Word {
                 .ToArray();
             loaded = stylesPart.IsRootElementLoaded;
             return result;
+        }
+    }
+
+    [Fact]
+    public void InspectionHonorsMarkupCompatibilityProcessingOfTheStylesPart() {
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (WordDocument source = WordDocument.Create(stream)) {
+                Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                if (styles.LookupNamespace("mc") == null) styles.AddNamespaceDeclaration("mc", "http://schemas.openxmlformats.org/markup-compatibility/2006");
+                if (styles.LookupNamespace("w14") == null) styles.AddNamespaceDeclaration("w14", "http://schemas.microsoft.com/office/word/2010/wordml");
+                styles.Append(new AlternateContent(
+                    new AlternateContentChoice(new Style(new StyleName { Val = "Chosen name" }) {
+                        Type = StyleValues.Paragraph, StyleId = "CompatibilityStyle"
+                    }) { Requires = "w14" },
+                    new AlternateContentFallback(new Style(new StyleName { Val = "Fallback name" }) {
+                        Type = StyleValues.Paragraph, StyleId = "CompatibilityStyle"
+                    })));
+                source.AddParagraph("Alternate").SetStyleId("CompatibilityStyle");
+                source.Save();
+            }
+            package = stream.ToArray();
+        }
+
+        // Processing selects the Office 2010 choice while loading; without it the alternate content is opaque.
+        Assert.Equal("Chosen name", StyleName(OfficeOpenXmlMarkupCompatibilityMode.ProcessAllParts, loadStylesFirst: false));
+        Assert.Equal(StyleName(OfficeOpenXmlMarkupCompatibilityMode.ProcessAllParts, loadStylesFirst: true),
+            StyleName(OfficeOpenXmlMarkupCompatibilityMode.ProcessAllParts, loadStylesFirst: false));
+        Assert.Equal(StyleName(OfficeOpenXmlMarkupCompatibilityMode.NoProcess, loadStylesFirst: true),
+            StyleName(OfficeOpenXmlMarkupCompatibilityMode.NoProcess, loadStylesFirst: false));
+
+        string? StyleName(OfficeOpenXmlMarkupCompatibilityMode mode, bool loadStylesFirst) {
+            using var input = new MemoryStream(package, writable: false);
+            using WordDocument document = WordDocument.Load(input, new WordLoadOptions {
+                AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly,
+                OpenSettings = new OfficeOpenXmlLoadSettings {
+                    MarkupCompatibilityMode = mode,
+                    MarkupCompatibilityTargetVersion = OfficeOpenXmlFileFormatVersion.Office2010
+                }
+            });
+            if (loadStylesFirst) _ = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles;
+            return Assert.Single(Assert.Single(document.Inspect(includeImageBytes: false).Sections)
+                .Elements.OfType<WordParagraphInfo>()).StyleName;
         }
     }
 }

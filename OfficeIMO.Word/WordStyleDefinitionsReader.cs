@@ -46,21 +46,18 @@ internal static class WordStyleDefinitionsReader {
     }
 
     /// <summary>
-    /// Returns the style definitions of <paramref name="part"/>, or null when the part is already loaded (its DOM
-    /// may carry unsaved edits) or cannot be read with the same meaning as the DOM.
+    /// Returns the style definitions of <paramref name="part"/>, or null when <see cref="CreateStreamingSettings"/>
+    /// declines the part or its XML cannot be read with the same meaning as the DOM.
     /// </summary>
     internal static StyleDefinitionSet? TryRead(StylesPart? part) {
-        if (part == null || part.IsRootElementLoaded) return null;
+        XmlReaderSettings? settings = part == null ? null : CreateStreamingSettings(part);
+        if (part == null || settings == null) return null;
+        settings.IgnoreComments = true;
+        settings.IgnoreProcessingInstructions = true;
+        settings.IgnoreWhitespace = true;
         try {
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-            using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                IgnoreComments = true,
-                IgnoreProcessingInstructions = true,
-                IgnoreWhitespace = true,
-                CloseInput = false
-            });
+            using XmlReader reader = XmlReader.Create(stream, settings);
             if (reader.MoveToContent() != XmlNodeType.Element || !IsWord(reader, "styles")) return null;
             var styles = new List<StyleDefinition>();
             var set = new StyleDefinitionSet(styles);
@@ -85,6 +82,26 @@ internal static class WordStyleDefinitionsReader {
         } catch (XmlException) {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Reader settings that match how the package loads <paramref name="part"/>, or null when a streaming read
+    /// cannot: the part is already loaded (its DOM may carry unsaved edits), or the package was opened with
+    /// markup compatibility processing, which rewrites alternate content and ignorable markup while loading.
+    /// The package's per-part character limit applies as it does to the DOM; exceeding it falls back to the DOM,
+    /// which reports it.
+    /// </summary>
+    internal static XmlReaderSettings? CreateStreamingSettings(OpenXmlPart part) {
+        if (part.IsRootElementLoaded) return null;
+        if (part.OpenXmlPackage.MarkupCompatibilityProcessSettings.ProcessMode != MarkupCompatibilityProcessMode.NoProcess) return null;
+        var settings = new XmlReaderSettings {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            CloseInput = false
+        };
+        long maxCharacters = part.OpenXmlPackage.MaxCharactersInPart;
+        if (maxCharacters > 0) settings.MaxCharactersInDocument = maxCharacters;
+        return settings;
     }
 
     private static StyleDefinition? ReadStyle(XmlReader reader) {

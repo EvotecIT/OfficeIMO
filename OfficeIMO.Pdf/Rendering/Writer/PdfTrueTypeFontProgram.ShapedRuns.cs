@@ -150,41 +150,53 @@ internal sealed partial class PdfTrueTypeFontProgram {
             }
         }
 
-        // Every option except the provider-shaped-text recorder, whose calls are replayed instead.
+        // Every option shaping reads, copied out of the options so a key never holds the caller's
+        // provider-shaped-text recorder (and through it a writer); recorder calls are replayed instead.
         private readonly struct Key : IEquatable<Key> {
             private readonly string _text;
-            private readonly PdfTextShapingOptions _options;
+            private readonly string _source;
+            private readonly string _fontName;
+            private readonly string? _language;
+            private readonly OfficeTextFeatureSettings _featureSettings;
+            private readonly IOfficeTextShapingProvider? _shapingProvider;
+            private readonly PdfTextShapingMode _shapingMode;
+            private readonly OfficeTextDirection _direction;
+            private readonly int _flags;
 
             internal Key(string text, PdfTextShapingOptions options) {
                 _text = text;
-                _options = options;
+                _source = options.Source;
+                _fontName = options.FontName;
+                _language = options.Language;
+                _featureSettings = options.FeatureSettings;
+                _shapingProvider = options.ShapingProvider;
+                _shapingMode = options.ShapingMode;
+                _direction = options.Direction;
+                _flags = (options.RecordGlyphUsage ? 1 : 0) | (options.ThrowOnMissingGlyph ? 2 : 0) |
+                    (options.SkipLayoutControls ? 4 : 0) | (options.ReportControlCharacters ? 8 : 0) |
+                    (options.PreservesPaintedGlyphs ? 16 : 0);
             }
 
-            public bool Equals(Key other) {
-                PdfTextShapingOptions left = _options, right = other._options;
-                return string.Equals(_text, other._text, StringComparison.Ordinal) &&
-                    left.RecordGlyphUsage == right.RecordGlyphUsage &&
-                    left.ThrowOnMissingGlyph == right.ThrowOnMissingGlyph &&
-                    left.SkipLayoutControls == right.SkipLayoutControls &&
-                    left.ReportControlCharacters == right.ReportControlCharacters &&
-                    left.PreservesPaintedGlyphs == right.PreservesPaintedGlyphs &&
-                    left.ShapingMode == right.ShapingMode &&
-                    left.Direction == right.Direction &&
-                    ReferenceEquals(left.ShapingProvider, right.ShapingProvider) &&
-                    string.Equals(left.Source, right.Source, StringComparison.Ordinal) &&
-                    string.Equals(left.FontName, right.FontName, StringComparison.Ordinal) &&
-                    string.Equals(left.Language, right.Language, StringComparison.Ordinal) &&
-                    left.FeatureSettings.Equals(right.FeatureSettings);
-            }
+            public bool Equals(Key other) =>
+                _flags == other._flags &&
+                _shapingMode == other._shapingMode &&
+                _direction == other._direction &&
+                ReferenceEquals(_shapingProvider, other._shapingProvider) &&
+                string.Equals(_text, other._text, StringComparison.Ordinal) &&
+                string.Equals(_source, other._source, StringComparison.Ordinal) &&
+                string.Equals(_fontName, other._fontName, StringComparison.Ordinal) &&
+                string.Equals(_language, other._language, StringComparison.Ordinal) &&
+                _featureSettings.Equals(other._featureSettings);
 
             public override bool Equals(object? obj) => obj is Key other && Equals(other);
 
             public override int GetHashCode() {
                 unchecked {
                     int hash = StringComparer.Ordinal.GetHashCode(_text);
-                    hash = hash * 31 + (int)_options.ShapingMode;
-                    hash = hash * 31 + (int)_options.Direction;
-                    hash = hash * 31 + (_options.Language == null ? 0 : StringComparer.Ordinal.GetHashCode(_options.Language));
+                    hash = hash * 31 + (int)_shapingMode;
+                    hash = hash * 31 + (int)_direction;
+                    hash = hash * 31 + _flags;
+                    hash = hash * 31 + (_language == null ? 0 : StringComparer.Ordinal.GetHashCode(_language));
                     return hash;
                 }
             }
