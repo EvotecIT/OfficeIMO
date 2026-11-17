@@ -672,7 +672,8 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageStyleForBox(imageStyle, block.Width, block.Height, nameof(imageStyle.ClipPath));
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(imageStyle.Fit));
             double bottomY = currentOpts.PageHeight.ToPoints() - item.Y - block.Height;
-            if (block.Info.Format == OfficeIMO.Drawing.OfficeImageFormat.Svg) {
+            // Foreground images keep their own final layer; their SVG Form is bound with the page.
+            if (block.Info.Format == OfficeIMO.Drawing.OfficeImageFormat.Svg && !item.Foreground) {
                 RenderCanvasSvgImage(item, imageStyle, bottomY);
                 return;
             }

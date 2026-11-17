@@ -15,20 +15,6 @@ internal static partial class PdfWriter {
                 rotationCenterY: item.Y + block.Height / 2D,
                 flipHorizontal: item.HorizontalFlip ^ style.HorizontalFlip, flipVertical: item.VerticalFlip ^ style.VerticalFlip);
 
-            if (item.Foreground) {
-                // The foreground image queue owns image streams, not vector forms.
-                // Preserve its z-order and transform using the same bounded SVG fallback.
-                byte[] png = RasterizeSvgImageForPdf(ReadSvgImageForPdf(block.Data), projection);
-                currentOpts.AddLayoutDiagnostic("svg-image-raster-fallback", "Canvas image",
-                    "The SVG image was rasterized for the foreground image layer.", PdfLayoutDiagnosticKind.SimplifiedContent);
-                PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(png, cancellationToken);
-                var raster = new ImageBlock(prepared.Data, block.Width, block.Height, prepared.Info, style,
-                    block.LinkUri, block.LinkContents, useDataSnapshot: true, preparedStream: prepared.PreparedStream);
-                RenderCanvasImage(new PdfCanvasImageItem(raster, item.X, item.Y, item.RotationAngle,
-                    item.HorizontalFlip, item.VerticalFlip, foreground: true, foregroundZOrder: item.ForegroundZOrder, logicalOrder: item.LogicalOrder));
-                return;
-            }
-
             OfficeClipPath? clip = style.ClipPath;
             if (clip == null && plan.RequiresTargetClip) clip = OfficeClipPath.Rectangle(block.Width, block.Height);
             if (clip != null) {
@@ -36,9 +22,10 @@ internal static partial class PdfWriter {
                 AppendClipPath(sb, clip, item.X, bottomY, block.Height);
             }
             try {
-                OfficeDrawingImage image = OfficeDrawingImage.CreateWithInterpolation(block.Data, "image/svg+xml",
-                    projection, interpolate: true, alternativeText: style.AltText);
-                TryDrawSvgImageAt(image, 0D, currentOpts.PageHeight.ToPoints(), item.LogicalOrder);
+                // The block owns an immutable snapshot and, from admission, its parsed drawing.
+                var image = new OfficeDrawingImage(block.Data, "image/svg+xml", projection, style.AltText, opacity: 1D,
+                    interpolate: true, useDataSnapshot: true);
+                TryDrawSvgImageAt(image, 0D, currentOpts.PageHeight.ToPoints(), item.LogicalOrder, block.SvgDrawing);
             } finally {
                 if (clip != null) new ContentStreamBuilder(sb).RestoreState();
             }

@@ -17,7 +17,6 @@ namespace OfficeIMO.Pdf.Tests {
             Assert.True(OfficeRasterImageDecoder.TryDecode(png, out OfficeRasterImage? raster));
             byte[] pixels = raster!.GetPixels();
             Assert.Equal(new byte[] { 255, 0, 0, 255 }, new[] { pixels[0], pixels[1], pixels[2], pixels[3] });
-            Assert.Single(PdfImageExtractor.ExtractImages(PdfDocument.Create().Image(svg, 40, 20).ToBytes()));
         }
 
         [Theory]

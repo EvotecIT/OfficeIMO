@@ -81,6 +81,22 @@
     },
     {
       "task": "exec",
+      "id": "build-capability-overview",
+      "dependsOn": [
+        "build-capability-catalog",
+        "sync-pswriteoffice-content"
+      ],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Build-CapabilityOverview.ps1"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
       "id": "update-cli-catalog",
       "timeoutSeconds": 1800,
       "command": "pwsh",
@@ -96,7 +112,7 @@
       "task": "exec",
       "id": "build-aot-project-matrix",
       "dependsOn": [
-        "build-capability-catalog"
+        "build-capability-overview"
       ],
       "command": "pwsh",
       "argsList": [

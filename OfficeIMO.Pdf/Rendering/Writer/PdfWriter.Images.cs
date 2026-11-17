@@ -376,12 +376,12 @@ internal static partial class PdfWriter {
 
         string colorSpace = colorType == 0 ? "/DeviceGray" : "/DeviceRGB";
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows, cancellationToken),
+            Data = DeflateZlib(FilterPngScanlines(baseRows, width * sourceChannels, height, sourceChannels, cancellationToken), cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, sourceChannels, width),
             SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows, cancellationToken),
+                Data = DeflateZlib(FilterPngScanlines(alphaRows, width, height, 1, cancellationToken), cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
@@ -469,12 +469,12 @@ internal static partial class PdfWriter {
 
         string colorSpace = colorType == 4 ? "/DeviceGray" : "/DeviceRGB";
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows, cancellationToken),
+            Data = DeflateZlib(FilterPngScanlines(baseRows, width * baseChannels, height, baseChannels, cancellationToken), cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, baseChannels, width),
             SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows, cancellationToken),
+                Data = DeflateZlib(FilterPngScanlines(alphaRows, width, height, 1, cancellationToken), cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)

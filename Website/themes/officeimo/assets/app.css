@@ -404,6 +404,9 @@ pre code{background:none;padding:0;color:inherit}
 .imo-document-tasks__head { max-width: 760px; margin-bottom: 1.5rem; }
 .imo-document-tasks__head h2 { margin: 0 0 .6rem; font-size: clamp(1.7rem, 3vw, 2.4rem); }
 .imo-document-tasks__head p:not(.imo-section__eyebrow) { margin: 0; color: var(--imo-text-secondary); line-height: 1.6; }
+.imo-document-tasks__head p.imo-document-tasks__overview { margin-top: .8rem; }
+.imo-document-tasks__overview a { font-weight: 600; color: var(--imo-accent); text-decoration: none; }
+.imo-document-tasks__overview a:hover, .imo-document-tasks__overview a:focus-visible { text-decoration: underline; }
 .imo-document-tasks__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .imo-job {
   --job: var(--imo-accent);

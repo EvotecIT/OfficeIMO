@@ -12,8 +12,9 @@ public sealed class StudioCommandItem : ObservableObject, ICommand {
 
     internal StudioCommandItem(string id, string title, string description, string category,
         string shortcut, bool isTool, ICommand operation, Func<string?> unavailable, Action? prepare = null, string? categoryId = null,
-        IReadOnlyList<Avalonia.Input.KeyGesture>? gestures = null, bool runsInTextEntry = false) {
+        IReadOnlyList<Avalonia.Input.KeyGesture>? gestures = null, bool runsInTextEntry = false, bool requiresDocument = false) {
         Id = id;
+        RequiresDocument = requiresDocument;
         CategoryId = categoryId ?? category;
         Gestures = gestures ?? [];
         RunsInTextEntry = runsInTextEntry;
@@ -46,6 +47,8 @@ public sealed class StudioCommandItem : ObservableObject, ICommand {
     /// <summary>Toolbar tooltip that also says why the command cannot run right now.</summary>
     public string StatusToolTip => UnavailableReason is { Length: > 0 } reason ? ToolTipText + Environment.NewLine + reason : ToolTipText;
     public bool IsTool { get; }
+    /// <summary>True when the command works on an open document; with none open it explains that a PDF is needed.</summary>
+    public bool RequiresDocument { get; }
     public string? UnavailableReason => _unavailable();
     public bool IsAvailable => UnavailableReason is null && _operation.CanExecute(null);
     public bool HasUnavailableReason => !string.IsNullOrEmpty(UnavailableReason);
