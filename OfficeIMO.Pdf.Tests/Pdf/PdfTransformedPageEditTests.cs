@@ -218,6 +218,10 @@ public class PdfTransformedPageEditTests {
     // depth after it is an estimate and a later restore that may close the saved state is kept.
     [InlineData("q 1 0 0 1 100 0 cm BI /W 3 /H 1 /BPC 8 /CS /Unknown ID ab EI Q cd EI", "Q 0 0 1 rg 10 10 20 20 re f",
         "Q 0 0 1 rg 10 10 20 20 re f")]
+    // A filtered image ends wherever an EI looks plausible: this ASCII85 data really ends at ~>, so its Q is a pixel.
+    [InlineData("BI /W 8 /H 1 /BPC 8 /CS /G /F /A85 ID !!!!! EI Q !!~> EI", "0 0 1 rg 10 10 20 20 re f", "EI Q !!~> EI")]
+    // Nine bytes of image data run into the next stream, so its Q is the last pixel, not a restore.
+    [InlineData("BI /W 9 /H 1 /BPC 8 /CS /G ID abcdefgh", "Q EI", "Q EI")]
     public void IsolationReadsPageStreamsAsOneSequenceBeforeBlankingRestores(string first, string second, string kept) {
         byte[] pdf = Serialize(new[] {
             "<< /Type /Catalog /Pages 2 0 R >>",
