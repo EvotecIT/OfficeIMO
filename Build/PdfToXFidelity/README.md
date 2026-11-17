@@ -105,3 +105,11 @@ corpora and outputs are not committed.
 - The source document is the truth even where the PDF cannot carry it: a style the PDF only shows visually
   (a heading level, an ordered list) has to be inferred by every converter in the same way.
 - Text-box positions, colours, borders and fonts other than size are not scored.
+- Known scorer gaps, each of which can mark a correct conversion as a miss or skip content:
+  - A number format made only of literals (for example `"N/A"`) is expected to show the bare number
+    (`42`), not the literal the cell displays, so a correct conversion that shows `N/A` scores as a miss.
+  - Merged-cell matching does not apply the cell-value tolerance used for ordinary cells.
+  - Pictures inside DOCX footnotes and endnotes are not counted.
+  - Times shown with seconds are not rounded to the minute before they are compared with the source.
+  - Text showing midnight (`00:00`) does not match a source time of midnight, because a whole-day serial is
+    compared as a date.
