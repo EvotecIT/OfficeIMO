@@ -175,4 +175,21 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(20, 15));
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 15));
     }
+
+    [Fact]
+    public void BlurredShadow_KeepsSquareCapCornersOfADiagonalLine() {
+        // Square caps on a 45 degree line reach half the width times root two along each axis, beyond the stroke half-width.
+        OfficeShape line = OfficeShape.Line(0D, 0D, 100D, 100D);
+        line.StrokeColor = OfficeColor.White;
+        line.StrokeWidth = 100D;
+        line.StrokeLineCap = OfficeStrokeLineCap.Square;
+        line.StrokeLineJoin = OfficeStrokeLineJoin.Round;
+        line.Shadow = new OfficeShadow(OfficeColor.Black, 1D, 250D, 0D, 1D);
+        var drawing = new OfficeDrawing(450D, 260D).AddShape(line, 80D, 80D);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, background: OfficeColor.White);
+
+        // 62 units left of the shadow's start point lies inside the start cap's corner.
+        Assert.True(raster.GetPixel(268, 80).R < 32, "The shadow of the square cap corner was cut off.");
+    }
 }

@@ -30,8 +30,11 @@ internal sealed class OfficeBlurredShapeEffect {
         ClipPath = silhouette.ClipPath;
         silhouette.ClipPath = null;
         double strokeReach = silhouette.StrokeColor.HasValue ? Math.Max(0D, silhouette.StrokeWidth) / 2D : 0D;
-        // An unspecified join paints as a miter.
-        if (silhouette.StrokeColor.HasValue && silhouette.StrokeLineJoin is null or OfficeStrokeLineJoin.Miter) strokeReach *= Math.Max(1D, silhouette.StrokeMiterLimit);
+        // An unspecified join paints as a miter; a square cap's corner on a diagonal reaches half the width times root two.
+        double reachFactor = 1D;
+        if (silhouette.StrokeLineJoin is null or OfficeStrokeLineJoin.Miter) reachFactor = Math.Max(reachFactor, silhouette.StrokeMiterLimit);
+        if (silhouette.StrokeLineCap == OfficeStrokeLineCap.Square) reachFactor = Math.Max(reachFactor, Math.Sqrt(2D));
+        strokeReach *= reachFactor;
         Margin = Math.Ceiling(strokeReach + sigma * MarginSigmas + 1D);
         // Paths, polygons and lines can reach outside their declared box; the blur surface follows the geometry.
         double left = 0D, top = 0D, right = silhouette.Width, bottom = silhouette.Height;

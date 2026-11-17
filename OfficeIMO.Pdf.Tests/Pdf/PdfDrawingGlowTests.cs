@@ -187,6 +187,44 @@ public sealed class PdfDrawingGlowTests {
         Assert.Equal(disabled == "clip" ? OfficeColor.White : OfficeColor.Blue, raster.GetPixel(50, 35));
     }
 
+    [Fact]
+    public void BlurredGlowInsideACanvasClipKeepsItsHalo() {
+        OfficeShape shape = OfficeShape.Rectangle(40D, 40D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 0, 255), 1D, 6D);
+        byte[] bytes = PdfDocument.Create(PageOptions(200D, 200D)).Canvas(canvas => canvas.Clip(
+            global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D),
+            global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D),
+            clipped => clipped.Shape(shape, global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D)))).ToBytes();
+
+        OfficeColor halo = ReadRaster(bytes).GetPixel(78, 100);
+        Assert.True(halo.R > 200 && halo.B > 200 && halo.G < 200, $"Expected the glow inside the clip, found {halo}.");
+    }
+
+    [Fact]
+    public void BlurredShadowAndGlowConvertToThePdfXPrintCondition() {
+        OfficeShape shape = OfficeShape.RoundedRectangle(60D, 30D, 6D);
+        shape.FillColor = OfficeColor.Blue;
+        shape.StrokeWidth = 0D;
+        shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.5D, 3D, 3D, 6D);
+        shape.Glow = new OfficeGlow(OfficeColor.FromRgb(255, 192, 0), 0.6D, 6D);
+        PdfCreateOptions options = PageOptions(120D, 90D).ConfigurePdfXGroundwork(PdfComplianceProfile.PdfX4,
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(), "Managed test CMYK", PdfTrappingStatus.False);
+
+        byte[] bytes = PdfDocument.Create(options).Drawing(new OfficeDrawing(120D, 90D).AddShape(shape, 30D, 30D)).ToBytes();
+
+        Assert.Contains("/DeviceCMYK", System.Text.Encoding.ASCII.GetString(bytes));
+        Assert.Equal(2, PdfDocument.Load(bytes).Reader.Images().Count);
+    }
+
+    private static PdfCreateOptions PageOptions(double width, double height) => new() {
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+        }
+    };
+
     private static OfficeRasterImage ReadRaster(byte[] bytes) =>
         OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes), background: OfficeColor.White);
 
