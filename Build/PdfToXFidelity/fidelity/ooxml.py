@@ -381,6 +381,20 @@ def _scientific(code: str) -> tuple[int, int, bool] | None:
     return len(m.group(1) or ""), len(m.group(3)), m.group(2) == "+"
 
 
+def _number_affixes(code: str) -> tuple[str, str]:
+    """Visible text a number format puts around the digits, such as the currency in `#,##0.00 [$zł-415]`."""
+    section = code.split(";")[0]
+    if not section or section.lower() == "general" or section == "@":
+        return "", ""
+    section = re.sub(r"\[\$([^\]-]*)[^\]]*\]", r"\1", section)  # [$zł-415] shows as zł
+    section = re.sub(r'"([^"]*)"|\\(.)', lambda m: m.group(1) if m.group(1) is not None else m.group(2), section)
+    section = re.sub(r"\[[^\]]*\]|_.|\*.|%", "", section)
+    m = re.search(r"[0#?][0#?,.]*", section)
+    if not m:
+        return "", ""
+    return section[:m.start()], section[m.end():]
+
+
 def _round_half_away(value: float, decimals: int) -> float:
     """Rounds as spreadsheet displays do: midpoints away from zero (49382.5 shows as 49383), unlike round()."""
     from decimal import ROUND_HALF_UP, Context, Decimal
@@ -479,7 +493,8 @@ def read_xlsx(path: str) -> Document:
                             text, decimals = _format_scientific(shown, *scientific), None
                         else:
                             shown = _round_half_away(shown, decimals) if decimals is not None else shown
-                            text = format(shown, ".15g")
+                            prefix, suffix = _number_affixes(codes[style] if style < len(codes) else "")
+                            text = prefix + format(shown, ".15g") + suffix
                         text += "%" if percent else ""
                         cell = SheetCell(r, col, text, "number", value, decimals, percent)
                 else:

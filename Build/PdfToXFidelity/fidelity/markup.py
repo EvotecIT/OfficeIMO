@@ -234,7 +234,27 @@ _TAG = re.compile(r"<[^>]+>")
 _LITERAL_OPEN, _LITERAL_CLOSE = "\ue000", "\ue001"  # private-use markers around set-aside literal text
 
 
-def _md_inline(text: str, doc: Document) -> list[Word]:
+_REF_DEF = re.compile(r"^\s{0,3}\[(?!\^)([^\]]+)\]:\s*<?([^\s>]+)>?(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*$")
+_REF_LINK = re.compile(r"(!?)\[(?!\^)([^\]]+)\](?:\[([^\]]*)\])?")
+
+
+def _ref_label(label: str) -> str:
+    return re.sub(r"\s+", " ", label.strip()).casefold()
+
+
+def _md_references(lines: list[str]) -> tuple[dict[str, str], set[int]]:
+    """Link reference definitions ([label]: url) and the line numbers they occupy."""
+    refs: dict[str, str] = {}
+    skip: set[int] = set()
+    for n, line in enumerate(lines):
+        m = _REF_DEF.match(line)
+        if m:
+            refs.setdefault(_ref_label(m.group(1)), m.group(2))
+            skip.add(n)
+    return refs, skip
+
+
+def _md_inline(text: str, doc: Document, refs: dict[str, str] | None = None) -> list[Word]:
     doc.images += len(re.findall(r"!\[[^\]]*\]\(", text)) + len(re.findall(r"<img\b", text, re.I))
     for m in _INLINE_LINK.finditer(text):
         if not m.group(0).startswith("!") and m.group(2).lower().startswith(("http:", "https:", "mailto:", "ftp:")):
@@ -243,6 +263,20 @@ def _md_inline(text: str, doc: Document) -> list[Word]:
         doc.links.add(m.group(1))
     text = _INLINE_LINK.sub(lambda m: "" if m.group(0).startswith("!") else m.group(1), text)
     text = _AUTOLINK.sub(lambda m: m.group(1), text)
+    if refs:
+        def resolve(m):
+            # [text][label], [text][] and [label] resolve through the document's reference definitions.
+            url = refs.get(_ref_label(m.group(3) or m.group(2)))
+            if url is None:
+                return m.group(0)
+            if m.group(1):
+                doc.images += 1
+                return ""
+            if url.lower().startswith(("http:", "https:", "mailto:", "ftp:")):
+                doc.links.add(url)
+            return m.group(2)
+
+        text = _REF_LINK.sub(resolve, text)
     # Code spans and escaped angle brackets are literal text, so they are set aside before HTML tags are stripped.
     literals: list[str] = []
 
@@ -317,14 +351,23 @@ def read_markdown(path: str) -> Document:
     indents: list[int] = []
     i = 0
 
+    refs, skip = _md_references(lines)
+    item: list = []  # open list item: [level, ordered, lines]; wrapped lines continue it
+
     def flush_para():
+        if item:
+            doc.add_block(Block("list", _md_inline(" ".join(item[2]), doc, refs), item[0], item[1]))
+            item.clear()
         if para:
-            doc.add_block(Block("paragraph", _md_inline(" ".join(para), doc)))
+            doc.add_block(Block("paragraph", _md_inline(" ".join(para), doc, refs)))
             para.clear()
 
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
+        if i in skip:  # link reference definitions are not visible text
+            i += 1
+            continue
         if stripped.startswith("<!--"):
             while i < len(lines) and "-->" not in lines[i]:
                 i += 1
@@ -364,7 +407,7 @@ def read_markdown(path: str) -> Document:
         m = re.match(r"^\s{0,3}(#{1,6})\s+(.*?)\s*#*\s*$", line)
         if m:
             flush_para()
-            words = _md_inline(m.group(2), doc)
+            words = _md_inline(m.group(2), doc, refs)
             for w in words:
                 w.bold = True
             doc.add_block(Block("heading", words, len(m.group(1))))
@@ -372,7 +415,7 @@ def read_markdown(path: str) -> Document:
             continue
         if para and re.match(r"^\s{0,3}(=+|-+)\s*$", line) and len(para) == 1:
             level = 1 if stripped[0] == "=" else 2
-            words = _md_inline(para[0], doc)
+            words = _md_inline(para[0], doc, refs)
             for w in words:
                 w.bold = True  # rendered bold like ATX headings
             doc.add_block(Block("heading", words, level))
@@ -381,17 +424,17 @@ def read_markdown(path: str) -> Document:
             continue
         if "|" in line and i + 1 < len(lines) and _TABLE_SEP.match(lines[i + 1]):
             flush_para()
-            table = Table([[Cell(norm_text(" ".join(w.text for w in _md_inline(c, doc)))) for c in _split_row(line)]])
+            table = Table([[Cell(norm_text(" ".join(w.text for w in _md_inline(c, doc, refs)))) for c in _split_row(line)]])
             i += 2
             while i < len(lines) and "|" in lines[i] and lines[i].strip():
-                table.rows.append([Cell(norm_text(" ".join(w.text for w in _md_inline(c, doc)))) for c in _split_row(lines[i])])
+                table.rows.append([Cell(norm_text(" ".join(w.text for w in _md_inline(c, doc, refs)))) for c in _split_row(lines[i])])
                 i += 1
             doc.add_table(table)
             continue
         m = re.match(r"^\[\^([^\]]+)\]:\s*(.*)$", stripped)
         if m:
             flush_para()
-            doc.footnotes.append(" ".join(w.text for w in _md_inline(m.group(2), doc)))
+            doc.footnotes.append(" ".join(w.text for w in _md_inline(m.group(2), doc, refs)))
             doc.footnotes_native = True
             i += 1
             continue
@@ -403,11 +446,16 @@ def read_markdown(path: str) -> Document:
                 indents.pop()
             if not indents or indents[-1] < indent:
                 indents.append(indent)
-            doc.add_block(Block("list", _md_inline(m.group(3), doc), len(indents) - 1, m.group(2)[0].isdigit()))
+            item[:] = [len(indents) - 1, m.group(2)[0].isdigit(), [m.group(3)]]
             i += 1
             continue
         if re.match(r"^\s{0,3}([-*_])\s*(\1\s*){2,}$", line):
             flush_para()
+            i += 1
+            continue
+        if item:
+            # A wrapped line (indented or lazy continuation) belongs to the open list item.
+            item[2].append(stripped)
             i += 1
             continue
         if not line[:1].isspace():
