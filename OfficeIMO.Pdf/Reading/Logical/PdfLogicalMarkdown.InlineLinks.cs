@@ -7,8 +7,9 @@ public static partial class PdfLogicalMarkdownExtensions {
     /// inside the document and viewer actions are left out.
     /// </summary>
     private sealed class PdfLogicalMarkdownInlineLinks {
-        // Shorter covered text (a footnote mark or a single letter) cannot be matched to one place in a paragraph.
-        private const int MinimumMatchedCharacters = 3;
+        // A run may be found this many characters after the previous one; paragraph text can drop a hyphen or mark
+        // between runs, but a larger jump means the run is not where the paragraph text is being read.
+        private const int MaximumAlignmentSkip = 2;
 
         private readonly List<PdfLogicalLinkAnnotation> _webLinks;
         private readonly bool[] _placed;
@@ -34,17 +35,30 @@ public static partial class PdfLogicalMarkdownExtensions {
             internal bool IsSafeUri { get; }
         }
 
+        // A source run and the index in the rendered text of each of its characters (-1 for whitespace).
+        private readonly struct AlignedSpan {
+            internal AlignedSpan(PdfTextSpan span, int[] textIndexes) {
+                Span = span;
+                TextIndexes = textIndexes;
+            }
+
+            internal PdfTextSpan Span { get; }
+            internal int[] TextIndexes { get; }
+        }
+
         internal static PdfLogicalMarkdownInlineLinks? Create(PdfLogicalPage page) {
             if (page.Links.Count == 0) return null;
             HashSet<PdfLogicalLinkAnnotation>? contentsLinks = null;
             foreach (PdfLogicalListItem item in page.ListItems) {
-                if (item.IsContentsEntry && item.Link is not null) (contentsLinks ??= new HashSet<PdfLogicalLinkAnnotation>()).Add(item.Link);
+                // Only a contents entry that writes its link as the title's target already carries it.
+                if (item.IsContentsEntry && item.Link is not null && FormatContentsLinkTarget(item.Link) is not null) {
+                    (contentsLinks ??= new HashSet<PdfLogicalLinkAnnotation>()).Add(item.Link);
+                }
             }
 
             var webLinks = new List<PdfLogicalLinkAnnotation>();
             var otherLinks = new List<PdfLogicalLinkAnnotation>();
             foreach (PdfLogicalLinkAnnotation link in page.Links) {
-                // A contents entry already renders its own link.
                 if (contentsLinks?.Contains(link) == true) continue;
                 if (!string.IsNullOrEmpty(link.Uri)) {
                     if (IsSafeLinkUri(link.Uri!)) webLinks.Add(link);
@@ -56,35 +70,39 @@ public static partial class PdfLogicalMarkdownExtensions {
             return webLinks.Count == 0 && otherLinks.Count == 0 ? null : new PdfLogicalMarkdownInlineLinks(webLinks, otherLinks);
         }
 
-        /// <summary>Returns the ordered, non-overlapping ranges of <paramref name="text"/> covered by unplaced web links.</summary>
+        /// <summary>
+        /// Returns the ordered, non-overlapping ranges of <paramref name="text"/> painted under unplaced web links. Each
+        /// source run of <paramref name="lines"/> is aligned to its own place in the text, so a link covers the characters
+        /// under its rectangle even when the same words occur elsewhere in the paragraph.
+        /// </summary>
         internal List<(int Start, int End, string Target)>? Place(string text, IReadOnlyList<PdfLogicalTextBlock> lines) {
             if (string.IsNullOrEmpty(text) || lines.Count == 0) return null;
             List<(int Start, int End, string Target)>? ranges = null;
-            string? compact = null;
-            int[]? compactToText = null;
+            List<AlignedSpan>? aligned = null;
             for (int index = 0; index < _webLinks.Count; index++) {
                 if (_placed[index]) continue;
                 PdfLogicalLinkAnnotation link = _webLinks[index];
-                string covered = GetCoveredText(lines, link);
-                if (covered.Length < MinimumMatchedCharacters) continue;
-                if (compact is null) BuildCompactText(text, out compact, out compactToText);
-                // Search after earlier matches of the same text, so repeated words map to successive links.
-                int searchFrom = 0;
-                while (true) {
-                    int found = compact.IndexOf(covered, searchFrom, StringComparison.Ordinal);
-                    if (found < 0) break;
-                    int start = compactToText![found];
-                    int end = compactToText[found + covered.Length - 1] + 1;
-                    // A rectangle that stops inside a word still links that word; the link text never splits it.
-                    while (start > 0 && !char.IsWhiteSpace(text[start - 1])) start--;
-                    while (end < text.Length && !char.IsWhiteSpace(text[end])) end++;
-                    if (ranges is null || !ranges.Any(range => start < range.End && end > range.Start)) {
-                        (ranges ??= new List<(int Start, int End, string Target)>()).Add((start, end, link.Uri!));
-                        _placed[index] = true;
-                        break;
+                if (!TryGetRectangle(link, out double left, out double bottom, out double right, out double top) ||
+                    !TouchesAnyRun(lines, left, bottom, right, top)) continue;
+                aligned ??= AlignRuns(text, lines);
+                int start = int.MaxValue, end = -1;
+                foreach (AlignedSpan run in aligned) {
+                    if (!IsCandidateRun(run.Span, left, bottom, right, top)) continue;
+                    foreach (int character in GetCoveredCharacters(run.Span, left, right)) {
+                        int textIndex = run.TextIndexes[character];
+                        if (textIndex < 0) continue;
+                        start = Math.Min(start, textIndex);
+                        end = Math.Max(end, textIndex + 1);
                     }
-                    searchFrom = found + 1;
                 }
+                if (end < 0) continue;
+                // A rectangle that stops inside a word still links that word; the link text never splits it.
+                // Only letters and digits extend it, so neighbouring punctuation stays outside the link.
+                while (start > 0 && char.IsLetterOrDigit(text[start - 1]) && char.IsLetterOrDigit(text[start])) start--;
+                while (end < text.Length && char.IsLetterOrDigit(text[end]) && char.IsLetterOrDigit(text[end - 1])) end++;
+                if (ranges is not null && ranges.Any(range => start < range.End && end > range.Start)) continue;
+                (ranges ??= new List<(int Start, int End, string Target)>()).Add((start, end, link.Uri!));
+                _placed[index] = true;
             }
             ranges?.Sort(static (left, right) => left.Start.CompareTo(right.Start));
             return ranges;
@@ -113,54 +131,84 @@ public static partial class PdfLogicalMarkdownExtensions {
         private static string GetLabel(PdfLogicalLinkAnnotation link, string target) =>
             !string.IsNullOrWhiteSpace(link.Contents) ? link.Contents! : target;
 
-        // The covered text, without whitespace, of the unrotated runs whose glyph centres lie inside the link rectangle.
-        private static string GetCoveredText(IReadOnlyList<PdfLogicalTextBlock> lines, PdfLogicalLinkAnnotation link) {
-            double left = Math.Min(link.X1, link.X2), right = Math.Max(link.X1, link.X2);
-            double bottom = Math.Min(link.Y1, link.Y2), top = Math.Max(link.Y1, link.Y2);
-            if (!(right > left) || !(top > bottom)) return string.Empty;
-            StringBuilder? builder = null;
+        private static bool TryGetRectangle(PdfLogicalLinkAnnotation link, out double left, out double bottom, out double right, out double top) {
+            left = Math.Min(link.X1, link.X2);
+            right = Math.Max(link.X1, link.X2);
+            bottom = Math.Min(link.Y1, link.Y2);
+            top = Math.Max(link.Y1, link.Y2);
+            return right > left && top > bottom;
+        }
+
+        private static bool TouchesAnyRun(IReadOnlyList<PdfLogicalTextBlock> lines, double left, double bottom, double right, double top) {
             foreach (PdfLogicalTextBlock line in lines) {
                 foreach (PdfTextSpan span in line.Spans) {
-                    if (span.RotationDegrees != 0D || string.IsNullOrEmpty(span.Text)) continue;
-                    // Vertical: the middle of the x-height sits inside the rectangle.
-                    double middle = span.Y + span.FontSize * 0.3D;
-                    if (middle < bottom - 1D || middle > top + 1D) continue;
-                    double spanRight = span.X + Math.Max(0D, span.Advance);
-                    if (spanRight < left || span.X > right) continue;
-                    if (span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs) && glyphs.Count > 0) {
-                        foreach (PdfTextGlyph glyph in glyphs) {
-                            double center = glyph.X + glyph.Advance / 2D;
-                            if (center >= left && center <= right) AppendCompact(ref builder, glyph.Text);
-                        }
-                    } else {
-                        double width = Math.Max(0D, span.Advance) / span.Text.Length;
-                        for (int index = 0; index < span.Text.Length; index++) {
-                            double center = span.X + width * (index + 0.5D);
-                            if (center >= left && center <= right) AppendCompact(ref builder, span.Text[index].ToString());
-                        }
-                    }
+                    if (IsCandidateRun(span, left, bottom, right, top)) return true;
                 }
             }
-            return builder?.ToString() ?? string.Empty;
+            return false;
         }
 
-        private static void AppendCompact(ref StringBuilder? builder, string text) {
-            foreach (char ch in text) {
-                if (!char.IsWhiteSpace(ch)) (builder ??= new StringBuilder()).Append(ch);
+        // An unrotated run whose x-height middle lies inside the rectangle and whose extent reaches it horizontally.
+        private static bool IsCandidateRun(PdfTextSpan span, double left, double bottom, double right, double top) {
+            if (span.RotationDegrees != 0D || string.IsNullOrEmpty(span.Text)) return false;
+            double middle = span.Y + span.FontSize * 0.3D;
+            if (middle < bottom - 1D || middle > top + 1D) return false;
+            double spanRight = span.X + Math.Max(0D, span.Advance);
+            return spanRight >= left && span.X <= right;
+        }
+
+        // Character indexes of the run whose glyph centres lie between left and right.
+        private static IEnumerable<int> GetCoveredCharacters(PdfTextSpan span, double left, double right) {
+            if (span.TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs) && glyphs.Count > 0) {
+                foreach (PdfTextGlyph glyph in glyphs) {
+                    double center = glyph.X + glyph.Advance / 2D;
+                    if (center < left || center > right) continue;
+                    for (int character = glyph.TextStart; character < glyph.TextStart + glyph.TextLength && character < span.Text.Length; character++) {
+                        yield return character;
+                    }
+                }
+                yield break;
+            }
+            double width = Math.Max(0D, span.Advance) / span.Text.Length;
+            for (int character = 0; character < span.Text.Length; character++) {
+                double center = span.X + width * (character + 0.5D);
+                if (center >= left && center <= right) yield return character;
             }
         }
 
-        // Paragraph text joins its lines with spaces, so matching ignores whitespace and maps back to the original text.
-        private static void BuildCompactText(string text, out string compact, out int[] compactToText) {
-            var builder = new StringBuilder(text.Length);
-            var map = new List<int>(text.Length);
-            for (int index = 0; index < text.Length; index++) {
-                if (char.IsWhiteSpace(text[index])) continue;
-                builder.Append(text[index]);
-                map.Add(index);
+        // Walks the runs in line order and finds each one in the text after the previous run, ignoring whitespace
+        // differences, so every painted character maps to its own occurrence in the rendered text.
+        private static List<AlignedSpan> AlignRuns(string text, IReadOnlyList<PdfLogicalTextBlock> lines) {
+            var result = new List<AlignedSpan>();
+            int cursor = 0;
+            foreach (PdfLogicalTextBlock line in lines) {
+                foreach (PdfTextSpan span in line.Spans) {
+                    if (string.IsNullOrEmpty(span.Text) ||
+                        !PdfLogicalTextBlock.TryFindNormalizedSpan(text, span.Text, cursor, out int index, out int end) ||
+                        CountNonWhitespace(text, cursor, index) > MaximumAlignmentSkip) continue;
+                    var indexes = new int[span.Text.Length];
+                    int target = index;
+                    for (int source = 0; source < span.Text.Length; source++) {
+                        if (char.IsWhiteSpace(span.Text[source])) {
+                            indexes[source] = -1;
+                            continue;
+                        }
+                        while (target < end && char.IsWhiteSpace(text[target])) target++;
+                        indexes[source] = target < end ? target++ : -1;
+                    }
+                    result.Add(new AlignedSpan(span, indexes));
+                    cursor = end;
+                }
             }
-            compact = builder.ToString();
-            compactToText = map.ToArray();
+            return result;
+        }
+
+        private static int CountNonWhitespace(string text, int start, int end) {
+            int count = 0;
+            for (int index = start; index < end; index++) {
+                if (!char.IsWhiteSpace(text[index])) count++;
+            }
+            return count;
         }
     }
 }

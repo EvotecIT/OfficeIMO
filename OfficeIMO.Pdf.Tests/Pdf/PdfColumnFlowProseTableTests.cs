@@ -22,8 +22,9 @@ public sealed class PdfColumnFlowProseTableTests {
         Assert.Contains("has been to release dozens of models, each pre-trained on a single non-English language", markdown, StringComparison.Ordinal);
         Assert.Contains("Popular models of this type are mBERT (Devlin, 2018), mBART (Liu et al., 2020a), and XLM-R", markdown, StringComparison.Ordinal);
         // The left column's introduction precedes the right column's continuation.
-        Assert.True(markdown.IndexOf("Current natural language processing", StringComparison.Ordinal) <
-            markdown.IndexOf("In this paper, we continue this tradition", StringComparison.Ordinal), markdown);
+        int left = markdown.IndexOf("Current natural language processing", StringComparison.Ordinal);
+        int right = markdown.IndexOf("In this paper, we continue this tradition", StringComparison.Ordinal);
+        Assert.True(left >= 0 && right > left, markdown);
 
         // The paper's own tables, including the borderless numeric result tables, are still recovered.
         Assert.Contains(result.Pages[2].Tables, table => table.Rows.Any(row => row.Contains("Architecture")));

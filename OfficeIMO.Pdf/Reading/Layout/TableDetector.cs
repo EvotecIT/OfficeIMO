@@ -39,7 +39,8 @@ internal static partial class TableDetector {
         List<List<TextLayoutEngine.TextLine>> bands,
         double? pageHeight = null,
         Action<long>? consumeWork = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        HashSet<TextLayoutEngine.TextLine>? columnFlowLines = null) {
         var sourceBands = bands;
         var recoverableBands = new List<List<TextLayoutEngine.TextLine>>(bands.Count);
         for (int bandIndex = 0; bandIndex < bands.Count; bandIndex++) {
@@ -122,8 +123,14 @@ internal static partial class TableDetector {
         // Wrapped-row recovery can complete sentences that were not visible in
         // the initial bands. Recheck prose evidence on the final candidate.
         tables.RemoveAll(table => table.Kind != "leaders" &&
-            ((HasNarrativeColumnEvidence(table) && HasColumnMajorSourceOrder(table)) ||
-             IsPageColumnFlowProse(table, pageLines)));
+            HasNarrativeColumnEvidence(table) && HasColumnMajorSourceOrder(table));
+        // A slice of the page's column layout goes back to the paragraph flow; callers keep its lines out of
+        // their per-line table fallback so the same prose is not split into cells again.
+        tables.RemoveAll(table => {
+            if (table.Kind == "leaders" || !IsPageColumnFlowProse(table, pageLines)) return false;
+            columnFlowLines?.UnionWith(table.SourceLines);
+            return true;
+        });
         return tables;
     }
 

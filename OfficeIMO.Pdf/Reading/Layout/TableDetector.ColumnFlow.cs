@@ -62,7 +62,9 @@ internal static partial class TableDetector {
 
         // Page columns reach the page's text margins; a table inside one page column does not.
         if (!SpansPageTextMargins(pageLines, textLefts[0], textRights[columnCount - 1], fontSize)) return false;
-        return table.Rows.Count >= 6 || HasContinuingPageGutters(table, pageLines, textLefts, textRights, fontSize);
+        // Row count alone is no evidence: a word-heavy table inside one page column has the same rows, but the
+        // lines above and below it in that column cross its inner gutter.
+        return HasContinuingPageGutters(table, pageLines, textLefts, textRights, fontSize);
     }
 
     private static bool TryGetColumnExtent(List<PdfTextSpan> spans, List<PdfStructuredTableColumn> columns, int columnIndex,
