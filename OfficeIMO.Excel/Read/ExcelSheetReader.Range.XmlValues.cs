@@ -65,6 +65,12 @@ namespace OfficeIMO.Excel {
                     if (displayStyle.Valid && display.IsFormatted(displayStyle.Index)) {
                         return ConvertRaw(ReadXmlCellRaw(cellReader, 0, 0, displayKind, readStyleIndex: true)).TypedValue;
                     }
+                    if (!displayStyle.Present && (_displayRowStyle.HasValue || HasFormattedColumnStyles)
+                        && ResolveInheritedDisplayStyle(_displayRowStyle, GetReferenceColumn(cellReader.GetAttribute("r"))) is uint inherited) {
+                        CellRaw raw = ReadXmlCellRaw(cellReader, 0, 0, displayKind, readStyleIndex: true);
+                        raw.StyleIndex = inherited;
+                        return ConvertRaw(raw).TypedValue;
+                    }
                 }
             }
             if (preserveDateSerial && _opt.TreatDatesUsingNumberFormat

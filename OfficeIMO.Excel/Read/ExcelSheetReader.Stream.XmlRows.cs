@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal sealed partial class ExcelSheetReader {
         private void ReadXmlRowIntoChunk(XmlReader rowReader, object?[][] rows, int rowIndex, int startRow, int c1, int c2, CancellationToken ct, bool preserveDateSerial = false, bool[]? cellPresence = null) {
+            CaptureDisplayRowStyle(rowReader);
             if (rowReader.IsEmptyElement) {
                 return;
             }

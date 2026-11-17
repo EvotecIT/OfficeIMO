@@ -457,7 +457,13 @@ namespace OfficeIMO.Excel {
             }
 
             uint? styleIndex = cell.StyleIndex?.Value;
-            if (_opt.CellValueConverter == null && TryFormatDisplayText(typeHint, styleIndex, rawText, out string displayed)) {
+            uint? displayStyle = styleIndex;
+            if (!displayStyle.HasValue && _opt.DisplayText != null) {
+                Row? displayRow = cell.Parent as Row;
+                uint? rowStyle = displayRow?.CustomFormat?.Value == true ? displayRow.StyleIndex?.Value : null;
+                displayStyle = ResolveInheritedDisplayStyle(rowStyle, GetReferenceColumn(cell.CellReference?.Value));
+            }
+            if (_opt.CellValueConverter == null && TryFormatDisplayText(typeHint, displayStyle, rawText, out string displayed)) {
                 value = displayed;
                 return true;
             }

@@ -17,7 +17,8 @@ public sealed class ExcelNumberFormatPlanTests {
         (175, "[$€-407] #,##0.00"), (176, "#,##0.00 [$zł-415]"), (177, "#"), (178, "0.0;;"),
         (179, "yyyy-mm-dd"), (14, "mm-dd-yy"), (22, "m/d/yy h:mm"), (180, "m/d/yyyy h:mm AM/PM"), (181, "h:mm:ss.000"),
         (182, "mmmmm"), (183, "dddd, mmmm d, yyyy"), (184, "[$-409]mmm d, yyyy"), (185, "hh:mm A/P"),
-        (186, "[>100]0;0.0"), (187, "[h]:mm:ss"), (188, "@\" units\"")
+        (186, "[>100]0;0.0"), (187, "[h]:mm:ss"), (188, "@\" units\""),
+        (189, "General;[Red]General"), (190, "General;(General)"), (191, "\"Total: \"General"), (192, "0.00;-General;\"zero\"")
     };
 
     private static readonly double[] Values = {
@@ -42,5 +43,16 @@ public sealed class ExcelNumberFormatPlanTests {
                 }
             }
         }
+    }
+
+    [Theory]
+    [InlineData("General;[Red]General", 1234.5, "1234.5")]
+    [InlineData("General;[Red]General", -2, "2")]
+    [InlineData("General;(General)", -2.25, "(2.25)")]
+    [InlineData("\"Total: \"General", 3, "Total: 3")]
+    public void GeneralSectionsShowTheValueInGeneralForm(string code, double value, string expected) {
+        ExcelNumberFormatPlan plan = ExcelNumberFormatPlan.Create(200, code, ExcelDateSystem.NineteenHundred, CultureInfo.InvariantCulture)!;
+
+        Assert.Equal(expected, plan.Format(value));
     }
 }

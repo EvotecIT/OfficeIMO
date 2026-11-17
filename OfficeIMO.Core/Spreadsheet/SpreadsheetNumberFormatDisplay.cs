@@ -14,6 +14,10 @@ namespace OfficeIMO.Spreadsheet {
                 return string.Empty;
             }
 
+            if (TryFindGeneralToken(section, out int generalStart)) {
+                return FormatGeneralSection(value, section, generalStart, selectedSection, provider);
+            }
+
             string normalized = StripNumberFormatDecorations(section);
             string lower = normalized.ToLowerInvariant();
 

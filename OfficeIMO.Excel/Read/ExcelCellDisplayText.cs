@@ -86,6 +86,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         internal string? FormatUnstyled(object? value) => value switch {
             double number => OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue(number, Provider),
+            decimal amount => OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue((double)amount, Provider),
             bool flag => flag ? "TRUE" : "FALSE",
             _ => null
         };

@@ -15,6 +15,40 @@ namespace OfficeIMO.Spreadsheet {
             return sections.Length == 0 ? new[] { formatCode } : sections;
         }
 
+        /// <summary>
+        /// Finds a <c>General</c> placeholder outside quoted text, as in <c>General;[Red]General</c> or
+        /// <c>"Total: "General</c>, where the section shows the value in General form.
+        /// </summary>
+        internal static bool TryFindGeneralToken(string section, out int start) {
+            start = -1;
+            bool inQuote = false;
+            for (int index = 0; index + 7 <= section.Length; index++) {
+                char ch = section[index];
+                if (ch == '"') { inQuote = !inQuote; continue; }
+                if (inQuote) continue;
+                if (ch == '\\' || ch == '_' || ch == '*') { index++; continue; }
+                if (ch == '[') {
+                    int close = section.IndexOf(']', index + 1);
+                    if (close > index) { index = close; continue; }
+                }
+                if (string.Compare(section, index, "General", 0, 7, StringComparison.OrdinalIgnoreCase) == 0) {
+                    start = index;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Shows the value in General form between the section's literal affixes. A negative section shows the
+        /// magnitude, because the section itself marks the sign, as numeric placeholders do.
+        /// </summary>
+        internal static string FormatGeneralSection(double value, string section, int generalStart, int selectedSection, IFormatProvider provider) {
+            string prefix = CleanLiteralAffix(StripNumberFormatDecorations(section.Substring(0, generalStart)));
+            string suffix = CleanLiteralAffix(StripNumberFormatDecorations(section.Substring(generalStart + 7)));
+            return prefix + FormatGeneralValue(selectedSection == 1 ? Math.Abs(value) : value, provider) + suffix;
+        }
+
         /// <summary>Selects a section the same way the per-call formatter does for unconditional formats.</summary>
         internal static int SelectSectionIndex(double value, int sectionCount) {
             int preferred = value < 0 ? 1 : value == 0 ? 2 : 0;
@@ -27,6 +61,8 @@ namespace OfficeIMO.Spreadsheet {
         /// </summary>
         internal sealed class NumericSectionPlan {
             private readonly bool _empty;
+            private readonly string _section;
+            private readonly int _generalStart;
             private readonly string _normalized;
             private readonly bool _textPlaceholder;
             private readonly string? _literal;
@@ -46,6 +82,8 @@ namespace OfficeIMO.Spreadsheet {
 
             private NumericSectionPlan(string section) {
                 _empty = section.Length == 0;
+                _section = section;
+                _generalStart = TryFindGeneralToken(section, out int generalStart) ? generalStart : -1;
                 _normalized = StripNumberFormatDecorations(section);
                 string lower = _normalized.ToLowerInvariant();
                 _textPlaceholder = SpreadsheetNumberFormatSyntax.Parse(section).Tokens.Any(token => token.Kind == SpreadsheetNumberFormatTokenKind.TextPlaceholder);
@@ -81,6 +119,7 @@ namespace OfficeIMO.Spreadsheet {
             internal string? Format(double value, int selectedSection, IFormatProvider provider) {
                 if (double.IsNaN(value) || double.IsInfinity(value)) return null;
                 if (_empty) return string.Empty;
+                if (_generalStart >= 0) return FormatGeneralSection(value, _section, _generalStart, selectedSection, provider);
                 if (_textPlaceholder) return value.ToString(provider);
                 if (_literalOnly) return _literal;
                 if (IsZeroValue(value) && _onlyOptional) return string.Empty;

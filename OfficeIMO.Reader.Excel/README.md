@@ -49,6 +49,8 @@ SpreadsheetML input. Formatting uses the invariant culture so a workbook produce
 workbooks do not record the locale they were edited in. Set `CellTextCulture` to display separators for a
 specific culture. Literal currency symbols and locale tags in a format are kept as written. Each style's number
 format is resolved once per workbook, not per cell. Text cells, including shared strings, keep their stored text.
+A cell without its own style uses its row's custom style, otherwise its column's style, as
+`ExcelCell.GetFormattedText()` does. Numbers read as `decimal` through `ReadOptions.NumericAsDecimal` display the same way.
 
 Set `CellText = ReaderExcelCellText.Raw` for stored values instead: invariant numbers, ISO 8601 timestamps for
 date-formatted cells and `True`/`False` booleans.

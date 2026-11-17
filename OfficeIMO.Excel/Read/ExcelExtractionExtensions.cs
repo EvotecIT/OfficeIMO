@@ -151,6 +151,8 @@ internal static class ExcelExtractionExtensions {
         if (value == null) return fallback;
         if (display != null) {
             if (value is double number) return OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue(number, display);
+            // NumericAsDecimal reads numbers as decimal; they display the same way.
+            if (value is decimal amount) return OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatGeneralValue((double)amount, display);
             if (value is bool flag) return flag ? "TRUE" : "FALSE";
         }
         if (value is DateTime dt) return dt.ToString("o", CultureInfo.InvariantCulture);

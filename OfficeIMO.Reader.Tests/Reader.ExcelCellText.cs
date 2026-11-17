@@ -5,7 +5,7 @@ using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
 
-public sealed class ReaderExcelCellTextTests {
+public sealed partial class ReaderExcelCellTextTests {
     private static readonly string[] Headers = {
         "Share", "Amount", "Date", "Time", "Fraction", "Scientific", "Code", "General", "Active"
     };
