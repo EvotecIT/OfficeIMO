@@ -79,6 +79,11 @@ internal static partial class PdfAnnotationEditor {
         int pageObjectNumber = pages[options.PageNumber - 1]; PdfIndirectObject pageIndirect = objects[pageObjectNumber]; PdfDictionary page = (PdfDictionary)pageIndirect.Value;
         int annotationObjectNumber = NextAnnotationObjectNumber(objects);
         var annotation = new PdfDictionary(); annotation.Items["Type"] = new PdfName("Annot"); annotation.Items["Subtype"] = new PdfName(options.Subtype); annotation.Items["P"] = new PdfReference(pageObjectNumber, pageIndirect.Generation);
+        int pageRotation = ReadInheritedPageRotation(objects, page);
+        // Free text on a rotated page is written turned with the page, so it reads upright where it is viewed.
+        // NoRotate annotations already stay upright, so they keep an unturned appearance.
+        const int NoRotateFlag = 16;
+        if (options.Subtype == "FreeText" && pageRotation != 0 && (options.Flags & NoRotateFlag) == 0) annotation.Items["Rotate"] = new PdfNumber(pageRotation);
         objects[annotationObjectNumber] = new PdfIndirectObject(annotationObjectNumber, 0, annotation);
 
         int? popupObjectNumber = null;
@@ -177,6 +182,19 @@ internal static partial class PdfAnnotationEditor {
         } else if (options.LinkUri != null || options.LinkPageNumber != null) {
             throw new ArgumentException("Link targets can be used only with Link annotations.", nameof(options));
         }
+    }
+
+    private static int ReadInheritedPageRotation(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
+        var visited = new HashSet<PdfDictionary>();
+        for (PdfDictionary? node = page; node is not null && visited.Add(node);
+            node = node.Items.TryGetValue("Parent", out PdfObject? parent) ? PdfObjectLookup.Resolve(objects, parent) as PdfDictionary : null) {
+            if (node.Items.TryGetValue("Rotate", out PdfObject? value) && PdfObjectLookup.Resolve(objects, value) is PdfNumber number &&
+                !double.IsNaN(number.Value) && !double.IsInfinity(number.Value)) {
+                int quarterTurns = (int)(Math.Round(number.Value / 90D) % 4D);
+                return (quarterTurns < 0 ? quarterTurns + 4 : quarterTurns) * 90;
+            }
+        }
+        return 0;
     }
 
     private static bool IsAppearanceSubtype(string subtype) => subtype == "Text" || subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";

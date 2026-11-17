@@ -340,8 +340,9 @@ internal static partial class PdfRedactionApplier {
                     args.Clear();
                     break;
                 case "Q":
-                    graphicsState.Transform = graphicsState.Stack.Count > 0 ? graphicsState.Stack.Pop() : graphicsState.BaseTransform;
-                    textState = textStateStack.Count > 0 ? textStateStack.Pop() : initialTextState;
+                    // A Q with nothing saved is a no-op, as viewers draw it; it must not undo an earlier transformation.
+                    if (graphicsState.Stack.Count > 0) graphicsState.Transform = graphicsState.Stack.Pop();
+                    if (textStateStack.Count > 0) textState = textStateStack.Pop();
                     args.Clear();
                     break;
                 case "cm":

@@ -5372,6 +5372,19 @@ with `NotSupportedException` before sending a request; pass credentials through
 legacy PowerPoint theme payloads and HTML site bundles now treat a non-empty ZIP entry
 with a missing or zero compressed size as exceeding the compression-ratio limit.
 
+## PDF stamps and added content follow page rotation
+
+Text and image stamps, watermarks, `PdfDocument.Text.Add`, `PdfDocument.Images.Add` and
+free text annotations created with `PdfDocument.Annotations.Add` now read upright on pages
+with `/Rotate`. `PdfTextStampOptions.RotationDegrees` and `PdfImageStampOptions.RotationDegrees`
+are measured on the displayed page, and default stamp positions are 36 points from the
+lower-left corner of the displayed page, inside the crop box. Code that added the page
+rotation to `RotationDegrees` itself should stop doing so. Explicit `X` and `Y` remain
+user-space coordinates from the unrotated PDF origin, so keep any offsets they carry; on a
+rotated page the stamp now grows right and up on the displayed page from that point.
+`PdfTextEditOptions.RotationDegrees` keeps its user-space meaning; leave it unset to add
+upright text.
+
 ## PDF read limits open larger valid files by default
 
 `PdfReadLimits` defaults now accept single objects of up to 16,000,000 characters and

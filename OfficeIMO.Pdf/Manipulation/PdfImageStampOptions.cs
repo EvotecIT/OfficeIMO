@@ -58,13 +58,13 @@ public sealed class PdfImageStampOptions : IPdfOperationCancellation {
 
     /// <summary>
     /// Physical X coordinate of the image origin from the unrotated PDF origin.
-    /// When null, stamps use 36 points and watermarks center in the effective page box.
+    /// When null, stamps sit 36 points from the lower-left corner of the displayed page and watermarks center in it.
     /// </summary>
     public global::OfficeIMO.OfficeLength? X { get; set; }
 
     /// <summary>
     /// Physical Y coordinate of the image origin from the unrotated PDF origin.
-    /// When null, stamps use 36 points and watermarks center in the effective page box.
+    /// When null, stamps sit 36 points from the lower-left corner of the displayed page and watermarks center in it.
     /// </summary>
     public global::OfficeIMO.OfficeLength? Y { get; set; }
 
@@ -91,7 +91,8 @@ public sealed class PdfImageStampOptions : IPdfOperationCancellation {
     }
 
     /// <summary>
-    /// Image rotation in degrees around the image origin.
+    /// Counter-clockwise image rotation in degrees around the image origin, relative to the displayed page. On a page with
+    /// /Rotate, an unrotated image stays upright as the page is viewed.
     /// </summary>
     public double RotationDegrees {
         get => _rotationDegrees;
@@ -100,6 +101,9 @@ public sealed class PdfImageStampOptions : IPdfOperationCancellation {
             _rotationDegrees = value;
         }
     }
+
+    /// <summary>True when <see cref="RotationDegrees"/> is already a user-space angle, as when an existing placement is replayed.</summary>
+    internal bool RotationInUserSpace { get; set; }
 
     /// <summary>Image opacity from 0 through 1, multiplied by any intrinsic image alpha. Defaults to 1.</summary>
     public double Opacity {
