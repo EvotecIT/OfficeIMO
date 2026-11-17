@@ -44,8 +44,16 @@ def render(pdf: str, png_dir: str) -> list[np.ndarray]:
             staging = folder + ".partial"
             shutil.rmtree(staging, ignore_errors=True)
             os.makedirs(staging)
-            subprocess.run(["wsl", "-e", "pdftoppm", "-r", str(DPI), "-gray", "-png", "-l", str(MAX_PAGES), _wsl(pdf),
-                            _wsl(os.path.join(staging, "p"))], capture_output=True, timeout=300, check=False)
+            try:
+                proc = subprocess.run(["wsl", "-e", "pdftoppm", "-r", str(DPI), "-gray", "-png", "-l", str(MAX_PAGES),
+                                       _wsl(pdf), _wsl(os.path.join(staging, "p"))], capture_output=True, timeout=300, check=False)
+                rendered = proc.returncode == 0 and glob.glob(os.path.join(staging, "p-*.png"))
+            except subprocess.TimeoutExpired:
+                rendered = False
+            if not rendered:
+                # A failed render is not cached, so the next run retries it.
+                shutil.rmtree(staging, ignore_errors=True)
+                return []
             os.replace(staging, folder)
     pages = sorted(glob.glob(os.path.join(folder, "p-*.png")))
     return [np.asarray(Image.open(p).convert("L"), dtype=np.float64) for p in pages]

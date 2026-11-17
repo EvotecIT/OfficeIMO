@@ -7,6 +7,9 @@ import os
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from _batch import write_log  # noqa: E402
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
@@ -21,7 +24,11 @@ converter = DocumentConverter(format_options={InputFormat.PDF: PdfFormatOption(p
 with open(jobs_path, encoding="utf-8") as f:
     jobs = json.load(f)
 log = []
+write_log(out_dir, log)
 for job in jobs:
+    for ext in (".md", ".html"):
+        if os.path.exists(os.path.join(out_dir, job["id"] + ext)):
+            os.remove(os.path.join(out_dir, job["id"] + ext))
     start = time.perf_counter()
     try:
         result = converter.convert(job["pdf"], raises_on_error=True)
@@ -35,5 +42,4 @@ for job in jobs:
         status = "error: " + type(exc).__name__ + ": " + str(exc)[:200]
     log.append({"id": job["id"], "status": status, "seconds": round(time.perf_counter() - start, 2)})
     print(job["id"], status[:80], flush=True)
-with open(os.path.join(out_dir, "_log.json"), "w", encoding="utf-8") as f:
-    json.dump(log, f, indent=1)
+    write_log(out_dir, log)

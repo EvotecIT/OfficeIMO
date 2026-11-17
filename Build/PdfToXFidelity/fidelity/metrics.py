@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+from bisect import bisect_left
 from collections import Counter
 from difflib import SequenceMatcher
 
@@ -216,15 +217,43 @@ def _cells(t: Table) -> int:
     return sum(len(r) for r in t.rows)
 
 
-def _cell_key(cell: Cell) -> str:
-    """Pairing key that ignores number and date formatting, matching how cells are scored."""
-    value = cell_value(cell)
-    if value is not None:
-        return "n:" + format(round(value[0], 6), ".15g")
-    dates = parse_date(cell.text)
-    if dates:
-        return "d:" + format(min(dates), ".0f")
-    return norm_text(cell.text).casefold()
+class _CellBag:
+    """Non-empty cells of a table for pairing: numbers by value within displayed precision (as `cell_cost` scores
+    them), dates by serial, everything else by normalised text."""
+
+    def __init__(self, table: Table):
+        self.keys: Counter = Counter()
+        numbers = []
+        for row in table.rows:
+            for c in row:
+                if not norm_text(c.text):
+                    continue
+                value = cell_value(c)
+                if value is not None:
+                    numbers.append(value)
+                    continue
+                dates = parse_date(c.text)
+                self.keys["d:" + format(min(dates), ".0f") if dates else norm_text(c.text).casefold()] += 1
+        numbers.sort()
+        self.values = [v for v, _ in numbers]
+        self.tols = [t for _, t in numbers]
+        self.max_tol = max(self.tols, default=0.0)
+        self.size = sum(self.keys.values()) + len(numbers)
+
+    def overlap(self, other: "_CellBag") -> int:
+        """Size of a one-to-one matching between the two bags."""
+        inter = sum((self.keys & other.keys).values())
+        used = [False] * len(other.values)
+        for value, tol in zip(self.values, self.tols):
+            reach = max(tol, other.max_tol, 1e-9 * abs(value)) + 1e-12
+            i = bisect_left(other.values, value - reach)
+            while i < len(other.values) and other.values[i] <= value + reach:
+                if not used[i] and abs(other.values[i] - value) <= max(tol, other.tols[i], 1e-9 * abs(value)) + 1e-12:
+                    used[i] = True
+                    inter += 1
+                    break
+                i += 1
+        return inter
 
 
 def table_metrics(gold: Document, out: Document) -> dict:
@@ -236,9 +265,10 @@ def table_metrics(gold: Document, out: Document) -> dict:
                 "table_shape_acc": NA, "merged_cells": NA, "empty_cells": NA}
     used = set()
     pairs = []
+    obags = [_CellBag(ot) for ot in ots]
     for gt in gts:
-        gbag = Counter(_cell_key(c) for row in gt.rows for c in row if norm_text(c.text))
-        if not gbag:
+        gbag = _CellBag(gt)
+        if not gbag.size:
             # A table of empty cells can only be paired by its grid.
             j = next((j for j, ot in enumerate(ots) if j not in used and _shape(ot) == _shape(gt)
                       and not any(norm_text(c.text) for row in ot.rows for c in row)), None)
@@ -250,11 +280,11 @@ def table_metrics(gold: Document, out: Document) -> dict:
         for j, ot in enumerate(ots):
             if j in used:
                 continue
-            obag = Counter(_cell_key(c) for row in ot.rows for c in row if norm_text(c.text))
-            inter = sum((gbag & obag).values())
+            obag = obags[j]
+            inter = gbag.overlap(obag)
             if not inter:
                 continue
-            p, r = inter / max(1, sum(obag.values())), inter / max(1, sum(gbag.values()))
+            p, r = inter / max(1, obag.size), inter / max(1, gbag.size)
             f = 2 * p * r / (p + r)
             if f > best:
                 best, best_j = f, j
@@ -399,12 +429,20 @@ def sheet_metrics(gold: Document, out: Document) -> dict:
         res["xl_number_typed"] = sum(f == "typed" for f in found) / len(found)
     if dates:
         typed_hits = any_hits = 0
+        # Each output cell answers for one source date: typed date serials first, then dates read from text.
+        typed_serials = [math.floor(c.value) if c.kind == "date" and c.value is not None else None for c in out_cells]
+        text_serials = [{math.floor(d) for d in parse_date(c.text)} for c in out_cells]
+        used_dates: set[int] = set()
         for g in dates[:2000]:
             serial = math.floor(g.value)
-            typed = any(c.kind == "date" and c.value is not None and math.floor(c.value) == serial for c in out_cells)
-            textual = typed or any(serial in [math.floor(d) for d in parse_date(c.text)] for c in out_cells)
+            hit = next((i for i, s in enumerate(typed_serials) if s == serial and i not in used_dates), None)
+            typed = hit is not None
+            if hit is None:
+                hit = next((i for i, s in enumerate(text_serials) if serial in s and i not in used_dates), None)
+            if hit is not None:
+                used_dates.add(hit)
             typed_hits += typed
-            any_hits += textual
+            any_hits += hit is not None
         res["xl_date_typed"] = typed_hits / len(dates[:2000])
         res["xl_date_value"] = any_hits / len(dates[:2000])
     if texts:

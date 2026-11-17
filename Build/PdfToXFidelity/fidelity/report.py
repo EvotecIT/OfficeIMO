@@ -176,5 +176,11 @@ def write_report(work: str) -> None:
     with open(os.path.join(work, "scorecard.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
     with open(os.path.join(work, "scorecard.json"), "w", encoding="utf-8") as f:
-        json.dump({f"{k[0]}|{k[1]}": {m: v[0] for m, v in d.items()} for k, d in card.items()}, f, indent=1, default=str)
+        # Inapplicable metrics are NaN in memory and null in JSON.
+        json.dump({f"{k[0]}|{k[1]}": {m: _json_number(v[0]) for m, v in d.items()} for k, d in card.items()}, f, indent=1,
+                  default=str, allow_nan=False)
     print("wrote scorecard.md")
+
+
+def _json_number(value):
+    return None if isinstance(value, float) and not math.isfinite(value) else value

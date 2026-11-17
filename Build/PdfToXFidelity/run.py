@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import concurrent.futures as cf
 import csv
+import filecmp
 import glob
 import json
 import math
@@ -68,10 +69,19 @@ def wsl_path(path: str) -> str:
 
 
 def soffice(files: list[str], outdir: str, convert_to: str, infilter: str | None = None, timeout: int = 1800) -> None:
-    """Batch conversion through LibreOffice in WSL with a private profile."""
+    """Batch conversion through LibreOffice in WSL with a private profile.
+
+    Each destination is removed first, so a failed conversion leaves no file from an earlier run behind and
+    callers can treat an existing destination as the result of this refresh.
+    """
     if not files:
         return
     os.makedirs(outdir, exist_ok=True)
+    ext = convert_to.split(":", 1)[0]
+    for f in files:
+        dest = os.path.join(outdir, os.path.splitext(os.path.basename(f))[0] + "." + ext)
+        if os.path.exists(dest):
+            os.remove(dest)
     for start in range(0, len(files), 40):
         cmd = ["wsl", "-e", "soffice", "--headless", "--norestore", "-env:UserInstallation=file:///tmp/pdfx-lo-profile"]
         if infilter:
@@ -103,8 +113,12 @@ def cmd_corpus(args) -> None:
         family = {".docx": "word", ".xlsx": "excel", ".pptx": "slides"}[ext]
         doc_id = f"{set_name}--{stem}{'-' + ext[1:] if ext != '.docx' else ''}"
         dest = os.path.join(src_dir, doc_id + ext)
+        pdf = os.path.join(pdf_dir, doc_id + ".pdf")
+        # A changed source invalidates its PDF, so every source/PDF pair comes from the same revision.
+        if not (os.path.exists(dest) and filecmp.cmp(source, dest, shallow=False)) and os.path.exists(pdf):
+            os.remove(pdf)
         shutil.copyfile(source, dest)
-        entries.append({"id": doc_id, "family": family, "source": dest, "pdf": os.path.join(pdf_dir, doc_id + ".pdf"),
+        entries.append({"id": doc_id, "family": family, "source": dest, "pdf": pdf,
                         "producer": "libreoffice", "set": set_name, "licence": licence})
 
     generated = os.path.join(work, "tmp", "generated")
@@ -168,19 +182,27 @@ def cmd_officeimo(args) -> None:
     entries = load_manifest(work)
 
     def one(e):
-        targets = ",".join(t for t in OFFICEIMO_TARGETS if t in FAMILY_TARGETS[e["family"]])
+        targets = [t for t in OFFICEIMO_TARGETS if t in FAMILY_TARGETS[e["family"]]]
+        meta = os.path.join(out, e["id"] + ".officeimo.json")
+        # Results from an earlier run must not stand in for this one if the process dies before writing its own.
+        stale = [meta] + [os.path.join(out, e["id"] + "." + t) for t in targets]
+        stale += [os.path.join(out, "normalized", t, e["id"] + "." + NORMALIZE[t]) for t in targets if t in NORMALIZE]
+        for path in stale:
+            if os.path.exists(path):
+                os.remove(path)
         try:
-            subprocess.run(["dotnet", args.tool, "convert", e["pdf"], out, targets], timeout=args.timeout,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False)
-            return e["id"], "ok"
+            proc = subprocess.run(["dotnet", args.tool, "convert", e["pdf"], out, ",".join(targets)], timeout=args.timeout,
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, check=False)
+            status = "ok" if proc.returncode == 0 and os.path.exists(meta) else f"exit {proc.returncode}"
         except subprocess.TimeoutExpired:
-            return e["id"], "timeout"
+            status = "timeout"
+        if status != "ok":
+            with open(meta, "w", encoding="utf-8") as f:
+                json.dump([{"target": t, "status": status} for t in targets], f)
+        return e["id"], status
 
     with cf.ThreadPoolExecutor(args.parallel) as pool:
         for doc_id, status in pool.map(one, entries):
-            if status != "ok":
-                with open(os.path.join(out, doc_id + ".officeimo.json"), "w", encoding="utf-8") as f:
-                    json.dump([{"target": t, "status": "timeout"} for t in OFFICEIMO_TARGETS], f)
             print(doc_id, status, flush=True)
 
 
@@ -253,17 +275,46 @@ def read_gold(e: dict) -> model.Document:
     return {"word": read_docx, "excel": read_xlsx, "slides": read_pptx}[e["family"]](e["source"])
 
 
+COMPARISONS = [("pdf2docx", "docx", {"word", "tagged", "excel"}), ("libreoffice", "docx", {"word", "tagged", "excel"}),
+               ("libreoffice", "pptx", {"slides"}), ("docling", "md", set(FAMILY_TARGETS)),
+               ("docling", "html", set(FAMILY_TARGETS)), ("pymupdf4llm", "md", set(FAMILY_TARGETS)),
+               ("pdfoxide", "md", set(FAMILY_TARGETS)), ("pdfoxide", "html", set(FAMILY_TARGETS))]
+# Runners that record each job in _log.json. Their outputs count only with a recorded success.
+LOGGED_TOOLS = {"pdf2docx", "docling", "pymupdf4llm"}
+
+
+def officeimo_status(work: str, e: dict) -> dict[str, str]:
+    """Recorded OfficeIMO outcome per target; unreadable metadata marks every target as an error."""
+    meta = os.path.join(work, "outputs", "officeimo", e["id"] + ".officeimo.json")
+    if not os.path.exists(meta):
+        return {}
+    try:
+        with open(meta, encoding="utf-8") as f:
+            return {r["target"]: str(r.get("status", "error")) for r in json.load(f)}
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return {t: "metadata unreadable: " + type(exc).__name__ for t in OFFICEIMO_TARGETS}
+
+
+def conversion_status(work: str, tool: str, e: dict, target: str) -> str:
+    """Recorded outcome of one raw conversion output (before normalization)."""
+    if tool == "officeimo":
+        s = officeimo_status(work, e).get(target, "missing")
+        return s if s != "ok" or os.path.exists(os.path.join(work, "outputs", tool, e["id"] + "." + target)) else "missing"
+    folder = os.path.join(work, "outputs", tool)
+    if not os.path.exists(os.path.join(folder, e["id"] + "." + target)):
+        return "error"
+    statuses = _tool_status(folder, tool in LOGGED_TOOLS)
+    if "*" in statuses:
+        return statuses["*"]
+    return statuses.get(e["id"], "unconfirmed" if tool in LOGGED_TOOLS else "ok")
+
+
 def outputs_for(work: str, e: dict) -> list[tuple[str, str, str | None, str]]:
     """(tool, target, path or None, status) for every scored conversion of one document."""
     rows = []
     oi = os.path.join(work, "outputs", "officeimo")
-    status = {}
-    meta = os.path.join(oi, e["id"] + ".officeimo.json")
-    if os.path.exists(meta):
-        with open(meta, encoding="utf-8") as f:
-            status = {r["target"]: r for r in json.load(f)}
     for target in FAMILY_TARGETS[e["family"]]:
-        s = status.get(target, {}).get("status", "missing")
+        s = conversion_status(work, "officeimo", e, target)
         if target in NORMALIZE:
             path = os.path.join(oi, "normalized", target, e["id"] + "." + NORMALIZE[target])
             if s == "ok" and not os.path.exists(path):
@@ -271,35 +322,38 @@ def outputs_for(work: str, e: dict) -> list[tuple[str, str, str | None, str]]:
         else:
             path = os.path.join(oi, e["id"] + "." + target)
         rows.append(("officeimo", target, path if s == "ok" and os.path.exists(path) else None, s))
-    comparisons = [("pdf2docx", "docx", {"word", "tagged", "excel"}), ("libreoffice", "docx", {"word", "tagged", "excel"}),
-                   ("libreoffice", "pptx", {"slides"}), ("docling", "md", set(FAMILY_TARGETS)),
-                   ("docling", "html", set(FAMILY_TARGETS)), ("pymupdf4llm", "md", set(FAMILY_TARGETS)),
-                   ("pdfoxide", "md", set(FAMILY_TARGETS)), ("pdfoxide", "html", set(FAMILY_TARGETS))]
-    for tool, target, families in comparisons:
+    for tool, target, families in COMPARISONS:
         if e["family"] not in families or target not in FAMILY_TARGETS[e["family"]]:
             continue
         folder = os.path.join(work, "outputs", tool)
         if not os.path.isdir(folder):
             continue
-        path = os.path.join(folder, e["id"] + "." + target)
-        status = _tool_status(folder).get(e["id"], "ok") if os.path.exists(path) else "error"
-        rows.append((tool, target, path if status == "ok" else None, status))
+        status = conversion_status(work, tool, e, target)
+        rows.append((tool, target, os.path.join(folder, e["id"] + "." + target) if status == "ok" else None, status))
     return rows
 
 
 _STATUS_CACHE: dict[str, dict[str, str]] = {}
 
 
-def _tool_status(folder: str) -> dict[str, str]:
-    """Per-document outcome from a comparison runner's _log.json; a file left by a failed or earlier run is not a success."""
+def _tool_status(folder: str, logged: bool) -> dict[str, str]:
+    """Per-document outcome from a comparison runner's _log.json; a file left by a failed or earlier run is not a success.
+
+    A damaged log marks every output of that tool as an error (key "*") instead of failing the whole document.
+    """
     if folder not in _STATUS_CACHE:
         statuses: dict[str, str] = {}
         log = os.path.join(folder, "_log.json")
         if os.path.exists(log):
-            with open(log, encoding="utf-8") as f:
-                for row in json.load(f):
-                    raw = str(row.get("status", ""))
-                    statuses[row["id"]] = "ok" if raw == "ok" or raw.endswith("SUCCESS") else raw[:80] or "error"
+            try:
+                with open(log, encoding="utf-8") as f:
+                    for row in json.load(f):
+                        raw = str(row.get("status", ""))
+                        statuses[row["id"]] = "ok" if raw == "ok" or raw.endswith("SUCCESS") else raw[:80] or "error"
+            except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
+                statuses = {"*": "log unreadable: " + type(exc).__name__}
+        elif logged:
+            statuses = {"*": "unconfirmed"}
         _STATUS_CACHE[folder] = statuses
     return _STATUS_CACHE[folder]
 
@@ -326,13 +380,17 @@ def cmd_score(args) -> None:
     work = os.path.abspath(args.work)
     entries = load_manifest(work)
     rows = []
+    failed = []
     with cf.ProcessPoolExecutor(args.parallel) as pool:
         futures = {pool.submit(_score_one, work, e): e["id"] for e in entries}
         for future in cf.as_completed(futures):
             try:
                 rows.extend(future.result())
-            except Exception as exc:
-                print("score failed", futures[future], exc, flush=True)
+            except Exception as exc:  # noqa: BLE001 - reported below; a partial results.csv would change the denominator
+                failed.append(futures[future])
+                print("score failed", futures[future], f"{type(exc).__name__}: {exc}", flush=True)
+    if failed:
+        sys.exit(f"scoring failed for {len(failed)} documents; results.csv was not written")
     rows.sort(key=lambda r: (r["id"], r["tool"], r["target"]))
     write_csv(os.path.join(work, "results.csv"), rows)
     print(f"{len(rows)} scored conversions")
@@ -373,17 +431,19 @@ def cmd_visual(args) -> None:
             if not expected:
                 continue
             out = os.path.join(vis, tool, target)
+            # Only conversions recorded as successful are rendered; a file kept from a failed job scores 0.
+            ok = [conversion_status(work, tool, e, target) == "ok" for e in expected]
             sources = [os.path.join(folder, e["id"] + "." + target) for e in expected]
             # Re-render when the conversion output is newer than its rendered PDF.
             stale = []
-            for p in sources:
+            for p, good in zip(sources, ok):
                 rendered = os.path.join(out, os.path.basename(p).rsplit(".", 1)[0] + ".pdf")
-                if os.path.exists(p) and (not os.path.exists(rendered) or os.path.getmtime(rendered) < os.path.getmtime(p)):
+                if good and (not os.path.exists(rendered) or os.path.getmtime(rendered) < os.path.getmtime(p)):
                     stale.append(p)
             soffice(stale, out, "pdf")
-            for e, p in zip(expected, sources):
+            for e, good in zip(expected, ok):
                 rendered = os.path.join(out, e["id"] + ".pdf")
-                jobs.append((tool, target, e["id"], e["pdf"], rendered if os.path.exists(p) else rendered + ".missing"))
+                jobs.append((tool, target, e["id"], e["pdf"], rendered if good else rendered + ".missing"))
     rows = []
     with cf.ThreadPoolExecutor(args.parallel) as pool:
         for job, res in zip(jobs, pool.map(lambda j: compare_pdfs(j[3], j[4], os.path.join(vis, "png")), jobs)):

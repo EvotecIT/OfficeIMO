@@ -17,6 +17,7 @@ _DATE_PATTERNS = [
 _MONTHS = {m: i + 1 for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"])}
 _NAMED_DATE = re.compile(r"^(\d{1,2})[ .-]([A-Za-z]{3})[A-Za-z]*\.?[ .-](\d{2,4})$")
 _EPOCH = dt.date(1899, 12, 30)
+MAX_TABLE_COLUMNS = 61
 
 
 def parse_date(text: str) -> list[float]:
@@ -131,10 +132,16 @@ def sheet_regions(doc: Document, cells: dict, merges: list) -> None:
             continue
         c0 = min(c for _, c in region)
         c1 = max(c + spans.get(k, (1, 1))[1] - 1 for k in region for c in [k[1]])
+        if c1 - c0 + 1 > MAX_TABLE_COLUMNS:
+            # Too wide to score as a table: keep the full text row by row instead of a truncated grid.
+            for row in group:
+                words = [w for (r, _), cell in sorted(region.items()) if r == row for w in split_words(cell.text)]
+                doc.add_block(Block("paragraph", words))
+            continue
         table = Table()
         for r in range(r0, r1 + 1):
             row = []
-            for c in range(c0, min(c1, c0 + 60) + 1):
+            for c in range(c0, c1 + 1):
                 if (r, c) in covered:
                     continue
                 cell = region.get((r, c))

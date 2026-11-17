@@ -6,7 +6,7 @@ import re
 import zipfile
 from xml.etree import ElementTree as ET
 
-from .model import Block, Cell, Document, SheetCell, Table, Word, join_segments, norm_text, split_words
+from .model import Block, Cell, Document, SheetCell, Table, Word, join_segments, norm_text
 from .sheets import sheet_regions
 
 NS = {
@@ -371,6 +371,22 @@ def _format_info(code: str) -> tuple[bool, int | None, bool]:
     return is_date, decimals, "%" in stripped
 
 
+def _scientific(code: str) -> tuple[int, int, bool] | None:
+    """(mantissa decimals, exponent digits, explicit plus sign) for a scientific number format such as 0.00E+00."""
+    section = re.sub(r'"[^"]*"|\\.|\[[^\]]*\]|_.|\*.', "", code.split(";")[0])
+    m = re.search(r"(?:\.([0#?]+))?E([+-])([0#?]+)", section, re.I)
+    if not m:
+        return None
+    return len(m.group(1) or ""), len(m.group(3)), m.group(2) == "+"
+
+
+def _format_scientific(value: float, decimals: int, exponent_digits: int, plus: bool) -> str:
+    mantissa, exponent = format(value, f".{decimals}E").split("E")
+    power = int(exponent)
+    sign = "-" if power < 0 else "+" if plus else ""
+    return f"{mantissa}E{sign}{abs(power):0{exponent_digits}d}"
+
+
 def _col_index(ref: str) -> tuple[int, int]:
     m = re.match(r"([A-Z]+)(\d+)", ref)
     col = 0
@@ -445,8 +461,14 @@ def read_xlsx(path: str) -> Document:
                     else:
                         # The PDF shows the rounded, scaled value, so the ground-truth text matches the display.
                         shown = value * 100 if percent else value
-                        shown = round(shown, decimals) if decimals is not None else shown
-                        text = format(shown, ".15g") + ("%" if percent else "")
+                        scientific = _scientific(codes[style] if style < len(codes) else "")
+                        if scientific is not None:
+                            # 0.00E+00 shows 1.23E-05; its decimals describe the mantissa, not a tolerance on the value.
+                            text, decimals = _format_scientific(shown, *scientific), None
+                        else:
+                            shown = round(shown, decimals) if decimals is not None else shown
+                            text = format(shown, ".15g")
+                        text += "%" if percent else ""
                         cell = SheetCell(r, col, text, "number", value, decimals, percent)
                 else:
                     continue
@@ -618,6 +640,6 @@ def _pptx_tree(doc: Document, tree, rels, sizes) -> None:
                         continue
                     text = " ".join("".join(t.text or "" for t in p.iter(f"{A}t")) for p in tc.iter(f"{A}p"))
                     row.append(Cell(norm_text(text), int(tc.get("rowSpan", "1")), int(tc.get("gridSpan", "1"))))
-                if row:
-                    table.rows.append(row)
+                # A row made only of merge continuations still occupies a grid row.
+                table.rows.append(row)
             doc.add_table(table)

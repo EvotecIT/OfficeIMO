@@ -116,6 +116,8 @@ class _HtmlReader(HTMLParser):
         role = (a.get("role") or "") + " " + (a.get("class") or "") + " " + (a.get("id") or "")
         is_note = re.search(r"doc-footnote|doc-endnote|\bfootnotes?\b|^\s*fn\d", role) is not None
         if is_note and tag in ("li", "div", "section", "aside", "ol", "p"):
+            if tag == "li" and self.footnote_depth:
+                state["note_item"] = True  # an identified note inside a shared footnotes container
             self.footnote_depth += 1
             state["note"] = True
         elif tag == "li" and self.footnote_depth:
@@ -153,7 +155,7 @@ class _HtmlReader(HTMLParser):
             t["cell"] = None
         elif tag == "tr" and self.tables:
             t = self.tables[-1]
-            if t["row"]:
+            if t["row"] is not None:  # a row of rowspan continuations has no cells but still occupies a grid row
                 t["table"].rows.append(t["row"])
             t["row"] = None
         elif tag == "table" and self.tables:
@@ -436,6 +438,19 @@ def parse_struct_text(text: str) -> Document:
             return n["text"]
         return "".join(text_of(c) for c in n["children"])
 
+    def own_text(n) -> str:
+        """Text of a list item body without the items of lists nested inside it."""
+        if n["type"] == "#text":
+            return n["text"]
+        return "".join(own_text(c) for c in n["children"] if c["type"] != "L")
+
+    def nested_lists(n):
+        for c in n["children"]:
+            if c["type"] == "L":
+                yield c
+            elif c["type"] != "#text":
+                yield from nested_lists(c)
+
     def walk(n, list_depth: int):
         t = n["type"]
         m = _HEADING.match(t)
@@ -448,11 +463,11 @@ def parse_struct_text(text: str) -> Document:
             label = "".join(text_of(c) for c in body if c["type"] == "Lbl").strip()
             # The label decides bullet versus number; without one the list type is unknown and not scored.
             ordered = bool(re.match(r"^[(\[]?(\d+|[A-Za-z]|[ivxlcdm]+)[.)\]]", label, re.I)) if label else None
-            doc.add_block(Block("list", split_words("".join(text_of(c) for c in body if c["type"] != "Lbl")), list_depth,
+            doc.add_block(Block("list", split_words("".join(own_text(c) for c in body if c["type"] != "Lbl")), list_depth,
                                 ordered))
-            for c in n["children"]:
-                if c["type"] == "L":
-                    walk(c, list_depth + 1)
+            # Nested lists may sit directly under LI or inside its LBody.
+            for c in nested_lists(n):
+                walk(c, list_depth + 1)
         elif t == "L":
             for c in n["children"]:
                 walk(c, list_depth)

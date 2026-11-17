@@ -140,8 +140,9 @@ def canonical_number(token: str) -> str:
         if parsed is None:
             return token
         value = parsed[0]
-    # Fifteen significant digits keep distinct values distinct; rounding to 6 decimals absorbs float noise.
-    return format(round(value, 6), ".15g")
+    # The value comes straight from parsed text, so fifteen significant digits are exact and keep small values distinct.
+    # Numeric tolerance belongs to the numeric comparisons, not to the text tokens.
+    return format(value, ".15g")
 
 
 # Space-grouped thousands (fr-FR, pl-PL: "1 234 567,89") are one number, not three words.

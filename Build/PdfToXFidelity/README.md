@@ -23,8 +23,10 @@ sections, images, hyperlinks, bold/italic/size runs, and numbers, currencies, pe
 de-DE, fr-FR, pl-PL, de-CH, ja-JP and ISO styles. Files produced by OfficeIMO are excluded from the corpus.
 
 All readers in `fidelity/` parse the package XML, HTML and Markdown directly with the Python standard library,
-so a reader quirk cannot hide or invent a converter difference. OpenDocument and RTF outputs are opened in
-LibreOffice and saved as DOCX/XLSX/PPTX first, so they are measured as a LibreOffice user would see them.
+so no converter's own reader takes part in the scoring. They are still readers with their own limits: the HTML
+reader skips MathML and inline SVG, so text a converter emits only inside `<math>` or `<svg>` counts as missing.
+OpenDocument and RTF outputs are opened in LibreOffice and saved as DOCX/XLSX/PPTX first, so they are measured as
+a LibreOffice user would see them.
 
 ## Metrics
 
@@ -76,7 +78,7 @@ $py = "$work\venv\Scripts\python.exe"
 dotnet build Build/PdfToXFidelity -c Release
 $tool = 'Build/PdfToXFidelity/bin/Release/net10.0/OfficeIMO.PdfToXFidelity.Tool.dll'
 
-& $py -I Build/PdfToXFidelity/run.py corpus --work $work --venv-python $py --tagged <pdf.js>/test/pdfs
+& $py -I Build/PdfToXFidelity/run.py corpus --work $work --venv-python $py
 & $py -I Build/PdfToXFidelity/run.py officeimo --work $work --tool $tool
 & $py -I Build/PdfToXFidelity/run.py tools --work $work --venv-python $py
 & $py -I Build/PdfToXFidelity/run.py normalize --work $work
@@ -85,9 +87,15 @@ $tool = 'Build/PdfToXFidelity/bin/Release/net10.0/OfficeIMO.PdfToXFidelity.Tool.
 & $py -I Build/PdfToXFidelity/run.py report --work $work
 ```
 
-`--tagged` is optional and points at a folder of PDFs; only files with a structure tree and at least 30 words
-of tagged text are used. The run writes `results.csv` (one row per document, tool and target), `visual.csv` and
-`scorecard.md` into the work folder. Generated corpora and outputs are not committed.
+To add tagged PDFs, pass a folder of them to `corpus`, for example the `test/pdfs` folder of a pdf.js checkout:
+
+```powershell
+& $py -I Build/PdfToXFidelity/run.py corpus --work $work --venv-python $py --tagged 'C:\Path\To\pdf.js\test\pdfs'
+```
+
+Only files with a structure tree and at least 30 words of tagged text are used. The run writes `results.csv` (one
+row per document, tool and target), `visual.csv` and `scorecard.md` into the work folder. Generated
+corpora and outputs are not committed.
 
 ## Limits
 
