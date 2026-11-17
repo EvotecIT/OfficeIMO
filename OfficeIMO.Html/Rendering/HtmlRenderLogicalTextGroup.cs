@@ -40,15 +40,21 @@ public sealed class HtmlRenderLogicalTextGroup : HtmlRenderVisual {
     /// <summary>A paint-neutral source point whose ownership must survive page slicing.</summary>
     internal bool IsFlowAnchor { get; }
 
+    /// <summary>
+    /// Whether extraction places the logical text over the paint bounds, as for small caps drawn
+    /// as capitals, so adjacent replacements keep their spacing and line.
+    /// </summary>
+    internal bool ExtractsAtPaintBounds { get; init; }
+
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, Source, LayoutY + offsetY, LayoutHeight, LogicalScope, IsFlowAnchor);
+        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, Source, LayoutY + offsetY, LayoutHeight, LogicalScope, IsFlowAnchor) { ExtractsAtPaintBounds = ExtractsAtPaintBounds };
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, LayoutY, LayoutHeight, LogicalScope, IsFlowAnchor);
+        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, LayoutY, LayoutHeight, LogicalScope, IsFlowAnchor) { ExtractsAtPaintBounds = ExtractsAtPaintBounds };
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder, bool ownsLogicalText) =>
         new HtmlRenderLogicalTextGroup(ownsLogicalText ? Text : string.Empty,
-            X + offsetX, Y + offsetY, Width, Height, visuals, paintOrder, Source, LayoutY, LayoutHeight, LogicalScope, IsFlowAnchor);
+            X + offsetX, Y + offsetY, Width, Height, visuals, paintOrder, Source, LayoutY, LayoutHeight, LogicalScope, IsFlowAnchor) { ExtractsAtPaintBounds = ExtractsAtPaintBounds };
 }
 
 /// <summary>Shared identity of discontiguous paint fragments for one logical text scope.</summary>

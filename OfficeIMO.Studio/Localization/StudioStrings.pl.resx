@@ -7248,13 +7248,21 @@ Opcja 2</value>
   <data name="Assembly.Status.Failed" xml:space="preserve">
     <value>Łączenie nie powiodło się</value>
   </data>
-  <data name="Output.LocalFolderRequired" xml:space="preserve"><value>Wybierz lokalny folder wyjściowy. Aby zapisywać pojedyncze dokumenty w chmurze, użyj opcji Zapisz jako.</value></data>
+  <data name="Output.LocalFolderRequired" xml:space="preserve">
+    <value>Wybierz lokalny folder wyjściowy. Aby zapisywać pojedyncze dokumenty w chmurze, użyj opcji Zapisz jako.</value>
+  </data>
   <data name="Mobile.ReplaceFileConfirm" xml:space="preserve">
     <value>Plik „{0}” już istnieje. Zapis zastąpi go po zakończeniu pozostałych kroków przeglądu. Kontynuować?</value>
   </data>
-  <data name="Output.PublicationTooLarge" xml:space="preserve"><value>Wynik przekracza obsługiwany rozmiar dokumentu.</value></data>
-  <data name="Output.DestinationChanged" xml:space="preserve"><value>Plik docelowy uległ zmianie. Wybierz inną lokalizację, aby zachować obie wersje.</value></data>
-  <data name="Output.VerificationChanged" xml:space="preserve"><value>Zapisany plik zmienił się podczas weryfikacji. Sprawdź go przed ponowną próbą.</value></data>
+  <data name="Output.PublicationTooLarge" xml:space="preserve">
+    <value>Wynik przekracza obsługiwany rozmiar dokumentu.</value>
+  </data>
+  <data name="Output.DestinationChanged" xml:space="preserve">
+    <value>Plik docelowy uległ zmianie. Wybierz inną lokalizację, aby zachować obie wersje.</value>
+  </data>
+  <data name="Output.VerificationChanged" xml:space="preserve">
+    <value>Zapisany plik zmienił się podczas weryfikacji. Sprawdź go przed ponowną próbą.</value>
+  </data>
   <data name="Conversion.SavedJob.OpenSection" xml:space="preserve">
     <value>Zapisane zadania folderów</value>
   </data>
@@ -7404,5 +7412,68 @@ Opcja 2</value>
   </data>
   <data name="Conversion.BatchExport.StoppedResult" xml:space="preserve">
     <value>Zatrzymano: ukończone: {0}, ponownie użyte: {1}, błędy: {2}, pominięte: {3}. Ukończone wyniki pozostają dostępne.</value>
+  </data>
+  <data name="Home.Gallery.Title" xml:space="preserve">
+    <value>Co potrafi Studio</value>
+  </data>
+  <data name="Home.Gallery.Description" xml:space="preserve">
+    <value>Wybierz narzędzie, aby zacząć. Narzędzia pracujące na dokumencie najpierw poproszą o otwarcie pliku PDF.</value>
+  </data>
+  <data name="Home.Gallery.OpensPdfFirst" xml:space="preserve">
+    <value>Najpierw otwiera PDF</value>
+  </data>
+  <data name="Home.Gallery.Read" xml:space="preserve">
+    <value>Czytanie i wyszukiwanie</value>
+  </data>
+  <data name="Home.Gallery.Markup" xml:space="preserve">
+    <value>Adnotacje i recenzja</value>
+  </data>
+  <data name="Home.Gallery.Pages" xml:space="preserve">
+    <value>Organizacja stron</value>
+  </data>
+  <data name="Home.Gallery.Edit" xml:space="preserve">
+    <value>Edycja treści</value>
+  </data>
+  <data name="Home.Gallery.Forms" xml:space="preserve">
+    <value>Formularze</value>
+  </data>
+  <data name="Home.Gallery.Scan" xml:space="preserve">
+    <value>Skanowanie i rozpoznawanie tekstu</value>
+  </data>
+  <data name="Home.Gallery.Convert" xml:space="preserve">
+    <value>Konwersja</value>
+  </data>
+  <data name="Home.Gallery.Security" xml:space="preserve">
+    <value>Ochrona i podpisy</value>
+  </data>
+  <data name="Home.Gallery.Output" xml:space="preserve">
+    <value>Drukowanie i automatyzacja</value>
+  </data>
+  <data name="Home.Gallery.Workbenches" xml:space="preserve">
+    <value>Narzędzia do większych zadań</value>
+  </data>
+  <data name="Commands.InsertBlankPage.Title" xml:space="preserve">
+    <value>Wstaw pustą stronę</value>
+  </data>
+  <data name="Commands.InsertBlankPage.Description" xml:space="preserve">
+    <value>Dodaj pustą stronę po bieżącej stronie.</value>
+  </data>
+  <data name="Commands.Jobs.Title" xml:space="preserve">
+    <value>Zadania</value>
+  </data>
+  <data name="Commands.Jobs.Description" xml:space="preserve">
+    <value>Śledź bieżącą pracę, zapisane zadania folderów i ich wyniki.</value>
+  </data>
+  <data name="Commands.PublishBook.Title" xml:space="preserve">
+    <value>Opublikuj książkę</value>
+  </data>
+  <data name="Commands.PublishBook.Description" xml:space="preserve">
+    <value>Importuj rękopisy, porządkuj rozdziały, przejrzyj i wyeksportuj książkę EPUB.</value>
+  </data>
+  <data name="Commands.Provenance.Title" xml:space="preserve">
+    <value>Pochodzenie pliku i integralność tekstu</value>
+  </data>
+  <data name="Commands.Provenance.Description" xml:space="preserve">
+    <value>Oceń obsługiwane zapisy pochodzenia i wyniki analizy Unicode, przejrzyj usuwanie wybranych nośników i wyeksportuj raport.</value>
   </data>
 </root>

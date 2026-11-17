@@ -425,6 +425,12 @@
         ]
       },
       {
+        "Name": "capabilities",
+        "Css": [
+          "/css/capabilities.css"
+        ]
+      },
+      {
         "Name": "showcase",
         "Css": ["/css/showcase.css"],
         "Js": ["/js/showcase.js"]
@@ -475,6 +481,14 @@
           "experience",
           "applications",
           "format-map"
+        ]
+      },
+      {
+        "Match": "/capabilities/",
+        "Bundles": [
+          "global",
+          "experience",
+          "capabilities"
         ]
       },
       {
@@ -838,6 +852,11 @@
             {
               "Title": "Explore",
               "Items": [
+                {
+                  "Title": "Capability overview",
+                    "Description": "Every job on every surface",
+                  "Url": "/capabilities/"
+                },
                 {
                   "Title": "Document showcase",
                     "Description": "Real documents, previews, and source",

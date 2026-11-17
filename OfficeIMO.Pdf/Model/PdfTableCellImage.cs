@@ -8,6 +8,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfTableCellImage {
     private readonly byte[] _data;
     private readonly PdfWriter.PdfImageStream? _preparedStream;
+    private readonly OfficeIMO.Drawing.OfficeDrawing? _svgDrawing;
 
     /// <summary>Creates a table-cell image from raster bytes supported by OfficeIMO.Drawing.</summary>
     public PdfTableCellImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
@@ -28,13 +29,14 @@ public sealed class PdfTableCellImage {
             PdfDocument.ValidateImageStyleForBox(imageStyle, width.ToPoints(), height.ToPoints(), nameof(style));
         }
 
-        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(data);
+        PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageKeepingSvg(data);
         if (imageStyle != null) {
             PdfDocument.ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(style));
         }
 
         _data = prepared.Data;
         _preparedStream = prepared.PreparedStream;
+        _svgDrawing = prepared.SvgDrawing;
         Width = width;
         Height = height;
         Info = prepared.Info;
@@ -69,6 +71,7 @@ public sealed class PdfTableCellImage {
         // Cell/style snapshots can share its payload, just as they share the prepared stream.
         _data = source._data;
         _preparedStream = source._preparedStream;
+        _svgDrawing = source._svgDrawing;
         Width = source.Width;
         Height = source.Height;
         Info = source.Info;
@@ -92,6 +95,7 @@ public sealed class PdfTableCellImage {
             LinkUri,
             LinkContents,
             useDataSnapshot: true,
-            preparedStream: _preparedStream);
+            preparedStream: _preparedStream,
+            svgDrawing: _svgDrawing);
     }
 }

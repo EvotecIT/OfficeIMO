@@ -46,6 +46,29 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_SvgPictureRepeatedOnSlidesIsWrittenOnceAsVectors() {
+        using var presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(100));
+        for (int index = 0; index < 3; index++) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBox("Slide " + (index + 1), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(60),
+                OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(24));
+            byte[] svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'>" +
+                "<rect width='40' height='20' fill='#ff0000'/></svg>");
+            slide.AddImage(new MemoryStream(svg), OfficeImageFormat.Svg, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)));
+        }
+
+        byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+
+        Assert.Empty(PdfDocument.Load(pdf).Reader.Images());
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.GetEncoding("ISO-8859-1").GetString(pdf),
+            @"/Subtype /Form /FormType 1 /BBox \[0 0 40 20\]"));
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[2].ToDrawing(), background: OfficeColor.White);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), rendered.GetPixel(40, 20));
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointDocument_RotatesPictureCropWithImageFrame() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeImagePlacement");
         using var presentation = PowerPointDocument.Load(Path.Combine(folder, "picture-crop-rotation.pptx"));

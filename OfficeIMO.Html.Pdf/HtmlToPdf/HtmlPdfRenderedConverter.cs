@@ -863,7 +863,7 @@ internal static partial class HtmlPdfRenderedConverter {
         // InnerShape is a private immutable snapshot; public Shape reads clone it.
         // This scene stays private and neither the adapter nor writer edits the descriptor.
         drawing.AddShapeSnapshot(visual.InnerShape, 0D, 0D);
-        if (TryAddTranslucentGradient(canvas, visual, drawing, imageResources, conversionReport, cancellationToken, suppressLink)) return;
+        if (TryAddRasterizedGradient(canvas, visual, drawing, imageResources, conversionReport, cancellationToken, suppressLink)) return;
         double x = visual.X * PointsPerCssPixel;
         double y = visual.Y * PointsPerCssPixel;
         double drawingX = Math.Max(0D, x);

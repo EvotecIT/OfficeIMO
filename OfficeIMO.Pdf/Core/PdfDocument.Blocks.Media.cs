@@ -142,7 +142,7 @@ public sealed partial class PdfDocument {
             ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }
 
-        PreparedImage prepared = PrepareImageBytes(imageBytes);
+        PreparedImage prepared = PrepareImageKeepingSvg(imageBytes);
         if (imageStyle != null) {
             ValidateImageFitDimensions(prepared.Info, imageStyle.Fit, nameof(fit));
         }
@@ -156,7 +156,8 @@ public sealed partial class PdfDocument {
             linkUri,
             linkContents,
             useDataSnapshot: true,
-            preparedStream: prepared.PreparedStream));
+            preparedStream: prepared.PreparedStream,
+            svgDrawing: prepared.SvgDrawing));
         return new PdfImage(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), imageStyle?.AltText);
     }
 

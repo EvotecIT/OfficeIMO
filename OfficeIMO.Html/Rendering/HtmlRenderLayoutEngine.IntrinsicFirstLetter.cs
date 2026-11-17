@@ -20,7 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     IsInlineStrutMarker = run.IsInlineInset
                 });
             }
-            ApplyPendingInlineTextTransforms(transformRuns, retainSuppressedText: true);
+            ApplyPendingInlineTextTransforms(transformRuns, retainSuppressedText: true, intrinsic: true);
         }
 
         var prepared = new List<IntrinsicTextRun>(rawRuns.Count);
@@ -48,20 +48,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             string text = transformRuns != null ? transformRuns[index].Text : run.Text;
+            // Font small caps select their features on the transformed run's style.
+            HtmlRenderBoxStyle textStyle = transformRuns != null ? transformRuns[index].Style : run.Style;
             bool firstLineBlocked = false;
             if (firstLetterOwner == null
                 || !TryFindFirstLetterBounds(text, run.Style.PreserveWhitespace, out int start, out int end,
                     out firstLineBlocked)) {
                 if (firstLineBlocked) firstLetterOwner = null;
-                prepared.Add(new IntrinsicTextRun(text, run.Style, textTransformPending: false));
+                prepared.Add(new IntrinsicTextRun(text, textStyle, textTransformPending: false));
                 continue;
             }
             if (TryResolveFirstLetterStyle(firstLetterOwner, firstLetterWidth, run.Style, out HtmlRenderBoxStyle letterStyle)) {
-                if (start > 0) prepared.Add(new IntrinsicTextRun(text.Substring(0, start), run.Style, textTransformPending: false));
+                if (start > 0) prepared.Add(new IntrinsicTextRun(text.Substring(0, start), textStyle, textTransformPending: false));
                 prepared.Add(new IntrinsicTextRun(text.Substring(start, end - start), letterStyle, textTransformPending: false));
-                if (end < text.Length) prepared.Add(new IntrinsicTextRun(text.Substring(end), run.Style, textTransformPending: false));
+                if (end < text.Length) prepared.Add(new IntrinsicTextRun(text.Substring(end), textStyle, textTransformPending: false));
             } else {
-                prepared.Add(new IntrinsicTextRun(text, run.Style, textTransformPending: false));
+                prepared.Add(new IntrinsicTextRun(text, textStyle, textTransformPending: false));
             }
             // A genuine zero-font first letter still owns selection. Do not style
             // a later visible descendant when this fragment remains suppressed.

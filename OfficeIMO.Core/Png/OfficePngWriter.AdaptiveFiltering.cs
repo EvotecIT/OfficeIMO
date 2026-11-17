@@ -32,41 +32,45 @@ public static partial class OfficePngWriter {
             for (int y = 0; y < height; y++) {
                 observer?.Invoke(OfficeRasterEncodingCheckpoint.PngCompressionRow); token.ThrowIfCancellationRequested();
                 FillColorRow(current, width, y, rgba, rgba64, layout, token, observer);
-                selected[0] = 0; Buffer.BlockCopy(current, 0, selected, 1, stride);
-                if (adaptive) {
-                    long none = 0, sub = 0, upScore = 0, average = 0, paeth = 0;
-                    // Score all predictors in one scan. Replaying just the winning
-                    // filter avoids four candidate rows and repeated source walks.
-                    for (int i = 0, step = sampledFilters ? Math.Max(1, stride / 128) : 1; i < stride; i += step) {
-                        if (sampledFilters) token.ThrowIfCancellationRequested();
-                        else CheckColorBlock(i, token, observer);
-                        int value = current[i], left = i >= bpp ? current[i - bpp] : 0;
-                        int up = previous[i], upperLeft = i >= bpp ? previous[i - bpp] : 0;
-                        none += SignedMagnitude(value);
-                        sub += SignedMagnitude(value - left);
-                        upScore += SignedMagnitude(value - up);
-                        average += SignedMagnitude(value - (left + up) / 2);
-                        paeth += SignedMagnitude(value - ColorPaeth(left, up, upperLeft));
-                    }
-                    long best = none; int filter = 0;
-                    if (sub < best) { best = sub; filter = 1; }
-                    if (upScore < best) { best = upScore; filter = 2; }
-                    if (average < best) { best = average; filter = 3; }
-                    if (paeth < best) filter = 4;
-                    if (filter != 0) {
-                        selected[0] = (byte)filter;
-                        for (int blockStart = 0; blockStart < stride; blockStart += 4096) {
-                            CheckColorBlock(blockStart, token, observer);
-                            ApplyColorFilter(filter, current, previous, selected, bpp, blockStart, Math.Min(stride, blockStart + 4096));
-                        }
-                    }
-                }
+                SelectRowFilter(current, previous, selected, stride, bpp, adaptive, sampledFilters, token, observer);
                 deflate.Write(selected, 0, stride + 1);
                 UpdateAdler32(selected, 0, stride + 1, ref adlerA, ref adlerB, token, observer);
                 var rowSwap = previous; previous = current; current = rowSwap;
             }
         }
         WriteAdler32(destination, (adlerB << 16) | adlerA);
+    }
+
+    // Writes the filter-type byte and the filtered row into selected[0..stride].
+    private static void SelectRowFilter(byte[] current, byte[] previous, byte[] selected, int stride, int bpp, bool adaptive,
+        bool sampledFilters, CancellationToken token, Action<OfficeRasterEncodingCheckpoint>? observer) {
+        selected[0] = 0; Buffer.BlockCopy(current, 0, selected, 1, stride);
+        if (!adaptive) return;
+        long none = 0, sub = 0, upScore = 0, average = 0, paeth = 0;
+        // Score all predictors in one scan. Replaying just the winning
+        // filter avoids four candidate rows and repeated source walks.
+        for (int i = 0, step = sampledFilters ? Math.Max(1, stride / 128) : 1; i < stride; i += step) {
+            if (sampledFilters) token.ThrowIfCancellationRequested();
+            else CheckColorBlock(i, token, observer);
+            int value = current[i], left = i >= bpp ? current[i - bpp] : 0;
+            int up = previous[i], upperLeft = i >= bpp ? previous[i - bpp] : 0;
+            none += SignedMagnitude(value);
+            sub += SignedMagnitude(value - left);
+            upScore += SignedMagnitude(value - up);
+            average += SignedMagnitude(value - (left + up) / 2);
+            paeth += SignedMagnitude(value - ColorPaeth(left, up, upperLeft));
+        }
+        long best = none; int filter = 0;
+        if (sub < best) { best = sub; filter = 1; }
+        if (upScore < best) { best = upScore; filter = 2; }
+        if (average < best) { best = average; filter = 3; }
+        if (paeth < best) filter = 4;
+        if (filter == 0) return;
+        selected[0] = (byte)filter;
+        for (int blockStart = 0; blockStart < stride; blockStart += 4096) {
+            CheckColorBlock(blockStart, token, observer);
+            ApplyColorFilter(filter, current, previous, selected, bpp, blockStart, Math.Min(stride, blockStart + 4096));
+        }
     }
 
     // Pixels are copied in blocks of 1024 so the filtering checkpoint still follows every 4096 source bytes.

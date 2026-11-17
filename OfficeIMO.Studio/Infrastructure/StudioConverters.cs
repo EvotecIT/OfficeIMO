@@ -31,6 +31,8 @@ public static class StudioConverters {
         "ExtractPages" => "IconExport",
         "DeletePages" => "IconTrash",
         "InsertBlankPage" => "IconBlankPage",
+        "ImportPages" => "IconAddPdf",
+        "DetectPageOrientation" => "IconRotateRight",
         "Forms" => "IconRectangle",
         "Protect" => "IconProtect",
         "Redact" => "IconRedact",

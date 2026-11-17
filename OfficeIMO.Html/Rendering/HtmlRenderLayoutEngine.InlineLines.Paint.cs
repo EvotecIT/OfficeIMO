@@ -304,7 +304,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             visuals.Count,
                             segment.Run.Source,
                             layoutY: lineY,
-                            layoutHeight: textLayoutHeight) { SemanticSourceOrder = segment.Run.SemanticSourceOrder }
+                            layoutHeight: textLayoutHeight) {
+                            SemanticSourceOrder = segment.Run.SemanticSourceOrder,
+                            // One-for-one replacements, such as synthesized small caps, extract where they are painted.
+                            ExtractsAtPaintBounds = paintSegments.Count == 1 && !segment.BidiResolved
+                                && segment.Text.Length == segment.LogicalText.Length
+                                && !OfficeTextElements.ContainsRightToLeft(segment.Text)
+                                && !OfficeTextElements.ContainsBidiControl(segment.Text)
+                        }
                         : textVisuals[0];
                     AddInlineTextDecorations(visuals, ownedVisuals, segment.Run, formattingContainer, textVisuals, aboveText: false);
                     AddTextShadowVisuals(
