@@ -50,7 +50,9 @@ suites so differences can be investigated.
 
 Version 7.0.1's Git library rejects repositories with `extensions.worktreeConfig`.
 Use a disposable standalone clone for the experiment rather than changing the
-shared repository's Git configuration. SDK or graph evaluation failures remain
+shared repository's Git configuration. Setup failures, such as a checkout with
+local changes or a `dotnet --version` check that fails, stop before any report is
+written. Selector, tool and graph evaluation failures after that point remain
 explicit incomplete reports.
 
 The [recorded sample](affected-pilot-observations.json) replays five historical
