@@ -463,11 +463,11 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             List<List<int>> chunks;
-            while (true) {
+            for (; ; pages++) {
                 chunks = Balance(Enumerable.Range(0, table.Rows.Count).ToList(), pages);
-                // A row taller than the limit takes a slide of its own, so this ends at one row per slide.
-                if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => Math.Min(units[i], limit)) <= limit)) break;
-                pages++;
+                // A row taller than the limit takes a slide of its own, so this ends at one row per slide at the latest.
+                if (table.MaximumRows.HasValue || pages >= table.Rows.Count
+                    || chunks.All(c => c.Sum(i => Math.Min(units[i], limit)) <= limit)) break;
             }
 
             if (!table.MaximumRows.HasValue && units.Any(unit => RowHeight(metrics, unit) > limit * metrics.RowHeight)) {
