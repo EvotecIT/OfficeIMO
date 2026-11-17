@@ -56,7 +56,7 @@ internal static partial class EmailReaderProjection {
         EmailAttachment attachment, string fileName, string attachmentPath, string subject,
         ReaderChunk attachmentChunk, Projection projection, ReaderOptions options,
         EmailDocumentProjectionCursor cursor, CancellationToken cancellationToken) {
-        string sourceName = ResolveAttachmentSourceName(fileName, attachment.ContentType);
+        string sourceName = ReaderNestedContent.ResolveSourceName(fileName, attachment.ContentType);
         bool hasHandler = ReaderNestedContent.CanRead(sourceName);
         bool plainText = IsPlainTextAttachment(sourceName, attachment.ContentType);
         if (!hasHandler && !plainText) {

@@ -3186,7 +3186,8 @@ public sealed partial class PdfReadPage {
         bool includeArtifactText = false,
         Action<int>? onTextSpan = null,
         Action? cancellationCheck = null,
-        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null) {
+        Action<TextContentParser.DrawingActualTextScope>? onCompletedDrawingActualText = null,
+        Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null) {
         cancellationCheck?.Invoke();
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
@@ -3218,7 +3219,8 @@ public sealed partial class PdfReadPage {
                 contentOrderOffset: -transformedContentOffset,
                 onTextSpan: onTextSpan,
                 cancellationCheck: cancellationCheck,
-                onCompletedDrawingActualText: onCompletedDrawingActualText);
+                onCompletedDrawingActualText: onCompletedDrawingActualText,
+                onUnmappableText: onUnmappableText);
         }
 
         for (int index = 0; index < spans.Count; index++) {
