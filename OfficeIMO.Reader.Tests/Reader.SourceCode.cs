@@ -32,20 +32,36 @@ public sealed class ReaderSourceCodeTests {
 
     [Fact]
     public void LongSourceIsChunkedOnLineBoundariesWithContinuousLineNumbers() {
+        // Forty short lines with one 700-character line in the middle, which must be split inside the line.
         string line = "int value = 42; // " + new string('x', 60) + "\n";
-        string code = string.Concat(Enumerable.Repeat(line, 40));
+        string code = string.Concat(Enumerable.Repeat(line, 20)) + "string data = \"" + new string('y', 700) + "\";\n"
+            + string.Concat(Enumerable.Repeat(line, 20));
 
         OfficeDocumentReadResult result = CreateAllReader().ReadDocument(Encoding.UTF8.GetBytes(code), "Values.cs",
             new ReaderOptions { MaxChars = 300 });
 
-        Assert.True(result.Chunks.Count > 1);
+        Assert.True(result.Chunks.Count > 3);
         Assert.Equal(code, string.Concat(result.Chunks.Select(chunk => chunk.Text)));
-        Assert.All(result.Chunks, chunk => Assert.EndsWith("\n", chunk.Text));
         Assert.All(result.Chunks, chunk => Assert.StartsWith("```csharp\n", chunk.Markdown));
         for (int index = 1; index < result.Chunks.Count; index++) {
-            Assert.Equal(result.Chunks[index - 1].Location.EndLine + 1, result.Chunks[index].Location.StartLine);
+            ReaderChunk previous = result.Chunks[index - 1];
+            int expectedStart = previous.Location.EndLine!.Value + (previous.Text.EndsWith("\n", StringComparison.Ordinal) ? 1 : 0);
+            Assert.Equal(expectedStart, result.Chunks[index].Location.StartLine);
         }
-        Assert.Equal(40, result.Chunks[result.Chunks.Count - 1].Location.EndLine);
+        Assert.Contains(result.Chunks, chunk => !chunk.Text.EndsWith("\n", StringComparison.Ordinal) && chunk.Location.StartLine == 21);
+        Assert.Equal(41, result.Chunks[result.Chunks.Count - 1].Location.EndLine);
+    }
+
+    [Fact]
+    public void SourceExtensionsKeepTheirHandlerWhenContentDetectionIsPreferred() {
+        // Python comments look like Markdown headings to content detection.
+        string script = "# Release helper\n# Usage: python tool.py\nprint('ok')\n";
+
+        OfficeDocumentReadResult result = CreateAllReader().ReadDocument(Encoding.UTF8.GetBytes(script), "tool.py",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Contains(OfficeDocumentReaderBuilderSourceCodeExtensions.HandlerId, result.CapabilitiesUsed);
+        Assert.StartsWith("```python\n# Release helper", Assert.Single(result.Chunks).Markdown);
     }
 
     [Fact]
@@ -74,11 +90,15 @@ public sealed class ReaderSourceCodeTests {
         }
     }
 
-    [Fact]
-    public void Utf16SourceIsDecodedFromItsByteOrderMark() {
-        byte[] bytes = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes("SELECT N'Zażółć' AS Name;\n")).ToArray();
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Utf16SourceIsDecodedFromItsByteOrderMarkOrConfiguredEncoding(bool byteOrderMark) {
+        byte[] text = Encoding.Unicode.GetBytes("SELECT N'Zażółć' AS Name;\n");
+        byte[] bytes = byteOrderMark ? Encoding.Unicode.GetPreamble().Concat(text).ToArray() : text;
 
-        OfficeDocumentReadResult result = CreateAllReader().ReadDocument(bytes, "query.sql");
+        OfficeDocumentReadResult result = CreateAllReader().ReadDocument(bytes, "query.sql",
+            new ReaderOptions { TextEncoding = byteOrderMark ? null : Encoding.Unicode });
 
         Assert.Equal("SELECT N'Zażółć' AS Name;\n", Assert.Single(result.Chunks).Text);
         Assert.Equal("sql", Assert.Single(result.Metadata, entry => entry.Id == "source-code-language").Value);

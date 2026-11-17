@@ -35,6 +35,8 @@ public static class OfficeDocumentReaderBuilderSourceCodeExtensions {
             ReadStream = static (stream, sourceName, options, token) => SourceCodeReaderAdapter.ReadDocument(stream, sourceName, options, token).Chunks,
             ReadDocumentPath = static (path, options, token) => SourceCodeReaderAdapter.ReadDocument(path, options, token),
             ReadDocumentStream = static (stream, sourceName, options, token) => SourceCodeReaderAdapter.ReadDocument(stream, sourceName, options, token),
+            // Content detection can mistake source for Markdown or XML; a text payload keeps its source extension.
+            ExtensionValidationProbeStream = static (stream, _, options, token) => SourceCodeReaderAdapter.Probe(stream, options, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true
         }, replaceExisting);

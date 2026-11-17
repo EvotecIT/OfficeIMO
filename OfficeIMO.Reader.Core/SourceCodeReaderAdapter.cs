@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Reader;
 
@@ -20,7 +21,7 @@ internal static class SourceCodeReaderAdapter {
     private static OfficeDocumentReadResult BuildDocument(ReaderAdapterInputSnapshot input, ReaderOptions options,
         CancellationToken cancellationToken) {
         string sourceName = input.Source.Path ?? "memory";
-        RejectBinary(input.Bytes, sourceName);
+        if (LooksBinary(input.Bytes, input.Bytes.Length, options)) throw BinaryContent(sourceName);
         var decoding = new ReaderTextDecoding();
         string text;
         using (var stream = new MemoryStream(input.Bytes, writable: false))
@@ -48,7 +49,9 @@ internal static class SourceCodeReaderAdapter {
         int line = 1;
         foreach (string part in SplitOnLines(text, Math.Max(256, options.MaxChars))) {
             cancellationToken.ThrowIfCancellationRequested();
-            int lineCount = CountLines(part);
+            // A part that ends inside a long line leaves the next part on that same line.
+            int newLines = CountNewLines(part);
+            int endLine = part.Length == 0 ? line : line + newLines - (part[part.Length - 1] == '\n' ? 1 : 0);
             var chunk = new ReaderChunk {
                 Id = "code:" + fileName + ":" + index.ToString("D4", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.Text,
@@ -56,7 +59,7 @@ internal static class SourceCodeReaderAdapter {
                     Path = sourceName,
                     BlockIndex = index,
                     StartLine = line,
-                    EndLine = line + Math.Max(0, lineCount - 1),
+                    EndLine = endLine,
                     SourceBlockKind = "source-code"
                 },
                 Text = part,
@@ -68,7 +71,7 @@ internal static class SourceCodeReaderAdapter {
             }
             DocumentReaderEngine.ApplyAdapterSource(chunk, input, options.ComputeHashes);
             chunks.Add(chunk);
-            line += lineCount;
+            line += newLines;
             index++;
         }
 
@@ -103,10 +106,31 @@ internal static class SourceCodeReaderAdapter {
         };
     }
 
-    /// <summary>Refuses payloads that carry NUL bytes outside UTF-16 or UTF-32 text.</summary>
-    private static void RejectBinary(byte[] bytes, string sourceName) {
-        if (HasWideUnicodeBom(bytes)) return;
-        if (Array.IndexOf(bytes, (byte)0) >= 0) throw BinaryContent(sourceName);
+    /// <summary>
+    /// Validates a claimed source extension: the prefix must be text the adapter accepts. The caller restores the
+    /// stream position.
+    /// </summary>
+    internal static bool Probe(Stream stream, ReaderOptions options, CancellationToken cancellationToken) {
+        var prefix = new byte[ProbeBytes];
+        int count = 0;
+        while (count < prefix.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(prefix, count, prefix.Length - count);
+            if (read == 0) break;
+            count += read;
+        }
+        return !LooksBinary(prefix, count, options);
+    }
+
+    private const int ProbeBytes = 8192;
+
+    /// <summary>
+    /// NUL bytes mark binary data unless the text is UTF-16 or UTF-32, announced by a BOM or by the configured
+    /// <see cref="ReaderOptions.TextEncoding"/>; NUL characters remaining after decoding are refused separately.
+    /// </summary>
+    private static bool LooksBinary(byte[] bytes, int count, ReaderOptions options) {
+        if (HasWideUnicodeBom(bytes) || options.TextEncoding is UnicodeEncoding or UTF32Encoding) return false;
+        return Array.IndexOf(bytes, (byte)0, 0, count) >= 0;
     }
 
     private static bool HasWideUnicodeBom(byte[] bytes) =>
@@ -135,6 +159,14 @@ internal static class SourceCodeReaderAdapter {
             yield return text.Substring(offset, length);
             offset += length;
         }
+    }
+
+    private static int CountNewLines(string text) {
+        int count = 0;
+        foreach (char character in text) {
+            if (character == '\n') count++;
+        }
+        return count;
     }
 
     private static int CountLines(string text) {
