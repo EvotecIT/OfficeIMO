@@ -12,7 +12,7 @@ internal static class ProjectNumber {
     /// </summary>
     internal static decimal ToDecimal(double value) {
         // the same failure as the cast, so callers handle a non-finite or out-of-range value unchanged
-        if (double.IsNaN(value) || double.IsInfinity(value) || value > (double)decimal.MaxValue || value < (double)decimal.MinValue)
+        if (double.IsNaN(value) || double.IsInfinity(value) || value >= (double)decimal.MaxValue || value <= (double)decimal.MinValue)
             throw new OverflowException("Value was either too large or too small for a Decimal.");
         return decimal.Parse(value.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture);
     }

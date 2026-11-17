@@ -25,6 +25,8 @@ public sealed class ProjectNumberTests {
     [InlineData(double.PositiveInfinity)]
     [InlineData(double.NegativeInfinity)]
     [InlineData(1e30)]
+    [InlineData(79228162514264337593543950336d)] // (double)decimal.MaxValue rounds up to 2^96
+    [InlineData(-79228162514264337593543950336d)]
     public void NonFiniteOrOutOfRangeThrowsLikeTheCast(double input) =>
         Assert.Throws<OverflowException>(() => ProjectNumber.ToDecimal(input));
 }

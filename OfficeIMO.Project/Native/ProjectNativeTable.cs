@@ -190,7 +190,7 @@ internal sealed class ProjectNativeRecord {
             return integer;
         }
         double number = value.Value.Double();
-        if (double.IsNaN(number) || double.IsInfinity(number) || number > (double)decimal.MaxValue || number < (double)decimal.MinValue)
+        if (double.IsNaN(number) || double.IsInfinity(number) || number >= (double)decimal.MaxValue || number <= (double)decimal.MinValue)
             throw new InvalidDataException("Non-finite or out-of-range native numeric value.");
         return ProjectNumber.ToDecimal(number);
     }
