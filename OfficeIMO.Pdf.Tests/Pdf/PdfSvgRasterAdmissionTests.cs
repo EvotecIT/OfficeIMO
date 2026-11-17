@@ -76,9 +76,9 @@ public sealed class PdfSvgRasterAdmissionTests {
     }
 
     [Theory]
-    [InlineData(8, true)]
-    [InlineData(257, false)]
-    public void ForegroundSvgRasterFallbackAppliesTheSameWorkLimit(int rectangles, bool accepted) {
+    [InlineData(8)]
+    [InlineData(257)]
+    public void ForegroundSvgIsWrittenAsVectorsWithoutTheRasterWorkLimit(int rectangles) {
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='8' height='8'>" +
             string.Concat(Enumerable.Repeat("<rect width='8' height='8' fill='red'/>", rectangles)) + "</svg>");
         byte[] Export() => PdfDocument.Create(new PdfCreateOptions { PageSetup = {
@@ -86,7 +86,9 @@ public sealed class PdfSvgRasterAdmissionTests {
             Margins = { Left = OfficeLength.Points(0), Top = OfficeLength.Points(0), Right = OfficeLength.Points(0), Bottom = OfficeLength.Points(0) }
         } })
             .Canvas(canvas => canvas.ForegroundImage(svg, 0, 0, 8, 8)).ToBytes(new PdfSaveOptions { AllowLoss = true });
-        if (accepted) Assert.NotEmpty(Export());
-        else Assert.Contains("Cumulative SVG", Assert.Throws<System.NotSupportedException>(() => Export()).Message);
+        byte[] pdf = Export();
+        Assert.Empty(PdfDocument.Load(pdf).Reader.Images());
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(pdf).Pages[0].ToDrawing(), background: OfficeColor.White);
+        Assert.Equal(OfficeColor.Red, actual.GetPixel(4, 4));
     }
 }

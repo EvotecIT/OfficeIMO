@@ -121,7 +121,7 @@ foreach ($card in @($showcase.cards | Where-Object walkthrough_url)) {
 
 if ($Scope -eq 'Showcase') { Write-Host 'Showcase presentation contracts validated.'; return }
 
-$presentationRoutes = @('', 'downloads', 'studio', 'cli', 'powershell', 'agents', 'benchmarks', 'benchmarks/pdf', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api', 'api/word')
+$presentationRoutes = @('', 'capabilities', 'downloads', 'studio', 'cli', 'powershell', 'agents', 'benchmarks', 'benchmarks/pdf', 'products/excel', 'products/reader', 'libraries', 'convert', 'convert/guides', 'browser/word-to-pdf', 'pdf', 'pdf/merge', 'docs', 'api', 'api/word')
 # Parse actual head elements, excluding comments, script text and inert fallbacks.
 # Python's standard HTML parser also accepts the production optimizer's markup.
 $pythonCommand = Get-Command python3, python -ErrorAction SilentlyContinue | Select-Object -First 1

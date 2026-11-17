@@ -349,7 +349,8 @@ public sealed partial class PdfPageCanvas {
             linkUri,
             linkContents,
             useDataSnapshot: true,
-            preparedStream: imageResource.PreparedStream), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder, logicalOrder));
+            preparedStream: imageResource.PreparedStream,
+            svgDrawing: imageResource.SvgDrawing), x, y, rotationAngle, horizontalFlip, verticalFlip, foreground, foregroundZOrder, logicalOrder));
         return this;
     }
 
@@ -604,22 +605,19 @@ internal sealed class PdfCanvasImageResource {
         Bytes = prepared.Data;
         Info = prepared.Info;
         PreparedStream = prepared.PreparedStream;
+        SvgDrawing = prepared.SvgDrawing;
     }
 
     internal byte[] Bytes { get; }
     internal OfficeImageInfo Info { get; }
     internal PdfWriter.PdfImageStream? PreparedStream { get; }
+    internal OfficeDrawing? SvgDrawing { get; }
 
     internal static PdfCanvasImageResource Create(byte[] bytes) {
         Guard.NotNullOrEmpty(bytes, nameof(bytes));
         // Canvas SVG images use the same vector writer as Drawing images. They
         // must not pass through the raster-only PDF image-stream preparer.
-        if (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) && info.Format == OfficeImageFormat.Svg) {
-            byte[] snapshot = (byte[])bytes.Clone();
-            PdfSvgImageReader.Read(snapshot);
-            return Create(new PdfDocument.PreparedImage(snapshot, info, OfficeImageFormat.Svg, wasTranscoded: false));
-        }
-        return Create(PdfDocument.PrepareImageBytes(bytes));
+        return Create(PdfDocument.PrepareImageKeepingSvg(bytes));
     }
 
     internal static PdfCanvasImageResource Create(PdfDocument.PreparedImage prepared) => new(prepared);

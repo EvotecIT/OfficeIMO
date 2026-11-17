@@ -1,0 +1,1497 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    "Website/data/capability_jobs.json",
+    "Website/data/documentation_catalog.json",
+    "Website/data/apidocs/powershell/command-metadata.json",
+    "Website/data/agent_integrations.json",
+    "Website/data/cli/commands.json",
+    "Website/data/studio_features.json",
+    "Website/data/format_map.json"
+  ],
+  "summary": {
+    "packageCount": 160,
+    "commandCount": 521,
+    "cliCount": 17,
+    "toolCount": 20,
+    "skillCount": 2,
+    "studioFeatures": 53,
+    "routeCount": 316
+  },
+  "surfaces": [
+    {
+      "id": "dotnet",
+      "label": ".NET packages",
+      "url": "/libraries/"
+    },
+    {
+      "id": "powershell",
+      "label": "PowerShell",
+      "url": "/powershell/"
+    },
+    {
+      "id": "agents",
+      "label": "CLI, MCP and AI agents",
+      "url": "/agents/"
+    },
+    {
+      "id": "studio",
+      "label": "Studio",
+      "url": "/studio/#features"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "create",
+      "title": "Create",
+      "summary": "Build Word, Excel, PowerPoint, PDF, Markdown and e-book files from code, templates or data.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Word",
+              "url": "/docs/word/"
+            },
+            {
+              "label": "OfficeIMO.Excel",
+              "url": "/docs/excel/"
+            },
+            {
+              "label": "OfficeIMO.PowerPoint",
+              "url": "/docs/powerpoint/"
+            },
+            {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            },
+            {
+              "label": "OfficeIMO.Markdown",
+              "url": "/docs/markdown/"
+            },
+            {
+              "label": "OfficeIMO.Epub",
+              "url": "/docs/epub/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/word/",
+          "extra": "",
+          "items": [
+            {
+              "label": "New-OfficeWord",
+              "url": "/api/powershell/new-officeword/"
+            },
+            {
+              "label": "New-OfficeExcel",
+              "url": "/api/powershell/new-officeexcel/"
+            },
+            {
+              "label": "New-OfficePowerPoint",
+              "url": "/api/powershell/new-officepowerpoint/"
+            },
+            {
+              "label": "New-OfficePdf",
+              "url": "/api/powershell/new-officepdf/"
+            },
+            {
+              "label": "New-OfficeEpub",
+              "url": "/api/powershell/new-officeepub/"
+            },
+            {
+              "label": "Invoke-OfficeWordMailMerge",
+              "url": "/api/powershell/invoke-officewordmailmerge/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
+              "label": "officeimo_convert",
+              "url": "/agents/#tool-officeimo_convert"
+            },
+            {
+              "label": "officeimo_pdf_assemble",
+              "url": "/agents/#tool-officeimo_pdf_assemble"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-book-workbench",
+          "extra": "",
+          "items": [
+            {
+              "label": "Publish books",
+              "url": "/studio/#feature-book-workbench"
+            },
+            {
+              "label": "Assemble a PDF",
+              "url": "/studio/#feature-pdf-assembly"
+            },
+            {
+              "label": "Scan paper",
+              "url": "/studio/#feature-scan-paper"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "read",
+      "title": "Read and extract",
+      "summary": "Pull text, tables, images and structure out of documents and mail, including scanned pages.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Reader.All",
+              "url": "/docs/reader/"
+            },
+            {
+              "label": "OfficeIMO.Reader.Pdf",
+              "url": "/docs/reader/"
+            },
+            {
+              "label": "OfficeIMO.Reader.Ocr",
+              "url": "/docs/reader/"
+            },
+            {
+              "label": "OfficeIMO.Reader.Email",
+              "url": "/docs/reader/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/reader/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Read-OfficeDocument",
+              "url": "/api/powershell/read-officedocument/"
+            },
+            {
+              "label": "New-OfficeDocumentReader",
+              "url": "/api/powershell/new-officedocumentreader/"
+            },
+            {
+              "label": "Export-OfficeDocumentAsset",
+              "url": "/api/powershell/export-officedocumentasset/"
+            },
+            {
+              "label": "Open-OfficeEmailMailbox",
+              "url": "/api/powershell/open-officeemailmailbox/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo read",
+              "url": "/docs/cli/extract-and-inspect/"
+            },
+            {
+              "label": "officeimo inspect",
+              "url": "/docs/cli/extract-and-inspect/#inspect-a-file"
+            },
+            {
+              "label": "officeimo reader",
+              "url": "/docs/cli/extract-and-inspect/"
+            },
+            {
+              "label": "officeimo query",
+              "url": "/docs/cli/extract-and-inspect/#query-yaml-json-and-toml"
+            },
+            {
+              "label": "officeimo_inspect",
+              "url": "/agents/#tool-officeimo_inspect"
+            },
+            {
+              "label": "officeimo_search",
+              "url": "/agents/#tool-officeimo_search"
+            },
+            {
+              "label": "officeimo_fetch",
+              "url": "/agents/#tool-officeimo_fetch"
+            },
+            {
+              "label": "officeimo_search_email",
+              "url": "/agents/#tool-officeimo_search_email"
+            },
+            {
+              "label": "officeimo_pdf_ocr",
+              "url": "/agents/#tool-officeimo_pdf_ocr"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-search",
+          "extra": "",
+          "items": [
+            {
+              "label": "Search",
+              "url": "/studio/#feature-search"
+            },
+            {
+              "label": "Select and copy text",
+              "url": "/studio/#feature-select-text"
+            },
+            {
+              "label": "Make scans searchable",
+              "url": "/studio/#feature-make-searchable"
+            },
+            {
+              "label": "Review recognized text",
+              "url": "/studio/#feature-ocr-review"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "convert",
+      "title": "Convert",
+      "summary": "Move content between Office, OpenDocument, PDF, web, markup, mail and e-book formats.",
+      "cells": {
+        "dotnet": {
+          "guide": "/compatibility/",
+          "extra": "316 conversion routes",
+          "items": [
+            {
+              "label": "OfficeIMO.Workflows",
+              "url": "/docs/capabilities/packages/"
+            },
+            {
+              "label": "OfficeIMO.Word.Pdf",
+              "url": "/docs/word/"
+            },
+            {
+              "label": "OfficeIMO.Excel.Pdf",
+              "url": "/docs/excel/"
+            },
+            {
+              "label": "OfficeIMO.Html.Pdf",
+              "url": "/docs/html/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/automation-patterns/",
+          "extra": "86 conversion routes",
+          "items": [
+            {
+              "label": "Convert-OfficeDocument",
+              "url": "/api/powershell/convert-officedocument/"
+            },
+            {
+              "label": "ConvertTo-OfficeMarkdown",
+              "url": "/api/powershell/convertto-officemarkdown/"
+            },
+            {
+              "label": "ConvertTo-OfficeDocumentImage",
+              "url": "/api/powershell/convertto-officedocumentimage/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/cli/",
+          "extra": "43 routes in the CLI",
+          "items": [
+            {
+              "label": "officeimo convert",
+              "url": "/docs/cli/convert/"
+            },
+            {
+              "label": "officeimo html",
+              "url": "/docs/cli/html/"
+            },
+            {
+              "label": "officeimo tabular",
+              "url": "/docs/cli/convert/#spreadsheets-and-delimited-files"
+            },
+            {
+              "label": "officeimo markup",
+              "url": "/docs/cli/markup/"
+            },
+            {
+              "label": "officeimo_convert",
+              "url": "/agents/#tool-officeimo_convert"
+            },
+            {
+              "label": "officeimo_pdf_convert_to_pdfa",
+              "url": "/agents/#tool-officeimo_pdf_convert_to_pdfa"
+            },
+            {
+              "label": "officeimo_pdf_export_pages",
+              "url": "/agents/#tool-officeimo_pdf_export_pages"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-to-pdf",
+          "extra": "",
+          "items": [
+            {
+              "label": "Convert to PDF",
+              "url": "/studio/#feature-to-pdf"
+            },
+            {
+              "label": "Convert from PDF",
+              "url": "/studio/#feature-from-pdf"
+            },
+            {
+              "label": "Conversion workbench",
+              "url": "/studio/#feature-conversion-workbench"
+            },
+            {
+              "label": "Batch and page-image export",
+              "url": "/studio/#feature-batch-export"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "edit",
+      "title": "Edit and organize",
+      "summary": "Change text and images, and split, combine, reorder and stamp pages.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            },
+            {
+              "label": "OfficeIMO.Word",
+              "url": "/docs/word/"
+            },
+            {
+              "label": "OfficeIMO.Excel",
+              "url": "/docs/excel/"
+            },
+            {
+              "label": "OfficeIMO.PowerPoint",
+              "url": "/docs/powerpoint/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/pdf/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Merge-OfficeDocument",
+              "url": "/api/powershell/merge-officedocument/"
+            },
+            {
+              "label": "Split-OfficeDocument",
+              "url": "/api/powershell/split-officedocument/"
+            },
+            {
+              "label": "Move-OfficePdfPage",
+              "url": "/api/powershell/move-officepdfpage/"
+            },
+            {
+              "label": "Remove-OfficePdfPage",
+              "url": "/api/powershell/remove-officepdfpage/"
+            },
+            {
+              "label": "Add-OfficePdfWatermark",
+              "url": "/api/powershell/add-officepdfwatermark/"
+            },
+            {
+              "label": "Update-OfficeWordText",
+              "url": "/api/powershell/update-officewordtext/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
+              "label": "officeimo_pdf_split",
+              "url": "/agents/#tool-officeimo_pdf_split"
+            },
+            {
+              "label": "officeimo_pdf_assemble",
+              "url": "/agents/#tool-officeimo_pdf_assemble"
+            },
+            {
+              "label": "officeimo_pdf",
+              "url": "/agents/#tool-officeimo_pdf"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-edit-text",
+          "extra": "",
+          "items": [
+            {
+              "label": "Edit existing text",
+              "url": "/studio/#feature-edit-text"
+            },
+            {
+              "label": "Add and replace images",
+              "url": "/studio/#feature-images"
+            },
+            {
+              "label": "Rotate, reorder, duplicate and delete pages",
+              "url": "/studio/#feature-page-edits"
+            },
+            {
+              "label": "Combine documents",
+              "url": "/studio/#feature-combine"
+            },
+            {
+              "label": "Split a document",
+              "url": "/studio/#feature-split"
+            },
+            {
+              "label": "Page numbers, headers and watermarks",
+              "url": "/studio/#feature-page-stamps"
+            },
+            {
+              "label": "Assemble a PDF",
+              "url": "/studio/#feature-pdf-assembly"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "review",
+      "title": "Review and annotate",
+      "summary": "Mark up, comment, track changes and compare versions.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            },
+            {
+              "label": "OfficeIMO.Word",
+              "url": "/docs/word/"
+            },
+            {
+              "label": "OfficeIMO.Excel",
+              "url": "/docs/excel/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/pdf/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Get-OfficePdfAnnotation",
+              "url": "/api/powershell/get-officepdfannotation/"
+            },
+            {
+              "label": "Set-OfficePdfAnnotation",
+              "url": "/api/powershell/set-officepdfannotation/"
+            },
+            {
+              "label": "Get-OfficeWordReview",
+              "url": "/api/powershell/get-officewordreview/"
+            },
+            {
+              "label": "Compare-OfficeDocument",
+              "url": "/api/powershell/compare-officedocument/"
+            },
+            {
+              "label": "Add-OfficeExcelComment",
+              "url": "/api/powershell/add-officeexcelcomment/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
+              "label": "officeimo_pdf_compare",
+              "url": "/agents/#tool-officeimo_pdf_compare"
+            },
+            {
+              "label": "officeimo_pdf_redline",
+              "url": "/agents/#tool-officeimo_pdf_redline"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-text-markup",
+          "extra": "",
+          "items": [
+            {
+              "label": "Highlight, underline and strike through",
+              "url": "/studio/#feature-text-markup"
+            },
+            {
+              "label": "Freehand drawing",
+              "url": "/studio/#feature-drawing"
+            },
+            {
+              "label": "Notes",
+              "url": "/studio/#feature-notes"
+            },
+            {
+              "label": "Shapes, text boxes and stamps",
+              "url": "/studio/#feature-shapes"
+            },
+            {
+              "label": "Comment threads",
+              "url": "/studio/#feature-comments"
+            },
+            {
+              "label": "Compare documents",
+              "url": "/studio/#feature-compare"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "forms",
+      "title": "Forms",
+      "summary": "Fill, create, import, export and flatten form fields.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/pdf/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Get-OfficePdfFormField",
+              "url": "/api/powershell/get-officepdfformfield/"
+            },
+            {
+              "label": "Set-OfficePdfFormField",
+              "url": "/api/powershell/set-officepdfformfield/"
+            },
+            {
+              "label": "Add-OfficePdfFormField",
+              "url": "/api/powershell/add-officepdfformfield/"
+            },
+            {
+              "label": "Import-OfficePdfXfdf",
+              "url": "/api/powershell/import-officepdfxfdf/"
+            },
+            {
+              "label": "Export-OfficePdfXfdf",
+              "url": "/api/powershell/export-officepdfxfdf/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
+              "label": "officeimo_pdf",
+              "url": "/agents/#tool-officeimo_pdf"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-fill-forms",
+          "extra": "",
+          "items": [
+            {
+              "label": "Fill forms",
+              "url": "/studio/#feature-fill-forms"
+            },
+            {
+              "label": "Create form fields",
+              "url": "/studio/#feature-create-fields"
+            },
+            {
+              "label": "Flatten forms and annotations",
+              "url": "/studio/#feature-flatten"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "protect",
+      "title": "Protect",
+      "summary": "Encrypt, redact and remove hidden data or origin records before sharing.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Security",
+              "url": "/docs/security/"
+            },
+            {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            },
+            {
+              "label": "OfficeIMO.Provenance.C2pa",
+              "url": "/docs/foundations/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/before-sharing/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Protect-OfficeDocument",
+              "url": "/api/powershell/protect-officedocument/"
+            },
+            {
+              "label": "Unprotect-OfficeDocument",
+              "url": "/api/powershell/unprotect-officedocument/"
+            },
+            {
+              "label": "Remove-OfficePdfContent",
+              "url": "/api/powershell/remove-officepdfcontent/"
+            },
+            {
+              "label": "Get-OfficeHiddenData",
+              "url": "/api/powershell/get-officehiddendata/"
+            },
+            {
+              "label": "Remove-OfficeHiddenData",
+              "url": "/api/powershell/remove-officehiddendata/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
+              "label": "officeimo hidden-data",
+              "url": "/docs/cli/before-sharing/#hidden-data"
+            },
+            {
+              "label": "officeimo provenance",
+              "url": "/docs/cli/before-sharing/#content-credentials-and-ai-labels"
+            },
+            {
+              "label": "officeimo_inspect_hidden_data",
+              "url": "/agents/#tool-officeimo_inspect_hidden_data"
+            },
+            {
+              "label": "officeimo_remove_hidden_data",
+              "url": "/agents/#tool-officeimo_remove_hidden_data"
+            },
+            {
+              "label": "officeimo_pdf",
+              "url": "/agents/#tool-officeimo_pdf"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-protect",
+          "extra": "",
+          "items": [
+            {
+              "label": "Password protection",
+              "url": "/studio/#feature-protect"
+            },
+            {
+              "label": "Redaction",
+              "url": "/studio/#feature-redact"
+            },
+            {
+              "label": "File origin and Content Credentials",
+              "url": "/studio/#feature-provenance-workbench"
+            },
+            {
+              "label": "Document health",
+              "url": "/studio/#feature-document-health"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sign",
+      "title": "Sign and validate",
+      "summary": "Sign with certificates, check existing signatures, and validate invoices and file origin.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            },
+            {
+              "label": "OfficeIMO.Security",
+              "url": "/docs/security/"
+            },
+            {
+              "label": "OfficeIMO.Invoicing.Validation",
+              "url": "/docs/invoicing/"
+            },
+            {
+              "label": "OfficeIMO.Provenance.C2pa",
+              "url": "/docs/foundations/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/pdf/",
+          "extra": "",
+          "items": [
+            {
+              "label": "New-OfficePdfSignature",
+              "url": "/api/powershell/new-officepdfsignature/"
+            },
+            {
+              "label": "Set-OfficePdfSignature",
+              "url": "/api/powershell/set-officepdfsignature/"
+            },
+            {
+              "label": "Get-OfficePdfSignature",
+              "url": "/api/powershell/get-officepdfsignature/"
+            },
+            {
+              "label": "Test-OfficeDocument",
+              "url": "/api/powershell/test-officedocument/"
+            },
+            {
+              "label": "Get-OfficeDocumentProvenance",
+              "url": "/api/powershell/get-officedocumentprovenance/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo invoice",
+              "url": "/docs/cli/invoices/"
+            },
+            {
+              "label": "officeimo provenance",
+              "url": "/docs/cli/before-sharing/#content-credentials-and-ai-labels"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-handwritten-signature",
+          "extra": "",
+          "items": [
+            {
+              "label": "Handwritten signature",
+              "url": "/studio/#feature-handwritten-signature"
+            },
+            {
+              "label": "Certificate signature",
+              "url": "/studio/#feature-certificate-signature"
+            },
+            {
+              "label": "Validate signatures and standards",
+              "url": "/studio/#feature-validate"
+            },
+            {
+              "label": "Electronic invoices",
+              "url": "/studio/#feature-invoice-workbench"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "standards",
+      "title": "Accessibility and standards",
+      "summary": "Check PDFs against PDF/UA-1 with the Matterhorn Protocol, check Office files for accessibility, and produce PDF/A.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Pdf",
+              "url": "/docs/pdf/"
+            },
+            {
+              "label": "OfficeIMO.Core",
+              "url": "/docs/capabilities/packages/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/pdf/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Test-OfficePdfAccessibility",
+              "url": "/api/powershell/test-officepdfaccessibility/"
+            },
+            {
+              "label": "Test-OfficeAccessibility",
+              "url": "/api/powershell/test-officeaccessibility/"
+            },
+            {
+              "label": "Get-OfficePdfCompliance",
+              "url": "/api/powershell/get-officepdfcompliance/"
+            },
+            {
+              "label": "Set-OfficePdfCompliance",
+              "url": "/api/powershell/set-officepdfcompliance/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo accessibility",
+              "url": "/docs/cli/before-sharing/#accessibility"
+            },
+            {
+              "label": "officeimo pdf",
+              "url": "/docs/cli/pdf/"
+            },
+            {
+              "label": "officeimo_check_accessibility",
+              "url": "/agents/#tool-officeimo_check_accessibility"
+            },
+            {
+              "label": "officeimo_pdf_convert_to_pdfa",
+              "url": "/agents/#tool-officeimo_pdf_convert_to_pdfa"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-validate",
+          "extra": "",
+          "items": [
+            {
+              "label": "Validate signatures and standards",
+              "url": "/studio/#feature-validate"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "print",
+      "title": "Print",
+      "summary": "Plan sheets, preview them and send documents to a printer.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO.Workflows",
+              "url": "/docs/capabilities/packages/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/pdf/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Send-OfficePrinter",
+              "url": "/api/powershell/send-officeprinter/"
+            },
+            {
+              "label": "Get-OfficePrinter",
+              "url": "/api/powershell/get-officeprinter/"
+            },
+            {
+              "label": "Get-OfficePrinterCapability",
+              "url": "/api/powershell/get-officeprintercapability/"
+            },
+            {
+              "label": "Get-OfficePrintJob",
+              "url": "/api/powershell/get-officeprintjob/"
+            },
+            {
+              "label": "Stop-OfficePrintJob",
+              "url": "/api/powershell/stop-officeprintjob/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
+              "label": "officeimo_pdf_print_plan",
+              "url": "/agents/#tool-officeimo_pdf_print_plan"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-print",
+          "extra": "",
+          "items": [
+            {
+              "label": "Print",
+              "url": "/studio/#feature-print"
+            },
+            {
+              "label": "Print, export and assemble in one place",
+              "url": "/studio/#feature-output-workbench"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "automate",
+      "title": "Automate",
+      "summary": "Repeat document work in scripts, CI jobs, saved jobs and agent conversations.",
+      "cells": {
+        "dotnet": {
+          "guide": "/libraries/",
+          "extra": "",
+          "items": [
+            {
+              "label": "OfficeIMO",
+              "url": "/docs/capabilities/packages/"
+            },
+            {
+              "label": "OfficeIMO.Workflows",
+              "url": "/docs/capabilities/packages/"
+            }
+          ]
+        },
+        "powershell": {
+          "guide": "/docs/pswriteoffice/automation-patterns/",
+          "extra": "",
+          "items": [
+            {
+              "label": "Convert-OfficeDocument",
+              "url": "/api/powershell/convert-officedocument/"
+            },
+            {
+              "label": "Import-OfficeConversionReport",
+              "url": "/api/powershell/import-officeconversionreport/"
+            },
+            {
+              "label": "Get-OfficeDocumentCapability",
+              "url": "/api/powershell/get-officedocumentcapability/"
+            }
+          ]
+        },
+        "agents": {
+          "guide": "/agents/",
+          "extra": "",
+          "items": [
+            {
+              "label": "officeimo workflow",
+              "url": "/docs/cli/batch-and-jobs/"
+            },
+            {
+              "label": "officeimo agent",
+              "url": "/docs/cli/mcp-and-agents/#agent-commands"
+            },
+            {
+              "label": "officeimo mcp",
+              "url": "/docs/cli/mcp-and-agents/"
+            },
+            {
+              "label": "officeimo_capabilities",
+              "url": "/agents/#tool-officeimo_capabilities"
+            },
+            {
+              "label": "officeimo_convert",
+              "url": "/agents/#tool-officeimo_convert"
+            },
+            {
+              "label": "officeimo-document-operator skill",
+              "url": "/agents/#tools"
+            },
+            {
+              "label": "officeimo-mailbox-operator skill",
+              "url": "/agents/#tools"
+            }
+          ]
+        },
+        "studio": {
+          "guide": "/studio/#feature-automation",
+          "extra": "",
+          "items": [
+            {
+              "label": "Automation",
+              "url": "/studio/#feature-automation"
+            },
+            {
+              "label": "Saved jobs and run history",
+              "url": "/studio/#feature-saved-jobs"
+            }
+          ],
+          "platforms": [
+            {
+              "id": "windows",
+              "label": "Windows",
+              "short": "Win",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "linux",
+              "label": "Linux",
+              "short": "Linux",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "mac",
+              "label": "Mac",
+              "short": "Mac",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "ipad",
+              "label": "iPad",
+              "short": "iPad",
+              "state": "available",
+              "stateLabel": "Yes"
+            },
+            {
+              "id": "iphone",
+              "label": "iPhone",
+              "short": "iPhone",
+              "state": "available",
+              "stateLabel": "Yes"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

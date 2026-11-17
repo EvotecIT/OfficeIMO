@@ -74,8 +74,8 @@ public sealed partial class PdfCreateOptions {
             IsNamedFallbackRegistrationCurrent(active)
             && unavailableNames?.Contains(NormalizeNamedFontFamilyKey(active.FontName)) != true
             && string.Equals(active.PlannerFamilyName, candidate.PlannerFamilyName, StringComparison.OrdinalIgnoreCase)
-            && (active.FontFamilySnapshot.ItalicSnapshot != null) == (candidate.FontFamilySnapshot.ItalicSnapshot != null)
-            && active.DataSnapshot.SequenceEqual(candidate.DataSnapshot));
+            && active.HasSameFaces(candidate));
+
         string name = reusable?.FontName ?? CreatePromotedFallbackFamilyName(
             candidate.FontName.Trim(), PdfStandardFont.Helvetica, prospective);
         return candidate.WithRegisteredFamilyName(name);
@@ -85,7 +85,7 @@ public sealed partial class PdfCreateOptions {
         familyName = candidate.FontName;
         if (_namedFallbackPlanBindings?.TryGetValue(candidate.RegistrationIdentity, out PdfEmbeddedFontFallbackCandidate? bound) != true
             || bound == null) {
-            return false;
+            return candidate.IsRegularFaceCandidate && TryRegisterRegularFaceFallback(candidate, out familyName);
         }
         if (!IsNamedFallbackRegistrationCurrent(bound)) {
             // A later caller can claim the original resource name. Keep that
@@ -99,6 +99,46 @@ public sealed partial class PdfCreateOptions {
         }
         familyName = bound.FontName;
         return true;
+    }
+
+    // A fallback's regular-face companion is registered the first time styled text needs it,
+    // and belongs to the fallback lifecycle like an automatic fallback family.
+    private bool TryRegisterRegularFaceFallback(PdfEmbeddedFontFallbackCandidate candidate, out string familyName) {
+        familyName = candidate.FontName;
+        var prospective = _namedFontFamilies == null
+            ? new Dictionary<string, PdfEmbeddedFontFamily>(StringComparer.Ordinal)
+            : new Dictionary<string, PdfEmbeddedFontFamily>(_namedFontFamilies, StringComparer.Ordinal);
+        // The companion never replaces a family registered under its name, whoever owns it.
+        PdfEmbeddedFontFallbackCandidate bound = prospective.ContainsKey(NormalizeNamedFontFamilyKey(candidate.FontName))
+            ? candidate.WithRegisteredFamilyName(CreatePromotedFallbackFamilyName(candidate.FontName, PdfStandardFont.Helvetica, prospective))
+            : candidate;
+        if (!TryRegisterNamedFontFamily(bound.FontFamilySnapshot)) return false;
+        RegisterNamedFallbackPlan(bound);
+        (_automaticFallbackOwnedNamedFamilyKeys ??= new HashSet<string>(StringComparer.Ordinal))
+            .Add(NormalizeNamedFontFamilyKey(bound.FontName));
+        familyName = bound.FontName;
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves a planned fallback run, splitting off text its styled face lacks when the run was made bold or
+    /// italic after planning. When the regular-face companion cannot be registered the run stays whole, so
+    /// the missing glyphs are reported.
+    /// </summary>
+    internal IReadOnlyList<PdfTextRun> ResolvePlannedNamedFallbackRuns(PdfTextRun run) {
+        if (run.PlannedFontFallback is PdfEmbeddedFontFallbackCandidate planned &&
+            planned.SplitByStyledFaceCoverage(run.Text ?? string.Empty, run.Bold, run.Italic) is { } pieces) {
+            var split = new List<PdfTextRun>(pieces.Count);
+            foreach ((string text, bool regularFace) in pieces) {
+                if (!TryResolvePlannedNamedFallback(regularFace ? planned.RegularFaceCandidate : planned, out string familyName)) {
+                    return new[] { ResolvePlannedNamedFallbackRun(run) };
+                }
+                split.Add(run.WithText(text).WithResolvedFallbackFontFamily(familyName));
+            }
+            PdfTextFallbackPlan.KeepHorizontalOffsetOnFirstGeneratedRun(split);
+            return split;
+        }
+        return new[] { ResolvePlannedNamedFallbackRun(run) };
     }
 
     internal PdfTextRun ResolvePlannedNamedFallbackRun(PdfTextRun run) =>
@@ -127,6 +167,8 @@ public sealed partial class PdfCreateOptions {
                 }
             } else {
                 RegisterNamedFontFamily(candidate.FontFamilySnapshot);
+                // A merged regular-face companion still belongs to the fallback lifecycle.
+                if (candidate.IsRegularFaceCandidate) (_automaticFallbackOwnedNamedFamilyKeys ??= new HashSet<string>(StringComparer.Ordinal)).Add(key);
             }
             RegisterNamedFallbackPlan(candidate);
         }

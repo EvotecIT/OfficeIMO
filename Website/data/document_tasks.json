@@ -2,6 +2,10 @@
   "title": "Start with the document job",
   "eyebrow": "Document jobs",
   "lede": "Pick what you need to get done. Each job lists the ways to do it in OfficeIMO, from a tool in your browser to code you ship.",
+  "overview": {
+    "label": "See every job on every surface",
+    "url": "/capabilities/"
+  },
   "tasks": [
     {
       "id": "create-report",

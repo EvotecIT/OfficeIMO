@@ -30,6 +30,7 @@ internal static partial class PdfWriter {
             Data = block.Data,
             Info = block.Info,
             PreparedStream = block.PreparedStream,
+            SvgDrawing = block.SvgDrawing,
             X = renderPlan.ImagePlacement.X,
             Y = renderPlan.ImagePlacement.Y,
             W = renderPlan.ImagePlacement.Width,

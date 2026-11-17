@@ -126,7 +126,8 @@ public static partial class MarkdownPdfConverterExtensions {
         MarkdownPdfExportOptions? options = style.Anchors?.Options;
         if (options == null || !options.IncludeImages || linkUrl != null) return false;
         if (!TryReadImageBytes(source, options, out byte[] bytes, out _, out _, out _) ||
-            !PdfCore.PdfDocument.TryPrepareImageBytes(bytes, out byte[] prepared, out OfficeImageInfo? info, out _, out _) ||
+            // SVG, such as a status badge, stays vector; raster formats are normalized for the PDF writer.
+            !PdfCore.PdfDocument.TryPrepareImageKeepingSvg(bytes, default, out byte[] prepared, out OfficeImageInfo? info, out _) ||
             info == null || info.Width <= 0 || info.Height <= 0) {
             return false;
         }
