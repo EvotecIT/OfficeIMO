@@ -5348,6 +5348,21 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## PDF text extraction keeps the readable part of damaged documents
+
+`PdfDocument.ExtractText()` no longer throws when part of a document cannot be read. With the
+default lenient `PdfLoadOptions.ParsingMode`, a text run whose font codes have no Unicode mapping is
+left out instead of throwing `PdfUnsupportedTextMappingException`, and a page content stream that
+cannot be decoded is left out instead of throwing `InvalidDataException`; the rest of the document is
+returned. An `Identity-H` or `Identity-V` code that no source maps is also left out instead of being
+returned as one character holding its code value. Content streams behind CCITTFax or JBIG2, read limits, passwords and permission
+restrictions still throw. Set `ParsingMode = PdfParsingMode.Strict` to keep the previous behaviour,
+and use `ReadForInspection` with `RecoverDecodableTextForInspection` to learn what was left out.
+
+An encryption dictionary written directly in the trailer is now recognised: such a file decrypts,
+or throws `PdfPasswordRequiredException` when it needs a password, instead of failing on encrypted
+content streams.
+
 ## PDF objects can hold more tokens by default
 
 `PdfReadLimits.MaxTokensPerObject` now defaults to 1,000,000, up from 100,000, so valid files

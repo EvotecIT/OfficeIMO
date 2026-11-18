@@ -86,10 +86,11 @@ public sealed class PdfCompositeTextDecodingTests {
     }
 
     [Fact]
-    public void PartialCompositeMapRejectsUnmappedExtractionCodes() {
+    public void PartialCompositeMapRejectsUnmappedCodesInStrictExtraction() {
         byte[] source = BuildNamedCompositeSource("", includePartialMap: true);
 
-        Assert.ThrowsAny<NotSupportedException>(() => PdfReadDocument.Open(source).ExtractText());
+        Assert.ThrowsAny<NotSupportedException>(() =>
+            PdfReadDocument.Open(source, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText());
     }
 
     [Theory]

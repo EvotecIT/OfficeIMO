@@ -145,6 +145,26 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
         Assert.Equal(-4, info.Security.EncryptionPermissions);
     }
 
+    // The trailer may hold the encryption dictionary itself instead of a reference to it. Such a file decrypts the
+    // same way, and one that needs a password asks for it instead of failing on undecrypted streams.
+    [Fact]
+    public void EncryptionDictionaryWrittenInTheTrailerDecryptsOrAsksForThePassword() {
+        byte[] open = WithEncryptionDictionaryInTrailer(Fixture("r6-indirect-crypt-filters.pdf"));
+        Assert.Contains("Indirect filters R6", PdfDocument.Load(open).ExtractText(), StringComparison.Ordinal);
+
+        byte[] locked = WithEncryptionDictionaryInTrailer(Fixture("r6-saslprep.pdf"));
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(locked).ExtractText());
+    }
+
+    private static byte[] WithEncryptionDictionaryInTrailer(byte[] pdf) {
+        string text = PdfEncoding.Latin1GetString(pdf);
+        int objectStart = text.IndexOf("\n7 0 obj\n", StringComparison.Ordinal) + "\n7 0 obj\n".Length;
+        string dictionary = text.Substring(objectStart, text.IndexOf("\nendobj", objectStart, StringComparison.Ordinal) - objectStart);
+        int trailer = text.LastIndexOf("trailer", StringComparison.Ordinal);
+        return PdfEncoding.Latin1GetBytes(text.Substring(0, trailer) +
+            text.Substring(trailer).Replace("/Encrypt 7 0 R", "/Encrypt " + dictionary));
+    }
+
     [Fact]
     public void DocumentsEncryptingOnlyEmbeddedFilesOpenWithoutPasswordAndKeepAttachmentsLocked() {
         byte[] pdf = Fixture("r6-embedded-files-only.pdf");

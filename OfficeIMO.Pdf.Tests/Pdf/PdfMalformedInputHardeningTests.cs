@@ -212,6 +212,31 @@ public sealed class PdfMalformedInputHardeningTests {
         Assert.Equal(kind, exception.Kind);
     }
 
+    // Lenient plain extraction leaves out a page content stream it cannot decode and keeps the page's other streams.
+    // Strict parsing fails, and a stream behind an image codec, which can report exhausted resources as damaged data,
+    // still fails the read.
+    [Theory]
+    [InlineData("/Filter /Flatedecode", true)]
+    [InlineData("/Filter /FlateDecode", true)]
+    [InlineData("/Filter /JBIG2Decode", false)]
+    public void ExtractText_LeavesOutAPageContentStreamItCannotDecode(string filter, bool skipped) {
+        const string damaged = "not a compressed content stream";
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources " + HelveticaResources + " /Contents [4 0 R 5 0 R] >>",
+            "<< /Length " + damaged.Length.ToString(CultureInfo.InvariantCulture) + " " + filter + " >>\nstream\n" + damaged + "\nendstream",
+            Stream("BT /F1 12 Tf 10 100 Td (Readable) Tj ET"));
+
+        if (skipped) {
+            Assert.Equal("Readable", PdfDocument.Load(new MemoryStream(pdf)).ExtractText().Trim());
+        } else {
+            Assert.Throws<InvalidDataException>(() => PdfDocument.Load(new MemoryStream(pdf)).ExtractText());
+        }
+        Assert.Throws<InvalidDataException>(() =>
+            PdfDocument.Load(new MemoryStream(pdf), new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText());
+    }
+
     private static PdfPageRenderResult Render(byte[] pdf) =>
         PdfDocument.Load(new MemoryStream(pdf)).Render.Pages("1", new PdfPageRenderOptions { Dpi = 72, Format = OfficeImageExportFormat.Png, ContinueOnError = false })[0];
 

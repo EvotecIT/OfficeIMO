@@ -15,6 +15,12 @@ public sealed partial class PdfReadPage {
         /// </summary>
         internal bool SkipsFormsBeyondStack { get; init; }
 
+        /// <summary>Whether page content streams that cannot be decoded are left out instead of failing the read.</summary>
+        internal bool SkipsUndecodableContentStreams { get; init; }
+
+        /// <summary>Page content streams left out because they could not be decoded.</summary>
+        internal int SkippedContentStreams { get; set; }
+
         /// <summary>Content skipped while drawing the page, which the capability pre-scan cannot predict.</summary>
         internal IReadOnlyList<PdfRenderCapabilityDiagnostic> RenderDegradations =>
             _renderDegradations ?? (IReadOnlyList<PdfRenderCapabilityDiagnostic>)Array.Empty<PdfRenderCapabilityDiagnostic>();

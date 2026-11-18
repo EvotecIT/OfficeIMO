@@ -25,7 +25,7 @@ Outcomes are `ok`, `error` (the engine threw), `timeout` and `crash` (the proces
 
 The engines extract text with different defaults:
 
-- **OfficeIMO `ExtractText()`** builds lines from glyph geometry without reordering columns. It honours `/ActualText`. It leaves out `/Artifact` content, hidden optional content and form widgets unless `PdfLoadOptions` asks for them. It keeps invisible OCR text (render mode 3). Encrypted files that need a password, permission-restricted files and unmappable composite fonts raise typed exceptions instead of returning partial text.
+- **OfficeIMO `ExtractText()`** builds lines from glyph geometry without reordering columns. It honours `/ActualText`. It leaves out `/Artifact` content, hidden optional content and form widgets unless `PdfLoadOptions` asks for them. It keeps invisible OCR text (render mode 3). It leaves out text runs whose font codes have no Unicode mapping and page content streams it cannot decode, and returns the rest. Encrypted files that need a password and permission-restricted files raise typed exceptions instead of returning partial text.
 - **PdfOxide `ExtractText(page)`** sorts text into reading order (XY-cut on multi-column pages, structure-tree order for tagged PDFs) and inlines detected tables. By default it includes `/Artifact` content, FreeText and Stamp annotation text and form-field values. It ignores optional-content visibility. It returns empty text instead of an error for documents it cannot decrypt or decode.
 - **PDFium** returns page text in content order without filtering `/Artifact` content.
 - **PdfPig** returns `Page.Text` in content-stream order without inserting spaces between separately positioned words.
