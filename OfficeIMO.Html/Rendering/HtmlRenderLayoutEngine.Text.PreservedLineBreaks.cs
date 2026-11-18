@@ -3,6 +3,16 @@ namespace OfficeIMO.Html;
 internal sealed partial class HtmlRenderLayoutEngine {
     private static readonly char[] SegmentBreakCharacters = { '\n', '\r' };
 
+    /// <summary>Text runs for anonymous text that bypasses DOM run collection, such as anonymous flex items.</summary>
+    private static IReadOnlyList<HtmlInlineRun> CreateAnonymousTextRuns(string text, HtmlRenderBoxStyle style, string? link, string source) {
+        if (!style.PreserveLineBreaks || style.PreserveWhitespace || text.IndexOfAny(SegmentBreakCharacters) < 0)
+            return new[] { new HtmlInlineRun(text, style, link, source) };
+        var runs = new List<HtmlInlineRun>();
+        AddPreservedLineBreakRuns(text, value => runs.Add(new HtmlInlineRun(value, style, link, source)),
+            () => runs.Add(new HtmlInlineRun("\u2028", style, link, source)));
+        return runs;
+    }
+
     /// <summary>
     /// Splits <c>white-space: pre-line</c> text at its segment breaks. Each break becomes a forced
     /// line break, and the collapsible spaces and tabs around it are removed, as CSS Text requires.

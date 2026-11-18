@@ -351,11 +351,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextOrientation = textOrientation,
             RubyPosition = ResolveRubyPosition(computed.GetValue("ruby-position"), parent?.RubyPosition),
             RubyAlign = ResolveRubyAlign(computed.GetValue("ruby-align"), parent?.RubyAlign),
-            // word-wrap is the legacy name of overflow-wrap.
-            OverflowWrap = ResolveOverflowWrap(
-                HasAuthoredValue(computed, "overflow-wrap") || !HasAuthoredValue(computed, "word-wrap")
-                    ? computed.GetValue("overflow-wrap") : computed.GetValue("word-wrap"),
-                parent?.OverflowWrap),
+            OverflowWrap = ResolveOverflowWrap(ResolveOverflowWrapDeclaration(computed), parent?.OverflowWrap),
             WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
             Hyphens = ResolveHyphens(computed.GetValue("hyphens"), parent?.Hyphens),
             HyphenateCharacter = ResolveHyphenateCharacter(computed.GetValue("hyphenate-character"), parent?.HyphenateCharacter),
@@ -443,6 +439,20 @@ internal sealed partial class HtmlRenderStyleResolver {
             if (value == "size" || value == "inline-size") return value;
         }
         return "normal";
+    }
+
+    // word-wrap is the legacy name of overflow-wrap. As aliases, the declaration that wins the
+    // cascade between them applies: the more important or specific one, then the later one.
+    private static string ResolveOverflowWrapDeclaration(HtmlComputedStyle computed) {
+        string overflowWrap = computed.GetValue("overflow-wrap");
+        string wordWrap = computed.GetValue("word-wrap");
+        if (string.IsNullOrWhiteSpace(wordWrap)) return overflowWrap;
+        if (string.IsNullOrWhiteSpace(overflowWrap)) return wordWrap;
+        return computed.TryGetCascadePriority("word-wrap", out HtmlCssCascadePriority wordWrapPriority)
+            && computed.TryGetCascadePriority("overflow-wrap", out HtmlCssCascadePriority overflowWrapPriority)
+            && wordWrapPriority.OutranksOrEquals(overflowWrapPriority)
+                ? wordWrap
+                : overflowWrap;
     }
 
     private static string ResolveOverflowWrap(string value, string? inherited) {
@@ -1298,8 +1308,9 @@ internal sealed partial class HtmlRenderStyleResolver {
     // Recognised keywords that line layout does not position or transform yet. They are
     // reported once per value instead of silently using the baseline or the original text.
     private void ReportUnrenderedTextValues(IElement element, string display, string verticalAlign, string textTransform) {
-        // Table cells apply these keywords, and atomic inline boxes apply top.
-        if (!display.StartsWith("table", StringComparison.Ordinal)
+        // vertical-align applies only to inline-level boxes and table cells, and table cells apply
+        // these keywords. Blocks ignore the property, so nothing is lost for them.
+        if (display.StartsWith("inline", StringComparison.Ordinal)
             && verticalAlign is "middle" or "bottom" or "text-top" or "text-bottom") {
             ReportUnrenderedTextValue(element, "vertical-align", verticalAlign,
                 "This vertical-align keyword is not applied to inline content; it was aligned on the baseline.");

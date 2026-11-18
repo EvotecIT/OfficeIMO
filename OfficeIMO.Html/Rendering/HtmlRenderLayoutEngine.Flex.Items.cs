@@ -134,7 +134,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
         IReadOnlyList<HtmlInlineRun> runs = style.Font.Size <= 0D
             ? Array.Empty<HtmlInlineRun>()
-            : new[] { new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source) };
+            : CreateAnonymousTextRuns(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source);
         HtmlInlineLayout inline = LayoutInlineRuns(runs, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);

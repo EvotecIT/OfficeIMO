@@ -23,22 +23,33 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(strikethrough, text.Font.IsStrikethrough);
     }
 
-    [Fact]
-    public void HtmlRenderer_LegacyWordWrapBreaksLongWordsLikeOverflowWrap() {
+    [Theory]
+    [InlineData("word-wrap:break-word", true)]
+    // The legacy name is an alias: the later declaration wins either way round.
+    [InlineData("overflow-wrap:normal;word-wrap:break-word", true)]
+    [InlineData("word-wrap:break-word;overflow-wrap:normal", false)]
+    public void HtmlRenderer_LegacyWordWrapCascadesAsOverflowWrap(string declarations, bool wraps) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='width:60px;word-wrap:break-word'>Supercalifragilisticexpialidocious</div>", TextKeywordOptions);
+            "<div style='width:60px;" + declarations + "'>Supercalifragilisticexpialidocious</div>", TextKeywordOptions);
         HtmlRenderText[] fragments = JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
             .Where(text => !string.IsNullOrWhiteSpace(text.Text)).ToArray();
 
-        Assert.True(fragments.Length > 1, "The word must wrap inside the 60px box.");
-        Assert.All(fragments, text => Assert.True(text.X + (text.TextAdvanceWidth ?? text.Width) <= 60.5D));
         Assert.Equal("Supercalifragilisticexpialidocious", string.Concat(fragments.Select(text => text.Text)));
+        if (wraps) {
+            Assert.True(fragments.Length > 1, "The word must wrap inside the 60px box.");
+            Assert.All(fragments, text => Assert.True(text.X + (text.TextAdvanceWidth ?? text.Width) <= 60.5D));
+        } else {
+            Assert.Single(fragments);
+        }
     }
 
-    [Fact]
-    public void HtmlRenderer_PreLineKeepsSegmentBreaksAndCollapsesSurroundingSpaces() {
+    [Theory]
+    [InlineData("white-space:pre-line")]
+    // Anonymous flex item text is laid out without DOM run collection.
+    [InlineData("display:flex;flex-direction:column;white-space:pre-line")]
+    public void HtmlRenderer_PreLineKeepsSegmentBreaksAndCollapsesSurroundingSpaces(string declarations) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='white-space:pre-line'>first   line   \n   second line\r\nthird</div>", TextKeywordOptions);
+            "<div style='" + declarations + "'>first   line   \n   second line\r\nthird</div>", TextKeywordOptions);
         IReadOnlyList<JustifiedLine> lines = JustifiedLines(rendered);
 
         Assert.Equal(new[] { "first line", "second line", "third" }, lines.Select(line => line.Text).ToArray());
@@ -60,14 +71,15 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<p>Icon <span style='display:inline-block;width:10px;height:20px;vertical-align:middle'></span> and "
             + "<span style='vertical-align:middle'>text</span> <span style='text-transform:full-width'>abc</span></p>"
-            + "<table><tr><td style='vertical-align:middle'>cell</td></tr></table>",
+            + "<table><tr><td style='vertical-align:middle'>cell</td></tr></table>"
+            + "<div style='vertical-align:bottom'>Blocks ignore vertical-align.</div>",
             TextKeywordOptions);
         string[] details = rendered.NativeDiagnostics
             .Where(item => item.Code == HtmlRenderDiagnosticCodes.CssPropertyUnsupported)
             .Select(item => item.Detail ?? string.Empty)
             .ToArray();
 
-        // Reported once per value; table cells apply vertical-align and are not reported.
+        // Reported once per value; table cells apply vertical-align and blocks ignore it.
         Assert.Equal(new[] { "text-transform=full-width", "vertical-align=middle" }, details.OrderBy(item => item, StringComparer.Ordinal));
     }
 }

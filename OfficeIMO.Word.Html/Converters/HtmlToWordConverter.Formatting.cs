@@ -295,9 +295,10 @@ namespace OfficeIMO.Word.Html {
             var align = GetInlinePropertyValue(declaration, styleAttribute, "text-align")?.Trim();
             if (TryMapTextAlign(align, GetBidiFromDir(element), out var mappedAlignment)) {
                 alignment = mappedAlignment;
-            } else if (IsLegacyAlignedBlock(element)
+            } else if (string.IsNullOrWhiteSpace(align) && IsLegacyAlignedBlock(element)
                 && TryMapTextAlign(element.GetAttribute("align"), GetBidiFromDir(element), out mappedAlignment)) {
-                // The align attribute is a presentational hint below authored CSS.
+                // The align attribute is a presentational hint below authored CSS, including
+                // resets such as initial or unset, so it applies only without a text-align declaration.
                 alignment = mappedAlignment;
             }
 
