@@ -258,4 +258,125 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+
+    private static uint[] ReadXlsbActiveTabs(string path) {
+        using var workbookStream = new MemoryStream(ReadZipEntry(File.ReadAllBytes(path), "xl/workbook.bin"));
+        return OfficeIMO.Excel.Xlsb.Biff12.XlsbRecordReader.ReadAll(workbookStream)
+            .Where(record => record.Type == 158).Select(record => BitConverter.ToUInt32(record.Data, 24)).ToArray();
+    }
+
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".xlsb")]
+    [InlineData(".xls")]
+    public void LoadedXlsb_KeepsItsActiveSheetWhenAnEarlierSheetIsHidden(string extension) {
+        string directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO.XlsbActive.{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try {
+            string source = Path.Combine(directory, "source.xlsb");
+            using (var created = ExcelDocument.Create(source)) {
+                foreach (string name in new[] { "A", "B", "C" }) created.AddSheet(name).Cell(1, 1).SetValue(name);
+                created.SetActiveWorksheet(2);
+                created.Sheets[0].SetHidden(true);
+                created.Save();
+            }
+            Assert.Equal(new[] { 2U }, ReadXlsbActiveTabs(source));
+
+            string path = Path.Combine(directory, "result" + extension);
+            using (var loaded = ExcelDocument.Load(source)) {
+                Assert.Equal(2, loaded.ActiveWorksheetIndex);
+                loaded.Sheets[1].Cell(2, 1).SetValue("edited");
+                loaded.Save(path);
+            }
+
+            if (extension == ".xlsb") Assert.Equal(new[] { 2U }, ReadXlsbActiveTabs(path));
+            using var reloaded = ExcelDocument.Load(path);
+            Assert.Equal(2, reloaded.ActiveWorksheetIndex);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadedXlsbWithoutAWorkbookView_SavesTheNewActiveSheet() {
+        string directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO.XlsbNoView.{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try {
+            string source = Path.Combine(directory, "source.xlsb");
+            using (var created = ExcelDocument.Create(source)) {
+                created.AddSheet("First").Cell(1, 1).SetValue("a");
+                created.AddSheet("Second").Cell(1, 1).SetValue("b");
+                created.Save();
+            }
+            // BOOKVIEWS is optional: remove it, as some producers never write it.
+            byte[] package = File.ReadAllBytes(source);
+            using var workbookStream = new MemoryStream(ReadZipEntry(package, "xl/workbook.bin"));
+            using var withoutViews = new MemoryStream();
+            foreach (var record in OfficeIMO.Excel.Xlsb.Biff12.XlsbRecordReader.ReadAll(workbookStream)) {
+                if (record.Type is 135 or 136 or 158) continue;
+                OfficeIMO.Excel.Xlsb.Biff12.XlsbRecordWriter.Write(withoutViews, record.Type, record.Data);
+            }
+            File.WriteAllBytes(source, OfficeIMO.Excel.Xlsb.Write.XlsbNativePackageWriter.RewritePackage(package,
+                new Dictionary<string, byte[]> { ["xl/workbook.bin"] = withoutViews.ToArray() },
+                maxPartBytes: 128 * 1024 * 1024, maxPackageBytes: 512L * 1024 * 1024));
+            Assert.Empty(ReadXlsbActiveTabs(source));
+
+            string path = Path.Combine(directory, "result.xlsb");
+            using (var loaded = ExcelDocument.Load(source)) {
+                loaded.Sheets[0].SetHidden(true);
+                loaded.Save(path);
+            }
+
+            Assert.Equal(new[] { 1U }, ReadXlsbActiveTabs(path));
+            using var reloaded = ExcelDocument.Load(path);
+            Assert.True(reloaded.Sheets[0].Hidden);
+            Assert.Equal(1, reloaded.ActiveWorksheetIndex);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".xlsb")]
+    [InlineData(".xls")]
+    public void RemovingAnEarlierSheet_KeepsTheActiveSheet(string extension) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.RemoveKeepsActive.{Guid.NewGuid():N}{extension}");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                foreach (string name in new[] { "A", "B", "C" }) document.AddSheet(name).Cell(1, 1).SetValue(name);
+                document.SetActiveWorksheet(1);
+                document.RemoveWorksheet("A");
+                Assert.Equal("B", document.ActiveWorksheet!.Name);
+                document.Save();
+            }
+
+            using var reloaded = ExcelDocument.Load(path);
+            Assert.Equal("B", reloaded.ActiveWorksheet!.Name);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void NewSheetViewsPrecedeAnExtensionList() {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.ViewExtension.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddSheet("First").Cell(1, 1).SetValue(1);
+                ExcelSheet second = document.AddSheet("Second");
+                second.Cell(1, 1).SetValue(2);
+                SheetViews views = second.WorksheetPart.Worksheet.GetFirstChild<SheetViews>()!;
+                views.RemoveAllChildren();
+                views.Append(new SheetView { WorkbookViewId = 1U }, new ExtensionList());
+                document.Sheets[0].SetHidden(true);
+                document.Save();
+            }
+
+            using SpreadsheetDocument package = SpreadsheetDocument.Open(path, false);
+            Assert.Empty(new OpenXmlValidator().Validate(package));
+        } finally {
+            File.Delete(path);
+        }
+    }
 }

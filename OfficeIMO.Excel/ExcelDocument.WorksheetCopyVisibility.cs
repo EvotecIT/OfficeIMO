@@ -18,6 +18,42 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Records the library-created default-width columns of every loaded worksheet by part and position, so a
+        /// rollback that rebuilds the worksheet DOM can register the restored columns again.
+        /// </summary>
+        internal Dictionary<Uri, List<(int Position, uint? Min, uint? Max, double Width)>> CaptureDefaultWidthColumns() {
+            var state = new Dictionary<Uri, List<(int Position, uint? Min, uint? Max, double Width)>>();
+            foreach (WorksheetPart part in WorkbookPartRoot.WorksheetParts) {
+                if (!part.IsRootElementLoaded) continue;
+                List<Column>? columns = part.Worksheet?.GetFirstChild<Columns>()?.Elements<Column>().ToList();
+                if (columns == null) continue;
+                for (int position = 0; position < columns.Count; position++) {
+                    if (!DefaultWidthColumns.TryGetValue(columns[position], out AssignedColumnWidth? assigned)) continue;
+                    if (!state.TryGetValue(part.Uri, out var entries)) state[part.Uri] = entries = new();
+                    entries.Add((position, columns[position].Min?.Value, columns[position].Max?.Value, assigned.Width));
+                }
+            }
+
+            return state;
+        }
+
+        /// <summary>Registers the restored columns recorded by <see cref="CaptureDefaultWidthColumns"/>.</summary>
+        internal void RestoreDefaultWidthColumns(Dictionary<Uri, List<(int Position, uint? Min, uint? Max, double Width)>> state) {
+            if (state.Count == 0) return;
+            foreach (WorksheetPart part in WorkbookPartRoot.WorksheetParts) {
+                if (!state.TryGetValue(part.Uri, out var entries)) continue;
+                List<Column>? columns = part.Worksheet?.GetFirstChild<Columns>()?.Elements<Column>().ToList();
+                if (columns == null) continue;
+                foreach (var entry in entries) {
+                    if (entry.Position >= columns.Count) continue;
+                    Column column = columns[entry.Position];
+                    if (column.Min?.Value != entry.Min || column.Max?.Value != entry.Max || DefaultWidthColumns.TryGetValue(column, out _)) continue;
+                    DefaultWidthColumns.Add(column, new AssignedColumnWidth(entry.Width));
+                }
+            }
+        }
+
+        /// <summary>
         /// Registers the copies of library-created default-width columns after a worksheet is cloned, so the copy keeps
         /// following the default width. Columns are paired by position and range; a mismatch registers nothing.
         /// </summary>
@@ -144,7 +180,10 @@ namespace OfficeIMO.Excel {
                         worksheet.AddChild(views, true);
                     }
                     view = new SheetView { WorkbookViewId = workbookViewId };
-                    views.Append(view);
+                    // Sheet views precede an optional extension list.
+                    ExtensionList? extensions = views.GetFirstChild<ExtensionList>();
+                    if (extensions != null) views.InsertBefore(view, extensions);
+                    else views.Append(view);
                 }
 
                 if (selected) view.TabSelected = true;
@@ -158,6 +197,24 @@ namespace OfficeIMO.Excel {
                 else if (view.TabSelected?.Value == true) view.TabSelected = null;
                 chartsheet.Save();
             }
+        }
+
+        /// <summary>
+        /// Applies an imported workbook view's active and first tab. Values at the implicit first tab are not
+        /// written, so a workbook whose view is the default keeps no workbook view.
+        /// </summary>
+        internal void ApplyImportedActiveTab(uint? activeTab, uint? firstSheet) {
+            Locking.ExecuteWrite(EnsureLock(), () => {
+                int count = WorkbookRoot.Sheets?.Elements<Sheet>().Count() ?? 0;
+                if (count == 0) return;
+                uint active = Math.Min(activeTab ?? 0U, (uint)(count - 1));
+                uint first = Math.Min(firstSheet ?? 0U, (uint)(count - 1));
+                if (active == 0U && first == 0U) return;
+                WorkbookView view = GetOrCreatePrimaryWorkbookViewForActiveWorksheet();
+                view.ActiveTab = active;
+                if (first != 0U) view.FirstSheet = first;
+                WorkbookRoot.Save();
+            });
         }
 
         /// <summary>Used after imports whose source workbook view is not carried over.</summary>

@@ -15,6 +15,7 @@ internal sealed class XlsbSheetStructure {
     private readonly XlsbWorkbook _source;
     private readonly uint? _activeTab;
     private readonly uint? _firstSheet;
+    private readonly BookViews? _views;
     internal IReadOnlyList<ExcelLegacySheetBindings.Binding> Bindings { get; }
     internal Dictionary<string, string> PartNames { get; } = new(StringComparer.Ordinal);
     internal Dictionary<string, string> NewCodeNames { get; } = new(StringComparer.Ordinal);
@@ -25,7 +26,8 @@ internal sealed class XlsbSheetStructure {
         _source = source; Bindings = document.NativeXlsbPreservation.ReadCurrent(document);
         // The workbook view's active and first tab, set by activation or by hiding the active sheet, are written over
         // the source view record; other view settings keep their source values.
-        WorkbookView? view = document.WorkbookRoot.GetFirstChild<BookViews>()?.GetFirstChild<WorkbookView>();
+        _views = document.WorkbookRoot.GetFirstChild<BookViews>();
+        WorkbookView? view = _views?.GetFirstChild<WorkbookView>();
         _activeTab = view?.ActiveTab?.Value;
         _firstSheet = view?.FirstSheet?.Value;
         if (Bindings.Count == 0 || Bindings.Count > 32767 || Bindings.Select(binding => binding.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != Bindings.Count)
@@ -105,6 +107,11 @@ internal sealed class XlsbSheetStructure {
         bool written = false;
         int bookViews = 0;
         foreach (var record in records) {
+            // BOOKVIEWS is optional and precedes the sheet bundles; add it when only the document has a view.
+            if (record.Type == 143 && bookViews == 0 && _views != null && (_activeTab.HasValue || _firstSheet.HasValue)) {
+                XlsbWorkbookViewWriter.Write(output, _views, bundles.Count);
+                bookViews++;
+            }
             if (record.Type == 156) {
                 if (!written) foreach (byte[] bundle in bundles) XlsbRecordWriter.Write(output, 156, bundle);
                 written = true; continue;

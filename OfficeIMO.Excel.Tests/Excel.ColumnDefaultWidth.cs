@@ -88,8 +88,8 @@ public partial class Excel {
         ExcelSheet copy = document.CopyWorksheet(original, "Copy");
         copy.SetDefaultColumnWidth(ExcelColumnWidth.Characters(20));
 
-        Assert.All(copy.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>(),
-            column => Assert.Equal(20D, column.Width!.Value));
+        Assert.Equal(new[] { (2U, 20D), (3U, 20D) }, copy.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>()
+            .Select(column => (column.Min!.Value, column.Width!.Value)).ToArray());
         copy.ClearColumnGroup(2, 3);
         Assert.Null(copy.WorksheetPart.Worksheet.GetFirstChild<Columns>());
     }
@@ -128,9 +128,26 @@ public partial class Excel {
 
             using var loaded = ExcelDocument.Load(path);
             Column column = loaded.Sheets[0].WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single();
-            Assert.Equal(255D, column.Width!.Value, 2);
+            Assert.Equal(255D, column.Width!.Value);
         } finally {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void DefaultWidthColumns_SurviveATransactionRollback() {
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue("Value");
+        sheet.GroupColumns(2, 3);
+
+        Assert.Throws<InvalidOperationException>(() => sheet.ApplyTransactionalMutation(
+            _ => throw new InvalidOperationException("rolled back"), new ExcelMutationPlanOptions(), CancellationToken.None));
+        sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(20));
+
+        Assert.Equal(new[] { (2U, 20D), (3U, 20D) }, sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>()
+            .Select(column => (column.Min!.Value, column.Width!.Value)).ToArray());
+        sheet.ClearColumnGroup(2, 3);
+        Assert.Null(sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>());
     }
 }

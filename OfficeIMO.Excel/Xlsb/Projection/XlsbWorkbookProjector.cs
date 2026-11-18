@@ -78,7 +78,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     }
                 }
 
-                // The workbook view is not projected, so the implicit first tab must not be a hidden sheet.
+                // Carry the source workbook view's active and first tab, then move it off a hidden sheet if needed.
+                document.ApplyImportedActiveTab(workbook.ActiveTab, workbook.FirstSheet);
                 document.EnsureActiveTabVisible();
                 relatedParts.ProjectTheme();
                 relatedParts.ProjectVba();
