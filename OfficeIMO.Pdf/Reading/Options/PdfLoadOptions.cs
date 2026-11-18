@@ -10,8 +10,9 @@ public sealed partial class PdfLoadOptions {
     internal static PdfLoadOptions Default => new PdfLoadOptions();
 
     /// <summary>
-    /// Creates strict parsing settings with bounded budgets for documents from outside. Single-object size and content
-    /// operations and operands keep tighter limits here than the defaults, which are sized for valid real-world files.
+    /// Creates strict parsing settings with bounded budgets for documents from outside. Single-object size and token
+    /// count, and content operations and operands keep tighter limits here than the defaults, which are sized for valid
+    /// real-world files.
     /// </summary>
     public static PdfLoadOptions UntrustedDefaults => new PdfLoadOptions {
         ParsingMode = PdfParsingMode.Strict,
@@ -22,6 +23,7 @@ public sealed partial class PdfLoadOptions {
             MaxDecodedStreamBytes = 64 * 1024 * 1024,
             MaxTotalDecodedStreamBytes = 128L * 1024L * 1024L,
             MaxObjectCharacters = 1_000_000,
+            MaxTokensPerObject = 100_000,
             MaxContentOperations = 1_000_000,
             MaxContentOperands = 1_000_000
         }

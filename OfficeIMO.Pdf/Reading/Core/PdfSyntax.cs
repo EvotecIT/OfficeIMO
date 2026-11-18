@@ -334,13 +334,15 @@ internal static partial class PdfSyntax {
             // Xref streams are never encrypted, but the object streams they reference can be.
             // Materialize compressed objects only after authentication and decryption so their
             // decoded bytes are charged exactly once and no encrypted payload is parsed as data.
-            ApplyCompressedXrefStreamEntries(map, pdf, text, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
+            ApplyCompressedXrefStreamEntries(map, pdf, text, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, ReportRelocatedCompressedObject, cancellationToken);
         } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
         }
         void ReportUnreadableCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
             "unreadable-indirect-object", "Compressed object content could not be read completely.", objectNumber);
+        void ReportRelocatedCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
+            "compressed-object-index-mismatch", "The cross-reference index of a compressed object does not match its object stream header; lenient parsing located the object by its number.", objectNumber);
         var unreadableObjects = new HashSet<int?>();
         foreach (PdfRepairDiagnostic diagnostic in repairDiagnostics) {
             cancellationToken.ThrowIfCancellationRequested();

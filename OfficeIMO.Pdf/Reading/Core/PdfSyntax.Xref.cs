@@ -401,7 +401,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable,
+    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable, Action<int> reportRelocated,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -477,7 +477,7 @@ internal static partial class PdfSyntax {
 
             int objectStreamNumber = (int)entry.Field1;
             int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, deferredScan, cancellationToken)) {
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, deferredScan, reportRelocated, cancellationToken)) {
                 // A deferred object passed the complete-syntax scan, so only eagerly parsed objects can be incomplete.
                 if (parsed.IsValueBuilt && parsed.Value.HasIncompleteSyntax) reportUnreadable(entry.ObjectNumber);
                 map[entry.ObjectNumber] = parsed;
@@ -821,6 +821,7 @@ internal static partial class PdfSyntax {
         out int objectStreamOffset,
         ObjectStreamHeaderMemo? headerMemo = null,
         DeferredObjectScan? deferredScan = null,
+        Action<int>? reportRelocated = null,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;
@@ -844,7 +845,15 @@ internal static partial class PdfSyntax {
             headerMemo?.Add(objectStream, data, n, first, pairs);
         }
         if (pairs[objectStreamIndex].Obj != expectedObjectNumber) {
-            return false;
+            // The object stream header, not the cross-reference index, names each object (ISO 32000-2 7.5.7). Some
+            // writers store indexes above 65,535 in a two-byte field, so they wrap; lenient reading locates the object
+            // by its number in the header instead.
+            if (reportRelocated is null ||
+                !TryFindObjectStreamIndex(pairs, expectedObjectNumber, headerMemo, out objectStreamIndex)) {
+                return false;
+            }
+
+            reportRelocated(expectedObjectNumber);
         }
 
         int start = first + pairs[objectStreamIndex].Off;
@@ -878,8 +887,35 @@ internal static partial class PdfSyntax {
 
     // Complete object-stream headers are retained only while this load applies compressed xref entries,
     // so entries that alternate between object streams parse each header once.
+    private static bool TryFindObjectStreamIndex(
+        List<(int Obj, int Off)> pairs,
+        int objectNumber,
+        ObjectStreamHeaderMemo? headerMemo,
+        out int index) {
+        Dictionary<int, int> indexes = headerMemo?.GetIndexes(pairs) ?? ObjectStreamHeaderMemo.CreateIndexes(pairs);
+        return indexes.TryGetValue(objectNumber, out index);
+    }
+
     private sealed class ObjectStreamHeaderMemo {
         private readonly Dictionary<PdfStream, (byte[] Data, int ObjectCount, int FirstObjectOffset, List<(int Obj, int Off)> Pairs)> _headers = new();
+        private readonly Dictionary<List<(int Obj, int Off)>, Dictionary<int, int>> _indexes = new();
+
+        // Built only when a cross-reference index disagrees with the header, then shared by that stream's other entries.
+        internal Dictionary<int, int> GetIndexes(List<(int Obj, int Off)> pairs) {
+            if (!_indexes.TryGetValue(pairs, out Dictionary<int, int>? indexes)) {
+                indexes = CreateIndexes(pairs);
+                _indexes[pairs] = indexes;
+            }
+
+            return indexes;
+        }
+
+        // ParsePairs rejects repeated object numbers, so each number has one index.
+        internal static Dictionary<int, int> CreateIndexes(List<(int Obj, int Off)> pairs) {
+            var indexes = new Dictionary<int, int>(pairs.Count);
+            for (int index = 0; index < pairs.Count; index++) indexes[pairs[index].Obj] = index;
+            return indexes;
+        }
 
         internal List<(int Obj, int Off)>? TryGet(PdfStream stream, byte[] data, int objectCount, int firstObjectOffset) =>
             _headers.TryGetValue(stream, out var header) &&

@@ -55,6 +55,22 @@ public class PdfDeferredObjectTests {
         Assert.Equal(7, strict.ObjectNumber);
     }
 
+    // Writers that store object stream indexes in a two-byte field wrap them above 65,535. The object stream header
+    // names every object, so the lenient reader finds each one there and reports the disagreement.
+    [Fact]
+    public void CompressedObjectsAreFoundByTheirHeaderNumberWhenTheXrefIndexDisagrees() {
+        byte[] pdf = BuildXrefStreamPdf(static (index, count) => count - 1 - index);
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.Equal("Deferred page", document.ExtractText().Trim());
+        Assert.Contains(document.RepairReport.Diagnostics, diagnostic =>
+            diagnostic.Code == "compressed-object-index-mismatch" && diagnostic.ObjectNumber == 1);
+        PdfParseException strict = Assert.Throws<PdfParseException>(() =>
+            PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
+        Assert.Equal("compressed-object-index-mismatch", strict.Code);
+    }
+
     [Fact]
     public void CompressedObjectLimitsAreEnforcedWhenTheDocumentOpens() {
         byte[] pdf = BuildXrefStreamPdf((6, "<< /Deep [[[[[[1]]]]]] >>"));
@@ -109,7 +125,10 @@ public class PdfDeferredObjectTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildXrefStreamPdf(params (int ObjectNumber, string Body)[] extraObjects) {
+    private static byte[] BuildXrefStreamPdf(params (int ObjectNumber, string Body)[] extraObjects) =>
+        BuildXrefStreamPdf(static (index, _) => index, extraObjects);
+
+    private static byte[] BuildXrefStreamPdf(Func<int, int, int> xrefIndex, params (int ObjectNumber, string Body)[] extraObjects) {
         var packed = new List<(int ObjectNumber, string Body)> { (1, Catalog), (2, Pages), (3, Page), (5, Font) };
         packed.AddRange(extraObjects);
 
@@ -138,7 +157,7 @@ public class PdfDeferredObjectTests {
         offsets[xrefObjectNumber] = (int)output.Position;
         var rows = new byte[size * 7];
         for (int index = 0; index < packed.Count; index++) {
-            WriteRow(rows, packed[index].ObjectNumber, 2, 10, index);
+            WriteRow(rows, packed[index].ObjectNumber, 2, 10, xrefIndex(index, packed.Count));
         }
         foreach (int objectNumber in new[] { 4, 10, xrefObjectNumber }) {
             WriteRow(rows, objectNumber, 1, offsets[objectNumber], 0);

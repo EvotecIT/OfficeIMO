@@ -90,7 +90,7 @@ public sealed partial class PdfReadPage {
             consumeWork: null,
             cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
         cancellationToken.ThrowIfCancellationRequested();
-        return TextLayoutEngine.EmitText(lines, TextLayoutEngine.DetectColumns(lines, GetPageSize().Width, opts), null);
+        return TextLayoutEngine.EmitText(lines, TextLayoutEngine.DetectColumns(lines, GetTextPageSize().Width, opts), null);
     }
 
     /// <summary>
@@ -106,6 +106,18 @@ public sealed partial class PdfReadPage {
         Guard.NotNull(geometry, nameof(geometry));
         PdfPageBox box = GetPageBoundaryBox(geometry);
         return (box.Width, box.Height);
+    }
+
+    /// <summary>
+    /// Page extent used to order and position extracted text. A CropBox that does not intersect the MediaBox leaves
+    /// no visible area to map, but the page's text is still content: it is laid out on the MediaBox instead.
+    /// Visual and interaction geometry keep refusing such pages.
+    /// </summary>
+    private (double Width, double Height) GetTextPageSize() {
+        PdfPageGeometry geometry = GetGeometry();
+        return geometry.HasEmptyEffectiveBoxIntersection && geometry.MediaBox is PdfPageBox mediaBox
+            ? (mediaBox.Width, mediaBox.Height)
+            : GetPageSize(geometry);
     }
 
     internal (double Width, double Height) GetVisualPageSize() {
@@ -265,7 +277,7 @@ public sealed partial class PdfReadPage {
         Dictionary<string, Func<byte[], double>> pageWidthProviders = pageFontResources.WidthProviders;
         Dictionary<string, PdfFontResource> pageFonts = pageFontResources.Fonts;
         var activeForms = new HashSet<PdfStream>();
-        double pageHeight = GetPageSize().Height;
+        double pageHeight = GetTextPageSize().Height;
         var pageContentBudget = new PageContentBudget(this, cancellationToken);
 
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);

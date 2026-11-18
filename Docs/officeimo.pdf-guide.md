@@ -2534,7 +2534,7 @@ Content streams have their own budgets in `PdfReadLimits`: operations and operan
 
 ### Read limits
 
-`PdfReadLimits` bounds the memory and work a document can demand. The defaults are sized so valid real-world files open, render and extract: a 6 MB inline image dictionary or a dense vector figure stays within them. `PdfLoadOptions.UntrustedDefaults` selects strict parsing and tighter limits for uploads and other files from outside your organization:
+`PdfReadLimits` bounds the memory and work a document can demand. The defaults are sized so valid real-world files open, render and extract: a 6 MB inline image dictionary, a dense vector figure or a structure tree with tens of thousands of entries in one array stays within them. `PdfLoadOptions.UntrustedDefaults` selects strict parsing and tighter limits for uploads and other files from outside your organization:
 
 | Limit | Default | `UntrustedDefaults` |
 | --- | ---: | ---: |
@@ -2544,6 +2544,7 @@ Content streams have their own budgets in `PdfReadLimits`: operations and operan
 | `MaxDecodedStreamBytes` | 256 MiB | 64 MiB |
 | `MaxTotalDecodedStreamBytes` | 512 MiB | 128 MiB |
 | `MaxObjectCharacters` | 16,000,000 | 1,000,000 |
+| `MaxTokensPerObject` | 1,000,000 | 100,000 |
 | `MaxContentOperations` | 16,000,000 | 1,000,000 |
 | `MaxContentOperands` | 16,000,000 | 1,000,000 |
 

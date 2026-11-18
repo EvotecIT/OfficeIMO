@@ -184,11 +184,14 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void ReadPage_FailsClosedWhenMediaAndCropBoxesDoNotIntersect() {
-        byte[] pdf = PdfPageGeometrySupport.BuildBoundaryIntersectionPdf("[0 0 100 100]", "[200 200 300 300]");
+        byte[] pdf = PdfPageGeometrySupport.BuildBoundaryIntersectionPdf("[0 0 100 100]", "[200 200 300 300]",
+            "BT /F1 12 Tf 10 50 Td (Outside the crop) Tj ET");
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(pdf).Pages);
 
         Assert.True(page.GetGeometry().HasEmptyEffectiveBoxIntersection);
         Assert.Throws<InvalidOperationException>(() => page.GetPageSize());
+        // The page's text is still content; plain extraction lays it out on the MediaBox.
+        Assert.Equal("Outside the crop", page.ExtractText().Trim());
     }
 
     [Fact]

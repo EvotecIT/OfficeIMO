@@ -7,6 +7,7 @@ public sealed partial class PdfReadLimits {
     internal const int DefaultMaxContentOperations = 16_000_000;
     internal const int DefaultMaxContentOperands = 16_000_000;
     internal const int DefaultMaxObjectCharacters = 16_000_000;
+    internal const int DefaultMaxTokensPerObject = 1_000_000;
     internal const int DefaultMaxContentNestingDepth = 128;
     internal const int DefaultMaxGraphicsStateDepth = 1_024;
     internal const int DefaultMaxPageContentBytes = 256 * 1024 * 1024;
@@ -73,8 +74,8 @@ public sealed partial class PdfReadLimits {
     /// <summary>Maximum characters tokenized from one object or dictionary. Default: 16,000,000.</summary>
     public int MaxObjectCharacters { get; init; } = DefaultMaxObjectCharacters;
 
-    /// <summary>Maximum syntax tokens accepted in one object or dictionary. Default: 100,000.</summary>
-    public int MaxTokensPerObject { get; init; } = 100_000;
+    /// <summary>Maximum syntax tokens accepted in one object or dictionary. Default: 1,000,000.</summary>
+    public int MaxTokensPerObject { get; init; } = DefaultMaxTokensPerObject;
 
     /// <summary>Maximum nested array/dictionary depth accepted by the object parser. Default: 128.</summary>
     public int MaxObjectNestingDepth { get; init; } = 128;

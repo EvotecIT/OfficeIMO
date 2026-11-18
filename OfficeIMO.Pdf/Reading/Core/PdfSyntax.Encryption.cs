@@ -22,7 +22,7 @@ internal static partial class PdfSyntax {
         byte[] fileId = ReadFirstFileId(map, trailerRaw, cancellationToken);
         bool supplied = options != null && options.Password != null;
         decryptor = PdfStandardSecurityHandler.Create(
-            encryptionDictionary,
+            ResolveEncryptionDictionaryReferences(map, encryptionDictionary, cancellationToken),
             fileId,
             options?.Password,
             supplied,
@@ -31,6 +31,60 @@ internal static partial class PdfSyntax {
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return true;
+    }
+
+    /// <summary>
+    /// Returns the encryption dictionary with indirect entry values, the /CF crypt filter dictionary and each crypt
+    /// filter dictionary resolved. ISO 32000-2 7.3.10 allows any of them to be indirect objects, and the security
+    /// handler reads them before the document's objects are decrypted.
+    /// </summary>
+    private static PdfDictionary ResolveEncryptionDictionaryReferences(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfDictionary encryptionDictionary,
+        CancellationToken cancellationToken) {
+        if (!ContainsReference(encryptionDictionary) &&
+            (encryptionDictionary.Get<PdfDictionary>("CF") is not PdfDictionary directFilters || !ContainsReference(directFilters))) {
+            return encryptionDictionary;
+        }
+
+        PdfDictionary resolved = ResolveEntries(encryptionDictionary);
+        if (resolved.Get<PdfDictionary>("CF") is PdfDictionary filters) {
+            PdfDictionary resolvedFilters = ResolveEntries(filters);
+            foreach (string name in resolvedFilters.Items.Keys.ToList()) {
+                if (resolvedFilters.Items[name] is PdfDictionary filter && ContainsReference(filter)) {
+                    resolvedFilters.Items[name] = ResolveEntries(filter);
+                }
+            }
+
+            resolved.Items["CF"] = resolvedFilters;
+        }
+
+        return resolved;
+
+        static bool ContainsReference(PdfDictionary dictionary) {
+            foreach (PdfObject value in dictionary.Items.Values) {
+                if (value is PdfReference) return true;
+            }
+
+            return false;
+        }
+
+        PdfDictionary ResolveEntries(PdfDictionary source) {
+            var copy = new PdfDictionary(source.Items.Count);
+            foreach (KeyValuePair<string, PdfObject> entry in source.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
+                PdfObject value = entry.Value;
+                if (value is PdfReference &&
+                    PdfObjectLookup.ResolveChainCancellable(map, value, cancellationToken) is PdfObject target &&
+                    target is not PdfStream) {
+                    value = target;
+                }
+
+                copy.Items[entry.Key] = value;
+            }
+
+            return copy;
+        }
     }
 
     /// <summary>

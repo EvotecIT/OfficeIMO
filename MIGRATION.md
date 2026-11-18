@@ -5348,6 +5348,13 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## PDF objects can hold more tokens by default
+
+`PdfReadLimits.MaxTokensPerObject` now defaults to 1,000,000, up from 100,000, so valid files
+with one large array, such as a structure parent tree with tens of thousands of entries, open.
+`PdfLoadOptions.UntrustedDefaults` keeps 100,000; load files from outside your organization with
+it, or set the limit explicitly if you relied on the previous default to reject such files.
+
 ## Archive limits for Visio stencils and XLSB, and link checks
 
 `VisioAssets.ListMasters`, `LoadMasterContents` and `LoadVisualContext`, and the
