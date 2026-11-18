@@ -24,7 +24,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ClearInlineLineJustification(line);
             if (!JustifiesInlineLine(lines, lineIndex, paragraphStyle)) continue;
             if (unresolvedRightToLeft) {
-                limits |= JustificationLimit.RightToLeftWithInlineBoxes;
+                // Only text that asks for justification is left unjustified; text-justify: none is not.
+                if (line.Segments.Any(static segment => AllowsJustification(segment))) limits |= JustificationLimit.RightToLeftWithInlineBoxes;
                 continue;
             }
             double extra = line.ResolveAvailableWidth(width) - line.Width;
@@ -40,7 +41,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             for (int index = first + 1; index < last; index++) opportunities += CountJustificationOpportunities(line.Segments[index]);
             if (opportunities == 0) {
                 // CJK text has no word separators; browsers justify it between characters.
-                if (line.Segments.Any(static segment => ContainsCjkText(segment.Text))) limits |= JustificationLimit.CjkWithoutSeparators;
+                if (line.Segments.Any(static segment => AllowsJustification(segment) && ContainsCjkText(segment.Text)))
+                    limits |= JustificationLimit.CjkWithoutSeparators;
                 continue;
             }
 
@@ -65,6 +67,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         InterCharacter = 4,
         CjkWithoutSeparators = 2
     }
+
+    // text-justify applies to the text it is set on, so text with none is not justified and loses nothing.
+    private static bool AllowsJustification(InlineSegment segment) =>
+        !segment.Run.Style.TextJustifyNone && IsJustificationContent(segment);
 
     private static bool ContainsCjkText(string text) {
         foreach (char value in text) {

@@ -116,6 +116,9 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<p style='text-align:justify;text-justify:inter-character'>Short</p>")]
     [InlineData("<table><tr><td style='vertical-align:middle'>cell</td></tr></table>")]
     [InlineData("<div style='vertical-align:bottom'>Blocks ignore vertical-align.</div>")]
+    // Text with text-justify: none is not justified, so leaving it at start loses nothing.
+    [InlineData("<p style='text-align:justify;text-justify:none;width:150px;margin:0'>漢字の文章は単語の間に空白がないので文字の間で両端揃えにする必要があります。</p>")]
+    [InlineData("<p dir='rtl' style='text-align:justify;text-justify:none;width:150px;margin:0'>שלום <span style='display:inline-block;width:5px;height:5px'></span> one two three four five six seven eight</p>")]
     [InlineData("<div style='display:flex'><span style='vertical-align:middle'>Flex item</span></div>")]
     [InlineData("<div style='display:grid'><span style='vertical-align:text-top'>Grid item</span></div>")]
     public void HtmlRenderer_DoesNotReportKeywordsWhereNothingIsApproximated(string html) {
