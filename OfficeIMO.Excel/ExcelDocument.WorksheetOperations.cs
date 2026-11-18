@@ -70,6 +70,7 @@ namespace OfficeIMO.Excel {
                 WorksheetPart sourcePart = sourceSheet.WorksheetPart;
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
+                CarryDefaultWidthColumns(this, sourcePart.Worksheet, copiedPart.Worksheet);
                 CopyRelationshipBackedWorksheetFeatures(this, sourceSheet, copiedPart);
                 RemoveUnsupportedRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);

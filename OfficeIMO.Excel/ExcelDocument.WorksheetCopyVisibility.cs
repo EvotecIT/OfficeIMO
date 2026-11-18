@@ -11,6 +11,24 @@ namespace OfficeIMO.Excel {
         internal System.Runtime.CompilerServices.ConditionalWeakTable<Column, object> DefaultWidthColumns { get; } = new();
 
         /// <summary>
+        /// Registers the copies of library-created default-width columns after a worksheet is cloned, so the copy keeps
+        /// following the default width. Columns are paired by position and range; a mismatch registers nothing.
+        /// </summary>
+        internal void CarryDefaultWidthColumns(ExcelDocument source, Worksheet? sourceWorksheet, Worksheet? copiedWorksheet) {
+            List<Column>? sourceColumns = sourceWorksheet?.GetFirstChild<Columns>()?.Elements<Column>().ToList();
+            List<Column>? copiedColumns = copiedWorksheet?.GetFirstChild<Columns>()?.Elements<Column>().ToList();
+            if (sourceColumns == null || copiedColumns == null || sourceColumns.Count != copiedColumns.Count) return;
+            for (int index = 0; index < sourceColumns.Count; index++) {
+                Column original = sourceColumns[index], copy = copiedColumns[index];
+                if (source.DefaultWidthColumns.TryGetValue(original, out _)
+                    && original.Min?.Value == copy.Min?.Value && original.Max?.Value == copy.Max?.Value
+                    && !DefaultWidthColumns.TryGetValue(copy, out _)) {
+                    DefaultWidthColumns.Add(copy, copy);
+                }
+            }
+        }
+
+        /// <summary>
         /// Gives a copied worksheet the hidden or very hidden state of its source. The state lives on the workbook's
         /// <c>sheet</c> entry, not in the worksheet part, so a copy of the part alone is always visible.
         /// </summary>

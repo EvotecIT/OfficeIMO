@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
         internal ExcelSheet CopyTemplateWorksheet(string sheetName) {
             ExcelSheet target = _excelDocument.AddSheet(sheetName, ExcelSheetNameValidationMode.Sanitize);
             Worksheet worksheet = (Worksheet)WorksheetRoot.CloneNode(true);
+            _excelDocument.CarryDefaultWidthColumns(_excelDocument, WorksheetRoot, worksheet);
             RemoveRelationshipBackedTemplateCopyElements(worksheet);
             target.WorksheetRoot = worksheet;
             RewriteTemplateWorksheetLocalReferences(target.WorksheetRoot, Name, target.Name);

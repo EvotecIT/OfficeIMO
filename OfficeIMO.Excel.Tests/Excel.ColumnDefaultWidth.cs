@@ -77,4 +77,20 @@ public partial class Excel {
         Assert.Equal(defaultWidth, columns[0].Width!.Value);
         Assert.True(columns[1].Phonetic!.Value);
     }
+
+    [Fact]
+    public void CopiedWorksheets_KeepTheirDefaultWidthColumns() {
+        using var document = ExcelDocument.Create();
+        ExcelSheet original = document.AddSheet("Data");
+        original.Cell(1, 1).SetValue("Value");
+        original.GroupColumns(2, 3);
+
+        ExcelSheet copy = document.CopyWorksheet(original, "Copy");
+        copy.SetDefaultColumnWidth(ExcelColumnWidth.Characters(20));
+
+        Assert.All(copy.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>(),
+            column => Assert.Equal(20D, column.Width!.Value));
+        copy.ClearColumnGroup(2, 3);
+        Assert.Null(copy.WorksheetPart.Worksheet.GetFirstChild<Columns>());
+    }
 }

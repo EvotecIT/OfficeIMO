@@ -18,6 +18,7 @@ namespace OfficeIMO.Excel {
 
             AdoptSourceWorkbookIndexParts(sourceDocument);
             WorksheetPart copiedPart = WorkbookPartRoot.AddPart(sourcePart);
+            CarryDefaultWidthColumns(sourceDocument, sourcePart.Worksheet, copiedPart.Worksheet);
             IReadOnlyDictionary<string, string> tableNameMap = BuildIdentityTableNameMap(copiedPart);
             Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
             CopyWorksheetVisibility(sourceSheet.SheetElement, sheet);
