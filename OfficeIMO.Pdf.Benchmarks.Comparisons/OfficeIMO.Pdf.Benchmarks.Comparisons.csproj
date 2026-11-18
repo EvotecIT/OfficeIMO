@@ -65,8 +65,8 @@
     The vendor releases often; keep both packages pinned to the same reviewed version.
   -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="RecursiveAI.OnePdf" Version="1.22.0" />
-    <PackageReference Include="RecursiveAI.OnePdf.Layout" Version="1.22.0" />
+    <PackageReference Include="RecursiveAI.OnePdf" Version="1.23.0" />
+    <PackageReference Include="RecursiveAI.OnePdf.Layout" Version="1.23.0" />
   </ItemGroup>
 
   <!--

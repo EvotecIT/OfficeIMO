@@ -335,6 +335,18 @@ foreach ($tag in @(
         throw "$($tag.Path) no longer marks its restricted library cases ($($tag.Pattern))."
     }
 }
+# Every library category in benchmark code must name a library the policy declares; an undeclared one would be
+# treated as restricted and silently left out of the run.
+$libraryCategoryPattern = 'BenchmarkCategory\(\s*(?:"[Ll]ibrary:(?<id>[^"]+)"|BenchmarkLibrarySelection\.CategoryPrefix\s*\+\s*"(?<id>[^"]+)")\s*\)'
+$taggedLibraries = @(Get-ChildItem -LiteralPath $repositoryRoot -Recurse -File -Filter '*.cs' |
+        Where-Object { $_.FullName -notmatch '[\\/](bin|obj|\.git)[\\/]' -and $_.Directory.FullName -match 'Benchmark' } |
+        Select-String -Pattern $libraryCategoryPattern -AllMatches |
+        ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups['id'].Value } | Sort-Object -Unique)
+foreach ($taggedLibrary in $taggedLibraries) {
+    if (@($policy.libraries | Where-Object { $_.id -eq $taggedLibrary }).Count -ne 1) {
+        throw "Benchmark category 'library:$taggedLibrary' names a library id that Build/benchmark-libraries.json does not declare."
+    }
+}
 # The measured process must start only after restricted-library settings are applied: the enabled list is set and
 # values belonging to libraries left out of the run are cleared, in the same try block, before dotnet launches.
 $runnerAst = [System.Management.Automation.Language.Parser]::ParseFile($runner, [ref] $null, [ref] $null)

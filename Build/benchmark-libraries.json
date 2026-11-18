@@ -277,6 +277,60 @@
       "reason": "MIT or Apache-2.0."
     },
     {
+      "id": "onepdf",
+      "name": "OnePDF",
+      "packages": [ { "id": "RecursiveAI.OnePdf", "version": "1.23.0" }, { "id": "RecursiveAI.OnePdf.Layout", "version": "1.23.0" } ],
+      "license": { "expression": "(MIT OR Apache-2.0) AND OFL-1.1", "url": "https://licenses.nuget.org/(MIT%20OR%20Apache-2.0)%20AND%20OFL-1.1" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT or Apache-2.0. OnePdf.Layout brings in RecursiveAI.OnePdf.Fonts, whose bundled fonts are OFL-1.1. Neither licence restricts benchmarking or publishing results."
+    },
+    {
+      "id": "onedocument",
+      "name": "OneDocument",
+      "packages": [ { "id": "RecursiveAI.OneDocument.Documents", "version": "1.0.0" }, { "id": "RecursiveAI.OneDocument.Spreadsheets", "version": "1.0.0" }, { "id": "RecursiveAI.OneDocument.Presentations", "version": "1.0.0" } ],
+      "license": { "expression": "MIT OR Apache-2.0", "url": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT or Apache-2.0; no restriction on benchmarking or publishing results."
+    },
+    {
+      "id": "onerender",
+      "name": "OneRender",
+      "packages": [ { "id": "RecursiveAI.OneRender", "version": "1.4.0" }, { "id": "RecursiveAI.OneRender.Pdf", "version": "1.4.0" } ],
+      "license": { "expression": "(MIT OR Apache-2.0) AND OFL-1.1", "url": "https://licenses.nuget.org/(MIT%20OR%20Apache-2.0)%20AND%20OFL-1.1" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT or Apache-2.0. RecursiveAI.OneRender.Fonts, which the PDF writer brings in, ships OFL-1.1 fonts. Neither licence restricts benchmarking or publishing results."
+    },
+    {
+      "id": "oneimage",
+      "name": "OneImage",
+      "packages": [ { "id": "RecursiveAI.OneImage", "version": "1.11.1" } ],
+      "license": { "expression": "MIT OR Apache-2.0", "url": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT or Apache-2.0; no restriction on benchmarking or publishing results."
+    },
+    {
+      "id": "onearchive",
+      "name": "OneArchive",
+      "packages": [ { "id": "RecursiveAI.OneArchive", "version": "1.2.0" } ],
+      "license": { "expression": "MIT OR Apache-2.0", "url": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT or Apache-2.0; no restriction on benchmarking or publishing results."
+    },
+    {
+      "id": "onemail",
+      "name": "OneMail",
+      "packages": [ { "id": "RecursiveAI.OneMail", "version": "1.0.1" } ],
+      "license": { "expression": "MIT OR Apache-2.0", "url": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT or Apache-2.0; no restriction on benchmarking or publishing results."
+    },
+    {
       "id": "tomlyn",
       "name": "Tomlyn",
       "packages": [ { "id": "Tomlyn", "version": "2.11.1" } ],
