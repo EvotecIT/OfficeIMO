@@ -56,6 +56,21 @@ foreach ($sourceFile in Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'S
     }
 }
 
+# The one-line synopsis comes from the help shipped with the built module, so the
+# website lists each command with the same summary Get-Help prints.
+$helpPath = Join-Path (Split-Path -Parent $ManifestPath) "en-US/$moduleName-help.xml"
+[xml] $help = Get-Content -LiteralPath $helpPath -Raw -Encoding UTF8
+$synopsisByCommand = @{}
+foreach ($helpCommand in @($help.helpItems.command)) {
+    $synopsis = (@($helpCommand.details.description.para) | ForEach-Object { ([string] $_).Trim() } |
+        Where-Object { $_ }) -join ' '
+    $synopsisByCommand[[string] $helpCommand.details.name] = $synopsis
+}
+$missingSynopsis = @($expectedCommands | Where-Object { [string]::IsNullOrWhiteSpace($synopsisByCommand[$_]) })
+if ($missingSynopsis.Count -gt 0) {
+    throw "The built module help has no synopsis for: $($missingSynopsis -join ', ')"
+}
+
 Remove-Module -Name $moduleName -Force -ErrorAction SilentlyContinue
 try {
     Import-Module $ManifestPath -Force -ErrorAction Stop | Out-Null
@@ -103,6 +118,7 @@ try {
         $entry = [ordered]@{
             name = $commandName
             kind = 'Cmdlet'
+            synopsis = $synopsisByCommand[$commandName]
             aliases = @(@($aliasesByTarget[$commandName]) + $declaredAliases |
                 Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
                 Sort-Object -Unique)

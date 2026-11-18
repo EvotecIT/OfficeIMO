@@ -1,4 +1,5 @@
 // Turns each [data-surface-explorer] list of groups into a tablist with one visible panel,
+// adds a command finder over the PowerShell command lists,
 // and trims the [data-surface-proof] script to the height of its document.
 // Without this script every group stays listed, so the page is complete at rest.
 (function () {
@@ -35,6 +36,70 @@
     tablist.hidden = false;
     root.classList.add("is-enhanced");
     select(start, false);
+    enhanceFilter(root, tabs, panels, select);
+  }
+  // The finder narrows every family to the commands whose name, aliases or synopsis contain all typed words.
+  // Clearing it restores the tab that was selected before.
+  function enhanceFilter(root, tabs, panels, select) {
+    var box = root.querySelector("[data-ps-filter]");
+    var input = box && box.querySelector("input");
+    var status = box && box.querySelector(".imo-ps-filter__status");
+    if (!input) return;
+    var idle = status.textContent;
+    var rows = Array.prototype.slice.call(root.querySelectorAll("[data-ps-command]")).map(function (row) {
+      return { el: row, text: row.textContent.replace(/\s+/g, " ").toLowerCase() };
+    });
+    var groups = Array.prototype.slice.call(root.querySelectorAll("[data-ps-group]"));
+    var lists = Array.prototype.slice.call(root.querySelectorAll("[data-ps-commands]"));
+    var counts = panels.map(function (panel) {
+      var small = panel.querySelector("h3 small");
+      return { el: small, text: small ? small.textContent : "" };
+    });
+    var opened = null;
+    var selected = 0;
+    function apply() {
+      var words = input.value.toLowerCase().trim().split(/\s+/).filter(Boolean);
+      var filtering = words.length > 0;
+      if (filtering && !opened) {
+        opened = lists.map(function (list) { return list.open; });
+        tabs.forEach(function (tab, i) { if (tab.getAttribute("aria-selected") === "true") selected = i; });
+        root.classList.add("is-filtering");
+      }
+      if (!filtering) {
+        if (!opened) return;
+        rows.forEach(function (row) { row.el.hidden = false; });
+        groups.forEach(function (group) { group.hidden = false; });
+        lists.forEach(function (list, i) { list.open = opened[i]; });
+        counts.forEach(function (count) { if (count.el) count.el.textContent = count.text; });
+        opened = null;
+        root.classList.remove("is-filtering");
+        select(selected, false);
+        status.textContent = idle;
+        return;
+      }
+      rows.forEach(function (row) {
+        row.el.hidden = !words.every(function (word) { return row.text.indexOf(word) !== -1; });
+      });
+      groups.forEach(function (group) { group.hidden = !group.querySelector("[data-ps-command]:not([hidden])"); });
+      var total = 0;
+      var families = 0;
+      panels.forEach(function (panel, i) {
+        var found = panel.querySelectorAll("[data-ps-command]:not([hidden])").length;
+        panel.hidden = found === 0;
+        var list = panel.querySelector("[data-ps-commands]");
+        if (list) list.open = true;
+        if (counts[i].el) counts[i].el.textContent = found + " of " + counts[i].text;
+        total += found;
+        if (found) families++;
+      });
+      status.textContent = total === 0 ? "No command matches “" + input.value.trim() + "”." :
+        total + (total === 1 ? " command" : " commands") + " in " + families + (families === 1 ? " family" : " families") + " match.";
+    }
+    input.addEventListener("input", apply);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && input.value) { e.preventDefault(); input.value = ""; apply(); }
+    });
+    box.hidden = false;
   }
   // The proof script is complete at rest. With script it is trimmed to the height of the document
   // beside it, and the button expands it in place rather than scrolling inside a box.
