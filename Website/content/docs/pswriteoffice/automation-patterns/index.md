@@ -52,7 +52,7 @@ Use `-NoClobber` to preserve an existing destination or `-AutoRename` for anothe
 
 ## Work with native document families
 
-Project tasks, Access rows and EPUB chapters accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/d41c55f9fcc4e869f97befb01501aa2125f12631/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.
+Project tasks, Access rows and EPUB chapters accept ordinary PowerShell parameters and object pipelines. The [native document example](https://github.com/EvotecIT/OfficeIMO/blob/1c687f2254a745db6b17a68cdb2e157a5b8d00f5/PowerShell/PSWriteOffice/Examples/Workflows/Example-NativeDocumentFamilies.ps1) creates and reads these artifacts without constructing .NET option objects.
 
 - Use `New-OfficeProject`, task/resource/assignment commands and `Invoke-OfficeProjectSchedule` to prepare a schedule. XML preserves the supported scheduling model; native MPP saves assess generation-specific loss. Inspect `-ReportVariable` and opt into `-AllowLoss` only after reviewing the reported reductions.
 - Use `New-OfficeAccess` and table/column/row commands for a native MDB or ACCDB table database. The file operations remain inert: they do not start ACE, run SQL, or execute database code.
@@ -60,4 +60,4 @@ Project tasks, Access rows and EPUB chapters accept ordinary PowerShell paramete
 
 ## Find exact parameters
 
-The [command reference](/api/powershell/) is the authoritative parameter contract. The [examples](https://github.com/EvotecIT/OfficeIMO/tree/d41c55f9fcc4e869f97befb01501aa2125f12631/PowerShell/PSWriteOffice/Examples) demonstrate complete job shapes. Pin the module version in production automation and review release notes before changing that pin.
+The [command reference](/api/powershell/) is the authoritative parameter contract. The [examples](https://github.com/EvotecIT/OfficeIMO/tree/1c687f2254a745db6b17a68cdb2e157a5b8d00f5/PowerShell/PSWriteOffice/Examples) demonstrate complete job shapes. Pin the module version in production automation and review release notes before changing that pin.

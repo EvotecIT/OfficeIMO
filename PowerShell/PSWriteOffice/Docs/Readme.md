@@ -1028,7 +1028,7 @@ Creates native XFDF field/value limits and appearance behavior for Import-Office
 Creates native semantic or positioned PDF-to-HTML export settings.
 
 ### [New-OfficePdfImageOptions](New-OfficePdfImageOptions.md)
-Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.
+Creates discoverable thumbnail and rendering settings for Export-OfficeDocumentImage.
 
 ### [New-OfficePdfInteractionOptions](New-OfficePdfInteractionOptions.md)
 Creates native region limits and invisible-text policy for Get-OfficePdfInteractionMap.
@@ -1070,7 +1070,7 @@ Creates a themed presentation, returning a live document or saving a completed c
 Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.
 
 ### [New-OfficePowerPointImageOptions](New-OfficePowerPointImageOptions.md)
-Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
+Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.
 
 ### [New-OfficePowerPointInspectionOptions](New-OfficePowerPointInspectionOptions.md)
 Chooses native presentation inspection reports without changing a document.
@@ -1097,10 +1097,10 @@ Creates native WordHtmlExportOptions settings for document operations.
 Creates native RtfMarkdownExportOptions settings for document operations.
 
 ### [New-OfficeRtfPdfOptions](New-OfficeRtfPdfOptions.md)
-Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.
 
 ### [New-OfficeTextPdfOptions](New-OfficeTextPdfOptions.md)
-Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
+Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.
 
 ### [New-OfficeToml](New-OfficeToml.md)
 Creates a live TOML document, or atomically publishes a completed content block.

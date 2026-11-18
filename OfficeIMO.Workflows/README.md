@@ -1639,7 +1639,7 @@ Per-document defaults are 64 MiB input and 256 MiB output; concurrency accepts 1
 
 `IProgress<OfficeBatchItemReport>` callbacks can arrive concurrently; consume or stream them without retaining a whole inventory. The result contains bounded counts. Checkpoints retain up to 32 non-information diagnostics, including source, loss kind and location, and report truncation. Changing the XML-part budget invalidates reuse for routes governed by that budget; existing artifacts remain protected. A host can supply `PublicationGuard` to protect output and checkpoint destinations. Conversion completion retains each adapter's fidelity limits and does not prove exact Microsoft Office pagination.
 
-Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Export-OfficeDocumentPdf -InputDirectory ... -OutputDirectory ...` or selected file pipelines on PowerShell 7.4 or newer.
+Studio exposes **Convert → Batch PDF export**. The CLI uses `officeimo workflow batch`; PSWriteOffice uses `Convert-OfficeDocument -Path <folder> -To Pdf -OutputDirectory ...` (add `-Recurse` or `-Extension` to choose files) or selected file pipelines on PowerShell 7.4 or newer.
 
 ## Email evidence and conversation dossiers
 

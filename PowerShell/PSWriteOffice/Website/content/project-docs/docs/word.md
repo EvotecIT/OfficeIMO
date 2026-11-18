@@ -4,7 +4,7 @@ description: "Create, inspect, update, review, merge, protect, and convert DOCX 
 layout: docs
 ---
 
-The Word family covers complete report creation and targeted updates to existing DOCX files. Its 93 exported commands include sections, paragraphs, text runs, lists, tables, images, charts, fields, links, headers and footers, notes, content controls, review, protection, merging, mail merge, and conversion.
+The Word family covers complete report creation and targeted updates to existing DOCX files. Its 80 exported commands include sections, paragraphs, text runs, lists, tables, images, charts, fields, links, headers and footers, notes, content controls, review, mail merge, and conversion settings. Combining whole documents and protecting them are cross-format operations: `Merge-OfficeDocument` and `Protect-OfficeDocument`.
 
 ## Build a report
 

@@ -391,3 +391,59 @@ a.imo-studio-state:hover, a.imo-studio-state:focus-visible { background: color-m
 @media (max-width: 640px) { .imo-surface-explorer__options > div { grid-template-columns: minmax(0, 1fr); } }
 .imo-surface-explorer__formats { display: grid; gap: 4px; margin: 0; color: var(--imo-text-muted); font-size: .84rem; line-height: 1.55; }
 .imo-surface-explorer__formats b { color: var(--imo-text-secondary); font-weight: 650; }
+
+/* PowerShell command list: every command of a family, grouped by task, inside a native disclosure. */
+.imo-ps-commands { margin-top: .3rem; border: 1px solid var(--imo-border); border-radius: 10px; background: var(--imo-bg-alt); }
+.imo-ps-commands > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 12px 16px 12px 40px; position: relative; color: var(--imo-text); font-weight: 650; font-size: .95rem; cursor: pointer; list-style: none; border-radius: 10px; }
+.imo-ps-commands > summary::-webkit-details-marker { display: none; }
+.imo-ps-commands > summary::before { content: ""; position: absolute; left: 18px; top: 18px; width: 8px; height: 8px; border-right: 2px solid var(--imo-product, var(--imo-accent)); border-bottom: 2px solid var(--imo-product, var(--imo-accent)); transform: rotate(-45deg); transition: transform .15s ease; }
+.imo-ps-commands[open] > summary::before { transform: rotate(45deg); top: 15px; }
+.imo-ps-commands > summary:hover { background: color-mix(in srgb, var(--imo-product, var(--imo-accent)) 6%, transparent); }
+.imo-ps-commands > summary:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
+.imo-ps-commands__less, .imo-ps-commands[open] .imo-ps-commands__more { display: none; }
+.imo-ps-commands[open] .imo-ps-commands__less { display: inline; }
+.imo-ps-commands__tally { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--imo-text-muted); font-size: .78rem; font-weight: 500; }
+.imo-ps-commands__tally i { font-style: normal; white-space: nowrap; }
+.imo-ps-commands__tally b { margin-left: 2px; color: var(--imo-text-secondary); font: 600 .74rem/1 var(--imo-font-mono); }
+.imo-ps-commands[open] .imo-ps-commands__tally { display: none; }
+.imo-ps-commands__group { padding: 4px 16px 14px; }
+.imo-ps-commands__group + .imo-ps-commands__group { border-top: 1px solid var(--imo-border); padding-top: 14px; }
+.imo-ps-commands__group h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; color: var(--imo-text-secondary); font: 700 .74rem/1.4 var(--imo-font-body); letter-spacing: .08em; text-transform: uppercase; }
+.imo-ps-commands__group h4 small { color: var(--imo-text-muted); font: 600 .72rem/1 var(--imo-font-mono); letter-spacing: 0; }
+.imo-ps-commands__group ul { display: grid; margin: 0; padding: 0; list-style: none; }
+.imo-ps-commands__group li { display: grid; grid-template-columns: minmax(0, 21rem) minmax(0, 1fr); gap: 2px 20px; align-items: baseline; padding: 7px 0; border-top: 1px dashed color-mix(in srgb, var(--imo-border) 80%, transparent); }
+.imo-ps-commands__group li:first-child { border-top: 0; }
+.imo-ps-commands__group li > p { margin: 0; color: var(--imo-text-secondary); font-size: .88rem; line-height: 1.5; }
+.imo-ps-commands__name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }
+.imo-ps-commands__name a { min-width: 0; text-decoration: none; }
+.imo-surface-explorer .imo-ps-commands__name a code { padding: 0; border: 0; background: none; color: var(--imo-text); font: 600 .84rem/1.5 var(--imo-font-mono); overflow-wrap: anywhere; }
+.imo-ps-commands__name a:hover code { color: var(--imo-product, var(--imo-accent)); text-decoration: underline; text-underline-offset: 3px; }
+.imo-ps-commands__aliases { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.imo-surface-explorer .imo-ps-commands__aliases code { padding: 1px 6px; border: 1px solid color-mix(in srgb, var(--imo-product, var(--imo-accent)) 35%, var(--imo-border)); border-radius: 999px; background: color-mix(in srgb, var(--imo-product, var(--imo-accent)) 8%, var(--imo-surface)); color: var(--imo-text-secondary); font: 500 .72rem/1.5 var(--imo-font-mono); }
+@media (max-width: 760px) {
+  .imo-ps-commands__group li { grid-template-columns: minmax(0, 1fr); }
+  .imo-ps-commands > summary { padding-right: 12px; }
+  .imo-ps-commands__group { padding-inline: 12px; }
+}
+/* Many PowerShell families: on a phone the family tabs scroll sideways instead of filling the screen. */
+@media (max-width: 640px) {
+  .imo-surface-explorer:has([data-ps-filter]) .imo-surface-explorer__tabs { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+}
+
+/* Command finder. Hidden without script; with a query every family shows only its matching commands. */
+.imo-ps-filter { display: grid; gap: 6px; max-width: 560px; margin: 0 0 1rem; }
+.imo-ps-filter[hidden] { display: none; }
+.imo-ps-filter label { color: var(--imo-text-secondary); font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.imo-ps-filter__field { display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 1px solid var(--imo-border-strong, var(--imo-border)); border-radius: 10px; background: var(--imo-surface); color: var(--imo-text-muted); transition: border-color .15s ease, box-shadow .15s ease; }
+.imo-ps-filter__field:focus-within { border-color: var(--imo-product, var(--imo-accent)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--imo-product, var(--imo-accent)) 20%, transparent); }
+.imo-ps-filter__field input { flex: 1; min-width: 0; padding: 11px 0; border: 0; outline: 0; background: none; color: var(--imo-text); font: 500 .95rem/1.3 var(--imo-font-body); }
+.imo-ps-filter__field input::placeholder { color: var(--imo-text-muted); }
+@media (forced-colors: active) { .imo-ps-filter__field:focus-within { outline: 2px solid Highlight; outline-offset: 2px; } }
+.imo-ps-filter__status { margin: 0; color: var(--imo-text-muted); font-size: .84rem; }
+.imo-surface-explorer.is-filtering [data-ps-intro], .imo-surface-explorer.is-filtering .imo-ps-commands > summary { display: none; }
+.imo-surface-explorer.is-filtering .imo-surface-explorer__tabs { display: none; }
+.imo-surface-explorer.is-filtering .imo-surface-explorer__panel + .imo-surface-explorer__panel:not([hidden]) { border-top: 1px solid var(--imo-border); }
+.imo-surface-explorer.is-filtering .imo-ps-commands { border: 0; background: none; }
+.imo-surface-explorer.is-filtering .imo-ps-commands__group { padding-inline: 0; }
+.imo-surface-explorer.is-filtering .imo-ps-commands__group h4 small { display: none; }
+.imo-surface-explorer [data-ps-command][hidden], .imo-surface-explorer [data-ps-group][hidden] { display: none; }
