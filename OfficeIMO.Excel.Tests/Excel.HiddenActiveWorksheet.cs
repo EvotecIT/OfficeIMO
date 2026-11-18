@@ -379,4 +379,36 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".xlsb")]
+    [InlineData(".xls")]
+    public void ReorderingWorksheets_KeepsTheActiveSheet(string extension) {
+        string directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO.ReorderActive.{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try {
+            // Start from an XLSB file so the native workbook view is carried through the XLSB rewrite as well.
+            string source = Path.Combine(directory, "source.xlsb");
+            using (var created = ExcelDocument.Create(source)) {
+                foreach (string name in new[] { "A", "B", "C" }) created.AddSheet(name).Cell(1, 1).SetValue(name);
+                created.SetActiveWorksheet(2);
+                created.Save();
+            }
+
+            string path = Path.Combine(directory, "result" + extension);
+            using (var loaded = ExcelDocument.Load(source)) {
+                loaded.ReorderWorksheet("C", 0);
+                Assert.Equal("C", loaded.ActiveWorksheet!.Name);
+                loaded.Save(path);
+            }
+
+            if (extension == ".xlsb") Assert.Equal(new[] { 0U }, ReadXlsbActiveTabs(path));
+            using var reloaded = ExcelDocument.Load(path);
+            Assert.Equal(new[] { "C", "A", "B" }, reloaded.Sheets.Select(sheet => sheet.Name).ToArray());
+            Assert.Equal("C", reloaded.ActiveWorksheet!.Name);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }

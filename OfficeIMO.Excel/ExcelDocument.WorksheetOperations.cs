@@ -197,7 +197,14 @@ namespace OfficeIMO.Excel {
                     sheets.InsertBefore(target, orderedSheets[targetIndex]);
                 }
 
-                ReindexLocalNamesAfterSheetReorder(originalOrder, sheets.Elements<Sheet>().ToArray());
+                Sheet[] newOrder = sheets.Elements<Sheet>().ToArray();
+                ReindexLocalNamesAfterSheetReorder(originalOrder, newOrder);
+                // Workbook views name tabs by position: keep them on the same sheets.
+                uint Reindex(uint tab) => tab < originalOrder.Length ? (uint)Array.IndexOf(newOrder, originalOrder[tab]) : tab;
+                foreach (WorkbookView view in WorkbookRoot.GetFirstChild<BookViews>()?.Elements<WorkbookView>() ?? Enumerable.Empty<WorkbookView>()) {
+                    if (view.ActiveTab?.Value is uint active) view.ActiveTab = Reindex(active);
+                    if (view.FirstSheet?.Value is uint first) view.FirstSheet = Reindex(first);
+                }
                 MarkSheetCacheDirty();
                 WorkbookRoot.Save();
             });

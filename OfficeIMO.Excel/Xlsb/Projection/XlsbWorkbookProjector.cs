@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 }
 
                 // Carry the source workbook view's active and first tab, then move it off a hidden sheet if needed.
-                document.ApplyImportedActiveTab(workbook.ActiveTab, workbook.FirstSheet);
+                document.ApplyImportedActiveTab(workbook.ActiveTab, workbook.FirstSheet, workbook.Sheets.Count);
                 document.EnsureActiveTabVisible();
                 relatedParts.ProjectTheme();
                 relatedParts.ProjectVba();

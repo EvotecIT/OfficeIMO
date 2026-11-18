@@ -203,10 +203,11 @@ namespace OfficeIMO.Excel {
         /// Applies an imported workbook view's active and first tab. Values at the implicit first tab are not
         /// written, so a workbook whose view is the default keeps no workbook view.
         /// </summary>
-        internal void ApplyImportedActiveTab(uint? activeTab, uint? firstSheet) {
+        internal void ApplyImportedActiveTab(uint? activeTab, uint? firstSheet, int sourceTabCount) {
             Locking.ExecuteWrite(EnsureLock(), () => {
                 int count = WorkbookRoot.Sheets?.Elements<Sheet>().Count() ?? 0;
-                if (count == 0) return;
+                // Source indexes only name the same tabs when every source tab was projected, in order.
+                if (count == 0 || count != sourceTabCount) return;
                 uint active = Math.Min(activeTab ?? 0U, (uint)(count - 1));
                 uint first = Math.Min(firstSheet ?? 0U, (uint)(count - 1));
                 if (active == 0U && first == 0U) return;
