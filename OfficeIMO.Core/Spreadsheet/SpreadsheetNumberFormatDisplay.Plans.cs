@@ -8,10 +8,9 @@ namespace OfficeIMO.Spreadsheet {
         /// <c>[&gt;100]</c>, because conditional selection depends on each value and stays with the per-call path.
         /// </summary>
         internal static string[]? SplitUnconditionalSections(string formatCode) {
-            string[] sections = SplitNumberFormatSections(formatCode);
-            foreach (string section in sections) {
-                if (TryGetSectionCondition(section, out _, out _)) return null;
-            }
+            NumberFormatSections split = GetNumberFormatSections(formatCode);
+            if (split.HasConditions) return null;
+            string[] sections = split.Sections;
             return sections.Length == 0 ? new[] { formatCode } : sections;
         }
 

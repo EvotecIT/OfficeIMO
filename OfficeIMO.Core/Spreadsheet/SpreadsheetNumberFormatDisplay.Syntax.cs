@@ -34,13 +34,14 @@ namespace OfficeIMO.Spreadsheet {
             SelectNumberFormatSection(formatCode, preferredSection, value: null, out selectedSection);
 
         internal static string SelectNumberFormatSection(string formatCode, int preferredSection, double? value, out int selectedSection) {
-            string[] sections = SplitNumberFormatSections(formatCode);
+            NumberFormatSections split = GetNumberFormatSections(formatCode);
+            string[] sections = split.Sections;
             selectedSection = 0;
             if (sections.Length == 0) {
                 return formatCode;
             }
 
-            if (value.HasValue && sections.Any(section => TryGetSectionCondition(section, out _, out _))) {
+            if (value.HasValue && split.HasConditions) {
                 int fallbackSection = -1;
                 for (int i = 0; i < sections.Length; i++) {
                     if (TryGetSectionCondition(sections[i], out string? op, out double threshold)) {
@@ -67,7 +68,32 @@ namespace OfficeIMO.Spreadsheet {
             return sections[0];
         }
 
-        private static string[] SplitNumberFormatSections(string formatCode) {
+        private sealed class NumberFormatSections {
+            internal NumberFormatSections(string[] sections) {
+                Sections = sections;
+                foreach (string section in sections) HasConditions |= TryGetSectionCondition(section, out _, out _);
+            }
+
+            // Shared between callers; never modified after construction.
+            internal string[] Sections { get; }
+            internal bool HasConditions { get; }
+        }
+
+        // A workbook uses a handful of format codes for many cells; split each code once.
+        private static readonly OfficeIMO.Drawing.OfficeBoundedCache<string, NumberFormatSections> SectionCache =
+            new OfficeIMO.Drawing.OfficeBoundedCache<string, NumberFormatSections>(1024, StringComparer.Ordinal);
+
+        private static NumberFormatSections GetNumberFormatSections(string formatCode) {
+            if (SectionCache.TryGetValue(formatCode, out NumberFormatSections? cached)) return cached;
+            var created = new NumberFormatSections(SplitNumberFormatSectionsCore(formatCode));
+            // Long codes are rare and unbounded in size; keep the cache to ordinary format codes.
+            if (formatCode.Length <= 256) SectionCache.TryAdd(formatCode, created);
+            return created;
+        }
+
+        private static string[] SplitNumberFormatSections(string formatCode) => GetNumberFormatSections(formatCode).Sections;
+
+        private static string[] SplitNumberFormatSectionsCore(string formatCode) {
             var sections = new List<string>();
             var builder = new StringBuilder(Math.Min(formatCode.Length, 256));
             bool inQuote = false;

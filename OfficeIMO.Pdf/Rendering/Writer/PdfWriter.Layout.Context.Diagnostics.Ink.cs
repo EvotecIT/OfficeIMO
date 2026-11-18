@@ -98,10 +98,11 @@ internal static partial class PdfWriter {
                     TableCellContentFrame effectiveFrame = clipsToFrame ? frame
                         : new TableCellContentFrame(origin, frame.Top, available, frame.Height);
                     OfficeTextInkClip frameClip = DiagnosticRectangleClip(effectiveFrame, transform);
-                    // This value has exactly the lifetime and clip bindings of ContainsGlyph below.
-                    DiagnosticPaintBounds glyphClipBounds = transform.M12 == 0D && transform.M21 == 0D
-                        && transform.M11 > 0D && transform.M22 > 0D
-                        ? DiagnosticContainmentIntersection(sourceClips, targetClips, frameClip, pageClip, secondClip, transform)
+                    // These values have exactly the lifetime and clip bindings of ContainsGlyph below.
+                    bool positiveDiagonal = transform.M12 == 0D && transform.M21 == 0D
+                        && transform.M11 > 0D && transform.M22 > 0D;
+                    DiagnosticGlyphClipBounds glyphClipBounds = positiveDiagonal
+                        ? CreateDiagnosticGlyphClipBounds(targetClips, frameClip, pageClip, secondClip, transform)
                         : default;
                     Func<DiagnosticPaintBounds, bool>? containsGlyph = null;
                     for (int partIndex = 0; partIndex < line.Count; partIndex++) {
@@ -190,13 +191,18 @@ internal static partial class PdfWriter {
                         cancellationToken.ThrowIfCancellationRequested();
                         // Keep the original staged floating-point operations. A positive diagonal
                         // page transform preserves coordinate extrema without a rounding tolerance.
-                        if (!bounds.IsFinite || !glyphClipBounds.IsFinite) return false;
+                        if (!bounds.IsFinite || !positiveDiagonal) return false;
                         OfficePoint first = transform.TransformPoint(new OfficePoint(bounds.Left, bounds.Top));
                         OfficePoint second = transform.TransformPoint(new OfficePoint(bounds.Right, bounds.Bottom));
                         var pageBounds = new DiagnosticPaintBounds(first.X, first.Y, second.X, second.Y);
-                        return pageBounds.IsFinite && pageBounds.Left >= glyphClipBounds.Left
-                            && pageBounds.Top >= glyphClipBounds.Top && pageBounds.Right <= glyphClipBounds.Right
-                            && pageBounds.Bottom <= glyphClipBounds.Bottom;
+                        if (!pageBounds.IsFinite) return false;
+                        // Paint can only add a finding that is not proven yet, so a glyph inside every clip whose
+                        // finding is still open changes nothing: the frame (with any second clip) until clipping or
+                        // overflow is proven, the enclosing target clips until their loss is proven, and the page
+                        // until paint outside it is proven. Source clips never produce a finding.
+                        if (!(clipsToFrame ? clipped : overflow) && !glyphClipBounds.Frame.Encloses(pageBounds)) return false;
+                        if (!outerClipped && targetClips.Count > 0 && !glyphClipBounds.Target.Encloses(pageBounds)) return false;
+                        return outsidePage || glyphClipBounds.Page.Encloses(pageBounds);
                     }
                     void Paint(List<List<OfficePoint>> contours, List<OfficeTextInkClip>? imageClips = null, bool nominalGlyphBounds = false) {
                         foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) contour[p] = transform.TransformPoint(contour[p]);
@@ -229,18 +235,26 @@ internal static partial class PdfWriter {
                         admittedClips.Clear();
                         admittedClips.AddRange(sourcePaintClips);
                         admittedClips.AddRange(targetClips);
-                        var admitted = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, admittedClips, cancellationToken);
-                        RequireMeasured(admitted.IsMeasured);
-                        if (checkOuter) outerClipped = Loss(sourcePaintClips, admittedClips);
-                        if (!admitted.HasInk || !checkFrame && !checkPage) return;
+                        // Whether the admitted clips leave any ink. Each loss measurement below reports it from the
+                        // same pass, so the admitted paint is measured on its own only when that pass is unmeasured.
+                        bool? admittedInk = null;
+                        if (checkOuter) {
+                            var outer = MeasureLossAndAdmittedInk(admittedClips, sourcePaintClips.Count);
+                            RequireMeasured(outer.IsMeasured);
+                            admittedInk = outer.HasAdmittedInk;
+                            outerClipped = Loss(sourcePaintClips, admittedClips, outer.IsClipped);
+                        }
+                        if (admittedInk == false || !checkFrame && !checkPage) return;
                         var withFrame = frameClipBuilder ??= new List<OfficeTextInkClip>();
                         withFrame.Clear();
                         withFrame.AddRange(admittedClips);
                         withFrame.Add(frameClip);
                         if (secondInkClip.HasValue) withFrame.Add(secondInkClip.Value);
                         if (checkFrame) {
-                            if (clipsToFrame) clipped = Loss(admittedClips, withFrame);
-                            else overflow = Loss(admittedClips, withFrame);
+                            var frameLoss = MeasureLossAndAdmittedInk(withFrame, admittedClips.Count);
+                            if (!AdmittedInkAfter(frameLoss)) return;
+                            if (clipsToFrame) clipped = Loss(admittedClips, withFrame, frameLoss.IsClipped);
+                            else overflow = Loss(admittedClips, withFrame, frameLoss.IsClipped);
                         }
                         if (checkPage) {
                             var paintClips = clipsToFrame ? withFrame : admittedClips;
@@ -248,11 +262,33 @@ internal static partial class PdfWriter {
                             withPage.Clear();
                             withPage.AddRange(paintClips);
                             withPage.Add(pageClip);
-                            outsidePage = Loss(paintClips, withPage);
+                            var pageLoss = MeasureLossAndAdmittedInk(withPage, paintClips.Count);
+                            if (!AdmittedInkAfter(pageLoss)) return;
+                            outsidePage = Loss(paintClips, withPage, pageLoss.IsClipped);
                         }
 
-                        bool Loss(List<OfficeTextInkClip> before, List<OfficeTextInkClip> after) {
-                            if (!HasAdditionalLoss(contours, before, after)) return false;
+                        (bool IsMeasured, bool IsClipped, bool HasAdmittedInk) MeasureLossAndAdmittedInk(List<OfficeTextInkClip> clips, int lossAfter) =>
+                            OfficeRasterCanvas.MeasureNominalAdditionalInkLossAndAdmittedInk(contours, OfficeFillRule.NonZero, clips,
+                                lossAfter, admittedClips.Count, cancellationToken);
+
+                        // A paint the admitted clips reject entirely has nothing further to lose. When the combined pass is
+                        // unmeasured, the admitted paint alone decides whether that ends the inspection or is reported.
+                        bool AdmittedInkAfter((bool IsMeasured, bool IsClipped, bool HasAdmittedInk) measured) {
+                            if (!measured.IsMeasured) {
+                                if (!admittedInk.HasValue) {
+                                    var admitted = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, admittedClips, cancellationToken);
+                                    RequireMeasured(admitted.IsMeasured);
+                                    admittedInk = admitted.HasInk;
+                                    if (!admitted.HasInk) return false;
+                                }
+                                RequireMeasured(false);
+                            }
+                            admittedInk ??= measured.HasAdmittedInk;
+                            return admittedInk.Value;
+                        }
+
+                        bool Loss(List<OfficeTextInkClip> before, List<OfficeTextInkClip> after, bool additionalLoss) {
+                            if (!additionalLoss) return false;
                             if (!nominalGlyphBounds) return true;
                             var initial = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, before, cancellationToken);
                             var final = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, after, cancellationToken);
@@ -281,13 +317,6 @@ internal static partial class PdfWriter {
 
         private static void RequireMeasured(bool measured) {
             if (!measured) throw new NotSupportedException("Authoring paint diagnostics exceeded the bounded contour inspection limit.");
-        }
-
-        /// <summary>Measures removed filled ink directly; equal bounding boxes do not establish equal paint.</summary>
-        private bool HasAdditionalLoss(List<List<OfficePoint>> paint, List<OfficeTextInkClip> before, List<OfficeTextInkClip> after) {
-            var bounds = OfficeRasterCanvas.MeasureNominalAdditionalInkLoss(paint, OfficeFillRule.NonZero, after, before.Count, cancellationToken);
-            RequireMeasured(bounds.IsMeasured);
-            return bounds.IsClipped;
         }
 
         private static List<List<OfficePoint>> DiagnosticRectangle(double x, double bottom, double width, double height) =>

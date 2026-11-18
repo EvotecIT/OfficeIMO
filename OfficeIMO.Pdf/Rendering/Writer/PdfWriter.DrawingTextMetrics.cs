@@ -57,6 +57,28 @@ internal static partial class PdfWriter {
         }
     }
 
+    /// <summary>The face a metrics instance selected last, with the canvas and budget that selection installed.</summary>
+    private sealed class DrawingTextCanvasSelection {
+        private readonly byte[] data;
+        private readonly string family;
+        private readonly OfficeFontStyle style;
+        private readonly IOfficeTextShapingProvider? shaping;
+        private readonly string? language;
+
+        internal DrawingTextCanvasSelection(byte[] data, string family, OfficeFontStyle style, IOfficeTextShapingProvider? shaping,
+            string? language, OfficeRasterCanvas canvas, OfficeCffOperationBudget budget) {
+            this.data = data; this.family = family; this.style = style; this.shaping = shaping; this.language = language;
+            Canvas = canvas; Budget = budget;
+        }
+
+        internal OfficeRasterCanvas Canvas { get; }
+        internal OfficeCffOperationBudget Budget { get; }
+
+        internal bool Matches(byte[] data, string family, OfficeFontStyle style, IOfficeTextShapingProvider? shaping, string? language) =>
+            ReferenceEquals(data, this.data) && style == this.style && ReferenceEquals(shaping, this.shaping)
+            && string.Equals(family, this.family, StringComparison.Ordinal) && string.Equals(language, this.language, StringComparison.Ordinal);
+    }
+
     // Font selection stays in PDF options; native geometry is measured by the shared font engine.
     internal static Func<string?, double, string?, OfficeFontStyle, double> CreateDrawingTextMeasure(PdfCreateOptions options) {
         return CreateDrawingTextMetrics(options).MeasureText;
@@ -70,6 +92,10 @@ internal static partial class PdfWriter {
         canvases ??= new DrawingTextMeasurementCanvases();
         // One allowance per face for this metrics instance, matching a canvas built for it alone.
         var budgets = new Dictionary<OfficeRasterCanvas, OfficeCffOperationBudget>();
+        // Consecutive measurements nearly always select the same face. Reuse its canvas and this
+        // instance's budget without the shared cache's lock and lookup; the face's identity is the
+        // same byte array, family, style and shaping configuration GetOrCreate keys on.
+        DrawingTextCanvasSelection? lastSelection = null;
         return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasureHorizontalPaint, MeasurePositioned, MeasureSegmentPaint, MeasurePublisherFont, MeasureFeatures,
             MeasureSegmentHorizontalPaint, Prepare);
 
@@ -97,10 +123,22 @@ internal static partial class PdfWriter {
                 } else if (options.TryGetEmbeddedStandardFont(selectedFont, out PdfEmbeddedFont? embedded)) {
                     data = embedded!.DataSnapshot;
                 }
-                OfficeRasterCanvas? canvas = data != null
-                    ? canvases.GetOrCreate(data, measuredFamily, style, options, budgets, cancellationToken) : null;
+                OfficeRasterCanvas? canvas = data != null ? GetCanvas(data, measuredFamily, style) : null;
                 yield return (part, canvas, measuredFamily, selectedFont, syntheticOblique, syntheticBold);
             }
+        }
+
+        OfficeRasterCanvas? GetCanvas(byte[] data, string family, OfficeFontStyle style) {
+            IOfficeTextShapingProvider? shaping = options.TextShapingProvider;
+            string? language = options.EffectiveTextShapingLanguage;
+            DrawingTextCanvasSelection? last = lastSelection;
+            if (last != null && last.Matches(data, family, style, shaping, language)) {
+                last.Canvas.UseCffOperationBudget(last.Budget);
+                return last.Canvas;
+            }
+            OfficeRasterCanvas? canvas = canvases.GetOrCreate(data, family, style, options, budgets, cancellationToken);
+            if (canvas != null) lastSelection = new DrawingTextCanvasSelection(data, family, style, shaping, language, canvas, budgets[canvas]);
+            return canvas;
         }
 
         OfficePreparedTextShaping? Prepare(string text, double size, string family, OfficeFontStyle style, OfficeTextFeatureSettings? features) {

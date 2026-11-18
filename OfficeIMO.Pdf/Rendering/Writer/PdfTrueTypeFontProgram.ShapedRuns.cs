@@ -135,6 +135,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
         private readonly object _lock = new();
         private readonly System.Collections.Concurrent.ConcurrentDictionary<Key, ShapedRun> _entries = new();
         private int _glyphs;
+        // Writers hold _lock, so the entry count is tracked here; ConcurrentDictionary.Count takes every bucket lock.
+        private int _count;
 
         internal bool TryGet(string text, PdfTextShapingOptions options, out ShapedRun? run) =>
             _entries.TryGetValue(new Key(text, options), out run);
@@ -142,11 +144,15 @@ internal sealed partial class PdfTrueTypeFontProgram {
         internal void Add(string text, PdfTextShapingOptions options, ShapedRun run, int glyphs) {
             if (glyphs > MaximumGlyphs) return;
             lock (_lock) {
-                if (_entries.Count >= MaximumEntries || _glyphs + glyphs > MaximumGlyphs) {
+                if (_count >= MaximumEntries || _glyphs + glyphs > MaximumGlyphs) {
                     _entries.Clear();
                     _glyphs = 0;
+                    _count = 0;
                 }
-                if (_entries.TryAdd(new Key(text, options), run)) _glyphs += glyphs;
+                if (_entries.TryAdd(new Key(text, options), run)) {
+                    _glyphs += glyphs;
+                    _count++;
+                }
             }
         }
 
