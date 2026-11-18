@@ -272,6 +272,41 @@ $localDocX = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -I
 if ($localDocX[0].CatalogEligible -or $localDocX[0].Publish -or $localDocX[0].Environment.OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES -ne 'docx') {
     throw 'Including DocX must keep the Word run local.'
 }
+# An explicitly enabled restricted library is required, not merely tolerated: its cases join the expected set and
+# its own licence value is checked before the run.
+$previousEpPlusLicense = $env:EPPlusLicense
+try {
+    $env:EPPlusLicense = $null
+    $defaultXlsx = @(& $runner -Workload xlsx -RunMode full -PlanOnly)
+    $enabledXlsx = @(& $runner -Workload xlsx -RunMode full -AcceptLibraryLicense epplus -PlanOnly)
+} finally {
+    $env:EPPlusLicense = $previousEpPlusLicense
+}
+if ('EPPlus' -in @($defaultXlsx[0].ExpectedCases) -or 'EPPlus' -in @($defaultXlsx[0].Libraries) -or
+    'EPPlus' -notin @($enabledXlsx[0].ExpectedCases) -or
+    @($enabledXlsx[0].BlockedReasons | Where-Object { $_ -match 'EPPlusLicense' }).Count -eq 0) {
+    throw 'Enabling EPPlus must require its XLSX case and its own licence declaration; leaving it out must drop both.'
+}
+
+# -LocalOnly keeps a run, even a pinned QuestPDF one, out of the shared catalog; the QuestPDF wrapper always uses it.
+$localPinned = @(& $runner -Workload pdfgenerate -RunMode quick -QuestPdfPackageVersion 2026.5.0 -LocalOnly -PlanOnly)
+if ($localPinned[0].WillCatalog -or $localPinned[0].Publish -or $null -ne $localPinned[0].ComparisonPath -or
+    -not $localPinned[0].InternalOnly) {
+    throw '-LocalOnly must keep the run out of the shared catalog.'
+}
+$wrapperAst = [System.Management.Automation.Language.Parser]::ParseFile(
+    (Join-Path $PSScriptRoot 'Run-InternalQuestPdfBenchmarks.ps1'), [ref] $null, [ref] $null)
+$wrapperCall = @($wrapperAst.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.CommandAst] -and $node.InvocationOperator -eq 'Ampersand' -and
+            $node.CommandElements[0].Extent.Text -match 'Run-LibraryComparisonBenchmarks\.ps1'
+        }, $true))
+if ($wrapperCall.Count -ne 1 -or
+    @($wrapperCall[0].CommandElements | Where-Object { $_.Extent.Text -eq '-LocalOnly' }).Count -ne 1 -or
+    @($wrapperCall[0].CommandElements | Where-Object { $_.Extent.Text -eq '-EvidenceRoot' }).Count -ne 1) {
+    throw 'The QuestPDF wrapper must run the comparison with -LocalOnly and its own evidence root.'
+}
+
 $restrictedPublishBlocked = $false
 try {
     & $runner -Workload xlsx -RunMode full -Publish -AcceptLibraryLicense epplus -PlanOnly | Out-Null

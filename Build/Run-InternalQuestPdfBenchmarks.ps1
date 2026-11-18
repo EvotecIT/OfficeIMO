@@ -33,6 +33,8 @@ try {
         -Framework $Framework `
         -AffinityMask $AffinityMask `
         -OutputRoot $outputRoot `
+        -EvidenceRoot (Join-Path $outputRoot 'bundle') `
+        -LocalOnly `
         -QuestPdfPackageVersion $QuestPdfPackageVersion `
         -AcceptLibraryLicense $AcceptLibraryLicense
 } finally {

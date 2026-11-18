@@ -23,6 +23,8 @@ param(
     [string[]] $ExcludeLibrary = @(),
     # Licences you have reviewed and accepted; the library's own key or setting still comes from you.
     [string[]] $AcceptLibraryLicense = @(),
+    # Keeps every result out of the shared catalog, whatever libraries the run uses.
+    [switch] $LocalOnly,
     [switch] $Publish,
     [switch] $PlanOnly,
     [switch] $KeepBenchmarkFiles,
@@ -140,7 +142,10 @@ if ($alternateQuestPdf) {
     }
 }
 # Any enabled restricted library keeps the whole run local: it may add cases to otherwise published comparisons.
-$localOnlyRun = $alternateQuestPdf -or $librarySelection.Enabled.Count -gt 0
+$localOnlyRun = $LocalOnly -or $alternateQuestPdf -or $librarySelection.Enabled.Count -gt 0
+if ($LocalOnly -and $Publish) {
+    throw '-LocalOnly cannot be combined with -Publish.'
+}
 if ($localOnlyRun -and $Publish) {
     throw "Restricted libraries ($(@($librarySelection.Enabled) -join ', ')) cannot be published; drop -Publish or the restricted libraries."
 }

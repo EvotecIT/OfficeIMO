@@ -163,7 +163,9 @@ function Get-LibraryComparisonDefinitions {
         xlsx = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSX 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur')
+            # EPPlus is restricted by the library policy: published and default runs drop its case, and a run that
+            # enables it requires the case to succeed.
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -180,6 +182,7 @@ function Get-LibraryComparisonDefinitions {
                 'Sylvan'
                 'ExcelDataReader'
                 'ClosedXML'
+                'EPPlus'
                 'MiniExcel'
                 'OfficeIMO_DefaultNumbers'
                 'OfficeIMO_DefaultNumbers_Prefetch'
