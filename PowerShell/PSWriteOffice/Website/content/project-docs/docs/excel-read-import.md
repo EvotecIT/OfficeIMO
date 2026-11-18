@@ -14,7 +14,7 @@ $rows = Import-OfficeExcel -Path '.\Input\Register.xlsx' `
 $atRisk = $rows | Where-Object Status -eq 'At risk'
 ```
 
-A wildcard `-Sheet` reads several worksheets and adds sheet identity to each result. `-As Hashtable`, `-As DataTable`, `-As DataReader` and `-As Column` return other shapes for different downstream consumers. Range and row/column bounds keep large imports intentional.
+A wildcard `-Sheet` reads several worksheets and adds sheet identity to each result. `-As Hashtable`, `-As DataTable`, `-As DataReader` and `-As Column` return other shapes for different downstream consumers. `-As DataReader` reads one worksheet at a time, so pick a single `-Sheet`, and the caller disposes the reader it returns. Range and row/column bounds keep large imports intentional.
 
 ## Inspect workbook structure
 

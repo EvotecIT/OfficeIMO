@@ -24,7 +24,7 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 ## Major families
 
 - **Excel — 102 commands:** authoring, reading, charts, pivots, validation, comments, templates, comparison, repair, accessibility, streaming, visual placement, and image export.
-- **Word — 80 commands:** sections, paragraphs, lists, tables, fields, content controls, review, mail merge, protection, merging, visual placement, and conversion.
+- **Word — 80 commands:** sections, paragraphs, lists, tables, fields, content controls, review, mail merge, visual placement, and conversion settings. Merging and protecting whole documents are cross-format operations (`Merge-OfficeDocument`, `Protect-OfficeDocument`).
 - **PDF — 77 commands:** composition, structured reading, explicit Word/Excel/PowerPoint/Markdown/RTF export, editable Office reconstruction, text and image extraction, searchable OCR output, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, visual placement, and diagnostics.
 - **Printing — 5 commands:** print any document OfficeIMO can turn into PDF on a named queue or IPP printer, read printer capabilities, and follow or cancel jobs. Requires PowerShell 7.4 or newer.
 - **PowerPoint — 54 commands:** slides, sections, shapes, charts, tables, notes, themes, layouts, transitions, visual placement, import, inspection, and HTML review.
