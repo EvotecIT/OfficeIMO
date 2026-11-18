@@ -115,10 +115,10 @@ internal static partial class PdfSyntax {
                     encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
                     encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
                     encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
-                    encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
-                    encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
-                    encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
-                    encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
+                    encryptionVersion = TryReadInteger(objects, parsedEncryptionDictionary, "V");
+                    encryptionRevision = TryReadInteger(objects, parsedEncryptionDictionary, "R");
+                    encryptionLengthBits = TryReadInteger(objects, parsedEncryptionDictionary, "Length");
+                    encryptionPermissions = TryReadPermissionMask(objects, parsedEncryptionDictionary);
                     encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
                     if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                         authenticatedHandler is not null) {
@@ -1063,11 +1063,16 @@ internal static partial class PdfSyntax {
             : null;
     }
 
-    private static int? TryReadPermissionMask(PdfDictionary dictionary) {
-        if (!dictionary.Items.TryGetValue("P", out PdfObject? value) || value is not PdfNumber number) {
-            return null;
-        }
+    // The security handler authenticates with an indirect /P resolved, so the reported flags resolve it too.
+    private static int? TryReadPermissionMask(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) =>
+        dictionary.Items.TryGetValue("P", out PdfObject? value) && ResolveObject(objects, value) is PdfNumber number
+            ? ToPermissionMask(number)
+            : null;
 
+    private static int? TryReadPermissionMask(PdfDictionary dictionary) =>
+        dictionary.Items.TryGetValue("P", out PdfObject? value) && value is PdfNumber number ? ToPermissionMask(number) : null;
+
+    private static int? ToPermissionMask(PdfNumber number) {
         if (Math.Truncate(number.Value) != number.Value || number.Value < int.MinValue || number.Value > uint.MaxValue) {
             return null;
         }

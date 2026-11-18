@@ -132,13 +132,17 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
         Assert.Equal(text, PdfInspector.Inspect(pdf, options).Metadata.Title);
     }
 
-    // ISO 32000-2 7.3.10 lets /CF and each crypt filter dictionary be indirect objects, which are read before decryption.
-    [Fact]
-    public void IndirectCryptFilterDictionariesDecryptStringsAndStreams() {
-        byte[] pdf = Fixture("r6-indirect-crypt-filters.pdf");
+    // ISO 32000-2 7.3.10 lets /CF, the crypt filter dictionaries and their entries be indirect objects; they are read before decryption.
+    [Theory]
+    [InlineData("r6-indirect-crypt-filters.pdf", "Indirect filters R6")]
+    [InlineData("r6-indirect-crypt-filter-method.pdf", "Indirect method R6")]
+    public void IndirectCryptFilterValuesDecryptStringsAndStreams(string fixture, string text) {
+        byte[] pdf = Fixture(fixture);
 
-        Assert.Contains("Indirect filters R6", PdfDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Equal("Indirect filters R6", PdfInspector.Inspect(pdf).Metadata.Title);
+        Assert.Contains(text, PdfDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        Assert.Equal(text, info.Metadata.Title);
+        Assert.Equal(-4, info.Security.EncryptionPermissions);
     }
 
     [Fact]

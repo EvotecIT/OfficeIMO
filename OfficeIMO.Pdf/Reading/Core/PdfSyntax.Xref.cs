@@ -844,16 +844,17 @@ internal static partial class PdfSyntax {
             if (!completeHeader) return false;
             headerMemo?.Add(objectStream, data, n, first, pairs);
         }
+        bool relocated = false;
         if (pairs[objectStreamIndex].Obj != expectedObjectNumber) {
             // The object stream header, not the cross-reference index, names each object (ISO 32000-2 7.5.7). Some
             // writers store indexes above 65,535 in a two-byte field, so they wrap; lenient reading locates the object
-            // by its number in the header instead.
+            // by its number in the header instead, and reports it once the object is accepted.
             if (reportRelocated is null ||
                 !TryFindObjectStreamIndex(pairs, expectedObjectNumber, headerMemo, out objectStreamIndex)) {
                 return false;
             }
 
-            reportRelocated(expectedObjectNumber);
+            relocated = true;
         }
 
         int start = first + pairs[objectStreamIndex].Off;
@@ -866,6 +867,7 @@ internal static partial class PdfSyntax {
         if (deferredScan is not null &&
             TryScanDeferrableObject(data, start, end - start, limits, deferredScan, out PdfDeferredObjectSummary summary, cancellationToken)) {
             parsed = new PdfIndirectObject(expectedObjectNumber, 0, headerMemo?.GetDeferredSource(objectStream, data, limits) ?? new PdfDeferredObjectSource(data, limits), summary);
+            if (relocated) reportRelocated!(expectedObjectNumber);
             return true;
         }
 
@@ -882,11 +884,10 @@ internal static partial class PdfSyntax {
         }
 
         parsed = new PdfIndirectObject(expectedObjectNumber, 0, parsedObject);
+        if (relocated) reportRelocated!(expectedObjectNumber);
         return true;
     }
 
-    // Complete object-stream headers are retained only while this load applies compressed xref entries,
-    // so entries that alternate between object streams parse each header once.
     private static bool TryFindObjectStreamIndex(
         List<(int Obj, int Off)> pairs,
         int objectNumber,
@@ -896,6 +897,8 @@ internal static partial class PdfSyntax {
         return indexes.TryGetValue(objectNumber, out index);
     }
 
+    // Complete object-stream headers are retained only while this load applies compressed xref entries,
+    // so entries that alternate between object streams parse each header once.
     private sealed class ObjectStreamHeaderMemo {
         private readonly Dictionary<PdfStream, (byte[] Data, int ObjectCount, int FirstObjectOffset, List<(int Obj, int Off)> Pairs)> _headers = new();
         private readonly Dictionary<List<(int Obj, int Off)>, Dictionary<int, int>> _indexes = new();
