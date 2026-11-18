@@ -268,6 +268,13 @@ namespace OfficeIMO.Excel.Pdf {
         public string EmptyCellText { get; set; } = string.Empty;
 
         /// <summary>
+        /// How the conversion report describes clipped worksheet cells. <see cref="ExcelPdfDiagnosticsDetail.Summary"/>,
+        /// the default, reports each clipping code once per contiguous range of a sheet with its cell count and sample
+        /// cells. <see cref="ExcelPdfDiagnosticsDetail.PerCell"/> reports every clipped cell separately.
+        /// </summary>
+        public ExcelPdfDiagnosticsDetail DiagnosticsDetail { get; set; } = ExcelPdfDiagnosticsDetail.Summary;
+
+        /// <summary>
         /// Applies shared deterministic typography resources to the first-party PDF engine.
         /// Worksheet selection and page layout remain owned by this converter.
         /// </summary>

@@ -117,6 +117,32 @@ internal static partial class PdfWriter {
             return CopyDiagnosticGlyphForPlacement(cached.Contours);
         }
 
+        // Glyphs whose exact outline encloses filled ink of at least this extent on both axes, per font and size.
+        private const double DiagnosticGlyphInkMinimumExtent = 1E-3D;
+        private Dictionary<(IOfficeBoundedFontProgram Font, int Glyph, double Size), bool>? _diagnosticGlyphInk;
+
+        /// <summary>
+        /// True when the glyph's own outline, measured exactly, paints ink of a clearly measurable extent. Placement only
+        /// translates and scales it positively, so the placed glyph paints that ink too.
+        /// </summary>
+        private bool DiagnosticGlyphHasInk(IOfficeBoundedFontProgram font, int glyphId, double size) {
+            var key = (font, glyphId, size);
+            var known = _diagnosticGlyphInk ??= new(DiagnosticGlyphOutlineKeyComparer.Instance);
+            if (known.TryGetValue(key, out bool inked)) return inked;
+            var cached = GetDiagnosticGlyphOutline(font, glyphId, size);
+            inked = false;
+            if (!HasNoOutlinePoints(cached.Contours) && cached.Bounds.IsFinite) {
+                var measured = OfficeRasterCanvas.MeasureNominalFilledContourBounds(cached.Contours, OfficeFillRule.NonZero,
+                    cancellationToken: cancellationToken);
+                inked = measured.IsMeasured && measured.HasInk
+                    && measured.Right - measured.Left >= DiagnosticGlyphInkMinimumExtent
+                    && measured.Bottom - measured.Top >= DiagnosticGlyphInkMinimumExtent;
+            }
+            if (known.Count >= DiagnosticGlyphCacheEntryLimit) known.Clear();
+            known[key] = inked;
+            return inked;
+        }
+
         private static bool HasNoOutlinePoints(List<List<OfficePoint>> contours) {
             foreach (List<OfficePoint> contour in contours) if (contour.Count > 0) return false;
             return true;

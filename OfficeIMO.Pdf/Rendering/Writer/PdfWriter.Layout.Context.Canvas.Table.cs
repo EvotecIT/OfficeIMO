@@ -163,7 +163,12 @@ internal static partial class PdfWriter {
                             bool cellTouchesLeft = cell.Column == 0;
                             bool cellTouchesRight = cell.Column + cell.ColumnSpan >= columns;
 
-                            RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
+                            _diagnosticCellAddress = currentOpts.TableCellDiagnosticSummary != null ? style.DiagnosticCellAddress?.Invoke(rowIndex, cell.Column) : null;
+                            try {
+                                RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, rowUsesBold, cellX, rowTop, cellBottom, cellWidth, cellHeight, rowFontSizes[rowIndex], rowLeadings[rowIndex], rowFontSizeScales[rowIndex], item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
+                            } finally {
+                                _diagnosticCellAddress = null;
+                            }
                             DrawCanvasTableCellBorder(
                                 ref pairedBorders,
                                 style,
