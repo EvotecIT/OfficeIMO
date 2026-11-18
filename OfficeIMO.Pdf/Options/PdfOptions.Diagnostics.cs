@@ -6,6 +6,27 @@ public sealed partial class PdfCreateOptions {
         ? null : _diagnosticsReport ?? PdfOutputDiagnosticScope.CurrentReport;
 
 
+    /// <summary>
+    /// When set, clipped-cell findings of tables that name their source cells are collected here and reported once
+    /// per contiguous range when the layout completes, instead of once per cell.
+    /// </summary>
+    internal PdfTableCellDiagnosticSummary? TableCellDiagnosticSummary { get; set; }
+
+    internal void AddTableCellDiagnostic(PdfTableCellDiagnosticSummary summary, string code, PdfTableCellDiagnosticAddress address,
+        string message, PdfLayoutDiagnosticKind kind, PdfConversionWarningSeverity severity) {
+        if (DiagnosticsReport == null) return;
+        if (PdfLayoutDiagnosticBuffer.TryCapture(DiagnosticsReport, () => AddTableCellDiagnostic(summary, code, address, message, kind, severity))) return;
+        summary.Record(code, address, message, kind, severity);
+    }
+
+    /// <summary>Reports the summarized ranges of an accepted layout.</summary>
+    internal void CompleteTableCellDiagnosticSummary() {
+        PdfTableCellDiagnosticSummary? summary = TableCellDiagnosticSummary;
+        if (summary == null || DiagnosticsReport == null) return;
+        foreach (PdfTableCellDiagnosticRange range in summary.Complete())
+            AddLayoutDiagnostic(range.Code, summary.FormatSource(range), summary.FormatMessage(range), range.Kind, range.Severity);
+    }
+
     // Clones share report identity, while independent conversions own separate buffers.
     internal PdfLayoutDiagnosticBuffer BeginLayoutDiagnosticBuffer() => new(DiagnosticsReport);
 
