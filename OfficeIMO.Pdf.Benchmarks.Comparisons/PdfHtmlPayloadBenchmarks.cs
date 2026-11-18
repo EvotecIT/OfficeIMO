@@ -39,13 +39,14 @@ public class PdfHtmlPayloadBenchmarks {
     }
 
 #if NET10_0_OR_GREATER
-    /// <summary>Renders and validates one OneRender artifact before any OneRender measurement.</summary>
+    /// <summary>
+    /// Prepares the OneRender font provider only. Like the other engines, OneRender's output is validated in cleanup,
+    /// so its first render stays inside the measured cold start.
+    /// </summary>
     [GlobalSetup(Target = nameof(OneRender))]
     public void SetupOneRender() {
         Setup();
         _oneRenderFonts = OneRenderHtmlGenerator.CreateFontProvider(_sharedFont);
-        Validate(nameof(OneRender), OneRender());
-        _oneRenderResult = null;
     }
 #endif
 

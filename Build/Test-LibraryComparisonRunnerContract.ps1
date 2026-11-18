@@ -354,19 +354,22 @@ $selectionSource = Join-Path $repositoryRoot 'Benchmarks\BenchmarkLibrarySelecti
 $selectionProbe = {
     param([string] $PolicyPath, [string] $Enabled)
     $probe = @"
-`$source = "#nullable enable``n" + (Get-Content -LiteralPath '$selectionSource' -Raw)
+`$source = "#nullable enable``n" + (Get-Content -LiteralPath `$env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE -Raw)
 `$type = Add-Type -TypeDefinition `$source -PassThru | Where-Object Name -eq 'BenchmarkLibrarySelection'
 `$isEnabled = `$type.GetMethod('IsEnabled', [Reflection.BindingFlags]'Static,NonPublic')
 'onepdf=' + `$isEnabled.Invoke(`$null, @('onepdf')) + ';docx=' + `$isEnabled.Invoke(`$null, @('docx'))
 "@
-    $previous = @($env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY, $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES)
+    $previous = @($env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY, $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES, $env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE)
     try {
         $env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY = $PolicyPath
         $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $Enabled
+        # The child reads the source path from the environment, so quotes in the checkout path cannot break the probe.
+        $env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE = $selectionSource
         $output = @(& pwsh -NoProfile -NonInteractive -Command $probe 2>&1 | ForEach-Object { [string] $_ })
     } finally {
         $env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY = $previous[0]
         $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $previous[1]
+        $env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE = $previous[2]
     }
     [pscustomobject]@{ Result = ($output | Where-Object { $_ -like 'onepdf=*' } | Select-Object -Last 1); Output = $output -join "`n" }
 }
