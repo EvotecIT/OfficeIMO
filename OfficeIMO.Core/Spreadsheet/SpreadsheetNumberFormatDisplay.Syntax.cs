@@ -69,14 +69,27 @@ namespace OfficeIMO.Spreadsheet {
         }
 
         private sealed class NumberFormatSections {
-            internal NumberFormatSections(string[] sections) {
-                Sections = sections;
-                foreach (string section in sections) HasConditions |= TryGetSectionCondition(section, out _, out _);
-            }
+            // 0 until scanned, then 1 without conditions or 2 with one. Split-only callers never scan.
+            private int _conditions;
+
+            internal NumberFormatSections(string[] sections) => Sections = sections;
 
             // Shared between callers; never modified after construction.
             internal string[] Sections { get; }
-            internal bool HasConditions { get; }
+
+            internal bool HasConditions {
+                get {
+                    int conditions = Volatile.Read(ref _conditions);
+                    if (conditions == 0) {
+                        conditions = 1;
+                        foreach (string section in Sections) {
+                            if (TryGetSectionCondition(section, out _, out _)) { conditions = 2; break; }
+                        }
+                        Volatile.Write(ref _conditions, conditions);
+                    }
+                    return conditions == 2;
+                }
+            }
         }
 
         // A workbook uses a handful of format codes for many cells; split each code once.
