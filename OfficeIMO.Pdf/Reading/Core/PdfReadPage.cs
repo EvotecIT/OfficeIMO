@@ -79,10 +79,13 @@ public sealed partial class PdfReadPage {
     /// <summary>Extracts plain text from this page without column reordering.</summary>
     public string ExtractText() => ExtractText(System.Threading.CancellationToken.None);
 
-    internal string ExtractText(System.Threading.CancellationToken cancellationToken) {
+    internal string ExtractText(System.Threading.CancellationToken cancellationToken, bool keepReadableContent = false) {
         cancellationToken.ThrowIfCancellationRequested();
-        // Plain text does not expose editing evidence; retain the full interpretation and layout.
-        var spans = GetTextSpans(_includeArtifactText, cancellationToken, retainEditingEvidence: false);
+        // Plain text does not expose editing evidence; retain the full interpretation and layout. Keeping readable
+        // content leaves out runs whose codes have no Unicode mapping and damaged page content streams.
+        var spans = GetTextSpans(_includeArtifactText, cancellationToken, retainEditingEvidence: false,
+            onUnmappableText: keepReadableContent ? static (_, _) => { } : null,
+            skipUndecodableContentStreams: keepReadableContent);
         var opts = new TextLayoutEngine.Options { ForceSingleColumn = true };
         var lines = TextLayoutEngine.BuildLines(
             spans,
@@ -267,7 +270,8 @@ public sealed partial class PdfReadPage {
         bool requireMappedText = false,
         bool ignoreActualText = false,
         Action<PdfUnsupportedTextMappingException, int?>? onUnmappableText = null,
-        bool retainEditingEvidence = true) {
+        bool retainEditingEvidence = true,
+        bool skipUndecodableContentStreams = false) {
         cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
@@ -278,7 +282,9 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource> pageFonts = pageFontResources.Fonts;
         var activeForms = new HashSet<PdfStream>();
         double pageHeight = GetTextPageSize().Height;
-        var pageContentBudget = new PageContentBudget(this, cancellationToken);
+        var pageContentBudget = new PageContentBudget(this, cancellationToken) {
+            SkipsUndecodableContentStreams = skipUndecodableContentStreams
+        };
 
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
         PdfContentSource content = contentSequence.Source;
@@ -1139,7 +1145,7 @@ public sealed partial class PdfReadPage {
                 initialRenderingIntent: initialRenderingIntent,
                 initialFillColorSelection: initialFillColorSelection,
                 initialStrokeColorSelection: initialStrokeColorSelection,
-                outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                outputIntentColorTransform: GetEffectiveOutputIntentColorTransform(pageContentBudget),
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                 cancellationCheck: cancellationCheck,
@@ -1201,7 +1207,7 @@ public sealed partial class PdfReadPage {
             initialRenderingIntent: initialRenderingIntent,
             initialFillColorSelection: initialFillColorSelection,
             initialStrokeColorSelection: initialStrokeColorSelection,
-            outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+            outputIntentColorTransform: GetEffectiveOutputIntentColorTransform(pageContentBudget),
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             contentStreamObjectNumber: contentStreamObjectNumber,
@@ -2480,7 +2486,7 @@ public sealed partial class PdfReadPage {
         PageContentStreamSequence sequence;
         if (streams.Count == 1) {
             PageContentStreamEntry entry = streams[0];
-            byte[] decoded = pageContentBudget.Decode(entry.Stream);
+            byte[] decoded = DecodePageContentStream(pageContentBudget, entry.Stream);
             decodedStreams[0] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
             sequence = new PageContentStreamSequence(decoded,
                 new[] { new PageContentStreamOffset(0, entry.ObjectNumber) }, decodedStreams);
@@ -2494,7 +2500,7 @@ public sealed partial class PdfReadPage {
                 // operator identities in the same logical sequence used by content mutation.
                 if (index > 0) offset = checked(offset + 1);
                 entries[index] = new PageContentStreamOffset(offset, entry.ObjectNumber);
-                byte[] decoded = pageContentBudget.Decode(entry.Stream);
+                byte[] decoded = DecodePageContentStream(pageContentBudget, entry.Stream);
                 decodedStreams[index] = new KeyValuePair<PdfStream, byte[]>(entry.Stream, decoded);
                 segments[index] = decoded;
                 offset = checked(offset + decoded.Length);
@@ -2503,8 +2509,22 @@ public sealed partial class PdfReadPage {
                 PdfEncoding.JoinSegments(segments, (byte)PdfContentStreamSequenceDecoder.Separator), entries, decodedStreams);
         }
 
-        if (freshBudget) OfferReusableContentSequence(sequence);
+        if (freshBudget && pageContentBudget.SkippedContentStreams == 0) OfferReusableContentSequence(sequence);
         return sequence;
+    }
+
+    // Plain text extraction in lenient mode leaves out a page content stream whose data or filter declaration is
+    // damaged and keeps the page's other streams. Read limits still stop the read, and streams with a CCITTFax or JBIG2
+    // filter, whose decoders can report exhausted resources as damaged data, still fail it.
+    private byte[] DecodePageContentStream(PageContentBudget pageContentBudget, PdfStream stream) {
+        if (!pageContentBudget.SkipsUndecodableContentStreams) return pageContentBudget.Decode(stream);
+        try {
+            return pageContentBudget.Decode(stream);
+        } catch (InvalidDataException) when (Filters.StreamDecoder.CanSkipUndecodablePageContent(stream.Dictionary, _objects)) {
+            pageContentBudget.CancellationToken.ThrowIfCancellationRequested();
+            pageContentBudget.SkippedContentStreams++;
+            return Array.Empty<byte>();
+        }
     }
 
     /// <summary>

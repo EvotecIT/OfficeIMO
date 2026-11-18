@@ -7,10 +7,12 @@ namespace OfficeIMO.Tests.Pdf {
 
     public sealed class PdfPredefinedCjkTests {
         [Fact]
-        public void IndependentMismatchedCollectionRecoversReadableTextOnlyForOptedInInspection() {
+        public void IndependentMismatchedCollectionRecoversReadableTextInLenientExtractionAndOptedInInspection() {
             byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Pdf", "Fixtures",
                 "Interoperability", "PredefinedCjk", "mismatched-collection.pdf"));
-            Assert.ThrowsAny<NotSupportedException>(() => PdfReadDocument.Open(source).ExtractText());
+            Assert.Equal("Public summary remains readable.", PdfReadDocument.Open(source).ExtractText().Trim());
+            Assert.ThrowsAny<NotSupportedException>(() =>
+                PdfReadDocument.Open(source, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText());
             PdfDocument pdf = PdfDocument.Load(source);
             PdfInspectionReadResult ordinary = pdf.ReadForInspection();
             Assert.Null(Assert.Single(ordinary.PageOutcomes).Page);
