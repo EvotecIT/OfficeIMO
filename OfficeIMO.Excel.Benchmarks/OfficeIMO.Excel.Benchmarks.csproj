@@ -51,6 +51,11 @@
     <PackageReference Include="XLibur.Bundle" Version="0.800.0" />
   </ItemGroup>
 
+  <!-- OneDocument ships net10.0 only, so its comparison lanes compile only for that target. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OneDocument.Spreadsheets" Version="1.0.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
   </ItemGroup>

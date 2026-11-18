@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// DataReader contract. Setup verifies every header and cell before timing.
 /// </summary>
 [MemoryDiagnoser]
-public class ExcelDataReaderWriteBenchmarks {
+public partial class ExcelDataReaderWriteBenchmarks {
     private DataTable _table = null!;
 
     [Params(25000)]
@@ -24,6 +24,9 @@ public class ExcelDataReaderWriteBenchmarks {
         ValidateOutput(nameof(SpreadCheetah), ExcelLibraryComparisonRunner.SpreadCheetahWriteDataReaderPlainBytes(_table));
         ValidateOutput(nameof(Sylvan), ExcelLibraryComparisonRunner.SylvanWriteDataReaderPlainBytes(_table));
         ValidateOutput(nameof(LargeXlsx), ExcelLibraryComparisonRunner.LargeXlsxWriteDataReaderPlainBytes(_table, requireCellReferences: false));
+#if NET10_0_OR_GREATER
+        ValidateOutput(nameof(OneDocument), ExcelLibraryComparisonRunner.OneDocumentWriteDataReaderPlainBytes(_table));
+#endif
     }
 
     public void SetupOfficeIMOAndSpreadCheetah() {

@@ -122,6 +122,16 @@ string rows. Numeric strings pass through the same IEEE-to-decimal conversion;
 extracted rows are not reused between operations. `--validate-hypelab-reader`
 checks the complete observation once on either .NET target without timings.
 
+The XLSX, XLSB and XLS sales comparisons and `ExcelDataReaderWriteBenchmarks`
+include OneDocument 1.0.0 (`RecursiveAI.OneDocument.Spreadsheets`, MIT or
+Apache-2.0). The package targets only .NET 10, so these lanes compile only for
+`net10.0`. The read lanes use its forward-only cursors (`XlsxStreamReader`,
+`XlsbStreamReader`, `XlsStreamReader`) and consume all fourteen typed columns,
+with numeric cells passed through the same IEEE-to-decimal conversion. The write
+lane streams the same `DbDataReader` through `XlsxStreamWriter` with its default
+options (shared strings, fastest deflate) and passes the same untimed output
+validation as the other writers.
+
 `ExcelWideLoadedReadBenchmarks` is a supplemental 10,000-by-150 presence scan,
 separate from XLBench's published scenarios. Both APIs include headers and must
 find all 1,500,000 cells. `--prepare-xlbench-inputs <directory>` creates the
