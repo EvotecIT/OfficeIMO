@@ -121,9 +121,10 @@ foreach ($entry in @($comparisonCatalog.entries)) {
     }
 }
 
+# The XLSX read comparison is not required here: its earlier results included EPPlus samples and were retired from
+# the catalog until it is collected again without EPPlus.
 $readComparisonIds = @(
     'markpflug-65k-csv-decoded-net10.0',
-    'markpflug-65k-xlsx-typed-net10.0',
     'markpflug-65k-xlsb-typed-net10.0'
 )
 foreach ($comparisonId in $readComparisonIds) {

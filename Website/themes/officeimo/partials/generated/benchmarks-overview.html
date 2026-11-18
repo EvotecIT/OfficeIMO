@@ -2,23 +2,15 @@
 <div class="imo-benchmark-evidence__intro"><p class="imo-benchmark-eyebrow">Local engineering evidence</p><h2 id="benchmark-evidence-title">Dated Excel and CSV snapshots</h2><p>These compact views preserve focused workstation runs. Compare libraries only within the same scenario and recorded environment; use the platform-specific matrix for broader decisions.</p></div>
 <section class="imo-benchmark-family" id="excel-evidence" data-benchmark-family="excel">
 <header class="imo-benchmark-family__header">
-<div><p class="imo-benchmark-eyebrow">Dated focused snapshot</p><h2>Excel report and data pipelines</h2></div>
-<p>Median timings from rotated local runs with 20 warmups and 9 measured iterations. The scenarios cover feature-rich output, styled IDataReader writes, typed reads, and compact streaming writes.</p>
+<div><p class="imo-benchmark-eyebrow">Dated focused snapshot</p><h2>Excel data pipelines</h2></div>
+<p>Median timings from rotated local runs with 20 warmups and 9 measured iterations. The scenarios cover styled IDataReader writes, typed reads, and compact streaming writes.</p>
 </header>
 <div class="imo-benchmark-family__meta"><span>Snapshot 2026-09-28</span><span>Microsoft Windows 10.0.26200</span><span>local, affinity 0xFFFF, Normal priority</span><span>25,000 rows</span><span>.NET 8</span><a href="https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/readme-current/officeimo.excel.comparison.json" target="_blank" rel="noopener">Inspect Excel benchmark evidence</a></div>
 <div class="imo-benchmark-highlight-grid">
 <article class="imo-benchmark-highlight">
-<div class="imo-benchmark-highlight__heading"><div><p>Create</p><h3>Feature-rich report to XLSX</h3></div><span>Create</span></div>
-<div class="imo-benchmark-highlight__table-wrap"><table><thead><tr><th scope="col">Library</th><th scope="col">Median</th><th scope="col">Relative</th></tr></thead><tbody>
-<tr class="is-officeimo"><th scope="row">OfficeIMO.Excel</th><td>52.11 ms</td><td>OfficeIMO baseline</td></tr>
-<tr><th scope="row">EPPlus</th><td>612.05 ms</td><td>11.75x OfficeIMO</td></tr>
-</tbody></table></div>
-</article>
-<article class="imo-benchmark-highlight">
 <div class="imo-benchmark-highlight__heading"><div><p>Write</p><h3>Styled DataReader table to XLSX</h3></div><span>Write</span></div>
 <div class="imo-benchmark-highlight__table-wrap"><table><thead><tr><th scope="col">Library</th><th scope="col">Median</th><th scope="col">Relative</th></tr></thead><tbody>
 <tr class="is-officeimo"><th scope="row">OfficeIMO.Excel</th><td>28.48 ms</td><td>OfficeIMO baseline</td></tr>
-<tr><th scope="row">EPPlus</th><td>405.97 ms</td><td>14.26x OfficeIMO</td></tr>
 <tr><th scope="row">ClosedXML</th><td>505.67 ms</td><td>17.76x OfficeIMO</td></tr>
 </tbody></table></div>
 </article>
@@ -27,7 +19,6 @@
 <div class="imo-benchmark-highlight__table-wrap"><table><thead><tr><th scope="col">Library</th><th scope="col">Median</th><th scope="col">Relative</th></tr></thead><tbody>
 <tr class="is-officeimo"><th scope="row">OfficeIMO.Excel</th><td>32.79 ms</td><td>OfficeIMO baseline</td></tr>
 <tr><th scope="row">Sylvan.Data.Excel</th><td>61.59 ms</td><td>1.88x OfficeIMO</td></tr>
-<tr><th scope="row">EPPlus</th><td>319.14 ms</td><td>9.73x OfficeIMO</td></tr>
 <tr><th scope="row">ClosedXML</th><td>470.89 ms</td><td>14.36x OfficeIMO</td></tr>
 </tbody></table></div>
 </article>

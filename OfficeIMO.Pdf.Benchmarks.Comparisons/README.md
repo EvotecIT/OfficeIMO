@@ -228,19 +228,21 @@ described as a current-version QuestPDF result. iText remains AGPL/commercial. R
 the controlling license before publishing comparative artifacts or distributing
 benchmark binaries. These restrictions do not apply to the OfficeIMO-only showcase.
 
-Maintainers who have independently confirmed that they are authorized to exercise a
-different QuestPDF release can use the isolated internal runner. The explicit switch
-is a safeguard and provenance record, not a license grant. Internal runs reject
-website publication, never update the shared catalog, and delete their temporary
-artifacts unless `-KeepArtifacts` is supplied:
+A different QuestPDF release is the `questpdf-latest` library in
+[`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json). It runs only
+after you review its licence, accept it with `-AcceptLibraryLicense questpdf-latest`,
+and set your own licence type in `OFFICEIMO_QUESTPDF_LICENSE_TYPE`. Acceptance is a
+record of your decision, not a licence grant. These runs reject website
+publication, never update the shared catalog, and delete their temporary artifacts
+unless `-KeepArtifacts` is supplied:
 
 ```powershell
+$env:OFFICEIMO_QUESTPDF_LICENSE_TYPE = '<your licence type>'
 pwsh Build/Run-InternalQuestPdfBenchmarks.ps1 `
     -QuestPdfPackageVersion 2026.9.0 `
     -Workload pdfgenerate `
     -RunMode quick `
-    -QuestPdfLicenseType Community `
-    -ConfirmQuestPdfAuthorization
+    -AcceptLibraryLicense questpdf-latest
 ```
 
 Validate the nine exact 21 KiB payload cases without measuring speed:

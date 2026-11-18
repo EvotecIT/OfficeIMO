@@ -140,6 +140,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory(BenchmarkLibrarySelection.CategoryPrefix + "epplus")]
     public ExcelReadObservation EPPlus() {
         using var package = new ExcelPackage(new FileInfo(MarkPflug65KFixture.XlsxPath));
         ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
