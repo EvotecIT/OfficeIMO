@@ -15,6 +15,9 @@ public class PdfInvoiceGenerationBenchmarks {
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(QuestPDF), QuestPDF());
         Validate(nameof(IText), IText());
+#if NET10_0_OR_GREATER
+        Validate(nameof(OnePdfLayout), OnePdfLayout());
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -25,6 +28,13 @@ public class PdfInvoiceGenerationBenchmarks {
 
     [Benchmark]
     public byte[] IText() => ITextPdfInvoiceGenerator.Generate(_scenario);
+
+#if NET10_0_OR_GREATER
+    /// <summary>OnePDF.Layout writes a tagged PDF by default.</summary>
+    [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
+    public byte[] OnePdfLayout() => OnePdfInvoiceGenerator.Generate(_scenario);
+#endif
 
     private void Validate(string engine, byte[] pdf) => PdfInvoiceComparisonValidation.Validate(pdf, _scenario, engine);
 }

@@ -38,6 +38,9 @@ public class PdfSplitBenchmarks {
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(IText), IText());
         Validate(nameof(PdfSharp), PdfSharp());
+#if NET10_0_OR_GREATER
+        Validate(nameof(OnePdf), OnePdf());
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -48,6 +51,12 @@ public class PdfSplitBenchmarks {
 
     [Benchmark]
     public byte[][] PdfSharp() => PdfManipulationEngines.SplitWithPdfSharp(_source, _pagesPerDocument);
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
+    public byte[][] OnePdf() => PdfManipulationEngines.SplitWithOnePdf(_source, _pagesPerDocument);
+#endif
 
     private void Validate(string engine, byte[][] outputs) =>
         PdfManipulationValidation.Validate(outputs, _expectedPages, engine + " splitting " + Producer);
