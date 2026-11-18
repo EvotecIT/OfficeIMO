@@ -94,8 +94,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
         private static void ValidateDimension(Worksheet worksheet, XlsbSheet sourceSheet, ExcelSheet sheet) {
             SheetDimension[] dimensions = worksheet.Elements<SheetDimension>().ToArray();
-            if (sourceSheet.UsedRange == null) {
-                if (dimensions.Length != 0) ThrowGeometryMutation(sheet, "worksheet dimension");
+            // BrtWsDim is optional. Without it there is no stored range to keep, so only a dimension derived from the
+            // current cells is accepted, such as the one bulk row appends maintain.
+            if (sourceSheet.UsedRange == null && dimensions.Length == 0) {
                 return;
             }
             int firstRow = 0;
@@ -111,10 +112,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (!TryParseDimension(currentReference, out int currentFirstRow, out int currentFirstColumn, out int currentLastRow, out int currentLastColumn)) {
                 ThrowGeometryMutation(sheet, "worksheet dimension");
             }
-            int minimumRow = Math.Min(sourceSheet.UsedRange.FirstRow, currentFirstRow);
-            int minimumColumn = Math.Min(sourceSheet.UsedRange.FirstColumn, currentFirstColumn);
-            int maximumRow = Math.Max(sourceSheet.UsedRange.LastRow, currentLastRow);
-            int maximumColumn = Math.Max(sourceSheet.UsedRange.LastColumn, currentLastColumn);
+            int minimumRow = sourceSheet.UsedRange == null ? currentFirstRow : Math.Min(sourceSheet.UsedRange.FirstRow, currentFirstRow);
+            int minimumColumn = sourceSheet.UsedRange == null ? currentFirstColumn : Math.Min(sourceSheet.UsedRange.FirstColumn, currentFirstColumn);
+            int maximumRow = sourceSheet.UsedRange == null ? currentLastRow : Math.Max(sourceSheet.UsedRange.LastRow, currentLastRow);
+            int maximumColumn = sourceSheet.UsedRange == null ? currentLastColumn : Math.Max(sourceSheet.UsedRange.LastColumn, currentLastColumn);
             if (firstRow < minimumRow
                 || firstColumn < minimumColumn
                 || lastRow > maximumRow
