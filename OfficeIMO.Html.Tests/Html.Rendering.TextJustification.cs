@@ -31,7 +31,13 @@ public sealed partial class HtmlRenderingTests {
         { "<div style='text-align:justify-all;text-align-last:center;width:300px'><p style='margin:0'>" + JustifiedText + "</p></div>", "center" },
         { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:match-parent'>" + JustifiedText + "</p></div>", "justified" },
         // An explicit reset is not inherited.
-        { "<div style='text-align:justify;text-align-last:center;width:300px'><p style='margin:0;text-align-last:initial'>" + JustifiedText + "</p></div>", "start" }
+        { "<div style='text-align:justify;text-align-last:center;width:300px'><p style='margin:0;text-align-last:initial'>" + JustifiedText + "</p></div>", "start" },
+        { "<p style='text-align:justify-all;text-align-last:initial;width:300px;margin:0'>" + JustifiedText + "</p>", "start" },
+        // Inherited start and match-parent justification resolve against the child's own direction.
+        { "<div style='text-align:justify;text-align-last:start;width:300px'><p dir='rtl' style='margin:0'>" + JustifiedText + "</p></div>", "end" },
+        { "<div style='text-align:justify;width:300px'><p dir='rtl' style='margin:0;text-align:match-parent'>" + JustifiedText + "</p></div>", "end" },
+        // match-parent takes the parent's computed last-line value, before its text-justify: none.
+        { "<div style='text-align:justify;text-align-last:justify;text-justify:none;width:300px'><p style='margin:0;text-align:justify;text-align-last:match-parent;text-justify:inter-word'>" + JustifiedText + "</p></div>", "justified" }
     };
 
     [Theory]

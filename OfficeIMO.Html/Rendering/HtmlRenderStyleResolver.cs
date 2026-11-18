@@ -295,11 +295,14 @@ internal sealed partial class HtmlRenderStyleResolver {
             out bool justifyText, out bool justifyAll);
         bool textAlignJustify = justifyText && !defaultCentered;
         // justify-all also sets text-align-last; a text-align-last that wins the cascade over it still
-        // applies. An element that inherits both keeps its parent's computed last-line value.
+        // applies. An element that inherits both keeps its parent's computed last-line value; an
+        // inherited start or end keyword resolves against this element's direction.
         bool inheritsLastLine = parent != null && computed.IsImplicitlyInheritedValue("text-align")
             && !computed.IsResetValue("text-align-last")
             && (string.IsNullOrWhiteSpace(computed.GetValue("text-align-last")) || computed.IsImplicitlyInheritedValue("text-align-last"));
-        OfficeTextAlignment? computedTextAlignLast = inheritsLastLine ? parent!.ComputedTextAlignLast
+        string inheritedLastLine = computed.GetValue("text-align-last").Trim().ToLowerInvariant();
+        OfficeTextAlignment? computedTextAlignLast = inheritsLastLine
+                ? inheritedLastLine is "start" or "end" ? ResolveTextAlignLast(inheritedLastLine, direction, parent) : parent!.ComputedTextAlignLast
             : justifyAll && !OutranksTextAlign(computed, "text-align-last") ? OfficeTextAlignment.Justify
             : ResolveTextAlignLast(computed.GetValue("text-align-last"), direction, parent);
         OfficeTextAlignment? textAlignLast = computedTextAlignLast;
@@ -477,13 +480,17 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (computed.IsResetValue(winner)) return "normal";
         return computed.GetValue(winner);
 
+        // Values copied from the parent are not declarations; with neither spelling declared the
+        // parent's resolved wrapping is inherited.
         static bool IsDeclared(HtmlComputedStyle style, string property) =>
-            !string.IsNullOrWhiteSpace(style.GetValue(property)) || style.IsResetValue(property);
+            !string.IsNullOrWhiteSpace(style.GetValue(property)) && !style.IsImplicitlyInheritedValue(property)
+            || style.IsResetValue(property);
     }
 
-    // Whether a declaration of property wins the cascade over this element's text-align declaration.
+    // Whether a declaration of property, including a reset such as initial, wins the cascade over
+    // this element's text-align declaration.
     private static bool OutranksTextAlign(HtmlComputedStyle computed, string property) =>
-        !string.IsNullOrWhiteSpace(computed.GetValue(property))
+        (!string.IsNullOrWhiteSpace(computed.GetValue(property)) || computed.IsResetValue(property))
         && !computed.IsImplicitlyInheritedValue(property)
         && computed.TryGetCascadePriority(property, out HtmlCssCascadePriority priority)
         && (!computed.TryGetCascadePriority("text-align", out HtmlCssCascadePriority textAlign)
@@ -981,9 +988,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             case "match-parent" when parent != null:
                 // The parent's start and end are already resolved against its own direction. Its
                 // text-align value is matched; this element's own text-justify then applies.
+                // Justified text keeps justify, so its automatic last line aligns to this element's start.
                 justify = parent.TextAlignJustify;
                 justifyAll = parent.TextAlignJustify && parent.ComputedTextAlignLast == OfficeTextAlignment.Justify;
-                return parent.Alignment;
+                return parent.TextAlignJustify ? start : parent.Alignment;
             default:
                 return start;
         }
@@ -1004,7 +1012,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             case "justify": return OfficeTextAlignment.Justify;
             case "start": return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
             case "end": return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
-            case "match-parent": return parent?.TextAlignLast;
+            // The parent's computed value; this element's own text-justify then applies.
+            case "match-parent": return parent?.ComputedTextAlignLast;
             default: return null;
         }
     }

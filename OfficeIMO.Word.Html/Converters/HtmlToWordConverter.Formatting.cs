@@ -299,7 +299,8 @@ namespace OfficeIMO.Word.Html {
                 && IsLegacyAlignedBlock(element) && !string.IsNullOrWhiteSpace(element.GetAttribute("align"))) {
                 align = null;
             }
-            if (!string.IsNullOrWhiteSpace(align) && !IsInjectedInheritedProperty(element, "text-align")) {
+            // inherit and unset take the container's or cell's alignment, so they do not own one.
+            if (!string.IsNullOrWhiteSpace(align) && !IsInjectedInheritedProperty(element, "text-align") && !InheritsTextAlign(align)) {
                 _ownAlignmentParagraphs.Add(paragraph._paragraph);
             }
             if (TryMapTextAlign(align, GetBidiFromDir(element), out var mappedAlignment)) {
@@ -420,10 +421,21 @@ namespace OfficeIMO.Word.Html {
             string? styleAttribute = element.GetAttribute("style");
             string? align = string.IsNullOrWhiteSpace(styleAttribute) ? null
                 : GetInlinePropertyValue(ParseInlineDeclaration(styleAttribute), styleAttribute, "text-align")?.Trim();
+            // A value copied from an outer container is inherited, so this element's align attribute outranks it.
+            if (!string.IsNullOrWhiteSpace(align) && IsInjectedInheritedProperty(element, "text-align")
+                && IsLegacyAlignedBlock(element) && !string.IsNullOrWhiteSpace(element.GetAttribute("align"))) {
+                align = null;
+            }
             bool? bidi = GetBidiFromDir(element);
             if (!TryMapTextAlign(align, bidi, out JustificationValues alignment)
                 && !(string.IsNullOrWhiteSpace(align) && IsLegacyAlignedBlock(element)
-                    && TryMapTextAlign(element.GetAttribute("align"), bidi, out alignment))) return;
+                    && TryMapTextAlign(element.GetAttribute("align"), bidi, out alignment))) {
+                // A reset such as initial keeps outer containers from aligning this element's text.
+                if (!string.IsNullOrWhiteSpace(align) && !InheritsTextAlign(align) && !IsInjectedInheritedProperty(element, "text-align")) {
+                    foreach (WordParagraph paragraph in paragraphs) _ownAlignmentParagraphs.Add(paragraph._paragraph);
+                }
+                return;
+            }
             foreach (WordParagraph paragraph in paragraphs) {
                 if (!_ownAlignmentParagraphs.Contains(paragraph._paragraph)) paragraph.ParagraphAlignment ??= alignment.ToOfficeEnum();
             }
@@ -432,6 +444,10 @@ namespace OfficeIMO.Word.Html {
         // Paragraphs whose element declared text-align, including a reset such as initial; a
         // container or table cell alignment does not replace it.
         private readonly HashSet<DocumentFormat.OpenXml.Wordprocessing.Paragraph> _ownAlignmentParagraphs = new();
+
+        private static bool InheritsTextAlign(string? value) =>
+            string.Equals(value, "inherit", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "unset", StringComparison.OrdinalIgnoreCase);
 
         private bool IsInjectedInheritedProperty(IElement element, string property) =>
             _injectedInheritedCssProperties.TryGetValue(element, out HashSet<string>? injected) && injected.Contains(property);

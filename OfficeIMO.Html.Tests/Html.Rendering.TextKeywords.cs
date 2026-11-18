@@ -152,10 +152,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(), text => text.Text == "A ");
     }
 
-    [Fact]
-    public void HtmlRenderer_PreLineFlexItemsAreSizedByTheirLongestLine() {
+    [Theory]
+    [InlineData("<div>0000000000\n0000000000</div>")]
+    [InlineData("<div class='generated'></div>")]
+    public void HtmlRenderer_PreLineFlexItemsAreSizedByTheirLongestLine(string item) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='display:flex;white-space:pre-line'><div>0000000000\n0000000000</div>"
+            "<style>.generated::before{content:'0000000000\\A 0000000000'}</style>"
+            + "<div style='display:flex;white-space:pre-line'>" + item
             + "<div style='width:10px;height:10px;background:#ff0000'></div></div>", TextKeywordOptions);
         JustifiedLine first = JustifiedLines(rendered)[0];
         HtmlRenderShape sibling = Assert.Single(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderShape>(),
