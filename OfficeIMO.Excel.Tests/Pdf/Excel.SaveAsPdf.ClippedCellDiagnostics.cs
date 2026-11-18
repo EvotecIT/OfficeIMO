@@ -75,4 +75,56 @@ public partial class Excel {
         }
         Assert.Contains(perCell.Diagnostics, diagnostic => diagnostic.Code == "table-cell-paint-clipped");
     }
+
+    [Fact]
+    public void SaveAsPdf_MergedCellAcrossPageBreakReportsItsAnchorCell() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Report");
+        for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
+        sheet.Cell(1, 1).SetValue("Start");
+        sheet.Cell(2, 1).SetValue(LongCellText);
+        sheet.Range("A2:A3").Merge();
+        sheet.Cell(2, 2).SetValue("x");
+        sheet.Cell(3, 2).SetValue("x");
+        sheet.Cell(4, 2).SetValue("End");
+        sheet.PageSetup.PrintArea = "A1:B4";
+        sheet.AddManualRowPageBreak(2);
+        string[] codes = { "table-cell-content-clipped", "table-cell-paint-clipped", "table-cell-canvas-clip-paint-clipped" };
+        using var summaryStream = new MemoryStream();
+        using var perCellStream = new MemoryStream();
+
+        OfficeConversionReport summary = document.SaveAsPdf(summaryStream);
+        OfficeConversionReport perCell = document.SaveAsPdf(perCellStream,
+            new ExcelPdfExportOptions { DiagnosticsDetail = ExcelPdfDiagnosticsDetail.PerCell });
+
+        // Both page fragments of the merge report clipping, and both belong to its anchor cell.
+        Assert.True(perCell.Diagnostics.Count(diagnostic => codes.Contains(diagnostic.Code)) >= 2);
+        List<OfficeDiagnostic> clipped = summary.Diagnostics.Where(diagnostic => codes.Contains(diagnostic.Code)).ToList();
+        Assert.NotEmpty(clipped);
+        Assert.All(clipped, diagnostic => Assert.Equal("Report!A2", diagnostic.Location));
+    }
+
+    [Fact]
+    public void SaveAsPdf_FlowTableLayoutSummarizesClippedCells() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.Cell(1, 1).SetValue(LongCellText + " " + LongCellText);
+        sheet.Range("A1:A2").Merge();
+        sheet.Cell(1, 2).SetValue("x");
+        sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(10)));
+        sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(10)));
+        using var summaryStream = new MemoryStream();
+        using var perCellStream = new MemoryStream();
+
+        OfficeConversionReport summary = document.SaveAsPdf(summaryStream,
+            new ExcelPdfExportOptions { WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable });
+        OfficeConversionReport perCell = document.SaveAsPdf(perCellStream, new ExcelPdfExportOptions {
+            WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable, DiagnosticsDetail = ExcelPdfDiagnosticsDetail.PerCell });
+
+        // The flow table paints the merge once per row it spans; per cell, each row is a finding.
+        Assert.Equal(2, perCell.Diagnostics.Count(diagnostic => diagnostic.Code == "table-cell-paint-clipped"));
+        OfficeDiagnostic clipped = Assert.Single(summary.Diagnostics, diagnostic => diagnostic.Code == "table-cell-paint-clipped");
+        Assert.Equal("Data!A1", clipped.Location);
+        Assert.StartsWith("1 cell (A1). First cell: ", clipped.Message);
+    }
 }

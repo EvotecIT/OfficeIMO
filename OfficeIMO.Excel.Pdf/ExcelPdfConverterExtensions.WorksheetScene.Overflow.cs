@@ -286,7 +286,7 @@ namespace OfficeIMO.Excel.Pdf {
                     AlternativeText = "Worksheet " + plan.SheetName + " cell text"
                 };
                 // The spilled text box is a one-cell table; its findings belong to the source cell.
-                Func<int, int, PdfCore.PdfTableCellDiagnosticAddress?>? sourceCell = CreateWorksheetCellAddress(plan.SheetName, data.CellReferences);
+                Func<int, int, PdfCore.PdfTableCellDiagnosticAddress?>? sourceCell = CreateWorksheetCellAddress(plan.SheetName, data.CellReferences, data.MergedCells);
                 int sourceRow = overflow.Row, sourceColumn = overflow.Column;
                 if (sourceCell != null) style.DiagnosticCellAddress = (_, _) => sourceCell(sourceRow, sourceColumn);
                 if (sceneStyle.CellPaddings != null && sceneStyle.CellPaddings.TryGetValue((overflow.Row, overflow.Column), out PdfCore.PdfCellPadding? padding)) {

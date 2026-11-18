@@ -31,13 +31,17 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        /// <summary>Names each worksheet scene table cell by its sheet cell, for summarized clipping findings.</summary>
-        private static Func<int, int, PdfCore.PdfTableCellDiagnosticAddress?>? CreateWorksheetCellAddress(string sheetName, string?[,]? references) {
+        /// <summary>
+        /// Names each worksheet table cell by its sheet cell, for summarized clipping findings. A merged cell, including a
+        /// fragment of one continued from an earlier page, is named by the merge's own top-left cell, which holds its text.
+        /// </summary>
+        private static Func<int, int, PdfCore.PdfTableCellDiagnosticAddress?>? CreateWorksheetCellAddress(string sheetName,
+            string?[,]? references, MergeLayoutData? merges) {
             if (references == null) return null;
             int rows = references.GetLength(0), columns = references.GetLength(1);
             return (row, column) => {
                 if (row < 0 || row >= rows || column < 0 || column >= columns) return null;
-                string? reference = references[row, column];
+                string? reference = merges?.GetRegion(row, column)?.Span.ImageAnchorReference ?? references[row, column];
                 if (string.IsNullOrEmpty(reference)) return null;
                 (int sheetRow, int sheetColumn) = ExcelA1.ParseCellRef(reference!);
                 return sheetRow > 0 ? new PdfCore.PdfTableCellDiagnosticAddress(sheetName, sheetRow, sheetColumn) : null;
