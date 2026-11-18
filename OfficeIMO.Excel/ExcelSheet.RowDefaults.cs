@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets the unpadded base column width used when no default width is authored.</summary>
         internal void SetImportedBaseColumnWidth(uint width) {
             if (width > 255) throw new InvalidDataException("Invalid imported base column width.");
-            WriteLockConditional(() => GetOrCreateSheetFormatProperties().BaseColumnWidth = width);
+            WriteLockConditional(() => ChangeDefaultColumnWidth(() => GetOrCreateSheetFormatProperties().BaseColumnWidth = width));
         }
 
         internal double BaseColumnWidth => WorksheetRoot.GetFirstChild<SheetFormatProperties>()
@@ -98,8 +98,10 @@ namespace OfficeIMO.Excel {
             }
 
             WriteLock(() => {
-                SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
-                sheetFormat.DefaultColumnWidth = roundToHundredths ? OfficeRounding.Round(width, 2) : width;
+                ChangeDefaultColumnWidth(() => {
+                    SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
+                    sheetFormat.DefaultColumnWidth = roundToHundredths ? OfficeRounding.Round(width, 2) : width;
+                });
                 if (save) {
                     WorksheetRoot.Save();
                 }

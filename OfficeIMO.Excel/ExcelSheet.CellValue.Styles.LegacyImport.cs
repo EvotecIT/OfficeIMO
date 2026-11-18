@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (column == null) {
-                    column = new Column { Min = (uint)columnIndex, Max = (uint)columnIndex };
+                    column = CreateDefaultWidthColumn((uint)columnIndex);
                     columns.Append(column);
                 }
 

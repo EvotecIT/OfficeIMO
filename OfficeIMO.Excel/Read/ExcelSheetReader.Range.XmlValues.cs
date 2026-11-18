@@ -203,7 +203,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                return FromExcelSerialDate(oa, calendarStyle);
+                return DateOrSerial(oa, calendarStyle);
             }
 
             if (numericAsDecimal
@@ -239,7 +239,7 @@ namespace OfficeIMO.Excel {
                     if (cellReader.LocalName == "v") {
                         if (useCachedFormulaResult) {
                             if (TryReadXmlSimpleDoubleAndSkipCell(cellReader, depth, out double simpleNumber, out rawText)) {
-                                if (useDateStyle) return FromExcelSerialDate(simpleNumber, calendarStyle);
+                                if (useDateStyle) return DateOrSerial(simpleNumber, calendarStyle);
                                 if (numericAsDecimal && TryConvertExcelNumberToDecimal(simpleNumber, out decimal simpleDecimal)) {
                                     return simpleDecimal;
                                 }
@@ -260,7 +260,7 @@ namespace OfficeIMO.Excel {
                             if (useDateStyle
                                 && (TryParseInvariantDouble(rawText, out double oa)
                                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                                return FromExcelSerialDate(oa, calendarStyle);
+                                return DateOrSerial(oa, calendarStyle);
                             }
 
                             if (rawText == null) {
@@ -318,7 +318,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oaValue)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oaValue))) {
-                return FromExcelSerialDate(oaValue, calendarStyle);
+                return DateOrSerial(oaValue, calendarStyle);
             }
 
             if (numericAsDecimal
@@ -379,7 +379,7 @@ namespace OfficeIMO.Excel {
             if (useDateStyle
                 && (TryParseInvariantDouble(rawText, out double oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))) {
-                value = FromExcelSerialDate(oa, calendarStyle);
+                value = DateOrSerial(oa, calendarStyle);
                 return true;
             }
 

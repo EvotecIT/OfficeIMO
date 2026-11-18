@@ -49,6 +49,12 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal bool Uses1904DateSystem { get; set; }
 
+        /// <summary>The first workbook view's active tab (itabCur), when the source has a workbook view.</summary>
+        internal uint? ActiveTab { get; set; }
+
+        /// <summary>The first workbook view's first visible tab (itabFirst), when the source has a workbook view.</summary>
+        internal uint? FirstSheet { get; set; }
+
         internal XlsbCalculationProperties? CalculationProperties { get; set; }
 
         internal XlsbWorkbookProtection? WorkbookProtection { get; set; }

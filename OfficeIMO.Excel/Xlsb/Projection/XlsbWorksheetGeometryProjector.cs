@@ -18,7 +18,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             worksheet.RemoveAllChildren<SheetViews>();
-            worksheet.InsertBefore(CreateSheetViews(sourceSheet), sheetData);
+            SheetViews views = CreateSheetViews(sourceSheet);
+            if (sourceSheet.TabSelected == true) views.Elements<SheetView>().Single().TabSelected = true;
+            worksheet.InsertBefore(views, sheetData);
 
             SheetFormatProperties? format = CreateSheetFormatProperties(sourceSheet.FormatInfo);
             if (format != null) {
@@ -64,16 +66,26 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             ValidateDimension(worksheet, sourceSheet, sheet);
-            SheetViews[] actualViews = worksheet.Elements<SheetViews>().ToArray();
+            // Tab selection is written from the document model by the rewrite; it is not pane geometry.
+            SheetViews[] actualViews = worksheet.Elements<SheetViews>().Select(WithoutTabSelection).ToArray();
             bool equivalentDefaultView = sourceSheet.Pane == null && sourceSheet.ShowGridLines != false
                 && (actualViews.Length == 0 || actualViews.Length == 1 && ExcelSheet.IsNeutralSheetViews(actualViews[0]));
             if (!equivalentDefaultView) {
-                ValidateSingleElement(worksheet, CreateSheetViews(sourceSheet), sheet, "worksheet panes");
+                SheetViews expectedViews = CreateSheetViews(sourceSheet);
+                if (actualViews.Length != 1 || !string.Equals(actualViews[0].OuterXml, expectedViews.OuterXml, StringComparison.Ordinal)) {
+                    ThrowGeometryMutation(sheet, "worksheet panes");
+                }
             }
             ValidateSingleElement(worksheet, CreateSheetFormatProperties(sourceSheet.FormatInfo), sheet, "worksheet defaults");
             ValidateSingleElement(worksheet, CreateColumns(sourceSheet.Columns), sheet, "column metadata");
             ValidateSingleElement(worksheet, CreateMergeCells(sourceSheet.MergedRanges), sheet, "merged ranges");
             ValidateRows(worksheet.GetFirstChild<SheetData>(), sourceSheet, sheet);
+        }
+
+        private static SheetViews WithoutTabSelection(SheetViews views) {
+            var copy = (SheetViews)views.CloneNode(true);
+            foreach (SheetView view in copy.Elements<SheetView>()) view.TabSelected = null;
+            return copy;
         }
 
         private static SheetDimension? CreateSheetDimension(XlsbCellRange? range) {

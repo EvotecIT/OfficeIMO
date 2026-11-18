@@ -86,7 +86,7 @@ public partial class Excel {
             Assert.True(reader.IsDBNull(0));
             Assert.Throws<InvalidCastException>(() => reader.GetDouble(0));
             Assert.Equal(1E100, reader.GetDouble(1));
-            Assert.ThrowsAny<ArgumentException>(() => reader.GetDateTime(1));
+            Assert.Throws<InvalidCastException>(() => reader.GetDateTime(1));
             Assert.Equal(1E100, reader.GetDouble(1));
             Assert.Equal(7, reader.GetInt32(2));
             if (numericAsDecimal) Assert.Equal(7m, Assert.IsType<decimal>(reader.GetValue(2)));

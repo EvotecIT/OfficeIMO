@@ -226,6 +226,16 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                // Workbook views name tabs by position: keep them on the same sheets, and off a hidden one.
+                int remainingTabs = all.Count - 1;
+                foreach (var view in wb.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.BookViews>()?.Elements<DocumentFormat.OpenXml.Spreadsheet.WorkbookView>() ?? Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.WorkbookView>()) {
+                    if (view.ActiveTab?.Value > (uint)removedIdx) view.ActiveTab = view.ActiveTab.Value - 1;
+                    else if (remainingTabs > 0 && view.ActiveTab?.Value >= (uint)remainingTabs) view.ActiveTab = (uint)(remainingTabs - 1);
+                    if (view.FirstSheet?.Value > (uint)removedIdx) view.FirstSheet = view.FirstSheet.Value - 1;
+                    else if (remainingTabs > 0 && view.FirstSheet?.Value >= (uint)remainingTabs) view.FirstSheet = (uint)(remainingTabs - 1);
+                }
+                MoveActiveTabsOffHiddenSheetsCore();
+
                 _workBookPart.DeletePart(part);
                 foreach (string alias in removedTableAliases) RemoveReservedTableName(alias);
                 CompleteOwnedChartDataSheetRemoval(sheet.Name?.Value ?? sheetName);
