@@ -196,6 +196,54 @@ namespace OfficeIMO.Tests {
             File.Delete(targetPath);
         }
 
+        [Theory]
+        [InlineData(ExcelWorksheetCopyMode.Package)]
+        [InlineData(ExcelWorksheetCopyMode.Values)]
+        public void Test_WorkbookMerge_CopiesSheetQualifiedLambdaNames(ExcelWorksheetCopyMode mode) {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"QualifiedLambdaSource-{mode}.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, $"QualifiedLambdaTarget-{mode}.xlsx");
+            using (var createdSource = ExcelDocument.Create(sourcePath)) {
+                createdSource.AddSheet("Functions").Cell(1, 1).SetValue("Helpers");
+                createdSource.AddSheet("Data").Cell(1, 1).SetValue(4);
+                createdSource.Save();
+            }
+
+            // Twice is local to the Functions sheet and called with that qualifier from a rule on Data.
+            AddDefinedName(sourcePath, "Twice", "_xlfn.LAMBDA(_xlpm.x,_xlpm.x*2)", localSheetId: 0U);
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
+                Worksheet worksheet = GetWorksheetPartByNameForOperations(source, "Data").Worksheet!;
+                worksheet.InsertAfter(new ConditionalFormatting(new ConditionalFormattingRule(new Formula("Functions!Twice(A1)>5")) {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = 1
+                }) { SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" } }, worksheet.GetFirstChild<SheetData>()!);
+                worksheet.Save();
+            }
+
+            using (var createdTarget = ExcelDocument.Create(targetPath)) {
+                createdTarget.AddSheet("Existing").Cell(1, 1).SetValue("Existing");
+                createdTarget.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions { CopyMode = mode, SheetNamePrefix = "In " });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                Workbook workbook = target.WorkbookPart!.Workbook!;
+                uint functionsPosition = (uint)workbook.Sheets!.Elements<Sheet>().ToList().FindIndex(sheet => sheet.Name == "In Functions");
+                DefinedName twice = Assert.Single(workbook.DefinedNames!.Elements<DefinedName>(), name => name.Name == "Twice");
+                Assert.Equal(functionsPosition, twice.LocalSheetId!.Value);
+                Assert.Equal("'In Functions'!Twice(A1)>5", GetWorksheetPartByNameForOperations(target, "In Data").Worksheet!
+                    .Descendants<ConditionalFormattingRule>().Single().GetFirstChild<Formula>()!.Text);
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
         private static string Unquote(string text) => text.Replace("'Copy'", "Copy");
 
         private static void CreateFormulaMatrixSource(string path) {

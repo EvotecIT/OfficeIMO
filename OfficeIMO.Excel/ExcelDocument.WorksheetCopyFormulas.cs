@@ -42,19 +42,22 @@ namespace OfficeIMO.Excel {
         private static IEnumerable<(string Name, string? SheetName)> ReadDefinedNameTokens(string formula) {
             int position = 0;
             foreach (ExcelFormulaSyntaxNode node in ExcelFormulaSyntaxTree.Parse(formula).Nodes) {
+                int start = position;
+                position += node.Text.Length;
                 // In [1]!Name the workbook qualifier is tokenized apart from the name; that name lives in the
                 // linked workbook. [0]! is this workbook, as charts write it.
-                bool externalQualifier = position >= 2 && formula[position - 1] == '!' && formula[position - 2] == ']'
-                    && !(position >= 4 && formula[position - 3] == '0' && formula[position - 4] == '[');
-                position += node.Text.Length;
-                if (externalQualifier) {
+                if (start >= 2 && formula[start - 1] == '!' && formula[start - 2] == ']'
+                    && !(start >= 4 && formula[start - 3] == '0' && formula[start - 4] == '[')) {
                     continue;
                 }
 
                 string? authored = node switch {
                     ExcelFormulaNameSyntax name => name.Name,
-                    // A LAMBDA stored as a defined name is called like a function.
-                    ExcelFormulaFunctionSyntax function => function.Name,
+                    // A LAMBDA stored as a defined name is called like a function. The tokenizer leaves a sheet
+                    // qualifier such as Functions!Twice( outside the function token, so it is read back here.
+                    ExcelFormulaFunctionSyntax function => ReadFunctionQualifier(formula, start) is string sheet
+                        ? QuoteQualifier(sheet) + "!" + function.Name
+                        : function.Name,
                     _ => null
                 };
                 if (string.IsNullOrEmpty(authored)) {
@@ -101,6 +104,46 @@ namespace OfficeIMO.Excel {
             });
             return found;
         }
+
+        /// <summary>Reads the sheet qualifier written directly before a function token, as in 'My Sheet'!Twice(.</summary>
+        private static string? ReadFunctionQualifier(string formula, int functionStart) {
+            int bang = functionStart - 1;
+            if (bang < 1 || formula[bang] != '!') {
+                return null;
+            }
+
+            int end = bang - 1;
+            if (formula[end] == '\'') {
+                for (int index = end - 1; index >= 0; index--) {
+                    if (formula[index] != '\'') {
+                        continue;
+                    }
+
+                    if (index > 0 && formula[index - 1] == '\'') {
+                        index--;
+                        continue;
+                    }
+
+                    return formula.Substring(index + 1, end - index - 1).Replace("''", "'");
+                }
+
+                return null;
+            }
+
+            int begin = end;
+            while (begin >= 0 && (char.IsLetterOrDigit(formula[begin]) || formula[begin] == '_' || formula[begin] == '.')) {
+                begin--;
+            }
+
+            if (begin == end) {
+                return null;
+            }
+
+            // [1]Sheet!Fn( belongs to a linked workbook; report it with its bracket so callers skip it.
+            return begin >= 0 && formula[begin] == ']' ? "[" + formula.Substring(begin + 1, end - begin) : formula.Substring(begin + 1, end - begin);
+        }
+
+        private static string QuoteQualifier(string sheetName) => "'" + sheetName.Replace("'", "''") + "'";
 
         private static int LastIndexOfUnquoted(string text, char value) {
             bool inQuote = false;
