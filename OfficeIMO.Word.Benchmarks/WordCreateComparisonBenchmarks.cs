@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -29,8 +30,8 @@ public class WordCreateParagraphComparisonBenchmarks {
         byte[] officeImo = OfficeIMO();
         WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount);
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
-        WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
-        WordBenchmarkCorpus.ValidateParagraphDocument(NPOI(), ItemCount);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
+        if (BenchmarkLibrarySelection.IsEnabled("npoi")) WordBenchmarkCorpus.ValidateParagraphDocument(NPOI(), ItemCount);
         WordBenchmarkCorpus.ValidateParagraphDocument(OpenXmlSdkMinimal(), ItemCount);
         byte[] equivalent = OpenXmlSdkEquivalent();
         WordBenchmarkCorpus.ValidateParagraphDocument(equivalent, ItemCount);
@@ -111,8 +112,8 @@ public class WordCreateReportComparisonBenchmarks {
         byte[] officeImo = OfficeIMO();
         WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount);
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
-        WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
-        WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
+        if (BenchmarkLibrarySelection.IsEnabled("npoi")) WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
         WordBenchmarkCorpus.ValidateReportDocument(OpenXmlSdkMinimal(), RowCount);
         byte[] equivalent = OpenXmlSdkEquivalent();
         WordBenchmarkCorpus.ValidateReportDocument(equivalent, RowCount);

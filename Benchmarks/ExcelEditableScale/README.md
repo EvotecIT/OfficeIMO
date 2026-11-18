@@ -25,7 +25,9 @@ EPPlus and NPOI are restricted libraries in
 lanes run only when `OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES` lists them (for
 example `epplus,npoi`) after you have reviewed and accepted their licences;
 otherwise they print `skipped` and exit 0. EPPlus also reads your own licence
-declaration from `EPPlusLicense`.
+declaration from `EPPlusLicense`. The project does not accept NPOI's OSMF EULA
+for you; after accepting it, build with `-p:AcceptNPOIOSMFLicense=true` to
+silence NPOI's build warning.
 
 | Lane | Workload |
 |---|---|

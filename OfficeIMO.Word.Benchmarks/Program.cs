@@ -20,8 +20,14 @@ if (args.Length > 0 && string.Equals(args[0], "validate-openxml", StringComparis
 }
 
 if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.OrdinalIgnoreCase)) {
+    // DocX and NPOI are validated only when the caller enabled them; see Build/benchmark-libraries.json.
+    foreach (string restricted in new[] { "docx", "npoi" }) {
+        if (!BenchmarkLibrarySelection.IsEnabled(restricted)) {
+            Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage(restricted));
+        }
+    }
     WordLibraryBenchmarkValidation.RunAll();
-    Console.WriteLine("All Word library benchmark scenarios produced equivalent validated DOCX payloads.");
+    Console.WriteLine("The enabled Word library benchmark scenarios produced equivalent validated DOCX payloads.");
     return;
 }
 

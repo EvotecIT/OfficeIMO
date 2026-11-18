@@ -4,8 +4,9 @@ Opt-in benchmark verification runner for OfficeIMO.Excel and NPOI.
 
 This project is not included in `OfficeIMO.slnx`, so normal solution restore and
 build do not pull NPOI. Run it explicitly when external benchmark verification
-evidence is wanted. The project sets NPOI's OSMF EULA acceptance property so it
-builds, but NPOI is a restricted library in
+evidence is wanted. The project does not accept NPOI's OSMF EULA for you: pass
+`-p:AcceptNPOIOSMFLicense=true` when you build after accepting it (otherwise
+NPOI shows a build warning). NPOI is a restricted library in
 [`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json): the runner
 measures only when `OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES` includes `npoi`,
 after you have reviewed the EULA and its maintenance-fee conditions.

@@ -279,10 +279,18 @@ foreach ($tag in @(
         @{ Path = 'OfficeIMO.Excel.Benchmarks\MarkPflug65KExcelBenchmarks.cs'; Pattern = 'CategoryPrefix \+ "epplus"' },
         @{ Path = 'OfficeIMO.Excel.Benchmarks\ExcelLibraryComparisonRunner.cs'; Pattern = '\["EPPlus"\] = "epplus"' },
         @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:docx' },
-        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:npoi' })) {
+        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:npoi' },
+        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'IsEnabled\("npoi"\)\) WordBenchmarkCorpus' })) {
     if ((Get-Content -LiteralPath (Join-Path $repositoryRoot $tag.Path) -Raw) -notmatch $tag.Pattern) {
         throw "$($tag.Path) no longer marks its restricted library cases ($($tag.Pattern))."
     }
+}
+# Licence acceptance is a per-run decision, never a project default.
+$acceptingProjects = @(Get-ChildItem -LiteralPath $repositoryRoot -Recurse -Filter '*.csproj' -File |
+    Where-Object { $_.FullName -notmatch '[\\/](bin|obj|Ignore|artifacts)[\\/]' } |
+    Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '<AcceptNPOIOSMFLicense>\s*true' })
+if ($acceptingProjects.Count -gt 0) {
+    throw "Project files accept NPOI's OSMF EULA by default: $($acceptingProjects.Name -join ', ')."
 }
 
 Write-Host 'Library comparison runner policy verified for the library policy, standalone diagnostics, canonical PDF structured read, HTML-to-PDF route health, and mixed comparison selection.'

@@ -8,7 +8,9 @@
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
-    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
+    <!-- NPOI's build target warns, without a warning code, unless AcceptNPOIOSMFLicense is true. The project does not
+         accept NPOI's OSMF terms for anyone: acceptance happens per run with -AcceptLibraryLicense npoi, which passes
+         the property, and NPOI's cases run only when the runner enables it. The warning does not fail the build. -->
   </PropertyGroup>
 
   <!-- Windows PowerShell 5.1 is a 64-bit process; an SDK-style .NET Framework exe would otherwise run as x86. -->

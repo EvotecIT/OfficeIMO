@@ -12,9 +12,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <!-- NPOI's build target warns, without a warning code, unless AcceptNPOIOSMFLicense is true. The project does not
+         accept NPOI's OSMF terms for anyone: acceptance happens per run with -AcceptLibraryLicense npoi, which passes
+         the property, and NPOI's cases run only when the runner enables it. The warning does not fail the build. -->
     <RunAnalyzers>false</RunAnalyzers>
     <ServerGarbageCollection>false</ServerGarbageCollection>
-    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
   </PropertyGroup>
 
   <ItemGroup>

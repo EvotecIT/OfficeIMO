@@ -169,8 +169,9 @@ acknowledgement. `word` expands to the four comparison workloads:
 ```
 
 Use `-RunMode quick` only for a clean-source smoke run. The isolated benchmark
-project records `AcceptNPOIOSMFLicense=true`, as required by the NPOI package;
-it is nonpackable and outside the normal solution. The interoperability CI job
+project does not accept NPOI's OSMF terms in its project file; the runner passes
+`AcceptNPOIOSMFLicense=true` only for `-AcceptLibraryLicense npoi`, and a build
+without it shows NPOI's warning. It is nonpackable and outside the normal solution. The interoperability CI job
 restores and builds this project to run the deterministic `validate-workflows`
 checks; comparison measurements remain opt-in. DocX and NPOI are restricted
 libraries in [`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json):
