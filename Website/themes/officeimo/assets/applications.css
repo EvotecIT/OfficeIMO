@@ -137,7 +137,7 @@ a.imo-studio-state:hover, a.imo-studio-state:focus-visible { background: color-m
 [data-theme="dark"] .imo-studio-state[data-state="ready"], [data-theme="dark"] .imo-studio-state[data-state="listed"] { --state: #34d399; }
 [data-theme="dark"] .imo-studio-state[data-state="manual"] { --state: #fbbf24; }
 [data-theme="dark"] .imo-studio-features__apps article[data-status="in-development"] .imo-application-eyebrow { color: #fbbf24; }
-.imo-studio-matrix { overflow: auto; max-height: min(82vh, 1100px); border: 1px solid var(--imo-border); border-radius: 14px; background: var(--imo-surface); }
+.imo-studio-matrix { position: relative; overflow: auto; max-height: min(82vh, 1100px); border: 1px solid var(--imo-border); border-radius: 14px; background: var(--imo-surface); }
 .imo-studio-matrix:focus-visible { outline: 2px solid var(--imo-accent); outline-offset: 2px; }
 .imo-studio-matrix table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .86rem; }
 .imo-studio-matrix thead th { position: sticky; top: 0; z-index: 2; padding: .75rem .6rem; text-align: left; font-size: .8rem; font-weight: 700; color: var(--imo-text); background: var(--imo-bg-elevated); border-bottom: 1px solid var(--imo-border); }
