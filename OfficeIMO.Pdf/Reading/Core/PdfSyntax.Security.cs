@@ -115,11 +115,11 @@ internal static partial class PdfSyntax {
                     encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
                     encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
                     encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
-                    encryptionVersion = TryReadInteger(objects, parsedEncryptionDictionary, "V");
-                    encryptionRevision = TryReadInteger(objects, parsedEncryptionDictionary, "R");
-                    encryptionLengthBits = TryReadInteger(objects, parsedEncryptionDictionary, "Length");
+                    encryptionVersion = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "V");
+                    encryptionRevision = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "R");
+                    encryptionLengthBits = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "Length");
                     encryptionPermissions = TryReadPermissionMask(objects, parsedEncryptionDictionary);
-                    encryptMetadata = TryReadBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata");
+                    encryptMetadata = TryReadEncryptionBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata");
                     if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                         authenticatedHandler is not null) {
                         passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
@@ -1052,7 +1052,7 @@ internal static partial class PdfSyntax {
 
     private static bool? TryReadBoolean(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
-            PdfObjectLookup.ResolveChain(objects, value) is PdfBoolean boolean
+            ResolveObject(objects, value) is PdfBoolean boolean
             ? boolean.Value
             : null;
     }
@@ -1063,7 +1063,18 @@ internal static partial class PdfSyntax {
             : null;
     }
 
-    // The security handler authenticates with indirect values resolved, so the reported values resolve them too.
+    // The security handler reads the encryption dictionary with every reference chain resolved, so the reported values
+    // resolve them too. Only these few entries of one dictionary are read this way, once per inspection.
+    private static int? TryReadEncryptionInteger(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) =>
+        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.ResolveChain(objects, value) is PdfNumber number
+            ? ToInteger(number)
+            : null;
+
+    private static bool? TryReadEncryptionBoolean(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) =>
+        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.ResolveChain(objects, value) is PdfBoolean boolean
+            ? boolean.Value
+            : null;
+
     private static int? TryReadPermissionMask(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) =>
         dictionary.Items.TryGetValue("P", out PdfObject? value) && PdfObjectLookup.ResolveChain(objects, value) is PdfNumber number
             ? ToPermissionMask(number)
@@ -1084,7 +1095,7 @@ internal static partial class PdfSyntax {
 
     private static int? TryReadInteger(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
-            PdfObjectLookup.ResolveChain(objects, value) is PdfNumber number
+            ResolveObject(objects, value) is PdfNumber number
             ? ToInteger(number)
             : null;
     }

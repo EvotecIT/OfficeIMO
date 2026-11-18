@@ -106,11 +106,11 @@ internal static partial class PdfSyntax {
             encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
             encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
             encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
-            encryptionVersion = TryReadInteger(objects, parsedEncryptionDictionary, "V");
-            encryptionRevision = TryReadInteger(objects, parsedEncryptionDictionary, "R");
-            encryptionLengthBits = TryReadInteger(objects, parsedEncryptionDictionary, "Length");
+            encryptionVersion = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "V");
+            encryptionRevision = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "R");
+            encryptionLengthBits = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "Length");
             encryptionPermissions = TryReadPermissionMask(objects, parsedEncryptionDictionary);
-            encryptMetadata = TryReadBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata");
+            encryptMetadata = TryReadEncryptionBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata");
             if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                 authenticatedHandler is not null) {
                 passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;

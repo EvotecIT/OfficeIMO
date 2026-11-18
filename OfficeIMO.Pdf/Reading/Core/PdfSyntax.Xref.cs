@@ -851,15 +851,13 @@ internal static partial class PdfSyntax {
             // writers store indexes above 65,535 in a two-byte field, so they wrap; lenient reading locates the object
             // by its number in the header instead, and reports it once the object is accepted. Strict parsing rejects
             // the mismatch as soon as it is found.
-            if (reportRelocated is null ||
-                !TryFindObjectStreamIndex(pairs, expectedObjectNumber, headerMemo, out objectStreamIndex)) {
-                return false;
-            }
-
+            if (reportRelocated is null) return false;
             if (rejectRelocation) {
                 reportRelocated(expectedObjectNumber);
                 return false;
             }
+
+            if (!TryFindObjectStreamIndex(pairs, expectedObjectNumber, headerMemo, out objectStreamIndex)) return false;
 
             relocated = true;
         }
