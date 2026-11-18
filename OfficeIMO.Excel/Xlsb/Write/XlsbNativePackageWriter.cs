@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks, maximumBytes);
                     rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
-                    rewrittenPart = ApplyTabSelection(rewrittenPart, TabSelectionFor(structure, binding.Index, sheet), maximumBytes);
+                    rewrittenPart = ApplyTabSelection(rewrittenPart, TabSelectionFor(sheet), maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
@@ -136,14 +136,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         /// <summary>
-        /// The tab selection a rewritten sheet needs so it agrees with the workbook's active tab: the active sheet is
-        /// selected and a hidden sheet is not. Other sheets keep their source selection, so a group selection of
-        /// visible sheets survives. Null leaves the record unchanged.
+        /// The tab selection the document model holds for the primary window: the imported value, or what activation,
+        /// hiding or the caller set since. Null when the sheet has no primary view, which leaves the record unchanged.
         /// </summary>
-        private static bool? TabSelectionFor(XlsbSheetStructure structure, int tabIndex, ExcelSheet sheet) {
-            if (!structure.ActiveTab.HasValue) return null;
-            if (structure.ActiveTab.Value == (uint)tabIndex) return true;
-            return sheet.Hidden ? false : null;
+        private static bool? TabSelectionFor(ExcelSheet sheet) {
+            SheetView? view = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetViews>()?.Elements<SheetView>()
+                .FirstOrDefault(candidate => (candidate.WorkbookViewId?.Value ?? 0U) == 0U);
+            return view == null ? null : view.TabSelected?.Value == true;
         }
 
         /// <summary>Sets or clears fSelected (0x40 in the first flags byte) on the primary window's BrtBeginWsView.</summary>

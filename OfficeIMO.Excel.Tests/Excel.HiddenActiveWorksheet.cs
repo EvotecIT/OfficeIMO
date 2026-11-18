@@ -485,4 +485,35 @@ public partial class Excel {
             return (view.Data[0] & 0x40) != 0;
         }).ToArray();
     }
+
+    [Theory]
+    [InlineData("activate")]
+    [InlineData("edit")]
+    public void LoadedXlsb_WritesTheModelsTabSelection(string change) {
+        string directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO.XlsbModelSelection.{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try {
+            string source = Path.Combine(directory, "source.xlsb");
+            using (var created = ExcelDocument.Create(source)) {
+                created.AddSheet("A").Cell(1, 1).SetValue("a");
+                created.AddSheet("B").Cell(1, 1).SetValue("b");
+                created.SetActiveWorksheet(0);
+                created.Save();
+            }
+
+            string path = Path.Combine(directory, "result.xlsb");
+            using (var loaded = ExcelDocument.Load(source)) {
+                if (change == "activate") loaded.SetActiveWorksheet(1);
+                else loaded.Sheets[1].Cell(2, 1).SetValue("edited");
+                loaded.Save(path);
+            }
+
+            // Activation selects B and clears A, which stays visible; a cell edit keeps the source selection.
+            bool activated = change == "activate";
+            Assert.Equal(new[] { activated ? 1U : 0U }, ReadXlsbActiveTabs(path));
+            Assert.Equal(new[] { !activated, activated }, ReadXlsbTabSelection(path));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }

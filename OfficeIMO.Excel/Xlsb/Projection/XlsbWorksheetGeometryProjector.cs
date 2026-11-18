@@ -18,7 +18,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             worksheet.RemoveAllChildren<SheetViews>();
-            worksheet.InsertBefore(CreateSheetViews(sourceSheet), sheetData);
+            SheetViews views = CreateSheetViews(sourceSheet);
+            if (sourceSheet.TabSelected == true) views.Elements<SheetView>().Single().TabSelected = true;
+            worksheet.InsertBefore(views, sheetData);
 
             SheetFormatProperties? format = CreateSheetFormatProperties(sourceSheet.FormatInfo);
             if (format != null) {
@@ -64,7 +66,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             ValidateDimension(worksheet, sourceSheet, sheet);
-            // Tab selection follows the workbook's active tab, which the workbook part carries; it is not pane geometry.
+            // Tab selection is written from the document model by the rewrite; it is not pane geometry.
             SheetViews[] actualViews = worksheet.Elements<SheetViews>().Select(WithoutTabSelection).ToArray();
             bool equivalentDefaultView = sourceSheet.Pane == null && sourceSheet.ShowGridLines != false
                 && (actualViews.Length == 0 || actualViews.Length == 1 && ExcelSheet.IsNeutralSheetViews(actualViews[0]));

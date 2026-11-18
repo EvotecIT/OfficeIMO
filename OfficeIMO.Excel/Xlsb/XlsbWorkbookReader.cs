@@ -572,6 +572,10 @@ namespace OfficeIMO.Excel.Xlsb {
                         if (!worksheet.ShowGridLines.HasValue) {
                             worksheet.ShowGridLines = XlsbWorksheetViewReader.ReadGridlines(record);
                         }
+                        // fSelected is bit 6 of the first flags byte; iWbkView follows 22 bytes of view settings.
+                        if (!worksheet.TabSelected.HasValue && record.Data.Length >= 26 && BitConverter.ToUInt32(record.Data, 22) == 0U) {
+                            worksheet.TabSelected = (record.Data[0] & 0x40) != 0;
+                        }
                         break;
                     case BrtPane:
                         if (worksheet.Pane != null) {
