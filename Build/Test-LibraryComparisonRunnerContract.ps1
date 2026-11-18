@@ -347,6 +347,47 @@ foreach ($taggedLibrary in $taggedLibraries) {
         throw "Benchmark category 'library:$taggedLibrary' names a library id that Build/benchmark-libraries.json does not declare."
     }
 }
+# Benchmark code reads the policy itself: open libraries run by default, restricted ones only when listed, and a
+# missing or unreadable policy leaves nothing open while still honouring an explicit list. Each probe runs in its own
+# process because the helper loads the policy once per process.
+$selectionSource = Join-Path $repositoryRoot 'Benchmarks\BenchmarkLibrarySelection.cs'
+$selectionProbe = {
+    param([string] $PolicyPath, [string] $Enabled)
+    $probe = @"
+`$source = "#nullable enable``n" + (Get-Content -LiteralPath '$selectionSource' -Raw)
+`$type = Add-Type -TypeDefinition `$source -PassThru | Where-Object Name -eq 'BenchmarkLibrarySelection'
+`$isEnabled = `$type.GetMethod('IsEnabled', [Reflection.BindingFlags]'Static,NonPublic')
+'onepdf=' + `$isEnabled.Invoke(`$null, @('onepdf')) + ';docx=' + `$isEnabled.Invoke(`$null, @('docx'))
+"@
+    $previous = @($env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY, $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES)
+    try {
+        $env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY = $PolicyPath
+        $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $Enabled
+        $output = @(& pwsh -NoProfile -NonInteractive -Command $probe 2>&1 | ForEach-Object { [string] $_ })
+    } finally {
+        $env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY = $previous[0]
+        $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $previous[1]
+    }
+    [pscustomobject]@{ Result = ($output | Where-Object { $_ -like 'onepdf=*' } | Select-Object -Last 1); Output = $output -join "`n" }
+}
+$policyFile = Join-Path $PSScriptRoot 'benchmark-libraries.json'
+$brokenPolicy = Join-Path ([System.IO.Path]::GetTempPath()) "officeimo-broken-policy-$PID.json"
+Set-Content -LiteralPath $brokenPolicy -Value '{"libraries":' -Encoding utf8
+try {
+    foreach ($case in @(
+            @{ Policy = $policyFile; Enabled = ''; Expected = 'onepdf=True;docx=False'; Warns = $false },
+            @{ Policy = $policyFile; Enabled = 'docx'; Expected = 'onepdf=True;docx=True'; Warns = $false },
+            @{ Policy = $brokenPolicy; Enabled = 'docx'; Expected = 'onepdf=False;docx=True'; Warns = $true },
+            @{ Policy = $PSScriptRoot; Enabled = ''; Expected = 'onepdf=False;docx=False'; Warns = $true })) {
+        $probeResult = & $selectionProbe -PolicyPath $case.Policy -Enabled $case.Enabled
+        $warned = $probeResult.Output -match 'Benchmark library policy unavailable'
+        if ($probeResult.Result -ne $case.Expected -or $warned -ne $case.Warns) {
+            throw "Benchmark library selection with policy '$($case.Policy)' and enabled '$($case.Enabled)' returned '$($probeResult.Result)' (expected '$($case.Expected)', warning expected: $($case.Warns)).`n$($probeResult.Output)"
+        }
+    }
+} finally {
+    Remove-Item -LiteralPath $brokenPolicy -ErrorAction SilentlyContinue
+}
 # The measured process must start only after restricted-library settings are applied: the enabled list is set and
 # values belonging to libraries left out of the run are cleared, in the same try block, before dotnet launches.
 $runnerAst = [System.Management.Automation.Language.Parser]::ParseFile($runner, [ref] $null, [ref] $null)

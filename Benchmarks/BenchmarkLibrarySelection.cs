@@ -56,26 +56,46 @@ internal static class BenchmarkLibrarySelection {
 
     private static HashSet<string> LoadOpenLibraries() {
         var open = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-#if !NETFRAMEWORK
+#if NETFRAMEWORK
+        // .NET Framework builds read no policy, so every library-tagged case there stays restricted until listed.
+        return open;
+#else
         string? path = FindPolicy();
         if (path == null) {
+            ReportPolicyProblem("Build/benchmark-libraries.json was not found");
             return open;
         }
 
-        using JsonDocument policy = JsonDocument.Parse(File.ReadAllBytes(path));
-        foreach (JsonElement library in policy.RootElement.GetProperty("libraries").EnumerateArray()) {
-            if (library.TryGetProperty("restriction", out JsonElement restriction) && restriction.GetString() == "open" &&
-                library.TryGetProperty("id", out JsonElement id) && id.GetString() is { Length: > 0 } value) {
-                open.Add(value);
+        try {
+            using JsonDocument policy = JsonDocument.Parse(File.ReadAllBytes(path));
+            foreach (JsonElement library in policy.RootElement.GetProperty("libraries").EnumerateArray()) {
+                if (library.TryGetProperty("restriction", out JsonElement restriction) &&
+                    restriction.ValueKind == JsonValueKind.String && restriction.GetString() == "open" &&
+                    library.TryGetProperty("id", out JsonElement id) && id.ValueKind == JsonValueKind.String &&
+                    id.GetString() is { Length: > 0 } value) {
+                    open.Add(value);
+                }
             }
+
+            return open;
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException or
+                                                KeyNotFoundException or InvalidOperationException) {
+            ReportPolicyProblem($"{path} could not be read ({exception.GetType().Name}: {exception.Message})");
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         }
 #endif
-        // .NET Framework builds read no policy, so every library-tagged case there stays restricted until listed.
-        return open;
     }
 
 #if !NETFRAMEWORK
+    /// <summary>Overrides where the policy is read from; otherwise it is found above the benchmark binaries.</summary>
+    internal const string PolicyPathVariable = "OFFICEIMO_BENCHMARK_LIBRARY_POLICY";
+
     private static string? FindPolicy() {
+        string? configured = Environment.GetEnvironmentVariable(PolicyPathVariable);
+        if (!string.IsNullOrWhiteSpace(configured)) {
+            return configured;
+        }
+
         foreach (string start in new[] { AppContext.BaseDirectory, Environment.CurrentDirectory }) {
             for (DirectoryInfo? directory = new(start); directory != null; directory = directory.Parent) {
                 string candidate = Path.Combine(directory.FullName, "Build", "benchmark-libraries.json");
@@ -87,5 +107,10 @@ internal static class BenchmarkLibrarySelection {
 
         return null;
     }
+
+    // Without a readable policy no library counts as open: every library-tagged case runs only when the caller lists it.
+    private static void ReportPolicyProblem(string problem) =>
+        Console.Error.WriteLine(
+            $"Benchmark library policy unavailable: {problem}. Every library-tagged case is treated as restricted and runs only when listed in {EnabledLibrariesVariable}.");
 #endif
 }

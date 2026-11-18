@@ -36,10 +36,18 @@ public class PdfHtmlPayloadBenchmarks {
             "Carlito",
             PdfBenchmarkAssets.CarlitoRegular,
             PdfBenchmarkAssets.CarlitoBold);
-#if NET10_0_OR_GREATER
-        _oneRenderFonts = OneRenderHtmlGenerator.CreateFontProvider(_sharedFont);
-#endif
     }
+
+#if NET10_0_OR_GREATER
+    /// <summary>Renders and validates one OneRender artifact before any OneRender measurement.</summary>
+    [GlobalSetup(Target = nameof(OneRender))]
+    public void SetupOneRender() {
+        Setup();
+        _oneRenderFonts = OneRenderHtmlGenerator.CreateFontProvider(_sharedFont);
+        Validate(nameof(OneRender), OneRender());
+        _oneRenderResult = null;
+    }
+#endif
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() =>
