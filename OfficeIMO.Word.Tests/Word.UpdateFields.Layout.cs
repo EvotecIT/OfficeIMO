@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_PdfLayoutPaginationSelectionKeepsCallerOptionsIndependent() {
             var options = new WordFieldUpdateOptions {
-                CurrentDateTime = new DateTime(2020, 2, 3), UpdateTablesOfContents = true
+                CurrentDateTime = new DateTime(2020, 2, 3), UpdateTablesOfContents = true, TablesOfContentsOnly = true
             };
             WordFieldUpdateOptions selected = options.WithPdfLayoutPagination();
             Assert.NotSame(options, selected);
@@ -16,6 +16,7 @@ namespace OfficeIMO.Tests {
             Assert.True(selected.UseLayoutPagination);
             Assert.Equal(options.CurrentDateTime, selected.CurrentDateTime);
             Assert.True(selected.UpdateTablesOfContents);
+            Assert.True(selected.TablesOfContentsOnly);
         }
 
         [Fact]
@@ -119,8 +120,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(before, table.OuterXml);
         }
 
-        [Fact]
-        public void Test_UpdateFieldsDoesNotRegenerateLockedToc() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_UpdateFieldsDoesNotRegenerateLockedToc(bool tablesOfContentsOnly) {
             using WordDocument document = WordDocument.Create();
             document.AddTableOfContent();
             document.AddParagraph("Heading").Style = WordParagraphStyles.Heading1;
@@ -129,7 +132,10 @@ namespace OfficeIMO.Tests {
             FieldChar begin = block.Descendants<FieldChar>().First(x => x.FieldCharType?.Value == FieldCharValues.Begin);
             begin.FieldLock = true;
             string before = block.OuterXml;
-            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UpdateTablesOfContents = true });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions {
+                UpdateTablesOfContents = !tablesOfContentsOnly,
+                TablesOfContentsOnly = tablesOfContentsOnly
+            });
             Assert.Equal(before, block.OuterXml);
             Assert.Equal(WordFieldUpdateStatus.Skipped, report.Results.Single(x => x.FieldType == WordFieldType.TOC).Status);
         }
