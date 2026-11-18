@@ -1,3 +1,4 @@
+using System.Text;
 using System.IO.Compression;
 using System.Xml.Linq;
 using OfficeIMO.Excel;
@@ -158,6 +159,107 @@ public partial class Excel {
 
         using ExcelDocument copy = ExcelDocument.Load(copyPath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
         Assert.Equal(stored, copy.Properties.Modified!.Value.ToUniversalTime());
+    }
+
+    [Theory]
+    [InlineData("custom-root")]
+    [InlineData("extended-root")]
+    [InlineData("root-relationship")]
+    [InlineData("core-target-workbook")]
+    public void Xlsb_UnreadablePropertyMetadataIsSkippedAndTheWorkbookStillLoadsAndSaves(string damage) {
+        string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        string savedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        File.WriteAllBytes(sourcePath, EditXlsbPackage(File.ReadAllBytes(XlsbExcelGeneratedPath()), archive => {
+            switch (damage) {
+                case "custom-root":
+                    AddCustomPropertiesPart(archive, "<unexpected xmlns=\"urn:example\"/>");
+                    break;
+                case "extended-root":
+                    ReplaceEntry(archive, "docProps/app.xml", "<?xml version=\"1.0\"?><unexpected xmlns=\"urn:example\"/>");
+                    break;
+                case "core-target-workbook":
+                    // A mistyped relationship must never become the write target for the core properties.
+                    archive.GetEntry("docProps/core.xml")!.Delete();
+                    ReplaceEntry(archive, "_rels/.rels", ReadEntry(archive, "_rels/.rels").Replace(
+                        "Target=\"docProps/core.xml\"", "Target=\"xl/workbook.bin\""));
+                    break;
+                default:
+                    string relationships = ReadEntry(archive, "_rels/.rels");
+                    ReplaceEntry(archive, "_rels/.rels", relationships.Replace("</Relationships>",
+                        "<Relationship Id=\"rIdBroken\" Type=\"urn:example:broken\"/></Relationships>"));
+                    break;
+            }
+        }));
+
+        using (ExcelDocument document = ExcelDocument.Load(sourcePath)) {
+            Assert.Contains(document.XlsbImportDiagnostics, diagnostic => diagnostic.Code == "xlsb-document-properties-skipped");
+            Assert.Equal("Alpha", document.Sheets[0].Cell(2, 1).GetValue<string>());
+            Assert.Empty(document.CustomProperties);
+            document.Properties.Title = "Retitled";
+            document.Sheets[0].CellValue(3, 1, "Edited");
+            document.Save(savedPath);
+        }
+
+        using ExcelDocument reloaded = ExcelDocument.Load(savedPath);
+        Assert.Equal("Edited", reloaded.Sheets[0].Cell(3, 1).GetValue<string>());
+        if (damage == "root-relationship") {
+            // The save keeps the package relationships as they were, so the properties stay unreadable.
+            Assert.Contains(reloaded.XlsbImportDiagnostics, diagnostic => diagnostic.Code == "xlsb-document-properties-skipped");
+        } else {
+            Assert.Equal("Retitled", reloaded.Properties.Title);
+        }
+    }
+
+    [Fact]
+    public void Xlsb_RemovingTheLastCustomPropertyKeepsRootMetadata() {
+        string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        File.WriteAllBytes(sourcePath, EditXlsbPackage(File.ReadAllBytes(XlsbExcelGeneratedPath()), archive =>
+            AddCustomPropertiesPart(archive,
+                "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/custom-properties\" " +
+                "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\" " +
+                "xmlns:x=\"urn:example\" x:sourceId=\"7\">" +
+                "<property fmtid=\"{D5CDD505-2E9C-101B-9397-08002B2CF9AE}\" pid=\"2\" name=\"Region\"><vt:lpwstr>North</vt:lpwstr></property>" +
+                "</Properties>")));
+
+        using (ExcelDocument document = ExcelDocument.Load(sourcePath)) {
+            Assert.Equal("North", document.CustomProperties["Region"].Text);
+            Assert.True(document.RemoveCustomDocumentProperty("Region"));
+            document.Save();
+        }
+
+        using (ExcelDocument reloaded = ExcelDocument.Load(sourcePath)) {
+            Assert.Empty(reloaded.CustomProperties);
+        }
+        using ZipArchive saved = ZipFile.OpenRead(sourcePath);
+        string custom = ReadEntry(saved, "docProps/custom.xml");
+        Assert.Contains("sourceId=\"7\"", custom, StringComparison.Ordinal);
+        Assert.DoesNotContain("Region", custom, StringComparison.Ordinal);
+    }
+
+    private static byte[] EditXlsbPackage(byte[] package, Action<ZipArchive> edit) {
+        using var stream = new MemoryStream();
+        stream.Write(package, 0, package.Length);
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Update, leaveOpen: true)) edit(archive);
+        return stream.ToArray();
+    }
+
+    private static void AddCustomPropertiesPart(ZipArchive archive, string rootXml) {
+        ReplaceEntry(archive, "docProps/custom.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" + rootXml);
+        ReplaceEntry(archive, "_rels/.rels", ReadEntry(archive, "_rels/.rels").Replace("</Relationships>",
+            "<Relationship Id=\"rIdCustom\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties\" Target=\"docProps/custom.xml\"/></Relationships>"));
+        ReplaceEntry(archive, "[Content_Types].xml", ReadEntry(archive, "[Content_Types].xml").Replace("</Types>",
+            "<Override PartName=\"/docProps/custom.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.custom-properties+xml\"/></Types>"));
+    }
+
+    private static string ReadEntry(ZipArchive archive, string name) {
+        using var reader = new StreamReader(archive.GetEntry(name)!.Open());
+        return reader.ReadToEnd();
+    }
+
+    private static void ReplaceEntry(ZipArchive archive, string name, string content) {
+        archive.GetEntry(name)?.Delete();
+        using var writer = new StreamWriter(archive.CreateEntry(name).Open(), new UTF8Encoding(false));
+        writer.Write(content);
     }
 
     private static string XlsbExcelGeneratedPath() =>

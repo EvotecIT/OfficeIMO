@@ -11,28 +11,59 @@ internal static class XlsbDocumentPropertiesProjector {
     private const string CoreNamespace = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties";
     private const string DublinCoreNamespace = "http://purl.org/dc/elements/1.1/";
     private const string DublinCoreTermsNamespace = "http://purl.org/dc/terms/";
+    private const string ExtendedNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
+    private const string CustomNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties";
 
     internal static void Apply(ExcelDocument document, XlsbWorkbook workbook) {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(workbook);
         SpreadsheetDocument package = document._spreadSheetDocument;
-        if (workbook.CorePropertiesXml != null && TryLoad(workbook.CorePropertiesXml, out XDocument? core)) {
-            ApplyCore(package, core!.Root!);
+        if (workbook.CorePropertiesXml != null) {
+            if (TryLoadRoot(workbook.CorePropertiesXml, CoreNamespace, "coreProperties", out XElement? core)) {
+                ApplyCore(package, core!);
+            } else {
+                Skip(workbook, "core");
+            }
         }
 
-        if (workbook.ExtendedPropertiesXml != null && TryLoad(workbook.ExtendedPropertiesXml, out _)) {
-            ExtendedFilePropertiesPart part = package.ExtendedFilePropertiesPart ?? package.AddExtendedFilePropertiesPart();
-            using var input = new MemoryStream(workbook.ExtendedPropertiesXml, writable: false);
-            part.FeedData(input);
+        if (workbook.ExtendedPropertiesXml != null) {
+            bool installed = TryLoadRoot(workbook.ExtendedPropertiesXml, ExtendedNamespace, "Properties", out _)
+                && TryInstall(package, package.ExtendedFilePropertiesPart ?? package.AddExtendedFilePropertiesPart(),
+                    workbook.ExtendedPropertiesXml, part => GC.KeepAlive(((ExtendedFilePropertiesPart)part).Properties));
+            if (!installed) Skip(workbook, "extended");
         }
 
-        if (workbook.CustomPropertiesXml != null && TryLoad(workbook.CustomPropertiesXml, out _)) {
-            CustomFilePropertiesPart part = package.CustomFilePropertiesPart ?? package.AddCustomFilePropertiesPart();
-            using var input = new MemoryStream(workbook.CustomPropertiesXml, writable: false);
-            part.FeedData(input);
-            document.LoadCustomDocumentProperties();
+        if (workbook.CustomPropertiesXml != null) {
+            bool installed = TryLoadRoot(workbook.CustomPropertiesXml, CustomNamespace, "Properties", out _)
+                && TryInstall(package, package.CustomFilePropertiesPart ?? package.AddCustomFilePropertiesPart(),
+                    workbook.CustomPropertiesXml, part => {
+                        GC.KeepAlive(((CustomFilePropertiesPart)part).Properties);
+                        document.LoadCustomDocumentProperties();
+                    });
+            if (!installed) {
+                document.LoadCustomDocumentProperties();
+                Skip(workbook, "custom");
+            }
         }
     }
+
+    // Installs the part and loads it through the typed API once, so a part that the SDK
+    // cannot read is removed here instead of failing a later property read or save.
+    private static bool TryInstall(SpreadsheetDocument package, OpenXmlPart part, byte[] bytes, Action<OpenXmlPart> verify) {
+        try {
+            using (var input = new MemoryStream(bytes, writable: false)) part.FeedData(input);
+            verify(part);
+            return true;
+        } catch (Exception exception) when (exception is InvalidDataException or XmlException
+            or OpenXmlPackageException or InvalidOperationException or FormatException) {
+            package.DeletePart(part);
+            return false;
+        }
+    }
+
+    private static void Skip(XlsbWorkbook workbook, string kind) =>
+        XlsbWorkbookReader.AddDocumentPropertiesSkipped(workbook, null,
+            $"The {kind} document-property part is not well-formed property XML and was not imported.");
 
     private static void ApplyCore(SpreadsheetDocument package, XElement root) {
         var properties = package.PackageProperties;
@@ -77,19 +108,19 @@ internal static class XlsbDocumentPropertiesProjector {
             : null;
     }
 
-    private static bool TryLoad(byte[] bytes, out XDocument? document) {
+    private static bool TryLoadRoot(byte[] bytes, string namespaceName, string localName, out XElement? root) {
+        root = null;
         try {
             using var stream = new MemoryStream(bytes, writable: false);
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null
             });
-            document = XDocument.Load(reader, LoadOptions.None);
-            return document.Root != null;
+            root = XDocument.Load(reader, LoadOptions.None).Root;
         } catch (XmlException) {
             // Malformed optional metadata stays out of the model and must not prevent loading.
-            document = null;
             return false;
         }
+        return root != null && root.Name == XName.Get(localName, namespaceName);
     }
 }

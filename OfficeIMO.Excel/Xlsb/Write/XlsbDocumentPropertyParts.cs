@@ -135,16 +135,16 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XDocument relationships = LoadXml(replacements.TryGetValue("_rels/.rels", out byte[]? currentRelationships) ? currentRelationships : readPart("_rels/.rels"));
             XDocument types = LoadXml(replacements.TryGetValue("[Content_Types].xml", out byte[]? currentTypes) ? currentTypes : readPart("[Content_Types].xml"));
             var entries = new HashSet<string>(existingEntries, StringComparer.OrdinalIgnoreCase);
-            // A part the model never held (absent or unreadable in the source) is left as it was;
-            // one the model held and no longer has was removed and is dropped from the package.
+            // A part the model never held (absent or unreadable in the source) is not deleted, and its
+            // relationship is never trusted as a write target; one the model held and no longer has is dropped.
             if (coreChanged) {
-                Apply(relationships, types, entries, replacements, deletions, CoreRelationshipType, CoreContentType, "docProps/core.xml", parts.Core, removeWhenEmpty: loaded.Core != null);
+                Apply(relationships, types, entries, replacements, deletions, CoreRelationshipType, CoreContentType, "docProps/core.xml", parts.Core, sourcePartReadable: loaded.Core != null);
             }
             if (extendedChanged) {
-                Apply(relationships, types, entries, replacements, deletions, ExtendedRelationshipType, ExtendedContentType, "docProps/app.xml", parts.Extended, removeWhenEmpty: loaded.Extended != null);
+                Apply(relationships, types, entries, replacements, deletions, ExtendedRelationshipType, ExtendedContentType, "docProps/app.xml", parts.Extended, sourcePartReadable: loaded.Extended != null);
             }
             if (customChanged) {
-                Apply(relationships, types, entries, replacements, deletions, CustomRelationshipType, CustomContentType, "docProps/custom.xml", parts.Custom, removeWhenEmpty: loaded.Custom != null);
+                Apply(relationships, types, entries, replacements, deletions, CustomRelationshipType, CustomContentType, "docProps/custom.xml", parts.Custom, sourcePartReadable: loaded.Custom != null);
             }
             replacements["_rels/.rels"] = SaveXml(relationships);
             replacements["[Content_Types].xml"] = SaveXml(types);
@@ -160,16 +160,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             string contentType,
             string defaultPartName,
             byte[]? bytes,
-            bool removeWhenEmpty) {
+            bool sourcePartReadable) {
             XNamespace rels = RelationshipsNamespace;
             XElement? relationship = relationships.Root!.Elements(rels + "Relationship")
                 .FirstOrDefault(element => (string?)element.Attribute("Type") == relationshipType
                     && !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase));
-            string? target = (string?)relationship?.Attribute("Target");
-            string? partName = string.IsNullOrWhiteSpace(target) ? null : XlsbPackagePartReader.ResolveTarget(string.Empty, target!);
+            string? target = TryResolveRootTarget((string?)relationship?.Attribute("Target"));
+            // Only a target the reader imported as this property part may be overwritten; an unreadable
+            // or mistyped relationship can point at any part, including the workbook itself.
+            string? partName = sourcePartReadable ? target : null;
 
             if (bytes == null) {
-                if (!removeWhenEmpty || relationship == null) return;
+                if (!sourcePartReadable || relationship == null) return;
                 relationship.Remove();
                 if (partName != null && entries.Contains(partName)) {
                     replacements.Remove(partName);
@@ -181,7 +183,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             if (partName == null) {
                 partName = defaultPartName;
-                if (entries.Contains(partName) || replacements.ContainsKey(partName)) {
+                bool replacesUnreadableTarget = string.Equals(partName, target, StringComparison.OrdinalIgnoreCase);
+                if ((entries.Contains(partName) || replacements.ContainsKey(partName)) && !replacesUnreadableTarget) {
                     throw new NotSupportedException($"Native XLSB rewriting cannot add document properties because '{partName}' is already used by another package part.");
                 }
                 relationship?.Remove();
@@ -198,6 +201,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             types.Root!.Add(new XElement(ct + "Override",
                 new XAttribute("PartName", "/" + partName),
                 new XAttribute("ContentType", contentType)));
+        }
+
+        private static string? TryResolveRootTarget(string? target) {
+            if (string.IsNullOrWhiteSpace(target)) return null;
+            try {
+                return XlsbPackagePartReader.ResolveTarget(string.Empty, target!);
+            } catch (InvalidDataException) {
+                return null;
+            }
         }
 
         private static void RemoveOverride(XDocument types, string partName) {
@@ -226,7 +238,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static byte[]? SerializeRoot(OpenXmlPartRootElement? root) {
-            if (root == null || (!root.HasChildren && root is DocumentFormat.OpenXml.CustomProperties.Properties)) return null;
+            // An empty custom root is dropped, matching SaveCustomDocumentProperties; one that still
+            // carries attributes keeps its metadata.
+            if (root == null || (root is DocumentFormat.OpenXml.CustomProperties.Properties
+                && !root.HasChildren && root.GetAttributes().Count == 0)) return null;
             using var stream = new MemoryStream();
             using (XmlWriter writer = XmlWriter.Create(stream, new XmlWriterSettings {
                 Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
