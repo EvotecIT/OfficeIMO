@@ -146,15 +146,16 @@ namespace OfficeIMO.Excel {
 
             ExcelSheet copiedSheet;
             if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
-                string sourceName = sourceDocument.GetSheet(sourceSheetName).Name;
-                copiedSheet = CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode).Sheet;
-                // Conditional formats and validations name their own sheet; table names were already mapped by the copy.
-                RewriteCopiedWorksheetReferences(copiedSheet.WorksheetPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
-                    [sourceName] = copiedSheet.Name
-                });
-                CopyPrintDefinedNamesFromSource(sourceDocument, sourceName, copiedSheet, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
-                    [sourceName] = copiedSheet.Name
-                });
+                ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
+                PreflightReferencedDefinedNamesFromSource(sourceDocument, new[] { sourceSheet },
+                    new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters), layoutFormulasOnly: true);
+                WorksheetPackageCopyResult result = CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode);
+                copiedSheet = result.Sheet;
+                var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = copiedSheet.Name };
+                // Conditional formats and validations can name their own sheet, its tables and defined names.
+                RewriteCopiedWorksheetReferences(copiedSheet.WorksheetPart, sheetMap, result.TableNameMap);
+                CopyReferencedDefinedNamesFromSource(sourceDocument, copiedSheet, sheetMap, result.TableNameMap, layoutFormulasOnly: true);
+                CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, sheetMap);
             } else {
                 copiedSheet = CopyWorksheetFromPackage(
                     sourceDocument,

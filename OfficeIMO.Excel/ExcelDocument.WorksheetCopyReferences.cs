@@ -124,7 +124,8 @@ namespace OfficeIMO.Excel {
             ExcelSheet targetSheet,
             IReadOnlyDictionary<string, string> sheetNameMap,
             IReadOnlyDictionary<string, string>? tableNameMap = null,
-            IReadOnlyDictionary<int, int>? externalReferenceMap = null) {
+            IReadOnlyDictionary<int, int>? externalReferenceMap = null,
+            bool layoutFormulasOnly = false) {
             ushort targetSheetPosition = GetSheetPositionIndex(targetSheet);
             var sourceSheetNamesByPosition = sourceDocument.GetSheetNamesByPosition();
             string? currentSourceSheetName = sheetNameMap
@@ -139,7 +140,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<DefinedName> referencedSourceNames = ResolveReferencedDefinedNamesFromSource(
                 sourceDocument,
                 sourceSheet,
-                copiedSourceSheetNames);
+                copiedSourceSheetNames,
+                layoutFormulasOnly);
             var plannedCopies = new List<(DefinedName Clone, ushort DestinationSheetPosition, string Name)>();
             foreach (DefinedName sourceName in referencedSourceNames) {
                 string name = sourceName.Name!.Value!;
@@ -192,7 +194,8 @@ namespace OfficeIMO.Excel {
         private static void PreflightReferencedDefinedNamesFromSource(
             ExcelDocument sourceDocument,
             IReadOnlyList<ExcelSheet> sourceSheets,
-            DefinedNameCopyBudget budget) {
+            DefinedNameCopyBudget budget,
+            bool layoutFormulasOnly = false) {
             var copiedSourceSheetNames = new HashSet<string>(
                 sourceSheets.Select(sheet => sheet.Name),
                 StringComparer.OrdinalIgnoreCase);
@@ -200,7 +203,8 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<DefinedName> referencedNames = ResolveReferencedDefinedNamesFromSource(
                     sourceDocument,
                     sourceSheet,
-                    copiedSourceSheetNames);
+                    copiedSourceSheetNames,
+                    layoutFormulasOnly);
                 foreach (DefinedName sourceName in referencedNames) {
                     budget.Consume(sourceName.Text?.Length ?? 0);
                 }
@@ -210,13 +214,16 @@ namespace OfficeIMO.Excel {
         private static IReadOnlyList<DefinedName> ResolveReferencedDefinedNamesFromSource(
             ExcelDocument sourceDocument,
             ExcelSheet sourceSheet,
-            ISet<string> copiedSourceSheetNames) {
+            ISet<string> copiedSourceSheetNames,
+            bool layoutFormulasOnly) {
             DefinedNames? sourceDefinedNames = sourceDocument.WorkbookRoot.DefinedNames;
             if (sourceDefinedNames == null) {
                 return Array.Empty<DefinedName>();
             }
 
-            List<string> formulaTexts = CollectFormulaTexts(sourceSheet.WorksheetPart).ToList();
+            List<string> formulaTexts = (layoutFormulasOnly
+                ? CollectLayoutFormulaTexts(sourceSheet.WorksheetPart)
+                : CollectFormulaTexts(sourceSheet.WorksheetPart)).ToList();
             if (formulaTexts.Count == 0) {
                 return Array.Empty<DefinedName>();
             }
@@ -438,6 +445,21 @@ namespace OfficeIMO.Excel {
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Collects the formulas a values copy keeps: conditional-format and data-validation rules. Cell and table
+        /// formulas are not copied in values mode, so the names they use are not needed.
+        /// </summary>
+        private static IEnumerable<string> CollectLayoutFormulaTexts(WorksheetPart worksheetPart) {
+            Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+            foreach (OpenXmlElement container in worksheet.Elements<ConditionalFormatting>().Cast<OpenXmlElement>().Concat(worksheet.Elements<DataValidations>())) {
+                foreach (OpenXmlLeafTextElement formula in container.Descendants<OpenXmlLeafTextElement>()) {
+                    if ((formula is Formula || formula is Formula1 || formula is Formula2) && !string.IsNullOrEmpty(formula.Text)) {
+                        yield return formula.Text;
+                    }
+                }
+            }
         }
 
         private static IEnumerable<string> CollectFormulaTexts(WorksheetPart worksheetPart) {

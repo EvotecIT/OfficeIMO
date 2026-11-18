@@ -124,7 +124,11 @@ namespace OfficeIMO.Tests {
                     "cfRule");
 
                 Assert.Equal("FF00B050", copiedSheet.GetFirstChild<SheetProperties>()!.TabColor!.Rgb!.Value);
-                SheetView copiedView = copiedSheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().Single();
+                int targetWorkbookViews = copied.WorkbookPart!.Workbook!.BookViews?.Elements<WorkbookView>().Count() ?? 1;
+                SheetView[] copiedViews = copiedSheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().ToArray();
+                Assert.All(copiedViews, view => Assert.True(view.WorkbookViewId!.Value < targetWorkbookViews));
+                Assert.Equal(Math.Min(2, targetWorkbookViews), copiedViews.Length);
+                SheetView copiedView = copiedViews.Single(view => view.WorkbookViewId!.Value == 0U);
                 Assert.False(copiedView.ShowGridLines!.Value);
                 Assert.Equal(85U, copiedView.ZoomScale!.Value);
                 Assert.Equal(PaneStateValues.Frozen, copiedView.Pane!.State!.Value);
@@ -148,6 +152,8 @@ namespace OfficeIMO.Tests {
                     .ToArray() ?? Array.Empty<DefinedName>();
                 Assert.Equal("Copy!$A$1:$E$20", Assert.Single(copyNames, name => name.Name == "_xlnm.Print_Area").Text.Replace("'", string.Empty));
                 Assert.Equal("Copy!$1:$1", Assert.Single(copyNames, name => name.Name == "_xlnm.Print_Titles").Text.Replace("'", string.Empty));
+                Assert.Equal("AllowedValues", copiedSheet.Descendants<DataValidation>().Single().GetFirstChild<Formula1>()!.Text);
+                Assert.Equal("Copy!$H$1:$H$2", Assert.Single(copyNames, name => name.Name == "AllowedValues").Text.Replace("'", string.Empty));
 
                 Assert.Empty(new OpenXmlValidator().Validate(copied));
             }
@@ -164,12 +170,59 @@ namespace OfficeIMO.Tests {
             if (File.Exists(targetPath)) File.Delete(targetPath);
         }
 
+        [Theory]
+        [InlineData(ExcelWorksheetCopyMode.Values)]
+        [InlineData(ExcelWorksheetCopyMode.Package)]
+        public void Test_WorkbookMerge_RulesOnOtherSheetsFollowRenamedTables(ExcelWorksheetCopyMode mode) {
+            string sourcePath = Path.Combine(_directoryWithFiles, "MergeRenamedTableSource-" + mode + ".xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "MergeRenamedTableTarget-" + mode + ".xlsx");
+            CreateTableSource(sourcePath, "Data", "Sales");
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
+                WorkbookPart workbookPart = source.WorkbookPart!;
+                WorksheetPart checkPart = workbookPart.AddNewPart<WorksheetPart>();
+                checkPart.Worksheet = new Worksheet(
+                    new SheetData(new Row(new Cell { CellReference = "A1", DataType = CellValues.InlineString, InlineString = new InlineString(new Text("Total")) }) { RowIndex = 1U }),
+                    new ConditionalFormatting(new ConditionalFormattingRule(new Formula("SUM(Sales[Revenue])>0")) { Type = ConditionalFormatValues.Expression, Priority = 1 }) {
+                        SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
+                    });
+                Sheets sheets = workbookPart.Workbook!.Sheets!;
+                uint sheetId = sheets.Elements<Sheet>().Max(sheet => sheet.SheetId!.Value) + 1U;
+                sheets.Append(new Sheet { Name = "Check", SheetId = sheetId, Id = workbookPart.GetIdOfPart(checkPart) });
+                workbookPart.Workbook.Save();
+            }
+
+            CreateTableSource(targetPath, "Existing", "Sales");
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions { CopyMode = mode });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                string importedTable = GetWorksheetPartByNameForOperations(target, "Data").TableDefinitionParts.Single().Table!.Name!.Value!;
+                Assert.NotEqual("Sales", importedTable);
+                Worksheet check = GetWorksheetPartByNameForOperations(target, "Check").Worksheet!;
+                Assert.Equal("SUM(" + importedTable + "[Revenue])>0", check.Descendants<ConditionalFormattingRule>().Single().GetFirstChild<Formula>()!.Text);
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            using (var reloaded = ExcelDocument.Load(targetPath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                Assert.True(reloaded["Check"].TryGetCellText(1, 1, out string total));
+                Assert.Equal("Total", total);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
         private static void CreateLayoutSource(string path) {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1).SetValue("Header");
                 sheet.Cell(2, 1).SetValue("Value");
                 sheet.Cell(2, 2).SetValue(5);
+                sheet.Cell(1, 8).SetValue("Yes");
+                sheet.Cell(2, 8).SetValue("No");
                 document.Save();
             }
 
@@ -209,7 +262,7 @@ namespace OfficeIMO.Tests {
             anchor = worksheet.InsertAfter(new ConditionalFormatting(new ConditionalFormattingRule(new Formula("B2>1")) { Type = ConditionalFormatValues.Expression, Priority = 1 }) {
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "B2:B10" }
             }, anchor);
-            anchor = worksheet.InsertAfter(new DataValidations(new DataValidation(new Formula1("\"Yes,No\"")) {
+            anchor = worksheet.InsertAfter(new DataValidations(new DataValidation(new Formula1("AllowedValues")) {
                 Type = DataValidationValues.List,
                 AllowBlank = true,
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A2:A10" }
@@ -228,7 +281,7 @@ namespace OfficeIMO.Tests {
                 WorkbookViewId = 0U,
                 ShowGridLines = false,
                 ZoomScale = 85U
-            }), worksheet.GetFirstChild<SheetFormatProperties>()!);
+            }, new SheetView { WorkbookViewId = 1U, ZoomScale = 120U }), worksheet.GetFirstChild<SheetFormatProperties>()!);
 
             Row row2 = sheetData.Elements<Row>().Single(row => row.RowIndex!.Value == 2U);
             row2.Height = 30D;
@@ -246,7 +299,11 @@ namespace OfficeIMO.Tests {
             worksheet.Save();
 
             workbookPart.Workbook!.DefinedNames ??= new DefinedNames();
+            // A second workbook window; the sheet has a view for each.
+            BookViews bookViews = workbookPart.Workbook.BookViews ??= new BookViews(new WorkbookView());
+            bookViews.Append(new WorkbookView { XWindow = 200, YWindow = 200 });
             workbookPart.Workbook.DefinedNames.Append(
+                new DefinedName("Data!$H$1:$H$2") { Name = "AllowedValues" },
                 new DefinedName("Data!$A$1:$E$20") { Name = "_xlnm.Print_Area", LocalSheetId = 0U },
                 new DefinedName("Data!$1:$1") { Name = "_xlnm.Print_Titles", LocalSheetId = 0U });
             workbookPart.Workbook.Save();

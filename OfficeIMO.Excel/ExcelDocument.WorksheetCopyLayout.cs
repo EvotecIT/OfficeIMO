@@ -66,13 +66,6 @@ namespace OfficeIMO.Excel {
                             properties.CodeName = null;
                             properties.FilterMode = null;
                             break;
-                        case SheetViews views:
-                            bool first = true;
-                            foreach (SheetView view in views.Elements<SheetView>()) {
-                                view.TabSelected = first ? targetTabSelected : null;
-                                first = false;
-                            }
-                            break;
                         case Columns columns:
                             foreach (Column column in columns.Elements<Column>()) {
                                 column.Style = MapCopiedStyleIndex(column.Style?.Value, styleMap.CellFormats);
@@ -87,12 +80,58 @@ namespace OfficeIMO.Excel {
                     worksheet.Append(element);
                 }
 
+                if (!ReferenceEquals(sourceDocument, this)) {
+                    BindCopiedSheetViewsToWorkbookViews(worksheet);
+                }
+
+                // The new sheet keeps the tab selection it was created with, whatever the source had.
+                bool firstView = true;
+                foreach (SheetView view in worksheet.GetFirstChild<SheetViews>()?.Elements<SheetView>() ?? Enumerable.Empty<SheetView>()) {
+                    view.TabSelected = firstView ? targetTabSelected : null;
+                    firstView = false;
+                }
+
                 RemapCopiedWorksheetDifferentialFormats(worksheet, styleMap.DifferentialFormats);
                 ApplyCopiedRowLayout(worksheet, layout.Rows, styleMap.CellFormats);
                 targetSheet.EnsureWorksheetElementOrder(save: false);
                 worksheet.Save();
                 return styleMap;
             });
+        }
+
+        /// <summary>
+        /// Keeps a copied worksheet's views pointing at workbook views this workbook has. A sheet view belongs to the
+        /// workbook view with its <c>workbookViewId</c>, so views for workbook windows the target lacks are dropped.
+        /// When none of the copied views belongs to the first workbook view, the first copied view is bound to it so the
+        /// sheet keeps its panes and zoom in the main window.
+        /// </summary>
+        private void BindCopiedSheetViewsToWorkbookViews(Worksheet worksheet) {
+            SheetViews? views = worksheet.GetFirstChild<SheetViews>();
+            if (views == null) {
+                return;
+            }
+
+            uint workbookViewCount = (uint)Math.Max(1, WorkbookRoot.GetFirstChild<BookViews>()?.Elements<WorkbookView>().Count() ?? 0);
+            var bound = new HashSet<uint>();
+            SheetView? firstUnbound = null;
+            foreach (SheetView view in views.Elements<SheetView>().ToList()) {
+                uint id = view.WorkbookViewId?.Value ?? 0U;
+                if (id < workbookViewCount && bound.Add(id)) {
+                    continue;
+                }
+
+                view.Remove();
+                firstUnbound ??= view;
+            }
+
+            if (!bound.Contains(0U) && firstUnbound != null) {
+                firstUnbound.WorkbookViewId = 0U;
+                views.PrependChild(firstUnbound);
+            }
+
+            if (!views.Elements<SheetView>().Any()) {
+                views.Remove();
+            }
         }
 
         private static UInt32Value? MapCopiedStyleIndex(uint? styleIndex, IReadOnlyDictionary<uint, uint> cellFormatMap) {

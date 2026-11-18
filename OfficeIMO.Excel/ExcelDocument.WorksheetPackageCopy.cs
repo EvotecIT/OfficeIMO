@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
             Dictionary<string, string> tableNameMap = CopyWorksheetTables(
                 sourceSheet.WorksheetPart,
                 targetSheet.WorksheetPart,
-                rewriteCopiedTableReferences: true,
+                rewriteCopiedTableReferences: false,
                 preserveTableFormulas: false,
                 differentialFormatMap: styleMap.DifferentialFormats);
             targetSheet.WorksheetPart.Worksheet!.Save();
@@ -104,6 +104,7 @@ namespace OfficeIMO.Excel {
 
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
+                BindCopiedSheetViewsToWorkbookViews(copiedPart.Worksheet);
                 RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
                 WorksheetStyleCopyMap styleMap = WorksheetStyleCopyMap.Empty;
                 if (!adoptedSourceIndexes) {

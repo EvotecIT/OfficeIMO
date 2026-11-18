@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
             result = null;
             WorksheetPart sourcePart = sourceSheet.WorksheetPart;
             if (!CanAdoptSourceWorkbookIndexParts(sourceDocument)
+                || CountWorkbookViews(sourceDocument) > CountWorkbookViews(this)
                 || !CanCopyWorksheetPartGraphDirectly(sourceDocument, sourcePart)) {
                 return false;
             }
@@ -31,6 +32,10 @@ namespace OfficeIMO.Excel {
             result = new WorksheetPackageCopyResult(targetSheet, tableNameMap);
             return true;
         }
+
+        // The part is copied unread, so its sheet views must already match workbook views the target has.
+        private static int CountWorkbookViews(ExcelDocument document) =>
+            Math.Max(1, document.WorkbookRoot.GetFirstChild<BookViews>()?.Elements<WorkbookView>().Count() ?? 0);
 
         private bool CanAdoptSourceWorkbookIndexParts(ExcelDocument sourceDocument) {
             WorkbookPart sourceWorkbookPart = sourceDocument.WorkbookPartRoot;
