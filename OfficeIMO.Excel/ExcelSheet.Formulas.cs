@@ -144,7 +144,10 @@ namespace OfficeIMO.Excel {
 
                 try {
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
-                    foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList()) {
+                    List<Cell> formulaCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList();
+                    context.ReserveFormulaCells(Name, formulaCells.Count);
+                    recalculatedCells.Capacity = formulaCells.Count;
+                    foreach (var cell in formulaCells) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
                             allFormulasEvaluated = false;

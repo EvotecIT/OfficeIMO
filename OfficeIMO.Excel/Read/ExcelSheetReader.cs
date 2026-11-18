@@ -136,14 +136,32 @@ namespace OfficeIMO.Excel {
                 : EnumerateCellsDom(ct);
         }
 
-        private IEnumerable<ExcelCellValueInfo> EnumerateCellsStreamed(CancellationToken ct) {
-            IEnumerable<ExcelCellValueInfo> cells = TryCreateEnumerateCellsUtf8Source(ct, out ExcelUtf8RangeRowSource? source,
+        /// <summary>
+        /// Chooses the route when enumeration starts and hands out that route's own enumerator, so each cell crosses
+        /// one iterator instead of a forwarding one as well.
+        /// </summary>
+        private IEnumerable<ExcelCellValueInfo> EnumerateCellsStreamed(CancellationToken ct) =>
+            new DeferredCells(this, ct);
+
+        private IEnumerable<ExcelCellValueInfo> CreateStreamedCells(CancellationToken ct) =>
+            TryCreateEnumerateCellsUtf8Source(ct, out ExcelUtf8RangeRowSource? source,
                     out int firstRow, out int lastRow, out int firstOrdinal, out int lastOrdinal, out int declaredFirstColumn)
                 ? EnumerateCellsUtf8(source!, firstRow, lastRow, firstOrdinal, lastOrdinal, declaredFirstColumn, ct)
                 : EnumerateCellsXmlFast(ct);
-            foreach (ExcelCellValueInfo cell in cells) {
-                yield return cell;
+
+        private sealed class DeferredCells : IEnumerable<ExcelCellValueInfo> {
+            private readonly ExcelSheetReader _owner;
+            private readonly CancellationToken _cancellationToken;
+
+            internal DeferredCells(ExcelSheetReader owner, CancellationToken cancellationToken) {
+                _owner = owner;
+                _cancellationToken = cancellationToken;
             }
+
+            public IEnumerator<ExcelCellValueInfo> GetEnumerator() =>
+                _owner.CreateStreamedCells(_cancellationToken).GetEnumerator();
+
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
         private IEnumerable<ExcelCellValueInfo> EnumerateCellsDom(CancellationToken ct) {
