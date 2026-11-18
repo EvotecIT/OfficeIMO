@@ -81,6 +81,12 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             ArgumentNullException.ThrowIfNull(archive);
 
             workbookPartName = null;
+            // The workbook part must be a ".bin" entry, so a package without one is not XLSB and its root
+            // relationships need not be decompressed to tell.
+            if (!archive.Entries.Any(static entry => entry.FullName.IndexOf('\\') < 0
+                    && entry.FullName.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))) {
+                return false;
+            }
             try {
                 ZipArchiveEntry? relationshipsEntry = FindEntry(archive, "_rels/.rels");
                 if (relationshipsEntry == null || relationshipsEntry.Length > maxRootRelationshipsBytes) {
