@@ -5,12 +5,12 @@ using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Rtf;
 
-/// <summary>Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.</summary>
+/// <summary>Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.</summary>
 /// <example>
 ///   <summary>Include document structure and bound system-font discovery.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$options = New-OfficeRtfPdfOptions -NoImages -NoTables -NoHeaderFooters -MaximumSystemFontFamilies 32
-/// Export-OfficeDocumentPdf -InputPath .\Report.rtf -Path .\Report.pdf -RtfOptions $options</code>
+/// Convert-OfficeDocument -To Pdf -Path .\Report.rtf -OutputPath .\Report.pdf -Options $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficeRtfPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(RtfPdfExportOptions))]

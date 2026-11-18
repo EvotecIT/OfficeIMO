@@ -59,6 +59,9 @@ foreach ($sourceFile in Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot 'S
 # The one-line synopsis comes from the help shipped with the built module, so the
 # website lists each command with the same summary Get-Help prints.
 $helpPath = Join-Path (Split-Path -Parent $ManifestPath) "en-US/$moduleName-help.xml"
+if (-not (Test-Path -LiteralPath $helpPath -PathType Leaf)) {
+    throw "The built module has no help file at '$helpPath'; command synopses cannot be exported."
+}
 [xml] $help = Get-Content -LiteralPath $helpPath -Raw -Encoding UTF8
 $synopsisByCommand = @{}
 foreach ($helpCommand in @($help.helpItems.command)) {
