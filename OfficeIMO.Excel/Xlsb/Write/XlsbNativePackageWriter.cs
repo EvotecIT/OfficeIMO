@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 structure.PreparePackage(document, workbookPart, archive.Entries.Select(entry => entry.FullName).ToArray(),
                     ReadPart(workbookPart), ReadPart(XlsbSheetStructure.RelationshipPartName(workbookPart)), ReadPart("[Content_Types].xml"), replacements, deletions, maximumBytes);
                 CopyRenamedRelatedParts(document, sourceWorkbook, replacements);
-                XlsbDocumentPropertyParts.ApplyToRewrite(document, ReadPart,
+                XlsbDocumentPropertyParts.ApplyToRewrite(document, document.XlsbDocumentPropertiesSnapshot, ReadPart,
                     archive.Entries.Select(entry => entry.FullName).ToArray(), replacements, deletions);
                 foreach (var sheet in sheets) {
                     var binding = structure.Bindings.Single(item => ReferenceEquals(item.Part, sheet.WorksheetPart));

@@ -79,32 +79,72 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         /// <summary>
+        /// The property state of a loaded XLSB package as the model holds it, read without committing
+        /// pending edits. Comparing against it also catches edits made directly through the Open XML package.
+        /// </summary>
+        internal sealed class Snapshot {
+            private Snapshot(string? core, string? extended, string? custom) {
+                Core = core;
+                Extended = extended;
+                Custom = custom;
+            }
+
+            internal string? Core { get; }
+
+            internal string? Extended { get; }
+
+            internal string? Custom { get; }
+
+            internal static Snapshot Take(ExcelDocument document) {
+                SpreadsheetDocument package = document._spreadSheetDocument;
+                return new Snapshot(
+                    HasCoreProperties(package) ? ExcelDocument.CreateCorePropertiesXml(package) : null,
+                    package.ExtendedFilePropertiesPart?.Properties?.OuterXml,
+                    package.CustomFilePropertiesPart?.Properties?.OuterXml);
+            }
+
+            internal bool Matches(ExcelDocument document) {
+                Snapshot current = Take(document);
+                return current.Core == Core && current.Extended == Extended && current.Custom == Custom;
+            }
+        }
+
+        /// <summary>
         /// Replaces the property parts of an existing XLSB package with the model's current values.
-        /// Core and extended properties follow the package-property edits; custom properties follow their own edits.
+        /// A part is rewritten when its wrapper API marked it changed or when it no longer matches
+        /// the state captured after the package was loaded or last written.
         /// </summary>
         internal static void ApplyToRewrite(
             ExcelDocument document,
+            Snapshot loaded,
             Func<string, byte[]> readPart,
             IReadOnlyCollection<string> existingEntries,
             IDictionary<string, byte[]> replacements,
             ISet<string> deletions) {
-            bool coreChanged = document.HasPackagePropertiesDirty;
-            bool customChanged = document.HasCustomDocumentPropertiesDirty;
-            if (!coreChanged && !customChanged) return;
+            Snapshot current = Snapshot.Take(document);
+            bool packagePropertiesDirty = document.HasPackagePropertiesDirty;
+            bool customDirty = document.HasCustomDocumentPropertiesDirty;
+            bool coreChanged = packagePropertiesDirty || current.Core != loaded.Core;
+            bool extendedChanged = packagePropertiesDirty || current.Extended != loaded.Extended;
+            bool customChanged = customDirty || current.Custom != loaded.Custom;
+            if (!coreChanged && !extendedChanged && !customChanged) return;
 
             XlsbDocumentPropertyParts parts = Capture(document);
+            // Edits stay pending until the rewritten package is committed, so a failed save can be retried.
+            if (customDirty) document.MarkCustomDocumentPropertiesPending();
             XDocument relationships = LoadXml(replacements.TryGetValue("_rels/.rels", out byte[]? currentRelationships) ? currentRelationships : readPart("_rels/.rels"));
             XDocument types = LoadXml(replacements.TryGetValue("[Content_Types].xml", out byte[]? currentTypes) ? currentTypes : readPart("[Content_Types].xml"));
             var entries = new HashSet<string>(existingEntries, StringComparer.OrdinalIgnoreCase);
+            // A part the model never held (absent or unreadable in the source) is left as it was;
+            // one the model held and no longer has was removed and is dropped from the package.
             if (coreChanged) {
-                Apply(relationships, types, entries, replacements, deletions, CoreRelationshipType, CoreContentType, "docProps/core.xml", parts.Core, removeWhenEmpty: true);
-                // An extended part the model could not read stays as it was rather than being dropped.
-                if (parts.Extended != null) {
-                    Apply(relationships, types, entries, replacements, deletions, ExtendedRelationshipType, ExtendedContentType, "docProps/app.xml", parts.Extended, removeWhenEmpty: false);
-                }
+                Apply(relationships, types, entries, replacements, deletions, CoreRelationshipType, CoreContentType, "docProps/core.xml", parts.Core, removeWhenEmpty: loaded.Core != null);
+            }
+            if (extendedChanged) {
+                Apply(relationships, types, entries, replacements, deletions, ExtendedRelationshipType, ExtendedContentType, "docProps/app.xml", parts.Extended, removeWhenEmpty: loaded.Extended != null);
             }
             if (customChanged) {
-                Apply(relationships, types, entries, replacements, deletions, CustomRelationshipType, CustomContentType, "docProps/custom.xml", parts.Custom, removeWhenEmpty: true);
+                Apply(relationships, types, entries, replacements, deletions, CustomRelationshipType, CustomContentType, "docProps/custom.xml", parts.Custom, removeWhenEmpty: loaded.Custom != null);
             }
             replacements["_rels/.rels"] = SaveXml(relationships);
             replacements["[Content_Types].xml"] = SaveXml(types);

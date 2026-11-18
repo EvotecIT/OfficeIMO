@@ -108,6 +108,66 @@ public partial class Excel {
         Assert.DoesNotContain("custom-properties", contentTypes, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Xlsb_FailedSaveKeepsPropertyEditsForTheNextSave() {
+        string sourcePath = XlsbExcelGeneratedPath();
+        string savedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        using (ExcelDocument document = ExcelDocument.Load(sourcePath)) {
+            document.Properties.Title = "Retitled";
+            document.SetCustomDocumentProperty("Region", "South");
+            using (var failing = new XlsbFailingWriteStream()) {
+                Assert.Throws<IOException>(() => document.Save(failing, new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+            }
+            document.Save(savedPath);
+        }
+
+        using ExcelDocument reloaded = ExcelDocument.Load(savedPath);
+        Assert.Equal("Retitled", reloaded.Properties.Title);
+        Assert.Equal("South", reloaded.CustomProperties["Region"].Text);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Xlsb_SaveWritesPropertyPartsEditedThroughTheOpenXmlPackage(bool editCell) {
+        string savedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        using (ExcelDocument document = ExcelDocument.Load(XlsbExcelGeneratedPath())) {
+            var properties = document.OpenXmlDocument.ExtendedFilePropertiesPart!.Properties!;
+            properties.Company = new DocumentFormat.OpenXml.ExtendedProperties.Company("Direct Company");
+            if (editCell) document.Sheets[0].CellValue(2, 1, "Edited");
+            document.Save(savedPath);
+        }
+
+        using ExcelDocument reloaded = ExcelDocument.Load(savedPath);
+        Assert.Equal("Direct Company", reloaded.ApplicationProperties.Company);
+        Assert.Equal(editCell ? "Edited" : "Alpha", reloaded.Sheets[0].Cell(2, 1).GetValue<string>());
+    }
+
+    [Fact]
+    public void Xlsb_ReadOnlyLoadReportsTheStoredModifiedTime() {
+        var stored = new DateTime(2026, 7, 16, 7, 48, 15, DateTimeKind.Utc);
+        string copyPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        using (ExcelDocument readOnly = ExcelDocument.Load(XlsbExcelGeneratedPath(), new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
+            Assert.Equal(stored, readOnly.Properties.Modified!.Value.ToUniversalTime());
+        }
+
+        using (ExcelDocument writable = ExcelDocument.Load(XlsbExcelGeneratedPath())) {
+            Assert.Equal(stored, writable.Properties.Modified!.Value.ToUniversalTime());
+            writable.Save(copyPath);
+        }
+
+        using ExcelDocument copy = ExcelDocument.Load(copyPath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        Assert.Equal(stored, copy.Properties.Modified!.Value.ToUniversalTime());
+    }
+
+    private static string XlsbExcelGeneratedPath() =>
+        Path.Combine(AppContext.BaseDirectory, "Documents", "XlsbCorpus", "excel-generated", "basic-values-formula.xlsb");
+
+    private sealed class XlsbFailingWriteStream : MemoryStream {
+        public override void Write(byte[] buffer, int offset, int count) => throw new IOException("Simulated write failure.");
+        public override void WriteByte(byte value) => throw new IOException("Simulated write failure.");
+    }
+
     private static void SetXlsbTestProperties(ExcelDocument document) {
         document.Properties.Title = "Quarterly figures";
         document.Properties.Subject = "Finance";
