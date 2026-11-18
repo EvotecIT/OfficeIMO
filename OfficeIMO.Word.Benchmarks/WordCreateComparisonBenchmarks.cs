@@ -36,7 +36,16 @@ public class WordCreateParagraphComparisonBenchmarks {
         byte[] equivalent = OpenXmlSdkEquivalent();
         WordBenchmarkCorpus.ValidateParagraphDocument(equivalent, ItemCount);
         WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
+#if NET10_0_OR_GREATER
+        WordBenchmarkCorpus.ValidateParagraphDocument(OneDocument(), ItemCount);
+#endif
     }
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public byte[] OneDocument() => WordOneDocumentWorkloads.CreateParagraphs(ItemCount);
+#endif
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() {
@@ -124,6 +133,7 @@ public class WordCreateReportComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.CreateReport(RowCount);
 #endif
 

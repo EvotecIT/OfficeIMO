@@ -1,6 +1,7 @@
 #if NET10_0_OR_GREATER
 using RecursiveAI.OneDocument;
 using RecursiveAI.OneDocument.Documents;
+using RecursiveAI.OneDocument.Operations;
 using OneDocumentDocument = RecursiveAI.OneDocument.Documents.Document;
 using OneDocumentParagraph = RecursiveAI.OneDocument.Documents.Paragraph;
 using OneDocumentTable = RecursiveAI.OneDocument.Documents.Table;
@@ -12,6 +13,9 @@ namespace OfficeIMO.Word.Benchmarks;
 /// net10.0 only, so these lanes exist only in the net10.0 build of the benchmark runner.
 /// </summary>
 internal static class WordOneDocumentWorkloads {
+    // The other lanes replace case-sensitively; OneDocument searches case-insensitively unless told otherwise.
+    private static readonly DocumentReplaceOptions MatchCase = new() { Search = new SearchOptions { MatchCase = true } };
+
     internal static WordReadObservation ReadParagraphs(byte[] fixture) {
         using var stream = new MemoryStream(fixture, writable: false);
         using OneDocumentDocument document = OneDocumentDocument.Open(stream);
@@ -38,10 +42,55 @@ internal static class WordOneDocumentWorkloads {
     internal static byte[] Replace(byte[] fixture) {
         using var input = new MemoryStream(fixture, writable: false);
         using OneDocumentDocument document = OneDocumentDocument.Open(input);
-        document.Replace(WordBenchmarkCorpus.Placeholder, WordBenchmarkCorpus.Replacement);
+        document.Replace(WordBenchmarkCorpus.Placeholder, WordBenchmarkCorpus.Replacement, MatchCase);
         using var output = new MemoryStream();
         document.SaveAs(output, OfficeFormat.Docx);
         return output.ToArray();
+    }
+
+    internal static byte[] CreateParagraphs(int itemCount) {
+        using OneDocumentDocument document = OneDocumentDocument.Create();
+        // A new OneDocument document starts with one empty paragraph; it takes the first item.
+        document.Paragraphs.First().AddRun(WordBenchmarkCorpus.ParagraphText(0));
+        for (int index = 1; index < itemCount; index++) {
+            document.Body.AddParagraph(WordBenchmarkCorpus.ParagraphText(index));
+        }
+        return Save(document);
+    }
+
+    internal static byte[] CreateImages(int imageCount) {
+        using OneDocumentDocument document = OneDocumentDocument.Create();
+        // A new OneDocument document starts with one empty paragraph; it takes the first caption.
+        document.Paragraphs.First().AddRun(WordWorkloadCorpus.ImageCaption(0));
+        for (int index = 0; index < imageCount; index++) {
+            if (index > 0) document.Body.AddParagraph(WordWorkloadCorpus.ImageCaption(index));
+            document.Body.AddPicture(WordBenchmarkImages.Image(index), PixelsToPoints(WordBenchmarkImages.WidthPixels),
+                PixelsToPoints(WordBenchmarkImages.HeightPixels), altText: null);
+        }
+        return Save(document);
+    }
+
+    internal static byte[] FillTemplate(byte[] fixture) {
+        using var input = new MemoryStream(fixture, writable: false);
+        using OneDocumentDocument document = OneDocumentDocument.Open(input);
+        foreach (KeyValuePair<string, string> field in WordWorkloadCorpus.Fields) {
+            document.Replace(field.Key, field.Value, MatchCase);
+        }
+        return Save(document);
+    }
+
+    internal static WordReadObservation ReadTables(byte[] fixture) {
+        using var stream = new MemoryStream(fixture, writable: false);
+        using OneDocumentDocument document = OneDocumentDocument.Open(stream);
+        var observation = WordReadObservation.Empty;
+        foreach (OneDocumentTable table in document.Tables) {
+            foreach (TableRow row in table.Rows()) {
+                foreach (TableCell cell in row.Cells()) {
+                    observation = observation.Add(cell.Text);
+                }
+            }
+        }
+        return observation;
     }
 
     internal static byte[] CreateReport(int rowCount) {
@@ -68,6 +117,14 @@ internal static class WordOneDocumentWorkloads {
         table[0, 0].Paragraphs().First().Runs().First().Bold = true;
         table[0, 1].Paragraphs().First().Runs().First().Bold = true;
 
+        using var output = new MemoryStream();
+        document.SaveAs(output, OfficeFormat.Docx);
+        return output.ToArray();
+    }
+
+    private static double PixelsToPoints(int pixels) => pixels * 72.0 / 96.0;
+
+    private static byte[] Save(OneDocumentDocument document) {
         using var output = new MemoryStream();
         document.SaveAs(output, OfficeFormat.Docx);
         return output.ToArray();
