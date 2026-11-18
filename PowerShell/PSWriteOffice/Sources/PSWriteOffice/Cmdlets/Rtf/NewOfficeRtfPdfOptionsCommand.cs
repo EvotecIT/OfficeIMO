@@ -6,6 +6,7 @@ using PSWriteOffice.Foundation;
 namespace PSWriteOffice.Cmdlets.Rtf;
 
 /// <summary>Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.</summary>
+/// <para>Pass the result to Convert-OfficeDocument -Options when converting RTF files to PDF.</para>
 /// <example>
 ///   <summary>Include document structure and bound system-font discovery.</summary>
 ///   <prefix>PS&gt; </prefix>

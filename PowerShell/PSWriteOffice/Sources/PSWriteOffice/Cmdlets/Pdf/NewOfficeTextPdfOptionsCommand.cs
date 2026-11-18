@@ -4,6 +4,7 @@ using OfficeIMO.Pdf;
 namespace PSWriteOffice.Cmdlets.Pdf;
 
 /// <summary>Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.</summary>
+/// <para>Pass the result to Convert-OfficeDocument -Options when converting plain text files to PDF.</para>
 /// <example><summary>Read UTF-16 text with four-column tabs.</summary><prefix>PS&gt; </prefix>
 /// <code>$options = New-OfficeTextPdfOptions -Encoding utf-16 -TabSize 4
 /// Convert-OfficeDocument -To Pdf -Path .\Report.txt -OutputPath .\Report.pdf -Options $options</code></example>
