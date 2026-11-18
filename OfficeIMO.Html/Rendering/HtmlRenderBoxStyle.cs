@@ -48,6 +48,14 @@ internal sealed class HtmlRenderBoxStyle {
     // text-align: justify keeps the start alignment above for lines that are not
     // justified. TextAlignLast is null for auto (justified lines end at start).
     internal bool JustifyText;
+    // The computed text-align is justify or justify-all, before text-justify applies.
+    internal bool TextAlignJustify;
+    // text-justify: none on this element; its word separators are not stretched.
+    internal bool TextJustifyNone;
+    // text-justify: inter-character or distribute, which line layout approximates between words.
+    internal bool TextJustifyInterCharacter;
+    // text-align-last as computed, before text-justify: none turns a justified last line off.
+    internal OfficeTextAlignment? ComputedTextAlignLast;
     internal OfficeTextAlignment? TextAlignLast;
     internal double LineHeight;
     internal bool UsesNaturalLineHeight;

@@ -19,7 +19,7 @@ public static partial class HtmlComputedStyleEngine {
         // The align attribute is a presentational hint below author CSS and above the th default.
         // HTML maps it to text-align for table parts and for the legacy block elements.
         if (element.LocalName is "td" or "th" or "tr" or "thead" or "tbody" or "tfoot"
-                or "p" or "div" or "caption" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6"
+                or "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6"
             && ResolveTableAlignAttribute(element) is string hint) {
             ApplyHtmlUserAgentDefault("text-align", hint, hasLocalDeclaration, properties,
                 inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);

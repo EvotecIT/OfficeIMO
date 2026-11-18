@@ -151,7 +151,7 @@ namespace OfficeIMO.Word.Html {
                         if (alignment.HasValue) {
                             // Cell alignment is inherited; a paragraph's own text-align wins.
                             foreach (var p in wordCell.Paragraphs) {
-                                p.ParagraphAlignment ??= alignment.Value.ToOfficeEnum();
+                                if (!_ownAlignmentParagraphs.Contains(p._paragraph)) p.ParagraphAlignment ??= alignment.Value.ToOfficeEnum();
                             }
                         } else if (htmlCell.TagName.Equals("th", StringComparison.OrdinalIgnoreCase)) {
                             foreach (var p in wordCell.Paragraphs) p.ParagraphAlignment ??= WordParagraphAlignment.Center;

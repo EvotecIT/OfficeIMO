@@ -268,7 +268,13 @@ internal sealed partial class HtmlRenderStyleResolver {
 
         double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight, out bool usesNaturalLineHeight);
         string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
-        ReportUnrenderedTextValues(element, display, verticalAlign, textTransform);
+        // Floats, absolutely positioned boxes and flex or grid items are blockified, so
+        // vertical-align does not apply to them. A pseudo-element's parent is its host.
+        bool blockified = parent != null && (parent.Display.IndexOf("flex", StringComparison.Ordinal) >= 0
+                || parent.Display.IndexOf("grid", StringComparison.Ordinal) >= 0)
+            || computed.GetValue("float").Trim().ToLowerInvariant() is "left" or "right" or "inline-start" or "inline-end"
+            || computed.GetValue("position").Trim().ToLowerInvariant() is "absolute" or "fixed";
+        ReportUnrenderedTextValues(element, display, blockified, verticalAlign, textTransform);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
             verticalAlign,
@@ -287,10 +293,19 @@ internal sealed partial class HtmlRenderStyleResolver {
             && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"));
         OfficeTextAlignment alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent,
             out bool justifyText, out bool justifyAll);
-        OfficeTextAlignment? textAlignLast = ResolveTextAlignLast(computed.GetValue("text-align-last"), direction, parent, justifyAll);
-        bool textJustify = !justifyText && textAlignLast != OfficeTextAlignment.Justify
-            || ResolveTextJustify(element, computed.GetValue("text-justify"), pseudoElement);
-        justifyText &= !defaultCentered && textJustify;
+        bool textAlignJustify = justifyText && !defaultCentered;
+        // justify-all also sets text-align-last; a text-align-last that wins the cascade over it still
+        // applies. An element that inherits both keeps its parent's computed last-line value.
+        bool inheritsLastLine = parent != null && computed.IsImplicitlyInheritedValue("text-align")
+            && (string.IsNullOrWhiteSpace(computed.GetValue("text-align-last")) || computed.IsImplicitlyInheritedValue("text-align-last"));
+        OfficeTextAlignment? computedTextAlignLast = inheritsLastLine ? parent!.ComputedTextAlignLast
+            : justifyAll && !OutranksTextAlign(computed, "text-align-last") ? OfficeTextAlignment.Justify
+            : ResolveTextAlignLast(computed.GetValue("text-align-last"), direction, parent);
+        OfficeTextAlignment? textAlignLast = computedTextAlignLast;
+        string textJustifyValue = computed.GetValue("text-justify").Trim().ToLowerInvariant();
+        bool textJustifyNone = textJustifyValue == "none";
+        bool textJustify = !textJustifyNone;
+        justifyText = textAlignJustify && textJustify;
         if (!textJustify && textAlignLast == OfficeTextAlignment.Justify) textAlignLast = null;
         var style = new HtmlRenderBoxStyle {
             Display = display,
@@ -321,6 +336,10 @@ internal sealed partial class HtmlRenderStyleResolver {
                 : ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
             Alignment = defaultCentered ? OfficeTextAlignment.Center : alignment,
             JustifyText = justifyText,
+            TextAlignJustify = textAlignJustify,
+            TextJustifyNone = textJustifyNone,
+            TextJustifyInterCharacter = textJustifyValue is "inter-character" or "distribute",
+            ComputedTextAlignLast = computedTextAlignLast,
             TextAlignLast = textAlignLast,
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
@@ -443,17 +462,32 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     // word-wrap is the legacy name of overflow-wrap. As aliases, the declaration that wins the
     // cascade between them applies: the more important or specific one, then the later one.
+    // A declaration that resets the property, such as initial or unset, also wins over the other
+    // spelling and restores normal; an empty value without a declaration inherits.
     private static string ResolveOverflowWrapDeclaration(HtmlComputedStyle computed) {
-        string overflowWrap = computed.GetValue("overflow-wrap");
-        string wordWrap = computed.GetValue("word-wrap");
-        if (string.IsNullOrWhiteSpace(wordWrap)) return overflowWrap;
-        if (string.IsNullOrWhiteSpace(overflowWrap)) return wordWrap;
-        return computed.TryGetCascadePriority("word-wrap", out HtmlCssCascadePriority wordWrapPriority)
-            && computed.TryGetCascadePriority("overflow-wrap", out HtmlCssCascadePriority overflowWrapPriority)
-            && wordWrapPriority.OutranksOrEquals(overflowWrapPriority)
-                ? wordWrap
-                : overflowWrap;
+        bool wordWrapDeclared = IsDeclared(computed, "word-wrap");
+        bool overflowWrapDeclared = IsDeclared(computed, "overflow-wrap");
+        string winner = !wordWrapDeclared ? "overflow-wrap"
+            : !overflowWrapDeclared ? "word-wrap"
+            : computed.TryGetCascadePriority("word-wrap", out HtmlCssCascadePriority wordWrapPriority)
+                && computed.TryGetCascadePriority("overflow-wrap", out HtmlCssCascadePriority overflowWrapPriority)
+                && wordWrapPriority.OutranksOrEquals(overflowWrapPriority)
+                ? "word-wrap" : "overflow-wrap";
+        if (computed.IsResetValue(winner)) return "normal";
+        return computed.GetValue(winner);
+
+        static bool IsDeclared(HtmlComputedStyle style, string property) =>
+            !string.IsNullOrWhiteSpace(style.GetValue(property)) || style.IsResetValue(property);
     }
+
+    // Whether a declaration of property wins the cascade over this element's text-align declaration.
+    private static bool OutranksTextAlign(HtmlComputedStyle computed, string property) =>
+        !string.IsNullOrWhiteSpace(computed.GetValue(property))
+        && !computed.IsImplicitlyInheritedValue(property)
+        && computed.TryGetCascadePriority(property, out HtmlCssCascadePriority priority)
+        && (!computed.TryGetCascadePriority("text-align", out HtmlCssCascadePriority textAlign)
+            || computed.IsImplicitlyInheritedValue("text-align")
+            || priority.OutranksOrEquals(textAlign));
 
     private static string ResolveOverflowWrap(string value, string? inherited) {
         string normalized = value.Trim().ToLowerInvariant();
@@ -944,8 +978,10 @@ internal sealed partial class HtmlRenderStyleResolver {
                 justifyAll = true;
                 return start;
             case "match-parent" when parent != null:
-                // The parent's start and end are already resolved against its own direction.
-                justify = parent.JustifyText;
+                // The parent's start and end are already resolved against its own direction. Its
+                // text-align value is matched; this element's own text-justify then applies.
+                justify = parent.TextAlignJustify;
+                justifyAll = parent.TextAlignJustify && parent.ComputedTextAlignLast == OfficeTextAlignment.Justify;
                 return parent.Alignment;
             default:
                 return start;
@@ -958,8 +994,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static OfficeTextAlignment? ResolveTextAlignLast(
         string value,
         string direction,
-        HtmlRenderBoxStyle? parent,
-        bool justifyAll) {
+        HtmlRenderBoxStyle? parent) {
         bool rightToLeft = string.Equals(direction, "rtl", StringComparison.Ordinal);
         switch (value.Trim().ToLowerInvariant()) {
             case "left": return OfficeTextAlignment.Left;
@@ -969,31 +1004,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             case "start": return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
             case "end": return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
             case "match-parent": return parent?.TextAlignLast;
-            default: return justifyAll ? OfficeTextAlignment.Justify : null;
+            default: return null;
         }
     }
 
-    // CSS Text 3 text-justify. None turns justification off. Inter-character and the
-    // legacy distribute value have no character-spacing route in line layout, so
-    // they justify between words and report the approximation.
-    private bool ResolveTextJustify(IElement element, string value, bool pseudoElement) {
-        string normalized = value.Trim().ToLowerInvariant();
-        if (normalized == "none") return false;
-        if ((normalized == "inter-character" || normalized == "distribute")
-            && _reportedTextJustifyApproximations.Add(element)) {
-            _diagnostics.Add(
-                "OfficeIMO.Html.Renderer",
-                HtmlRenderDiagnosticCodes.CssPropertyUnsupported,
-                "Inter-character justification is not implemented; justified text was spaced between words.",
-                HtmlDiagnosticSeverity.Warning,
-                DescribeSource(element) + (pseudoElement ? "::generated" : string.Empty),
-                "text-justify=" + normalized,
-                OfficeConversionLossKind.Approximation);
-        }
-        return true;
-    }
-
-    private readonly HashSet<IElement> _reportedTextJustifyApproximations = new HashSet<IElement>();
 
     private static string ResolveSemanticRole(string tag) {
         if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') return "heading-" + tag[1];
@@ -1307,10 +1321,11 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     // Recognised keywords that line layout does not position or transform yet. They are
     // reported once per value instead of silently using the baseline or the original text.
-    private void ReportUnrenderedTextValues(IElement element, string display, string verticalAlign, string textTransform) {
+    private void ReportUnrenderedTextValues(IElement element, string display, bool blockified, string verticalAlign, string textTransform) {
         // vertical-align applies only to inline-level boxes and table cells, and table cells apply
         // these keywords. Blocks ignore the property, so nothing is lost for them.
-        if (display.StartsWith("inline", StringComparison.Ordinal)
+        // Flex and grid items are blockified, so vertical-align does not apply to them either.
+        if (display.StartsWith("inline", StringComparison.Ordinal) && !blockified
             && verticalAlign is "middle" or "bottom" or "text-top" or "text-bottom") {
             ReportUnrenderedTextValue(element, "vertical-align", verticalAlign,
                 "This vertical-align keyword is not applied to inline content; it was aligned on the baseline.");

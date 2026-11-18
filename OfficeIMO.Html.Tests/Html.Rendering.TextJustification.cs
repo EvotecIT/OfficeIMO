@@ -22,7 +22,14 @@ public sealed partial class HtmlRenderingTests {
         { "<p style='text-align:justify;text-align-last:center;width:300px;margin:0'>" + JustifiedText + "</p>", "center" },
         { "<p style='text-align:justify;text-align-last:end;width:300px;margin:0'>" + JustifiedText + "</p>", "end" },
         { "<p style='text-align:justify-all;width:300px;margin:0'>" + JustifiedText + "</p>", "justified" },
-        { "<p style='text-align:left;text-align-last:justify;width:300px;margin:0'>" + JustifiedText + "</p>", "justified-last-only" }
+        { "<p style='text-align:left;text-align-last:justify;width:300px;margin:0'>" + JustifiedText + "</p>", "justified-last-only" },
+        // A text-align-last after justify-all wins the cascade, as with the shorthand expanded.
+        { "<p style='text-align:justify-all;text-align-last:auto;width:300px;margin:0'>" + JustifiedText + "</p>", "start" },
+        // match-parent takes the parent's justify value, then applies its own text-justify.
+        { "<div style='text-align:justify;text-justify:none;width:300px'><p style='margin:0;text-align:match-parent;text-justify:inter-word'>" + JustifiedText + "</p></div>", "start" },
+        // Inheriting justify-all also inherits the parent's computed last-line alignment.
+        { "<div style='text-align:justify-all;text-align-last:center;width:300px'><p style='margin:0'>" + JustifiedText + "</p></div>", "center" },
+        { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:match-parent'>" + JustifiedText + "</p></div>", "justified" }
     };
 
     [Theory]
@@ -96,13 +103,36 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRenderer_TextJustifyNoneKeepsJustifiedTextAtStart() {
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='text-align:justify;text-justify:none'><p style='width:300px;margin:0'>" + JustifiedText + "</p></div>",
-            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
-        IReadOnlyList<JustifiedLine> lines = JustifiedLines(rendered);
+        var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) };
+        IReadOnlyList<JustifiedLine> none = JustifiedLines(HtmlRenderTestDriver.Render(
+            "<div style='text-align:justify;text-justify:none'><p style='width:300px;margin:0'>" + JustifiedText + "</p></div>", options));
+        IReadOnlyList<JustifiedLine> start = JustifiedLines(HtmlRenderTestDriver.Render(
+            "<div style='text-align:start'><p style='width:300px;margin:0'>" + JustifiedText + "</p></div>", options));
 
-        Assert.All(lines, line => Assert.Equal(0D, line.Left, 1));
-        Assert.True(lines.Select(line => Math.Round(line.Right)).Distinct().Count() > 1, "Start-aligned lines stay ragged.");
+        Assert.Equal(start.Select(line => (line.Text, Math.Round(line.Left, 2), Math.Round(line.Right, 2))),
+            none.Select(line => (line.Text, Math.Round(line.Left, 2), Math.Round(line.Right, 2))));
+    }
+
+    [Fact]
+    public void HtmlRenderer_TextJustifyNoneKeepsTheSpacesOfItsOwnText() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align-last:justify;width:300px;margin:0'>alpha <span style='text-justify:none'>one two</span> omega</p>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+        JustifiedLine line = Assert.Single(JustifiedLines(rendered));
+
+        Assert.Equal(300D, line.Right, 1);
+        Assert.Contains(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(), text => text.Text == "one two");
+    }
+
+    [Fact]
+    public void HtmlRenderer_RightToLeftLinesWithInlineBoxesKeepLeftToRightWordOrder() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p dir='rtl' style='text-align:justify;width:300px;margin:0'>שלום <span style='display:inline-block;width:10px;height:10px'></span> "
+            + "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen</p>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        // Without bidi resolution the line keeps the phrase whole, so its words stay in order.
+        Assert.Contains(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("one two"));
     }
 
     [Fact]

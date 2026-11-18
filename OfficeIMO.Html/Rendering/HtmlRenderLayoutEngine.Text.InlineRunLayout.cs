@@ -118,6 +118,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 run.InlineTokenEndsRun = tokenIndex == tokens.Count - 1;
                 string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
+                    // A collapsible space before a forced break, possibly from an earlier
+                    // text node, is removed from the line as at any other line end.
+                    if (token == "\u2028" && !preserveWhitespace) TrimTrailingWhitespace(line);
                     line.HasForcedBreak = true;
                     if (noWrapRangeStart >= 0) {
                         FinalizeNoWrapRange(

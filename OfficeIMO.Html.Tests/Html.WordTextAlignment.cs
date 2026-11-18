@@ -10,6 +10,15 @@ namespace OfficeIMO.Tests {
         [InlineData("<p align='right' style='text-align:left'>Aligned</p>", WordParagraphAlignment.Left)]
         // A CSS reset still outranks the presentational attribute.
         [InlineData("<p align='right' style='text-align:initial'>Aligned</p>", null)]
+        // A div applies its alignment to its own text as well as to its children.
+        [InlineData("<div align='center'>Aligned</div>", WordParagraphAlignment.Center)]
+        [InlineData("<div style='text-align:right'>Aligned</div>", WordParagraphAlignment.Right)]
+        [InlineData("<div align='center'><p>Aligned</p></div>", WordParagraphAlignment.Center)]
+        // A paragraph's own declaration, a reset included, outranks container and cell alignment,
+        // and its align attribute outranks an alignment the container passed down.
+        [InlineData("<div style='text-align:right'><p style='text-align:initial'>Aligned</p></div>", null)]
+        [InlineData("<table><tr><td style='text-align:center'><p style='text-align:initial'>Aligned</p></td></tr></table>", null)]
+        [InlineData("<div style='text-align:center'><p align='left'>Aligned</p></div>", WordParagraphAlignment.Left)]
         [InlineData("<p style='text-align:-webkit-center'>Aligned</p>", WordParagraphAlignment.Center)]
         [InlineData("<p style='text-align:justify-all'>Aligned</p>", WordParagraphAlignment.Both)]
         [InlineData("<table><tr><td style='text-align:justify'><p>Aligned</p></td></tr></table>", WordParagraphAlignment.Both)]

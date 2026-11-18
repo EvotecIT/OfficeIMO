@@ -28,6 +28,9 @@ public sealed partial class HtmlRenderingTests {
     // The legacy name is an alias: the later declaration wins either way round.
     [InlineData("overflow-wrap:normal;word-wrap:break-word", true)]
     [InlineData("word-wrap:break-word;overflow-wrap:normal", false)]
+    // A reset is a declaration too, and restores normal instead of inheriting.
+    [InlineData("word-wrap:break-word;overflow-wrap:initial", false)]
+    [InlineData("overflow-wrap:break-word;word-wrap:unset", false)]
     public void HtmlRenderer_LegacyWordWrapCascadesAsOverflowWrap(string declarations, bool wraps) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<div style='width:60px;" + declarations + "'>Supercalifragilisticexpialidocious</div>", TextKeywordOptions);
@@ -68,18 +71,76 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlRenderer_ReportsTextKeywordsThatLayoutDoesNotApply() {
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+        string[] details = UnsupportedTextDetails(
             "<p>Icon <span style='display:inline-block;width:10px;height:20px;vertical-align:middle'></span> and "
-            + "<span style='vertical-align:middle'>text</span> <span style='text-transform:full-width'>abc</span></p>"
-            + "<table><tr><td style='vertical-align:middle'>cell</td></tr></table>"
-            + "<div style='vertical-align:bottom'>Blocks ignore vertical-align.</div>",
-            TextKeywordOptions);
-        string[] details = rendered.NativeDiagnostics
+            + "<span style='vertical-align:middle'>text</span> <span style='text-transform:full-width'>abc</span></p>");
+
+        // Reported once per value.
+        Assert.Equal(new[] { "text-transform=full-width", "vertical-align=middle" }, details.OrderBy(item => item, StringComparer.Ordinal));
+    }
+
+    [Theory]
+    // Table cells apply the keyword; blocks, floats, positioned boxes and flex or grid items ignore vertical-align.
+    [InlineData("<p>Text <img style='float:right;vertical-align:middle;width:5px;height:5px' src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='></p>")]
+    [InlineData("<p style='position:relative'>Text <span style='position:absolute;vertical-align:bottom'>abs</span></p>")]
+    [InlineData("<style>div::before{content:'x';vertical-align:middle}</style><div style='display:flex'>item</div>")]
+    // inter-character is reported only when a line is actually justified.
+    [InlineData("<p style='text-align:justify;text-justify:inter-character'>Short</p>")]
+    [InlineData("<table><tr><td style='vertical-align:middle'>cell</td></tr></table>")]
+    [InlineData("<div style='vertical-align:bottom'>Blocks ignore vertical-align.</div>")]
+    [InlineData("<div style='display:flex'><span style='vertical-align:middle'>Flex item</span></div>")]
+    [InlineData("<div style='display:grid'><span style='vertical-align:text-top'>Grid item</span></div>")]
+    public void HtmlRenderer_DoesNotReportKeywordsWhereNothingIsApproximated(string html) {
+        Assert.Empty(UnsupportedTextDetails(html));
+    }
+
+    [Theory]
+    [InlineData("<p style='text-align:justify;width:150px;margin:0'>漢字の文章は単語の間に空白がないので文字の間で両端揃えにする必要があります。</p>", "text-align=justify;cjk")]
+    [InlineData("<p dir='rtl' style='text-align:justify;width:150px;margin:0'>שלום <span style='display:inline-block;width:5px;height:5px'></span> one two three four five six seven eight</p>", "text-align=justify;rtl-inline-boxes")]
+    public void HtmlRenderer_ReportsJustifiedLinesLeftAtStart(string html, string detail) {
+        Assert.Contains(detail, UnsupportedTextDetails(html));
+    }
+
+    private static string[] UnsupportedTextDetails(string html) =>
+        HtmlRenderTestDriver.Render(html, TextKeywordOptions).NativeDiagnostics
             .Where(item => item.Code == HtmlRenderDiagnosticCodes.CssPropertyUnsupported)
             .Select(item => item.Detail ?? string.Empty)
             .ToArray();
 
-        // Reported once per value; table cells apply vertical-align and blocks ignore it.
-        Assert.Equal(new[] { "text-transform=full-width", "vertical-align=middle" }, details.OrderBy(item => item, StringComparer.Ordinal));
+    [Fact]
+    public void HtmlRenderer_PreLineBreaksGeneratedContent() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>p::before{content:'A\\A B';white-space:pre-line}</style><p style='margin:0'></p>", TextKeywordOptions);
+
+        Assert.Equal(new[] { "A", "B" }, JustifiedLines(rendered).Select(line => line.Text).ToArray());
+    }
+
+    [Fact]
+    public void HtmlRenderer_PreLineDropsTheSpaceBeforeABreakInAnotherTextNode() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='white-space:pre-line;text-align-last:right;width:200px;margin:0'>A <b>\nB</b></p>", TextKeywordOptions);
+
+        Assert.Equal(200D, JustifiedLines(rendered)[0].Right, 1);
+        Assert.DoesNotContain(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(), text => text.Text == "A ");
+    }
+
+    [Fact]
+    public void HtmlRenderer_PreLineFlexItemsAreSizedByTheirLongestLine() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<div style='display:flex;white-space:pre-line'><div>0000000000\n0000000000</div>"
+            + "<div style='width:10px;height:10px;background:#ff0000'></div></div>", TextKeywordOptions);
+        JustifiedLine first = JustifiedLines(rendered)[0];
+        HtmlRenderShape sibling = Assert.Single(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillColor is OfficeIMO.OfficeColor { R: 0xFF, G: 0, B: 0 });
+
+        Assert.Equal(first.Right, sibling.X, 0);
+    }
+
+    [Theory]
+    [InlineData("(text-justify: inter-word)", true)]
+    [InlineData("(text-justify: inter-character)", false)]
+    [InlineData("(text-justify: distribute)", false)]
+    public void HtmlStyles_SupportsQueriesDoNotClaimInterCharacterJustification(string condition, bool expected) {
+        Assert.Equal(expected, HtmlComputedStyleEngine.IsApplicableSupports(condition));
     }
 }

@@ -28,7 +28,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var continuationGroups = hasFloats ? new List<HtmlRenderContinuationGroup>() : null;
         var trailingGroups = hasFloats ? new List<HtmlRenderTrailingGroup>() : null;
         _currentInlineEdgeGeometry.Clear();
-        double[] lineJustification = ApplyInlineLineJustification(lines, width, paragraphStyle);
+        double[] lineJustification = ApplyInlineLineJustification(lines, width, paragraphStyle, out JustificationLimit justificationLimits);
+        ReportJustificationLimits(lineJustification, justificationLimits, paragraphStyle, formattingContainer);
         IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
             .Select(line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
             .ToArray();

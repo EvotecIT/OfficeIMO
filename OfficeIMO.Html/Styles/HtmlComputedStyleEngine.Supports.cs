@@ -324,6 +324,12 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "slice" || normalized == "clone";
         }
+        if (string.Equals(propertyName, "text-justify", StringComparison.OrdinalIgnoreCase)
+            && normalized is "inter-character" or "distribute") {
+            // The declaration is accepted and approximated between words, so @supports
+            // does not claim inter-character justification.
+            return false;
+        }
         if (string.Equals(propertyName, "outline-width", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
         }

@@ -9,8 +9,9 @@ namespace OfficeIMO.Html;
 /// ends the process and no caller can catch it, and worker threads can start with as little as 512 KB.
 /// </summary>
 internal static class HtmlExecutionStack {
-    // Each layout level costs up to about 30 KB of unoptimized frames.
-    private const int StackBytesPerLayoutLevel = 64 * 1024;
+    // A nested flex level costs about 80 KB of unoptimized .NET Framework frames, so
+    // 64 KB per level left the default depth at the edge of the stack.
+    private const int StackBytesPerLayoutLevel = 128 * 1024;
     internal const int MinimumStackBytes = 16 * 1024 * 1024;
     private const int MaximumStackBytes = 1024 * 1024 * 1024;
 
