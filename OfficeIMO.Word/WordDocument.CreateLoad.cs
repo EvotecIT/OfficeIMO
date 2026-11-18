@@ -507,7 +507,7 @@ namespace OfficeIMO.Word {
 
                 WordZipPackage? zipPackage = null;
                 var wordDocument = readOnly
-                    ? WordprocessingDocument.Open(memoryStream, false, effectiveOpenSettings)
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenWordprocessing(memoryStream, effectiveOpenSettings)
                     : OpenOwnedEditablePackage(memoryStream, effectiveOpenSettings, out zipPackage);
 
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
@@ -642,7 +642,7 @@ namespace OfficeIMO.Word {
 
             WordZipPackage? zipPackage = null;
             var wordDocument = readOnly
-                ? WordprocessingDocument.Open(memoryStream, false, effectiveOpenSettings)
+                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenWordprocessing(memoryStream, effectiveOpenSettings)
                 : OpenOwnedEditablePackage(memoryStream, effectiveOpenSettings, out zipPackage);
 
             var word = new WordDocument {
@@ -771,7 +771,7 @@ namespace OfficeIMO.Word {
                 };
 
                 var wordDocument = readOnly
-                    ? WordprocessingDocument.Open(packageStream, false, effectiveOpenSettings)
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenWordprocessing(packageStream, effectiveOpenSettings)
                     : OpenOwnedEditablePackage(packageStream, effectiveOpenSettings, out document._ownedZipPackage);
                 bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
 

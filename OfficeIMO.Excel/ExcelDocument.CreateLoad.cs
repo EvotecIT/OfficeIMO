@@ -305,7 +305,9 @@ namespace OfficeIMO.Excel {
                     unchangedPackageBytes = normalizedContentTypes ? packageStream.ToArray() : bytes;
                 }
 
-                var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
+                var memDoc = readOnly
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlReadOnlyPackage.OpenSpreadsheet(normalizedStream, effectiveOpenSettings)
+                    : SpreadsheetDocument.Open(normalizedStream, true, effectiveOpenSettings);
                 ExcelDocument document = CreateDocument(
                     memDoc,
                     filePath,
