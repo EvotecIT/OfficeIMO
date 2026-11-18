@@ -342,7 +342,9 @@ internal static partial class PdfSyntax {
         void ReportUnreadableCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
             "unreadable-indirect-object", "Compressed object content could not be read completely.", objectNumber);
         void ReportRelocatedCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
-            "compressed-object-index-mismatch", "The cross-reference index of a compressed object does not match its object stream header; lenient parsing located the object by its number.", objectNumber);
+            "compressed-object-index-mismatch", parsingMode == PdfParsingMode.Strict
+                ? "The cross-reference index of a compressed object does not match its object stream header."
+                : "The cross-reference index of a compressed object does not match its object stream header; lenient parsing located the object by its number.", objectNumber);
         var unreadableObjects = new HashSet<int?>();
         foreach (PdfRepairDiagnostic diagnostic in repairDiagnostics) {
             cancellationToken.ThrowIfCancellationRequested();

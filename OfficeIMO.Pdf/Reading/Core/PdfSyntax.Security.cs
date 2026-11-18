@@ -115,11 +115,11 @@ internal static partial class PdfSyntax {
                     encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
                     encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
                     encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
-                    encryptionVersion = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "V");
-                    encryptionRevision = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "R");
-                    encryptionLengthBits = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "Length");
-                    encryptionPermissions = TryReadPermissionMask(objects, parsedEncryptionDictionary);
-                    encryptMetadata = TryReadEncryptionBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata");
+                    encryptionVersion = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "V", cancellationToken);
+                    encryptionRevision = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "R", cancellationToken);
+                    encryptionLengthBits = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "Length", cancellationToken);
+                    encryptionPermissions = TryReadPermissionMask(objects, parsedEncryptionDictionary, cancellationToken);
+                    encryptMetadata = TryReadEncryptionBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata", cancellationToken);
                     if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                         authenticatedHandler is not null) {
                         passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
@@ -1065,18 +1065,18 @@ internal static partial class PdfSyntax {
 
     // The security handler reads the encryption dictionary with every reference chain resolved, so the reported values
     // resolve them too. Only these few entries of one dictionary are read this way, once per inspection.
-    private static int? TryReadEncryptionInteger(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) =>
-        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.ResolveChain(objects, value) is PdfNumber number
+    private static int? TryReadEncryptionInteger(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, CancellationToken cancellationToken) =>
+        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.ResolveChainCancellable(objects, value, cancellationToken) is PdfNumber number
             ? ToInteger(number)
             : null;
 
-    private static bool? TryReadEncryptionBoolean(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) =>
-        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.ResolveChain(objects, value) is PdfBoolean boolean
+    private static bool? TryReadEncryptionBoolean(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, CancellationToken cancellationToken) =>
+        dictionary.Items.TryGetValue(key, out PdfObject? value) && PdfObjectLookup.ResolveChainCancellable(objects, value, cancellationToken) is PdfBoolean boolean
             ? boolean.Value
             : null;
 
-    private static int? TryReadPermissionMask(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) =>
-        dictionary.Items.TryGetValue("P", out PdfObject? value) && PdfObjectLookup.ResolveChain(objects, value) is PdfNumber number
+    private static int? TryReadPermissionMask(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, CancellationToken cancellationToken) =>
+        dictionary.Items.TryGetValue("P", out PdfObject? value) && PdfObjectLookup.ResolveChainCancellable(objects, value, cancellationToken) is PdfNumber number
             ? ToPermissionMask(number)
             : null;
 
