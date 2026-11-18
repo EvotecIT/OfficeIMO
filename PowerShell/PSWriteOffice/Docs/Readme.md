@@ -1097,10 +1097,10 @@ Creates native WordHtmlExportOptions settings for document operations.
 Creates native RtfMarkdownExportOptions settings for document operations.
 
 ### [New-OfficeRtfPdfOptions](New-OfficeRtfPdfOptions.md)
-Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.
 
 ### [New-OfficeTextPdfOptions](New-OfficeTextPdfOptions.md)
-Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.
+Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.
 
 ### [New-OfficeToml](New-OfficeToml.md)
 Creates a live TOML document, or atomically publishes a completed content block.

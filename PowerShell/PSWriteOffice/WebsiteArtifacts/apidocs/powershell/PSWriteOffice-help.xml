@@ -150367,11 +150367,11 @@ attachments and bookmarks change what readers see or what the file discloses, so
       <command:verb>New</command:verb>
       <command:noun>OfficeRtfPdfOptions</command:noun>
       <maml:description>
-        <maml:para>Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
+        <maml:para>Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
+      <maml:para>Pass the result to Convert-OfficeDocument -Options when converting RTF files to PDF.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Default">
@@ -150694,7 +150694,7 @@ attachments and bookmarks change what readers see or what the file discloses, so
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
         <dev:code>$options = New-OfficeRtfPdfOptions -NoImages -NoTables -NoHeaderFooters -MaximumSystemFontFamilies 32&#xD;
-            Export-OfficeDocumentPdf -InputPath .\Report.rtf -Path .\Report.pdf -RtfOptions $options</dev:code>
+            Convert-OfficeDocument -To Pdf -Path .\Report.rtf -OutputPath .\Report.pdf -Options $options</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -150708,11 +150708,11 @@ attachments and bookmarks change what readers see or what the file discloses, so
       <command:verb>New</command:verb>
       <command:noun>OfficeTextPdfOptions</command:noun>
       <maml:description>
-        <maml:para>Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.</maml:para>
+        <maml:para>Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.</maml:para>
+      <maml:para>Pass the result to Convert-OfficeDocument -Options when converting plain text files to PDF.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Default">
@@ -150866,8 +150866,8 @@ attachments and bookmarks change what readers see or what the file discloses, so
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$options = New-OfficeTextPdfOptions -EncodingName utf-16 -TabSize 4&#xD;
-            Export-OfficeDocumentPdf -InputPath .\Report.txt -Path .\Report.pdf -TextOptions $options</dev:code>
+        <dev:code>$options = New-OfficeTextPdfOptions -Encoding utf-16 -TabSize 4&#xD;
+            Convert-OfficeDocument -To Pdf -Path .\Report.txt -OutputPath .\Report.pdf -Options $options</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>

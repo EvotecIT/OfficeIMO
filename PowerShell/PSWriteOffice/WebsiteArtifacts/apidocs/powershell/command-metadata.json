@@ -3556,20 +3556,20 @@
     {
       "name": "New-OfficeRtfPdfOptions",
       "kind": "Cmdlet",
-      "synopsis": "Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.",
+      "synopsis": "Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeRtfPdfOptionsCommand.cs",
-      "sourceLine": 17,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeRtfPdfOptionsCommand.cs#L17"
+      "sourceLine": 18,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeRtfPdfOptionsCommand.cs#L18"
     },
     {
       "name": "New-OfficeTextPdfOptions",
       "kind": "Cmdlet",
-      "synopsis": "Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.",
+      "synopsis": "Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficeTextPdfOptionsCommand.cs",
-      "sourceLine": 12,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficeTextPdfOptionsCommand.cs#L12"
+      "sourceLine": 13,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficeTextPdfOptionsCommand.cs#L13"
     },
     {
       "name": "New-OfficeToml",
