@@ -54,6 +54,7 @@ namespace OfficeIMO.Excel {
             WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
             var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
             CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap);
             EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
             return result.Sheet;
         }
@@ -138,13 +139,22 @@ namespace OfficeIMO.Excel {
                 WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
                 var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
                 CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap);
                 EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
                 return result.Sheet;
             }
 
             ExcelSheet copiedSheet;
             if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
-                copiedSheet = CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode);
+                string sourceName = sourceDocument.GetSheet(sourceSheetName).Name;
+                copiedSheet = CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode).Sheet;
+                // Conditional formats and validations name their own sheet; table names were already mapped by the copy.
+                RewriteCopiedWorksheetReferences(copiedSheet.WorksheetPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                    [sourceName] = copiedSheet.Name
+                });
+                CopyPrintDefinedNamesFromSource(sourceDocument, sourceName, copiedSheet, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                    [sourceName] = copiedSheet.Name
+                });
             } else {
                 copiedSheet = CopyWorksheetFromPackage(
                     sourceDocument,

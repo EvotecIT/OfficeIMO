@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode) {
+        private WorksheetPackageCopyResult CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
             string usedRange = sourceSheet.GetUsedRangeA1();
             var (startRow, startColumn, _, _) = ExcelA1.ParseRange(usedRange);
@@ -29,13 +29,15 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            CopyWorksheetTables(
+            WorksheetStyleCopyMap styleMap = CopyWorksheetLayoutForValuesCopy(sourceDocument, sourceSheet, targetSheet);
+            Dictionary<string, string> tableNameMap = CopyWorksheetTables(
                 sourceSheet.WorksheetPart,
                 targetSheet.WorksheetPart,
                 rewriteCopiedTableReferences: true,
-                preserveTableFormulas: false);
+                preserveTableFormulas: false,
+                differentialFormatMap: styleMap.DifferentialFormats);
             targetSheet.WorksheetPart.Worksheet!.Save();
-            return targetSheet;
+            return new WorksheetPackageCopyResult(targetSheet, tableNameMap);
         }
 
         private ExcelSheet CopyWorksheetFromPackage(
@@ -55,7 +57,7 @@ namespace OfficeIMO.Excel {
                 options.MaxInCellImageBytes,
                 options.MaxTotalInCellImageBytes);
             sourceSheet.PreflightInCellImages(inCellImageContext);
-            return CopyWorksheetFromPackage(
+            ExcelSheet copiedSheet = CopyWorksheetFromPackage(
                 sourceDocument,
                 sourceSheetName,
                 newSheetName,
@@ -64,6 +66,10 @@ namespace OfficeIMO.Excel {
                 copyReferencedDefinedNames: true,
                 options.CopyExternalWorkbookReferences,
                 inCellImageContext).Sheet;
+            CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                [sourceSheet.Name] = copiedSheet.Name
+            });
+            return copiedSheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetFromPackage(
@@ -422,7 +428,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static WorksheetStyleCopyMap RemapCopiedWorksheetStyles(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+        /// <summary>Merges the source workbook's stylesheet into the target and returns the index maps.</summary>
+        private static WorksheetStyleCopyMap MergeSourceWorkbookStyles(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart) {
             Stylesheet? sourceStylesheet = sourceWorkbookPart.WorkbookStylesPart?.Stylesheet;
             if (sourceStylesheet?.CellFormats == null) {
                 return WorksheetStyleCopyMap.Empty;
@@ -431,8 +438,18 @@ namespace OfficeIMO.Excel {
             WorkbookStylesPart targetStylesPart = targetWorkbookPart.WorkbookStylesPart ?? targetWorkbookPart.AddNewPart<WorkbookStylesPart>();
             Stylesheet targetStylesheet = targetStylesPart.Stylesheet ??= CreateDefaultStylesheet();
             EnsureStylesheetPrimitives(targetStylesheet);
-
             WorksheetStyleCopyMap styleMap = new StylesheetMerger(sourceWorkbookPart, sourceStylesheet, targetWorkbookPart, targetStylesheet).Merge();
+            EnsureStylesheetPrimitives(targetStylesheet);
+            targetStylesheet.Save();
+            return styleMap;
+        }
+
+        private static WorksheetStyleCopyMap RemapCopiedWorksheetStyles(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+            WorksheetStyleCopyMap styleMap = MergeSourceWorkbookStyles(sourceWorkbookPart, targetWorkbookPart);
+            if (ReferenceEquals(styleMap, WorksheetStyleCopyMap.Empty)) {
+                return styleMap;
+            }
+
             IReadOnlyDictionary<uint, uint> cellFormatMap = styleMap.CellFormats;
             var inheritedStyleCells = BuildInheritedStyleCellSet(worksheet);
 
@@ -462,8 +479,6 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            EnsureStylesheetPrimitives(targetStylesheet);
-            targetStylesheet.Save();
             return styleMap;
         }
 

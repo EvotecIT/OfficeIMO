@@ -814,9 +814,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     }
                 }
             }
-            if (worksheet.UsedRange == null) {
-                throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtWsDim.");
-            }
+            // [MS-XLSB] makes BrtWsDim optional; without it the used range comes from the cells, as in Excel.
             if (!sawSheetData) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtBeginSheetData/BrtEndSheetData.");
             }

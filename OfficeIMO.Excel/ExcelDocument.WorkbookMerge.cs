@@ -56,7 +56,8 @@ namespace OfficeIMO.Excel {
                 string requestedName = ResolveWorkbookMergeSheetName(sourceSheet, options, targetSheetNames);
                 ExcelSheet targetSheet;
                 if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
-                    targetSheet = CopyWorksheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                    WorksheetPackageCopyResult copyResult = CopyWorksheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                    targetSheet = copyResult.Sheet;
                 } else if (ReferenceEquals(sourceDocument, this)) {
                     WorksheetPackageCopyResult copyResult = CopyWorksheetWithinWorkbook(sourceSheet, requestedName, options.SheetNameValidationMode);
                     targetSheet = copyResult.Sheet;
@@ -100,6 +101,10 @@ namespace OfficeIMO.Excel {
                         tableNameMap,
                         externalReferenceMap);
                 }
+            }
+
+            for (int index = 0; index < importedSourceNames.Count; index++) {
+                CopyPrintDefinedNamesFromSource(sourceDocument, importedSourceNames[index], GetSheet(createdTargetNames[index]), sheetNameMap);
             }
 
             if (createdTargetNames.Count > 0) {
