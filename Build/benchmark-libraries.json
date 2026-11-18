@@ -431,8 +431,12 @@
       "packages": [ { "id": "DocX", "version": "5.2.0" } ],
       "license": { "name": "Xceed Community License Agreement (non-commercial use)", "url": "https://github.com/xceedsoftware/DocX/blob/master/LICENSE" },
       "licenseSource": "package-file",
-      "restriction": "publish-restricted",
-      "reason": "The Xceed Community License does not allow publishing benchmark or performance comparison results without Xceed's advance permission.",
+      "restriction": "acceptance-required",
+      "reason": "The Xceed Community License Agreement is a legal agreement the user must enter, grants use only for non-commercial purposes, does not allow deployment in any commercial environment, and does not allow publishing benchmark or performance comparison results without Xceed's advance permission.",
+      "acceptance": {
+        "environmentVariables": [],
+        "msbuildProperties": {}
+      },
       "cases": [ "DocX" ]
     },
     {

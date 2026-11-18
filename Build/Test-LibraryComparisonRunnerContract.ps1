@@ -261,16 +261,25 @@ foreach ($framework in @('net8.0', 'net10.0')) {
         }
     }
 }
-# A published Word lane drops the publish-restricted DocX cases and publishes OfficeIMO, NPOI and Open XML SDK.
+# A published Word lane drops the acceptance-required DocX cases and publishes OfficeIMO, NPOI and Open XML SDK.
 $wordPlan = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -Publish -PlanOnly)
 if (-not $wordPlan[0].Publish -or 'DocX' -in @($wordPlan[0].Libraries) -or
     @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^DocX\|' }).Count -gt 0 -or
     @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^NPOI\|' }).Count -eq 0) {
     throw 'Word comparisons must publish without DocX cases and with NPOI.'
 }
-$localDocX = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -IncludeLibrary docx -PlanOnly)
+$docxIncludeRejected = $false
+try {
+    & $runner -Workload wordcreate -RunMode full -Framework net8.0 -IncludeLibrary docx -PlanOnly | Out-Null
+} catch {
+    $docxIncludeRejected = $true
+}
+if (-not $docxIncludeRejected) {
+    throw 'DocX must need -AcceptLibraryLicense docx, not only -IncludeLibrary.'
+}
+$localDocX = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -AcceptLibraryLicense docx -PlanOnly)
 if ($localDocX[0].CatalogEligible -or $localDocX[0].Publish -or $localDocX[0].Environment.OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES -ne 'docx') {
-    throw 'Including DocX must keep the Word run local.'
+    throw 'Accepting DocX must keep the Word run local.'
 }
 # An explicitly enabled restricted library is required, not merely tolerated: its cases join the expected set and
 # its own licence value is checked before the run.

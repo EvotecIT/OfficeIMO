@@ -24,9 +24,9 @@ merge retains the other lanes already in the destination catalog.
   separate comparison profile; select it from the host's actual topology.
 - Every compared library is declared in `Build/benchmark-libraries.json` with
   its packages, licence and restriction class. `open` libraries run and may be
-  published. `publish-restricted` libraries (DocX, QuestPDF releases after the
+  published. `publish-restricted` libraries (QuestPDF releases after the
   pinned 2026.5.0) run only locally after `-IncludeLibrary <id>`.
-  `acceptance-required` libraries (EPPlus 8) run only locally after
+  `acceptance-required` libraries (EPPlus 8, DocX) run only locally after
   `-AcceptLibraryLicense <id>`, and still read their own key or setting from
   you, such as `EPPlusLicense`. `excluded` libraries never run. The runner never
   declares a licence for you; review each licence before enabling it.
