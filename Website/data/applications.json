@@ -70,7 +70,7 @@
     "explorer": {
       "source": "powershell",
       "title": "Explore the commands by document family",
-      "intro": "Every family links to its guide and to the generated command reference. Counts come from the module manifest of this release.",
+      "intro": "Each family starts with the commands most scripts begin with, then lists every exported command, grouped by task, with its DSL aliases and the summary from its help. Counts come from the module manifest of this release.",
       "snippets": {
         "excel": { "file": "Examples/Excel/Example-ExcelImportExport.ps1", "code": "$rows |\n    Export-OfficeExcel -Path .\\Revenue.xlsx -Sheet 'Revenue' -TableName 'Revenue' -Title 'Regional Revenue'\n\nImport-OfficeExcel -Path .\\Revenue.xlsx -Sheet 'Revenue' -Range 'A2:C5' |\n    Format-Table -AutoSize" },
         "word": { "file": "Examples/Word/Example-WordBasic.ps1", "code": "New-OfficeWord -Path .\\Revenue.docx {\n    Add-OfficeWordSection {\n        Add-OfficeWordParagraph -Text 'Executive Summary' -Style Heading1\n        Add-OfficeWordTable -InputObject $data -Style 'GridTable1LightAccent2' {\n            Add-OfficeWordTableCondition -FilterScript { $_.Revenue -gt 100000 } -BackgroundColor '#e6fffb'\n        }\n    }\n}" },

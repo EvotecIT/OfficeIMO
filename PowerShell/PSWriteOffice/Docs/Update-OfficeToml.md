@@ -38,7 +38,6 @@ Open-OfficeToml -Path ./pyproject.toml {
     Update-OfficeToml -JsonPatch @(
         @{ op = 'test'; path = '/project/version'; value = '1.4.0' }
         @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }
-        @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }
     )
 }
 ```

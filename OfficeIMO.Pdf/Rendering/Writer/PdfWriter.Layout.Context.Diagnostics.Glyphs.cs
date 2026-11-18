@@ -86,6 +86,44 @@ internal static partial class PdfWriter {
             return !inked || contained(new DiagnosticPaintBounds(left, top, right, bottom));
         }
 
+        /// <summary>
+        /// Places each glyph of a segment as the glyph walk does and passes its exact outline extrema, font, glyph
+        /// and size to <paramref name="prove"/> until it returns true. Synthetic styles
+        /// and sheared placement are left to the glyph walk.
+        /// </summary>
+        private void ProveSegmentGlyphLoss(RichSeg segment, string text, double x, double baseline, Func<DiagnosticPaintBounds, IOfficeBoundedFontProgram, int, double, bool> prove) {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            PdfTextShowCommand command = DiagnosticTextCommand(segment, text);
+            text = WithoutOptionalBreaks(text);
+            IOfficeBoundedFontProgram? outline = GetGlyphPaintFont(segment, currentOpts, _diagnosticFonts, DiagnosticGlyphCacheCleared);
+            if (outline is not OfficeTrueTypeFont) return;
+            if (currentOpts.NeedsSyntheticOblique(segment.Font, segment.NamedFont) || currentOpts.NeedsSyntheticBold(segment.Font, segment.NamedFont)) return;
+            double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
+            double scale = segment.HorizontalTextScaling / 100D;
+            if (!(scale > 0D) || double.IsInfinity(scale)) return;
+            var advances = new RichGlyphAdvanceReader(segment, text, command, currentOpts);
+            var glyphs = command.VisualGlyphs;
+            string hex = command.GlyphHex;
+            int count = glyphs?.Count ?? hex.Length / 4;
+            double cursor = 0D;
+            for (int index = 0; index < count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int glyphId = glyphs != null ? glyphs[index].GlyphId : GetGlyphPaintId(hex, index * 4);
+                if (glyphId > 0) {
+                    var cached = GetDiagnosticGlyphOutline(outline, glyphId, size);
+                    if (HasNoOutlinePoints(cached.Contours) || !cached.Bounds.IsFinite) { cursor += advances.Get(index); continue; }
+                    double offsetX = glyphs != null ? glyphs[index].OffsetX1000 * size / 1000D : 0D;
+                    double offsetY = glyphs != null ? glyphs[index].OffsetY1000 * size / 1000D : 0D;
+                    var placement = new GlyphPaintPlacement(x + cursor, baseline, offsetX, offsetY, scale, 0D, false);
+                    OfficePoint first = placement.TransformPoint(new OfficePoint(cached.Bounds.Left, cached.Bounds.Bottom));
+                    OfficePoint second = placement.TransformPoint(new OfficePoint(cached.Bounds.Right, cached.Bounds.Top));
+                    var bounds = new DiagnosticPaintBounds(first.X, first.Y, second.X, second.Y);
+                    if (bounds.IsFinite && prove(bounds, outline, glyphId, size)) return;
+                }
+                cursor += advances.Get(index);
+            }
+        }
+
         private const int DiagnosticTextCommandLimit = 4096;
         private readonly Dictionary<(string Text, PdfStandardFont Font, PdfNamedFontFace? NamedFont, OfficeTextFeatureSettings Features,
             OfficeTextDirection Direction, double MetricScale, bool PreservesPaintedGlyphs), PdfTextShowCommand> _diagnosticTextCommands = new();

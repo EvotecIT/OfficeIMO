@@ -172,6 +172,7 @@ internal static partial class PdfWriter {
             if (!result.HasTableOfContents && runningStable && picturesStable) {
                 ApplySectionReferences(result);
                 layoutDiagnostics.Commit();
+                opts.CompleteTableCellDiagnosticSummary();
                 return result;
             }
 
@@ -188,6 +189,7 @@ internal static partial class PdfWriter {
                 }
                 ApplySectionReferences(result);
                 layoutDiagnostics.Commit();
+                opts.CompleteTableCellDiagnosticSummary();
                 return result;
             }
 

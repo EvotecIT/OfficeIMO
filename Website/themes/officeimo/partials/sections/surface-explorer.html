@@ -4,9 +4,13 @@
 {{~ unit = "commands" ~}}
 {{~ if app.explorer.source == "powershell" && data.pswriteoffice_command_catalog ~}}
   {{~ families = data.pswriteoffice_command_catalog.families | array.sort "commandCount" | array.reverse ~}}
+  {{~ # Synopsis and aliases come from the command metadata exported with the same module build. ~}}
+  {{~ ps_commands = {} ~}}
+  {{~ ps_metadata = data.apidocs && data.apidocs.powershell ? data.apidocs.powershell["command-metadata"] : null ~}}
+  {{~ if ps_metadata ~}}{{~ for command in ps_metadata.commands ~}}{{~ ps_commands[command.name] = command ~}}{{~ end ~}}{{~ end ~}}
   {{~ for family in families ~}}
     {{~ snippet = app.explorer.snippets ? app.explorer.snippets[family.id] : null ~}}
-    {{~ groups = groups | array.add { id: family.id, title: family.title, count: family.commandCount, summary: family.description, items: family.featuredCommands, docs: family.docsUrl, reference: family.apiUrl, snippet: snippet, details: null } ~}}
+    {{~ groups = groups | array.add { id: family.id, title: family.title, count: family.commandCount, summary: family.description, items: family.featuredCommands, commands: family.groups, guides: family.guides, docs: family.docsUrl, docs_title: family.docsTitle, reference: family.apiUrl, snippet: snippet, details: null } ~}}
   {{~ end ~}}
 {{~ else if app.explorer.source == "cli" && data.cli && data.cli.commands ~}}
   {{~ for group in data.cli.commands.groups ~}}
@@ -20,6 +24,16 @@
     <h2 id="explorer-title">{{ app.explorer.title }}</h2>
     {{ if app.explorer.intro }}<p>{{ app.explorer.intro }}</p>{{ end }}
   </div>
+  {{~ if app.explorer.source == "powershell" ~}}
+  <div class="imo-ps-filter" data-ps-filter hidden>
+    <label for="ps-filter">Find a command</label>
+    <div class="imo-ps-filter__field">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="ps-filter" type="search" placeholder="Name, alias or words from the summary, for example watermark" autocomplete="off" spellcheck="false" aria-describedby="ps-filter-status" />
+    </div>
+    <p id="ps-filter-status" class="imo-ps-filter__status" aria-live="polite">Search all {{ data.pswriteoffice_command_catalog.module.commandCount }} commands and {{ data.pswriteoffice_command_catalog.module.aliasCount }} aliases.</p>
+  </div>
+  {{~ end ~}}
   <div class="imo-surface-explorer__frame">
     <div class="imo-surface-explorer__tabs" role="tablist" aria-label="{{ app.explorer.title }}" hidden>
       {{~ for group in groups ~}}
@@ -30,7 +44,7 @@
       {{~ for group in groups ~}}
       <article class="imo-surface-explorer__panel" id="sx-panel-{{ group.id }}" role="tabpanel" aria-labelledby="sx-tab-{{ group.id }}">
         <h3>{{ group.title }} <small>{{ group.count }} {{ if group.count == 1 }}command{{ else }}{{ unit }}{{ end }}</small></h3>
-        {{ if group.summary }}<p>{{ group.summary }}</p>{{ end }}
+        {{ if group.summary }}<p data-ps-intro>{{ group.summary }}</p>{{ end }}
         {{~ if group.details ~}}
         {{~ cli_group = group.details ~}}
         {{ if cli_group.shortcutFor }}<p class="imo-surface-explorer__label">Shortcut for <code>officeimo {{ cli_group.shortcutFor | html.escape }}</code></p>{{ end }}
@@ -56,16 +70,34 @@
         <p class="imo-surface-explorer__formats">{{ if cli_group.outputFormats.size > 0 }}<span><b>Writes</b> {{ cli_group.outputFormats | array.join ", " }}</span>{{ end }}{{ if cli_group.resultFormats.size > 0 }}<span><b>Prints</b> {{ cli_group.resultFormats | array.join ", " }}</span>{{ end }}</p>
         {{~ end ~}}
         {{~ else ~}}
-        <ul class="imo-surface-explorer__items">{{ for item in group.items }}<li><a href="/api/powershell/{{ item | string.downcase }}/"><code>{{ item }}</code></a></li>{{ end }}</ul>
+        <p class="imo-surface-explorer__label" data-ps-intro>Start with</p>
+        <ul class="imo-surface-explorer__items" data-ps-intro>{{ for item in group.items }}<li><a href="/api/powershell/{{ item | string.downcase }}/"><code>{{ item }}</code></a></li>{{ end }}</ul>
+        {{~ end ~}}
+        {{~ if group.commands && group.commands.size > 0 ~}}
+        <details class="imo-ps-commands" data-ps-commands>
+          <summary><span class="imo-ps-commands__more">Show all {{ group.count }} {{ group.title }} commands</span><span class="imo-ps-commands__less">Hide the {{ group.title }} commands</span><span class="imo-ps-commands__tally" aria-hidden="true">{{ for task in group.commands }}<i>{{ task.title }} <b>{{ task.commands.size }}</b></i>{{ end }}</span></summary>
+          {{~ for task in group.commands ~}}
+          <section class="imo-ps-commands__group" data-ps-group>
+            <h4>{{ task.title }} <small>{{ task.commands.size }}</small></h4>
+            <ul>
+              {{~ for name in task.commands ~}}
+              {{~ command = ps_commands[name] ~}}
+              <li data-ps-command><div class="imo-ps-commands__name"><a href="/api/powershell/{{ name | string.downcase }}/"><code>{{ name }}</code></a>{{ if command && command.aliases && command.aliases.size > 0 }}<span class="imo-ps-commands__aliases"><span class="imo-visually-hidden">Aliases:</span>{{ for alias in command.aliases }} <code>{{ alias }}</code>{{ end }}</span>{{ end }}</div>{{ if command && command.synopsis }}<p>{{ command.synopsis | html.escape }}</p>{{ end }}</li>
+              {{~ end ~}}
+            </ul>
+          </section>
+          {{~ end ~}}
+        </details>
         {{~ end ~}}
         {{~ if group.snippet ~}}
-        <figure class="imo-terminal imo-surface-explorer__code">
+        <figure class="imo-terminal imo-surface-explorer__code" data-ps-intro>
           <p class="imo-terminal__bar"><span>{{ if group.snippet.file }}{{ group.snippet.file }}{{ else }}Example{{ end }}</span><button type="button" data-copy="{{ group.snippet.code | html.escape }}" aria-label="Copy the {{ group.title }} example">{{ copy_icon }}</button></p>
           <pre tabindex="0"><code class="language-powershell">{{ group.snippet.code | html.escape }}</code></pre>
         </figure>
         {{~ end ~}}
-        <p class="imo-surface-explorer__links">
-          {{ if group.docs }}<a href="{{ group.docs }}">{{ group.title }} guide <span aria-hidden="true">→</span></a>{{ end }}
+        <p class="imo-surface-explorer__links" data-ps-intro>
+          {{ if group.docs }}<a href="{{ group.docs }}">{{ group.docs_title ?? group.title }} guide <span aria-hidden="true">→</span></a>{{ end }}
+          {{ if group.guides }}{{ for guide in group.guides }}<a href="{{ guide.url }}">{{ guide.title }} guide <span aria-hidden="true">→</span></a>{{ end }}{{ end }}
           {{ if group.reference }}<a href="{{ group.reference }}">Command reference <span aria-hidden="true">→</span></a>{{ end }}
         </p>
       </article>

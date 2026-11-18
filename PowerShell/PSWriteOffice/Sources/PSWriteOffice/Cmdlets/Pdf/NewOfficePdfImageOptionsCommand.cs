@@ -4,12 +4,13 @@ using PSWriteOffice.Cmdlets.Imaging;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.</summary>
+/// <summary>Creates discoverable thumbnail and rendering settings for Export-OfficeDocumentImage.</summary>
+/// <para>Pass the result to Export-OfficeDocumentImage or ConvertTo-OfficeDocumentImage -Options when rendering PDF pages.</para>
 /// <example>
 ///   <summary>Create compact PDF thumbnails with bounded output dimensions.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$options = New-OfficePdfImageOptions -ThumbnailMaxDimension 320 -MaximumOutputWidth 640
-/// Export-OfficePdfImage -Path .\Report.pdf -OutputPath .\Thumbnails -Options $options</code>
+/// Export-OfficeDocumentImage -Path .\Report.pdf -OutputDirectory .\Thumbnails -Options $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePdfImageOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PdfImageExportOptions))]

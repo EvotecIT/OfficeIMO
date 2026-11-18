@@ -114850,7 +114850,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -114938,7 +114938,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -114950,7 +114950,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
-            <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
+            <maml:para>Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
           <dev:type>
@@ -114984,7 +114984,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115072,7 +115072,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115084,7 +115084,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
-            <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
+            <maml:para>Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
           <dev:type>
@@ -115118,7 +115118,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115194,7 +115194,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115240,7 +115240,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115328,7 +115328,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115340,7 +115340,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
-            <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
+            <maml:para>Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
           <dev:type>
@@ -115398,7 +115398,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115474,7 +115474,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115486,7 +115486,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
           <maml:name>Sheet</maml:name>
           <maml:description>
-            <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
+            <maml:para>Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
           <dev:type>
@@ -115532,7 +115532,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115608,7 +115608,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115678,7 +115678,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115742,7 +115742,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115800,7 +115800,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChunkRows</maml:name>
           <maml:description>
-            <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+            <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115876,7 +115876,7 @@ whole file into memory default to 256 MiB.</maml:para>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
-            <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+            <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
           <dev:type>
@@ -115946,7 +115946,7 @@ whole file into memory default to 256 MiB.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>ChunkRows</maml:name>
         <maml:description>
-          <maml:para>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</maml:para>
+          <maml:para>Worksheet row count requested from each streaming chunk when -As DataReader is used.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -116058,7 +116058,7 @@ whole file into memory default to 256 MiB.</maml:para>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>SchemaSampleRows</maml:name>
         <maml:description>
-          <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
+          <maml:para>Maximum row count inspected when -As DataReader infers the reader schema.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">Int32</command:parameterValue>
         <dev:type>
@@ -116070,7 +116070,7 @@ whole file into memory default to 256 MiB.</maml:para>
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="WorksheetName">
         <maml:name>Sheet</maml:name>
         <maml:description>
-          <maml:para>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</maml:para>
+          <maml:para>Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">OfficeSheetSelector[]</command:parameterValue>
         <dev:type>
@@ -140668,11 +140668,11 @@ attachments and bookmarks change what readers see or what the file discloses, so
       <command:verb>New</command:verb>
       <command:noun>OfficePdfImageOptions</command:noun>
       <maml:description>
-        <maml:para>Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.</maml:para>
+        <maml:para>Creates discoverable thumbnail and rendering settings for Export-OfficeDocumentImage.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.</maml:para>
+      <maml:para>Pass the result to Export-OfficeDocumentImage or ConvertTo-OfficeDocumentImage -Options when rendering PDF pages.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Default">
@@ -140979,7 +140979,7 @@ attachments and bookmarks change what readers see or what the file discloses, so
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
         <dev:code>$options = New-OfficePdfImageOptions -ThumbnailMaxDimension 320 -MaximumOutputWidth 640&#xD;
-            Export-OfficePdfImage -Path .\Report.pdf -OutputPath .\Thumbnails -Options $options</dev:code>
+            Export-OfficeDocumentImage -Path .\Report.pdf -OutputDirectory .\Thumbnails -Options $options</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -147196,11 +147196,11 @@ attachments and bookmarks change what readers see or what the file discloses, so
       <command:verb>New</command:verb>
       <command:noun>OfficePowerPointImageOptions</command:noun>
       <maml:description>
-        <maml:para>Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.</maml:para>
+        <maml:para>Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.</maml:para>
+      <maml:para>Pass the result to Export-OfficeDocumentImage or ConvertTo-OfficeDocumentImage -Options when rendering slides.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Default">
@@ -150367,11 +150367,11 @@ attachments and bookmarks change what readers see or what the file discloses, so
       <command:verb>New</command:verb>
       <command:noun>OfficeRtfPdfOptions</command:noun>
       <maml:description>
-        <maml:para>Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
+        <maml:para>Creates discoverable RTF-to-PDF conversion options for Convert-OfficeDocument -To Pdf.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.</maml:para>
+      <maml:para>Pass the result to Convert-OfficeDocument -Options when converting RTF files to PDF.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Default">
@@ -150694,7 +150694,7 @@ attachments and bookmarks change what readers see or what the file discloses, so
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
         <dev:code>$options = New-OfficeRtfPdfOptions -NoImages -NoTables -NoHeaderFooters -MaximumSystemFontFamilies 32&#xD;
-            Export-OfficeDocumentPdf -InputPath .\Report.rtf -Path .\Report.pdf -RtfOptions $options</dev:code>
+            Convert-OfficeDocument -To Pdf -Path .\Report.rtf -OutputPath .\Report.pdf -Options $options</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -150708,11 +150708,11 @@ attachments and bookmarks change what readers see or what the file discloses, so
       <command:verb>New</command:verb>
       <command:noun>OfficeTextPdfOptions</command:noun>
       <maml:description>
-        <maml:para>Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.</maml:para>
+        <maml:para>Creates literal text decoding and PDF layout settings for Convert-OfficeDocument -To Pdf.</maml:para>
       </maml:description>
     </command:details>
     <maml:description>
-      <maml:para>Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.</maml:para>
+      <maml:para>Pass the result to Convert-OfficeDocument -Options when converting plain text files to PDF.</maml:para>
     </maml:description>
     <command:syntax>
       <command:syntaxItem parameterSetName="Default">
@@ -150866,8 +150866,8 @@ attachments and bookmarks change what readers see or what the file discloses, so
         <maml:introduction>
           <maml:para>PS&gt; </maml:para>
         </maml:introduction>
-        <dev:code>$options = New-OfficeTextPdfOptions -EncodingName utf-16 -TabSize 4&#xD;
-            Export-OfficeDocumentPdf -InputPath .\Report.txt -Path .\Report.pdf -TextOptions $options</dev:code>
+        <dev:code>$options = New-OfficeTextPdfOptions -Encoding utf-16 -TabSize 4&#xD;
+            Convert-OfficeDocument -To Pdf -Path .\Report.txt -OutputPath .\Report.pdf -Options $options</dev:code>
         <dev:remarks>
           <maml:para></maml:para>
         </dev:remarks>
@@ -209366,7 +209366,7 @@ in the OfficeIMO documentation for the coverage of each condition.</maml:para>
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
           <maml:name>Path</maml:name>
           <maml:description>
             <maml:para>PDF file paths to check; wildcards are expanded.</maml:para>
@@ -209507,7 +209507,7 @@ in the OfficeIMO documentation for the coverage of each condition.</maml:para>
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
-      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+      <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="False" position="0" aliases="none">
         <maml:name>Path</maml:name>
         <maml:description>
           <maml:para>PDF file paths to check; wildcards are expanded.</maml:para>
@@ -214381,7 +214381,6 @@ error is written and the document is unchanged.</maml:para>
                 Update-OfficeToml -JsonPatch @(&#xD;
                     @{ op = 'test'; path = '/project/version'; value = '1.4.0' }&#xD;
                     @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }&#xD;
-                    @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }&#xD;
                 )&#xD;
             }</dev:code>
         <dev:remarks>

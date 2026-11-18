@@ -86,11 +86,19 @@ internal static partial class PdfWriter {
             }
         }
 
+        // The source cell of the canvas table cell whose text is being rendered, when its findings are summarized.
+        private PdfTableCellDiagnosticAddress? _diagnosticCellAddress;
+
         /// <summary>Keeps occurrence identity in the existing report's deduplication key and uses top-origin bounds.</summary>
         private void ReportAuthoredLayoutDiagnostic(string code, string source, string message,
             PdfLayoutDiagnosticKind kind, double x, double top, double itemWidth, double itemHeight,
             PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Warning) {
             if (!currentOpts.HasDiagnosticsReport) return;
+            if (_diagnosticCellAddress is { } address && currentOpts.TableCellDiagnosticSummary is { } summary
+                && PdfTableCellDiagnosticSummary.Summarizes(code)) {
+                currentOpts.AddTableCellDiagnostic(summary, code, address, message, kind, severity);
+                return;
+            }
             double yFromTop = currentOpts.PageHeight.ToPoints() - top;
             string occurrence = FormattableString.Invariant($"{source} on page {pages.Count + 1} at {x:0.###},{yFromTop:0.###}");
             currentOpts.AddLayoutDiagnostic(code, occurrence, message, kind, severity,

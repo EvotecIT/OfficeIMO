@@ -102,7 +102,6 @@ internal static partial class PdfSyntax {
 
                 PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits, cancellationToken);
                 encryptObjectNumber = encryptReference?.ObjectNumber;
-                hasEncryption = encryptReference is not null;
                 encryptionFilter = null;
                 encryptionSubFilter = null;
                 encryptionVersion = null;
@@ -110,9 +109,9 @@ internal static partial class PdfSyntax {
                 encryptionLengthBits = null;
                 encryptionPermissions = null;
                 encryptMetadata = null;
-                if (encryptReference is not null &&
-                    PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
-                    encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
+                PdfDictionary? parsedEncryptionDictionary = ReadEncryptionDictionary(objects, trailerRaw, encryptReference, limits, cancellationToken);
+                hasEncryption = encryptReference is not null || parsedEncryptionDictionary is not null;
+                if (parsedEncryptionDictionary is not null) {
                     encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
                     encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
                     encryptionVersion = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "V", cancellationToken);
@@ -1062,6 +1061,16 @@ internal static partial class PdfSyntax {
             ? ToInteger(number)
             : null;
     }
+
+    // The encryption dictionary the security handler uses: the trailer's /Encrypt object, or a dictionary written
+    // directly in the trailer when there is no reference.
+    private static PdfDictionary? ReadEncryptionDictionary(Dictionary<int, PdfIndirectObject> objects, string trailerRaw,
+        PdfReference? encryptReference, PdfReadLimits limits, CancellationToken cancellationToken) =>
+        encryptReference is null
+            ? ReadDirectTrailerEncryptionDictionary(trailerRaw, limits, cancellationToken)
+            : PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject)
+                ? encryptionObject.Value as PdfDictionary
+                : null;
 
     // The security handler reads the encryption dictionary with every reference chain resolved, so the reported values
     // resolve them too. Only these few entries of one dictionary are read this way, once per inspection.

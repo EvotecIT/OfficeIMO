@@ -5348,6 +5348,22 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## PDF text extraction keeps the readable part of damaged documents
+
+`PdfDocument.ExtractText()` no longer throws when part of a document cannot be read. With the
+default lenient `PdfLoadOptions.ParsingMode`, a text run whose font codes have no Unicode mapping is
+left out instead of throwing `PdfUnsupportedTextMappingException`, and a page content stream that
+cannot be decoded is left out instead of throwing `InvalidDataException`; the rest of the document is
+returned. An `Identity-H` or `Identity-V` code that no source maps is also left out instead of being
+returned as one character holding its code value. Content streams behind CCITTFax or JBIG2, read limits, passwords and permission
+restrictions still throw. Set `ParsingMode = PdfParsingMode.Strict` to make these text cases fail
+as before, and use `ReadForInspection` with `RecoverDecodableTextForInspection` to learn what was left out.
+
+An encryption dictionary written directly in the trailer is now recognised: such a file decrypts,
+or throws `PdfPasswordRequiredException` when it needs a password and none was supplied, instead of
+failing on encrypted content streams. This applies in both parsing modes, and the document's security
+information reports the dictionary's encryption and permissions.
+
 ## PDF objects can hold more tokens by default
 
 `PdfReadLimits.MaxTokensPerObject` now defaults to 1,000,000, up from 100,000, so valid files
@@ -10172,6 +10188,12 @@ A table with repeated header rows now always starts with at least the first frag
 PDF lists converted to Word, OpenDocument, RTF and HTML keep their bullet or numbering style and their nesting, and each separate list is numbered on its own instead of counting on from the previous one. Word, RTF and HTML output also keep the number a list starts at, and RTF list definitions keep lettered and Roman numbering. `PdfLogicalListItem.Level` now also follows indentation when the PDF draws nested items only by indenting them (including tagged PDFs whose producer tags each level as a separate list), and `NumberFormat`, `IsOrdered` and `Ordinal` describe the marker.
 
 Semantic PDF-to-HTML output nests list items in `<ul>` and `<ol>` elements, with `type` for lettered and Roman numbering and `start` when a list does not begin at 1. Each item is no longer wrapped in its own `<ul data-pdf-list-level="N">`; read the nesting of the list elements instead of that attribute. Word-to-ODT conversion writes nested Word list items as nested ODT lists, and a numbered list that starts at another number keeps it as the first item's `text:start-value`. The `list-levels` mapping now appears only for items that skip a level or are deeper than ten levels.
+
+## Excel PDF reports summarize clipped cells
+
+`SaveAsPdf` and `ToPdf` for Excel workbooks report clipped cells once per contiguous range instead of once per cell. Each `table-cell-content-clipped`, `table-cell-paint-clipped` and `table-cell-canvas-clip-paint-clipped` diagnostic now covers a rectangle of cells on one sheet: its `Location` is a sheet-qualified range such as `Sales!C2:C10001`, and its message gives the cell count, up to three sample cells and the first cell's finding. Codes, severities, loss kinds and `HasLoss` are unchanged, and so is the PDF. A workbook that produced tens of thousands of these diagnostics now produces far fewer, and it converts faster, because a cell's clipping is established once instead of glyph by glyph.
+
+Code that counted clipped cells by counting diagnostics, or that read `PdfTableCell[row,column] on page N at x,y` from `Location`, should read the range and count instead, or set `ExcelPdfExportOptions.DiagnosticsDetail = ExcelPdfDiagnosticsDetail.PerCell` to keep one diagnostic per cell exactly as before.
 
 ## HTML text alignment and line breaks follow the stylesheet
 
