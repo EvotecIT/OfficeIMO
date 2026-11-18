@@ -154,10 +154,10 @@ namespace OfficeIMO.Excel {
                 if (next == '_' && sb.Length > 0 && sb[sb.Length - 1] == '_') continue;
                 sb.Append(next);
             }
-            string cleaned = sb.ToString().Trim();
-            cleaned = cleaned.Trim('_');
+            // Replacements and truncation can expose an edge apostrophe, which Excel rejects in a worksheet name.
+            string cleaned = TrimSanitizedSheetNameEdges(sb.ToString());
+            if (cleaned.Length > 31) cleaned = TrimSanitizedSheetNameEdges(ExcelSheetNameText.Truncate(cleaned, 31));
             if (cleaned.Length == 0) cleaned = GenerateDefaultSheetName(existing);
-            if (cleaned.Length > 31) cleaned = ExcelSheetNameText.Truncate(cleaned, 31);
 
             // Ensure uniqueness by appending (2), (3), ...
             string candidate = cleaned;
@@ -170,6 +170,16 @@ namespace OfficeIMO.Excel {
                 n++;
             }
             return candidate;
+        }
+
+        private static string TrimSanitizedSheetNameEdges(string name) {
+            string trimmed = name;
+            string previous;
+            do {
+                previous = trimmed;
+                trimmed = trimmed.Trim().Trim('_').Trim('\'');
+            } while (trimmed.Length != previous.Length);
+            return trimmed;
         }
 
         private static string GenerateDefaultSheetName(System.Collections.Generic.ISet<string> existing) {

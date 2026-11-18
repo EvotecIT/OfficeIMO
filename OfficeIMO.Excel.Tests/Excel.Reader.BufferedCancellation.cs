@@ -16,6 +16,7 @@ public partial class Excel {
     [InlineData("ReadObjects")]
     [InlineData("ReadObjectsOfT")]
     [InlineData("ReadRangeStream")]
+    [InlineData("ReadRangeStreamOnlyChunk")]
     public void SheetReader_ObservesCancellationBetweenBufferedRows(string api) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.BufferedCancellation.{Guid.NewGuid():N}.xlsx");
         try {
@@ -32,7 +33,9 @@ public partial class Excel {
             System.Collections.IEnumerable rows = api switch {
                 "ReadObjects" => data.ReadObjects("A1:A4", ct: cancellation.Token),
                 "ReadObjectsOfT" => data.ReadObjects<BufferedCancellationRow>("A1:A4", ct: cancellation.Token),
-                _ => data.ReadRangeStream("A1:A4", chunkRows: 1, ct: cancellation.Token)
+                "ReadRangeStream" => data.ReadRangeStream("A1:A4", chunkRows: 1, ct: cancellation.Token),
+                // Cancelled after the only chunk: the next advance reports the cancel instead of completing.
+                _ => data.ReadRangeStream("A1:A4", chunkRows: 100, ct: cancellation.Token)
             };
 
             System.Collections.IEnumerator enumerator = rows.GetEnumerator();

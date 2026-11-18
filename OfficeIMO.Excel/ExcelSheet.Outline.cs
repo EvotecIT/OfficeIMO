@@ -257,6 +257,7 @@ namespace OfficeIMO.Excel {
 
         private void RemoveColumnWhenEmpty(Column column) {
             if (HasOnlyDefaultWidth(column)
+                && column.Phonetic == null
                 && column.Hidden == null
                 && column.OutlineLevel == null
                 && column.Collapsed == null

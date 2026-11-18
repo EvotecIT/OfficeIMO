@@ -1,7 +1,15 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>
+        /// Column definitions the library created with the worksheet default width. Only these follow a later
+        /// default-width change or count as empty when cleared; a loaded width that merely equals the default stays as
+        /// authored. The table holds no strong references, so removed definitions are released with the DOM.
+        /// </summary>
+        internal System.Runtime.CompilerServices.ConditionalWeakTable<Column, object> DefaultWidthColumns { get; } = new();
+
         /// <summary>
         /// Gives a copied worksheet the hidden or very hidden state of its source. The state lives on the workbook's
         /// <c>sheet</c> entry, not in the worksheet part, so a copy of the part alone is always visible.
@@ -53,33 +61,70 @@ namespace OfficeIMO.Excel {
         /// worksheet is visible.
         /// </summary>
         /// <summary>
-        /// Activates a visible worksheet when the active one is hidden. Used after imports whose source workbook
-        /// view is not carried over, so the implicit first tab may be a hidden sheet.
+        /// Moves every workbook view whose active tab is hidden to the nearest visible tab on its right, otherwise on
+        /// its left, as Excel does when the active sheet is hidden. A workbook without views has the first tab active
+        /// implicitly, so a primary view is created when that tab is hidden. Views keep their active tab when no tab
+        /// is visible. Callers hold the document write lock, so the hide and the new activation are one change.
         /// </summary>
-        internal void EnsureActiveWorksheetVisible() {
-            ExcelSheet? active = ActiveWorksheet;
-            if (active != null && active.Hidden) {
-                ActivateVisibleWorksheetAfterHiding(active);
-            }
-        }
+        /// <returns>True when a view changed.</returns>
+        internal bool MoveActiveTabsOffHiddenSheetsCore() {
+            List<Sheet> tabs = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+            if (tabs.Count == 0) return false;
 
-        internal void ActivateVisibleWorksheetAfterHiding(ExcelSheet hiddenSheet) {
-            ExcelSheet? activate = Locking.ExecuteRead(EnsureLock(), () => {
-                List<Sheet> tabs = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
-                int hiddenTab = tabs.FindIndex(tab => ReferenceEquals(tab, hiddenSheet.SheetElement));
-                if (hiddenTab < 0 || GetActiveWorksheetIndex(WorkbookRoot, tabs.Count) != hiddenTab) {
-                    return null;
+            List<WorkbookView> views = WorkbookRoot.GetFirstChild<BookViews>()?.Elements<WorkbookView>().ToList() ?? new List<WorkbookView>();
+            if (views.Count == 0) {
+                if (!IsHiddenSheet(tabs[0]) || FindVisibleTab(tabs, 0) < 0) return false;
+                views.Add(GetOrCreatePrimaryWorkbookViewForActiveWorksheet());
+            }
+
+            bool changed = false;
+            int primaryActive = -1;
+            for (int viewIndex = 0; viewIndex < views.Count; viewIndex++) {
+                WorkbookView view = views[viewIndex];
+                int active = (int)Math.Min(view.ActiveTab?.Value ?? 0U, (uint)(tabs.Count - 1));
+                if (!IsHiddenSheet(tabs[active])) continue;
+                int replacement = FindVisibleTab(tabs, active);
+                if (replacement < 0) continue;
+                view.ActiveTab = (uint)replacement;
+                view.FirstSheet = (uint)replacement;
+                if (viewIndex == 0) primaryActive = replacement;
+                changed = true;
+            }
+
+            if (primaryActive >= 0) {
+                for (int index = 0; index < tabs.Count; index++) {
+                    string? relationshipId = tabs[index].Id?.Value;
+                    if (relationshipId == null || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) continue;
+                    Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+                    SheetView sheetView = GetOrCreatePrimarySheetViewForActiveWorksheet(worksheet);
+                    sheetView.WorkbookViewId ??= 0U;
+                    sheetView.TabSelected = index == primaryActive;
+                    worksheet.Save();
                 }
-
-                List<ExcelSheet> worksheets = GetSheetsForLockedOperation();
-                int TabOf(ExcelSheet sheet) => tabs.FindIndex(tab => ReferenceEquals(tab, sheet.SheetElement));
-                return worksheets.Where(sheet => !sheet.Hidden && TabOf(sheet) > hiddenTab).OrderBy(TabOf).FirstOrDefault()
-                    ?? worksheets.Where(sheet => !sheet.Hidden && TabOf(sheet) < hiddenTab).OrderByDescending(TabOf).FirstOrDefault();
-            });
-
-            if (activate != null) {
-                SetActiveWorksheet(activate);
             }
+
+            if (changed) {
+                WorkbookRoot.Save();
+                MarkPackageDirty();
+            }
+
+            return changed;
         }
-    }
+
+        /// <summary>Used after imports whose source workbook view is not carried over.</summary>
+        internal void EnsureActiveTabVisible() =>
+            Locking.ExecuteWrite(EnsureLock(), () => { MoveActiveTabsOffHiddenSheetsCore(); });
+
+        private static int FindVisibleTab(IReadOnlyList<Sheet> tabs, int hiddenTab) {
+            for (int index = hiddenTab + 1; index < tabs.Count; index++) {
+                if (!IsHiddenSheet(tabs[index])) return index;
+            }
+
+            for (int index = hiddenTab - 1; index >= 0; index--) {
+                if (!IsHiddenSheet(tabs[index])) return index;
+            }
+
+            return -1;
+        }
+}
 }

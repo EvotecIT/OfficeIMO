@@ -56,4 +56,31 @@ public partial class Excel {
         document.Sheets[0].SetHidden(true);
         Assert.Equal(1, document.ActiveWorksheetIndex);
     }
+
+    [Fact]
+    public void HidingTheActiveWorksheet_MovesEveryWorkbookViewOnIt() {
+        using var document = ExcelDocument.Create();
+        document.AddSheet("First").Cell(1, 1).SetValue(1);
+        document.AddSheet("Second").Cell(1, 1).SetValue(2);
+        document.AddSheet("Third").Cell(1, 1).SetValue(3);
+        document.SetActiveWorksheet(0);
+        BookViews views = document.WorkbookRoot.GetFirstChild<BookViews>()!;
+        views.Append(new WorkbookView { ActiveTab = 0U }, new WorkbookView { ActiveTab = 2U });
+
+        document.Sheets[0].SetHidden(true);
+
+        Assert.Equal(new uint?[] { 1U, 1U, 2U }, views.Elements<WorkbookView>().Select(view => view.ActiveTab?.Value).ToArray());
+    }
+
+    [Fact]
+    public void HidingTheOnlyVisibleWorksheet_LeavesTheActivationUnchanged() {
+        using var document = ExcelDocument.Create();
+        document.AddSheet("First").Cell(1, 1).SetValue(1);
+        document.AddSheet("Second").Cell(1, 1).SetValue(2);
+        document.Sheets[1].SetHidden(true);
+
+        document.Sheets[0].SetHidden(true);
+
+        Assert.Equal(0, document.ActiveWorksheetIndex);
+    }
 }

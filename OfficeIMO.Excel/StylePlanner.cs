@@ -25,6 +25,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            // Validate the whole plan before the styles part or stylesheet is created or changed.
+            foreach (string format in _formats) {
+                ExcelTextValidation.ThrowIfUnpairedSurrogate(format, "numberFormat", "Number format");
+            }
+
             var workbookPart = doc.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {
@@ -67,7 +72,6 @@ namespace OfficeIMO.Excel {
 
             foreach (var fmt in _formats) {
                 if (!existingNumberFormatIdByFormat.TryGetValue(fmt, out uint id)) {
-                    ExcelTextValidation.ThrowIfUnpairedSurrogate(fmt, "numberFormat", "Number format");
                     id = nextId++;
                     var numberingFormat = new NumberingFormat {
                         NumberFormatId = id,

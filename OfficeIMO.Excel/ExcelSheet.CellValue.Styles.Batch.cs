@@ -267,6 +267,8 @@ namespace OfficeIMO.Excel {
             }
 
             internal uint NumberFormatId(string code) {
+                // Reject before attaching anything, so a refused code leaves the stylesheet unchanged.
+                ExcelTextValidation.ThrowIfUnpairedSurrogate(code, nameof(code), "Number format");
                 var formats = Stylesheet.NumberingFormats ??= new NumberingFormats();
                 if (_numberFormatIds is null || _numberFormatCount != formats.ChildElements.Count) {
                     _numberFormatIds = new Dictionary<string, uint>(StringComparer.Ordinal);
@@ -281,7 +283,6 @@ namespace OfficeIMO.Excel {
                     _nextNumberFormatId = _numberFormatCount == 0 ? 164U : checked(maximumId + 1);
                 }
                 if (_numberFormatIds.TryGetValue(code, out uint existingId)) return existingId;
-                ExcelTextValidation.ThrowIfUnpairedSurrogate(code, nameof(code), "Number format");
                 uint newId = _nextNumberFormatId++;
                 formats.Append(new NumberingFormat { NumberFormatId = newId, FormatCode = code });
                 _numberFormatIds.Add(code, newId);

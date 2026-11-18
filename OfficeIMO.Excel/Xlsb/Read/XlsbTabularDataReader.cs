@@ -835,7 +835,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         ? typeof(decimal)
                         : typeof(double),
                 XlsbTabularValueKind.Boolean => typeof(bool),
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => typeof(DateTime),
+                // A serial without a calendar date reads as its number, so it is sampled as one.
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => LegacyXlsDateSerialConverter.CanConvert(
+                    _numbers[ordinal], _uses1904DateSystem, _kinds[ordinal] == XlsbTabularValueKind.Date)
+                        ? typeof(DateTime)
+                        : typeof(double),
                 XlsbTabularValueKind.Custom => IsMissingCustomValue(_customValues[ordinal])
                     ? typeof(object)
                     : _customValues[ordinal]!.GetType(),

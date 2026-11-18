@@ -45,20 +45,27 @@ namespace OfficeIMO.Excel {
             double current = GetDefaultStoredColumnWidth();
             if (current == previous) return;
             foreach (Column column in columns.Elements<Column>()) {
-                if (column.CustomWidth?.Value != true && column.BestFit == null && column.Width?.Value == previous) {
+                if (IsDefaultWidthColumn(column) && column.Width?.Value == previous) {
                     column.Width = current;
                 }
             }
         }
 
         /// <summary>Creates a single-column definition that keeps the worksheet's default width.</summary>
-        private Column CreateDefaultWidthColumn(uint columnIndex) =>
-            new Column { Min = columnIndex, Max = columnIndex, Width = GetDefaultStoredColumnWidth() };
+        private Column CreateDefaultWidthColumn(uint columnIndex) {
+            var column = new Column { Min = columnIndex, Max = columnIndex, Width = GetDefaultStoredColumnWidth() };
+            _excelDocument.DefaultWidthColumns.Add(column, column);
+            return column;
+        }
+
+        /// <summary>Whether the column is one this sheet created with the default width and nobody has resized.</summary>
+        private bool IsDefaultWidthColumn(Column column) =>
+            _excelDocument.DefaultWidthColumns.TryGetValue(column, out _) && column.CustomWidth?.Value != true && column.BestFit == null;
 
         /// <summary>Whether a column's width is only the default width this sheet gives to columns it creates.</summary>
         private bool HasOnlyDefaultWidth(Column column) =>
-            column.CustomWidth?.Value != true && column.BestFit == null
-            && (column.Width == null || column.Width.Value == GetDefaultStoredColumnWidth());
+            column.CustomWidth == null && column.BestFit == null
+            && (column.Width == null || (IsDefaultWidthColumn(column) && column.Width.Value == GetDefaultStoredColumnWidth()));
 
         private static double NormalizeColumnWidth(double width) {
             if (double.IsNaN(width) || double.IsInfinity(width)) {

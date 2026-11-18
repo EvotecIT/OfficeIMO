@@ -70,4 +70,15 @@ public sealed class CsvDialectEncodingTests
 
         Assert.Contains("§x,y§", text.ToString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void UnusedQuoteCharacter_IsNotValidatedWhenQuotingIsOff()
+    {
+        var options = new CsvSaveOptions { QuoteMode = CsvQuoteMode.Never, QuoteCharacter = '§', Encoding = Encoding.ASCII, NewLine = "\n" };
+        using var output = new MemoryStream();
+
+        CsvDocument.Parse("A,B\nx,y\n").Save(output, options);
+
+        Assert.Equal("A,B\nx,y\n", Encoding.ASCII.GetString(output.ToArray()));
+    }
 }

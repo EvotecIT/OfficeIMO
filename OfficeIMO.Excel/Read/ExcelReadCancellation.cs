@@ -9,10 +9,14 @@ namespace OfficeIMO.Excel {
             cancellationToken.CanBeCanceled ? Observe(source, cancellationToken) : source;
 
         private static IEnumerable<T> Observe<T>(IEnumerable<T> source, CancellationToken cancellationToken) {
-            cancellationToken.ThrowIfCancellationRequested();
-            foreach (T item in source) {
+            // Check before each advance, so a cancel after the last item is seen instead of normal completion,
+            // and again before yielding, so an item produced during cancellation is not delivered.
+            using IEnumerator<T> enumerator = source.GetEnumerator();
+            while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
-                yield return item;
+                if (!enumerator.MoveNext()) yield break;
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return enumerator.Current;
             }
         }
     }

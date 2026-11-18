@@ -16,28 +16,28 @@ namespace OfficeIMO.Excel {
         /// Hides or shows the worksheet in the workbook.
         /// </summary>
         /// <remarks>
-        /// Hiding the active worksheet activates the nearest visible worksheet, as Excel does. Excel shows a
+        /// Hiding the active worksheet activates the nearest visible sheet, as Excel does, when another sheet is visible. Excel shows a
         /// workbook whose active tab is hidden by unhiding that tab.
         /// </remarks>
         public void SetHidden(bool hidden) {
             WriteLockConditional(() => {
                 SetHiddenCore(hidden);
+                if (hidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore();
                 WorkbookRoot.Save();
             });
-            if (hidden) _excelDocument.ActivateVisibleWorksheetAfterHiding(this);
         }
 
         /// <summary>
         /// Makes the worksheet very hidden, or restores it to visible.
         /// </summary>
         /// <param name="veryHidden">Whether to set the worksheet to the very hidden workbook state.</param>
-        /// <remarks>Making the active worksheet very hidden activates the nearest visible worksheet, as <see cref="SetHidden"/> does.</remarks>
+        /// <remarks>Making the active worksheet very hidden activates the nearest visible sheet, as <see cref="SetHidden"/> does.</remarks>
         public void SetVeryHidden(bool veryHidden) {
             WriteLockConditional(() => {
                 SetVeryHiddenCore(veryHidden);
+                if (veryHidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore();
                 WorkbookRoot.Save();
             });
-            if (veryHidden) _excelDocument.ActivateVisibleWorksheetAfterHiding(this);
         }
 
         /// <summary>

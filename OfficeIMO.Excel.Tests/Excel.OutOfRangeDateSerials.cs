@@ -28,11 +28,18 @@ public partial class Excel {
 
             using (DbDataReader reader = ExcelDocument.OpenReader(path)) {
                 Assert.True(reader.Read());
-                Assert.Equal(3_000_000D, Convert.ToDouble(reader.GetValue(0)));
+                Assert.Equal(3_000_000D, Assert.IsType<double>(reader.GetValue(0)));
                 Assert.Equal(1D, Convert.ToDouble(reader.GetValue(1)));
                 Assert.True(reader.Read());
                 Assert.Equal(new DateTime(2024, 1, 1), reader.GetValue(0));
                 Assert.False(reader.Read());
+            }
+
+            // A sampled dateless serial infers the type that GetValue returns for it.
+            using (DbDataReader inferred = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = true, SchemaSampleRows = 1 })) {
+                Assert.Equal(typeof(double), inferred.GetFieldType(0));
+                Assert.True(inferred.Read());
+                Assert.Equal(3_000_000D, Assert.IsType<double>(inferred.GetValue(0)));
             }
 
             if (extension == ".xlsx") {

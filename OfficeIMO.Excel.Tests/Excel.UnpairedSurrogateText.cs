@@ -19,6 +19,7 @@ public partial class Excel {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
         sheet.Cell(1, 1).SetValue(1.5);
+        string stylesBefore = document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart?.Stylesheet?.OuterXml ?? string.Empty;
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => {
             switch (target) {
@@ -33,6 +34,8 @@ public partial class Excel {
 
         Assert.Contains("unpaired UTF-16 surrogate", exception.Message, StringComparison.Ordinal);
         Assert.Equal(new[] { "Data" }, document.Sheets.Select(item => item.Name).ToArray());
+        // A rejected value leaves no partial stylesheet change behind.
+        Assert.Equal(stylesBefore, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart?.Stylesheet?.OuterXml ?? string.Empty);
     }
 
     [Fact]
@@ -42,6 +45,8 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("A\uD800B 😀", ExcelSheetNameValidationMode.Sanitize);
 
         Assert.Equal("A_B 😀", sheet.Name);
+        // Replacing a trailing surrogate must not leave an edge apostrophe, which Excel rejects.
+        Assert.Equal("Data", document.AddSheet("Data'\uD800", ExcelSheetNameValidationMode.Sanitize).Name);
         using var saved = new MemoryStream();
         document.Save(saved);
     }

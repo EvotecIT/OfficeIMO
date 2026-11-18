@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 }
 
                 // The workbook view is not projected, so the implicit first tab must not be a hidden sheet.
-                document.EnsureActiveWorksheetVisible();
+                document.EnsureActiveTabVisible();
                 relatedParts.ProjectTheme();
                 relatedParts.ProjectVba();
                 XlsbDefinedNameProjector.Apply(document, workbook.DefinedNames);

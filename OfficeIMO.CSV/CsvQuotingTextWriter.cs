@@ -86,6 +86,12 @@ internal sealed class CsvQuotingTextWriter : TextWriter
     {
         encoding ??= options.Encoding ?? Encoding.UTF8;
         ThrowIfNotEncodable(CsvWriter.GetDelimiterText(options), encoding, "delimiter");
+        // QuoteMode.Never writes no quote or escape characters, so only the delimiter reaches the output.
+        if (options.QuoteMode == CsvQuoteMode.Never)
+        {
+            return;
+        }
+
         ThrowIfNotEncodable(options.QuoteCharacter.ToString(), encoding, "quote character");
         if (options.EscapeCharacter is char escape)
         {

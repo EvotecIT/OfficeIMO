@@ -57,4 +57,24 @@ public partial class Excel {
         Assert.Equal(new uint[] { 4 }, sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>()
             .Select(column => column.Min!.Value).ToArray());
     }
+
+    [Fact]
+    public void AuthoredColumnWidths_StayWhenTheyEqualTheDefault() {
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        double defaultWidth = sheet.GetDefaultStoredColumnWidth();
+        // As loaded from a file: a non-custom width that happens to equal the default, and a phonetic column.
+        sheet.WorksheetPart.Worksheet.InsertAt(new Columns(
+            new Column { Min = 2, Max = 2, Width = defaultWidth, CustomWidth = false, OutlineLevel = 1 }), 0);
+        sheet.GroupColumns(3, 3);
+        sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single(column => column.Min!.Value == 3).Phonetic = true;
+
+        sheet.ClearColumnGroup(2, 3);
+        sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(20));
+
+        Column[] columns = sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToArray();
+        Assert.Equal(new uint[] { 2, 3 }, columns.Select(column => column.Min!.Value).ToArray());
+        Assert.Equal(defaultWidth, columns[0].Width!.Value);
+        Assert.True(columns[1].Phonetic!.Value);
+    }
 }

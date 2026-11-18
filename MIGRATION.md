@@ -10172,7 +10172,7 @@ Worksheet names, number format codes and font names that contain a UTF-16 surrog
 
 ## Hiding the active Excel worksheet
 
-`SetHidden(true)` and `SetVeryHidden(true)` on the active worksheet now activate the nearest visible worksheet to its right, or to its left when there is none, as Excel does. Earlier versions left the hidden sheet active, and Excel unhid it when it opened the file. Loading an XLSB workbook whose first sheet is hidden also activates the first visible worksheet. Code that hides the active sheet and expects `ActiveWorksheetIndex` to stay on it should read the index before hiding.
+`SetHidden(true)` and `SetVeryHidden(true)` on the active worksheet now activate the nearest visible sheet to its right, or to its left when there is none, as Excel does, in every workbook view that showed it. This needs another visible sheet: hiding the only visible sheet leaves it active, so do not rely on the change to keep a sheet visible. Earlier versions left the hidden sheet active, and Excel unhid it when it opened the file. Loading an XLSB workbook whose first sheet is hidden also activates the first visible sheet. Code that hides the active sheet and expects `ActiveWorksheetIndex` to stay on it should read the index before hiding.
 
 ## Excel columns created without a width
 
@@ -10180,8 +10180,8 @@ Worksheet names, number format codes and font names that contain a UTF-16 surrog
 
 ## Excel dates past 9999-12-31
 
-A date-formatted cell whose serial has no `DateTime` (Excel shows `####`) now reads as its serial number in untyped reads: `GetValue`, `GetString` and the row, object and range readers, and in conversions that use them. Earlier versions threw `ArgumentException` or `InvalidCastException` and stopped the read. `GetDateTime` throws `InvalidCastException` for such a cell in every format (XLSX used to throw `ArgumentException`), and mapping it to a `DateTime` property throws `DataMappingException` naming the property, as XLS already did.
+A date-formatted cell whose serial has no `DateTime` (Excel shows `####`) now reads as its serial number in untyped reads: `GetValue`, `GetString` and the row, object and range readers, and in conversions that use them. Earlier versions threw `ArgumentException` or `InvalidCastException` and stopped the read. Schema inference samples such a cell as `double`. `GetDateTime` throws `InvalidCastException` for it in every format, and mapping it to a `DateTime` property throws `DataMappingException` naming the property, as XLS already did. Update handlers and assertions that catch `ArgumentException` from XLSX or early BIFF `GetDateTime`, or from `GetValue`, to expect `InvalidCastException` or a number; update handlers for XLSX and XLSB typed mapping (`RowsAs`, `RowsAsParallel`) that caught `ArgumentException` or `InvalidCastException` to catch `DataMappingException`.
 
 ## CSV separators the output encoding cannot write
 
-CSV writers now throw `ArgumentException` before writing when the delimiter, quote or escape character cannot be written in the output encoding, such as an unpaired surrogate in UTF-8 or `§` in ASCII. Earlier versions wrote the encoding's replacement character, which readers cannot tell apart from replaced field text. Choose a separator the encoding supports, or write UTF-8.
+CSV writers now throw `ArgumentException` before writing when the delimiter, quote or escape character cannot be written in the output encoding, such as an unpaired surrogate in UTF-8 or `§` in ASCII. Earlier versions wrote the encoding's replacement character, which readers cannot tell apart from replaced field text. Replace an unpaired surrogate with a real character; no encoding can write it. For a valid character that the chosen encoding cannot represent, such as `§` in ASCII, write UTF-8 or choose a separator the encoding supports. A supplied `TextWriter` is checked against its own encoding, and with `QuoteMode.Never` only the delimiter is checked.

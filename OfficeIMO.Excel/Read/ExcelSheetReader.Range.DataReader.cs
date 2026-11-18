@@ -849,8 +849,9 @@ namespace OfficeIMO.Excel {
                 for (int c = 0; c < fieldCount; c++) {
                     Type? inferred = null;
                     for (int r = 0; r < rows.Count; r++) {
-                        object? value = rows[r][c] is ExcelDataReaderDateSerial
-                            ? DateTime.MinValue
+                        // A serial without a calendar date reads as its number and is sampled as one.
+                        object? value = rows[r][c] is ExcelDataReaderDateSerial dateSerial
+                            ? dateSerial.MaterializeValue() is DateTime ? DateTime.MinValue : dateSerial.Serial
                             : rows[r][c];
                         inferred = MergeDataTableColumnType(inferred, value);
                     }
