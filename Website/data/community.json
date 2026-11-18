@@ -66,5 +66,16 @@
       "action": "Become a sponsor",
       "url": "https://github.com/sponsors/PrzemyslawKlys"
     }
+  ],
+  "sponsors": [
+    {
+      "id": "coderabbit",
+      "name": "CodeRabbit",
+      "url": "https://coderabbit.link/evotecit",
+      "logoLight": "/assets/sponsors/coderabbit-logotype-orange.svg",
+      "logoDark": "/assets/sponsors/coderabbit-logotype-white.svg",
+      "logoWidth": 2094,
+      "logoHeight": 314
+    }
   ]
 }
