@@ -191,7 +191,7 @@
       "path": "/downloads/showcase/pswriteoffice/patch-compliance-report.docx",
       "bytes": 17865,
       "sha256": "2312891d6a4b71f7a263352a8523c856f3a1a020fad46000d0139fe76513e010",
-      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out",
+      "generator": "pwsh -NoProfile -File OfficeIMO.Examples/PowerShell/PatchComplianceReport.ps1 -OutputDirectory ./out -ModuleVersion 3.6.2",
       "evidence": "DOCX created from PowerShell objects by PSWriteOffice."
     },
     {
@@ -8825,7 +8825,7 @@
       "receiptSha256": "dd778ec52b1a12d4d3c99f565e7ff449216d9a87b078d1dfc26038a7fd1af4ba",
       "previewReview": {
         "state": "reviewed",
-        "reviewedUtc": "2026-11-18T22:40:06.4906550Z",
+        "reviewedUtc": "2026-11-18T22:40:06.490655Z",
         "artifacts": [
           {
             "path": "/downloads/showcase/pswriteoffice/budget-forecast-review-page1.png",
