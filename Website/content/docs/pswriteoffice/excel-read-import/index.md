@@ -14,12 +14,12 @@ $rows = Import-OfficeExcel -Path '.\Input\Register.xlsx' `
 $atRisk = $rows | Where-Object Status -eq 'At risk'
 ```
 
-`-AllSheets` adds sheet identity to each result. `-ByColumn`, `-AsHashtable`, `-AsDataTable`, and `-AsDataReader` support different downstream consumers. Range and row/column bounds keep large imports intentional.
+A wildcard `-Sheet` reads several worksheets and adds sheet identity to each result. `-As Hashtable`, `-As DataTable`, `-As DataReader` and `-As Column` return other shapes for different downstream consumers. Range and row/column bounds keep large imports intentional.
 
 ## Inspect workbook structure
 
 Use `Get-OfficeDocumentInfo -Detailed` for a workbook-level inventory, then query tables, named ranges, formulas, comments, validation, pivots, worksheet views, page breaks, links, queries, and rich text only when needed.
 
-The [read-and-filter recipe](https://github.com/EvotecIT/OfficeIMO/blob/8b13cc8cfa5dab1b0f401f6dd5962c62ba8ce92b/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ReadAndFilter.ps1) creates a table, imports typed rows, and filters the records that require attention.
+The [read-and-filter recipe](https://github.com/EvotecIT/OfficeIMO/blob/2964fd64dee210b0073fff0cd56ff756ab1aac18/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ReadAndFilter.ps1) creates a table, imports typed rows, and filters the records that require attention.
 
 For semicolon-delimited or other text data, continue with [delimited import and publishing](/docs/pswriteoffice/excel-export-publish/).

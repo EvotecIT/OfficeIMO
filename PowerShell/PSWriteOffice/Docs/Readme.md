@@ -1028,7 +1028,7 @@ Creates native XFDF field/value limits and appearance behavior for Import-Office
 Creates native semantic or positioned PDF-to-HTML export settings.
 
 ### [New-OfficePdfImageOptions](New-OfficePdfImageOptions.md)
-Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.
+Creates discoverable thumbnail and rendering settings for Export-OfficeDocumentImage.
 
 ### [New-OfficePdfInteractionOptions](New-OfficePdfInteractionOptions.md)
 Creates native region limits and invisible-text policy for Get-OfficePdfInteractionMap.
@@ -1070,7 +1070,7 @@ Creates a themed presentation, returning a live document or saving a completed c
 Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.
 
 ### [New-OfficePowerPointImageOptions](New-OfficePowerPointImageOptions.md)
-Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
+Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.
 
 ### [New-OfficePowerPointInspectionOptions](New-OfficePowerPointInspectionOptions.md)
 Chooses native presentation inspection reports without changing a document.

@@ -142,7 +142,7 @@ Accept wildcard characters: False
 ```
 
 ### -ChunkRows
-Worksheet row count requested from each streaming chunk when -AsDataReader is used.
+Worksheet row count requested from each streaming chunk when -As DataReader is used.
 
 ```yaml
 Type: Int32
@@ -286,7 +286,7 @@ Accept wildcard characters: False
 ```
 
 ### -SchemaSampleRows
-Maximum row count inspected when -AsDataReader infers the reader schema.
+Maximum row count inspected when -As DataReader infers the reader schema.
 
 ```yaml
 Type: Int32
@@ -302,7 +302,7 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
+Worksheet name, one-based position or native worksheet object. Native worksheet objects need -Document or an enclosing Excel content block. Multi-sheet commands also accept wildcard names.
 
 ```yaml
 Type: OfficeSheetSelector[]

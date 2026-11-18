@@ -3347,11 +3347,11 @@
     {
       "name": "New-OfficePdfImageOptions",
       "kind": "Cmdlet",
-      "synopsis": "Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.",
+      "synopsis": "Creates discoverable thumbnail and rendering settings for Export-OfficeDocumentImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfImageOptionsCommand.cs",
-      "sourceLine": 16,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfImageOptionsCommand.cs#L16"
+      "sourceLine": 17,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfImageOptionsCommand.cs#L17"
     },
     {
       "name": "New-OfficePdfInteractionOptions",
@@ -3475,11 +3475,11 @@
     {
       "name": "New-OfficePowerPointImageOptions",
       "kind": "Cmdlet",
-      "synopsis": "Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.",
+      "synopsis": "Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointImageOptionsCommand.cs",
-      "sourceLine": 13,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointImageOptionsCommand.cs#L13"
+      "sourceLine": 14,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointImageOptionsCommand.cs#L14"
     },
     {
       "name": "New-OfficePowerPointInspectionOptions",
@@ -5015,8 +5015,8 @@
       "synopsis": "Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live TOML document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/UpdateOfficeTomlCommand.cs",
-      "sourceLine": 29,
-      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/UpdateOfficeTomlCommand.cs#L29"
+      "sourceLine": 28,
+      "sourceUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Toml/UpdateOfficeTomlCommand.cs#L28"
     },
     {
       "name": "Update-OfficeWordField",

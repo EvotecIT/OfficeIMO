@@ -4,13 +4,13 @@ description: "Detect formats and extract normalized documents, chunks, hierarchy
 layout: docs
 ---
 
-Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 7 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type.
+Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 7 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type. `Get-OfficeDocumentInfo` and `Get-OfficeDocumentCapability` are listed with the cross-format operations, but they belong to the same workflow.
 
 ## What Reader returns
 
 - `Read-OfficeDocument` returns the normalized document envelope.
-- `Get-OfficeDocumentInfo` reports detected format and routing evidence.
-- `Get-OfficeDocumentCapability` explains the registered adapters' supported output.
+- `Get-OfficeDocumentInfo` (cross-format operations) reports detected format and routing evidence.
+- `Get-OfficeDocumentCapability` (cross-format operations) explains the registered adapters' supported output.
 - `Read-OfficeDocument -As Hierarchy` exposes section and structural relationships.
 - `-As Chunks` returns bounded text/content chunks; `-As Structure` exposes structured content.
 - `-As Tables`, `-As Visuals`, and `-As Assets` return non-text material explicitly.
@@ -34,4 +34,4 @@ Reader adapters are modular. A deployment can carry only the adapters it needs, 
 
 Detect first, inspect capabilities, extract the required surfaces, and record warnings/provenance with the output. Do not silently reduce a document to plain text when tables, visuals, or assets matter to the consumer.
 
-See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/8b13cc8cfa5dab1b0f401f6dd5962c62ba8ce92b/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.
+See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/2964fd64dee210b0073fff0cd56ff756ab1aac18/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.
