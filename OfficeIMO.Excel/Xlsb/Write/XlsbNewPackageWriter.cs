@@ -58,6 +58,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("The XLSB destination must be writable.", nameof(destination));
+            // Property edits are written by the general package writer.
+            if (document.HasPackagePropertiesDirty || document.HasCustomDocumentPropertiesDirty) return false;
 
             ExcelSheet? sheet = document.GetOrCreateDeferredDirectTabularSheet(source.SheetName);
             if (sheet == null) {
@@ -200,13 +202,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<XlsbWorksheetHyperlinkPlan> hyperlinkPlans,
             ArraySegment<byte>? sharedStringsPart) {
             ThemePart? theme = document.WorkbookPartRoot.ThemePart;
+            XlsbDocumentPropertyParts documentProperties = XlsbDocumentPropertyParts.Capture(document);
             using var positionReportingDestination = destination.CanSeek
                 ? null
                 : new ExcelPositionReportingWriteStream(destination);
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
-                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null));
-                WriteEntry(archive, "_rels/.rels", RootRelationships);
+                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null, documentProperties));
+                WriteEntry(archive, "_rels/.rels", documentProperties.CreateRootRelationships("xl/workbook.bin"));
+                documentProperties.WriteEntries((name, content) => WriteEntry(archive, name, content));
                 WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
                     sheets,
                     document.DateSystem == ExcelDateSystem.NineteenFour,
@@ -258,10 +262,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException("Native XLSB generation requires at least one worksheet.");
             }
 
-            if (document.HasPackagePropertiesDirty) {
-                throw new NotSupportedException("Native XLSB generation does not yet support modified document properties.");
-            }
-
             ThrowIfDuplicateWorkbookElement<WorkbookProperties>(document.WorkbookRoot, "workbook properties");
             ThrowIfDuplicateWorkbookElement<WorkbookProtection>(document.WorkbookRoot, "workbook protection");
             ThrowIfDuplicateWorkbookElement<BookViews>(document.WorkbookRoot, "workbook views");
@@ -287,8 +287,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
             if (properties != null) {
-                if (!ExcelDocument.HasOnlyDateSystemWorkbookProperties(properties)) {
-                    throw new NotSupportedException("Native XLSB generation currently supports only the workbook date1904 property.");
+                OpenXmlAttribute? unsupported = XlsbOpenXmlAttributeValidator.FindUnsupported(
+                    properties, new[] { "date1904" }, IsDefaultWorkbookProperty);
+                if (properties.HasChildren || unsupported != null) {
+                    throw new NotSupportedException(unsupported == null
+                        ? "Native XLSB generation does not yet support workbook property extensions."
+                        : $"Native XLSB generation does not yet support workbook property '{unsupported.Value.LocalName}' with value '{unsupported.Value.Value}'.");
                 }
             }
 
@@ -308,15 +312,36 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
+        // The generated BrtWbProp carries date1904. Other attributes are accepted only at the
+        // values its zeroed flags already mean, which is how XLS imports state them.
+        private static bool IsDefaultWorkbookProperty(OpenXmlAttribute attribute) {
+            if (!string.IsNullOrEmpty(attribute.NamespaceUri)) return false;
+            switch (attribute.LocalName) {
+                case "showObjects":
+                    return attribute.Value == "all";
+                case "showBorderUnselectedTables":
+                case "saveExternalLinkValues":
+                    return attribute.Value is "1" or "true";
+                case "backupFile":
+                case "refreshAllConnections":
+                case "filterPrivacy":
+                case "hidePivotFieldList":
+                case "publishItems":
+                case "showInkAnnotation":
+                case "promptedSolutions":
+                case "checkCompatibility":
+                    return attribute.Value is "0" or "false";
+                default:
+                    return false;
+            }
+        }
+
         private static void ValidateDirectTabularWorkbook(
             ExcelDocument document,
             IReadOnlyList<ExcelSheet> sheets,
             string sheetName) {
             if (sheets.Count != 1 || !string.Equals(sheets[0].Name, sheetName, StringComparison.Ordinal)) {
                 throw new NotSupportedException("Native XLSB direct tabular generation requires exactly one matching worksheet.");
-            }
-            if (document.HasPackagePropertiesDirty) {
-                throw new NotSupportedException("Native XLSB generation does not yet support modified document properties.");
             }
             if (document.WorkbookRoot.ChildElements.Any(element => element is not Sheets
                 && !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views))
@@ -346,7 +371,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static string CreateContentTypes(int worksheetCount, bool hasStyles, bool hasSharedStrings, bool hasTheme) {
+        private static string CreateContentTypes(int worksheetCount, bool hasStyles, bool hasSharedStrings, bool hasTheme,
+            XlsbDocumentPropertyParts? documentProperties = null) {
             var builder = new StringBuilder(512 + worksheetCount * 120);
             builder.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
             builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -364,6 +390,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 builder.Append("<Override PartName=\"/xl/sharedStrings.bin\" ContentType=\"application/vnd.ms-excel.sharedStrings\"/>");
             }
             if (hasTheme) builder.Append("<Override PartName=\"/xl/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/>");
+            documentProperties?.AppendContentTypeOverrides(builder);
             builder.Append("</Types>");
             return builder.ToString();
         }
