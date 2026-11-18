@@ -216,7 +216,7 @@
   "PlanOutputPath": null,
   "UpdateVersions": true,
   "Build": true,
-  "PackStrategy": "PerProject",
+  "PackStrategy": "MSBuild",
   "PublishNuget": false,
   "PublishGitHub": false,
   "CreateReleaseZip": true,
