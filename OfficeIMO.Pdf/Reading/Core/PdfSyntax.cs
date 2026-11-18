@@ -322,10 +322,11 @@ internal static partial class PdfSyntax {
         }
         PdfStandardSecurityHandler? decryptor = null;
         int? encryptObjectNumber = FindEncryptReference(map, trailerRaw, limits, cancellationToken)?.ObjectNumber;
-        if (encryptObjectNumber.HasValue) {
+        // A direct /Encrypt dictionary in the trailer is not an object, so no object is left undecrypted for it.
+        if (encryptObjectNumber.HasValue || ReadDirectTrailerEncryptionDictionary(trailerRaw, limits, cancellationToken) is not null) {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor, cancellationToken);
             if (decryptor is not null) {
-                DecryptObjects(map, decryptor, encryptObjectNumber.Value, cancellationToken);
+                DecryptObjects(map, decryptor, encryptObjectNumber, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
             }
         }
@@ -334,13 +335,17 @@ internal static partial class PdfSyntax {
             // Xref streams are never encrypted, but the object streams they reference can be.
             // Materialize compressed objects only after authentication and decryption so their
             // decoded bytes are charged exactly once and no encrypted payload is parsed as data.
-            ApplyCompressedXrefStreamEntries(map, pdf, text, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
+            ApplyCompressedXrefStreamEntries(map, pdf, text, parsedOffsets, limits, decodedStreamBudget, ReportUnreadableCompressedObject, ReportRelocatedCompressedObject, parsingMode == PdfParsingMode.Strict, cancellationToken);
         } else {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget, ReportUnreadableCompressedObject, cancellationToken);
         }
         void ReportUnreadableCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
             "unreadable-indirect-object", "Compressed object content could not be read completely.", objectNumber);
+        void ReportRelocatedCompressedObject(int objectNumber) => HandleStructuralDefect(parsingMode, repairDiagnostics,
+            "compressed-object-index-mismatch", parsingMode == PdfParsingMode.Strict
+                ? "The cross-reference index of a compressed object does not match its object stream header."
+                : "The cross-reference index of a compressed object does not match its object stream header; lenient parsing located the object by its number.", objectNumber);
         var unreadableObjects = new HashSet<int?>();
         foreach (PdfRepairDiagnostic diagnostic in repairDiagnostics) {
             cancellationToken.ThrowIfCancellationRequested();

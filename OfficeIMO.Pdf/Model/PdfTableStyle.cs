@@ -688,9 +688,16 @@ public partial class PdfTableStyle {
         set => _rowAllowBreakAcrossPages = value == null ? null : new System.Collections.Generic.List<bool?>(value);
     }
 
+    /// <summary>
+    /// Names the source cell of a table cell, by row and column index, for summarized clipping diagnostics.
+    /// Null, or a null result, keeps the cell's findings as individual diagnostics.
+    /// </summary>
+    internal System.Func<int, int, PdfTableCellDiagnosticAddress?>? DiagnosticCellAddress { get; set; }
+
     /// <summary>Creates a deep copy of this style.</summary>
     public PdfTableStyle Clone() {
         var clone = new PdfTableStyle {
+            DiagnosticCellAddress = DiagnosticCellAddress,
             BorderColor = BorderColor,
             ConsumesVerticalFlow = ConsumesVerticalFlow,
             ClipTextToCellBounds = ClipTextToCellBounds,

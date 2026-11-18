@@ -5348,6 +5348,29 @@ These parameter aliases stay removed. Command aliases such as `ExcelExport` are 
 | `-Values` | `-InputObject` | `Add-OfficeExcelTableRow` |
 | `-Values` | `-Value` | `Add-OfficePowerPointTableRow`, `Get-OfficeExcelTemplateMarker`, `Invoke-OfficeExcelTemplate`, `Set-OfficeExcelAutoFilter` |
 
+## PDF text extraction keeps the readable part of damaged documents
+
+`PdfDocument.ExtractText()` no longer throws when part of a document cannot be read. With the
+default lenient `PdfLoadOptions.ParsingMode`, a text run whose font codes have no Unicode mapping is
+left out instead of throwing `PdfUnsupportedTextMappingException`, and a page content stream that
+cannot be decoded is left out instead of throwing `InvalidDataException`; the rest of the document is
+returned. An `Identity-H` or `Identity-V` code that no source maps is also left out instead of being
+returned as one character holding its code value. Content streams behind CCITTFax or JBIG2, read limits, passwords and permission
+restrictions still throw. Set `ParsingMode = PdfParsingMode.Strict` to make these text cases fail
+as before, and use `ReadForInspection` with `RecoverDecodableTextForInspection` to learn what was left out.
+
+An encryption dictionary written directly in the trailer is now recognised: such a file decrypts,
+or throws `PdfPasswordRequiredException` when it needs a password and none was supplied, instead of
+failing on encrypted content streams. This applies in both parsing modes, and the document's security
+information reports the dictionary's encryption and permissions.
+
+## PDF objects can hold more tokens by default
+
+`PdfReadLimits.MaxTokensPerObject` now defaults to 1,000,000, up from 100,000, so valid files
+with one large array, such as a structure parent tree with tens of thousands of entries, open.
+`PdfLoadOptions.UntrustedDefaults` keeps 100,000; load files from outside your organization with
+it, or set the limit explicitly if you relied on the previous default to reject such files.
+
 ## Archive limits for Visio stencils and XLSB, and link checks
 
 `VisioAssets.ListMasters`, `LoadMasterContents` and `LoadVisualContext`, and the
@@ -10185,3 +10208,9 @@ A date-formatted cell whose serial has no `DateTime` (Excel shows `####`) now re
 ## CSV separators the output encoding cannot write
 
 CSV writers now throw `ArgumentException` before writing when the delimiter, quote or escape character cannot be written in the output encoding, such as an unpaired surrogate in UTF-8 or `§` in ASCII. Earlier versions wrote the encoding's replacement character, which readers cannot tell apart from replaced field text. Replace an unpaired surrogate with a real character; no encoding can write it. For a valid character that the chosen encoding cannot represent, such as `§` in ASCII, write UTF-8 or choose a separator the encoding supports. A supplied `TextWriter` is checked against its own encoding, and with `QuoteMode.Never` only the delimiter is checked.
+
+## Excel PDF reports summarize clipped cells
+
+`SaveAsPdf` and `ToPdf` for Excel workbooks report clipped cells once per contiguous range instead of once per cell. Each `table-cell-content-clipped`, `table-cell-paint-clipped` and `table-cell-canvas-clip-paint-clipped` diagnostic now covers a rectangle of cells on one sheet: its `Location` is a sheet-qualified range such as `Sales!C2:C10001`, and its message gives the cell count, up to three sample cells and the first cell's finding. Codes, severities, loss kinds and `HasLoss` are unchanged, and so is the PDF. A workbook that produced tens of thousands of these diagnostics now produces far fewer, and it converts faster, because a cell's clipping is established once instead of glyph by glyph.
+
+Code that counted clipped cells by counting diagnostics, or that read `PdfTableCell[row,column] on page N at x,y` from `Location`, should read the range and count instead, or set `ExcelPdfExportOptions.DiagnosticsDetail = ExcelPdfDiagnosticsDetail.PerCell` to keep one diagnostic per cell exactly as before.

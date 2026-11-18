@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # New-OfficePowerPointImageOptions
 ## SYNOPSIS
-Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
+Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.
 
 ## SYNTAX
 ### Default (Default)
@@ -15,7 +15,7 @@ New-OfficePowerPointImageOptions [-IncludeHiddenSlides] [-NoSlideBackground] [-N
 ```
 
 ## DESCRIPTION
-Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.
+Pass the result to Export-OfficeDocumentImage or ConvertTo-OfficeDocumentImage -Options when rendering slides.
 
 ## EXAMPLES
 

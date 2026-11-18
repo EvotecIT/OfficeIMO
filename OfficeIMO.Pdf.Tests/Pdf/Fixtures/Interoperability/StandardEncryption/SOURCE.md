@@ -12,6 +12,8 @@ keys, salts and nonces, so the bytes change but the contract does not.
 | `r6-owner-only-padded-entries.pdf` | `/V 5 /R 6`, AESV3, `/P -1052` | empty / `owner` | `/O` and `/U` padded to 127 bytes as Acrobat X and XI write them; only the first 48 bytes are defined |
 | `r6-identity-crypt-filter-stream.pdf` | `/V 5 /R 6`, AESV3 | `open` / `owner` | Page content in clear text behind `/Filter [/Crypt]` with `/Name /Identity` |
 | `r6-crypt-filter-without-method.pdf` | `/V 5 /R 6`, AESV3 | `open` / `owner` | Page content in clear text behind a named crypt filter that omits `/CFM` |
+| `r6-indirect-crypt-filters.pdf` | `/V 5 /R 6`, AESV3 | empty / `owner` | `/CF` and its `/StdCF` crypt filter written as indirect objects |
+| `r6-indirect-crypt-filter-method.pdf` | `/V 5 /R 6`, AESV3, `/P -4` | empty / `owner` | Direct `/CF` and `/StdCF` whose `/CFM`, and the dictionary's `/P`, are indirect objects |
 | `r6-embedded-files-only.pdf` | `/V 5 /R 6`, `/StmF` and `/StrF /Identity`, `/EFF /StdCF` AESV3 `/AuthEvent /EFOpen` | `open` / `owner` | Readable without a password; only the embedded file is encrypted |
 | `r7-aes-gcm.pdf` | `/V 6 /R 7`, AESV4 (AES-256-GCM, ISO/TS 32003) | `open` / `owner` | 12-byte nonce, ciphertext and 16-byte tag per string and stream |
 | `r3-rc4-40-default-length.pdf` | `/V 1 /R 3`, RC4 without `/Length` | `open` / `owner` | The 40-bit default key length |

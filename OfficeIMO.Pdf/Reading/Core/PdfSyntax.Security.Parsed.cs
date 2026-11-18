@@ -91,7 +91,6 @@ internal static partial class PdfSyntax {
         var trailerReferences = ReadTrailerReferences(trailerRaw, "Encrypt", "Root", "Info", limits, cancellationToken);
         PdfReference? encryptReference = trailerReferences.First;
         int? encryptObjectNumber = encryptReference?.ObjectNumber;
-        bool hasEncryption = encryptObjectNumber.HasValue;
         string? encryptionFilter = null;
         string? encryptionSubFilter = null;
         int? encryptionVersion = null;
@@ -100,17 +99,16 @@ internal static partial class PdfSyntax {
         int? encryptionPermissions = null;
         bool? encryptMetadata = null;
         PdfPasswordAuthenticationRole passwordAuthenticationRole = fallback.PasswordAuthenticationRole;
-        if (encryptObjectNumber.HasValue &&
-            encryptReference is not null &&
-            PdfObjectLookup.TryGet(objects, encryptReference, out PdfIndirectObject? encryptionObject) &&
-            encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
+        PdfDictionary? parsedEncryptionDictionary = ReadEncryptionDictionary(objects, trailerRaw, encryptReference, limits, cancellationToken);
+        bool hasEncryption = encryptObjectNumber.HasValue || parsedEncryptionDictionary is not null;
+        if (parsedEncryptionDictionary is not null) {
             encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
             encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
-            encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
-            encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
-            encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
-            encryptionPermissions = TryReadPermissionMask(parsedEncryptionDictionary);
-            encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
+            encryptionVersion = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "V", cancellationToken);
+            encryptionRevision = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "R", cancellationToken);
+            encryptionLengthBits = TryReadEncryptionInteger(objects, parsedEncryptionDictionary, "Length", cancellationToken);
+            encryptionPermissions = TryReadPermissionMask(objects, parsedEncryptionDictionary, cancellationToken);
+            encryptMetadata = TryReadEncryptionBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata", cancellationToken);
             if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                 authenticatedHandler is not null) {
                 passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;

@@ -43,6 +43,7 @@ public sealed class TestOfficePdfAccessibilityCommand : PSCmdlet, IDisposable
 
     /// <summary>PDF file paths to check; wildcards are expanded.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
+    [SupportsWildcards]
     public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Literal PDF file paths to check.</summary>

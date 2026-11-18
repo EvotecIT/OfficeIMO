@@ -23,24 +23,26 @@ The module manifest is the source of truth for exported cmdlets and aliases. The
 
 ## Major families
 
-- **Excel — 104 commands:** authoring, reading, charts, pivots, validation, comments, templates, comparison, repair, accessibility, streaming, visual placement, and image export.
-- **Word — 82 commands:** sections, paragraphs, lists, tables, fields, content controls, review, mail merge, protection, merging, visual placement, and conversion.
-- **PDF — 81 commands:** composition, structured reading, explicit Word/Excel/PowerPoint/Markdown/RTF export, editable Office reconstruction, text and image extraction, searchable OCR output, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, visual placement, and diagnostics.
+- **Excel — 102 commands:** authoring, reading, charts, pivots, validation, comments, templates, comparison, repair, accessibility, streaming, visual placement, and image export.
+- **Word — 80 commands:** sections, paragraphs, lists, tables, fields, content controls, review, mail merge, visual placement, and conversion settings. Merging and protecting whole documents are cross-format operations (`Merge-OfficeDocument`, `Protect-OfficeDocument`).
+- **PDF — 77 commands:** composition, structured reading, explicit Word/Excel/PowerPoint/Markdown/RTF export, editable Office reconstruction, text and image extraction, searchable OCR output, merge/split, pages, forms, annotations, attachments, signatures, compliance, redaction, optimization, visual placement, and diagnostics.
+- **Printing — 5 commands:** print any document OfficeIMO can turn into PDF on a named queue or IPP printer, read printer capabilities, and follow or cancel jobs. Requires PowerShell 7.4 or newer.
 - **PowerPoint — 54 commands:** slides, sections, shapes, charts, tables, notes, themes, layouts, transitions, visual placement, import, inspection, and HTML review.
-- **Document operations and capabilities — 11 commands:** inspect, compare, validate, repair, protect, combine, split, and convert documents with limits and reports. See [Choose a conversion route](/docs/pswriteoffice/conversion-routes/).
+- **Cross-format operations — 14 commands:** inspect, compare, validate, repair, protect, combine, split, convert, and render documents to images with limits and reports. See [Choose a conversion route](/docs/pswriteoffice/conversion-routes/).
 - **Before sharing — 6 commands:** list and remove comments, authors, hidden content, image metadata and AI labels, inspect Content Credentials, and check Word, Excel and PowerPoint accessibility. See [Clean files before sharing](/docs/pswriteoffice/before-sharing/).
-- **YAML — 12 commands:** edit files without losing comments or layout, merge overlays, validate, and convert to and from objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
-- **TOML — 12 commands:** edit files without losing comments or layout, and read and write settings and lock files as PowerShell objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
+- **YAML — 13 commands:** edit files without losing comments or layout, merge overlays, validate, and convert to and from objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
+- **TOML — 13 commands:** edit files without losing comments or layout, and read and write settings and lock files as PowerShell objects. See [Configuration files and data conversion](/docs/pswriteoffice/config-data-formats/).
 - **CSV — 4 commands:** import and export delimited data with explicit quoting, encoding, and formula-injection rules.
 - **Project — 20 commands:** create and schedule tasks, resources and assignments; exchange mapped tables; save native MPP or Project XML and export reports. See [Project, Access, and EPUB](/docs/pswriteoffice/project-access-epub/).
 - **Access — 9 commands:** inspect native MDB/ACCDB schemas and rows, and create inert table databases from PowerShell objects.
 - **EPUB — 8 commands:** build publications from chapters, resources and metadata, then inspect and save the package.
-- **Archive migration and evidence — 5 commands:** inspect package security and provenance, identify iWork files, and convert iWork and offline OneNote content with explicit fidelity evidence.
+- **OneNote and iWork — 5 commands:** read offline OneNote sections and notebooks, and Apple Pages, Numbers and Keynote packages.
+- **Google Docs and Sheets — 5 commands:** sign in with a service account and export Word documents to Google Docs and workbooks to Google Sheets.
 - **Confluence Cloud — 7 commands:** plan, create, update, and remove pages; preserve managed sections; and list, upload, or download attachments.
-- **Markdown, Visio, Reader, OCR, visuals, and open formats:** typed Markdown, VSDX diagrams and stencils, cross-format visual placement, normalized extraction, local image OCR, RTF, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.
+- **Markdown, Visio, Reader, OCR, HTML, and open formats:** typed Markdown, VSDX diagrams and stencils, normalized extraction, local image OCR, HTML conversion settings, RTF, ODT/ODS/ODP, email, AsciiDoc, and LaTeX workflows.
 
 ## How the documentation fits together
 
-Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/d41c55f9fcc4e869f97befb01501aa2125f12631/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
+Conceptual guides answer which workflow to choose and how objects move through a script. The generated [command reference](/api/powershell/) owns parameter sets, accepted values, pipeline behavior, and source links. The [example gallery](https://github.com/EvotecIT/OfficeIMO/tree/1c687f2254a745db6b17a68cdb2e157a5b8d00f5/PowerShell/PSWriteOffice/Examples) provides copyable end-to-end scripts.
 
 When a guide and command page appear to disagree, use the current command reference and report the guide mismatch. The catalog validation prevents command totals from drifting, while examples and help remain the executable source for exact syntax.

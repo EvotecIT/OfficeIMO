@@ -4,20 +4,40 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        /// <summary>Intersects this synchronous paint scope's private simple clips without rechecking their paths per glyph.</summary>
-        private DiagnosticPaintBounds DiagnosticContainmentIntersection(
-            List<OfficeTextInkClip> sourceClips, List<OfficeTextInkClip> targetClips,
-            OfficeTextInkClip frameClip, OfficeTextInkClip pageClip,
-            TableCellContentFrame? secondClip, OfficeTransform transform) {
-            if (sourceClips.Count + targetClips.Count + (secondClip.HasValue ? 3 : 2) > 64) return default;
+        /// <summary>
+        /// The simple rectangles glyph extrema are tested against, kept apart per finding so that a glyph can be
+        /// skipped once the findings its clips could still produce are proven. A group with a clip that is not a
+        /// simple rectangle has no bounds, so its glyphs keep the full inspection.
+        /// </summary>
+        private readonly struct DiagnosticGlyphClipBounds {
+            internal DiagnosticGlyphClipBounds(DiagnosticPaintBounds frame, DiagnosticPaintBounds target, DiagnosticPaintBounds page) {
+                Frame = frame; Target = target; Page = page;
+            }
+
+            internal DiagnosticPaintBounds Frame { get; }
+            internal DiagnosticPaintBounds Target { get; }
+            internal DiagnosticPaintBounds Page { get; }
+        }
+
+        private DiagnosticGlyphClipBounds CreateDiagnosticGlyphClipBounds(List<OfficeTextInkClip> targetClips,
+            OfficeTextInkClip frameClip, OfficeTextInkClip pageClip, TableCellContentFrame? secondClip, OfficeTransform transform) {
+            DiagnosticPaintBounds frame = default, target = default, page = default;
             double left = double.NegativeInfinity, top = double.NegativeInfinity;
             double right = double.PositiveInfinity, bottom = double.PositiveInfinity;
-            if (!Include(frameClip) || !Include(pageClip)) return default;
-            foreach (OfficeTextInkClip clip in sourceClips) if (!Include(clip)) return default;
-            foreach (OfficeTextInkClip clip in targetClips) if (!Include(clip)) return default;
-            if (secondClip.HasValue && !Include(DiagnosticRectangleClip(secondClip.Value, transform))) return default;
-            return new DiagnosticPaintBounds(left, top, right, bottom);
+            if (Include(frameClip) && (!secondClip.HasValue || Include(DiagnosticRectangleClip(secondClip.Value, transform))))
+                frame = new DiagnosticPaintBounds(left, top, right, bottom);
+            Reset();
+            bool simpleTargets = targetClips.Count <= 64;
+            for (int index = 0; simpleTargets && index < targetClips.Count; index++) simpleTargets = Include(targetClips[index]);
+            if (simpleTargets && targetClips.Count > 0) target = new DiagnosticPaintBounds(left, top, right, bottom);
+            Reset();
+            if (Include(pageClip)) page = new DiagnosticPaintBounds(left, top, right, bottom);
+            return new DiagnosticGlyphClipBounds(frame, target, page);
 
+            void Reset() {
+                left = double.NegativeInfinity; top = double.NegativeInfinity;
+                right = double.PositiveInfinity; bottom = double.PositiveInfinity;
+            }
             bool Include(OfficeTextInkClip clip) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (clip.FilledContours == null || !OfficeTextInkClip.TryGetAxisAlignedRectangle(clip.FilledContours,
@@ -27,6 +47,62 @@ internal static partial class PdfWriter {
                 right = Math.Min(right, clipRight); bottom = Math.Min(bottom, clipBottom);
                 return true;
             }
+        }
+
+        /// <summary>
+        /// The intersection of a list of clips that are all simple rectangles; an empty list leaves the plane
+        /// unbounded. A list with any other clip has no usable bounds.
+        /// </summary>
+        private readonly struct DiagnosticRectangleBounds {
+            // Glyph extrema are compared after the same page transform the exact inspection applies. This margin keeps
+            // a proof away from the rounding of that transform and from the inspection's own crossing tolerance.
+            private const double Margin = 1E-6D;
+
+            private DiagnosticRectangleBounds(double left, double top, double right, double bottom) {
+                IsSimple = true; Left = left; Top = top; Right = right; Bottom = bottom;
+            }
+
+            internal bool IsSimple { get; }
+            private double Left { get; }
+            private double Top { get; }
+            private double Right { get; }
+            private double Bottom { get; }
+
+            internal static DiagnosticRectangleBounds Of(List<OfficeTextInkClip> clips, LayoutContext context) {
+                if (clips.Count > 64) return default;
+                double left = double.NegativeInfinity, top = double.NegativeInfinity;
+                double right = double.PositiveInfinity, bottom = double.PositiveInfinity;
+                foreach (OfficeTextInkClip clip in clips) {
+                    context.cancellationToken.ThrowIfCancellationRequested();
+                    if (clip.FilledContours == null || !OfficeTextInkClip.TryGetAxisAlignedRectangle(clip.FilledContours,
+                        out double clipLeft, out double clipTop, out double clipRight, out double clipBottom)) return default;
+                    if (!new DiagnosticPaintBounds(clipLeft, clipTop, clipRight, clipBottom).IsFinite) return default;
+                    left = Math.Max(left, clipLeft); top = Math.Max(top, clipTop);
+                    right = Math.Min(right, clipRight); bottom = Math.Min(bottom, clipBottom);
+                }
+                return new DiagnosticRectangleBounds(left, top, right, bottom);
+            }
+
+            internal DiagnosticRectangleBounds Intersect(DiagnosticRectangleBounds other) =>
+                IsSimple && other.IsSimple
+                    ? new DiagnosticRectangleBounds(Math.Max(Left, other.Left), Math.Max(Top, other.Top),
+                        Math.Min(Right, other.Right), Math.Min(Bottom, other.Bottom))
+                    : default;
+
+            /// <summary>True when finite <paramref name="inner"/> bounds lie inside these bounds by the margin.</summary>
+            internal bool Encloses(DiagnosticPaintBounds inner) => IsSimple && inner.IsFinite
+                && inner.Left >= Left + Margin && inner.Top >= Top + Margin
+                && inner.Right <= Right - Margin && inner.Bottom <= Bottom - Margin;
+
+            /// <summary>True when finite <paramref name="outer"/> bounds lie wholly outside these bounds by more than the margin.</summary>
+            internal bool Excludes(DiagnosticPaintBounds outer) => IsSimple && outer.IsFinite
+                && (outer.Left > Right + Margin || outer.Right < Left - Margin
+                    || outer.Top > Bottom + Margin || outer.Bottom < Top - Margin);
+
+            /// <summary>True when two finite bounds are separated by more than the margin on some axis.</summary>
+            internal static bool Apart(DiagnosticPaintBounds first, DiagnosticPaintBounds second) => first.IsFinite && second.IsFinite
+                && (first.Left > second.Right + Margin || first.Right < second.Left - Margin
+                    || first.Top > second.Bottom + Margin || first.Bottom < second.Top - Margin);
         }
 
         /// <summary>Proves that all nominal paint lies within every applicable simple rectangular clip.</summary>
@@ -91,6 +167,10 @@ internal static partial class PdfWriter {
             internal double Right { get; }
             internal double Bottom { get; }
             internal bool IsFinite { get; }
+
+            /// <summary>True when finite <paramref name="inner"/> bounds lie within these finite bounds.</summary>
+            internal bool Encloses(DiagnosticPaintBounds inner) => IsFinite && inner.IsFinite
+                && inner.Left >= Left && inner.Top >= Top && inner.Right <= Right && inner.Bottom <= Bottom;
         }
     }
 }

@@ -189,21 +189,54 @@ public sealed class PdfMalformedInputHardeningTests {
         Assert.Contains("Tagged", PdfDocument.Load(new MemoryStream(extracted.ToBytes())).ExtractText(), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void ReadLimits_DefaultsAcceptLargeObjectsThatTheUntrustedProfileRejects() {
-        // One 1.5 million character token, like a large inline image or font program written as a string.
-        string largeString = "(" + new string('A', 1_500_000) + ")";
+    [Theory]
+    [InlineData(PdfReadLimitKind.ObjectCharacters)]
+    [InlineData(PdfReadLimitKind.ObjectTokens)]
+    public void ReadLimits_DefaultsAcceptLargeObjectsThatTheUntrustedProfileRejects(PdfReadLimitKind kind) {
+        // One 1.5 million character token, like a large inline image or font program written as a string, or a
+        // structure parent tree with 40,000 entries in one /Nums array (120,000 tokens).
+        string largeObject = kind == PdfReadLimitKind.ObjectCharacters
+            ? "(" + new string('A', 1_500_000) + ")"
+            : "<< /Nums [" + string.Concat(Enumerable.Range(0, 40_000).Select(static index =>
+                index.ToString(CultureInfo.InvariantCulture) + " 4 0 R ")) + "] >>";
         byte[] pdf = BuildPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources " + HelveticaResources + " /Contents 4 0 R /PieceInfo << /Data 5 0 R >> >>",
             Stream("BT /F1 12 Tf 10 100 Td (Large) Tj ET"),
-            largeString);
+            largeObject);
 
-        Assert.Single(PdfDocument.Load(new MemoryStream(pdf)).Pages);
+        Assert.Contains("Large", PdfDocument.Load(new MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfDocument.Load(new MemoryStream(pdf), PdfLoadOptions.UntrustedDefaults).Pages.Count);
-        Assert.Equal(PdfReadLimitKind.ObjectCharacters, exception.Kind);
+        Assert.Equal(kind, exception.Kind);
+    }
+
+    // Lenient plain extraction leaves out a page content stream it cannot decode and keeps the page's other streams.
+    // Strict parsing fails, and a stream with a JBIG2 (or CCITTFax) filter, whose decoder can report exhausted resources
+    // as damaged data, still fails the read. An output intent makes the read scan the page content for transparency
+    // first; that scan leaves out the same stream.
+    [Theory]
+    [InlineData("/Filter /Flatedecode", true, false)]
+    [InlineData("/Filter /FlateDecode", true, false)]
+    [InlineData("/Filter /FlateDecode", true, true)]
+    [InlineData("/Filter /JBIG2Decode", false, false)]
+    public void ExtractText_LeavesOutAPageContentStreamItCannotDecode(string filter, bool skipped, bool outputIntent) {
+        const string damaged = "not a compressed content stream";
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R" + (outputIntent ? " /OutputIntents [<< /Type /OutputIntent /S /GTS_PDFA1 /DestOutputProfile 0 >>]" : "") + " >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources " + HelveticaResources + " /Contents [4 0 R 5 0 R] >>",
+            "<< /Length " + damaged.Length.ToString(CultureInfo.InvariantCulture) + " " + filter + " >>\nstream\n" + damaged + "\nendstream",
+            Stream("BT /F1 12 Tf 10 100 Td (Readable) Tj ET"));
+
+        if (skipped) {
+            Assert.Equal("Readable", PdfDocument.Load(new MemoryStream(pdf)).ExtractText().Trim());
+        } else {
+            Assert.Throws<InvalidDataException>(() => PdfDocument.Load(new MemoryStream(pdf)).ExtractText());
+        }
+        Assert.Throws<InvalidDataException>(() =>
+            PdfDocument.Load(new MemoryStream(pdf), new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText());
     }
 
     private static PdfPageRenderResult Render(byte[] pdf) =>

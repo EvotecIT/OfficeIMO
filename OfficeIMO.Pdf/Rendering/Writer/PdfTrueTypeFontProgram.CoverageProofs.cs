@@ -24,6 +24,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
         internal void Add(string text) {
             if (text.Length == 0 || text.Length > MaximumTextLength) return;
+            // Once the set is full or already holds the text, nothing can change; skip the lock.
+            HashSet<string> published = _texts;
+            if (published.Count >= MaximumEntries || published.Contains(text)) return;
             foreach (char character in text) if (character < 32 || character > 126) return;
             lock (_lock) {
                 HashSet<string> current = _texts;

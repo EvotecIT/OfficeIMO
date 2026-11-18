@@ -116,11 +116,14 @@ internal sealed partial class PdfReadDocument {
 
     internal string ExtractText(CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        // Lenient parsing keeps the readable text when a content stream or a font of the document is damaged;
+        // ReadForInspection reports what was left out. Strict parsing fails instead.
+        bool keepReadableContent = _options.ParsingMode == PdfParsingMode.Lenient;
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (i > 0) sb.AppendLine();
-            sb.Append(Pages[i].ExtractText(cancellationToken));
+            sb.Append(Pages[i].ExtractText(cancellationToken, keepReadableContent));
         }
         return sb.ToString();
     }

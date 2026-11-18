@@ -168,7 +168,9 @@ function Get-PageContent([string] $Text) { return , $latin1.GetBytes("BT /F1 18 
 # Revision 6 (AESV3) or revision 7 (AESV4). Modes: Document encrypts strings and streams; IdentityContentStream leaves the
 # page content in clear text behind a /Crypt stream filter naming /Identity; DefaultMethodContentStream does the same through a
 # named crypt filter that omits /CFM, which defaults to /None; EmbeddedFilesOnly encrypts only the embedded
-# file (/StmF and /StrF /Identity, /EFF /StdCF, /AuthEvent /EFOpen). PadPasswordEntriesTo appends random bytes to /O and /U
+# file (/StmF and /StrF /Identity, /EFF /StdCF, /AuthEvent /EFOpen); IndirectCryptFilters encrypts strings and streams with
+# /CF and its /StdCF entry written as indirect objects 8 and 9; IndirectCryptFilterMethod keeps /CF and /StdCF direct but
+# writes /CFM and /P as indirect objects 8 and 9. PadPasswordEntriesTo appends random bytes to /O and /U
 # after they are computed, as Acrobat X and XI do (127 bytes); only the first 48 bytes carry the hash and salts.
 function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $OwnerPassword, [string] $Method, [string] $Text, [string] $Mode = 'Document', [int] $Permissions = -4, [int] $PadPasswordEntriesTo = 48) {
     $version = if ($Method -eq 'AESV4') { 6 } else { 5 }
@@ -198,6 +200,16 @@ function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $Own
             $title = Protect-Data $fileKey $title $Method
             $filters = '/CF << /StdCF << /AuthEvent /DocOpen /CFM /' + $Method + ' /Length 32 >> /ClearCF << /AuthEvent /DocOpen >> >> /StmF /StdCF /StrF /StdCF'
         }
+        'IndirectCryptFilters' {
+            $contentObject = New-StreamObject (Protect-Data $fileKey $content $Method)
+            $title = Protect-Data $fileKey $title $Method
+            $filters = '/CF 8 0 R /StmF /StdCF /StrF /StdCF'
+        }
+        'IndirectCryptFilterMethod' {
+            $contentObject = New-StreamObject (Protect-Data $fileKey $content $Method)
+            $title = Protect-Data $fileKey $title $Method
+            $filters = '/CF << /StdCF << /AuthEvent /DocOpen /CFM 8 0 R /Length 32 >> >> /StmF /StdCF /StrF /StdCF'
+        }
         'EmbeddedFilesOnly' {
             $contentObject = New-StreamObject $content
             $catalogExtra = ' /Names << /EmbeddedFiles << /Names [(note.txt) 8 0 R] >> >>'
@@ -206,10 +218,19 @@ function New-ModernFixture([string] $Name, [byte[]] $UserPassword, [byte[]] $Own
     }
 
     $objects = New-PageObjects $contentObject $title $catalogExtra
-    $objects.Add($latin1.GetBytes("<< /Filter /Standard /V $version /R $revision /Length 256 /P $permissions $filters /O $(ConvertTo-Hex $entries.O) /U $(ConvertTo-Hex $entries.U) /OE $(ConvertTo-Hex $entries.OE) /UE $(ConvertTo-Hex $entries.UE) /Perms $(ConvertTo-Hex $entries.Perms) >>"))
+    $permissionsEntry = if ($Mode -eq 'IndirectCryptFilterMethod') { '9 0 R' } else { "$permissions" }
+    $objects.Add($latin1.GetBytes("<< /Filter /Standard /V $version /R $revision /Length 256 /P $permissionsEntry $filters /O $(ConvertTo-Hex $entries.O) /U $(ConvertTo-Hex $entries.U) /OE $(ConvertTo-Hex $entries.OE) /UE $(ConvertTo-Hex $entries.UE) /Perms $(ConvertTo-Hex $entries.Perms) >>"))
     if ($Mode -eq 'EmbeddedFilesOnly') {
         $objects.Add($latin1.GetBytes('<< /Type /Filespec /F (note.txt) /UF (note.txt) /EF << /F 9 0 R >> >>'))
         $objects.Add((New-StreamObject (Protect-Data $fileKey $latin1.GetBytes('Attachment secret') $Method) ' /Type /EmbeddedFile'))
+    }
+    if ($Mode -eq 'IndirectCryptFilterMethod') {
+        $objects.Add($latin1.GetBytes("/$Method"))
+        $objects.Add($latin1.GetBytes("$permissions"))
+    }
+    if ($Mode -eq 'IndirectCryptFilters') {
+        $objects.Add($latin1.GetBytes('<< /StdCF 9 0 R >>'))
+        $objects.Add($latin1.GetBytes("<< /AuthEvent /DocOpen /CFM /$Method /Length 32 >>"))
     }
 
     $header = if ($revision -eq 7) { '%PDF-2.0' } else { '%PDF-1.7' }
@@ -235,6 +256,8 @@ New-ModernFixture 'r6-saslprep.pdf' $utf8.GetBytes('SaSLprep') $utf8.GetBytes('o
 New-ModernFixture 'r6-unprepared-password.pdf' $utf8.GetBytes("pass$([char]0x00AD)word") $utf8.GetBytes('owner') 'AESV3' 'Unprepared R6'
 New-ModernFixture 'r6-identity-crypt-filter-stream.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Identity stream R6' 'IdentityContentStream'
 New-ModernFixture 'r6-crypt-filter-without-method.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Default method R6' 'DefaultMethodContentStream'
+New-ModernFixture 'r6-indirect-crypt-filters.pdf' $utf8.GetBytes('') $utf8.GetBytes('owner') 'AESV3' 'Indirect filters R6' 'IndirectCryptFilters'
+New-ModernFixture 'r6-indirect-crypt-filter-method.pdf' $utf8.GetBytes('') $utf8.GetBytes('owner') 'AESV3' 'Indirect method R6' 'IndirectCryptFilterMethod'
 New-ModernFixture 'r6-embedded-files-only.pdf' $utf8.GetBytes('open') $utf8.GetBytes('owner') 'AESV3' 'Attachments only R6' 'EmbeddedFilesOnly'
 # Owner password only (empty user password) with /O and /U padded to 127 bytes and copying denied, like Acrobat XI output.
 New-ModernFixture 'r6-owner-only-padded-entries.pdf' @() $utf8.GetBytes('owner') 'AESV3' 'Padded entries R6' -Permissions -1052 -PadPasswordEntriesTo 127
