@@ -15,6 +15,10 @@
     <PackageReference Include="StbImageSharp" Version="2.30.16" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
+  <!-- OneImage ships net10.0 only, so its comparison lanes compile only for that target. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OneImage" Version="1.11.1" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\OfficeIMO.Drawing.Benchmarks\ImageBenchmarkCorpus.cs"

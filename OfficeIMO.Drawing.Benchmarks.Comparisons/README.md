@@ -6,6 +6,8 @@ Metadata identification remains in the first-party benchmark project, not the co
 
 The comparison uses SkiaSharp, Magick.NET, and StbImageSharp. ImageSharp 4 is intentionally excluded because its build now requires a Six Labors license key; benchmark restore/build must remain reproducible without secrets. StbImageSharp participates only in decode because it does not provide an encoder.
 
+OneImage (pure managed) runs in every lane on `net10.0` only, because the package targets only that framework. It decodes with EXIF auto-orientation off, so every decoder returns the stored layout; encodes PNG at its default deflate level 6, TIFF LZW with the horizontal predictor, and lossless WebP at its default effort 4; and resizes with its span-to-span `PixelResizer`, triangle filter, on the stored sRGB values. Its output passes the same checks as the other engines, and in the TIFF and WebP lanes OneImage also has to decode the OfficeIMO and Magick.NET files exactly.
+
 Correctness comes before timing. PNG, TIFF LZW, and lossless WebP require exact full-buffer RGBA equality. The JPEG lane requires complete decode, equal dimensions, and a full-buffer mean absolute channel error no greater than 1.5 against every independent decoder so normal color-conversion and rounding differences remain distinguishable from material output defects.
 
 ```powershell

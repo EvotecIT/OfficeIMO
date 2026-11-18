@@ -8,6 +8,9 @@ namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 public class ImageWebpLosslessEncodeBenchmarks {
     private OfficeRasterImage _image = null!;
     private MagickImage _magick = null!;
+#if NET10_0_OR_GREATER
+    private global::OneImage.Image _oneImage = null!;
+#endif
 
     [GlobalSetup]
     public void Setup() {
@@ -18,6 +21,11 @@ public class ImageWebpLosslessEncodeBenchmarks {
         byte[] magickEncoded = ImageComparisonAdapters.EncodeMagickWebpLossless(_magick);
         ImageComparisonValidation.ValidateLosslessInterchange(
             "lossless WebP encode benchmark", _image, officeEncoded, magickEncoded, OfficeImageFormat.Webp);
+#if NET10_0_OR_GREATER
+        _oneImage = OneImageComparisonAdapters.CreateImage(_image.GetPixels(), _image.Width, _image.Height);
+        ImageComparisonValidation.ValidateOneImageLosslessInterchange(
+            "lossless WebP encode benchmark", _image, OneImageEncode(), officeEncoded, magickEncoded, OfficeImageFormat.Webp);
+#endif
     }
 
     [GlobalCleanup]
@@ -28,6 +36,12 @@ public class ImageWebpLosslessEncodeBenchmarks {
 
     [Benchmark]
     public byte[] MagickNETEncode() => ImageComparisonAdapters.EncodeMagickWebpLossless(_magick);
+#if NET10_0_OR_GREATER
+
+    [Benchmark]
+    [BenchmarkCategory("library:oneimage")]
+    public byte[] OneImageEncode() => OneImageComparisonAdapters.EncodeWebpLossless(_oneImage);
+#endif
 }
 
 /// <summary>Equivalent static lossless WebP decode comparisons.</summary>
@@ -45,6 +59,15 @@ public class ImageWebpLosslessDecodeBenchmarks {
         _magickEncoded = ImageComparisonAdapters.EncodeMagickWebpLossless(magick);
         ImageComparisonValidation.ValidateLosslessInterchange(
             "lossless WebP decode benchmark", image, officeEncoded, _magickEncoded, OfficeImageFormat.Webp);
+#if NET10_0_OR_GREATER
+        ImageComparisonValidation.ValidateOneImageLosslessInterchange(
+            "lossless WebP decode benchmark",
+            image,
+            OneImageComparisonAdapters.EncodeWebpLossless(OneImageComparisonAdapters.CreateImage(image.GetPixels(), image.Width, image.Height)),
+            officeEncoded,
+            _magickEncoded,
+            OfficeImageFormat.Webp);
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -52,4 +75,10 @@ public class ImageWebpLosslessDecodeBenchmarks {
 
     [Benchmark]
     public byte[] MagickNETDecodeExternal() => ImageComparisonAdapters.DecodeMagickRgba(_magickEncoded);
+#if NET10_0_OR_GREATER
+
+    [Benchmark]
+    [BenchmarkCategory("library:oneimage")]
+    public byte[] OneImageDecodeExternal() => OneImageComparisonAdapters.DecodeRgba(_magickEncoded);
+#endif
 }
