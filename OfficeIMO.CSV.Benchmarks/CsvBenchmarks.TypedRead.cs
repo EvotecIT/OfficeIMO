@@ -81,7 +81,7 @@ public partial class CsvBenchmarks
     public int CsvHelper_ReadTypedRecords()
     {
         using var reader = new StringReader(_csvText);
-        using var csv = new CsvHelperReader(reader, CultureInfo.InvariantCulture);
+        using var csv = CreateCsvHelperTypedReader(reader);
         var checksum = 17;
         foreach (CsvBenchmarkRow row in csv.GetRecords<CsvBenchmarkRow>())
         {
@@ -122,7 +122,7 @@ public partial class CsvBenchmarks
     /// <summary>Includes UTF-8 decoding before mapping records with the text-reader API.</summary>
     internal int CsvHelper_ReadTypedRecordsUtf8() {
         using var input = OpenUtf8TextReader();
-        using var csv = new CsvHelperReader(input, CultureInfo.InvariantCulture);
+        using var csv = CreateCsvHelperTypedReader(input);
         var checksum = 17;
         foreach (CsvBenchmarkRow row in csv.GetRecords<CsvBenchmarkRow>())
             checksum = AddTypedRowChecksum(checksum, row);
@@ -138,6 +138,15 @@ public partial class CsvBenchmarks
         }
 
         return checksum;
+    }
+
+    // The fixture writes UTC timestamps. Keep their kind, as the other readers do, instead of
+    // CsvHelper's default conversion to local time, which fails validation outside UTC.
+    private static CsvHelperReader CreateCsvHelperTypedReader(TextReader input)
+    {
+        var csv = new CsvHelperReader(input, CultureInfo.InvariantCulture);
+        csv.Context.TypeConverterOptionsCache.GetOptions<DateTime>().DateTimeStyle = DateTimeStyles.RoundtripKind;
+        return csv;
     }
 
     private int AddTypedRowChecksum(int checksum, CsvBenchmarkRow row)
