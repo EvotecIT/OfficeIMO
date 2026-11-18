@@ -210,6 +210,89 @@ public partial class Excel {
         }
     }
 
+    [Theory]
+    [InlineData("core", "custom")]
+    [InlineData("extended", "custom")]
+    [InlineData("custom", "core")]
+    public void Xlsb_PropertyEditsNeverOverwriteOtherPropertiesAtTheirDefaultPartName(string edited, string occupant) {
+        string[] kinds = { "core", "extended", "custom" };
+        string[] partNames = { "docProps/core.xml", "docProps/app.xml", "docProps/custom.xml" };
+        string[] relationshipTypes = {
+            "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties"
+        };
+        string[] contentTypes = {
+            "application/vnd.openxmlformats-package.core-properties+xml",
+            "application/vnd.openxmlformats-officedocument.extended-properties+xml",
+            "application/vnd.openxmlformats-officedocument.custom-properties+xml"
+        };
+        int editedIndex = Array.IndexOf(kinds, edited);
+        int occupantIndex = Array.IndexOf(kinds, occupant);
+        string occupiedPart = partNames[editedIndex];
+        string customXml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/custom-properties\" " +
+            "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">" +
+            "<property fmtid=\"{D5CDD505-2E9C-101B-9397-08002B2CF9AE}\" pid=\"2\" name=\"Region\"><vt:lpwstr>North</vt:lpwstr></property>" +
+            "</Properties>";
+        string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        string savedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
+        File.WriteAllBytes(sourcePath, EditXlsbPackage(File.ReadAllBytes(XlsbExcelGeneratedPath()), archive => {
+            // Valid properties of one kind sit at another kind's default name, and that kind's
+            // relationship points at them by mistake, so the reader skips it.
+            string occupantXml = occupant == "custom" ? customXml : ReadEntry(archive, partNames[occupantIndex]);
+            archive.GetEntry(partNames[occupantIndex])?.Delete();
+            ReplaceEntry(archive, occupiedPart, occupantXml);
+            XDocument relationships = XDocument.Parse(ReadEntry(archive, "_rels/.rels"));
+            XNamespace rels = "http://schemas.openxmlformats.org/package/2006/relationships";
+            foreach (int index in new[] { editedIndex, occupantIndex }) {
+                XElement? relationship = relationships.Root!.Elements(rels + "Relationship")
+                    .FirstOrDefault(element => (string?)element.Attribute("Type") == relationshipTypes[index]);
+                if (relationship == null) {
+                    relationship = new XElement(rels + "Relationship", new XAttribute("Id", "rIdProperties" + index), new XAttribute("Type", relationshipTypes[index]));
+                    relationships.Root.Add(relationship);
+                }
+                relationship.SetAttributeValue("Target", occupiedPart);
+            }
+            ReplaceEntry(archive, "_rels/.rels", relationships.ToString(SaveOptions.DisableFormatting));
+            XDocument types = XDocument.Parse(ReadEntry(archive, "[Content_Types].xml"));
+            XNamespace ct = "http://schemas.openxmlformats.org/package/2006/content-types";
+            types.Root!.Elements(ct + "Override")
+                .Where(element => (string?)element.Attribute("PartName") == "/" + occupiedPart
+                    || (string?)element.Attribute("PartName") == "/" + partNames[occupantIndex])
+                .Remove();
+            types.Root.Add(new XElement(ct + "Override", new XAttribute("PartName", "/" + occupiedPart), new XAttribute("ContentType", contentTypes[occupantIndex])));
+            ReplaceEntry(archive, "[Content_Types].xml", types.ToString(SaveOptions.DisableFormatting));
+        }));
+
+        string? originalCreator;
+        using (ExcelDocument document = ExcelDocument.Load(sourcePath)) {
+            Assert.Contains(document.XlsbImportDiagnostics, diagnostic => diagnostic.Code == "xlsb-document-properties-skipped");
+            originalCreator = document.Properties.Creator;
+            if (occupant == "custom") Assert.Equal("North", document.CustomProperties["Region"].Text);
+            switch (edited) {
+                case "core": document.Properties.Title = "Retitled"; break;
+                case "extended": document.ApplicationProperties.Company = "Edited Company"; break;
+                default: document.SetCustomDocumentProperty("Region", "South"); break;
+            }
+            document.Save(savedPath);
+        }
+
+        using (ExcelDocument reloaded = ExcelDocument.Load(savedPath)) {
+            Assert.DoesNotContain(reloaded.XlsbImportDiagnostics, diagnostic => diagnostic.Code == "xlsb-document-properties-skipped");
+            Assert.Equal("Alpha", reloaded.Sheets[0].Cell(2, 1).GetValue<string>());
+            switch (edited) {
+                case "core": Assert.Equal("Retitled", reloaded.Properties.Title); break;
+                case "extended": Assert.Equal("Edited Company", reloaded.ApplicationProperties.Company); break;
+                default: Assert.Equal("South", reloaded.CustomProperties["Region"].Text); break;
+            }
+            if (occupant == "custom") Assert.Equal("North", reloaded.CustomProperties["Region"].Text);
+            else Assert.Equal(originalCreator, reloaded.Properties.Creator);
+        }
+        using ZipArchive saved = ZipFile.OpenRead(savedPath);
+        Assert.Contains(occupant == "custom" ? "custom-properties" : "core-properties", ReadEntry(saved, occupiedPart), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Xlsb_RemovingTheLastCustomPropertyKeepsRootMetadata() {
         string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");

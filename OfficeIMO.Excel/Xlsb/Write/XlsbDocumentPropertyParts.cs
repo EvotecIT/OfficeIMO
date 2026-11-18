@@ -182,11 +182,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             if (partName == null) {
-                partName = defaultPartName;
-                bool replacesUnreadableTarget = string.Equals(partName, target, StringComparison.OrdinalIgnoreCase);
-                if ((entries.Contains(partName) || replacements.ContainsKey(partName)) && !replacesUnreadableTarget) {
-                    throw new NotSupportedException($"Native XLSB rewriting cannot add document properties because '{partName}' is already used by another package part.");
-                }
+                partName = FindWritablePartName(relationships, types, entries, replacements, relationship, relationshipType, contentType, defaultPartName);
                 relationship?.Remove();
                 relationships.Root!.Add(new XElement(rels + "Relationship",
                     new XAttribute("Id", NextRelationshipId(relationships)),
@@ -201,6 +197,58 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             types.Root!.Add(new XElement(ct + "Override",
                 new XAttribute("PartName", "/" + partName),
                 new XAttribute("ContentType", contentType)));
+        }
+
+        /// <summary>
+        /// Picks the part that receives a property kind the reader did not import. An occupied default
+        /// part is replaced only when it already belongs to that kind (its declared content type matches
+        /// and no other relationship claims it), which covers malformed XML of the right kind. A default
+        /// name held by another part, such as different properties behind a mistyped relationship, is
+        /// left alone and the properties go to a free name beside it.
+        /// </summary>
+        private static string FindWritablePartName(
+            XDocument relationships,
+            XDocument types,
+            HashSet<string> entries,
+            IDictionary<string, byte[]> replacements,
+            XElement? relationship,
+            string relationshipType,
+            string contentType,
+            string defaultPartName) {
+            string stem = defaultPartName.Substring(0, defaultPartName.Length - ".xml".Length);
+            string partName = defaultPartName;
+            for (int suffix = 2; ; suffix++) {
+                bool occupied = entries.Contains(partName) || replacements.ContainsKey(partName);
+                if (!occupied || IsOwnedBy(relationships, types, replacements, relationship, relationshipType, contentType, partName)) return partName;
+                partName = stem + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xml";
+            }
+        }
+
+        private static bool IsOwnedBy(
+            XDocument relationships,
+            XDocument types,
+            IDictionary<string, byte[]> replacements,
+            XElement? relationship,
+            string relationshipType,
+            string contentType,
+            string partName) {
+            // A part written earlier in this save belongs to the property kind that wrote it.
+            if (replacements.ContainsKey(partName)) return false;
+            if (!string.Equals(GetDeclaredContentType(types, partName), contentType, StringComparison.Ordinal)) return false;
+            XNamespace rels = RelationshipsNamespace;
+            return !relationships.Root!.Elements(rels + "Relationship").Any(element => element != relationship
+                && !string.Equals((string?)element.Attribute("TargetMode"), "External", StringComparison.OrdinalIgnoreCase)
+                && (string?)element.Attribute("Type") != relationshipType
+                && string.Equals(TryResolveRootTarget((string?)element.Attribute("Target")), partName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string? GetDeclaredContentType(XDocument types, string partName) {
+            XElement? partOverride = types.Root!.Elements().FirstOrDefault(element => element.Name.LocalName == "Override"
+                && string.Equals(((string?)element.Attribute("PartName"))?.TrimStart('/'), partName, StringComparison.OrdinalIgnoreCase));
+            if (partOverride != null) return (string?)partOverride.Attribute("ContentType");
+            string extension = Path.GetExtension(partName).TrimStart('.');
+            return (string?)types.Root.Elements().FirstOrDefault(element => element.Name.LocalName == "Default"
+                && string.Equals((string?)element.Attribute("Extension"), extension, StringComparison.OrdinalIgnoreCase))?.Attribute("ContentType");
         }
 
         private static string? TryResolveRootTarget(string? target) {
