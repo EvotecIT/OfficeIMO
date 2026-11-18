@@ -700,8 +700,9 @@ namespace OfficeIMO.Excel {
             }
 
             int nextIndex = closeIndex + 1;
+            // [1]Sheet1!A1, '[1]Sheet 1'!A1 or a name defined in the linked workbook, [1]!Name.
             return nextIndex < formula.Length
-                && (formula[nextIndex] == '\'' || char.IsLetterOrDigit(formula[nextIndex]) || formula[nextIndex] == '_');
+                && (formula[nextIndex] == '\'' || formula[nextIndex] == '!' || char.IsLetterOrDigit(formula[nextIndex]) || formula[nextIndex] == '_');
         }
 
         private static bool TryReadExternalWorkbookIndex(string formula, int bracketIndex, out int sourceIndex, out int closeIndex) {

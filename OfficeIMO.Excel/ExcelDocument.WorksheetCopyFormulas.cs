@@ -40,7 +40,17 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns the defined names a formula uses, with any sheet qualifier, skipping string literals.</summary>
         private static IEnumerable<(string Name, string? SheetName)> ReadDefinedNameTokens(string formula) {
+            int position = 0;
             foreach (ExcelFormulaSyntaxNode node in ExcelFormulaSyntaxTree.Parse(formula).Nodes) {
+                // In [1]!Name the workbook qualifier is tokenized apart from the name; that name lives in the
+                // linked workbook. [0]! is this workbook, as charts write it.
+                bool externalQualifier = position >= 2 && formula[position - 1] == '!' && formula[position - 2] == ']'
+                    && !(position >= 4 && formula[position - 3] == '0' && formula[position - 4] == '[');
+                position += node.Text.Length;
+                if (externalQualifier) {
+                    continue;
+                }
+
                 string? authored = node switch {
                     ExcelFormulaNameSyntax name => name.Name,
                     // A LAMBDA stored as a defined name is called like a function.
@@ -78,22 +88,18 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            foreach (ExcelFormulaSyntaxNode node in ExcelFormulaSyntaxTree.Parse(formula!).Nodes) {
-                if (node is ExcelFormulaStringSyntax || node is ExcelFormulaFunctionSyntax) {
-                    continue;
+            // Scan whole runs between string literals: a qualifier such as [1]!Name spans more than one token.
+            bool found = false;
+            ExcelFormulaReferenceRewriter.RewriteOutsideStrings(formula!, segment => {
+                for (int index = 0; !found && index < segment.Length; index++) {
+                    found = segment[index] == '['
+                        && TryReadExternalWorkbookIndex(segment, index, out _, out int closeIndex)
+                        && LooksLikeExternalWorkbookReference(segment, index, closeIndex);
                 }
 
-                string token = node.Text;
-                for (int index = 0; index < token.Length; index++) {
-                    if (token[index] == '['
-                        && TryReadExternalWorkbookIndex(token, index, out _, out int closeIndex)
-                        && LooksLikeExternalWorkbookReference(token, index, closeIndex)) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
+                return segment;
+            });
+            return found;
         }
 
         private static int LastIndexOfUnquoted(string text, char value) {

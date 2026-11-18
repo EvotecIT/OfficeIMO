@@ -59,13 +59,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
-        [InlineData(false, false)]
-        [InlineData(false, true)]
-        [InlineData(true, false)]
-        [InlineData(true, true)]
-        public void Test_WorksheetValuesCopy_ExternalWorkbookRulesFollowPackageModePolicy(bool merge, bool copyExternalWorkbookReferences) {
-            string sourcePath = Path.Combine(_directoryWithFiles, $"ValuesCopyExternalSource-{merge}-{copyExternalWorkbookReferences}.xlsx");
-            string targetPath = Path.Combine(_directoryWithFiles, $"ValuesCopyExternalTarget-{merge}-{copyExternalWorkbookReferences}.xlsx");
+        [InlineData(false, false, false)]
+        [InlineData(false, true, false)]
+        [InlineData(true, false, false)]
+        [InlineData(true, true, false)]
+        [InlineData(false, false, true)]
+        [InlineData(false, true, true)]
+        [InlineData(true, false, true)]
+        [InlineData(true, true, true)]
+        public void Test_WorksheetValuesCopy_ExternalWorkbookRulesFollowPackageModePolicy(bool merge, bool copyExternalWorkbookReferences, bool externalNameOnly) {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"ValuesCopyExternalSource-{merge}-{copyExternalWorkbookReferences}-{externalNameOnly}.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, $"ValuesCopyExternalTarget-{merge}-{copyExternalWorkbookReferences}-{externalNameOnly}.xlsx");
             using (var createdSource = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet data = createdSource.AddSheet("Data");
                 data.Cell(1, 1).SetValue(1);
@@ -75,13 +79,21 @@ namespace OfficeIMO.Tests {
 
             AddLinkedWorkbook(sourcePath, "Prices.xlsx");
             AddDefinedName(sourcePath, "ExternalValue", "[1]Sheet1!$A$1");
+            // A local name spelled like the linked workbook's name must not be copied for [1]!Remote.
+            AddDefinedName(sourcePath, "Remote", "1");
             using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
                 Worksheet worksheet = GetWorksheetPartByNameForOperations(source, "Data").Worksheet!;
-                worksheet.InsertAfter(new ConditionalFormatting(
-                    new ConditionalFormattingRule(new Formula("A1>ExternalValue")) { Type = ConditionalFormatValues.Expression, Priority = 1 },
-                    new ConditionalFormattingRule(new Formula("A1>[1]Sheet1!$A$2")) { Type = ConditionalFormatValues.Expression, Priority = 2 }) {
-                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1:A2" }
-                }, worksheet.GetFirstChild<SheetData>()!);
+                // Either a local name and a sheet reference that point at the link, or only a name defined in the
+                // linked workbook ([1]!Remote).
+                var formatting = new ConditionalFormatting { SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1:A2" } };
+                foreach (string formula in externalNameOnly ? new[] { "A1>[1]!Remote" } : new[] { "A1>ExternalValue", "A1>[1]Sheet1!$A$2" }) {
+                    formatting.Append(new ConditionalFormattingRule(new Formula(formula)) {
+                        Type = ConditionalFormatValues.Expression,
+                        Priority = formatting.ChildElements.Count + 1
+                    });
+                }
+
+                worksheet.InsertAfter(formatting, worksheet.GetFirstChild<SheetData>()!);
                 worksheet.Save();
             }
 
@@ -116,9 +128,13 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
                 Workbook workbook = target.WorkbookPart!.Workbook!;
                 Assert.Equal(2, workbook.ExternalReferences!.Elements<ExternalReference>().Count());
-                DefinedName externalValue = workbook.DefinedNames!.Elements<DefinedName>().Single(name => name.Name == "ExternalValue");
-                Assert.Equal("[2]Sheet1!$A$1", externalValue.Text);
-                Assert.Equal(new[] { "A1>ExternalValue", "A1>[2]Sheet1!$A$2" },
+                Assert.DoesNotContain(workbook.DefinedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>(), name => name.Name == "Remote");
+                if (!externalNameOnly) {
+                    DefinedName externalValue = workbook.DefinedNames!.Elements<DefinedName>().Single(name => name.Name == "ExternalValue");
+                    Assert.Equal("[2]Sheet1!$A$1", externalValue.Text);
+                }
+
+                Assert.Equal(externalNameOnly ? new[] { "A1>[2]!Remote" } : new[] { "A1>ExternalValue", "A1>[2]Sheet1!$A$2" },
                     GetWorksheetPartByNameForOperations(target, "Copy").Worksheet!.Descendants<ConditionalFormattingRule>()
                         .Select(rule => rule.GetFirstChild<Formula>()!.Text));
                 Assert.Empty(new OpenXmlValidator().Validate(target));
