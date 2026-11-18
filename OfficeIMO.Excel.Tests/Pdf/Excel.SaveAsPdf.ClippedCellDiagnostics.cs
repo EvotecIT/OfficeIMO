@@ -97,14 +97,18 @@ public partial class Excel {
         OfficeConversionReport perCell = document.SaveAsPdf(perCellStream,
             new ExcelPdfExportOptions { DiagnosticsDetail = ExcelPdfDiagnosticsDetail.PerCell });
 
-        // Both page fragments of the merge report clipping, and each code is summarized once at the anchor cell.
+        // Both page fragments of the merge report clipping; the summary reports the same codes, each once,
+        // counting the merge as its one anchor cell.
         List<OfficeDiagnostic> occurrences = perCell.Diagnostics.Where(diagnostic => codes.Contains(diagnostic.Code)).ToList();
-        Assert.Contains(occurrences, diagnostic => diagnostic.Location!.Contains(" on page 1 ", StringComparison.Ordinal));
-        Assert.Contains(occurrences, diagnostic => diagnostic.Location!.Contains(" on page 2 ", StringComparison.Ordinal));
-        foreach (string code in occurrences.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal)) {
-            OfficeDiagnostic summarized = Assert.Single(summary.Diagnostics, diagnostic => diagnostic.Code == code);
-            Assert.Equal("Report!A2", summarized.Location);
-        }
+        Assert.Contains(occurrences, diagnostic => diagnostic.Location!.IndexOf(" on page 1 ", StringComparison.Ordinal) >= 0);
+        Assert.Contains(occurrences, diagnostic => diagnostic.Location!.IndexOf(" on page 2 ", StringComparison.Ordinal) >= 0);
+        List<OfficeDiagnostic> summarized = summary.Diagnostics.Where(diagnostic => codes.Contains(diagnostic.Code)).ToList();
+        Assert.Equal(occurrences.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal).OrderBy(code => code, StringComparer.Ordinal),
+            summarized.Select(diagnostic => diagnostic.Code).OrderBy(code => code, StringComparer.Ordinal));
+        Assert.All(summarized, diagnostic => {
+            Assert.Equal("Report!A2", diagnostic.Location);
+            Assert.StartsWith("1 cell (A2). First cell: ", diagnostic.Message);
+        });
     }
 
     [Fact]
