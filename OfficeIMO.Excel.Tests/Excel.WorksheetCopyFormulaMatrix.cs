@@ -102,8 +102,15 @@ namespace OfficeIMO.Tests {
 
             AddLinkedWorkbook(sourcePath, "Prices.xlsx");
             AddDefinedName(sourcePath, "Red", "[1]Sheet1!$A$1");
+            // A name spelled like the sheet must not be mistaken for the sheet qualifier in Data!$A$1.
+            AddDefinedName(sourcePath, "Data", "[1]Sheet1!$C$1");
+            AddDefinedName(sourcePath, "_xlnm.Print_Area", "Data!$A$1:$A$3", localSheetId: 0U);
             using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
                 Worksheet worksheet = GetWorksheetPartByNameForOperations(source, "Data").Worksheet!;
+                worksheet.InsertAfter(new ConditionalFormatting(new ConditionalFormattingRule(new Formula("Data!$A$1<>\"\"")) {
+                    Type = ConditionalFormatValues.Expression,
+                    Priority = 1
+                }) { SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" } }, worksheet.GetFirstChild<SheetData>()!);
                 worksheet.InsertAfter(new DataValidations(new DataValidation(new Formula1("\"Red,Green\"")) {
                     Type = DataValidationValues.List,
                     SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
@@ -134,8 +141,54 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
                 Assert.Equal("\"Red,Green\"", GetWorksheetPartByNameForOperations(target, "Copy").Worksheet!.Descendants<Formula1>().Single().Text);
-                Assert.True(target.WorkbookPart!.Workbook!.DefinedNames?.Elements<DefinedName>().Any(name => name.Name == "Red") != true);
+                Assert.Equal(new[] { "_xlnm.Print_Area" }, target.WorkbookPart!.Workbook!.DefinedNames!.Elements<DefinedName>().Select(name => name.Name!.Value));
                 Assert.Null(target.WorkbookPart.Workbook.ExternalReferences);
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Theory]
+        [InlineData(ExcelWorksheetCopyMode.Values)]
+        [InlineData(ExcelWorksheetCopyMode.Package)]
+        public void Test_WorksheetCopy_PrintAreaAliasSurvivesCopyAndSave(ExcelWorksheetCopyMode mode) {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"PrintAliasSource-{mode}.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, $"PrintAliasTarget-{mode}.xlsx");
+            using (var createdSource = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet data = createdSource.AddSheet("Data");
+                for (int row = 1; row <= 3; row++) data.Cell(row, 1).SetValue(row);
+                createdSource.Save();
+            }
+
+            AddDefinedName(sourcePath, "PrintRegion", "Data!$A$1:$A$3");
+            AddDefinedName(sourcePath, "_xlnm.Print_Area", "PrintRegion", localSheetId: 0U);
+            using (var createdTarget = ExcelDocument.Create(targetPath)) {
+                createdTarget.AddSheet("Existing").Cell(1, 1).SetValue("Existing");
+                createdTarget.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorksheetFrom(sourceDocument, "Data", "Copy", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions { CopyMode = mode });
+                targetDocument.Save();
+            }
+
+            using (var reloaded = ExcelDocument.Load(targetPath)) {
+                // A later edit and save runs the save cleanup again.
+                reloaded["Copy"].Cell(5, 1).SetValue("Later");
+                reloaded.Save(new ExcelSaveOptions { SafePreflight = true });
+            }
+
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                Workbook workbook = target.WorkbookPart!.Workbook!;
+                uint copyPosition = (uint)workbook.Sheets!.Elements<Sheet>().ToList().FindIndex(sheet => sheet.Name == "Copy");
+                Dictionary<string, string> names = workbook.DefinedNames!.Elements<DefinedName>()
+                    .Where(name => name.LocalSheetId?.Value == copyPosition)
+                    .ToDictionary(name => name.Name!.Value!, name => Unquote(name.Text));
+                Assert.Equal("PrintRegion", names["_xlnm.Print_Area"]);
+                Assert.Equal("Copy!$A$1:$A$3", names["PrintRegion"]);
                 Assert.Empty(new OpenXmlValidator().Validate(target));
             }
 

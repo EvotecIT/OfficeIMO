@@ -405,8 +405,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool DefinedNameReferencesExpectedSheet(string text, string expectedSheetName) {
-            // A dynamic print area or title is a formula such as OFFSET(Data!$A$1,0,0,Rows,5), which Excel accepts.
-            // Only plain reference lists can be checked against the owning sheet.
+            // A dynamic print area or title is a formula such as OFFSET(Data!$A$1,0,0,Rows,5) or an alias for another
+            // defined name, both of which Excel accepts. Only plain reference lists can be checked against the sheet.
             if (IsDefinedNameFormula(text)) {
                 return true;
             }
@@ -434,7 +434,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return false;
+            return ExcelFormulaSyntaxTree.Parse(text).Nodes.Any(node => node is ExcelFormulaNameSyntax name && name.Name.IndexOf('!') < 0);
         }
 
         private static IReadOnlyList<string> SplitDefinedNameReferenceList(string text) {
