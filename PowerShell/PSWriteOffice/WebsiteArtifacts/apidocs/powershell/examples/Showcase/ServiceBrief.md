@@ -32,7 +32,7 @@ The synthetic input covers 600 people and four locations. Tickets fall from 1,20
 
 The deck covers the transition stages, service scope, supported locations, acceptance criteria, decision, ticket comparison and three dated actions. The chart compares ticket counts in both series. Demand alone does not establish service quality or explain why it changed. Owners and actions are proposals to review before distributing the brief.
 
-Open `Showcase-PowerPoint-ServiceBrief.pptx` to edit the proposal. To create a review copy:
+Open `Showcase-PowerPoint-ServiceBrief.pptx` to edit the proposal. To create a review copy with PSWriteOffice 3.6.0 or newer, which added `Convert-OfficeDocument`:
 
 ```powershell
 Convert-OfficeDocument -To Pdf -Path ./ServiceBrief/Showcase-PowerPoint-ServiceBrief.pptx `
