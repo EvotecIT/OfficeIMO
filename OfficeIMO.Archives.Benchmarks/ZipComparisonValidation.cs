@@ -26,6 +26,14 @@ internal static class ZipComparisonValidation {
             throw new InvalidOperationException(
                 $"{scale.Name} traversal projections differ: OfficeIMO={officeObservation}, platform={platformObservation}.");
         }
+#if NET10_0_OR_GREATER
+        ZipComparisonObservation oneArchiveObservation =
+            ZipComparisonWorkflows.Observe(ZipComparisonWorkflows.TraverseOneArchive(input));
+        if (officeObservation != oneArchiveObservation) {
+            throw new InvalidOperationException(
+                $"{scale.Name} traversal projections differ: OfficeIMO={officeObservation}, OneArchive={oneArchiveObservation}.");
+        }
+#endif
         if (officeObservation.EntryCount != scale.FileCount) {
             throw new InvalidOperationException(
                 $"{scale.Name} returned {officeObservation.EntryCount} files; expected {scale.FileCount}.");

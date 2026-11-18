@@ -6,7 +6,11 @@ using System.Text.Json;
 namespace OfficeIMO.Archives.Benchmarks;
 
 internal static class ZipEvidenceRunner {
+#if NET10_0_OR_GREATER
+    private static readonly string[] Engines = { "OfficeIMO", "System.IO.Compression", "OneArchive" };
+#else
     private static readonly string[] Engines = { "OfficeIMO", "System.IO.Compression" };
+#endif
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -15,7 +19,7 @@ internal static class ZipEvidenceRunner {
 
     internal static int RunProbe(string[] args) {
         if (args.Length != 3) {
-            Console.Error.WriteLine("Usage: --probe <OfficeIMO|System.IO.Compression> <Small|Normal|Large> <source.zip>");
+            Console.Error.WriteLine("Usage: --probe <OfficeIMO|System.IO.Compression|OneArchive> <Small|Normal|Large> <source.zip>");
             return 2;
         }
         try {
@@ -87,9 +91,13 @@ internal static class ZipEvidenceRunner {
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         using var sampler = new ZipManagedHeapSampler();
         var stopwatch = Stopwatch.StartNew();
-        object result = string.Equals(selectedEngine, "OfficeIMO", StringComparison.Ordinal)
-            ? ZipComparisonWorkflows.TraverseOffice(input)
-            : ZipComparisonWorkflows.TraversePlatform(input);
+        object result = selectedEngine switch {
+            "OfficeIMO" => ZipComparisonWorkflows.TraverseOffice(input),
+#if NET10_0_OR_GREATER
+            "OneArchive" => ZipComparisonWorkflows.TraverseOneArchive(input),
+#endif
+            _ => ZipComparisonWorkflows.TraversePlatform(input)
+        };
         stopwatch.Stop();
         long peakManagedHeap = sampler.Stop();
         long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocatedBefore;
