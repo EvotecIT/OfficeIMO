@@ -93075,6 +93075,18 @@ and Set-OfficeYamlNode instead.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AllowPrivateNetworkAddresses</maml:name>
+          <maml:description>
+            <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
             <maml:para>Optional named range to retrieve.</maml:para>
@@ -93117,6 +93129,18 @@ and Set-OfficeYamlNode instead.</maml:para>
         <maml:name>AllowHttp</maml:name>
         <maml:description>
           <maml:para>Allow HTTP workbook downloads in addition to HTTPS.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AllowPrivateNetworkAddresses</maml:name>
+        <maml:description>
+          <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -94432,6 +94456,18 @@ and Set-OfficeYamlNode instead.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AllowPrivateNetworkAddresses</maml:name>
+          <maml:description>
+            <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Name</maml:name>
           <maml:description>
             <maml:para>Optional table name filter.</maml:para>
@@ -94474,6 +94510,18 @@ and Set-OfficeYamlNode instead.</maml:para>
         <maml:name>AllowHttp</maml:name>
         <maml:description>
           <maml:para>Allow HTTP workbook downloads in addition to HTTPS.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AllowPrivateNetworkAddresses</maml:name>
+        <maml:description>
+          <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -115317,6 +115365,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AllowPrivateNetworkAddresses</maml:name>
+          <maml:description>
+            <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>As</maml:name>
           <maml:description>
             <maml:para>Selects objects, hashtables, a DataTable, an owned IDataReader or column output.</maml:para>
@@ -115585,6 +115645,18 @@ whole file into memory default to 256 MiB.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AllowPrivateNetworkAddresses</maml:name>
+          <maml:description>
+            <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>As</maml:name>
           <maml:description>
             <maml:para>Selects objects, hashtables, a DataTable, an owned IDataReader or column output.</maml:para>
@@ -115832,6 +115904,18 @@ whole file into memory default to 256 MiB.</maml:para>
         <maml:name>AllowHttp</maml:name>
         <maml:description>
           <maml:para>Allow HTTP workbook downloads in addition to HTTPS.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AllowPrivateNetworkAddresses</maml:name>
+        <maml:description>
+          <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -157599,6 +157683,18 @@ Setting a key below a missing table adds the table's [header] section.</maml:par
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>AllowPrivateNetworkAddresses</maml:name>
+          <maml:description>
+            <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>MaxDegreeOfParallelism</maml:name>
           <maml:description>
             <maml:para>Maximum parallel workers; omission preserves the native execution policy.</maml:para>
@@ -157665,6 +157761,18 @@ Setting a key below a missing table adds the table's [header] section.</maml:par
         <maml:name>AllowLoss</maml:name>
         <maml:description>
           <maml:para>Explicitly accept native-save reductions in a completed local content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>AllowPrivateNetworkAddresses</maml:name>
+        <maml:description>
+          <maml:para>Allow a workbook on a loopback, private, link-local or other non-public network address. Use only for trusted internal sources.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -209204,6 +209312,267 @@ and requires a document title; heuristic findings stay warnings.</maml:para>
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Test-OfficePdfAccessibility</command:name>
+      <command:verb>Test</command:verb>
+      <command:noun>OfficePdfAccessibility</command:noun>
+      <maml:description>
+        <maml:para>Checks a PDF against PDF/UA-1 using the Matterhorn Protocol failure conditions.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>Works on any PDF, including files OfficeIMO did not produce. Machine-checkable conditions are evaluated;&#xD;
+conditions that need a person's judgement are returned with status NeedsReview and are never reported as passed.</maml:para>
+      <maml:para>Automatic coverage is not complete: conditions not checked yet, such as the glyph-level font checks, are&#xD;
+returned with status NotChecked, and when the document permissions deny accessibility extraction most conditions&#xD;
+are Indeterminate. No failures therefore does not mean the file conforms; see the PDF accessibility support matrix&#xD;
+in the OfficeIMO documentation for the coverage of each condition.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="Path">
+        <maml:name>Test-OfficePdfAccessibility</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IgnorePermissionRestrictions</maml:name>
+          <maml:description>
+            <maml:para>After successful password authentication, explicitly ignore owner-imposed usage restrictions.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>LoadOptions</maml:name>
+          <maml:description>
+            <maml:para>Native input loading policy.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfLoadOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Password used to open a Standard password-encrypted PDF.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>Path</maml:name>
+          <maml:description>
+            <maml:para>PDF file paths to check; wildcards are expanded.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="Document">
+        <maml:name>Test-OfficePdfAccessibility</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>PDF document to check.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">PdfDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="LiteralPath">
+        <maml:name>Test-OfficePdfAccessibility</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IgnorePermissionRestrictions</maml:name>
+          <maml:description>
+            <maml:para>After successful password authentication, explicitly ignore owner-imposed usage restrictions.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+          <maml:name>LiteralPath</maml:name>
+          <maml:description>
+            <maml:para>Literal PDF file paths to check.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+          <dev:type>
+            <maml:name>String[]</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>LoadOptions</maml:name>
+          <maml:description>
+            <maml:para>Native input loading policy.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>PdfLoadOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>Password</maml:name>
+          <maml:description>
+            <maml:para>Password used to open a Standard password-encrypted PDF.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+          <dev:type>
+            <maml:name>SecureString</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>PDF document to check.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">PdfDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>PdfDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>IgnorePermissionRestrictions</maml:name>
+        <maml:description>
+          <maml:para>After successful password authentication, explicitly ignore owner-imposed usage restrictions.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="True (ByPropertyName)" position="named" aliases="FullName,PSPath">
+        <maml:name>LiteralPath</maml:name>
+        <maml:description>
+          <maml:para>Literal PDF file paths to check.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>LoadOptions</maml:name>
+        <maml:description>
+          <maml:para>Native input loading policy.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
+        <dev:type>
+          <maml:name>PdfLoadOptions</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>Password</maml:name>
+        <maml:description>
+          <maml:para>Password used to open a Standard password-encrypted PDF.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
+        <dev:type>
+          <maml:name>SecureString</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="true" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>Path</maml:name>
+        <maml:description>
+          <maml:para>PDF file paths to check; wildcards are expanded.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>String[]</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Pdf.PdfDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Pdf.PdfAccessibilityReport</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>List the failed accessibility conditions of a PDF.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$report = Test-OfficePdfAccessibility -Path .\Report.pdf&#xD;
+            $report.FailedConditions | Select-Object @{ n = 'Condition'; e = { $_.Condition.ConditionId } }, OccurrenceCount</dev:code>
+        <dev:remarks>
+          <maml:para>Returns the accessibility report; Findings carry page, object and structure-element locations.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Show where each failure is.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>(Test-OfficePdfAccessibility -Path .\Report.pdf).Findings |&#xD;
+                Where-Object Severity -eq 'Error' |&#xD;
+                Format-Table ConditionId, PageNumber, ObjectNumber, StructureType, Message</dev:code>
+        <dev:remarks>
+          <maml:para>Lists the failing objects with the Matterhorn condition they break.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Test-OfficePdfRewrite</command:name>
       <command:verb>Test</command:verb>
       <command:noun>OfficePdfRewrite</command:noun>
@@ -213839,6 +214208,198 @@ specification's exact rules, and Untrusted the engine's limits for files from ou
   </command:command>
   <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
     <command:details>
+      <command:name>Update-OfficeToml</command:name>
+      <command:verb>Update</command:verb>
+      <command:noun>OfficeToml</command:noun>
+      <maml:description>
+        <maml:para>Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live TOML document.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>-JsonPatch takes a list of add, remove, replace, move, copy and test operations whose paths are JSON Pointers&#xD;
+such as /project/version. -MergePatch takes a partial document whose keys overwrite the document's, where $null&#xD;
+removes a key. Either can be JSON text or PowerShell hashtables, arrays and objects; dates in PowerShell values are&#xD;
+written as text.</maml:para>
+      <maml:para>Only the patched lines change; comments and layout elsewhere stay. New objects become [header] tables and&#xD;
+arrays of objects [[header]] arrays of tables. TOML has no null, so a null value in a JSON Patch fails. A patch is&#xD;
+all or nothing: when a test fails, a path is missing or an edit cannot be made, a non-terminating toml-patch-failed&#xD;
+error is written and the document is unchanged.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="JsonPatch">
+        <maml:name>Update-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">TomlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>TomlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>JsonPatch</maml:name>
+          <maml:description>
+            <maml:para>The JSON Patch operations: JSON text, or an array of hashtables or objects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="MergePatch">
+        <maml:name>Update-OfficeToml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">TomlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>TomlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MergePatch</maml:name>
+          <maml:description>
+            <maml:para>The merge patch: JSON text, or a hashtable or object; $null values remove keys.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">TomlDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>TomlDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>JsonPatch</maml:name>
+        <maml:description>
+          <maml:para>The JSON Patch operations: JSON text, or an array of hashtables or objects.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>MergePatch</maml:name>
+        <maml:description>
+          <maml:para>The merge patch: JSON text, or a hashtable or object; $null values remove keys.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Toml.TomlDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Toml.TomlPatchReport</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Bump a version only if it is the expected one.</maml:title>
+        <dev:code>Open-OfficeToml -Path ./pyproject.toml {&#xD;
+                Update-OfficeToml -JsonPatch @(&#xD;
+                    @{ op = 'test'; path = '/project/version'; value = '1.4.0' }&#xD;
+                    @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }&#xD;
+                    @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }&#xD;
+                )&#xD;
+            }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Change a setting and remove another with a merge patch.</maml:title>
+        <dev:code>Update-OfficeToml -Document $document -MergePatch @{ tool = @{ ruff = @{ 'line-length' = 100; exclude = $null } } } -PassThru</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
       <command:name>Update-OfficeWordField</command:name>
       <command:verb>Update</command:verb>
       <command:noun>OfficeWordField</command:noun>
@@ -214797,6 +215358,202 @@ specification's exact rules, and Untrusted the engine's limits for files from ou
         <dev:code>Update-OfficeWordText -Path .\Report.docx -OldValue 'old.example.com' -NewValue 'new.example.com' -IncludeHyperlinkUri</dev:code>
         <dev:remarks>
           <maml:para>Loads the document, updates matching hyperlink URLs, saves the file, and closes it.</maml:para>
+        </dev:remarks>
+      </command:example>
+    </command:examples>
+    <command:relatedLinks />
+  </command:command>
+  <command:command xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" xmlns:MSHelp="http://msdn.microsoft.com/mshelp" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10">
+    <command:details>
+      <command:name>Update-OfficeYaml</command:name>
+      <command:verb>Update</command:verb>
+      <command:noun>OfficeYaml</command:noun>
+      <maml:description>
+        <maml:para>Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live YAML document.</maml:para>
+      </maml:description>
+    </command:details>
+    <maml:description>
+      <maml:para>-JsonPatch takes a list of add, remove, replace, move, copy and test operations whose paths are JSON Pointers&#xD;
+such as /spec/replicas. -MergePatch takes a partial document whose keys overwrite the document's, where $null removes&#xD;
+a key. Either can be JSON or YAML text, a YAML document, or PowerShell hashtables, arrays and objects.</maml:para>
+      <maml:para>Only the patched lines change; comments, quoting and layout elsewhere stay. A patch is all or nothing: when a&#xD;
+test fails, a path is missing or an edit cannot be made, a non-terminating yaml-patch-failed error is written and the&#xD;
+document is unchanged. Patches address the first document of a multi-document stream.</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem parameterSetName="JsonPatch">
+        <maml:name>Update-OfficeYaml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">YamlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>YamlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+          <maml:name>JsonPatch</maml:name>
+          <maml:description>
+            <maml:para>The JSON Patch operations: JSON or YAML text, a YAML document, or an array of hashtables or objects.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+      <command:syntaxItem parameterSetName="MergePatch">
+        <maml:name>Update-OfficeYaml</maml:name>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+          <maml:name>Document</maml:name>
+          <maml:description>
+            <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">YamlDocument</command:parameterValue>
+          <dev:type>
+            <maml:name>YamlDocument</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>MergePatch</maml:name>
+          <maml:description>
+            <maml:para>The merge patch: JSON or YAML text, a YAML document, or a hashtable or object; $null values remove keys.</maml:para>
+          </maml:description>
+          <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+          <dev:type>
+            <maml:name>Object</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PassThru</maml:name>
+          <maml:description>
+            <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="named" aliases="none">
+        <maml:name>Document</maml:name>
+        <maml:description>
+          <maml:para>Gets or sets an explicit live document; omission uses the enclosing content block.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">YamlDocument</command:parameterValue>
+        <dev:type>
+          <maml:name>YamlDocument</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="none">
+        <maml:name>JsonPatch</maml:name>
+        <maml:description>
+          <maml:para>The JSON Patch operations: JSON or YAML text, a YAML document, or an array of hashtables or objects.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>MergePatch</maml:name>
+        <maml:description>
+          <maml:para>The merge patch: JSON or YAML text, a YAML document, or a hashtable or object; $null values remove keys.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
+        <dev:type>
+          <maml:name>Object</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PassThru</maml:name>
+        <maml:description>
+          <maml:para>Return the report of added, replaced and removed paths.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>OfficeIMO.Yaml.YamlDocument</maml:name>
+        </dev:type>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>OfficeIMO.Yaml.YamlPatchReport</maml:name>
+        </dev:type>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para></maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>Scale a deployment only if it still has the expected replica count.</maml:title>
+        <dev:code>Open-OfficeYaml -Path ./deployment.yaml {&#xD;
+                Update-OfficeYaml -JsonPatch @(&#xD;
+                    @{ op = 'test'; path = '/spec/replicas'; value = 2 }&#xD;
+                    @{ op = 'replace'; path = '/spec/replicas'; value = 3 }&#xD;
+                )&#xD;
+            }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Apply a patch file and list what changed.</maml:title>
+        <dev:code>Update-OfficeYaml -Document $document -JsonPatch (Get-Content ./scale.patch.json -Raw) -PassThru</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Override values and remove a key with a merge patch.</maml:title>
+        <dev:code>Update-OfficeYaml -Document $document -MergePatch @{ image = @{ tag = '1.27.2' }; podAnnotations = $null }</dev:code>
+        <dev:remarks>
+          <maml:para></maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

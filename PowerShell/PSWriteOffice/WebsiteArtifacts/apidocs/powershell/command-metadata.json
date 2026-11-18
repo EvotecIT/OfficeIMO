@@ -6,6 +6,7 @@
     {
       "name": "Add-OfficeAccessColumn",
       "kind": "Cmdlet",
+      "synopsis": "Adds a typed field before rows are appended.",
       "aliases": [
         "AccessColumn"
       ],
@@ -16,6 +17,7 @@
     {
       "name": "Add-OfficeAccessRow",
       "kind": "Cmdlet",
+      "synopsis": "Appends PowerShell objects or dictionaries using the declared field types.",
       "aliases": [
         "AccessRow"
       ],
@@ -26,6 +28,7 @@
     {
       "name": "Add-OfficeAccessTable",
       "kind": "Cmdlet",
+      "synopsis": "Adds a table to a newly created native database model.",
       "aliases": [
         "AccessTable"
       ],
@@ -36,6 +39,7 @@
     {
       "name": "Add-OfficeEpubChapter",
       "kind": "Cmdlet",
+      "synopsis": "Adds chapter content, reading order and a navigation entry.",
       "aliases": [
         "EpubChapter"
       ],
@@ -46,6 +50,7 @@
     {
       "name": "Add-OfficeEpubResource",
       "kind": "Cmdlet",
+      "synopsis": "Adds an image, font, stylesheet or media payload without executing it.",
       "aliases": [
         "EpubResource"
       ],
@@ -56,6 +61,7 @@
     {
       "name": "Add-OfficeExcelBarcode",
       "kind": "Cmdlet",
+      "synopsis": "Adds a QR code or barcode anchored at a worksheet cell.",
       "aliases": [
         "ExcelBarcode"
       ],
@@ -66,6 +72,7 @@
     {
       "name": "Add-OfficeExcelChart",
       "kind": "Cmdlet",
+      "synopsis": "Adds a native Excel chart from a range, named table or input rows.",
       "aliases": [
         "ExcelChart"
       ],
@@ -76,6 +83,7 @@
     {
       "name": "Add-OfficeExcelComment",
       "kind": "Cmdlet",
+      "synopsis": "Adds a note or a threaded comment (or reply) to a cell.",
       "aliases": [
         "ExcelComment"
       ],
@@ -86,6 +94,7 @@
     {
       "name": "Add-OfficeExcelConditionalFormat",
       "kind": "Cmdlet",
+      "synopsis": "Adds a conditional format: a rule, color scale, data bar or icon set.",
       "aliases": [
         "ExcelConditionalFormat"
       ],
@@ -96,6 +105,7 @@
     {
       "name": "Add-OfficeExcelConnection",
       "kind": "Cmdlet",
+      "synopsis": "Adds Power Query or connection metadata that Excel can own and refresh.",
       "aliases": [
         "ExcelConnection"
       ],
@@ -106,6 +116,7 @@
     {
       "name": "Add-OfficeExcelImage",
       "kind": "Cmdlet",
+      "synopsis": "Embeds a file, HTTP image or reusable visual at a worksheet cell or range.",
       "aliases": [
         "ExcelImage"
       ],
@@ -116,6 +127,7 @@
     {
       "name": "Add-OfficeExcelPageBreak",
       "kind": "Cmdlet",
+      "synopsis": "Adds manual print page breaks to an open worksheet.",
       "aliases": [
         "ExcelPageBreak"
       ],
@@ -126,6 +138,7 @@
     {
       "name": "Add-OfficeExcelPivotTable",
       "kind": "Cmdlet",
+      "synopsis": "Adds a pivot table to a worksheet.",
       "aliases": [
         "ExcelPivotTable"
       ],
@@ -136,6 +149,7 @@
     {
       "name": "Add-OfficeExcelReportCallout",
       "kind": "Cmdlet",
+      "synopsis": "Adds a highlighted info, success, warning or error callout.",
       "aliases": [
         "ExcelReportCallout"
       ],
@@ -146,6 +160,7 @@
     {
       "name": "Add-OfficeExcelReportChart",
       "kind": "Cmdlet",
+      "synopsis": "Adds a chart of a report table, using a dashboard preset or chart type.",
       "aliases": [
         "ExcelReportChart"
       ],
@@ -156,6 +171,7 @@
     {
       "name": "Add-OfficeExcelReportHeading",
       "kind": "Cmdlet",
+      "synopsis": "Adds a section heading to the report.",
       "aliases": [
         "ExcelReportHeading"
       ],
@@ -166,6 +182,7 @@
     {
       "name": "Add-OfficeExcelReportKpi",
       "kind": "Cmdlet",
+      "synopsis": "Adds a row of KPI cards.",
       "aliases": [
         "ExcelReportKpi"
       ],
@@ -176,6 +193,7 @@
     {
       "name": "Add-OfficeExcelReportLegend",
       "kind": "Cmdlet",
+      "synopsis": "Adds a legend table that explains values or colors.",
       "aliases": [
         "ExcelReportLegend"
       ],
@@ -186,6 +204,7 @@
     {
       "name": "Add-OfficeExcelReportParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Adds a paragraph of text to the report.",
       "aliases": [
         "ExcelReportParagraph"
       ],
@@ -196,6 +215,7 @@
     {
       "name": "Add-OfficeExcelReportSheet",
       "kind": "Cmdlet",
+      "synopsis": "Creates a report worksheet and lays out report blocks inside it.",
       "aliases": [
         "ExcelReportSheet"
       ],
@@ -206,6 +226,7 @@
     {
       "name": "Add-OfficeExcelReportSpacer",
       "kind": "Cmdlet",
+      "synopsis": "Adds vertical space to the report.",
       "aliases": [
         "ExcelReportSpacer"
       ],
@@ -216,6 +237,7 @@
     {
       "name": "Add-OfficeExcelReportTable",
       "kind": "Cmdlet",
+      "synopsis": "Adds a titled, styled table to the report.",
       "aliases": [
         "ExcelReportTable"
       ],
@@ -226,6 +248,7 @@
     {
       "name": "Add-OfficeExcelReportTitle",
       "kind": "Cmdlet",
+      "synopsis": "Adds the report title and subtitle.",
       "aliases": [
         "ExcelReportTitle"
       ],
@@ -236,6 +259,7 @@
     {
       "name": "Add-OfficeExcelSheet",
       "kind": "Cmdlet",
+      "synopsis": "Adds or reuses a worksheet within the current Excel DSL scope.",
       "aliases": [
         "ExcelSheet"
       ],
@@ -246,6 +270,7 @@
     {
       "name": "Add-OfficeExcelSlicer",
       "kind": "Cmdlet",
+      "synopsis": "Adds slicer or timeline binding metadata for a pivot table or table.",
       "aliases": [
         "ExcelSlicer"
       ],
@@ -256,6 +281,7 @@
     {
       "name": "Add-OfficeExcelSparkline",
       "kind": "Cmdlet",
+      "synopsis": "Adds sparklines to a worksheet.",
       "aliases": [
         "ExcelSparkline"
       ],
@@ -266,6 +292,7 @@
     {
       "name": "Add-OfficeExcelSubtotal",
       "kind": "Cmdlet",
+      "synopsis": "Adds grouped subtotal summary rows for a worksheet data range.",
       "aliases": [
         "ExcelSubtotal"
       ],
@@ -276,6 +303,7 @@
     {
       "name": "Add-OfficeExcelTable",
       "kind": "Cmdlet",
+      "synopsis": "Writes tabular data to the current worksheet and formats it as an Excel table.",
       "aliases": [
         "ExcelTable"
       ],
@@ -286,6 +314,7 @@
     {
       "name": "Add-OfficeExcelTableOfContents",
       "kind": "Cmdlet",
+      "synopsis": "Adds or refreshes a table-of-contents sheet with links to every sheet.",
       "aliases": [
         "ExcelTableOfContents"
       ],
@@ -296,6 +325,7 @@
     {
       "name": "Add-OfficeExcelTableRow",
       "kind": "Cmdlet",
+      "synopsis": "Appends rows to an existing Excel table.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/AddOfficeExcelTableRowCommand.cs",
       "sourceLine": 38,
@@ -304,6 +334,7 @@
     {
       "name": "Add-OfficeExcelText",
       "kind": "Cmdlet",
+      "synopsis": "Adds a styled rich-text run to the enclosing cell or comment.",
       "aliases": [
         "ExcelText"
       ],
@@ -314,6 +345,7 @@
     {
       "name": "Add-OfficeExcelValidation",
       "kind": "Cmdlet",
+      "synopsis": "Adds a data validation rule to a range or a header column.",
       "aliases": [
         "ExcelValidation"
       ],
@@ -324,6 +356,7 @@
     {
       "name": "Add-OfficeMarkdownCallout",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown callout block.",
       "aliases": [
         "MarkdownCallout"
       ],
@@ -334,6 +367,7 @@
     {
       "name": "Add-OfficeMarkdownCode",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown code block.",
       "aliases": [
         "MarkdownCode"
       ],
@@ -344,6 +378,7 @@
     {
       "name": "Add-OfficeMarkdownDefinitionList",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown definition list.",
       "aliases": [
         "MarkdownDefinitionList"
       ],
@@ -354,6 +389,7 @@
     {
       "name": "Add-OfficeMarkdownDetails",
       "kind": "Cmdlet",
+      "synopsis": "Adds a collapsible Markdown details block.",
       "aliases": [
         "MarkdownDetails"
       ],
@@ -364,6 +400,7 @@
     {
       "name": "Add-OfficeMarkdownFrontMatter",
       "kind": "Cmdlet",
+      "synopsis": "Adds YAML front matter to a Markdown document.",
       "aliases": [
         "MarkdownFrontMatter"
       ],
@@ -374,6 +411,7 @@
     {
       "name": "Add-OfficeMarkdownHeading",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown heading.",
       "aliases": [
         "MarkdownHeading"
       ],
@@ -384,6 +422,7 @@
     {
       "name": "Add-OfficeMarkdownHorizontalRule",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown horizontal rule.",
       "aliases": [
         "MarkdownHorizontalRule"
       ],
@@ -394,6 +433,7 @@
     {
       "name": "Add-OfficeMarkdownImage",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown image.",
       "aliases": [
         "MarkdownImage"
       ],
@@ -404,6 +444,7 @@
     {
       "name": "Add-OfficeMarkdownList",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown list.",
       "aliases": [
         "MarkdownList"
       ],
@@ -414,6 +455,7 @@
     {
       "name": "Add-OfficeMarkdownListItem",
       "kind": "Cmdlet",
+      "synopsis": "Adds a plain or rich item to a MarkdownList block.",
       "aliases": [
         "MarkdownListItem"
       ],
@@ -424,6 +466,7 @@
     {
       "name": "Add-OfficeMarkdownParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown paragraph.",
       "aliases": [
         "MarkdownParagraph"
       ],
@@ -434,6 +477,7 @@
     {
       "name": "Add-OfficeMarkdownQuote",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown block quote.",
       "aliases": [
         "MarkdownQuote"
       ],
@@ -444,6 +488,7 @@
     {
       "name": "Add-OfficeMarkdownTable",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown table from objects.",
       "aliases": [
         "MarkdownTable"
       ],
@@ -454,6 +499,7 @@
     {
       "name": "Add-OfficeMarkdownTableOfContents",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown table of contents placeholder.",
       "aliases": [
         "MarkdownTableOfContents"
       ],
@@ -464,6 +510,7 @@
     {
       "name": "Add-OfficeMarkdownTaskList",
       "kind": "Cmdlet",
+      "synopsis": "Adds a Markdown task list.",
       "aliases": [
         "MarkdownTaskList"
       ],
@@ -474,6 +521,7 @@
     {
       "name": "Add-OfficeMarkdownText",
       "kind": "Cmdlet",
+      "synopsis": "Adds styled Markdown text to a paragraph or list item content block.",
       "aliases": [
         "MarkdownText"
       ],
@@ -484,6 +532,7 @@
     {
       "name": "Add-OfficeOpenDocumentHeading",
       "kind": "Cmdlet",
+      "synopsis": "Adds a heading to an OpenDocument text document.",
       "aliases": [
         "OpenDocumentHeading"
       ],
@@ -494,6 +543,7 @@
     {
       "name": "Add-OfficeOpenDocumentParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Adds a paragraph to an OpenDocument text document.",
       "aliases": [
         "OpenDocumentParagraph"
       ],
@@ -504,6 +554,7 @@
     {
       "name": "Add-OfficeOpenDocumentSheet",
       "kind": "Cmdlet",
+      "synopsis": "Adds a worksheet to an OpenDocument spreadsheet and optionally runs nested cell content.",
       "aliases": [
         "OpenDocumentSheet"
       ],
@@ -514,6 +565,7 @@
     {
       "name": "Add-OfficeOpenDocumentSlide",
       "kind": "Cmdlet",
+      "synopsis": "Adds a slide to an OpenDocument presentation and optionally runs nested slide content.",
       "aliases": [
         "OpenDocumentSlide"
       ],
@@ -524,6 +576,7 @@
     {
       "name": "Add-OfficeOpenDocumentTextBox",
       "kind": "Cmdlet",
+      "synopsis": "Adds a positioned text box to an OpenDocument presentation slide.",
       "aliases": [
         "OpenDocumentTextBox"
       ],
@@ -534,6 +587,7 @@
     {
       "name": "Add-OfficePdfAttachment",
       "kind": "Cmdlet",
+      "synopsis": "Adds an embedded file attachment to a generated PDF document.",
       "aliases": [
         "PdfAttachment"
       ],
@@ -544,6 +598,7 @@
     {
       "name": "Add-OfficePdfBackgroundShape",
       "kind": "Cmdlet",
+      "synopsis": "Adds a decorative generated PDF page background shape or band.",
       "aliases": [
         "PdfBackgroundShape"
       ],
@@ -554,6 +609,7 @@
     {
       "name": "Add-OfficePdfBarcode",
       "kind": "Cmdlet",
+      "synopsis": "Adds a QR code or barcode to PDF content as a vector drawing.",
       "aliases": [
         "PdfBarcode"
       ],
@@ -564,6 +620,7 @@
     {
       "name": "Add-OfficePdfBookmark",
       "kind": "Cmdlet",
+      "synopsis": "Adds a named bookmark at the current generated PDF flow position.",
       "aliases": [
         "PdfBookmark"
       ],
@@ -574,6 +631,7 @@
     {
       "name": "Add-OfficePdfCanvasText",
       "kind": "Cmdlet",
+      "synopsis": "Adds plain or rich native text to the active PDF canvas.",
       "aliases": [
         "PdfCanvasText"
       ],
@@ -584,6 +642,7 @@
     {
       "name": "Add-OfficePdfChart",
       "kind": "Cmdlet",
+      "synopsis": "Adds a themed chart from data.",
       "aliases": [
         "PdfChart"
       ],
@@ -594,6 +653,7 @@
     {
       "name": "Add-OfficePdfColumn",
       "kind": "Cmdlet",
+      "synopsis": "Defines one column of a PdfRow and its content.",
       "aliases": [
         "PdfColumn"
       ],
@@ -604,6 +664,7 @@
     {
       "name": "Add-OfficePdfFormField",
       "kind": "Cmdlet",
+      "synopsis": "Adds a simple AcroForm field to a generated PDF document.",
       "aliases": [
         "PdfFormField"
       ],
@@ -614,6 +675,7 @@
     {
       "name": "Add-OfficePdfHeading",
       "kind": "Cmdlet",
+      "synopsis": "Adds a heading to a PDF document.",
       "aliases": [
         "PdfHeading"
       ],
@@ -624,6 +686,7 @@
     {
       "name": "Add-OfficePdfHorizontalRule",
       "kind": "Cmdlet",
+      "synopsis": "Adds a horizontal rule divider to a generated PDF document.",
       "aliases": [
         "PdfHorizontalRule"
       ],
@@ -634,6 +697,7 @@
     {
       "name": "Add-OfficePdfImage",
       "kind": "Cmdlet",
+      "synopsis": "Adds a raster image or reusable native visual to PDF content.",
       "aliases": [
         "PdfImage"
       ],
@@ -644,6 +708,7 @@
     {
       "name": "Add-OfficePdfList",
       "kind": "Cmdlet",
+      "synopsis": "Adds a bulleted or numbered list built from PdfListItem children.",
       "aliases": [
         "PdfList"
       ],
@@ -654,6 +719,7 @@
     {
       "name": "Add-OfficePdfListItem",
       "kind": "Cmdlet",
+      "synopsis": "Adds one list item, from -Text or from PdfText runs.",
       "aliases": [
         "PdfListItem"
       ],
@@ -664,6 +730,7 @@
     {
       "name": "Add-OfficePdfPageBreak",
       "kind": "Cmdlet",
+      "synopsis": "Adds a page break to a PDF document.",
       "aliases": [
         "PdfPageBreak"
       ],
@@ -674,6 +741,7 @@
     {
       "name": "Add-OfficePdfPageNumber",
       "kind": "Cmdlet",
+      "synopsis": "Inserts a live page number (optionally 'of total') inside PdfHeader or PdfFooter.",
       "aliases": [
         "PdfPageNumber"
       ],
@@ -684,6 +752,7 @@
     {
       "name": "Add-OfficePdfPanel",
       "kind": "Cmdlet",
+      "synopsis": "Adds a visually separated panel paragraph to a PDF document.",
       "aliases": [
         "PdfPanel"
       ],
@@ -694,6 +763,7 @@
     {
       "name": "Add-OfficePdfParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Adds a plain or rich PDF paragraph using PdfText children.",
       "aliases": [
         "PdfParagraph"
       ],
@@ -704,6 +774,7 @@
     {
       "name": "Add-OfficePdfRow",
       "kind": "Cmdlet",
+      "synopsis": "Adds a row of side-by-side PdfColumn blocks.",
       "aliases": [
         "PdfRow"
       ],
@@ -714,6 +785,7 @@
     {
       "name": "Add-OfficePdfSpacer",
       "kind": "Cmdlet",
+      "synopsis": "Adds invisible vertical spacing to a generated PDF document.",
       "aliases": [
         "PdfSpacer"
       ],
@@ -724,6 +796,7 @@
     {
       "name": "Add-OfficePdfStamp",
       "kind": "Cmdlet",
+      "synopsis": "Stamps text, images, native canvas content or a PDF page onto existing PDFs.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/AddOfficePdfStampCommand.cs",
       "sourceLine": 14,
@@ -732,6 +805,7 @@
     {
       "name": "Add-OfficePdfTable",
       "kind": "Cmdlet",
+      "synopsis": "Adds a table to a PDF document.",
       "aliases": [
         "PdfTable"
       ],
@@ -742,6 +816,7 @@
     {
       "name": "Add-OfficePdfText",
       "kind": "Cmdlet",
+      "synopsis": "Adds one styled run inside a PDF paragraph or running header/footer, or a standalone paragraph.",
       "aliases": [
         "PdfText"
       ],
@@ -752,6 +827,7 @@
     {
       "name": "Add-OfficePdfWatermark",
       "kind": "Cmdlet",
+      "synopsis": "Adds a generated-document text watermark.",
       "aliases": [
         "PdfWatermark"
       ],
@@ -762,6 +838,7 @@
     {
       "name": "Add-OfficePowerPointBarcode",
       "kind": "Cmdlet",
+      "synopsis": "Adds a QR code or barcode to a slide.",
       "aliases": [
         "PowerPointBarcode"
       ],
@@ -772,6 +849,7 @@
     {
       "name": "Add-OfficePowerPointCard",
       "kind": "Cmdlet",
+      "synopsis": "Adds a narrative card or logo tile to the current designed slide.",
       "aliases": [
         "PowerPointCard"
       ],
@@ -782,6 +860,7 @@
     {
       "name": "Add-OfficePowerPointChart",
       "kind": "Cmdlet",
+      "synopsis": "Adds a chart to a PowerPoint slide.",
       "aliases": [
         "PowerPointChart"
       ],
@@ -792,6 +871,7 @@
     {
       "name": "Add-OfficePowerPointColumn",
       "kind": "Cmdlet",
+      "synopsis": "Groups typed content into one column of a designed slide.",
       "aliases": [
         "PowerPointColumn"
       ],
@@ -802,6 +882,7 @@
     {
       "name": "Add-OfficePowerPointFooter",
       "kind": "Cmdlet",
+      "synopsis": "Sets a deck or logical-slide footer slot using text or native inline content.",
       "aliases": [
         "PowerPointFooter"
       ],
@@ -812,6 +893,7 @@
     {
       "name": "Add-OfficePowerPointImage",
       "kind": "Cmdlet",
+      "synopsis": "Adds a native picture from a local image, SVG or reusable visual, using the slide layout or explicit lengths.",
       "aliases": [
         "PowerPointImage"
       ],
@@ -822,6 +904,7 @@
     {
       "name": "Add-OfficePowerPointKpi",
       "kind": "Cmdlet",
+      "synopsis": "Adds a metric to the current designed slide.",
       "aliases": [
         "PowerPointKpi"
       ],
@@ -832,6 +915,7 @@
     {
       "name": "Add-OfficePowerPointList",
       "kind": "Cmdlet",
+      "synopsis": "Adds a native list through the shared layout and continuation rules.",
       "aliases": [
         "PowerPointList"
       ],
@@ -842,6 +926,7 @@
     {
       "name": "Add-OfficePowerPointListItem",
       "kind": "Cmdlet",
+      "synopsis": "Adds a native paragraph to the enclosing list, optionally using styled runs.",
       "aliases": [
         "PowerPointListItem"
       ],
@@ -852,6 +937,7 @@
     {
       "name": "Add-OfficePowerPointLocation",
       "kind": "Cmdlet",
+      "synopsis": "Adds a named location to a coverage slide.",
       "aliases": [
         "PowerPointLocation"
       ],
@@ -862,6 +948,7 @@
     {
       "name": "Add-OfficePowerPointParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Adds a plain or rich paragraph backed by native content before layout.",
       "aliases": [
         "PowerPointParagraph"
       ],
@@ -872,6 +959,7 @@
     {
       "name": "Add-OfficePowerPointQuote",
       "kind": "Cmdlet",
+      "synopsis": "Adds a quotation and attribution to the current designed slide.",
       "aliases": [
         "PowerPointQuote"
       ],
@@ -882,6 +970,7 @@
     {
       "name": "Add-OfficePowerPointSection",
       "kind": "Cmdlet",
+      "synopsis": "Starts a named section at an existing, current or next appended slide.",
       "aliases": [
         "PowerPointSection"
       ],
@@ -892,6 +981,7 @@
     {
       "name": "Add-OfficePowerPointShape",
       "kind": "Cmdlet",
+      "synopsis": "Adds a native preset shape at physical coordinates or on the theme grid.",
       "aliases": [
         "PowerPointShape"
       ],
@@ -902,6 +992,7 @@
     {
       "name": "Add-OfficePowerPointSlide",
       "kind": "Cmdlet",
+      "synopsis": "Adds a designed slide, choosing its layout from typed content unless Layout is supplied.",
       "aliases": [
         "PowerPointSlide"
       ],
@@ -912,6 +1003,7 @@
     {
       "name": "Add-OfficePowerPointSlideNumber",
       "kind": "Cmdlet",
+      "synopsis": "Inserts a native slide-number field into the current footer.",
       "aliases": [
         "PowerPointSlideNumber"
       ],
@@ -922,6 +1014,7 @@
     {
       "name": "Add-OfficePowerPointStep",
       "kind": "Cmdlet",
+      "synopsis": "Adds a process step to the current designed slide.",
       "aliases": [
         "PowerPointStep"
       ],
@@ -932,6 +1025,7 @@
     {
       "name": "Add-OfficePowerPointTable",
       "kind": "Cmdlet",
+      "synopsis": "Adds a table to a PowerPoint slide.",
       "aliases": [
         "PowerPointTable"
       ],
@@ -942,6 +1036,7 @@
     {
       "name": "Add-OfficePowerPointTableRow",
       "kind": "Cmdlet",
+      "synopsis": "Appends or inserts a row in an existing PowerPoint table.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/AddOfficePowerPointTableRowCommand.cs",
       "sourceLine": 35,
@@ -950,6 +1045,7 @@
     {
       "name": "Add-OfficePowerPointText",
       "kind": "Cmdlet",
+      "synopsis": "Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.",
       "aliases": [
         "PowerPointText"
       ],
@@ -960,6 +1056,7 @@
     {
       "name": "Add-OfficePowerPointTextBox",
       "kind": "Cmdlet",
+      "synopsis": "Adds a native text box with deliberate placement and plain or rich content.",
       "aliases": [
         "PowerPointTextBox"
       ],
@@ -970,6 +1067,7 @@
     {
       "name": "Add-OfficeProjectAssignment",
       "kind": "Cmdlet",
+      "synopsis": "Assigns a project resource to a task by stable UID.",
       "aliases": [
         "ProjectAssignment"
       ],
@@ -980,6 +1078,7 @@
     {
       "name": "Add-OfficeProjectDependency",
       "kind": "Cmdlet",
+      "synopsis": "Adds a finish-to-start relationship between two tasks.",
       "aliases": [
         "ProjectDependency"
       ],
@@ -990,6 +1089,7 @@
     {
       "name": "Add-OfficeProjectResource",
       "kind": "Cmdlet",
+      "synopsis": "Adds a work resource with an optional standard rate.",
       "aliases": [
         "ProjectResource"
       ],
@@ -1000,6 +1100,7 @@
     {
       "name": "Add-OfficeProjectTask",
       "kind": "Cmdlet",
+      "synopsis": "Adds a task or summary with a duration expressed in working days.",
       "aliases": [
         "ProjectTask"
       ],
@@ -1010,6 +1111,7 @@
     {
       "name": "Add-OfficeRtfParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Adds a paragraph to an RTF document.",
       "aliases": [
         "RtfParagraph"
       ],
@@ -1020,6 +1122,7 @@
     {
       "name": "Add-OfficeVisioConnector",
       "kind": "Cmdlet",
+      "synopsis": "Adds a connector between two Visio shapes.",
       "aliases": [
         "VisioConnector"
       ],
@@ -1030,6 +1133,7 @@
     {
       "name": "Add-OfficeVisioContainer",
       "kind": "Cmdlet",
+      "synopsis": "Creates an OfficeIMO-authored Visio-native container around existing shapes.",
       "aliases": [
         "VisioContainer"
       ],
@@ -1040,6 +1144,7 @@
     {
       "name": "Add-OfficeVisioDiamond",
       "kind": "Cmdlet",
+      "synopsis": "Adds a diamond shape to the current Visio page.",
       "aliases": [
         "VisioDiamond"
       ],
@@ -1050,6 +1155,7 @@
     {
       "name": "Add-OfficeVisioEllipse",
       "kind": "Cmdlet",
+      "synopsis": "Adds an ellipse shape to the current Visio page.",
       "aliases": [
         "VisioEllipse"
       ],
@@ -1060,6 +1166,7 @@
     {
       "name": "Add-OfficeVisioPage",
       "kind": "Cmdlet",
+      "synopsis": "Adds a page to a Visio document and optionally executes nested DSL content.",
       "aliases": [
         "VisioPage"
       ],
@@ -1070,6 +1177,7 @@
     {
       "name": "Add-OfficeVisioRectangle",
       "kind": "Cmdlet",
+      "synopsis": "Adds a rectangle shape to the current Visio page.",
       "aliases": [
         "VisioRectangle"
       ],
@@ -1080,6 +1188,7 @@
     {
       "name": "Add-OfficeVisioStencilShape",
       "kind": "Cmdlet",
+      "synopsis": "Adds a stencil shape to the current Visio page.",
       "aliases": [
         "VisioStencil"
       ],
@@ -1090,6 +1199,7 @@
     {
       "name": "Add-OfficeVisioTextBox",
       "kind": "Cmdlet",
+      "synopsis": "Adds a text box to the current Visio page.",
       "aliases": [
         "VisioTextBox"
       ],
@@ -1100,6 +1210,7 @@
     {
       "name": "Add-OfficeWordBarcode",
       "kind": "Cmdlet",
+      "synopsis": "Adds a QR code or barcode to a Word paragraph.",
       "aliases": [
         "WordBarcode"
       ],
@@ -1110,6 +1221,7 @@
     {
       "name": "Add-OfficeWordBookmark",
       "kind": "Cmdlet",
+      "synopsis": "Adds a bookmark to the current paragraph.",
       "aliases": [
         "WordBookmark"
       ],
@@ -1120,6 +1232,7 @@
     {
       "name": "Add-OfficeWordBreak",
       "kind": "Cmdlet",
+      "synopsis": "Adds a break to a Word paragraph.",
       "aliases": [
         "WordBreak"
       ],
@@ -1130,6 +1243,7 @@
     {
       "name": "Add-OfficeWordChart",
       "kind": "Cmdlet",
+      "synopsis": "Adds a chart to a Word document.",
       "aliases": [
         "WordChart"
       ],
@@ -1140,6 +1254,7 @@
     {
       "name": "Add-OfficeWordCheckBox",
       "kind": "Cmdlet",
+      "synopsis": "Adds a checkbox content control to the current paragraph.",
       "aliases": [
         "WordCheckBox"
       ],
@@ -1150,6 +1265,7 @@
     {
       "name": "Add-OfficeWordComboBox",
       "kind": "Cmdlet",
+      "synopsis": "Adds a combo box content control to the current paragraph.",
       "aliases": [
         "WordComboBox"
       ],
@@ -1160,6 +1276,7 @@
     {
       "name": "Add-OfficeWordContentControl",
       "kind": "Cmdlet",
+      "synopsis": "Adds a structured content control to the current paragraph.",
       "aliases": [
         "WordContentControl"
       ],
@@ -1170,6 +1287,7 @@
     {
       "name": "Add-OfficeWordCoverPage",
       "kind": "Cmdlet",
+      "synopsis": "Adds a built-in cover page template to a Word document.",
       "aliases": [
         "WordCoverPage"
       ],
@@ -1180,6 +1298,7 @@
     {
       "name": "Add-OfficeWordDatePicker",
       "kind": "Cmdlet",
+      "synopsis": "Adds a date picker content control to the current paragraph.",
       "aliases": [
         "WordDatePicker"
       ],
@@ -1190,6 +1309,7 @@
     {
       "name": "Add-OfficeWordDropDownList",
       "kind": "Cmdlet",
+      "synopsis": "Adds a dropdown list content control to the current paragraph.",
       "aliases": [
         "WordDropDownList"
       ],
@@ -1200,6 +1320,7 @@
     {
       "name": "Add-OfficeWordEndnote",
       "kind": "Cmdlet",
+      "synopsis": "Adds an endnote reference to a Word paragraph.",
       "aliases": [
         "WordEndnote"
       ],
@@ -1210,6 +1331,7 @@
     {
       "name": "Add-OfficeWordEquation",
       "kind": "Cmdlet",
+      "synopsis": "Adds an Office Math equation to a Word document or paragraph.",
       "aliases": [
         "WordEquation"
       ],
@@ -1220,6 +1342,7 @@
     {
       "name": "Add-OfficeWordField",
       "kind": "Cmdlet",
+      "synopsis": "Adds a field to the current paragraph.",
       "aliases": [
         "WordField"
       ],
@@ -1230,6 +1353,7 @@
     {
       "name": "Add-OfficeWordFooter",
       "kind": "Cmdlet",
+      "synopsis": "Adds content to a section footer.",
       "aliases": [
         "WordFooter"
       ],
@@ -1240,6 +1364,7 @@
     {
       "name": "Add-OfficeWordFootnote",
       "kind": "Cmdlet",
+      "synopsis": "Adds a footnote reference to a Word paragraph.",
       "aliases": [
         "WordFootnote"
       ],
@@ -1250,6 +1375,7 @@
     {
       "name": "Add-OfficeWordHeader",
       "kind": "Cmdlet",
+      "synopsis": "Adds content to a section header.",
       "aliases": [
         "WordHeader"
       ],
@@ -1260,6 +1386,7 @@
     {
       "name": "Add-OfficeWordHeading",
       "kind": "Cmdlet",
+      "synopsis": "Adds a heading using the document's built-in heading, title or subtitle style.",
       "aliases": [
         "WordHeading"
       ],
@@ -1270,6 +1397,7 @@
     {
       "name": "Add-OfficeWordImage",
       "kind": "Cmdlet",
+      "synopsis": "Embeds an image file, SVG or reusable visual in a Word paragraph.",
       "aliases": [
         "WordImage"
       ],
@@ -1280,6 +1408,7 @@
     {
       "name": "Add-OfficeWordList",
       "kind": "Cmdlet",
+      "synopsis": "Starts a list inside the current section or paragraph anchor.",
       "aliases": [
         "WordList"
       ],
@@ -1290,6 +1419,7 @@
     {
       "name": "Add-OfficeWordListItem",
       "kind": "Cmdlet",
+      "synopsis": "Adds a single list item.",
       "aliases": [
         "WordListItem"
       ],
@@ -1300,6 +1430,7 @@
     {
       "name": "Add-OfficeWordPageNumber",
       "kind": "Cmdlet",
+      "synopsis": "Adds a PAGE field to the current header/footer.",
       "aliases": [
         "WordPageNumber"
       ],
@@ -1310,6 +1441,7 @@
     {
       "name": "Add-OfficeWordParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Adds a paragraph to the current section/header/footer context.",
       "aliases": [
         "WordParagraph"
       ],
@@ -1320,6 +1452,7 @@
     {
       "name": "Add-OfficeWordPictureControl",
       "kind": "Cmdlet",
+      "synopsis": "Adds a picture content control to the current paragraph.",
       "aliases": [
         "WordPictureControl"
       ],
@@ -1330,6 +1463,7 @@
     {
       "name": "Add-OfficeWordRepeatingSection",
       "kind": "Cmdlet",
+      "synopsis": "Adds a repeating section content control to the current paragraph.",
       "aliases": [
         "WordRepeatingSection"
       ],
@@ -1340,6 +1474,7 @@
     {
       "name": "Add-OfficeWordSection",
       "kind": "Cmdlet",
+      "synopsis": "Adds or reuses a section inside the current Word document.",
       "aliases": [
         "WordSection"
       ],
@@ -1350,6 +1485,7 @@
     {
       "name": "Add-OfficeWordShape",
       "kind": "Cmdlet",
+      "synopsis": "Adds a basic OfficeIMO Word shape to the current paragraph.",
       "aliases": [
         "WordShape"
       ],
@@ -1360,6 +1496,7 @@
     {
       "name": "Add-OfficeWordTable",
       "kind": "Cmdlet",
+      "synopsis": "Creates a table from PowerShell objects.",
       "aliases": [
         "WordTable"
       ],
@@ -1370,6 +1507,7 @@
     {
       "name": "Add-OfficeWordTableCell",
       "kind": "Cmdlet",
+      "synopsis": "Enters a specific table cell and executes nested DSL content inside it.",
       "aliases": [
         "WordTableCell"
       ],
@@ -1380,6 +1518,7 @@
     {
       "name": "Add-OfficeWordTableCondition",
       "kind": "Cmdlet",
+      "synopsis": "Attaches conditional formatting logic to the current table.",
       "aliases": [
         "WordTableCondition"
       ],
@@ -1390,6 +1529,7 @@
     {
       "name": "Add-OfficeWordTableOfContents",
       "kind": "Cmdlet",
+      "synopsis": "Adds a table of contents to a Word document.",
       "aliases": [
         "WordTableOfContents"
       ],
@@ -1400,6 +1540,7 @@
     {
       "name": "Add-OfficeWordTableRow",
       "kind": "Cmdlet",
+      "synopsis": "Appends a row to an existing Word table.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/AddOfficeWordTableRowCommand.cs",
       "sourceLine": 37,
@@ -1408,6 +1549,7 @@
     {
       "name": "Add-OfficeWordTabStop",
       "kind": "Cmdlet",
+      "synopsis": "Adds a tab stop to a Word paragraph.",
       "aliases": [
         "WordTabStop"
       ],
@@ -1418,6 +1560,7 @@
     {
       "name": "Add-OfficeWordText",
       "kind": "Cmdlet",
+      "synopsis": "Adds styled text or a hyperlink to the current or given Word paragraph.",
       "aliases": [
         "WordText"
       ],
@@ -1428,6 +1571,7 @@
     {
       "name": "Add-OfficeWordTextBox",
       "kind": "Cmdlet",
+      "synopsis": "Adds an OfficeIMO Word text box to the current Word DSL location.",
       "aliases": [
         "WordTextBox"
       ],
@@ -1438,6 +1582,7 @@
     {
       "name": "Add-OfficeWordWatermark",
       "kind": "Cmdlet",
+      "synopsis": "Adds a watermark to the current section or header.",
       "aliases": [
         "WordWatermark"
       ],
@@ -1448,6 +1593,7 @@
     {
       "name": "Clear-OfficeExcelAutoFilter",
       "kind": "Cmdlet",
+      "synopsis": "Clears any AutoFilter on the current worksheet.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ClearOfficeExcelAutoFilterCommand.cs",
       "sourceLine": 28,
@@ -1456,6 +1602,7 @@
     {
       "name": "Clear-OfficeExcelRange",
       "kind": "Cmdlet",
+      "synopsis": "Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ClearOfficeExcelRangeCommand.cs",
       "sourceLine": 35,
@@ -1464,6 +1611,7 @@
     {
       "name": "Close-OfficeAccess",
       "kind": "Cmdlet",
+      "synopsis": "Closes a native database without implicitly saving it.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Access/CloseOfficeAccessCommand.cs",
       "sourceLine": 14,
@@ -1472,6 +1620,7 @@
     {
       "name": "Close-OfficeEpub",
       "kind": "Cmdlet",
+      "synopsis": "Completes an EPUB publication's lifecycle without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/CloseOfficeEpubCommand.cs",
       "sourceLine": 10,
@@ -1480,6 +1629,7 @@
     {
       "name": "Close-OfficeExcel",
       "kind": "Cmdlet",
+      "synopsis": "Closes a live Excel workbook without saving pending changes.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/CloseOfficeExcelCommand.cs",
       "sourceLine": 30,
@@ -1488,6 +1638,7 @@
     {
       "name": "Close-OfficeMarkdown",
       "kind": "Cmdlet",
+      "synopsis": "Completes a live Markdown document's lifetime without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/CloseOfficeMarkdownCommand.cs",
       "sourceLine": 10,
@@ -1496,6 +1647,7 @@
     {
       "name": "Close-OfficeOpenDocument",
       "kind": "Cmdlet",
+      "synopsis": "Releases a live OpenDocument document without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/CloseOfficeOpenDocumentCommand.cs",
       "sourceLine": 10,
@@ -1504,6 +1656,7 @@
     {
       "name": "Close-OfficePdf",
       "kind": "Cmdlet",
+      "synopsis": "Completes a live PDF document's lifetime without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/CloseOfficePdfCommand.cs",
       "sourceLine": 10,
@@ -1512,6 +1665,7 @@
     {
       "name": "Close-OfficePowerPoint",
       "kind": "Cmdlet",
+      "synopsis": "Closes a live presentation without saving it.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/CloseOfficePowerPointCommand.cs",
       "sourceLine": 17,
@@ -1520,6 +1674,7 @@
     {
       "name": "Close-OfficeProject",
       "kind": "Cmdlet",
+      "synopsis": "Closes a project without implicitly saving it.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/CloseOfficeProjectCommand.cs",
       "sourceLine": 14,
@@ -1528,6 +1683,7 @@
     {
       "name": "Close-OfficeRtf",
       "kind": "Cmdlet",
+      "synopsis": "Releases an RtfDocument without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/CloseOfficeRtfCommand.cs",
       "sourceLine": 15,
@@ -1536,6 +1692,7 @@
     {
       "name": "Close-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Completes a live TOML document's lifetime without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/CloseOfficeTomlCommand.cs",
       "sourceLine": 14,
@@ -1544,6 +1701,7 @@
     {
       "name": "Close-OfficeVisio",
       "kind": "Cmdlet",
+      "synopsis": "Releases a live Visio document without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/CloseOfficeVisioCommand.cs",
       "sourceLine": 10,
@@ -1552,6 +1710,7 @@
     {
       "name": "Close-OfficeWord",
       "kind": "Cmdlet",
+      "synopsis": "Closes one or more tracked Word documents, optionally saving them.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/CloseOfficeWordCommand.cs",
       "sourceLine": 30,
@@ -1560,6 +1719,7 @@
     {
       "name": "Close-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Completes a live YAML document's lifetime without saving.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/CloseOfficeYamlCommand.cs",
       "sourceLine": 14,
@@ -1568,6 +1728,7 @@
     {
       "name": "Compare-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Compares native document content or rendered pages and optionally publishes a review artifact.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/CompareOfficeDocumentCommand.cs",
       "sourceLine": 23,
@@ -1576,6 +1737,7 @@
     {
       "name": "Compare-OfficeExcelRange",
       "kind": "Cmdlet",
+      "synopsis": "Compares two worksheets or ranges cell by cell.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/CompareOfficeExcelRangeCommand.cs",
       "sourceLine": 34,
@@ -1584,6 +1746,7 @@
     {
       "name": "Convert-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Converts files through OfficeIMO's native routes and portable batch engine.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs",
       "sourceLine": 31,
@@ -1592,6 +1755,7 @@
     {
       "name": "ConvertFrom-OfficeCsv",
       "kind": "Cmdlet",
+      "synopsis": "Converts CSV text into PSCustomObjects, dictionaries, a DataTable, a data reader or a CsvDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ConvertFromOfficeCsvCommand.cs",
       "sourceLine": 33,
@@ -1600,6 +1764,7 @@
     {
       "name": "ConvertFrom-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Converts TOML text to PowerShell objects, as ConvertFrom-Json does for JSON.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/ConvertFromOfficeTomlCommand.cs",
       "sourceLine": 21,
@@ -1608,6 +1773,7 @@
     {
       "name": "ConvertFrom-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Converts YAML text to PowerShell objects, as ConvertFrom-Json does for JSON.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/ConvertFromOfficeYamlCommand.cs",
       "sourceLine": 23,
@@ -1616,6 +1782,7 @@
     {
       "name": "ConvertTo-OfficeCsv",
       "kind": "Cmdlet",
+      "synopsis": "Converts objects or a CSV document into CSV text.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ConvertToOfficeCsvCommand.cs",
       "sourceLine": 34,
@@ -1624,6 +1791,7 @@
     {
       "name": "ConvertTo-OfficeDocumentImage",
       "kind": "Cmdlet",
+      "synopsis": "Renders native pages, slides, sheets, ranges or charts to image results without writing files.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertToOfficeDocumentImageCommand.cs",
       "sourceLine": 19,
@@ -1632,6 +1800,7 @@
     {
       "name": "ConvertTo-OfficeMarkdown",
       "kind": "Cmdlet",
+      "synopsis": "Converts objects into a Markdown table.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/ConvertToOfficeMarkdownCommand.cs",
       "sourceLine": 30,
@@ -1640,6 +1809,7 @@
     {
       "name": "ConvertTo-OfficeProjectTable",
       "kind": "Cmdlet",
+      "synopsis": "Maps PowerShell rows to a bounded project entity table.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/ConvertToOfficeProjectTableCommand.cs",
       "sourceLine": 14,
@@ -1648,6 +1818,7 @@
     {
       "name": "ConvertTo-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Converts PowerShell objects to TOML text, as ConvertTo-Json does for JSON.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/ConvertToOfficeTomlCommand.cs",
       "sourceLine": 20,
@@ -1656,6 +1827,7 @@
     {
       "name": "ConvertTo-OfficeVisioVisual",
       "kind": "Cmdlet",
+      "synopsis": "Converts CFX semantic visual-artifact input into a native editable OfficeIMO.Visio document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/ConvertToOfficeVisioVisualCommand.cs",
       "sourceLine": 17,
@@ -1664,6 +1836,7 @@
     {
       "name": "ConvertTo-OfficeVisual",
       "kind": "Cmdlet",
+      "synopsis": "Converts a ChartForgeX visual artifact into a reusable OfficeIMO representation.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visuals/ConvertToOfficeVisualCommand.cs",
       "sourceLine": 16,
@@ -1672,6 +1845,7 @@
     {
       "name": "ConvertTo-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Converts PowerShell objects to YAML text, as ConvertTo-Json does for JSON.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/ConvertToOfficeYamlCommand.cs",
       "sourceLine": 20,
@@ -1680,6 +1854,7 @@
     {
       "name": "Copy-OfficeExcelSheet",
       "kind": "Cmdlet",
+      "synopsis": "Copies selected worksheets within a workbook or from another workbook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/CopyOfficeExcelSheetCommand.cs",
       "sourceLine": 35,
@@ -1688,6 +1863,7 @@
     {
       "name": "Copy-OfficePdfPage",
       "kind": "Cmdlet",
+      "synopsis": "Copy PDF pages through the native PDF engine.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/CopyOfficePdfPageCommand.cs",
       "sourceLine": 11,
@@ -1696,6 +1872,7 @@
     {
       "name": "Copy-OfficePowerPointSlide",
       "kind": "Cmdlet",
+      "synopsis": "Copies a native slide within its document, preserving its content and relationships.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/CopyOfficePowerPointSlideCommand.cs",
       "sourceLine": 14,
@@ -1704,6 +1881,7 @@
     {
       "name": "Edit-OfficeExcelRow",
       "kind": "Cmdlet",
+      "synopsis": "Runs a script block against each editable row of a range and writes the changes back.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/EditOfficeExcelRowCommand.cs",
       "sourceLine": 49,
@@ -1712,6 +1890,7 @@
     {
       "name": "Export-OfficeCsv",
       "kind": "Cmdlet",
+      "synopsis": "Exports objects or a CSV document to a CSV file.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ExportOfficeCsvCommand.cs",
       "sourceLine": 25,
@@ -1720,6 +1899,7 @@
     {
       "name": "Export-OfficeDocumentAsset",
       "kind": "Cmdlet",
+      "synopsis": "Writes document media, tables or visuals using the native Reader materializers.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/ExportOfficeDocumentAssetCommand.cs",
       "sourceLine": 20,
@@ -1728,6 +1908,7 @@
     {
       "name": "Export-OfficeDocumentImage",
       "kind": "Cmdlet",
+      "synopsis": "Renders native pages, slides, sheets, ranges or charts and saves each image atomically.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs",
       "sourceLine": 19,
@@ -1736,6 +1917,7 @@
     {
       "name": "Export-OfficeExcel",
       "kind": "Cmdlet",
+      "synopsis": "Exports PowerShell objects to an Excel workbook using an operator-friendly surface.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelCommand.cs",
       "sourceLine": 49,
@@ -1744,6 +1926,7 @@
     {
       "name": "Export-OfficeExcelGoogleSpreadsheet",
       "kind": "Cmdlet",
+      "synopsis": "Plans, compiles or exports Excel workbooks to Google Sheets.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelGoogleSpreadsheetCommand.cs",
       "sourceLine": 51,
@@ -1752,6 +1935,7 @@
     {
       "name": "Export-OfficePdfLayoutOverlay",
       "kind": "Cmdlet",
+      "synopsis": "Exports native PDF word, line, region and reading-order diagnostics as PNG or SVG.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfLayoutOverlayCommand.cs",
       "sourceLine": 15,
@@ -1760,6 +1944,7 @@
     {
       "name": "Export-OfficePdfXfdf",
       "kind": "Cmdlet",
+      "synopsis": "Exports native PDF form values as XFDF XML or atomically published XFDF files.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficePdfXfdfCommand.cs",
       "sourceLine": 14,
@@ -1768,6 +1953,7 @@
     {
       "name": "Export-OfficePowerPoint",
       "kind": "Cmdlet",
+      "synopsis": "Exports objects as a designed presentation with editable tables and optional charts.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointCommand.cs",
       "sourceLine": 20,
@@ -1776,6 +1962,7 @@
     {
       "name": "Export-OfficeProjectReport",
       "kind": "Cmdlet",
+      "synopsis": "Exports a captured Project report through the shared PDF, HTML, Word, Excel or PowerPoint adapters.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/ExportOfficeProjectReportCommand.cs",
       "sourceLine": 22,
@@ -1784,6 +1971,7 @@
     {
       "name": "Export-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Writes PowerShell objects to a TOML file; the file form of ConvertTo-OfficeToml.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/ExportOfficeTomlCommand.cs",
       "sourceLine": 18,
@@ -1792,6 +1980,7 @@
     {
       "name": "Export-OfficeVisioStencilPreviewGallery",
       "kind": "Cmdlet",
+      "synopsis": "Exports preview artwork from a Visio stencil package into a browsable HTML gallery.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioStencilPreviewGalleryCommand.cs",
       "sourceLine": 19,
@@ -1800,6 +1989,7 @@
     {
       "name": "Export-OfficeVisioVisual",
       "kind": "Cmdlet",
+      "synopsis": "Exports CFX semantic visual-artifact input as a native editable VSDX diagram.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/ExportOfficeVisioVisualCommand.cs",
       "sourceLine": 19,
@@ -1808,6 +1998,7 @@
     {
       "name": "Export-OfficeWord",
       "kind": "Cmdlet",
+      "synopsis": "Exports PowerShell objects to a Word document containing an editable table.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordCommand.cs",
       "sourceLine": 19,
@@ -1816,6 +2007,7 @@
     {
       "name": "Export-OfficeWordGoogleDocument",
       "kind": "Cmdlet",
+      "synopsis": "Plans, compiles or exports Word documents to Google Docs.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordGoogleDocumentCommand.cs",
       "sourceLine": 26,
@@ -1824,6 +2016,7 @@
     {
       "name": "Export-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Writes PowerShell objects to a YAML file; the file form of ConvertTo-OfficeYaml.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/ExportOfficeYamlCommand.cs",
       "sourceLine": 19,
@@ -1832,6 +2025,7 @@
     {
       "name": "Find-OfficeExcel",
       "kind": "Cmdlet",
+      "synopsis": "Finds cells whose values match a pattern in a workbook, sheet or range.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/FindOfficeExcelCommand.cs",
       "sourceLine": 29,
@@ -1840,6 +2034,7 @@
     {
       "name": "Find-OfficeVisioStencil",
       "kind": "Cmdlet",
+      "synopsis": "Searches OfficeIMO Visio stencil catalogs.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/FindOfficeVisioStencilCommand.cs",
       "sourceLine": 17,
@@ -1848,6 +2043,7 @@
     {
       "name": "Get-OfficeAccessRow",
       "kind": "Cmdlet",
+      "synopsis": "Streams native or modeled table rows as PowerShell objects.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Access/GetOfficeAccessRowCommand.cs",
       "sourceLine": 15,
@@ -1856,6 +2052,7 @@
     {
       "name": "Get-OfficeAccessTable",
       "kind": "Cmdlet",
+      "synopsis": "Lists native table definitions and schema without executing their content.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Access/GetOfficeAccessTableCommand.cs",
       "sourceLine": 15,
@@ -1864,6 +2061,7 @@
     {
       "name": "Get-OfficeConfluenceAttachment",
       "kind": "Cmdlet",
+      "synopsis": "Lists or downloads Confluence page attachments.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluenceAttachmentCommand.cs",
       "sourceLine": 17,
@@ -1872,6 +2070,7 @@
     {
       "name": "Get-OfficeConfluencePage",
       "kind": "Cmdlet",
+      "synopsis": "Reads one page or streams a filtered Confluence Cloud page listing.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs",
       "sourceLine": 17,
@@ -1880,6 +2079,7 @@
     {
       "name": "Get-OfficeDocumentCapability",
       "kind": "Cmdlet",
+      "synopsis": "Lists installed reading, conversion and protection capabilities from their canonical catalogs.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentCapabilityCommand.cs",
       "sourceLine": 17,
@@ -1888,6 +2088,7 @@
     {
       "name": "Get-OfficeDocumentInfo",
       "kind": "Cmdlet",
+      "synopsis": "Inspects format, native counts and encryption without changing a source or reopening a live document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/GetOfficeDocumentInfoCommand.cs",
       "sourceLine": 19,
@@ -1896,6 +2097,7 @@
     {
       "name": "Get-OfficeDocumentProvenance",
       "kind": "Cmdlet",
+      "synopsis": "Collects structural, text-integrity, and optional provider verification evidence for a file.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/GetOfficeDocumentProvenanceCommand.cs",
       "sourceLine": 27,
@@ -1904,6 +2106,7 @@
     {
       "name": "Get-OfficeEpubChapter",
       "kind": "Cmdlet",
+      "synopsis": "Projects chapters to searchable PowerShell objects.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/GetOfficeEpubChapterCommand.cs",
       "sourceLine": 15,
@@ -1912,6 +2115,7 @@
     {
       "name": "Get-OfficeExcelComment",
       "kind": "Cmdlet",
+      "synopsis": "Gets notes and threaded comments that match a filter.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelCommentCommand.cs",
       "sourceLine": 26,
@@ -1920,6 +2124,7 @@
     {
       "name": "Get-OfficeExcelConditionalFormat",
       "kind": "Cmdlet",
+      "synopsis": "Gets native conditional formatting snapshots, with worksheet and source-path metadata.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelConditionalFormatCommand.cs",
       "sourceLine": 23,
@@ -1928,6 +2133,7 @@
     {
       "name": "Get-OfficeExcelDataModel",
       "kind": "Cmdlet",
+      "synopsis": "Reports connection, query-table, data-model and external-link parts in a workbook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelDataModelCommand.cs",
       "sourceLine": 27,
@@ -1936,6 +2142,7 @@
     {
       "name": "Get-OfficeExcelDocumentProperty",
       "kind": "Cmdlet",
+      "synopsis": "Gets built-in, application and custom document properties.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelDocumentPropertyCommand.cs",
       "sourceLine": 27,
@@ -1944,6 +2151,7 @@
     {
       "name": "Get-OfficeExcelFormula",
       "kind": "Cmdlet",
+      "synopsis": "Lists native formula records, optionally filtered by worksheet, volatile functions or external references.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelFormulaCommand.cs",
       "sourceLine": 26,
@@ -1952,6 +2160,7 @@
     {
       "name": "Get-OfficeExcelNamedRange",
       "kind": "Cmdlet",
+      "synopsis": "Gets defined names from a workbook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelNamedRangeCommand.cs",
       "sourceLine": 27,
@@ -1960,6 +2169,7 @@
     {
       "name": "Get-OfficeExcelNumberFormatPreset",
       "kind": "Cmdlet",
+      "synopsis": "Lists OfficeIMO Excel number format presets and their format codes.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelNumberFormatPresetCommand.cs",
       "sourceLine": 19,
@@ -1968,6 +2178,7 @@
     {
       "name": "Get-OfficeExcelPageBreak",
       "kind": "Cmdlet",
+      "synopsis": "Lists manual print page breaks without changing a workbook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelPageBreakCommand.cs",
       "sourceLine": 24,
@@ -1976,6 +2187,7 @@
     {
       "name": "Get-OfficeExcelPivotTable",
       "kind": "Cmdlet",
+      "synopsis": "Lists pivot tables in a workbook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelPivotTableCommand.cs",
       "sourceLine": 26,
@@ -1984,6 +2196,7 @@
     {
       "name": "Get-OfficeExcelRichText",
       "kind": "Cmdlet",
+      "synopsis": "Gets the rich-text runs of a cell.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelRichTextCommand.cs",
       "sourceLine": 27,
@@ -1992,6 +2205,7 @@
     {
       "name": "Get-OfficeExcelSheetView",
       "kind": "Cmdlet",
+      "synopsis": "Gets frozen panes, gridlines, direction, zoom and view mode for worksheets.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelSheetViewCommand.cs",
       "sourceLine": 26,
@@ -2000,6 +2214,7 @@
     {
       "name": "Get-OfficeExcelTable",
       "kind": "Cmdlet",
+      "synopsis": "Lists the tables defined in a workbook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelTableCommand.cs",
       "sourceLine": 27,
@@ -2008,6 +2223,7 @@
     {
       "name": "Get-OfficeExcelTableStyle",
       "kind": "Cmdlet",
+      "synopsis": "Lists built-in Excel table styles and compatibility recommendations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelTableStyleCommand.cs",
       "sourceLine": 18,
@@ -2016,6 +2232,7 @@
     {
       "name": "Get-OfficeExcelTemplateMarker",
       "kind": "Cmdlet",
+      "synopsis": "Lists template markers and, with -Value, which are bound.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelTemplateMarkerCommand.cs",
       "sourceLine": 27,
@@ -2024,6 +2241,7 @@
     {
       "name": "Get-OfficeExcelValidation",
       "kind": "Cmdlet",
+      "synopsis": "Gets native data validation snapshots, with worksheet and source-path metadata.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/GetOfficeExcelValidationCommand.cs",
       "sourceLine": 25,
@@ -2032,6 +2250,7 @@
     {
       "name": "Get-OfficeHiddenData",
       "kind": "Cmdlet",
+      "synopsis": "Reports the metadata and hidden data that would leave with a file. The file is never changed.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/GetOfficeHiddenDataCommand.cs",
       "sourceLine": 24,
@@ -2040,6 +2259,7 @@
     {
       "name": "Get-OfficeMarkdownFrontMatter",
       "kind": "Cmdlet",
+      "synopsis": "Gets top-level YAML or TOML front matter entries from a Markdown document as Key, Value, Node and SourceSpan objects.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownFrontMatterCommand.cs",
       "sourceLine": 29,
@@ -2048,6 +2268,7 @@
     {
       "name": "Get-OfficeMarkdownHeading",
       "kind": "Cmdlet",
+      "synopsis": "Gets heading metadata from a Markdown document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownHeadingCommand.cs",
       "sourceLine": 24,
@@ -2056,6 +2277,7 @@
     {
       "name": "Get-OfficeMarkdownNode",
       "kind": "Cmdlet",
+      "synopsis": "Gets the OfficeIMO.Markdown object tree from Markdown content.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownNodeCommand.cs",
       "sourceLine": 26,
@@ -2064,6 +2286,7 @@
     {
       "name": "Get-OfficeMarkdownTable",
       "kind": "Cmdlet",
+      "synopsis": "Gets Markdown tables from a Markdown document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/GetOfficeMarkdownTableCommand.cs",
       "sourceLine": 17,
@@ -2072,6 +2295,7 @@
     {
       "name": "Get-OfficePdfAnnotation",
       "kind": "Cmdlet",
+      "synopsis": "Gets page annotations and action evidence from a PDF.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfAnnotationCommand.cs",
       "sourceLine": 12,
@@ -2080,6 +2304,7 @@
     {
       "name": "Get-OfficePdfAttachment",
       "kind": "Cmdlet",
+      "synopsis": "Lists embedded files, or extracts them with -OutputDirectory.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfAttachmentCommand.cs",
       "sourceLine": 13,
@@ -2088,6 +2313,7 @@
     {
       "name": "Get-OfficePdfCompliance",
       "kind": "Cmdlet",
+      "synopsis": "Gets a generated PDF document compliance readiness report.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfComplianceCommand.cs",
       "sourceLine": 22,
@@ -2096,6 +2322,7 @@
     {
       "name": "Get-OfficePdfDiagnostic",
       "kind": "Cmdlet",
+      "synopsis": "Returns native PDF structure, preflight, incremental, optimization or generated-text diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfDiagnosticCommand.cs",
       "sourceLine": 13,
@@ -2104,6 +2331,7 @@
     {
       "name": "Get-OfficePdfFont",
       "kind": "Cmdlet",
+      "synopsis": "Lists fonts with embedding and ToUnicode diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfFontCommand.cs",
       "sourceLine": 13,
@@ -2112,6 +2340,7 @@
     {
       "name": "Get-OfficePdfFormField",
       "kind": "Cmdlet",
+      "synopsis": "Gets simple AcroForm fields from a PDF.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfFormFieldCommand.cs",
       "sourceLine": 20,
@@ -2120,6 +2349,7 @@
     {
       "name": "Get-OfficePdfImage",
       "kind": "Cmdlet",
+      "synopsis": "Lists image resources, or extracts them with -OutputDirectory.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfImageCommand.cs",
       "sourceLine": 13,
@@ -2128,6 +2358,7 @@
     {
       "name": "Get-OfficePdfInteractionMap",
       "kind": "Cmdlet",
+      "synopsis": "Builds text-selection and interactive hit regions for one page.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfInteractionMapCommand.cs",
       "sourceLine": 13,
@@ -2136,6 +2367,7 @@
     {
       "name": "Get-OfficePdfRedactionPlan",
       "kind": "Cmdlet",
+      "synopsis": "Previews explicit, literal-text or bounded regular-expression redaction selections without changing PDF content.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfRedactionPlanCommand.cs",
       "sourceLine": 12,
@@ -2144,6 +2376,7 @@
     {
       "name": "Get-OfficePdfSignature",
       "kind": "Cmdlet",
+      "synopsis": "Reports signature fields, byte ranges, DocMDP, DSS/LTV evidence and preservation markers.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePdfSignatureCommand.cs",
       "sourceLine": 13,
@@ -2152,6 +2385,7 @@
     {
       "name": "Get-OfficePowerPointLayout",
       "kind": "Cmdlet",
+      "synopsis": "Lists template layouts from all masters, or one selected master.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutCommand.cs",
       "sourceLine": 17,
@@ -2160,6 +2394,7 @@
     {
       "name": "Get-OfficePowerPointLayoutBox",
       "kind": "Cmdlet",
+      "synopsis": "Computes native content, column or row boxes for manual placement.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointLayoutBoxCommand.cs",
       "sourceLine": 18,
@@ -2168,6 +2403,7 @@
     {
       "name": "Get-OfficePowerPointNotes",
       "kind": "Cmdlet",
+      "synopsis": "Reads speaker notes without creating empty notes parts.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointNotesCommand.cs",
       "sourceLine": 15,
@@ -2176,6 +2412,7 @@
     {
       "name": "Get-OfficePowerPointPlaceholder",
       "kind": "Cmdlet",
+      "synopsis": "Gets native slide placeholders or metadata from the selected slide's template layout.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointPlaceholderCommand.cs",
       "sourceLine": 15,
@@ -2184,6 +2421,7 @@
     {
       "name": "Get-OfficePowerPointSection",
       "kind": "Cmdlet",
+      "synopsis": "Reads sections from a live presentation, optionally matching a PowerShell wildcard pattern.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointSectionCommand.cs",
       "sourceLine": 16,
@@ -2192,6 +2430,7 @@
     {
       "name": "Get-OfficePowerPointShape",
       "kind": "Cmdlet",
+      "synopsis": "Gets editable shape summaries, with optional text, name, kind and position filters.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointShapeCommand.cs",
       "sourceLine": 17,
@@ -2200,6 +2439,7 @@
     {
       "name": "Get-OfficePowerPointSlide",
       "kind": "Cmdlet",
+      "synopsis": "Gets editable slides from a live document, or detached slide summaries from files.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointSlideCommand.cs",
       "sourceLine": 15,
@@ -2208,6 +2448,7 @@
     {
       "name": "Get-OfficePowerPointTheme",
       "kind": "Cmdlet",
+      "synopsis": "Reads the selected slide master's theme, colors and fonts.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/GetOfficePowerPointThemeCommand.cs",
       "sourceLine": 20,
@@ -2216,6 +2457,7 @@
     {
       "name": "Get-OfficePrinter",
       "kind": "Cmdlet",
+      "synopsis": "Lists system printer queues, or the paper sources of a named queue. Requires PowerShell 7.4 or newer.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePrinterCommand.cs",
       "sourceLine": 17,
@@ -2224,6 +2466,7 @@
     {
       "name": "Get-OfficePrinterCapability",
       "kind": "Cmdlet",
+      "synopsis": "Reports the media, paper sources, duplex, color, resolution and copy capabilities of a printer queue or IPP printer. Requires PowerShell 7.4 or newer.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePrinterCapabilityCommand.cs",
       "sourceLine": 17,
@@ -2232,6 +2475,7 @@
     {
       "name": "Get-OfficePrintJob",
       "kind": "Cmdlet",
+      "synopsis": "Reports the state of a print job submitted with Send-OfficePrinter, optionally waiting until it finishes. Requires PowerShell 7.4 or newer.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/GetOfficePrintJobCommand.cs",
       "sourceLine": 19,
@@ -2240,6 +2484,7 @@
     {
       "name": "Get-OfficeProjectAssignment",
       "kind": "Cmdlet",
+      "synopsis": "Returns project assignments.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectAssignmentCommand.cs",
       "sourceLine": 15,
@@ -2248,6 +2493,7 @@
     {
       "name": "Get-OfficeProjectDependency",
       "kind": "Cmdlet",
+      "synopsis": "Returns project dependencies.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectDependencyCommand.cs",
       "sourceLine": 15,
@@ -2256,6 +2502,7 @@
     {
       "name": "Get-OfficeProjectResource",
       "kind": "Cmdlet",
+      "synopsis": "Returns project resources.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectResourceCommand.cs",
       "sourceLine": 15,
@@ -2264,6 +2511,7 @@
     {
       "name": "Get-OfficeProjectTable",
       "kind": "Cmdlet",
+      "synopsis": "Returns mapped project tables and explicit projection-loss notices.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectTableCommand.cs",
       "sourceLine": 15,
@@ -2272,6 +2520,7 @@
     {
       "name": "Get-OfficeProjectTask",
       "kind": "Cmdlet",
+      "synopsis": "Returns project tasks as pipeline objects.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectTaskCommand.cs",
       "sourceLine": 16,
@@ -2280,6 +2529,7 @@
     {
       "name": "Get-OfficeProjectView",
       "kind": "Cmdlet",
+      "synopsis": "Captures a portable report from a current calculated schedule.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/GetOfficeProjectViewCommand.cs",
       "sourceLine": 15,
@@ -2288,6 +2538,7 @@
     {
       "name": "Get-OfficeTomlNode",
       "kind": "Cmdlet",
+      "synopsis": "Gets nodes of a live TOML document by path, as Path, Value, Node, Line and Column objects.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/GetOfficeTomlNodeCommand.cs",
       "sourceLine": 21,
@@ -2296,6 +2547,7 @@
     {
       "name": "Get-OfficeWordBookmark",
       "kind": "Cmdlet",
+      "synopsis": "Gets bookmarks, optionally by name (wildcards).",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordBookmarkCommand.cs",
       "sourceLine": 10,
@@ -2304,6 +2556,7 @@
     {
       "name": "Get-OfficeWordContentControl",
       "kind": "Cmdlet",
+      "synopsis": "Gets typed native content controls filtered by family, alias, tag, rendered text or checkbox state.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordContentControlCommand.cs",
       "sourceLine": 12,
@@ -2312,6 +2565,7 @@
     {
       "name": "Get-OfficeWordDocumentProperty",
       "kind": "Cmdlet",
+      "synopsis": "Gets built-in and custom document properties.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordDocumentPropertyCommand.cs",
       "sourceLine": 11,
@@ -2320,6 +2574,7 @@
     {
       "name": "Get-OfficeWordEndnote",
       "kind": "Cmdlet",
+      "synopsis": "Gets endnotes of a document or section.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordEndnoteCommand.cs",
       "sourceLine": 10,
@@ -2328,6 +2583,7 @@
     {
       "name": "Get-OfficeWordField",
       "kind": "Cmdlet",
+      "synopsis": "Gets fields, filtered by type or field code text.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordFieldCommand.cs",
       "sourceLine": 10,
@@ -2336,6 +2592,7 @@
     {
       "name": "Get-OfficeWordFootnote",
       "kind": "Cmdlet",
+      "synopsis": "Gets footnotes of a document or section.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordFootnoteCommand.cs",
       "sourceLine": 10,
@@ -2344,6 +2601,7 @@
     {
       "name": "Get-OfficeWordHyperlink",
       "kind": "Cmdlet",
+      "synopsis": "Gets hyperlinks, filtered by text, URL or bookmark anchor.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordHyperlinkCommand.cs",
       "sourceLine": 10,
@@ -2352,6 +2610,7 @@
     {
       "name": "Get-OfficeWordImage",
       "kind": "Cmdlet",
+      "synopsis": "Gets images from a document, section or paragraph.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordImageCommand.cs",
       "sourceLine": 10,
@@ -2360,6 +2619,7 @@
     {
       "name": "Get-OfficeWordList",
       "kind": "Cmdlet",
+      "synopsis": "Gets lists, optionally only those with an item matching a pattern.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordListCommand.cs",
       "sourceLine": 12,
@@ -2368,6 +2628,7 @@
     {
       "name": "Get-OfficeWordParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Gets paragraphs from a document or section, optionally only those matching a pattern.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordParagraphCommand.cs",
       "sourceLine": 12,
@@ -2376,6 +2637,7 @@
     {
       "name": "Get-OfficeWordReview",
       "kind": "Cmdlet",
+      "synopsis": "Reports comments, threads, tracked revisions and unsupported review metadata.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordReviewCommand.cs",
       "sourceLine": 10,
@@ -2384,6 +2646,7 @@
     {
       "name": "Get-OfficeWordSection",
       "kind": "Cmdlet",
+      "synopsis": "Gets sections of a document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordSectionCommand.cs",
       "sourceLine": 10,
@@ -2392,6 +2655,7 @@
     {
       "name": "Get-OfficeWordShape",
       "kind": "Cmdlet",
+      "synopsis": "Gets shapes from a document, section or paragraph.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordShapeCommand.cs",
       "sourceLine": 10,
@@ -2400,6 +2664,7 @@
     {
       "name": "Get-OfficeWordTable",
       "kind": "Cmdlet",
+      "synopsis": "Gets tables, optionally only those with a cell matching a pattern.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordTableCommand.cs",
       "sourceLine": 12,
@@ -2408,6 +2673,7 @@
     {
       "name": "Get-OfficeWordTableCell",
       "kind": "Cmdlet",
+      "synopsis": "Gets cells from an OfficeIMO Word table.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordTableCellCommand.cs",
       "sourceLine": 18,
@@ -2416,6 +2682,7 @@
     {
       "name": "Get-OfficeWordTableOfContents",
       "kind": "Cmdlet",
+      "synopsis": "Gets the table of contents of a document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordTableOfContentsCommand.cs",
       "sourceLine": 10,
@@ -2424,6 +2691,7 @@
     {
       "name": "Get-OfficeWordText",
       "kind": "Cmdlet",
+      "synopsis": "Gets the text runs of paragraphs, sections or documents.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/GetOfficeWordTextCommand.cs",
       "sourceLine": 10,
@@ -2432,6 +2700,7 @@
     {
       "name": "Get-OfficeYamlNode",
       "kind": "Cmdlet",
+      "synopsis": "Gets nodes of a live YAML document by path, as Path, Value, Node, Line and Column objects.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/GetOfficeYamlNodeCommand.cs",
       "sourceLine": 21,
@@ -2440,6 +2709,7 @@
     {
       "name": "Import-OfficeConversionReport",
       "kind": "Cmdlet",
+      "synopsis": "Reads saved conversion run reports without executing jobs or changing outputs.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ImportOfficeConversionReportCommand.cs",
       "sourceLine": 15,
@@ -2448,6 +2718,7 @@
     {
       "name": "Import-OfficeCsv",
       "kind": "Cmdlet",
+      "synopsis": "Imports CSV rows as PSCustomObjects, dictionaries, or a DataTable.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Csv/ImportOfficeCsvCommand.cs",
       "sourceLine": 32,
@@ -2456,6 +2727,7 @@
     {
       "name": "Import-OfficeExcel",
       "kind": "Cmdlet",
+      "synopsis": "Reads rows from a worksheet, range or table as objects.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelCommand.cs",
       "sourceLine": 44,
@@ -2464,6 +2736,7 @@
     {
       "name": "Import-OfficePdfXfdf",
       "kind": "Cmdlet",
+      "synopsis": "Imports bounded DTD-free XFDF into native PDF forms, with atomic file output or a caller-owned live result.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/ImportOfficePdfXfdfCommand.cs",
       "sourceLine": 15,
@@ -2472,6 +2745,7 @@
     {
       "name": "Import-OfficePowerPointSlide",
       "kind": "Cmdlet",
+      "synopsis": "Imports selected slides from a file or live document, preserving native relationships.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/ImportOfficePowerPointSlideCommand.cs",
       "sourceLine": 16,
@@ -2480,6 +2754,7 @@
     {
       "name": "Import-OfficeProjectTable",
       "kind": "Cmdlet",
+      "synopsis": "Imports explicitly mapped tables into a new project without changing existing documents.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/ImportOfficeProjectTableCommand.cs",
       "sourceLine": 14,
@@ -2488,6 +2763,7 @@
     {
       "name": "Import-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Reads TOML files as PowerShell objects; the file form of ConvertFrom-OfficeToml.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/ImportOfficeTomlCommand.cs",
       "sourceLine": 19,
@@ -2496,6 +2772,7 @@
     {
       "name": "Import-OfficeVisioStencilCatalog",
       "kind": "Cmdlet",
+      "synopsis": "Loads a stencil catalog (built-in, from .vssx/.vsdx packages or installed Visio); inside a diagram block it also registers it.",
       "aliases": [
         "VisioStencilCatalog"
       ],
@@ -2506,6 +2783,7 @@
     {
       "name": "Import-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Reads YAML files as PowerShell objects; the file form of ConvertFrom-OfficeYaml.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/ImportOfficeYamlCommand.cs",
       "sourceLine": 19,
@@ -2514,6 +2792,7 @@
     {
       "name": "Invoke-OfficeExcelAutoFit",
       "kind": "Cmdlet",
+      "synopsis": "Fits column widths and row heights to their content.",
       "aliases": [
         "ExcelAutoFit"
       ],
@@ -2524,6 +2803,7 @@
     {
       "name": "Invoke-OfficeExcelSort",
       "kind": "Cmdlet",
+      "synopsis": "Sorts the used range on the current worksheet.",
       "aliases": [
         "ExcelSort"
       ],
@@ -2534,6 +2814,7 @@
     {
       "name": "Invoke-OfficeExcelTemplate",
       "kind": "Cmdlet",
+      "synopsis": "Fills {{Marker}} placeholders, repeats template rows or sheets, and keeps or removes optional rows.",
       "aliases": [
         "ExcelTemplate"
       ],
@@ -2544,6 +2825,7 @@
     {
       "name": "Invoke-OfficeProjectSchedule",
       "kind": "Cmdlet",
+      "synopsis": "Explicitly calculates a schedule and optionally applies its dates.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/InvokeOfficeProjectScheduleCommand.cs",
       "sourceLine": 16,
@@ -2552,6 +2834,7 @@
     {
       "name": "Invoke-OfficeWordMailMerge",
       "kind": "Cmdlet",
+      "synopsis": "Executes a simple mail merge against MERGEFIELD values in a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/InvokeOfficeWordMailMergeCommand.cs",
       "sourceLine": 18,
@@ -2560,6 +2843,7 @@
     {
       "name": "Merge-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Combines documents of the same native format in input order.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/MergeOfficeDocumentCommand.cs",
       "sourceLine": 47,
@@ -2568,6 +2852,7 @@
     {
       "name": "Merge-OfficeExcelSheet",
       "kind": "Cmdlet",
+      "synopsis": "Appends worksheet rows or merges a source range into a target worksheet.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/MergeOfficeExcelSheetCommand.cs",
       "sourceLine": 29,
@@ -2576,6 +2861,7 @@
     {
       "name": "Move-OfficeExcelSheet",
       "kind": "Cmdlet",
+      "synopsis": "Moves a worksheet to a one-based workbook position.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/MoveOfficeExcelSheetCommand.cs",
       "sourceLine": 31,
@@ -2584,6 +2870,7 @@
     {
       "name": "Move-OfficePdfPage",
       "kind": "Cmdlet",
+      "synopsis": "Move PDF pages through the native PDF engine.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/MoveOfficePdfPageCommand.cs",
       "sourceLine": 11,
@@ -2592,6 +2879,7 @@
     {
       "name": "New-OfficeAccess",
       "kind": "Cmdlet",
+      "synopsis": "Creates a native Access database without a provider, seed file or execution.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Access/NewOfficeAccessCommand.cs",
       "sourceLine": 15,
@@ -2600,6 +2888,7 @@
     {
       "name": "New-OfficeAsciiDocReadOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native AsciiDocParseOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/AsciiDoc/NewOfficeAsciiDocReadOptionsCommand.cs",
       "sourceLine": 11,
@@ -2608,6 +2897,7 @@
     {
       "name": "New-OfficeConfluenceSession",
       "kind": "Cmdlet",
+      "synopsis": "Creates an in-memory Confluence Cloud session.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/NewOfficeConfluenceSessionCommand.cs",
       "sourceLine": 18,
@@ -2616,6 +2906,7 @@
     {
       "name": "New-OfficeDocumentHierarchyOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentHierarchyOptionsCommand.cs",
       "sourceLine": 15,
@@ -2624,6 +2915,7 @@
     {
       "name": "New-OfficeDocumentProvenanceOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates structural, Unicode integrity and optional content-credential verification policy.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/NewOfficeDocumentProvenanceOptionsCommand.cs",
       "sourceLine": 13,
@@ -2632,6 +2924,7 @@
     {
       "name": "New-OfficeDocumentReader",
       "kind": "Cmdlet",
+      "synopsis": "Creates an immutable document reader with common policies, format options and optional OCR.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentReaderCommand.cs",
       "sourceLine": 20,
@@ -2640,6 +2933,7 @@
     {
       "name": "New-OfficeDocumentReaderOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates common read, detection, package and folder policies for document readers.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/NewOfficeDocumentReaderOptionsCommand.cs",
       "sourceLine": 17,
@@ -2648,6 +2942,7 @@
     {
       "name": "New-OfficeEmailMailboxReaderOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates bounded mbox reader settings through ordinary PowerShell parameters.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/NewOfficeEmailMailboxReaderOptionsCommand.cs",
       "sourceLine": 16,
@@ -2656,6 +2951,7 @@
     {
       "name": "New-OfficeEmailMailboxWriterOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates deterministic mbox writer settings through ordinary PowerShell parameters.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/NewOfficeEmailMailboxWriterOptionsCommand.cs",
       "sourceLine": 16,
@@ -2664,6 +2960,7 @@
     {
       "name": "New-OfficeEmailReaderOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates bounded EML, MSG, and TNEF reader settings through ordinary PowerShell parameters.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/NewOfficeEmailReaderOptionsCommand.cs",
       "sourceLine": 15,
@@ -2672,6 +2969,7 @@
     {
       "name": "New-OfficeEmailStoreReaderOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates bounded email-store reader settings without requiring .NET constructor syntax.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/NewOfficeEmailStoreReaderOptionsCommand.cs",
       "sourceLine": 18,
@@ -2680,6 +2978,7 @@
     {
       "name": "New-OfficeEmailWriterOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates deterministic email writer settings through ordinary PowerShell parameters.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/NewOfficeEmailWriterOptionsCommand.cs",
       "sourceLine": 15,
@@ -2688,6 +2987,7 @@
     {
       "name": "New-OfficeEpub",
       "kind": "Cmdlet",
+      "synopsis": "Creates a live EPUB publication or saves a completed chapter/resource block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/NewOfficeEpubCommand.cs",
       "sourceLine": 19,
@@ -2696,6 +2996,7 @@
     {
       "name": "New-OfficeExcel",
       "kind": "Cmdlet",
+      "synopsis": "Creates a themed Excel workbook, returning a live workbook or saving a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelCommand.cs",
       "sourceLine": 70,
@@ -2704,6 +3005,7 @@
     {
       "name": "New-OfficeExcelCompareOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates workbook comparison settings for Compare-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelCompareOptionsCommand.cs",
       "sourceLine": 26,
@@ -2712,6 +3014,7 @@
     {
       "name": "New-OfficeExcelGoogleSheetsOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Excel-to-Google-Sheets planning and export settings without contacting Google.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelGoogleSheetsOptionsCommand.cs",
       "sourceLine": 28,
@@ -2720,6 +3023,7 @@
     {
       "name": "New-OfficeExcelHtmlOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates Excel-to-HTML settings for Convert-OfficeDocument -To Html.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelHtmlOptionsCommand.cs",
       "sourceLine": 26,
@@ -2728,6 +3032,7 @@
     {
       "name": "New-OfficeExcelImageOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates Excel rendering settings for Export-OfficeDocumentImage and ConvertTo-OfficeDocumentImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelImageOptionsCommand.cs",
       "sourceLine": 28,
@@ -2736,6 +3041,7 @@
     {
       "name": "New-OfficeExcelMergeOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native import policies and typed worksheet selections for Merge-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelMergeOptionsCommand.cs",
       "sourceLine": 27,
@@ -2744,6 +3050,7 @@
     {
       "name": "New-OfficeExcelOpenDocumentOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates Excel/OpenDocument conversion settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficeExcelOpenDocumentOptionsCommand.cs",
       "sourceLine": 16,
@@ -2752,6 +3059,7 @@
     {
       "name": "New-OfficeExcelPdfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable Excel-to-PDF conversion options for Convert-OfficeDocument -To Pdf.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelPdfOptionsCommand.cs",
       "sourceLine": 27,
@@ -2760,6 +3068,7 @@
     {
       "name": "New-OfficeExcelProtectionOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates Excel-specific hash and reservation settings for Protect-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelProtectionOptionsCommand.cs",
       "sourceLine": 27,
@@ -2768,6 +3077,7 @@
     {
       "name": "New-OfficeExcelRepairOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates Excel repair settings for Repair-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelRepairOptionsCommand.cs",
       "sourceLine": 27,
@@ -2776,6 +3086,7 @@
     {
       "name": "New-OfficeExcelSaveOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native workbook save settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelSaveOptionsCommand.cs",
       "sourceLine": 28,
@@ -2784,6 +3095,7 @@
     {
       "name": "New-OfficeExcelTestOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates Excel checks for Test-OfficeDocument: capability preflight and package validation.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/NewOfficeExcelTestOptionsCommand.cs",
       "sourceLine": 27,
@@ -2792,6 +3104,7 @@
     {
       "name": "New-OfficeGoogleWorkspaceSession",
       "kind": "Cmdlet",
+      "synopsis": "Creates a native Google Workspace session from a service-account key.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Google/NewOfficeGoogleWorkspaceSessionCommand.cs",
       "sourceLine": 15,
@@ -2800,6 +3113,7 @@
     {
       "name": "New-OfficeHiddenDataOptions",
       "kind": "Cmdlet",
+      "synopsis": "Chooses which hidden data Remove-OfficeHiddenData and Optimize-OfficePdf -Sanitize remove.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/NewOfficeHiddenDataOptionsCommand.cs",
       "sourceLine": 29,
@@ -2808,6 +3122,7 @@
     {
       "name": "New-OfficeHtmlConversionOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable parsing, trust, and document settings for HTML conversion.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Html/NewOfficeHtmlConversionOptionsCommand.cs",
       "sourceLine": 15,
@@ -2816,6 +3131,7 @@
     {
       "name": "New-OfficeHtmlMarkdownOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native HTML-to-Markdown import and writer settings without converting or writing files.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeHtmlMarkdownOptionsCommand.cs",
       "sourceLine": 15,
@@ -2824,6 +3140,7 @@
     {
       "name": "New-OfficeHtmlPdfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates HTML-to-PDF options for Convert-OfficeDocument -To Pdf.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficeHtmlPdfOptionsCommand.cs",
       "sourceLine": 16,
@@ -2832,6 +3149,7 @@
     {
       "name": "New-OfficeHtmlRenderOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable layout, resource-limit, and rendering settings for HTML image export.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Html/NewOfficeHtmlRenderOptionsCommand.cs",
       "sourceLine": 19,
@@ -2840,6 +3158,7 @@
     {
       "name": "New-OfficeHtmlRtfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native HTML/CSS import settings for the HTML-to-Word-to-RTF route.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeHtmlRtfOptionsCommand.cs",
       "sourceLine": 11,
@@ -2848,6 +3167,7 @@
     {
       "name": "New-OfficeHtmlWordOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native HTML-to-Word options for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeHtmlWordOptionsCommand.cs",
       "sourceLine": 13,
@@ -2856,6 +3176,7 @@
     {
       "name": "New-OfficeIWorkReadOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native IWorkLoadOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/IWork/NewOfficeIWorkReadOptionsCommand.cs",
       "sourceLine": 11,
@@ -2864,6 +3185,7 @@
     {
       "name": "New-OfficeLatexReadOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native LatexParseOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Latex/NewOfficeLatexReadOptionsCommand.cs",
       "sourceLine": 11,
@@ -2872,6 +3194,7 @@
     {
       "name": "New-OfficeMarkdown",
       "kind": "Cmdlet",
+      "synopsis": "Creates a live Markdown document, or atomically publishes a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownCommand.cs",
       "sourceLine": 18,
@@ -2880,6 +3203,7 @@
     {
       "name": "New-OfficeMarkdownHtmlOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Markdown HTML document, styling and resource-link settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownHtmlOptionsCommand.cs",
       "sourceLine": 11,
@@ -2888,6 +3212,7 @@
     {
       "name": "New-OfficeMarkdownPdfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Markdown-to-PDF conversion options for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownPdfOptionsCommand.cs",
       "sourceLine": 19,
@@ -2896,6 +3221,7 @@
     {
       "name": "New-OfficeMarkdownPowerPointOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Markdown slide boundaries, speaker-note, front-matter and image policies.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownPowerPointOptionsCommand.cs",
       "sourceLine": 14,
@@ -2904,6 +3230,7 @@
     {
       "name": "New-OfficeMarkdownReaderOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Markdown dialect, normalization, URL and input-limit settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/NewOfficeMarkdownReaderOptionsCommand.cs",
       "sourceLine": 14,
@@ -2912,6 +3239,7 @@
     {
       "name": "New-OfficeMarkdownRtfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native MarkdownRtfExportOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeMarkdownRtfOptionsCommand.cs",
       "sourceLine": 11,
@@ -2920,6 +3248,7 @@
     {
       "name": "New-OfficeMarkdownWordOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Markdown-to-Word settings, including an engine-owned template path.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeMarkdownWordOptionsCommand.cs",
       "sourceLine": 14,
@@ -2928,6 +3257,7 @@
     {
       "name": "New-OfficeOcrOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates OCR settings without starting a provider or downloading language data.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Ocr/NewOfficeOcrOptionsCommand.cs",
       "sourceLine": 20,
@@ -2936,6 +3266,7 @@
     {
       "name": "New-OfficeOneNoteNotebookOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native OneNoteNotebookReaderOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OneNote/NewOfficeOneNoteNotebookOptionsCommand.cs",
       "sourceLine": 11,
@@ -2944,6 +3275,7 @@
     {
       "name": "New-OfficeOneNoteReadOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native OneNoteLoadOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OneNote/NewOfficeOneNoteReadOptionsCommand.cs",
       "sourceLine": 11,
@@ -2952,6 +3284,7 @@
     {
       "name": "New-OfficeOpenDocument",
       "kind": "Cmdlet",
+      "synopsis": "Creates an ODT, ODS, ODP or ODG model, returning it live or saving a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficeOpenDocumentCommand.cs",
       "sourceLine": 21,
@@ -2960,6 +3293,7 @@
     {
       "name": "New-OfficeOpenDocumentSaveOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native OdfSaveOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficeOpenDocumentSaveOptionsCommand.cs",
       "sourceLine": 11,
@@ -2968,6 +3302,7 @@
     {
       "name": "New-OfficePdf",
       "kind": "Cmdlet",
+      "synopsis": "Creates a live PDF document or atomically saves a completed composition block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfCommand.cs",
       "sourceLine": 23,
@@ -2976,6 +3311,7 @@
     {
       "name": "New-OfficePdfEncryptionOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates PDF encryption settings; Protect-OfficeDocument supplies the actual passwords.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfEncryptionOptionsCommand.cs",
       "sourceLine": 13,
@@ -2984,6 +3320,7 @@
     {
       "name": "New-OfficePdfExcelOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable PDF-table-to-Excel reconstruction settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfExcelOptionsCommand.cs",
       "sourceLine": 19,
@@ -2992,6 +3329,7 @@
     {
       "name": "New-OfficePdfFormFillOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native XFDF field/value limits and appearance behavior for Import-OfficePdfXfdf.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfFormFillOptionsCommand.cs",
       "sourceLine": 13,
@@ -3000,6 +3338,7 @@
     {
       "name": "New-OfficePdfHtmlOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native semantic or positioned PDF-to-HTML export settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfHtmlOptionsCommand.cs",
       "sourceLine": 16,
@@ -3008,6 +3347,7 @@
     {
       "name": "New-OfficePdfImageOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable thumbnail and rendering settings for Export-OfficePdfImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfImageOptionsCommand.cs",
       "sourceLine": 16,
@@ -3016,6 +3356,7 @@
     {
       "name": "New-OfficePdfInteractionOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native region limits and invisible-text policy for Get-OfficePdfInteractionMap.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfInteractionOptionsCommand.cs",
       "sourceLine": 13,
@@ -3024,6 +3365,7 @@
     {
       "name": "New-OfficePdfLayoutOverlayOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native PDF layout-overlay layers, colors and resource limits.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfLayoutOverlayOptionsCommand.cs",
       "sourceLine": 14,
@@ -3032,6 +3374,7 @@
     {
       "name": "New-OfficePdfMergeOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native PDF annotation-flattening and page-normalization settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfMergeOptionsCommand.cs",
       "sourceLine": 13,
@@ -3040,6 +3383,7 @@
     {
       "name": "New-OfficePdfPowerPointOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable PDF-to-PowerPoint reconstruction settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfPowerPointOptionsCommand.cs",
       "sourceLine": 18,
@@ -3048,6 +3392,7 @@
     {
       "name": "New-OfficePdfReadOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates a detached native PDF read policy and optional OCR-review settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfReadOptionsCommand.cs",
       "sourceLine": 21,
@@ -3056,6 +3401,7 @@
     {
       "name": "New-OfficePdfRedactionArea",
       "kind": "Cmdlet",
+      "synopsis": "Creates a redaction area for Remove-OfficePdfContent and Get-OfficePdfRedactionPlan -Area.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfRedactionAreaCommand.cs",
       "sourceLine": 16,
@@ -3064,6 +3410,7 @@
     {
       "name": "New-OfficePdfRewriteOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native PDF rewrite preservation checks for Test-OfficePdfRewrite.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfRewriteOptionsCommand.cs",
       "sourceLine": 13,
@@ -3072,6 +3419,7 @@
     {
       "name": "New-OfficePdfSignature",
       "kind": "Cmdlet",
+      "synopsis": "Prepare external PDF signature using native byte-range and signature-placeholder operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfSignatureCommand.cs",
       "sourceLine": 14,
@@ -3080,6 +3428,7 @@
     {
       "name": "New-OfficePdfTableCell",
       "kind": "Cmdlet",
+      "synopsis": "Creates a native PDF cell containing text, images or form fields.",
       "aliases": [
         "PdfTableCell"
       ],
@@ -3090,6 +3439,7 @@
     {
       "name": "New-OfficePdfVisualComparisonOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native PDF comparison settings and independent bounded policies for both inputs.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfVisualComparisonOptionsCommand.cs",
       "sourceLine": 12,
@@ -3098,6 +3448,7 @@
     {
       "name": "New-OfficePdfWordOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable PDF-to-Word reconstruction settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficePdfWordOptionsCommand.cs",
       "sourceLine": 17,
@@ -3106,6 +3457,7 @@
     {
       "name": "New-OfficePowerPoint",
       "kind": "Cmdlet",
+      "synopsis": "Creates a themed presentation, returning a live document or saving a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointCommand.cs",
       "sourceLine": 35,
@@ -3114,6 +3466,7 @@
     {
       "name": "New-OfficePowerPointHtmlOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native PowerPoint-to-HTML settings for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointHtmlOptionsCommand.cs",
       "sourceLine": 17,
@@ -3122,6 +3475,7 @@
     {
       "name": "New-OfficePowerPointImageOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable slide selection and rendering settings for Export-OfficePowerPointImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointImageOptionsCommand.cs",
       "sourceLine": 13,
@@ -3130,6 +3484,7 @@
     {
       "name": "New-OfficePowerPointInspectionOptions",
       "kind": "Cmdlet",
+      "synopsis": "Chooses native presentation inspection reports without changing a document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointInspectionOptionsCommand.cs",
       "sourceLine": 17,
@@ -3138,6 +3493,7 @@
     {
       "name": "New-OfficePowerPointOpenDocumentOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates PowerPoint/OpenDocument conversion settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficePowerPointOpenDocumentOptionsCommand.cs",
       "sourceLine": 15,
@@ -3146,6 +3502,7 @@
     {
       "name": "New-OfficePowerPointPdfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/NewOfficePowerPointPdfOptionsCommand.cs",
       "sourceLine": 17,
@@ -3154,6 +3511,7 @@
     {
       "name": "New-OfficeProject",
       "kind": "Cmdlet",
+      "synopsis": "Creates a live project with an optional standard working calendar.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/NewOfficeProjectCommand.cs",
       "sourceLine": 16,
@@ -3162,6 +3520,7 @@
     {
       "name": "New-OfficeProjectViewOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates selection, timescale and page settings for Get-OfficeProjectView -Options.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/NewOfficeProjectViewOptionsCommand.cs",
       "sourceLine": 16,
@@ -3170,6 +3529,7 @@
     {
       "name": "New-OfficeRtf",
       "kind": "Cmdlet",
+      "synopsis": "Creates an RTF document, optionally with paragraphs from -Text or the pipeline.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeRtfCommand.cs",
       "sourceLine": 15,
@@ -3178,6 +3538,7 @@
     {
       "name": "New-OfficeRtfHtmlOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native WordHtmlExportOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeRtfHtmlOptionsCommand.cs",
       "sourceLine": 11,
@@ -3186,6 +3547,7 @@
     {
       "name": "New-OfficeRtfMarkdownOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native RtfMarkdownExportOptions settings for document operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeRtfMarkdownOptionsCommand.cs",
       "sourceLine": 11,
@@ -3194,6 +3556,7 @@
     {
       "name": "New-OfficeRtfPdfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/NewOfficeRtfPdfOptionsCommand.cs",
       "sourceLine": 17,
@@ -3202,6 +3565,7 @@
     {
       "name": "New-OfficeTextPdfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates literal text decoding and PDF layout settings for Export-OfficeDocumentPdf.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/NewOfficeTextPdfOptionsCommand.cs",
       "sourceLine": 12,
@@ -3210,6 +3574,7 @@
     {
       "name": "New-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Creates a live TOML document, or atomically publishes a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/NewOfficeTomlCommand.cs",
       "sourceLine": 22,
@@ -3218,6 +3583,7 @@
     {
       "name": "New-OfficeVisio",
       "kind": "Cmdlet",
+      "synopsis": "Creates a Visio document with an initial page, returning it live or saving a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/NewOfficeVisioCommand.cs",
       "sourceLine": 22,
@@ -3226,6 +3592,7 @@
     {
       "name": "New-OfficeVisioGallery",
       "kind": "Cmdlet",
+      "synopsis": "Generates the OfficeIMO Visio reference gallery as editable .vsdx diagrams.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/NewOfficeVisioGalleryCommand.cs",
       "sourceLine": 17,
@@ -3234,6 +3601,7 @@
     {
       "name": "New-OfficeVisioImageOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable page and rendering settings for Export-OfficeVisioImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/NewOfficeVisioImageOptionsCommand.cs",
       "sourceLine": 14,
@@ -3242,6 +3610,7 @@
     {
       "name": "New-OfficeWord",
       "kind": "Cmdlet",
+      "synopsis": "Creates a themed Word document, returning a live document or saving a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordCommand.cs",
       "sourceLine": 24,
@@ -3250,6 +3619,7 @@
     {
       "name": "New-OfficeWordComparisonOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable structural comparison settings for Compare-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordComparisonOptionsCommand.cs",
       "sourceLine": 15,
@@ -3258,6 +3628,7 @@
     {
       "name": "New-OfficeWordGoogleDocsOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Word-to-Google-Docs planning and export settings without contacting Google.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordGoogleDocsOptionsCommand.cs",
       "sourceLine": 13,
@@ -3266,6 +3637,7 @@
     {
       "name": "New-OfficeWordHtmlOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Word-to-HTML options for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordHtmlOptionsCommand.cs",
       "sourceLine": 13,
@@ -3274,6 +3646,7 @@
     {
       "name": "New-OfficeWordImageOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable page and rendering settings for Export-OfficeWordImage.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordImageOptionsCommand.cs",
       "sourceLine": 13,
@@ -3282,6 +3655,7 @@
     {
       "name": "New-OfficeWordMarkdownOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates native Word-to-Markdown options for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordMarkdownOptionsCommand.cs",
       "sourceLine": 13,
@@ -3290,6 +3664,7 @@
     {
       "name": "New-OfficeWordOpenDocumentOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates Word/OpenDocument conversion settings.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/NewOfficeWordOpenDocumentOptionsCommand.cs",
       "sourceLine": 16,
@@ -3298,6 +3673,7 @@
     {
       "name": "New-OfficeWordPdfOptions",
       "kind": "Cmdlet",
+      "synopsis": "Creates discoverable Word-to-PDF conversion options for Convert-OfficeDocument.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordPdfOptionsCommand.cs",
       "sourceLine": 19,
@@ -3306,6 +3682,7 @@
     {
       "name": "New-OfficeWordRevisionFilter",
       "kind": "Cmdlet",
+      "synopsis": "Creates a discoverable Word revision filter for Resolve-OfficeWordRevision.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordRevisionFilterCommand.cs",
       "sourceLine": 15,
@@ -3314,6 +3691,7 @@
     {
       "name": "New-OfficeWordTableCell",
       "kind": "Cmdlet",
+      "synopsis": "Creates a plain or recorded rich Word cell for explicit table rows.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/NewOfficeWordTableCellCommand.cs",
       "sourceLine": 13,
@@ -3322,6 +3700,7 @@
     {
       "name": "New-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Creates a live YAML document, or atomically publishes a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/NewOfficeYamlCommand.cs",
       "sourceLine": 22,
@@ -3330,6 +3709,7 @@
     {
       "name": "Open-OfficeAccess",
       "kind": "Cmdlet",
+      "synopsis": "Reads a native database without running queries, macros, or linked connections.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Access/OpenOfficeAccessCommand.cs",
       "sourceLine": 16,
@@ -3338,6 +3718,7 @@
     {
       "name": "Open-OfficeAsciiDoc",
       "kind": "Cmdlet",
+      "synopsis": "Parses an AsciiDoc file or source string into OfficeIMO's native document model.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/AsciiDoc/OpenOfficeAsciiDocCommand.cs",
       "sourceLine": 11,
@@ -3346,6 +3727,7 @@
     {
       "name": "Open-OfficeEmail",
       "kind": "Cmdlet",
+      "synopsis": "Reads a native EML, EMLX, MSG, or TNEF artifact with bounded diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs",
       "sourceLine": 18,
@@ -3354,6 +3736,7 @@
     {
       "name": "Open-OfficeEmailMailbox",
       "kind": "Cmdlet",
+      "synopsis": "Reads a native mbox mailbox with bounded per-message diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailMailboxCommand.cs",
       "sourceLine": 17,
@@ -3362,6 +3745,7 @@
     {
       "name": "Open-OfficeEpub",
       "kind": "Cmdlet",
+      "synopsis": "Opens an EPUB publication, optionally saving an editing block atomically.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/OpenOfficeEpubCommand.cs",
       "sourceLine": 14,
@@ -3370,6 +3754,7 @@
     {
       "name": "Open-OfficeExcel",
       "kind": "Cmdlet",
+      "synopsis": "Opens a workbook for explicit editing, or atomically saves a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/OpenOfficeExcelCommand.cs",
       "sourceLine": 51,
@@ -3378,6 +3763,7 @@
     {
       "name": "Open-OfficeIWork",
       "kind": "Cmdlet",
+      "synopsis": "Reads a supported Apple Pages, Numbers, or Keynote package without launching iWork.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/IWork/OpenOfficeIWorkCommand.cs",
       "sourceLine": 20,
@@ -3386,6 +3772,7 @@
     {
       "name": "Open-OfficeLatex",
       "kind": "Cmdlet",
+      "synopsis": "Parses a LaTeX file or source string into OfficeIMO's native document model.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Latex/OpenOfficeLatexCommand.cs",
       "sourceLine": 11,
@@ -3394,6 +3781,7 @@
     {
       "name": "Open-OfficeMarkdown",
       "kind": "Cmdlet",
+      "synopsis": "Opens native Markdown from a file or parses text; a file content block saves atomically.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/OpenOfficeMarkdownCommand.cs",
       "sourceLine": 15,
@@ -3402,6 +3790,7 @@
     {
       "name": "Open-OfficeOneNote",
       "kind": "Cmdlet",
+      "synopsis": "Reads an offline OneNote section, notebook hierarchy, or packaged notebook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OneNote/OpenOfficeOneNoteCommand.cs",
       "sourceLine": 18,
@@ -3410,6 +3799,7 @@
     {
       "name": "Open-OfficeOpenDocument",
       "kind": "Cmdlet",
+      "synopsis": "Loads a native ODT, ODS, ODP, or ODG document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/OpenOfficeOpenDocumentCommand.cs",
       "sourceLine": 12,
@@ -3418,6 +3808,7 @@
     {
       "name": "Open-OfficePdf",
       "kind": "Cmdlet",
+      "synopsis": "Opens native PDF documents or atomically saves a completed editing block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/OpenOfficePdfCommand.cs",
       "sourceLine": 23,
@@ -3426,6 +3817,7 @@
     {
       "name": "Open-OfficePowerPoint",
       "kind": "Cmdlet",
+      "synopsis": "Opens a presentation for explicit editing, or atomically saves a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/OpenOfficePowerPointCommand.cs",
       "sourceLine": 19,
@@ -3434,6 +3826,7 @@
     {
       "name": "Open-OfficeProject",
       "kind": "Cmdlet",
+      "synopsis": "Loads a project without calculating or executing its content.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/OpenOfficeProjectCommand.cs",
       "sourceLine": 16,
@@ -3442,6 +3835,7 @@
     {
       "name": "Open-OfficeRtf",
       "kind": "Cmdlet",
+      "synopsis": "Reads an RTF file or RTF text into a read result with the document, embedded payloads and diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/OpenOfficeRtfCommand.cs",
       "sourceLine": 15,
@@ -3450,6 +3844,7 @@
     {
       "name": "Open-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Opens a TOML file, stream or text as a lossless live document; a file content block saves atomically.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/OpenOfficeTomlCommand.cs",
       "sourceLine": 22,
@@ -3458,6 +3853,7 @@
     {
       "name": "Open-OfficeVisio",
       "kind": "Cmdlet",
+      "synopsis": "Loads an existing .vsdx file as an OfficeIMO.Visio document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/OpenOfficeVisioCommand.cs",
       "sourceLine": 18,
@@ -3466,6 +3862,7 @@
     {
       "name": "Open-OfficeWord",
       "kind": "Cmdlet",
+      "synopsis": "Opens a Word document for explicit editing, or saves and closes a completed content block.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/OpenOfficeWordCommand.cs",
       "sourceLine": 20,
@@ -3474,6 +3871,7 @@
     {
       "name": "Open-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Opens a YAML file, stream or text as a lossless live document; a file content block saves atomically.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/OpenOfficeYamlCommand.cs",
       "sourceLine": 22,
@@ -3482,6 +3880,7 @@
     {
       "name": "Optimize-OfficePdf",
       "kind": "Cmdlet",
+      "synopsis": "Writes a smaller or sanitized copy of a PDF.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/OptimizeOfficePdfCommand.cs",
       "sourceLine": 15,
@@ -3490,6 +3889,7 @@
     {
       "name": "Protect-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Adds native password encryption or editing restrictions to a document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/ProtectOfficeDocumentCommand.cs",
       "sourceLine": 38,
@@ -3498,6 +3898,7 @@
     {
       "name": "Protect-OfficeExcelSheet",
       "kind": "Cmdlet",
+      "synopsis": "Protects a worksheet and chooses what users may still do.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/ProtectOfficeExcelSheetCommand.cs",
       "sourceLine": 39,
@@ -3506,6 +3907,7 @@
     {
       "name": "Publish-OfficeConfluencePage",
       "kind": "Cmdlet",
+      "synopsis": "Plans, creates, or updates a Confluence Cloud page.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs",
       "sourceLine": 22,
@@ -3514,6 +3916,7 @@
     {
       "name": "Read-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Reads supported documents once and projects text, structure or ingestion views.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/ReadOfficeDocumentCommand.cs",
       "sourceLine": 22,
@@ -3522,6 +3925,7 @@
     {
       "name": "Remove-OfficeConfluencePage",
       "kind": "Cmdlet",
+      "synopsis": "Plans or deletes a Confluence Cloud page.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/RemoveOfficeConfluencePageCommand.cs",
       "sourceLine": 21,
@@ -3530,6 +3934,7 @@
     {
       "name": "Remove-OfficeExcelComment",
       "kind": "Cmdlet",
+      "synopsis": "Removes notes from a cell or all notes that match a filter.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelCommentCommand.cs",
       "sourceLine": 30,
@@ -3538,6 +3943,7 @@
     {
       "name": "Remove-OfficeExcelNamedRange",
       "kind": "Cmdlet",
+      "synopsis": "Removes a defined name.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelNamedRangeCommand.cs",
       "sourceLine": 32,
@@ -3546,6 +3952,7 @@
     {
       "name": "Remove-OfficeExcelPageBreak",
       "kind": "Cmdlet",
+      "synopsis": "Removes manual print page breaks from selected open worksheets.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/RemoveOfficeExcelPageBreakCommand.cs",
       "sourceLine": 28,
@@ -3554,6 +3961,7 @@
     {
       "name": "Remove-OfficeHiddenData",
       "kind": "Cmdlet",
+      "synopsis": "Writes a copy of a file without its metadata and hidden data, and reports what happened to each item.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Security/RemoveOfficeHiddenDataCommand.cs",
       "sourceLine": 37,
@@ -3562,6 +3970,7 @@
     {
       "name": "Remove-OfficePdfAnnotation",
       "kind": "Cmdlet",
+      "synopsis": "Removes native annotations selected by identity, page and subtype.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/RemoveOfficePdfAnnotationCommand.cs",
       "sourceLine": 13,
@@ -3570,6 +3979,7 @@
     {
       "name": "Remove-OfficePdfContent",
       "kind": "Cmdlet",
+      "synopsis": "Permanently removes (redacts) text, pattern matches or areas from a PDF and writes a new PDF.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/RemoveOfficePdfContentCommand.cs",
       "sourceLine": 15,
@@ -3578,6 +3988,7 @@
     {
       "name": "Remove-OfficePdfPage",
       "kind": "Cmdlet",
+      "synopsis": "Removes selected pages from a live PDF or writes edited file copies.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/RemoveOfficePdfPageCommand.cs",
       "sourceLine": 16,
@@ -3586,6 +3997,7 @@
     {
       "name": "Remove-OfficePowerPointSlide",
       "kind": "Cmdlet",
+      "synopsis": "Removes selected native slides or one-based slide positions.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/RemoveOfficePowerPointSlideCommand.cs",
       "sourceLine": 13,
@@ -3594,6 +4006,7 @@
     {
       "name": "Remove-OfficeTomlNode",
       "kind": "Cmdlet",
+      "synopsis": "Removes keys, tables or array items from a live TOML document by path.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/RemoveOfficeTomlNodeCommand.cs",
       "sourceLine": 19,
@@ -3602,6 +4015,7 @@
     {
       "name": "Remove-OfficeWordTableOfContents",
       "kind": "Cmdlet",
+      "synopsis": "Removes the table of contents from a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/RemoveOfficeWordTableOfContentsCommand.cs",
       "sourceLine": 17,
@@ -3610,6 +4024,7 @@
     {
       "name": "Remove-OfficeYamlNode",
       "kind": "Cmdlet",
+      "synopsis": "Removes mapping entries or sequence items from a live YAML document by path.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/RemoveOfficeYamlNodeCommand.cs",
       "sourceLine": 18,
@@ -3618,6 +4033,7 @@
     {
       "name": "Rename-OfficeExcelNamedRange",
       "kind": "Cmdlet",
+      "synopsis": "Renames a defined name.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/RenameOfficeExcelNamedRangeCommand.cs",
       "sourceLine": 32,
@@ -3626,6 +4042,7 @@
     {
       "name": "Rename-OfficePowerPointSection",
       "kind": "Cmdlet",
+      "synopsis": "Renames the first section matching the supplied name.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/RenameOfficePowerPointSectionCommand.cs",
       "sourceLine": 14,
@@ -3634,6 +4051,7 @@
     {
       "name": "Repair-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Runs native workbook repairs in place, into a copy, or on a caller-owned model.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/RepairOfficeDocumentCommand.cs",
       "sourceLine": 13,
@@ -3642,6 +4060,7 @@
     {
       "name": "Resolve-OfficeWordRevision",
       "kind": "Cmdlet",
+      "synopsis": "Accepts or rejects filtered Word revisions and returns an operation report.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/ResolveOfficeWordRevisionCommand.cs",
       "sourceLine": 18,
@@ -3650,6 +4069,7 @@
     {
       "name": "Save-OfficeAccess",
       "kind": "Cmdlet",
+      "synopsis": "Writes a qualified native database with strict loss protection.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Access/SaveOfficeAccessCommand.cs",
       "sourceLine": 15,
@@ -3658,6 +4078,7 @@
     {
       "name": "Save-OfficeAsciiDoc",
       "kind": "Cmdlet",
+      "synopsis": "Saves an OfficeIMO AsciiDoc document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/AsciiDoc/SaveOfficeAsciiDocCommand.cs",
       "sourceLine": 15,
@@ -3666,6 +4087,7 @@
     {
       "name": "Save-OfficeEmail",
       "kind": "Cmdlet",
+      "synopsis": "Saves an email document as EML, EMLX, MSG, or TNEF with fidelity diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs",
       "sourceLine": 16,
@@ -3674,6 +4096,7 @@
     {
       "name": "Save-OfficeEmailMailbox",
       "kind": "Cmdlet",
+      "synopsis": "Saves a native mbox mailbox with output diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailMailboxCommand.cs",
       "sourceLine": 15,
@@ -3682,6 +4105,7 @@
     {
       "name": "Save-OfficeEpub",
       "kind": "Cmdlet",
+      "synopsis": "Saves a native EPUB publication, rejecting loss unless explicitly allowed.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/SaveOfficeEpubCommand.cs",
       "sourceLine": 14,
@@ -3690,6 +4114,7 @@
     {
       "name": "Save-OfficeExcel",
       "kind": "Cmdlet",
+      "synopsis": "Saves a live Excel workbook without closing it.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SaveOfficeExcelCommand.cs",
       "sourceLine": 42,
@@ -3698,6 +4123,7 @@
     {
       "name": "Save-OfficeLatex",
       "kind": "Cmdlet",
+      "synopsis": "Saves an OfficeIMO LaTeX document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Latex/SaveOfficeLatexCommand.cs",
       "sourceLine": 15,
@@ -3706,6 +4132,7 @@
     {
       "name": "Save-OfficeMarkdown",
       "kind": "Cmdlet",
+      "synopsis": "Saves a live Markdown document using its native save policy and keeps it available.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Markdown/SaveOfficeMarkdownCommand.cs",
       "sourceLine": 15,
@@ -3714,6 +4141,7 @@
     {
       "name": "Save-OfficeOpenDocument",
       "kind": "Cmdlet",
+      "synopsis": "Saves a native OpenDocument model with entry-level preservation diagnostics.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/OpenDocument/SaveOfficeOpenDocumentCommand.cs",
       "sourceLine": 12,
@@ -3722,6 +4150,7 @@
     {
       "name": "Save-OfficePdf",
       "kind": "Cmdlet",
+      "synopsis": "Saves a live PDF to its associated path or a new destination without closing it.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SaveOfficePdfCommand.cs",
       "sourceLine": 21,
@@ -3730,6 +4159,7 @@
     {
       "name": "Save-OfficePowerPoint",
       "kind": "Cmdlet",
+      "synopsis": "Saves a live presentation without closing it.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SaveOfficePowerPointCommand.cs",
       "sourceLine": 19,
@@ -3738,6 +4168,7 @@
     {
       "name": "Save-OfficeProject",
       "kind": "Cmdlet",
+      "synopsis": "Saves a project through the qualified native codec with loss protection.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/SaveOfficeProjectCommand.cs",
       "sourceLine": 15,
@@ -3746,6 +4177,7 @@
     {
       "name": "Save-OfficeRtf",
       "kind": "Cmdlet",
+      "synopsis": "Saves an RtfDocument to its original path or to a new path.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/SaveOfficeRtfCommand.cs",
       "sourceLine": 15,
@@ -3754,6 +4186,7 @@
     {
       "name": "Save-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Saves a live TOML document and keeps it available.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/SaveOfficeTomlCommand.cs",
       "sourceLine": 17,
@@ -3762,6 +4195,7 @@
     {
       "name": "Save-OfficeVisio",
       "kind": "Cmdlet",
+      "synopsis": "Saves an OfficeIMO.Visio document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Visio/SaveOfficeVisioCommand.cs",
       "sourceLine": 18,
@@ -3770,6 +4204,7 @@
     {
       "name": "Save-OfficeWord",
       "kind": "Cmdlet",
+      "synopsis": "Saves a live Word document without closing it.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SaveOfficeWordCommand.cs",
       "sourceLine": 20,
@@ -3778,6 +4213,7 @@
     {
       "name": "Save-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Saves a live YAML document and keeps it available.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/SaveOfficeYamlCommand.cs",
       "sourceLine": 18,
@@ -3786,6 +4222,7 @@
     {
       "name": "Search-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Finds regular-expression or literal matches across supported files and folders.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Reader/SearchOfficeDocumentCommand.cs",
       "sourceLine": 18,
@@ -3794,6 +4231,7 @@
     {
       "name": "Send-OfficeConfluenceAttachment",
       "kind": "Cmdlet",
+      "synopsis": "Uploads or versions a Confluence page attachment.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/SendOfficeConfluenceAttachmentCommand.cs",
       "sourceLine": 16,
@@ -3802,6 +4240,7 @@
     {
       "name": "Send-OfficePrinter",
       "kind": "Cmdlet",
+      "synopsis": "Prints a document of any format OfficeIMO converts to PDF on an explicitly named printer queue or IPP printer. Requires PowerShell 7.4 or newer.",
       "aliases": [
         "Send-OfficePdfPrinter"
       ],
@@ -3812,6 +4251,7 @@
     {
       "name": "Set-OfficeConfluenceManagedSection",
       "kind": "Cmdlet",
+      "synopsis": "Safely replaces one marker-delimited section in a Confluence storage body.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Confluence/SetOfficeConfluenceManagedSectionCommand.cs",
       "sourceLine": 15,
@@ -3820,6 +4260,7 @@
     {
       "name": "Set-OfficeEpubMetadata",
       "kind": "Cmdlet",
+      "synopsis": "Updates the primary title, language or creator through the package model.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Epub/SetOfficeEpubMetadataCommand.cs",
       "sourceLine": 15,
@@ -3828,6 +4269,7 @@
     {
       "name": "Set-OfficeExcelAutoFilter",
       "kind": "Cmdlet",
+      "synopsis": "Adds an AutoFilter to a range and applies filter conditions.",
       "aliases": [
         "ExcelAutoFilter"
       ],
@@ -3838,6 +4280,7 @@
     {
       "name": "Set-OfficeExcelCell",
       "kind": "Cmdlet",
+      "synopsis": "Sets a cell value, formula, rich text, number format or fill.",
       "aliases": [
         "ExcelCell"
       ],
@@ -3848,6 +4291,7 @@
     {
       "name": "Set-OfficeExcelChart",
       "kind": "Cmdlet",
+      "synopsis": "Applies a built-in style and color preset to a chart.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelChartCommand.cs",
       "sourceLine": 35,
@@ -3856,6 +4300,7 @@
     {
       "name": "Set-OfficeExcelChartAxis",
       "kind": "Cmdlet",
+      "synopsis": "Configures common Excel chart axis titles, formats, scale, and gridlines.",
       "aliases": [
         "ExcelChartAxis"
       ],
@@ -3866,6 +4311,7 @@
     {
       "name": "Set-OfficeExcelChartDataLabel",
       "kind": "Cmdlet",
+      "synopsis": "Shows and styles chart data labels.",
       "aliases": [
         "ExcelChartDataLabel"
       ],
@@ -3876,6 +4322,7 @@
     {
       "name": "Set-OfficeExcelChartLegend",
       "kind": "Cmdlet",
+      "synopsis": "Shows, hides, positions and styles the chart legend.",
       "aliases": [
         "ExcelChartLegend"
       ],
@@ -3886,6 +4333,7 @@
     {
       "name": "Set-OfficeExcelChartSeries",
       "kind": "Cmdlet",
+      "synopsis": "Styles a chart series or one of its data points.",
       "aliases": [
         "ExcelChartSeries"
       ],
@@ -3896,6 +4344,7 @@
     {
       "name": "Set-OfficeExcelChartTrendline",
       "kind": "Cmdlet",
+      "synopsis": "Adds or replaces a series trendline.",
       "aliases": [
         "ExcelChartTrendline"
       ],
@@ -3906,6 +4355,7 @@
     {
       "name": "Set-OfficeExcelColumn",
       "kind": "Cmdlet",
+      "synopsis": "Writes values down a column and sets its width, visibility, number format and style, by position or header.",
       "aliases": [
         "ExcelColumn"
       ],
@@ -3916,6 +4366,7 @@
     {
       "name": "Set-OfficeExcelColumnGroup",
       "kind": "Cmdlet",
+      "synopsis": "Groups columns into a collapsible outline, or clears grouping.",
       "aliases": [
         "ExcelColumnGroup"
       ],
@@ -3926,6 +4377,7 @@
     {
       "name": "Set-OfficeExcelDateSystem",
       "kind": "Cmdlet",
+      "synopsis": "Sets the workbook date system (1900 or 1904).",
       "aliases": [
         "ExcelDateSystem"
       ],
@@ -3936,6 +4388,7 @@
     {
       "name": "Set-OfficeExcelDocumentProperty",
       "kind": "Cmdlet",
+      "synopsis": "Sets a built-in or application document property on an Excel workbook.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelDocumentPropertyCommand.cs",
       "sourceLine": 26,
@@ -3944,6 +4397,7 @@
     {
       "name": "Set-OfficeExcelFooter",
       "kind": "Cmdlet",
+      "synopsis": "Updates worksheet footer text, print flags or an image while retaining the header.",
       "aliases": [
         "ExcelFooter"
       ],
@@ -3954,6 +4408,7 @@
     {
       "name": "Set-OfficeExcelHeader",
       "kind": "Cmdlet",
+      "synopsis": "Updates worksheet header text, print flags or an image while retaining the footer.",
       "aliases": [
         "ExcelHeader"
       ],
@@ -3964,6 +4419,7 @@
     {
       "name": "Set-OfficeExcelHyperlink",
       "kind": "Cmdlet",
+      "synopsis": "Links a cell, or every cell of a range or header column, to a URL or a place in the workbook.",
       "aliases": [
         "ExcelHyperlink"
       ],
@@ -3974,6 +4430,7 @@
     {
       "name": "Set-OfficeExcelNamedRange",
       "kind": "Cmdlet",
+      "synopsis": "Creates or updates a defined name.",
       "aliases": [
         "ExcelNamedRange"
       ],
@@ -3984,6 +4441,7 @@
     {
       "name": "Set-OfficeExcelPageSetup",
       "kind": "Cmdlet",
+      "synopsis": "Sets orientation, margins, scaling, print area and print titles, alone or from a print preset.",
       "aliases": [
         "ExcelPageSetup"
       ],
@@ -3994,6 +4452,7 @@
     {
       "name": "Set-OfficeExcelRefreshOnOpen",
       "kind": "Cmdlet",
+      "synopsis": "Turns refresh-on-open on or off for pivot caches and connections.",
       "aliases": [
         "ExcelRefreshOnOpen"
       ],
@@ -4004,6 +4463,7 @@
     {
       "name": "Set-OfficeExcelRow",
       "kind": "Cmdlet",
+      "synopsis": "Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.",
       "aliases": [
         "ExcelRow"
       ],
@@ -4014,6 +4474,7 @@
     {
       "name": "Set-OfficeExcelRowGroup",
       "kind": "Cmdlet",
+      "synopsis": "Groups rows into a collapsible outline, or clears grouping.",
       "aliases": [
         "ExcelRowGroup"
       ],
@@ -4024,6 +4485,7 @@
     {
       "name": "Set-OfficeExcelSheet",
       "kind": "Cmdlet",
+      "synopsis": "Sets worksheet visibility, tab color and the active worksheet.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelSheetCommand.cs",
       "sourceLine": 42,
@@ -4032,6 +4494,7 @@
     {
       "name": "Set-OfficeExcelSheetView",
       "kind": "Cmdlet",
+      "synopsis": "Sets frozen panes, gridlines, direction, zoom and view mode for a worksheet.",
       "aliases": [
         "ExcelSheetView"
       ],
@@ -4042,6 +4505,7 @@
     {
       "name": "Set-OfficeExcelTheme",
       "kind": "Cmdlet",
+      "synopsis": "Applies an OfficeTheme or theme XML to a workbook.",
       "aliases": [
         "ExcelTheme"
       ],
@@ -4052,6 +4516,7 @@
     {
       "name": "Set-OfficeExcelValidation",
       "kind": "Cmdlet",
+      "synopsis": "Sets prompt and error messages on existing validation rules.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/SetOfficeExcelValidationCommand.cs",
       "sourceLine": 33,
@@ -4060,6 +4525,7 @@
     {
       "name": "Set-OfficeOpenDocumentCell",
       "kind": "Cmdlet",
+      "synopsis": "Sets a typed zero-based cell value in an OpenDocument spreadsheet.",
       "aliases": [
         "OpenDocumentCell"
       ],
@@ -4070,6 +4536,7 @@
     {
       "name": "Set-OfficePdfAnnotation",
       "kind": "Cmdlet",
+      "synopsis": "Updates native annotation contents, styling and actions by identity or target URI.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfAnnotationCommand.cs",
       "sourceLine": 13,
@@ -4078,6 +4545,7 @@
     {
       "name": "Set-OfficePdfBackground",
       "kind": "Cmdlet",
+      "synopsis": "Sets or clears color, image and shape backgrounds in the enclosing PDF composition.",
       "aliases": [
         "PdfBackground"
       ],
@@ -4088,6 +4556,7 @@
     {
       "name": "Set-OfficePdfCompliance",
       "kind": "Cmdlet",
+      "synopsis": "Sets generated PDF compliance profile and readiness groundwork.",
       "aliases": [
         "PdfCompliance"
       ],
@@ -4098,6 +4567,7 @@
     {
       "name": "Set-OfficePdfFooter",
       "kind": "Cmdlet",
+      "synopsis": "Composes running PDF Footer text, child runs or the native builder inside New-OfficePdf.",
       "aliases": [
         "PdfFooter"
       ],
@@ -4108,6 +4578,7 @@
     {
       "name": "Set-OfficePdfFormField",
       "kind": "Cmdlet",
+      "synopsis": "Fills existing AcroForm fields from a hashtable, optionally flattening the result.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfFormFieldCommand.cs",
       "sourceLine": 16,
@@ -4116,6 +4587,7 @@
     {
       "name": "Set-OfficePdfHeader",
       "kind": "Cmdlet",
+      "synopsis": "Composes running PDF Header text, child runs or the native builder inside New-OfficePdf.",
       "aliases": [
         "PdfHeader"
       ],
@@ -4126,6 +4598,7 @@
     {
       "name": "Set-OfficePdfMetadata",
       "kind": "Cmdlet",
+      "synopsis": "Updates metadata on a generated PDF, an open editing block, or file copies.",
       "aliases": [
         "PdfMetadata"
       ],
@@ -4136,6 +4609,7 @@
     {
       "name": "Set-OfficePdfPage",
       "kind": "Cmdlet",
+      "synopsis": "Rotates pages, sets boundary boxes or resizes pages through the native PDF engine.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfPageCommand.cs",
       "sourceLine": 13,
@@ -4144,6 +4618,7 @@
     {
       "name": "Set-OfficePdfPageBorder",
       "kind": "Cmdlet",
+      "synopsis": "Sets or clears the generated PDF page border decoration.",
       "aliases": [
         "PdfPageBorder"
       ],
@@ -4154,6 +4629,7 @@
     {
       "name": "Set-OfficePdfPageSetup",
       "kind": "Cmdlet",
+      "synopsis": "Sets physical dimensions, orientation and margins in the enclosing PDF composition.",
       "aliases": [
         "PdfPageSetup"
       ],
@@ -4164,6 +4640,7 @@
     {
       "name": "Set-OfficePdfSignature",
       "kind": "Cmdlet",
+      "synopsis": "Complete external PDF signature using native byte-range and signature-placeholder operations.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/SetOfficePdfSignatureCommand.cs",
       "sourceLine": 14,
@@ -4172,6 +4649,7 @@
     {
       "name": "Set-OfficePowerPointLayoutPlaceholder",
       "kind": "Cmdlet",
+      "synopsis": "Updates a template layout placeholder's geometry, text margins and text style.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointLayoutPlaceholderCommand.cs",
       "sourceLine": 17,
@@ -4180,6 +4658,7 @@
     {
       "name": "Set-OfficePowerPointNotes",
       "kind": "Cmdlet",
+      "synopsis": "Sets speaker notes on a native slide or in the current slide content block.",
       "aliases": [
         "PowerPointNotes"
       ],
@@ -4190,6 +4669,7 @@
     {
       "name": "Set-OfficePowerPointPlaceholder",
       "kind": "Cmdlet",
+      "synopsis": "Replaces a native slide placeholder with plain text or rich paragraph content.",
       "aliases": [
         "PowerPointPlaceholder"
       ],
@@ -4200,6 +4680,7 @@
     {
       "name": "Set-OfficePowerPointShapeLayout",
       "kind": "Cmdlet",
+      "synopsis": "Aligns, distributes, or arranges PowerPoint shapes using OfficeIMO layout helpers.",
       "aliases": [
         "PowerPointShapeLayout"
       ],
@@ -4210,6 +4691,7 @@
     {
       "name": "Set-OfficePowerPointShapeText",
       "kind": "Cmdlet",
+      "synopsis": "Sets text on an existing PowerPoint text box.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointShapeTextCommand.cs",
       "sourceLine": 34,
@@ -4218,6 +4700,7 @@
     {
       "name": "Set-OfficePowerPointSlide",
       "kind": "Cmdlet",
+      "synopsis": "Changes a selected slide's title, template layout, background or transition.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointSlideCommand.cs",
       "sourceLine": 17,
@@ -4226,6 +4709,7 @@
     {
       "name": "Set-OfficePowerPointSlideSize",
       "kind": "Cmdlet",
+      "synopsis": "Sets a presentation's slide size using a preset or physical lengths.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointSlideSizeCommand.cs",
       "sourceLine": 19,
@@ -4234,6 +4718,7 @@
     {
       "name": "Set-OfficePowerPointTableCell",
       "kind": "Cmdlet",
+      "synopsis": "Sets text in an existing PowerPoint table cell.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointTableCellCommand.cs",
       "sourceLine": 31,
@@ -4242,6 +4727,7 @@
     {
       "name": "Set-OfficePowerPointTheme",
       "kind": "Cmdlet",
+      "synopsis": "Restyles a deck or changes the selected masters' colors, fonts and theme name.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/SetOfficePowerPointThemeCommand.cs",
       "sourceLine": 18,
@@ -4250,6 +4736,7 @@
     {
       "name": "Set-OfficeProjectTask",
       "kind": "Cmdlet",
+      "synopsis": "Updates selected task fields without implicitly recalculating its schedule.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Project/SetOfficeProjectTaskCommand.cs",
       "sourceLine": 13,
@@ -4258,6 +4745,7 @@
     {
       "name": "Set-OfficeTomlNode",
       "kind": "Cmdlet",
+      "synopsis": "Sets the value at a path in a live TOML document, adding missing tables on the way.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/SetOfficeTomlNodeCommand.cs",
       "sourceLine": 23,
@@ -4266,6 +4754,7 @@
     {
       "name": "Set-OfficeVisioShapeLayout",
       "kind": "Cmdlet",
+      "synopsis": "Applies OfficeIMO Visio selection layout and layer operations to shapes.",
       "aliases": [
         "VisioLayout"
       ],
@@ -4276,6 +4765,7 @@
     {
       "name": "Set-OfficeWordBackground",
       "kind": "Cmdlet",
+      "synopsis": "Sets the background for a Word document.",
       "aliases": [
         "WordBackground"
       ],
@@ -4286,6 +4776,7 @@
     {
       "name": "Set-OfficeWordDocumentProperty",
       "kind": "Cmdlet",
+      "synopsis": "Sets a built-in or custom document property on a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordDocumentPropertyCommand.cs",
       "sourceLine": 21,
@@ -4294,6 +4785,7 @@
     {
       "name": "Set-OfficeWordImage",
       "kind": "Cmdlet",
+      "synopsis": "Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordImageCommand.cs",
       "sourceLine": 21,
@@ -4302,6 +4794,7 @@
     {
       "name": "Set-OfficeWordPageSetup",
       "kind": "Cmdlet",
+      "synopsis": "Sets page setup options on Word sections.",
       "aliases": [
         "WordPageSetup"
       ],
@@ -4312,6 +4805,7 @@
     {
       "name": "Set-OfficeWordParagraph",
       "kind": "Cmdlet",
+      "synopsis": "Updates paragraph style, spacing, indentation, and pagination hints.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordParagraphCommand.cs",
       "sourceLine": 18,
@@ -4320,6 +4814,7 @@
     {
       "name": "Set-OfficeWordShape",
       "kind": "Cmdlet",
+      "synopsis": "Updates OfficeIMO Word shape metadata, sizing, and colors.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordShapeCommand.cs",
       "sourceLine": 21,
@@ -4328,6 +4823,7 @@
     {
       "name": "Set-OfficeWordTableCell",
       "kind": "Cmdlet",
+      "synopsis": "Updates native Word cell text, physical geometry and layout flags.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTableCellCommand.cs",
       "sourceLine": 11,
@@ -4336,6 +4832,7 @@
     {
       "name": "Set-OfficeWordTableOfContents",
       "kind": "Cmdlet",
+      "synopsis": "Sets properties on a table of contents in a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTableOfContentsCommand.cs",
       "sourceLine": 31,
@@ -4344,6 +4841,7 @@
     {
       "name": "Set-OfficeWordText",
       "kind": "Cmdlet",
+      "synopsis": "Updates styling on Word text.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/SetOfficeWordTextCommand.cs",
       "sourceLine": 18,
@@ -4352,6 +4850,7 @@
     {
       "name": "Set-OfficeYamlNode",
       "kind": "Cmdlet",
+      "synopsis": "Sets the value at a path in a live YAML document, creating missing mappings on the way.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/SetOfficeYamlNodeCommand.cs",
       "sourceLine": 21,
@@ -4360,6 +4859,7 @@
     {
       "name": "Split-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Splits PDF files into consecutive groups, selected ranges or top-level bookmarked chapters.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/SplitOfficeDocumentCommand.cs",
       "sourceLine": 25,
@@ -4368,6 +4868,7 @@
     {
       "name": "Stop-OfficePrintJob",
       "kind": "Cmdlet",
+      "synopsis": "Cancels a print job submitted with Send-OfficePrinter and returns its state afterwards. Requires PowerShell 7.4 or newer.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/StopOfficePrintJobCommand.cs",
       "sourceLine": 16,
@@ -4376,6 +4877,7 @@
     {
       "name": "Test-OfficeAccessibility",
       "kind": "Cmdlet",
+      "synopsis": "Checks Word, Excel and PowerPoint files for accessibility issues. The input is never changed.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Accessibility/TestOfficeAccessibilityCommand.cs",
       "sourceLine": 34,
@@ -4384,6 +4886,7 @@
     {
       "name": "Test-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Validates native document structure, schema, security, accessibility or compliance without changing the input.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/TestOfficeDocumentCommand.cs",
       "sourceLine": 23,
@@ -4392,6 +4895,7 @@
     {
       "name": "Test-OfficeExcelTemplate",
       "kind": "Cmdlet",
+      "synopsis": "Tests whether supplied values bind every template marker.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/TestOfficeExcelTemplateCommand.cs",
       "sourceLine": 30,
@@ -4400,6 +4904,7 @@
     {
       "name": "Test-OfficePdfAccessibility",
       "kind": "Cmdlet",
+      "synopsis": "Checks a PDF against PDF/UA-1 using the Matterhorn Protocol failure conditions.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/TestOfficePdfAccessibilityCommand.cs",
       "sourceLine": 33,
@@ -4408,6 +4913,7 @@
     {
       "name": "Test-OfficePdfRewrite",
       "kind": "Cmdlet",
+      "synopsis": "Creates a proof report for user-visible signals preserved by a PDF rewrite.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/TestOfficePdfRewriteCommand.cs",
       "sourceLine": 13,
@@ -4416,6 +4922,7 @@
     {
       "name": "Test-OfficePowerPoint",
       "kind": "Cmdlet",
+      "synopsis": "Inspects a live or saved presentation without changing or reopening a supplied document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/TestOfficePowerPointCommand.cs",
       "sourceLine": 18,
@@ -4424,6 +4931,7 @@
     {
       "name": "Test-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Tests whether TOML files or text load, without changing them.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/TestOfficeTomlCommand.cs",
       "sourceLine": 21,
@@ -4432,6 +4940,7 @@
     {
       "name": "Test-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Tests whether YAML files or text load, without changing them.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/TestOfficeYamlCommand.cs",
       "sourceLine": 21,
@@ -4440,6 +4949,7 @@
     {
       "name": "Unprotect-OfficeDocument",
       "kind": "Cmdlet",
+      "synopsis": "Removes native package encryption or selected editing restrictions.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Conversion/UnprotectOfficeDocumentCommand.cs",
       "sourceLine": 17,
@@ -4448,6 +4958,7 @@
     {
       "name": "Unprotect-OfficeExcelSheet",
       "kind": "Cmdlet",
+      "synopsis": "Removes worksheet protection.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/UnprotectOfficeExcelSheetCommand.cs",
       "sourceLine": 34,
@@ -4456,6 +4967,7 @@
     {
       "name": "Update-OfficeExcelComment",
       "kind": "Cmdlet",
+      "synopsis": "Replaces the text or author of notes that match a filter.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/UpdateOfficeExcelCommentCommand.cs",
       "sourceLine": 33,
@@ -4464,6 +4976,7 @@
     {
       "name": "Update-OfficeExcelText",
       "kind": "Cmdlet",
+      "synopsis": "Replaces text in cell values across a workbook, sheet or range.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Excel/UpdateOfficeExcelTextCommand.cs",
       "sourceLine": 35,
@@ -4472,6 +4985,7 @@
     {
       "name": "Update-OfficePdf",
       "kind": "Cmdlet",
+      "synopsis": "Flattens forms or annotations, or adds a searchable OCR text layer, writing a new PDF.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Pdf/UpdateOfficePdfCommand.cs",
       "sourceLine": 15,
@@ -4480,6 +4994,7 @@
     {
       "name": "Update-OfficePowerPointText",
       "kind": "Cmdlet",
+      "synopsis": "Replaces text in the selected slide or document, including tables by default.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/PowerPoint/UpdateOfficePowerPointTextCommand.cs",
       "sourceLine": 18,
@@ -4488,6 +5003,7 @@
     {
       "name": "Update-OfficeRtfText",
       "kind": "Cmdlet",
+      "synopsis": "Applies lossless text and metadata edits to an RTF document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Rtf/UpdateOfficeRtfTextCommand.cs",
       "sourceLine": 20,
@@ -4496,6 +5012,7 @@
     {
       "name": "Update-OfficeToml",
       "kind": "Cmdlet",
+      "synopsis": "Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live TOML document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Toml/UpdateOfficeTomlCommand.cs",
       "sourceLine": 29,
@@ -4504,6 +5021,7 @@
     {
       "name": "Update-OfficeWordField",
       "kind": "Cmdlet",
+      "synopsis": "Updates fields in a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordFieldCommand.cs",
       "sourceLine": 21,
@@ -4512,6 +5030,7 @@
     {
       "name": "Update-OfficeWordTableOfContents",
       "kind": "Cmdlet",
+      "synopsis": "Updates the table of contents in a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordTableOfContentsCommand.cs",
       "sourceLine": 29,
@@ -4520,6 +5039,7 @@
     {
       "name": "Update-OfficeWordText",
       "kind": "Cmdlet",
+      "synopsis": "Replaces text in a Word document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Word/UpdateOfficeWordTextCommand.cs",
       "sourceLine": 24,
@@ -4528,6 +5048,7 @@
     {
       "name": "Update-OfficeYaml",
       "kind": "Cmdlet",
+      "synopsis": "Applies a JSON Patch (RFC 6902) or JSON Merge Patch (RFC 7386) to a live YAML document.",
       "aliases": [],
       "sourcePath": "Sources/PSWriteOffice/Cmdlets/Yaml/UpdateOfficeYamlCommand.cs",
       "sourceLine": 28,
