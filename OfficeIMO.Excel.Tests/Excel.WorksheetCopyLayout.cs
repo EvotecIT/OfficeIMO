@@ -150,7 +150,8 @@ namespace OfficeIMO.Tests {
                 DefinedName[] copyNames = copied.WorkbookPart.Workbook.DefinedNames?.Elements<DefinedName>()
                     .Where(name => name.LocalSheetId?.Value == copyPosition)
                     .ToArray() ?? Array.Empty<DefinedName>();
-                Assert.Equal("Copy!$A$1:$E$20", Assert.Single(copyNames, name => name.Name == "_xlnm.Print_Area").Text.Replace("'", string.Empty));
+                Assert.Equal("OFFSET(Copy!$A$1,0,0,PrintRows,5)", Assert.Single(copyNames, name => name.Name == "_xlnm.Print_Area").Text.Replace("'", string.Empty));
+                Assert.Equal("20", Assert.Single(copyNames, name => name.Name == "PrintRows").Text);
                 Assert.Equal("Copy!$1:$1", Assert.Single(copyNames, name => name.Name == "_xlnm.Print_Titles").Text.Replace("'", string.Empty));
                 Assert.Equal("AllowedValues", copiedSheet.Descendants<DataValidation>().Single().GetFirstChild<Formula1>()!.Text);
                 Assert.Equal("Copy!$H$1:$H$2", Assert.Single(copyNames, name => name.Name == "AllowedValues").Text.Replace("'", string.Empty));
@@ -304,7 +305,8 @@ namespace OfficeIMO.Tests {
             bookViews.Append(new WorkbookView { XWindow = 200, YWindow = 200 });
             workbookPart.Workbook.DefinedNames.Append(
                 new DefinedName("Data!$H$1:$H$2") { Name = "AllowedValues" },
-                new DefinedName("Data!$A$1:$E$20") { Name = "_xlnm.Print_Area", LocalSheetId = 0U },
+                new DefinedName("OFFSET(Data!$A$1,0,0,PrintRows,5)") { Name = "_xlnm.Print_Area", LocalSheetId = 0U },
+                new DefinedName("20") { Name = "PrintRows" },
                 new DefinedName("Data!$1:$1") { Name = "_xlnm.Print_Titles", LocalSheetId = 0U });
             workbookPart.Workbook.Save();
             Assert.Empty(new OpenXmlValidator().Validate(package).Select(error => error.Path?.XPath + " " + error.Description));

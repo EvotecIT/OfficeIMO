@@ -133,6 +133,157 @@ namespace OfficeIMO.Tests {
             File.Delete(targetPath);
         }
 
+        [Theory]
+        [InlineData(false, ExcelWorksheetCopyMode.Values)]
+        [InlineData(false, ExcelWorksheetCopyMode.Package)]
+        [InlineData(true, ExcelWorksheetCopyMode.Values)]
+        [InlineData(true, ExcelWorksheetCopyMode.Package)]
+        public void Test_WorksheetCopy_PrintNamesCountTowardsDefinedNameLimits(bool merge, ExcelWorksheetCopyMode mode) {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"CopyNameBudgetSource-{merge}-{mode}.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, $"CopyNameBudgetTarget-{merge}-{mode}.xlsx");
+            // The layout fixture copies four names: AllowedValues, PrintRows, the print area and the print titles.
+            CreateLayoutSource(sourcePath);
+            using (var createdTarget = ExcelDocument.Create(targetPath)) {
+                createdTarget.AddSheet("Existing").Cell(1, 1).SetValue("Existing");
+                createdTarget.Save();
+            }
+
+            using var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            using var targetDocument = ExcelDocument.Load(targetPath);
+            void Copy(int maximumNames, int maximumCharacters) {
+                if (merge) {
+                    targetDocument.MergeWorkbookFrom(sourceDocument, new ExcelWorkbookMergeOptions {
+                        CopyMode = mode,
+                        TargetSheetNames = new Dictionary<string, string> { ["Data"] = "Copy" },
+                        MaxDefinedNames = maximumNames,
+                        MaxDefinedNameCharacters = maximumCharacters
+                    });
+                } else {
+                    targetDocument.CopyWorksheetFrom(sourceDocument, "Data", "Copy", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions {
+                        CopyMode = mode,
+                        MaxDefinedNames = maximumNames,
+                        MaxDefinedNameCharacters = maximumCharacters
+                    });
+                }
+            }
+
+            Assert.Throws<InvalidOperationException>(() => Copy(3, 10_000));
+            Assert.Throws<InvalidOperationException>(() => Copy(10, 40));
+            Assert.Equal(new[] { "Existing" }, targetDocument.Sheets.Select(sheet => sheet.Name));
+
+            Copy(4, 10_000);
+            Assert.Contains("Copy", targetDocument.Sheets.Select(sheet => sheet.Name));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_WorksheetValuesCopy_KeepsLayoutOfRowsWithoutIndexes(bool editedSource) {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"ImplicitRowsSource-{editedSource}.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, $"ImplicitRowsTarget-{editedSource}.xlsx");
+            using (var createdSource = ExcelDocument.Create(sourcePath)) {
+                createdSource.AddSheet("Data").Cell(1, 1).SetValue("Header");
+                createdSource.Save();
+            }
+
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
+                Worksheet worksheet = GetWorksheetPartByNameForOperations(source, "Data").Worksheet!;
+                SheetData sheetData = worksheet.GetFirstChild<SheetData>()!;
+                // The first row takes its index from its cell, the second follows it, and neither cell names a column
+                // the second time.
+                sheetData.Append(
+                    new Row(new Cell { CellReference = "A10", CellValue = new CellValue(5D) }) { Hidden = true, Height = 30D, CustomHeight = true },
+                    new Row(new Cell { CellValue = new CellValue(6D) }) { Height = 40D, CustomHeight = true });
+                worksheet.GetFirstChild<SheetDimension>()?.Remove();
+                worksheet.Save();
+            }
+
+            using (var createdTarget = ExcelDocument.Create(targetPath)) {
+                createdTarget.AddSheet("Existing").Cell(1, 1).SetValue("Existing");
+                createdTarget.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions {
+                AccessMode = editedSource ? OfficeIMO.DocumentAccessMode.ReadWrite : OfficeIMO.DocumentAccessMode.ReadOnly
+            }))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                if (editedSource) {
+                    sourceDocument["Data"].Cell(1, 1).SetValue("Header");
+                }
+
+                targetDocument.CopyWorksheetFrom(sourceDocument, "Data", "Copy");
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                Row[] rows = GetWorksheetPartByNameForOperations(target, "Copy").Worksheet!.GetFirstChild<SheetData>()!.Elements<Row>().ToArray();
+                Row row10 = rows.Single(row => row.RowIndex!.Value == 10U);
+                Assert.True(row10.Hidden!.Value);
+                Assert.Equal(30D, row10.Height!.Value);
+                Assert.Equal(40D, rows.Single(row => row.RowIndex!.Value == 11U).Height!.Value);
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            using (var reloaded = ExcelDocument.Load(targetPath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                Assert.True(reloaded["Copy"].TryGetCellText(10, 1, out string ten));
+                Assert.Equal("5", ten);
+                Assert.True(reloaded["Copy"].TryGetCellText(11, 1, out string eleven));
+                Assert.Equal("6", eleven);
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Theory]
+        [InlineData(ExcelWorksheetCopyMode.Values)]
+        [InlineData(ExcelWorksheetCopyMode.Package)]
+        public void Test_WorksheetCopy_FormulaThresholdsKeepTheirNames(ExcelWorksheetCopyMode mode) {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"ThresholdNameSource-{mode}.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, $"ThresholdNameTarget-{mode}.xlsx");
+            using (var createdSource = ExcelDocument.Create(sourcePath)) {
+                ExcelSheet data = createdSource.AddSheet("Data");
+                for (int row = 1; row <= 3; row++) data.Cell(row, 1).SetValue(row);
+                data.Cell(1, 3).SetValue(2);
+                createdSource.Save();
+            }
+
+            AddDefinedName(sourcePath, "Threshold", "Data!$C$1");
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
+                Worksheet worksheet = GetWorksheetPartByNameForOperations(source, "Data").Worksheet!;
+                worksheet.InsertAfter(new ConditionalFormatting(new ConditionalFormattingRule(new ColorScale(
+                    new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min },
+                    new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Formula, Val = "Threshold" },
+                    new Color { Rgb = "FFF8696B" },
+                    new Color { Rgb = "FF63BE7B" })) { Type = ConditionalFormatValues.ColorScale, Priority = 1 }) {
+                    SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1:A3" }
+                }, worksheet.GetFirstChild<SheetData>()!);
+                worksheet.Save();
+            }
+
+            using (var createdTarget = ExcelDocument.Create(targetPath)) {
+                createdTarget.AddSheet("Existing").Cell(1, 1).SetValue("Existing");
+                createdTarget.Save();
+            }
+
+            using (var sourceDocument = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var targetDocument = ExcelDocument.Load(targetPath)) {
+                targetDocument.CopyWorksheetFrom(sourceDocument, "Data", "Copy", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions { CopyMode = mode });
+                targetDocument.Save();
+            }
+
+            using (SpreadsheetDocument target = SpreadsheetDocument.Open(targetPath, false)) {
+                Assert.Equal("Threshold", GetWorksheetPartByNameForOperations(target, "Copy").Worksheet!
+                    .Descendants<ConditionalFormatValueObject>().Single(threshold => threshold.Type!.Value == ConditionalFormatValueObjectValues.Formula).Val!.Value);
+                DefinedName threshold = target.WorkbookPart!.Workbook!.DefinedNames!.Elements<DefinedName>().Single(name => name.Name == "Threshold");
+                Assert.Equal("Copy!$C$1", threshold.Text.Replace("'", string.Empty));
+                Assert.Empty(new OpenXmlValidator().Validate(target));
+            }
+
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
         private static void AddLinkedWorkbook(string path, string linkedFile) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
             WorkbookPart workbookPart = spreadsheet.WorkbookPart!;

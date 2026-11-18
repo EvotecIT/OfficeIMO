@@ -90,6 +90,13 @@ namespace OfficeIMO.Excel {
                 changed |= RewriteStructuredTableFormula(formula, tableNameMap);
             foreach (Formula2 formula in worksheet.Descendants<Formula2>())
                 changed |= RewriteStructuredTableFormula(formula, tableNameMap);
+            foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheet)) {
+                string rewritten = RewriteStructuredTableReferences(threshold.Val!.Value!, tableNameMap);
+                if (!string.Equals(rewritten, threshold.Val.Value, StringComparison.Ordinal)) {
+                    threshold.Val = rewritten;
+                    changed = true;
+                }
+            }
             foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>())
                 changed |= RewriteStructuredTableFormula(formula, tableNameMap);
             return changed;
@@ -208,6 +215,10 @@ namespace OfficeIMO.Excel {
                 foreach (DefinedName sourceName in referencedNames) {
                     budget.Consume(sourceName.Text?.Length ?? 0);
                 }
+
+                foreach (DefinedName printName in GetSourcePrintDefinedNames(sourceDocument, sourceSheet.Name)) {
+                    budget.Consume(printName.Text?.Length ?? 0);
+                }
             }
         }
 
@@ -224,6 +235,8 @@ namespace OfficeIMO.Excel {
             List<string> formulaTexts = (layoutFormulasOnly
                 ? CollectLayoutFormulaTexts(sourceSheet.WorksheetPart)
                 : CollectFormulaTexts(sourceSheet.WorksheetPart)).ToList();
+            // Every route copies the print area and titles, so names they use (a dynamic print area) come along too.
+            formulaTexts.AddRange(GetSourcePrintDefinedNames(sourceDocument, sourceSheet.Name).Select(name => name.Text));
             if (formulaTexts.Count == 0) {
                 return Array.Empty<DefinedName>();
             }
@@ -483,7 +496,15 @@ namespace OfficeIMO.Excel {
                     formulas.Add(formula.Text);
                 }
             }
+
+            formulas.AddRange(FormulaThresholds(container).Select(threshold => threshold.Val!.Value!));
         }
+
+        /// <summary>Color-scale, data-bar and icon-set thresholds whose value is a formula.</summary>
+        private static IEnumerable<ConditionalFormatValueObject> FormulaThresholds(OpenXmlElement root) =>
+            root.Descendants<ConditionalFormatValueObject>()
+                .Where(threshold => threshold.Type?.Value == ConditionalFormatValueObjectValues.Formula
+                    && !string.IsNullOrEmpty(threshold.Val?.Value));
 
         /// <summary>
         /// Reports whether the rules a values copy keeps, or the defined names they use, refer to another workbook.
@@ -495,7 +516,8 @@ namespace OfficeIMO.Excel {
 
             var copiedSourceSheetNames = new HashSet<string>(sourceSheets.Select(sheet => sheet.Name), StringComparer.OrdinalIgnoreCase);
             foreach (ExcelSheet sourceSheet in sourceSheets) {
-                if (CollectLayoutFormulaTexts(sourceSheet.WorksheetPart).Any(ContainsExternalWorkbookReference)) {
+                if (CollectLayoutFormulaTexts(sourceSheet.WorksheetPart).Any(ContainsExternalWorkbookReference)
+                    || GetSourcePrintDefinedNames(sourceDocument, sourceSheet.Name).Any(name => ContainsExternalWorkbookReference(name.Text))) {
                     return true;
                 }
 
@@ -575,6 +597,10 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrEmpty(formula.Text)) {
                     yield return formula.Text!;
                 }
+            }
+
+            foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheet)) {
+                yield return threshold.Val!.Value!;
             }
 
             foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>()) {

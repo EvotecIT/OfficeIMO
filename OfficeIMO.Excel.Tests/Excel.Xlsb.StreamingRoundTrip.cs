@@ -53,12 +53,18 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(path)) {
                 document["Data"].Cell(10, 5).SetValue("Edited");
+                // A bulk append keeps a worksheet dimension, which must save although the source had none.
+                document["Data"].SetValues(
+                    Enumerable.Range(20, 5).SelectMany(row => Enumerable.Range(1, 4).Select(column => (row, column, (object)(row * 10 + column)))),
+                    ExcelExecutionMode.Sequential);
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(path, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Assert.True(document["Data"].TryGetCellText(10, 5, out string edited));
                 Assert.Equal("Edited", edited);
+                Assert.True(document["Data"].TryGetCellText(24, 4, out string appended));
+                Assert.Equal("244", appended);
                 if (rowCount > 0) {
                     Assert.True(document["Data"].TryGetCellText(firstDataRowFor(includeHeaders), 1, out string name));
                     Assert.Equal(rows[0].Name, name);

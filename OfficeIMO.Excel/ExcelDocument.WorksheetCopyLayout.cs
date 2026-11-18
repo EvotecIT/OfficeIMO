@@ -184,8 +184,10 @@ namespace OfficeIMO.Excel {
                     if (ValuesCopyLayoutElementTypes.Contains(child.GetType())) {
                         layout.Add(child.CloneNode(true));
                     } else if (child is SheetData sheetData) {
+                        int previousRowIndex = 0;
                         foreach (Row row in sheetData.Elements<Row>()) {
-                            layout.AddRow(row.RowIndex?.Value, row.GetAttributes());
+                            int rowIndex = ExcelWorksheetCoordinates.GetRowIndex(row, ref previousRowIndex);
+                            layout.AddRow(rowIndex > 0 ? (uint)rowIndex : null, row.GetAttributes());
                         }
                     }
                 }
@@ -194,6 +196,7 @@ namespace OfficeIMO.Excel {
             }
 
             using OpenXmlReader reader = OpenXmlReader.Create(part);
+            int previousStreamedRowIndex = 0;
             bool hasCurrent = reader.Read();
             while (hasCurrent) {
                 if (reader.IsStartElement && reader.Depth == 1 && ValuesCopyLayoutElementTypes.Contains(reader.ElementType)) {
@@ -201,7 +204,16 @@ namespace OfficeIMO.Excel {
                 } else if (reader.IsStartElement && reader.Depth == 2 && reader.ElementType == typeof(Row)) {
                     IReadOnlyList<OpenXmlAttribute> attributes = reader.Attributes;
                     string? rowIndexText = attributes.FirstOrDefault(attribute => attribute.LocalName == "r" && string.IsNullOrEmpty(attribute.NamespaceUri)).Value;
-                    layout.AddRow(uint.TryParse(rowIndexText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out uint rowIndex) ? rowIndex : null, attributes);
+                    if (uint.TryParse(rowIndexText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out uint rowIndex) && rowIndex > 0U) {
+                        previousStreamedRowIndex = checked((int)rowIndex);
+                        layout.AddRow(rowIndex, attributes);
+                    } else {
+                        // A row without its optional index takes it from its first cell or follows the previous row,
+                        // as the values reader does, so its layout lands on the row its values were written to.
+                        var row = (Row)reader.LoadCurrentElement()!;
+                        int resolved = ExcelWorksheetCoordinates.GetRowIndex(row, ref previousStreamedRowIndex);
+                        layout.AddRow(resolved > 0 ? (uint)resolved : null, row.GetAttributes());
+                    }
                 }
 
                 hasCurrent = reader.Read();
@@ -218,17 +230,9 @@ namespace OfficeIMO.Excel {
             ExcelDocument sourceDocument,
             string sourceSheetName,
             ExcelSheet targetSheet,
-            IReadOnlyDictionary<string, string> sheetNameMap) {
-            DefinedNames? sourceNames = sourceDocument.WorkbookRoot.DefinedNames;
-            if (sourceNames == null || !sourceDocument.TryGetSheetPositionIndexByName(sourceSheetName, out ushort sourcePosition)) {
-                return;
-            }
-
-            List<DefinedName> printNames = sourceNames.Elements<DefinedName>()
-                .Where(name => name.LocalSheetId?.Value == sourcePosition
-                    && CopiedPrintDefinedNames.Contains(name.Name?.Value, StringComparer.OrdinalIgnoreCase)
-                    && !string.IsNullOrWhiteSpace(name.Text))
-                .ToList();
+            IReadOnlyDictionary<string, string> sheetNameMap,
+            IReadOnlyDictionary<int, int>? externalReferenceMap = null) {
+            IReadOnlyList<DefinedName> printNames = GetSourcePrintDefinedNames(sourceDocument, sourceSheetName);
             if (printNames.Count == 0) {
                 return;
             }
@@ -247,11 +251,29 @@ namespace OfficeIMO.Excel {
                     var copy = (DefinedName)sourceName.CloneNode(true);
                     copy.LocalSheetId = targetPosition;
                     copy.Text = ReplaceSheetNameReferences(copy.Text!, sheetNameMap);
+                    if (externalReferenceMap?.Count > 0) {
+                        copy.Text = RewriteExternalWorkbookReferenceIndexes(copy.Text, externalReferenceMap);
+                    }
+
                     targetNames.Append(copy);
                 }
 
                 WorkbookRoot.Save();
             });
+        }
+
+        /// <summary>Returns the source worksheet's print area and print titles.</summary>
+        private static IReadOnlyList<DefinedName> GetSourcePrintDefinedNames(ExcelDocument sourceDocument, string sourceSheetName) {
+            DefinedNames? sourceNames = sourceDocument.WorkbookRoot.DefinedNames;
+            if (sourceNames == null || !sourceDocument.TryGetSheetPositionIndexByName(sourceSheetName, out ushort sourcePosition)) {
+                return Array.Empty<DefinedName>();
+            }
+
+            return sourceNames.Elements<DefinedName>()
+                .Where(name => name.LocalSheetId?.Value == sourcePosition
+                    && CopiedPrintDefinedNames.Contains(name.Name?.Value, StringComparer.OrdinalIgnoreCase)
+                    && !string.IsNullOrWhiteSpace(name.Text))
+                .ToList();
         }
 
         private sealed class WorksheetLayoutSnapshot {

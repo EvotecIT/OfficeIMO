@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel {
                 options.MaxInCellImageBytes,
                 options.MaxTotalInCellImageBytes);
             sourceSheet.PreflightInCellImages(inCellImageContext);
-            ExcelSheet copiedSheet = CopyWorksheetFromPackage(
+            WorksheetPackageCopyResult result = CopyWorksheetFromPackage(
                 sourceDocument,
                 sourceSheetName,
                 newSheetName,
@@ -65,10 +65,11 @@ namespace OfficeIMO.Excel {
                 rewriteCopiedReferences: true,
                 copyReferencedDefinedNames: true,
                 options.CopyExternalWorkbookReferences,
-                inCellImageContext).Sheet;
+                inCellImageContext);
+            ExcelSheet copiedSheet = result.Sheet;
             CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                 [sourceSheet.Name] = copiedSheet.Name
-            });
+            }, result.ExternalReferenceMap);
             return copiedSheet;
         }
 

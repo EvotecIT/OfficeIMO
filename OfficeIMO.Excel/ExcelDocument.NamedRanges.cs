@@ -405,6 +405,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool DefinedNameReferencesExpectedSheet(string text, string expectedSheetName) {
+            // A dynamic print area or title is a formula such as OFFSET(Data!$A$1,0,0,Rows,5), which Excel accepts.
+            // Only plain reference lists can be checked against the owning sheet.
+            if (IsDefinedNameFormula(text)) {
+                return true;
+            }
+
             foreach (string part in SplitDefinedNameReferenceList(text)) {
                 if (!SheetNameLookup.TryParseSheetQualifiedReference(part, out string actualSheetName, out _, allowExternalWorkbookReferences: false)) {
                     return false;
@@ -416,6 +422,19 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static bool IsDefinedNameFormula(string text) {
+            bool inQuote = false;
+            foreach (char ch in text) {
+                if (ch == '\'') {
+                    inQuote = !inQuote;
+                } else if (ch == '(' && !inQuote) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static IReadOnlyList<string> SplitDefinedNameReferenceList(string text) {

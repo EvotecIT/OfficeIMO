@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 CopyReferencedDefinedNamesFromSource(sourceDocument, copiedSheet, sheetMap, result.TableNameMap, externalReferenceMap, layoutFormulasOnly: true);
-                CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, sheetMap);
+                CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, sheetMap, externalReferenceMap);
             } else {
                 copiedSheet = CopyWorksheetFromPackage(
                     sourceDocument,
@@ -606,6 +606,10 @@ namespace OfficeIMO.Excel {
 
             foreach (Formula2 formula in worksheetPart.Worksheet!.Descendants<Formula2>()) {
                 formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
+            }
+
+            foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheetPart.Worksheet!)) {
+                threshold.Val = RewriteExternalWorkbookReferenceIndexes(threshold.Val!.Value, externalReferenceMap);
             }
 
             foreach (OfficeFormula formula in worksheetPart.Worksheet!.Descendants<OfficeFormula>()) {
