@@ -149,12 +149,19 @@ namespace OfficeIMO.Excel {
                 ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
                 PreflightReferencedDefinedNamesFromSource(sourceDocument, new[] { sourceSheet },
                     new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters), layoutFormulasOnly: true);
+                IReadOnlyDictionary<int, int> externalReferenceMap = PrepareValuesCopyExternalWorkbookReferences(
+                    sourceDocument, new[] { sourceSheet }, options.CopyExternalWorkbookReferences);
                 WorksheetPackageCopyResult result = CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode);
                 copiedSheet = result.Sheet;
                 var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = copiedSheet.Name };
-                // Conditional formats and validations can name their own sheet, its tables and defined names.
+                // Conditional formats and validations can name their own sheet, its tables, defined names and external links.
                 RewriteCopiedWorksheetReferences(copiedSheet.WorksheetPart, sheetMap, result.TableNameMap);
-                CopyReferencedDefinedNamesFromSource(sourceDocument, copiedSheet, sheetMap, result.TableNameMap, layoutFormulasOnly: true);
+                if (externalReferenceMap.Count > 0) {
+                    RewriteCopiedWorksheetExternalReferences(copiedSheet.WorksheetPart, externalReferenceMap);
+                    copiedSheet.WorksheetPart.Worksheet!.Save();
+                }
+
+                CopyReferencedDefinedNamesFromSource(sourceDocument, copiedSheet, sheetMap, result.TableNameMap, externalReferenceMap, layoutFormulasOnly: true);
                 CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, sheetMap);
             } else {
                 copiedSheet = CopyWorksheetFromPackage(

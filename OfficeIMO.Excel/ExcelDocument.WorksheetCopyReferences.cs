@@ -451,15 +451,104 @@ namespace OfficeIMO.Excel {
         /// Collects the formulas a values copy keeps: conditional-format and data-validation rules. Cell and table
         /// formulas are not copied in values mode, so the names they use are not needed.
         /// </summary>
-        private static IEnumerable<string> CollectLayoutFormulaTexts(WorksheetPart worksheetPart) {
-            Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
-            foreach (OpenXmlElement container in worksheet.Elements<ConditionalFormatting>().Cast<OpenXmlElement>().Concat(worksheet.Elements<DataValidations>())) {
-                foreach (OpenXmlLeafTextElement formula in container.Descendants<OpenXmlLeafTextElement>()) {
-                    if ((formula is Formula || formula is Formula1 || formula is Formula2) && !string.IsNullOrEmpty(formula.Text)) {
-                        yield return formula.Text;
+        /// <remarks>A worksheet that is not loaded is streamed, so a values copy never loads the source cells.</remarks>
+        private static List<string> CollectLayoutFormulaTexts(WorksheetPart worksheetPart) {
+            var formulas = new List<string>();
+            if (worksheetPart.IsRootElementLoaded) {
+                Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+                foreach (OpenXmlElement container in worksheet.Elements<ConditionalFormatting>().Cast<OpenXmlElement>().Concat(worksheet.Elements<DataValidations>())) {
+                    AddLayoutFormulaTexts(container, formulas);
+                }
+
+                return formulas;
+            }
+
+            using OpenXmlReader reader = OpenXmlReader.Create(worksheetPart);
+            bool hasCurrent = reader.Read();
+            while (hasCurrent) {
+                if (reader.IsStartElement && reader.Depth == 1
+                    && (reader.ElementType == typeof(ConditionalFormatting) || reader.ElementType == typeof(DataValidations))) {
+                    AddLayoutFormulaTexts(reader.LoadCurrentElement()!, formulas);
+                }
+
+                hasCurrent = reader.Read();
+            }
+
+            return formulas;
+        }
+
+        private static void AddLayoutFormulaTexts(OpenXmlElement container, List<string> formulas) {
+            foreach (OpenXmlLeafTextElement formula in container.Descendants<OpenXmlLeafTextElement>()) {
+                if ((formula is Formula || formula is Formula1 || formula is Formula2) && !string.IsNullOrEmpty(formula.Text)) {
+                    formulas.Add(formula.Text);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reports whether the rules a values copy keeps, or the defined names they use, refer to another workbook.
+        /// </summary>
+        private static bool ValuesCopyRulesReferenceExternalWorkbooks(ExcelDocument sourceDocument, IReadOnlyList<ExcelSheet> sourceSheets) {
+            if (sourceDocument.WorkbookRoot.ExternalReferences?.Elements<ExternalReference>().Any() != true) {
+                return false;
+            }
+
+            var copiedSourceSheetNames = new HashSet<string>(sourceSheets.Select(sheet => sheet.Name), StringComparer.OrdinalIgnoreCase);
+            foreach (ExcelSheet sourceSheet in sourceSheets) {
+                if (CollectLayoutFormulaTexts(sourceSheet.WorksheetPart).Any(ContainsExternalWorkbookReference)) {
+                    return true;
+                }
+
+                foreach (DefinedName name in ResolveReferencedDefinedNamesFromSource(sourceDocument, sourceSheet, copiedSourceSheetNames, layoutFormulasOnly: true)) {
+                    if (ContainsExternalWorkbookReference(name.Text)) {
+                        return true;
                     }
                 }
             }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Applies the package-mode rule for external workbook links to a values copy: rules that use them are refused
+        /// unless the caller opts in, and are then copied with their links and remapped indexes.
+        /// </summary>
+        /// <returns>The source-to-target external link index map, empty when nothing needs remapping.</returns>
+        private IReadOnlyDictionary<int, int> PrepareValuesCopyExternalWorkbookReferences(
+            ExcelDocument sourceDocument,
+            IReadOnlyList<ExcelSheet> sourceSheets,
+            bool copyExternalWorkbookReferences) {
+            if (ReferenceEquals(sourceDocument, this) || !ValuesCopyRulesReferenceExternalWorkbooks(sourceDocument, sourceSheets)) {
+                return new Dictionary<int, int>();
+            }
+
+            if (!copyExternalWorkbookReferences) {
+                throw new InvalidOperationException(
+                    "Values-mode worksheet copy refuses conditional formats, data validations and defined names that reference external workbooks unless CopyExternalWorkbookReferences is enabled explicitly.");
+            }
+
+            return Locking.ExecuteWrite(EnsureLock(), () => CopyExternalWorkbookReferencesFromSource(sourceDocument));
+        }
+
+        private static bool ContainsExternalWorkbookReference(string? formula) {
+            if (string.IsNullOrEmpty(formula)) {
+                return false;
+            }
+
+            bool inStringLiteral = false;
+            for (int index = 0; index < formula!.Length; index++) {
+                char current = formula[index];
+                if (current == '"') {
+                    inStringLiteral = !inStringLiteral;
+                } else if (!inStringLiteral
+                    && current == '['
+                    && TryReadExternalWorkbookIndex(formula, index, out _, out int closeIndex)
+                    && LooksLikeExternalWorkbookReference(formula, index, closeIndex)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static IEnumerable<string> CollectFormulaTexts(WorksheetPart worksheetPart) {

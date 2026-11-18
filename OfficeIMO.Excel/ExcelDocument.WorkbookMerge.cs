@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel {
                 options.MaxTotalInCellImageBytes);
             List<ExcelSheet> sourceSheets = ResolveWorkbookMergeSheets(sourceDocument, options).ToList();
             Dictionary<string, string>? targetSheetNames = ResolveWorkbookMergeTargetSheetNames(sourceSheets, options);
+            IReadOnlyDictionary<int, int> valuesExternalReferenceMap = new Dictionary<int, int>();
             if (options.CopyMode == ExcelWorksheetCopyMode.Package) {
                 foreach (ExcelSheet sourceSheet in sourceSheets) {
                     sourceSheet.PreflightInCellImages(inCellImageContext);
@@ -48,6 +49,8 @@ namespace OfficeIMO.Excel {
             } else {
                 // Values copies keep conditional formats and validations, so the names those rules use come along.
                 PreflightReferencedDefinedNamesFromSource(sourceDocument, sourceSheets, definedNameBudget, layoutFormulasOnly: true);
+                valuesExternalReferenceMap = PrepareValuesCopyExternalWorkbookReferences(
+                    sourceDocument, sourceSheets, options.CopyExternalWorkbookReferences);
             }
             var importedSourceNames = new List<string>(sourceSheets.Count);
             var createdTargetNames = new List<string>(sourceSheets.Count);
@@ -63,6 +66,12 @@ namespace OfficeIMO.Excel {
                     targetSheet = copyResult.Sheet;
                     foreach (var tableName in copyResult.TableNameMap) {
                         tableNameMap[tableName.Key] = tableName.Value;
+                    }
+
+                    if (valuesExternalReferenceMap.Count > 0) {
+                        RewriteCopiedWorksheetExternalReferences(targetSheet.WorksheetPart, valuesExternalReferenceMap);
+                        targetSheet.WorksheetPart.Worksheet!.Save();
+                        externalReferenceMaps[targetSheet.Name] = valuesExternalReferenceMap;
                     }
                 } else if (ReferenceEquals(sourceDocument, this)) {
                     WorksheetPackageCopyResult copyResult = CopyWorksheetWithinWorkbook(sourceSheet, requestedName, options.SheetNameValidationMode);
