@@ -246,6 +246,24 @@ public partial class PdfReaderAndFooterRegressionTests {
         Assert.Contains("Body text", page.ExtractText(), StringComparison.Ordinal);
     }
 
+    // A semantic read can ask for artifact text even when the document was opened without it, as the Reader's
+    // ReaderPdfOptions.ReadOptions does.
+    [Fact]
+    public void PdfDocument_Read_IncludesArtifactTextWhenTheReadRequestsIt() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Artifact BMC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Decorative header) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
+        PdfDocument document = PdfDocument.Load(bytes);
+        var options = new PdfLoadOptions { IncludeArtifactText = true };
+
+        Assert.DoesNotContain("Decorative header", document.Read().Text, StringComparison.Ordinal);
+        Assert.Contains("Decorative header", document.Read(options).Text, StringComparison.Ordinal);
+        Assert.Contains(document.ReadForInspection(options).Document.Pages[0].TextBlocks,
+            block => block.Text.Contains("Decorative header", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
         byte[] bytes = BuildPdfWithFontEncodingDifferences();
