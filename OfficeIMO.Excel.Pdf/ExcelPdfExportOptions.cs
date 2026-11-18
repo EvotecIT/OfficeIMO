@@ -269,8 +269,11 @@ namespace OfficeIMO.Excel.Pdf {
 
         /// <summary>
         /// How the conversion report describes clipped worksheet cells. <see cref="ExcelPdfDiagnosticsDetail.Summary"/>,
-        /// the default, reports each clipping code once per contiguous range of a sheet with its cell count and sample
-        /// cells. <see cref="ExcelPdfDiagnosticsDetail.PerCell"/> reports every clipped cell separately.
+        /// the default, reports <c>table-cell-content-clipped</c>, <c>table-cell-paint-clipped</c> and
+        /// <c>table-cell-canvas-clip-paint-clipped</c> once per code per contiguous range of a sheet, with its cell count
+        /// and sample cells. Other codes, such as <c>table-cell-object-page-bounds-clipped</c>, are reported per occurrence.
+        /// <see cref="ExcelPdfDiagnosticsDetail.PerCell"/> reports every occurrence separately, as earlier versions did;
+        /// a merged cell can produce more than one.
         /// </summary>
         public ExcelPdfDiagnosticsDetail DiagnosticsDetail { get; set; } = ExcelPdfDiagnosticsDetail.Summary;
 

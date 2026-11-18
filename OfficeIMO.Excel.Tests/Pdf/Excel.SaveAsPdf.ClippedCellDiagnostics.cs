@@ -97,11 +97,14 @@ public partial class Excel {
         OfficeConversionReport perCell = document.SaveAsPdf(perCellStream,
             new ExcelPdfExportOptions { DiagnosticsDetail = ExcelPdfDiagnosticsDetail.PerCell });
 
-        // Both page fragments of the merge report clipping, and both belong to its anchor cell.
-        Assert.True(perCell.Diagnostics.Count(diagnostic => codes.Contains(diagnostic.Code)) >= 2);
-        List<OfficeDiagnostic> clipped = summary.Diagnostics.Where(diagnostic => codes.Contains(diagnostic.Code)).ToList();
-        Assert.NotEmpty(clipped);
-        Assert.All(clipped, diagnostic => Assert.Equal("Report!A2", diagnostic.Location));
+        // Both page fragments of the merge report clipping, and each code is summarized once at the anchor cell.
+        List<OfficeDiagnostic> occurrences = perCell.Diagnostics.Where(diagnostic => codes.Contains(diagnostic.Code)).ToList();
+        Assert.Contains(occurrences, diagnostic => diagnostic.Location!.Contains(" on page 1 ", StringComparison.Ordinal));
+        Assert.Contains(occurrences, diagnostic => diagnostic.Location!.Contains(" on page 2 ", StringComparison.Ordinal));
+        foreach (string code in occurrences.Select(diagnostic => diagnostic.Code).Distinct(StringComparer.Ordinal)) {
+            OfficeDiagnostic summarized = Assert.Single(summary.Diagnostics, diagnostic => diagnostic.Code == code);
+            Assert.Equal("Report!A2", summarized.Location);
+        }
     }
 
     [Fact]
