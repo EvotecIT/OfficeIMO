@@ -411,4 +411,41 @@ public partial class Excel {
             Directory.Delete(directory, recursive: true);
         }
     }
+
+    // XLSB is not a row: a workbook loaded from XLS carries document properties, which native XLSB generation
+    // does not write yet, independently of the active sheet.
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".xls")]
+    public void LoadedXlsWithAHiddenActiveSheet_OpensOnAVisibleSheet(string extension) {
+        string directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO.XlsHiddenActive.{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try {
+            // An XLS whose saved window points at a hidden sheet, as other producers can write it.
+            string source = Path.Combine(directory, "source.xls");
+            using (var created = ExcelDocument.Create(source)) {
+                created.AddSheet("Lookup").Cell(1, 1).SetValue("hidden");
+                created.AddSheet("Report").Cell(1, 1).SetValue("shown");
+                created.SetActiveWorksheet(0);
+                created.Sheets[0].ApplyImportedVisibility(hidden: true, veryHidden: false);
+                created.Save();
+            }
+
+            string path = Path.Combine(directory, "result" + extension);
+            using (var loaded = ExcelDocument.Load(source)) {
+                Assert.True(loaded.Sheets[0].Hidden);
+                Assert.Equal(1, loaded.ActiveWorksheetIndex);
+                loaded.Sheets[1].Cell(2, 1).SetValue("edited");
+                loaded.Save(path);
+            }
+
+            using var reloaded = ExcelDocument.Load(path);
+            Assert.True(reloaded.Sheets[0].Hidden);
+            Assert.Equal(1, reloaded.ActiveWorksheetIndex);
+            Assert.True(reloaded.Sheets[1].TryGetCellText(2, 1, out string text));
+            Assert.Equal("edited", text);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }

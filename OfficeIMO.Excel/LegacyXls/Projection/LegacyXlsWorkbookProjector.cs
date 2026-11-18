@@ -35,6 +35,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 ProjectWorkbookMetadata(workbook, document, cancellationToken);
+                // A source without a window, or whose window points at a hidden sheet, must not open on a hidden tab.
+                document.EnsureActiveTabVisible();
 
                 cancellationToken.ThrowIfCancellationRequested();
                 if (workbook.Protection?.IsProtected == true || workbook.WindowsLocked.HasValue) {
