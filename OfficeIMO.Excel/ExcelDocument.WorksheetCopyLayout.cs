@@ -82,6 +82,7 @@ namespace OfficeIMO.Excel {
 
                 if (!ReferenceEquals(sourceDocument, this)) {
                     BindCopiedSheetViewsToWorkbookViews(worksheet);
+                    BindCopiedWorksheetColors(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, worksheet);
                 }
 
                 // The new sheet keeps the tab selection it was created with, whatever the source had.
@@ -131,6 +132,20 @@ namespace OfficeIMO.Excel {
 
             if (!views.Elements<SheetView>().Any()) {
                 views.Remove();
+            }
+        }
+
+        /// <summary>
+        /// Gives a worksheet copied from another workbook the source's tab, color-scale and data-bar colors where the
+        /// target's theme or palette would show its theme and indexed colors differently. Cell data carries no colors.
+        /// </summary>
+        private static void BindCopiedWorksheetColors(WorkbookPart sourceWorkbookPart, WorkbookPart targetWorkbookPart, Worksheet worksheet) {
+            var sourceColors = WorkbookStyleColorResolver.Create(sourceWorkbookPart, sourceWorkbookPart.WorkbookStylesPart?.Stylesheet ?? new Stylesheet());
+            var targetColors = WorkbookStyleColorResolver.Create(targetWorkbookPart, targetWorkbookPart.WorkbookStylesPart?.Stylesheet ?? new Stylesheet());
+            foreach (OpenXmlElement child in worksheet.ChildElements) {
+                if (child is not SheetData) {
+                    sourceColors.BindColorsTo(child, targetColors);
+                }
             }
         }
 
@@ -231,6 +246,7 @@ namespace OfficeIMO.Excel {
             string sourceSheetName,
             ExcelSheet targetSheet,
             IReadOnlyDictionary<string, string> sheetNameMap,
+            IReadOnlyDictionary<string, string>? tableNameMap = null,
             IReadOnlyDictionary<int, int>? externalReferenceMap = null) {
             IReadOnlyList<DefinedName> printNames = GetSourcePrintDefinedNames(sourceDocument, sourceSheetName);
             if (printNames.Count == 0) {
@@ -250,10 +266,7 @@ namespace OfficeIMO.Excel {
 
                     var copy = (DefinedName)sourceName.CloneNode(true);
                     copy.LocalSheetId = targetPosition;
-                    copy.Text = ReplaceSheetNameReferences(copy.Text!, sheetNameMap);
-                    if (externalReferenceMap?.Count > 0) {
-                        copy.Text = RewriteExternalWorkbookReferenceIndexes(copy.Text, externalReferenceMap);
-                    }
+                    copy.Text = RewriteCopiedFormula(copy.Text, sheetNameMap, tableNameMap, externalReferenceMap);
 
                     targetNames.Append(copy);
                 }

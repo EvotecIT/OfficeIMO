@@ -54,7 +54,7 @@ namespace OfficeIMO.Excel {
             WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
             var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
             CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
-            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap);
+            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap, result.TableNameMap);
             EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
             return result.Sheet;
         }
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
                 WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
                 var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
                 CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
-            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap);
+            CopyPrintDefinedNamesFromSource(this, sourceSheet.Name, result.Sheet, sheetMap, result.TableNameMap);
                 EnsureVisibleActiveWorksheetAfterCopy(result.Sheet);
                 return result.Sheet;
             }
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 CopyReferencedDefinedNamesFromSource(sourceDocument, copiedSheet, sheetMap, result.TableNameMap, externalReferenceMap, layoutFormulasOnly: true);
-                CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, sheetMap, externalReferenceMap);
+                CopyPrintDefinedNamesFromSource(sourceDocument, sourceSheet.Name, copiedSheet, sheetMap, result.TableNameMap, externalReferenceMap);
             } else {
                 copiedSheet = CopyWorksheetFromPackage(
                     sourceDocument,
@@ -649,7 +649,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static string RewriteExternalWorkbookReferenceIndexes(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) {
+        private static string RewriteExternalWorkbookReferenceIndexes(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) =>
+            RewriteCopiedFormula(formula, sheetNameMap: null, externalReferenceMap: externalReferenceMap);
+
+        /// <summary>Renumbers <c>[n]</c> workbook qualifiers in formula text that holds no string literal.</summary>
+        private static string RewriteExternalWorkbookIndexesInText(string? formula, IReadOnlyDictionary<int, int> externalReferenceMap) {
             if (string.IsNullOrEmpty(formula) || externalReferenceMap.Count == 0) {
                 return formula ?? string.Empty;
             }
@@ -726,13 +730,8 @@ namespace OfficeIMO.Excel {
             return sourceIndex > 0;
         }
 
-        private static string RewriteStructuredTableReferences(string? formula, IReadOnlyDictionary<string, string> tableNameMap) {
-            if (string.IsNullOrEmpty(formula) || tableNameMap.Count == 0) {
-                return formula ?? string.Empty;
-            }
-            return ExcelFormulaSyntaxTree.Parse(formula!).RewriteTableNames(name =>
-                tableNameMap.TryGetValue(name, out string? replacement) ? replacement : name);
-        }
+        private static string RewriteStructuredTableReferences(string? formula, IReadOnlyDictionary<string, string> tableNameMap) =>
+            RewriteCopiedFormula(formula, sheetNameMap: null, tableNameMap: tableNameMap);
 
         private static string MakeUnusedRelationshipId(WorksheetPart worksheetPart) {
             var existing = new HashSet<string>(

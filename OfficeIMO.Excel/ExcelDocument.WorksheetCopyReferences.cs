@@ -165,14 +165,7 @@ namespace OfficeIMO.Excel {
                 clone.LocalSheetId = destinationSheetPosition;
                 clone.Name = name;
                 if (!string.IsNullOrEmpty(clone.Text)) {
-                    clone.Text = ReplaceSheetNameReferences(clone.Text!, sheetNameMap);
-                    if (tableNameMap?.Count > 0) {
-                        clone.Text = RewriteStructuredTableReferences(clone.Text!, tableNameMap);
-                    }
-
-                    if (externalReferenceMap?.Count > 0) {
-                        clone.Text = RewriteExternalWorkbookReferenceIndexes(clone.Text!, externalReferenceMap);
-                    }
+                    clone.Text = RewriteCopiedFormula(clone.Text, sheetNameMap, tableNameMap, externalReferenceMap);
                 }
 
                 plannedCopies.Add((clone, destinationSheetPosition, name));
@@ -321,71 +314,18 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<string, List<DefinedName>> sourceNamesByName,
             ISet<string> queuedNames,
             Queue<DefinedNameReference> pendingNames) {
-            int tokenStart = -1;
-            for (int index = 0; index <= formula.Length; index++) {
-                bool isTokenCharacter = index < formula.Length && IsDefinedNameCharacter(formula[index]);
-                if (isTokenCharacter) {
-                    if (tokenStart < 0) {
-                        tokenStart = index;
-                    }
-
+            // Tokens come from the formula tokenizer, so text inside string literals such as an inline list
+            // "Red,Green" never counts as a name reference.
+            foreach ((string name, string? sheetName) in ReadDefinedNameTokens(formula)) {
+                if (!sourceNamesByName.ContainsKey(name)) {
                     continue;
                 }
 
-                if (tokenStart < 0) {
-                    continue;
-                }
-
-                string token = formula.Substring(tokenStart, index - tokenStart);
-                tokenStart = -1;
-                if (!sourceNamesByName.ContainsKey(token)) {
-                    continue;
-                }
-
-                string? explicitSheetName = TryReadSheetQualifier(formula, index - token.Length);
-                var reference = new DefinedNameReference(token, contextSheetName, explicitSheetName);
+                var reference = new DefinedNameReference(name, contextSheetName, sheetName);
                 if (queuedNames.Add(reference.Key)) {
                     pendingNames.Enqueue(reference);
                 }
             }
-        }
-
-        private static string? TryReadSheetQualifier(string formula, int tokenStart) {
-            int bangIndex = tokenStart - 1;
-            if (bangIndex < 0 || formula[bangIndex] != '!') {
-                return null;
-            }
-
-            int qualifierEnd = bangIndex - 1;
-            if (qualifierEnd < 0) {
-                return null;
-            }
-
-            if (formula[qualifierEnd] == '\'') {
-                for (int index = qualifierEnd - 1; index >= 0; index--) {
-                    if (formula[index] != '\'') {
-                        continue;
-                    }
-
-                    if (index > 0 && formula[index - 1] == '\'') {
-                        index--;
-                        continue;
-                    }
-
-                    return formula.Substring(index + 1, qualifierEnd - index - 1).Replace("''", "'");
-                }
-
-                return null;
-            }
-
-            int qualifierStart = qualifierEnd;
-            while (qualifierStart >= 0 && IsDefinedNameCharacter(formula[qualifierStart])) {
-                qualifierStart--;
-            }
-
-            return qualifierStart == qualifierEnd
-                ? null
-                : formula.Substring(qualifierStart + 1, qualifierEnd - qualifierStart);
         }
 
         private readonly struct DefinedNameReference {
@@ -552,27 +492,6 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteWrite(EnsureLock(), () => CopyExternalWorkbookReferencesFromSource(sourceDocument));
         }
 
-        private static bool ContainsExternalWorkbookReference(string? formula) {
-            if (string.IsNullOrEmpty(formula)) {
-                return false;
-            }
-
-            bool inStringLiteral = false;
-            for (int index = 0; index < formula!.Length; index++) {
-                char current = formula[index];
-                if (current == '"') {
-                    inStringLiteral = !inStringLiteral;
-                } else if (!inStringLiteral
-                    && current == '['
-                    && TryReadExternalWorkbookIndex(formula, index, out _, out int closeIndex)
-                    && LooksLikeExternalWorkbookReference(formula, index, closeIndex)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static IEnumerable<string> CollectFormulaTexts(WorksheetPart worksheetPart) {
             Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
             foreach (CellFormula formula in worksheet.Descendants<CellFormula>()) {
@@ -638,24 +557,5 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool ContainsDefinedNameToken(string formula, string definedName) {
-            for (int index = 0; index <= formula.Length - definedName.Length; index++) {
-                if (!string.Equals(formula.Substring(index, definedName.Length), definedName, StringComparison.OrdinalIgnoreCase)) {
-                    continue;
-                }
-
-                int afterIndex = index + definedName.Length;
-                if ((index == 0 || !IsDefinedNameCharacter(formula[index - 1]))
-                    && (afterIndex == formula.Length || !IsDefinedNameCharacter(formula[afterIndex]))) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsDefinedNameCharacter(char value) {
-            return char.IsLetterOrDigit(value) || value == '_' || value == '.' || value == '\\';
-        }
     }
 }

@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel {
 
             for (int index = 0; index < importedSourceNames.Count; index++) {
                 externalReferenceMaps.TryGetValue(createdTargetNames[index], out IReadOnlyDictionary<int, int>? printExternalReferenceMap);
-                CopyPrintDefinedNamesFromSource(sourceDocument, importedSourceNames[index], GetSheet(createdTargetNames[index]), sheetNameMap, printExternalReferenceMap);
+                CopyPrintDefinedNamesFromSource(sourceDocument, importedSourceNames[index], GetSheet(createdTargetNames[index]), sheetNameMap, tableNameMap, printExternalReferenceMap);
             }
 
             if (createdTargetNames.Count > 0) {
@@ -268,7 +268,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheet)) {
-                string rewritten = ReplaceSheetNameReferences(threshold.Val!.Value!, sheetNameMap);
+                string rewritten = RewriteCopiedFormula(threshold.Val!.Value, sheetNameMap);
                 if (!string.Equals(rewritten, threshold.Val.Value, StringComparison.Ordinal)) {
                     threshold.Val = rewritten;
                     changed = true;
@@ -303,7 +303,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string updated = ReplaceSheetNameReferences(text!, sheetNameMap);
+            string updated = RewriteCopiedFormula(text, sheetNameMap);
 
             if (string.Equals(updated, text, StringComparison.Ordinal)) {
                 return false;
