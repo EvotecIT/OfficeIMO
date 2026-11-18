@@ -326,7 +326,7 @@ internal static partial class PdfSyntax {
         if (encryptObjectNumber.HasValue || ReadDirectTrailerEncryptionDictionary(trailerRaw, limits, cancellationToken) is not null) {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor, cancellationToken);
             if (decryptor is not null) {
-                DecryptObjects(map, decryptor, encryptObjectNumber ?? 0, cancellationToken);
+                DecryptObjects(map, decryptor, encryptObjectNumber, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
             }
         }

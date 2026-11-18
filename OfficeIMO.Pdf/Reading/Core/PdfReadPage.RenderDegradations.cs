@@ -21,6 +21,12 @@ public sealed partial class PdfReadPage {
         /// <summary>Page content streams left out because they could not be decoded.</summary>
         internal int SkippedContentStreams { get; set; }
 
+        /// <summary>Whether <see cref="RecoveredOutputIntentColorTransform"/> holds this read's result.</summary>
+        internal bool HasRecoveredOutputIntentColorTransform { get; set; }
+
+        /// <summary>The output intent transform for a read that leaves out undecodable page content streams.</summary>
+        internal PdfOutputIntentColorTransform? RecoveredOutputIntentColorTransform { get; set; }
+
         /// <summary>Content skipped while drawing the page, which the capability pre-scan cannot predict.</summary>
         internal IReadOnlyList<PdfRenderCapabilityDiagnostic> RenderDegradations =>
             _renderDegradations ?? (IReadOnlyList<PdfRenderCapabilityDiagnostic>)Array.Empty<PdfRenderCapabilityDiagnostic>();

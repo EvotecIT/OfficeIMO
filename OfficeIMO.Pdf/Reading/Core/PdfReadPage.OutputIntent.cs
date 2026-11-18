@@ -259,18 +259,43 @@ public sealed partial class PdfReadPage {
         _outputIntentColorTransform != null && _hasOutputIntentCompositionInteraction.GetOrCreate(
             this, static (page, token) => page.ScanOutputIntentCompositionInteraction(token), cancellationToken);
 
+    // A text read that leaves out damaged page content streams leaves them out of the composition scan too. That
+    // result belongs to the one read and is never cached, so a strict read of the page still reports the damage.
+    private PdfOutputIntentColorTransform? GetEffectiveOutputIntentColorTransform(PageContentBudget? budget) {
+        if (budget is null || !budget.SkipsUndecodableContentStreams || _outputIntentColorTransform == null) {
+            return EffectiveOutputIntentColorTransform;
+        }
+
+        if (!budget.HasRecoveredOutputIntentColorTransform) {
+            try {
+                budget.RecoveredOutputIntentColorTransform = EffectiveOutputIntentColorTransform;
+            } catch (InvalidDataException) {
+                budget.RecoveredOutputIntentColorTransform =
+                    ScanOutputIntentCompositionInteraction(budget.CancellationToken, skipUndecodableContentStreams: true)
+                        ? null
+                        : _outputIntentColorTransform;
+            }
+
+            budget.HasRecoveredOutputIntentColorTransform = true;
+        }
+
+        return budget.RecoveredOutputIntentColorTransform;
+    }
+
     private void PrepareOutputIntentRendering(CancellationToken cancellationToken) {
         if (_outputIntentColorTransform == null) return;
         _outputIntentColorTransform.Prepare(cancellationToken);
         _ = GetOutputIntentCompositionInteraction(cancellationToken);
     }
 
-    private bool ScanOutputIntentCompositionInteraction(CancellationToken cancellationToken) {
+    private bool ScanOutputIntentCompositionInteraction(CancellationToken cancellationToken, bool skipUndecodableContentStreams = false) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsTransparencyGroup(_pageDict)) return true;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeStreams = new HashSet<PdfStream>();
-        var budget = new PageContentBudget(this, cancellationToken);
+        var budget = new PageContentBudget(this, cancellationToken) {
+            SkipsUndecodableContentStreams = skipUndecodableContentStreams
+        };
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         string content = GetContentStreamContent(budget);
         if (ContentUsesOutputIntentCompositionInteraction(

@@ -156,6 +156,34 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
         Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(locked).ExtractText());
     }
 
+    // The security information describes a trailer encryption dictionary as it does a referenced one, so permission
+    // checks apply to the text it decrypts.
+    [Fact]
+    public void EncryptionDictionaryWrittenInTheTrailerIsReportedInTheSecurityInformation() {
+        byte[] referenced = Fixture("r6-indirect-crypt-filters.pdf");
+        byte[] direct = WithEncryptionDictionaryInTrailer(referenced);
+        PdfDocumentSecurityInfo expected = PdfInspector.Inspect(referenced).Security;
+
+        foreach (PdfDocumentSecurityInfo security in new[] { PdfInspector.Inspect(direct).Security, PdfSyntax.ReadDocumentSecurityInfo(direct) }) {
+            Assert.True(security.HasEncryption);
+            Assert.Null(security.EncryptObjectNumber);
+            Assert.Equal(-4, security.EncryptionPermissions);
+            Assert.Equal(expected.EncryptionRevision, security.EncryptionRevision);
+            Assert.Equal(expected.PasswordAuthenticationRole, security.PasswordAuthenticationRole);
+        }
+    }
+
+    // A trailer encryption dictionary is not an object, so every object is decrypted, including one numbered 0.
+    [Fact]
+    public void EncryptionDictionaryWrittenInTheTrailerLeavesNoObjectEncrypted() {
+        string text = PdfEncoding.Latin1GetString(WithEncryptionDictionaryInTrailer(Fixture("r6-indirect-crypt-filters.pdf")));
+        // AES-256 keys do not depend on the object number, so the content stream decrypts under its new number.
+        string renumbered = text.Replace("\n4 0 obj\n", "\n0 0 obj\n").Replace("/Contents 4 0 R", "/Contents 0 0 R");
+        Assert.Contains("/Contents 0 0 R", renumbered, StringComparison.Ordinal);
+
+        Assert.Contains("Indirect filters R6", PdfDocument.Load(PdfEncoding.Latin1GetBytes(renumbered)).ExtractText(), StringComparison.Ordinal);
+    }
+
     private static byte[] WithEncryptionDictionaryInTrailer(byte[] pdf) {
         string text = PdfEncoding.Latin1GetString(pdf);
         int objectStart = text.IndexOf("\n7 0 obj\n", StringComparison.Ordinal) + "\n7 0 obj\n".Length;

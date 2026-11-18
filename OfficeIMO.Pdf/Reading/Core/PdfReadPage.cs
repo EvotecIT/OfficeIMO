@@ -1145,7 +1145,7 @@ public sealed partial class PdfReadPage {
                 initialRenderingIntent: initialRenderingIntent,
                 initialFillColorSelection: initialFillColorSelection,
                 initialStrokeColorSelection: initialStrokeColorSelection,
-                outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                outputIntentColorTransform: GetEffectiveOutputIntentColorTransform(pageContentBudget),
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                 inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                 cancellationCheck: cancellationCheck,
@@ -1207,7 +1207,7 @@ public sealed partial class PdfReadPage {
             initialRenderingIntent: initialRenderingIntent,
             initialFillColorSelection: initialFillColorSelection,
             initialStrokeColorSelection: initialStrokeColorSelection,
-            outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+            outputIntentColorTransform: GetEffectiveOutputIntentColorTransform(pageContentBudget),
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             contentStreamObjectNumber: contentStreamObjectNumber,
@@ -2514,8 +2514,8 @@ public sealed partial class PdfReadPage {
     }
 
     // Plain text extraction in lenient mode leaves out a page content stream whose data or filter declaration is
-    // damaged and keeps the page's other streams. Read limits still stop the read, and streams behind image codecs
-    // (CCITTFax, JBIG2), which can report exhausted decoder resources as damaged data, still fail it.
+    // damaged and keeps the page's other streams. Read limits still stop the read, and streams with a CCITTFax or JBIG2
+    // filter, whose decoders can report exhausted resources as damaged data, still fail it.
     private byte[] DecodePageContentStream(PageContentBudget pageContentBudget, PdfStream stream) {
         if (!pageContentBudget.SkipsUndecodableContentStreams) return pageContentBudget.Decode(stream);
         try {

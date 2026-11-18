@@ -231,7 +231,7 @@ internal static partial class PdfSyntax {
     private static void DecryptObjects(
         Dictionary<int, PdfIndirectObject> map,
         PdfStandardSecurityHandler decryptor,
-        int encryptObjectNumber, CancellationToken cancellationToken) {
+        int? encryptObjectNumber, CancellationToken cancellationToken) {
         var replacements = new List<PdfIndirectObject>();
         decryptor.ReferenceResolver = reference =>
             PdfObjectLookup.TryGet(map, reference, out PdfIndirectObject? target) ? target.Value : null;
