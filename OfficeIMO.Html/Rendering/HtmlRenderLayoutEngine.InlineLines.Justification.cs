@@ -48,7 +48,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             for (int index = first + 1; index < last; index++) {
                 InlineSegment segment = line.Segments[index];
                 int count = CountJustificationOpportunities(segment);
-                if (count > 0) segment.JustificationAdvance = perOpportunity * count;
+                if (count > 0) {
+                    segment.JustificationAdvance = perOpportunity * count;
+                    if (segment.Run.Style.TextJustifyInterCharacter) limits |= JustificationLimit.InterCharacter;
+                }
             }
             added[lineIndex] = extra;
         }
@@ -59,6 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private enum JustificationLimit {
         None = 0,
         RightToLeftWithInlineBoxes = 1,
+        InterCharacter = 4,
         CjkWithoutSeparators = 2
     }
 
@@ -74,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private void ReportJustificationLimits(double[] added, JustificationLimit limits, HtmlRenderBoxStyle paragraphStyle,
         AngleSharp.Dom.IElement? formattingContainer) {
         string source = formattingContainer != null ? HtmlRenderStyleResolver.DescribeSource(formattingContainer) : paragraphStyle.SemanticRole;
-        if (paragraphStyle.TextJustifyInterCharacter && added.Any(static value => value > 0D))
+        if ((limits & JustificationLimit.InterCharacter) != 0)
             ReportJustificationLimit(formattingContainer, source, "text-justify=inter-character",
                 "Inter-character justification is not implemented; justified text was spaced between words.");
         if ((limits & JustificationLimit.RightToLeftWithInlineBoxes) != 0)

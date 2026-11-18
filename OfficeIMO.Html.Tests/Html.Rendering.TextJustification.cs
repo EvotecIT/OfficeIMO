@@ -29,7 +29,9 @@ public sealed partial class HtmlRenderingTests {
         { "<div style='text-align:justify;text-justify:none;width:300px'><p style='margin:0;text-align:match-parent;text-justify:inter-word'>" + JustifiedText + "</p></div>", "start" },
         // Inheriting justify-all also inherits the parent's computed last-line alignment.
         { "<div style='text-align:justify-all;text-align-last:center;width:300px'><p style='margin:0'>" + JustifiedText + "</p></div>", "center" },
-        { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:match-parent'>" + JustifiedText + "</p></div>", "justified" }
+        { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:match-parent'>" + JustifiedText + "</p></div>", "justified" },
+        // An explicit reset is not inherited.
+        { "<div style='text-align:justify;text-align-last:center;width:300px'><p style='margin:0;text-align-last:initial'>" + JustifiedText + "</p></div>", "start" }
     };
 
     [Theory]

@@ -203,6 +203,13 @@ public static partial class HtmlComputedStyleEngine {
         return containerName.Length > 0 && containerType.Length > 0;
     }
 
+    private static bool TryGetWrapAliasValue(string name, IReadOnlyDictionary<string, string> parentProperties, out string? value) {
+        value = null;
+        string? alias = string.Equals(name, "word-wrap", StringComparison.OrdinalIgnoreCase) ? "overflow-wrap"
+            : string.Equals(name, "overflow-wrap", StringComparison.OrdinalIgnoreCase) ? "word-wrap" : null;
+        return alias != null && parentProperties.TryGetValue(alias, out value) && !string.IsNullOrWhiteSpace(value);
+    }
+
     private static CssKeywordResolution ResolveCssWideKeyword(
         string name,
         string value,
@@ -220,8 +227,10 @@ public static partial class HtmlComputedStyleEngine {
             || ((string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)) && IsInheritedProperty(name, customPropertyRegistrations))) {
             string? inheritedValue;
-            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
-                ? CssKeywordResolution.ForInheritedValue(inheritedValue)
+            return parentProperties != null && (parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
+                    // word-wrap and overflow-wrap are one property under two names.
+                    || TryGetWrapAliasValue(name, parentProperties, out inheritedValue))
+                ? CssKeywordResolution.ForInheritedValue(inheritedValue!)
                 // SVG/font defaults and MathML token defaults establish effective context later.
                 // Keep explicit inheritance distinct from an initial-value reset even without a CSS parent value.
                 : string.Equals(name, "font-family", StringComparison.OrdinalIgnoreCase)

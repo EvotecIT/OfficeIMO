@@ -297,6 +297,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         // justify-all also sets text-align-last; a text-align-last that wins the cascade over it still
         // applies. An element that inherits both keeps its parent's computed last-line value.
         bool inheritsLastLine = parent != null && computed.IsImplicitlyInheritedValue("text-align")
+            && !computed.IsResetValue("text-align-last")
             && (string.IsNullOrWhiteSpace(computed.GetValue("text-align-last")) || computed.IsImplicitlyInheritedValue("text-align-last"));
         OfficeTextAlignment? computedTextAlignLast = inheritsLastLine ? parent!.ComputedTextAlignLast
             : justifyAll && !OutranksTextAlign(computed, "text-align-last") ? OfficeTextAlignment.Justify

@@ -47,6 +47,34 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    // overflow-wrap is inherited: unset keeps the parent's value, initial restores normal.
+    [InlineData("overflow-wrap:unset", true)]
+    [InlineData("word-wrap:unset", true)]
+    [InlineData("overflow-wrap:initial", false)]
+    public void HtmlRenderer_OverflowWrapResetsFollowInheritance(string childDeclaration, bool wraps) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<div style='width:60px;overflow-wrap:break-word'><p style='margin:0;" + childDeclaration + "'>Supercalifragilisticexpialidocious</p></div>",
+            TextKeywordOptions);
+
+        Assert.Equal(wraps, JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Count(text => !string.IsNullOrWhiteSpace(text.Text)) > 1);
+    }
+
+    [Fact]
+    public void HtmlRenderer_ForcedBreakKeepsPreservedSpacesOfAPreformattedInline() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align-last:right;width:200px;margin:0'>A<span style='white-space:pre'>   </span><br>B</p>", TextKeywordOptions);
+
+        Assert.True(JustifiedLines(rendered)[0].Right < 195D, "The preserved spaces stay at the end of the line.");
+    }
+
+    [Fact]
+    public void HtmlRenderer_ReportsInterCharacterJustificationOnInlineText() {
+        Assert.Contains("text-justify=inter-character", UnsupportedTextDetails(
+            "<p style='text-align:justify;width:150px;margin:0'>alpha <span style='text-justify:inter-character'>one two three four five six seven eight nine</span></p>"));
+    }
+
+    [Theory]
     [InlineData("white-space:pre-line")]
     // Anonymous flex item text is laid out without DOM run collection.
     [InlineData("display:flex;flex-direction:column;white-space:pre-line")]

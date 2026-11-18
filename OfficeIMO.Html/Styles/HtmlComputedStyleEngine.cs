@@ -41,6 +41,8 @@ public static partial class HtmlComputedStyleEngine {
         "image-orientation",
         "image-resolution",
         "line-height",
+        "overflow-wrap",
+        "word-wrap",
         "letter-spacing",
         "list-style",
         "list-style-image",

@@ -568,6 +568,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
+    // Before a forced break only collapsible spaces go; preserved spaces of a preformatted inline stay.
+    private static void TrimCollapsibleTrailingWhitespace(InlineLine line) {
+        for (int index = line.Segments.Count - 1; index >= 0; index--) {
+            InlineSegment segment = line.Segments[index];
+            if (segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null) continue;
+            if (!IsWhitespaceToken(segment.Text) || segment.Run.Style.PreserveWhitespace) break;
+            line.RemoveAt(index);
+        }
+    }
+
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
             InlineSegment segment = line.Segments[index];
