@@ -54,6 +54,8 @@ Describe 'Website command metadata export' {
         $null = New-Item -ItemType Directory -Path $withoutHelp
         Copy-Item -LiteralPath $fixtureManifest, (Join-Path $sourceRoot 'MetadataFixture.dll') -Destination $withoutHelp
         $outputPath = Join-Path $TestDrive 'metadata-without-help.json'
+        # Windows PowerShell 5.1 turns the child's error output into a terminating error under Stop; the exit code is what this test checks.
+        $ErrorActionPreference = 'Continue'
         & (Get-Process -Id $PID).Path -NoProfile -NonInteractive -File $exportScript `
             -RepositoryRoot $sourceRoot -ManifestPath (Join-Path $withoutHelp 'PSWriteOffice.psd1') -OutputPath $outputPath 2>$null
         $LASTEXITCODE | Should -Not -Be 0
