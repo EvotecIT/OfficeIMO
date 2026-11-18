@@ -153,13 +153,14 @@ jobs:
           }
           & Build/Archives/Invoke-WindowsQualification.ps1 -OutputPath "$root/qualification" -FeedPath $feed -Version $version
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: archives-tests-${{ matrix.os }}-${{ matrix.framework }}
           path: ${{ runner.temp }}/officeimo-archives/results
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
       - name: Upload Windows archive qualification
         if: always() && matrix.os == 'windows-latest' && matrix.framework == 'net10.0'
         uses: actions/upload-artifact@v7
@@ -190,13 +191,14 @@ jobs:
       - name: Test compiled archives, conversions, and rich Reader projection
         run: dotnet test OfficeIMO.Chm.Tests/OfficeIMO.Chm.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=chm.trx' --results-directory TestResults/Chm
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: chm-tests-${{ matrix.os }}-${{ matrix.framework }}
           path: TestResults/Chm
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
 
   legacy-imports:
     needs: changes
@@ -223,10 +225,12 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet test OfficeIMO.LegacyImport.Tests/OfficeIMO.LegacyImport.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=legacy-imports.trx' --results-directory TestResults/LegacyImports
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: legacy-import-tests-${{ matrix.os }}-${{ matrix.framework }}
+          retention-days: 1
           path: TestResults/LegacyImports
 
   browser-exports:
@@ -294,8 +298,9 @@ jobs:
           dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-current') --pdf "--comparison-assets=$assets"
           dotnet run --project Build/BrowserExports/OfficeIMO.Browser.Interop.csproj -c Release -- . (Join-Path $evidence 'pdf-bundled') --pdf --stack=bundled "--comparison-assets=$assets"
       - name: Upload browser contract evidence
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: browser-export-contracts
           path: |
@@ -308,7 +313,7 @@ jobs:
             ${{ runner.temp }}/officeimo-browser-exports/npm/*.tgz
             ${{ runner.temp }}/officeimo-browser-exports/nuget/*.nupkg
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
 
   workflow-contracts:
     needs: changes
@@ -342,13 +347,14 @@ jobs:
           dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=workflows.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
           dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=iwork.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: workflow-tests-${{ matrix.os }}-${{ matrix.framework }}
           path: TestResults/Workflows
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
 
   document-ai-contracts:
     needs: changes
@@ -374,13 +380,14 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet test OfficeIMO.AI.Tests/OfficeIMO.AI.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --logger 'trx;LogFileName=document-ai.trx' --results-directory TestResults/DocumentAI
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: document-ai-tests-${{ matrix.os }}
           path: TestResults/DocumentAI
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
 
   studio-contracts:
     needs: changes
@@ -428,13 +435,14 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 -p:OfficeIMOStudioDistribution=MacAppStore --filter 'FullyQualifiedName~StudioDistributionPolicyTests|FullyQualifiedName~InvoiceWorkbenchVisualTests|FullyQualifiedName~StudioFormOcrProviderAvailabilityTests' --logger 'trx;LogFileName=studio-store.trx' --results-directory TestResults/Studio/Store
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: studio-tests-${{ matrix.os }}-${{ matrix.slice }}
           path: TestResults/Studio
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
 
   studio-release-restore:
     needs: changes
@@ -1109,10 +1117,12 @@ jobs:
         run: ./Build/Test-OfficeCorpusLibreOffice.ps1 -OutputDirectory '${{ runner.temp }}/officeimo-corpus-libreoffice'
 
       - name: Upload LibreOffice oracle report and artifacts
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: officeimo-corpus-libreoffice
+          retention-days: 1
           path: ${{ runner.temp }}/officeimo-corpus-libreoffice
           if-no-files-found: error
 
@@ -1185,14 +1195,15 @@ jobs:
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
+        continue-on-error: true
         with:
           name: test-results-net472-${{ matrix.name }}
           path: |
             **/*.trx
             TestResults/net472-shards/**
             TestResults/visual-baselines/**
-          retention-days: 7
+          retention-days: 1
 
   word-vba-office-sip:
     needs: changes
@@ -1817,13 +1828,14 @@ jobs:
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
+        continue-on-error: true
         with:
           name: test-results-ubuntu-${{ matrix.framework }}-${{ matrix.partition }}
           path: |
             **/*.trx
             TestResults/visual-baselines/**
-          retention-days: 7
+          retention-days: 1
 
   officeimo-tool-package-gate:
     needs: changes
@@ -2099,11 +2111,12 @@ jobs:
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
+        continue-on-error: true
         with:
           name: test-results-macos-${{ matrix.framework }}
           path: '**/*.trx'
-          retention-days: 7
+          retention-days: 1
 
   test-macos:
     name: 'macOS'
@@ -2284,10 +2297,12 @@ jobs:
           fi
 
       - name: Upload Linux NativeAOT evidence
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: nativeaot-linux-x64-${{ matrix.group }}${{ matrix.framework }}
+          retention-days: 1
           path: artifacts/aot/*.json
 
   aot-trim-analyzers:
@@ -2345,10 +2360,12 @@ jobs:
           ./Build/Test-AotScenarios.ps1 -RuntimeIdentifier win-x64 -Configuration ${{ env.BUILD_CONFIGURATION }} -ScenarioGroup '${{ matrix.group }}' -TargetFramework '${{ matrix.framework }}' -JsonOutputPath './artifacts/aot/win-x64-${{ matrix.group }}${{ matrix.framework }}.json'
 
       - name: Upload Windows NativeAOT evidence
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: nativeaot-win-x64-${{ matrix.group }}${{ matrix.framework }}
+          retention-days: 1
           path: artifacts/aot/*.json
 
   aot-windows:
@@ -2394,13 +2411,14 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           dotnet test OfficeIMO.Reader.Dbf.Tests/OfficeIMO.Reader.Dbf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --filter 'Category!=Performance' --logger 'trx;LogFileName=dbf.trx' --results-directory TestResults/Dbf
       - name: Upload test results
-        if: always()
+        if: ${{ !cancelled() && (failure() || github.event_name == 'workflow_dispatch') }}
         uses: actions/upload-artifact@v7
+        continue-on-error: true
         with:
           name: dbf-tests-${{ matrix.os }}-${{ matrix.framework }}
           path: TestResults/Dbf
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
 
   # Managed ODBC workbook and command contracts. The native driver smoke through the
   # Windows ODBC manager stays in odbc-contracts.yml.
