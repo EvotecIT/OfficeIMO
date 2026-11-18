@@ -5,6 +5,7 @@ using PSWriteOffice.Cmdlets.Imaging;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Creates discoverable slide selection and rendering settings for Export-OfficeDocumentImage.</summary>
+/// <para>Pass the result to Export-OfficeDocumentImage or ConvertTo-OfficeDocumentImage -Options when rendering slides.</para>
 /// <example><summary>Render selected slides without pictures.</summary>
 /// <code>$options = New-OfficePowerPointImageOptions -NoPictures
 /// Export-OfficeDocumentImage -Path ./Deck.pptx -Page 1,3 -OutputDirectory ./Slides -Options $options</code></example>
