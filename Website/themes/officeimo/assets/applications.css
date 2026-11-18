@@ -438,6 +438,7 @@ a.imo-studio-state:hover, a.imo-studio-state:focus-visible { background: color-m
 .imo-ps-filter__field:focus-within { border-color: var(--imo-product, var(--imo-accent)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--imo-product, var(--imo-accent)) 20%, transparent); }
 .imo-ps-filter__field input { flex: 1; min-width: 0; padding: 11px 0; border: 0; outline: 0; background: none; color: var(--imo-text); font: 500 .95rem/1.3 var(--imo-font-body); }
 .imo-ps-filter__field input::placeholder { color: var(--imo-text-muted); }
+@media (forced-colors: active) { .imo-ps-filter__field:focus-within { outline: 2px solid Highlight; outline-offset: 2px; } }
 .imo-ps-filter__status { margin: 0; color: var(--imo-text-muted); font-size: .84rem; }
 .imo-surface-explorer.is-filtering [data-ps-intro], .imo-surface-explorer.is-filtering .imo-ps-commands > summary { display: none; }
 .imo-surface-explorer.is-filtering .imo-surface-explorer__tabs { display: none; }

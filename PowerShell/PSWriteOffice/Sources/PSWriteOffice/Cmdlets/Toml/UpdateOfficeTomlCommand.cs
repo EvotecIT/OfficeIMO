@@ -19,7 +19,6 @@ namespace PSWriteOffice.Cmdlets.Toml;
 ///     Update-OfficeToml -JsonPatch @(
 ///         @{ op = 'test'; path = '/project/version'; value = '1.4.0' }
 ///         @{ op = 'replace'; path = '/project/version'; value = '1.5.0' }
-///         @{ op = 'add'; path = '/project/dependencies/-'; value = 'click' }
 ///     )
 /// }</code></example>
 /// <example><summary>Change a setting and remove another with a merge patch.</summary>

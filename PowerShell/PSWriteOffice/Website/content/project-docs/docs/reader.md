@@ -4,13 +4,13 @@ description: "Detect formats and extract normalized documents, chunks, hierarchy
 layout: docs
 ---
 
-Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 15 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type.
+Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 7 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type. `Get-OfficeDocumentInfo` and `Get-OfficeDocumentCapability` are listed with the cross-format operations, but they belong to the same workflow.
 
 ## What Reader returns
 
 - `Read-OfficeDocument` returns the normalized document envelope.
-- `Get-OfficeDocumentInfo` reports detected format and routing evidence.
-- `Get-OfficeDocumentCapability` explains the registered adapters' supported output.
+- `Get-OfficeDocumentInfo` (cross-format operations) reports detected format and routing evidence.
+- `Get-OfficeDocumentCapability` (cross-format operations) explains the registered adapters' supported output.
 - `Read-OfficeDocument -As Hierarchy` exposes section and structural relationships.
 - `-As Chunks` returns bounded text/content chunks; `-As Structure` exposes structured content.
 - `-As Tables`, `-As Visuals`, and `-As Assets` return non-text material explicitly.

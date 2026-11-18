@@ -31,7 +31,9 @@ $examplesRoot = 'https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PS
 # any command it lists explicitly. The longest prefix wins, so OfficeDocumentProvenance
 # is not Reader, and a prefix ends at a word boundary, so OfficeAccessibility is not
 # Access. Every exported command must land in exactly one family, or no catalog is written.
-# 'docs' names a PSWriteOffice guide, or a site path for guides that live elsewhere.
+# 'docs' names a PSWriteOffice guide, or a site path for guides that live elsewhere;
+# 'guides' adds more guides when one page does not cover the whole family, and
+# 'docsTitle' then names what the main guide covers.
 $familyDefinitions = @(
     [ordered]@{
         id = 'word'; title = 'Word'; description = 'Create, read and update DOC and DOCX documents: sections, paragraphs, lists, tables, headers and footers, fields, content controls, charts, review and revisions, mail merge, and conversion settings.'
@@ -147,6 +149,7 @@ $familyDefinitions = @(
     [ordered]@{
         id = 'onenote-iwork'; title = 'OneNote and iWork'; description = 'Read offline OneNote sections and notebooks, and Apple Pages, Numbers and Keynote packages, without OneNote or iWork installed.'
         docs = '/docs/onenote/'; examples = $examplesRoot
+        docsTitle = 'OneNote'; guides = @([ordered]@{ title = 'iWork'; url = '/docs/iwork/' })
         samples = @('Open-OfficeOneNote', 'Open-OfficeIWork')
         nouns = @('OfficeOneNote', 'OfficeIWork')
     }
@@ -271,9 +274,11 @@ $families = foreach ($definition in $familyDefinitions) {
         description = $definition.description
         commandCount = $familyCommands.Count
         docsUrl = if ($definition.docs.StartsWith('/')) { $definition.docs } else { "/docs/pswriteoffice/$($definition.docs)/" }
+        docsTitle = if ($definition.docsTitle) { $definition.docsTitle } else { $definition.title }
         apiUrl = '/api/powershell/'
         examplesUrl = $definition.examples
         featuredCommands = @($definition.samples)
+        guides = @($definition.guides | Where-Object { $_ })
         groups = @($groups)
     }
 }

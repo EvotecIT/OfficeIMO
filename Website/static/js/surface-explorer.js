@@ -4,6 +4,15 @@
 // Without this script every group stays listed, so the page is complete at rest.
 (function () {
   "use strict";
+  // When the tab strip scrolls sideways (phones), keep the selected tab visible without moving the page.
+  function revealTab(tab) {
+    var strip = tab.parentNode;
+    if (strip.scrollWidth <= strip.clientWidth) return;
+    var left = tab.offsetLeft - strip.offsetLeft;
+    if (left < strip.scrollLeft || left + tab.offsetWidth > strip.scrollLeft + strip.clientWidth) {
+      strip.scrollLeft = Math.max(0, left - 12);
+    }
+  }
   function enhance(root) {
     var tablist = root.querySelector('[role="tablist"]');
     if (!tablist) return;
@@ -18,6 +27,7 @@
         panels[i].hidden = !on;
       });
       if (focus) tabs[index].focus();
+      else revealTab(tabs[index]);
     }
     tabs.forEach(function (tab, i) {
       tab.addEventListener("click", function () { select(i, false); });
@@ -47,7 +57,9 @@
     if (!input) return;
     var idle = status.textContent;
     var rows = Array.prototype.slice.call(root.querySelectorAll("[data-ps-command]")).map(function (row) {
-      return { el: row, text: row.textContent.replace(/\s+/g, " ").toLowerCase() };
+      // Index the name, aliases and synopsis only; the visually hidden "Aliases:" label is not searchable text.
+      var text = Array.prototype.map.call(row.querySelectorAll("code, p"), function (part) { return part.textContent; }).join(" ");
+      return { el: row, text: text.replace(/\s+/g, " ").toLowerCase() };
     });
     var groups = Array.prototype.slice.call(root.querySelectorAll("[data-ps-group]"));
     var lists = Array.prototype.slice.call(root.querySelectorAll("[data-ps-commands]"));

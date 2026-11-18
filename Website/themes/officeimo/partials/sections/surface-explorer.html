@@ -10,7 +10,7 @@
   {{~ if ps_metadata ~}}{{~ for command in ps_metadata.commands ~}}{{~ ps_commands[command.name] = command ~}}{{~ end ~}}{{~ end ~}}
   {{~ for family in families ~}}
     {{~ snippet = app.explorer.snippets ? app.explorer.snippets[family.id] : null ~}}
-    {{~ groups = groups | array.add { id: family.id, title: family.title, count: family.commandCount, summary: family.description, items: family.featuredCommands, commands: family.groups, docs: family.docsUrl, reference: family.apiUrl, snippet: snippet, details: null } ~}}
+    {{~ groups = groups | array.add { id: family.id, title: family.title, count: family.commandCount, summary: family.description, items: family.featuredCommands, commands: family.groups, guides: family.guides, docs: family.docsUrl, docs_title: family.docsTitle, reference: family.apiUrl, snippet: snippet, details: null } ~}}
   {{~ end ~}}
 {{~ else if app.explorer.source == "cli" && data.cli && data.cli.commands ~}}
   {{~ for group in data.cli.commands.groups ~}}
@@ -29,7 +29,7 @@
     <label for="ps-filter">Find a command</label>
     <div class="imo-ps-filter__field">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="ps-filter" type="search" placeholder="Name, alias or task, for example watermark" autocomplete="off" spellcheck="false" aria-describedby="ps-filter-status" />
+      <input id="ps-filter" type="search" placeholder="Name, alias or words from the summary, for example watermark" autocomplete="off" spellcheck="false" aria-describedby="ps-filter-status" />
     </div>
     <p id="ps-filter-status" class="imo-ps-filter__status" aria-live="polite">Search all {{ data.pswriteoffice_command_catalog.module.commandCount }} commands and {{ data.pswriteoffice_command_catalog.module.aliasCount }} aliases.</p>
   </div>
@@ -96,7 +96,8 @@
         </figure>
         {{~ end ~}}
         <p class="imo-surface-explorer__links" data-ps-intro>
-          {{ if group.docs }}<a href="{{ group.docs }}">{{ group.title }} guide <span aria-hidden="true">→</span></a>{{ end }}
+          {{ if group.docs }}<a href="{{ group.docs }}">{{ group.docs_title ?? group.title }} guide <span aria-hidden="true">→</span></a>{{ end }}
+          {{ if group.guides }}{{ for guide in group.guides }}<a href="{{ guide.url }}">{{ guide.title }} guide <span aria-hidden="true">→</span></a>{{ end }}{{ end }}
           {{ if group.reference }}<a href="{{ group.reference }}">Command reference <span aria-hidden="true">→</span></a>{{ end }}
         </p>
       </article>
