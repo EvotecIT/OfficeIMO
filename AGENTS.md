@@ -28,7 +28,7 @@ OfficeIMO Studio and the PSWriteOffice PowerShell module.
 ## Build and test
 
 Builds use the SDK pinned in `global.json` (10.0.100, latest feature roll-forward)
-and PSPublishModule 3.0.170 or later. Engines target `netstandard2.0`, `net8.0`,
+and PSPublishModule 3.0.194 or later. Engines target `netstandard2.0`, `net8.0`,
 `net10.0`, plus `net472` on Windows; test projects (xUnit) target `net8.0` and
 `net10.0`, some also `net472` on Windows. The full solution is very large:
 build and test the area you changed.
