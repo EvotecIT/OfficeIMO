@@ -10165,3 +10165,23 @@ A table with repeated header rows now always starts with at least the first frag
 PDF lists converted to Word, OpenDocument, RTF and HTML keep their bullet or numbering style and their nesting, and each separate list is numbered on its own instead of counting on from the previous one. Word, RTF and HTML output also keep the number a list starts at, and RTF list definitions keep lettered and Roman numbering. `PdfLogicalListItem.Level` now also follows indentation when the PDF draws nested items only by indenting them (including tagged PDFs whose producer tags each level as a separate list), and `NumberFormat`, `IsOrdered` and `Ordinal` describe the marker.
 
 Semantic PDF-to-HTML output nests list items in `<ul>` and `<ol>` elements, with `type` for lettered and Roman numbering and `start` when a list does not begin at 1. Each item is no longer wrapped in its own `<ul data-pdf-list-level="N">`; read the nesting of the list elements instead of that attribute. Word-to-ODT conversion writes nested Word list items as nested ODT lists, and a numbered list that starts at another number keeps it as the first item's `text:start-value`. The `list-levels` mapping now appears only for items that skip a level or are deeper than ten levels.
+
+## Excel text with unpaired surrogates
+
+Worksheet names, number format codes and font names that contain a UTF-16 surrogate without its pair are now rejected with `ArgumentException` when they are supplied: `AddSheet` in `Strict` mode, renaming a worksheet, `SetNumberFormat` and `SetFontFamily`. Earlier versions accepted them and the save failed inside the XML writer. `AddSheet` in `Sanitize` mode, the default, replaces such a character with `_`. Cell text is unchanged; it is still stored with an escape. Remove or replace the stray surrogate before passing the text.
+
+## Hiding the active Excel worksheet
+
+`SetHidden(true)` and `SetVeryHidden(true)` on the active worksheet now activate the nearest visible worksheet to its right, or to its left when there is none, as Excel does. Earlier versions left the hidden sheet active, and Excel unhid it when it opened the file. Loading an XLSB workbook whose first sheet is hidden also activates the first visible worksheet. Code that hides the active sheet and expects `ActiveWorksheetIndex` to stay on it should read the index before hiding.
+
+## Excel columns created without a width
+
+`SetColumnHidden`, `SetColumnOutline`, `GroupColumns` and the style-only columns created when importing an XLS workbook now give a column definition they create the worksheet's default width. Excel reads a `col` element without a width as a zero-width, hidden column, so these columns used to appear hidden in Excel, and the XLSB and XLS writers wrote them with zero or a narrow width. Saved files now contain an explicit `width` on such columns, without `customWidth`. `ClearColumnGroup` still removes a column definition that carries nothing but that default width.
+
+## Excel dates past 9999-12-31
+
+A date-formatted cell whose serial has no `DateTime` (Excel shows `####`) now reads as its serial number in untyped reads: `GetValue`, `GetString` and the row, object and range readers, and in conversions that use them. Earlier versions threw `ArgumentException` or `InvalidCastException` and stopped the read. `GetDateTime` throws `InvalidCastException` for such a cell in every format (XLSX used to throw `ArgumentException`), and mapping it to a `DateTime` property throws `DataMappingException` naming the property, as XLS already did.
+
+## CSV separators the output encoding cannot write
+
+CSV writers now throw `ArgumentException` before writing when the delimiter, quote or escape character cannot be written in the output encoding, such as an unpaired surrogate in UTF-8 or `§` in ASCII. Earlier versions wrote the encoding's replacement character, which readers cannot tell apart from replaced field text. Choose a separator the encoding supports, or write UTF-8.

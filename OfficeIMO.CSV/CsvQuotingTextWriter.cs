@@ -51,6 +51,7 @@ internal sealed class CsvQuotingTextWriter : TextWriter
     /// </summary>
     internal static void ValidateDialect(CsvSaveOptions options)
     {
+        ValidateEncodableDialect(options, options.Encoding);
         if (!options.UsesCustomQuoting)
         {
             return;
@@ -63,6 +64,39 @@ internal sealed class CsvQuotingTextWriter : TextWriter
             delimiter.IndexOf(quote) >= 0 || delimiter.IndexOf(escape) >= 0)
         {
             throw new ArgumentException("Quote and escape characters cannot be line breaks or part of the delimiter.");
+        }
+    }
+
+    /// <summary>
+    /// Rejects a delimiter, quote or escape character that the output encoding cannot write. An unpaired surrogate,
+    /// or a character outside a legacy code page, is replaced on output by the same substitute that replaces such
+    /// characters in field text, so a reader can no longer tell the separators from the data.
+    /// </summary>
+    /// <param name="options">Save options that define the dialect.</param>
+    /// <param name="encoding">Output encoding; null means the options' encoding or UTF-8.</param>
+    internal static void ValidateEncodableDialect(CsvSaveOptions options, Encoding? encoding)
+    {
+        encoding ??= options.Encoding ?? Encoding.UTF8;
+        ThrowIfNotEncodable(CsvWriter.GetDelimiterText(options), encoding, "delimiter");
+        ThrowIfNotEncodable(options.QuoteCharacter.ToString(), encoding, "quote character");
+        if (options.EscapeCharacter is char escape)
+        {
+            ThrowIfNotEncodable(escape.ToString(), encoding, "escape character");
+        }
+    }
+
+    private static void ThrowIfNotEncodable(string text, Encoding encoding, string role)
+    {
+        var strict = (Encoding)encoding.Clone();
+        strict.EncoderFallback = EncoderFallback.ExceptionFallback;
+        try
+        {
+            strict.GetByteCount(text);
+        }
+        catch (EncoderFallbackException)
+        {
+            throw new ArgumentException(
+                $"The CSV {role} cannot be written in the {encoding.WebName} output encoding; it would be indistinguishable from replaced field text.");
         }
     }
 

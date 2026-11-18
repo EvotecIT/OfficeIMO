@@ -114,6 +114,7 @@ namespace OfficeIMO.Excel {
                 if (character is ':' or '\\' or '/' or '?' or '*' or '[' or ']')
                     throw new ArgumentException("Worksheet name contains invalid characters (: \\ / ? * [ ]).", nameof(name));
             }
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(prepared, nameof(name), "Worksheet name");
             if (existing.Contains(prepared)) throw new ArgumentException($"Worksheet name '{prepared}' already exists.", nameof(name));
             return prepared;
         }
@@ -141,9 +142,15 @@ namespace OfficeIMO.Excel {
             // Sanitize
             string baseName = (name ?? string.Empty).Trim().Trim('\'', ' ');
             var sb = new System.Text.StringBuilder(baseName.Length > 0 ? baseName.Length : 5);
-            // Invalid characters become underscores, and runs of underscores collapse to one for nicer names.
-            foreach (char c in baseName) {
-                char next = c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']' ? '_' : c;
+            // Invalid characters and unpaired surrogates become underscores, and runs of underscores collapse to one for nicer names.
+            for (int index = 0; index < baseName.Length; index++) {
+                char c = baseName[index];
+                bool pairedSurrogate = char.IsHighSurrogate(c) && index + 1 < baseName.Length && char.IsLowSurrogate(baseName[index + 1]);
+                if (pairedSurrogate) {
+                    sb.Append(c).Append(baseName[++index]);
+                    continue;
+                }
+                char next = c == ':' || c == '\\' || c == '/' || c == '?' || c == '*' || c == '[' || c == ']' || char.IsSurrogate(c) ? '_' : c;
                 if (next == '_' && sb.Length > 0 && sb[sb.Length - 1] == '_') continue;
                 sb.Append(next);
             }

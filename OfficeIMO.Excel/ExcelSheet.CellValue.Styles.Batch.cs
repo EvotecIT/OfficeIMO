@@ -281,6 +281,7 @@ namespace OfficeIMO.Excel {
                     _nextNumberFormatId = _numberFormatCount == 0 ? 164U : checked(maximumId + 1);
                 }
                 if (_numberFormatIds.TryGetValue(code, out uint existingId)) return existingId;
+                ExcelTextValidation.ThrowIfUnpairedSurrogate(code, nameof(code), "Number format");
                 uint newId = _nextNumberFormatId++;
                 formats.Append(new NumberingFormat { NumberFormatId = newId, FormatCode = code });
                 _numberFormatIds.Add(code, newId);

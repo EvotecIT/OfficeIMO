@@ -471,7 +471,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         try {
             using var reader = ExcelDocument.OpenReader(path);
             DateConstructorProbeRow.Calls = 0;
-            Assert.Throws<ArgumentException>(() => {
+            Assert.Throws<DataMappingException>(() => {
                 if (parallel) reader.RowsAsParallel<DateConstructorProbeRow>(new ParallelRowMappingOptions {
                     MaxDegreeOfParallelism = 2, BatchSize = 1
                 }).ToArray();

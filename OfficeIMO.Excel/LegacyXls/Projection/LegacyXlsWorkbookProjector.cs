@@ -947,10 +947,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             ProjectWorksheetImages(workbook, legacySheet, sheet);
             ProjectHeaderFooterImages(workbook, legacySheet, sheet);
 
-            if (legacySheet.Visibility == 2) {
-                sheet.SetVeryHidden(true);
-            } else if (legacySheet.Visibility != 0) {
-                sheet.SetHidden(true);
+            if (legacySheet.Visibility != 0) {
+                sheet.ApplyImportedVisibility(hidden: true, veryHidden: legacySheet.Visibility == 2);
             }
         }
 

@@ -67,6 +67,7 @@ namespace OfficeIMO.Excel {
 
             foreach (var fmt in _formats) {
                 if (!existingNumberFormatIdByFormat.TryGetValue(fmt, out uint id)) {
+                    ExcelTextValidation.ThrowIfUnpairedSurrogate(fmt, "numberFormat", "Number format");
                     id = nextId++;
                     var numberingFormat = new NumberingFormat {
                         NumberFormatId = id,

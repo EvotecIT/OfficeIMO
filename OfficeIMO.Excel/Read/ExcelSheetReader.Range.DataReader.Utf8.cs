@@ -935,8 +935,9 @@ namespace OfficeIMO.Excel {
                 objectValue = null;
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
                 if (targetKind == XmlDataReaderTargetKind.String) {
-                    if (dateStyle && TryParseDouble(trimmed, out double serialDate)) {
-                        objectValue = _owner.FromExcelSerialDate(serialDate, calendarStyle).ToString(_options.Culture);
+                    if (dateStyle && TryParseDouble(trimmed, out double serialDate)
+                        && _owner.TryFromExcelSerialDate(serialDate, calendarStyle, out DateTime serialDateValue)) {
+                        objectValue = serialDateValue.ToString(_options.Culture);
                     } else {
                         objectValue = DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]);
                     }
@@ -945,9 +946,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryParseDouble(trimmed, out double number)) {
+                    // A serial without a DateTime (Excel shows ####) keeps its number.
                     if (dateStyle
-                        && targetKind != XmlDataReaderTargetKind.Numeric) {
-                        DateTime date = _owner.FromExcelSerialDate(number, calendarStyle);
+                        && targetKind != XmlDataReaderTargetKind.Numeric
+                        && _owner.TryFromExcelSerialDate(number, calendarStyle, out DateTime date)) {
                         if (targetKind == XmlDataReaderTargetKind.DateTime) {
                             primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
                             dateTimeValue = date;
@@ -1006,8 +1008,8 @@ namespace OfficeIMO.Excel {
                 bool parsedNumber = TryParseExcelNumberAsDouble(value, _options.Culture, out double number);
                 if (parsedNumber
                     && dateStyle
-                    && targetKind != XmlDataReaderTargetKind.Numeric) {
-                    DateTime date = _owner.FromExcelSerialDate(number, calendarStyle);
+                    && targetKind != XmlDataReaderTargetKind.Numeric
+                    && _owner.TryFromExcelSerialDate(number, calendarStyle, out DateTime date)) {
                     if (targetKind == XmlDataReaderTargetKind.DateTime) {
                         primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
                         dateTimeValue = date;

@@ -73,13 +73,13 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     targetSheet.EnsureWorksheetElementOrder();
                     targetSheet.WorksheetPart.Worksheet?.Save();
 
-                    if (sourceSheet.State == 1) {
-                        targetSheet.SetHidden(true);
-                    } else if (sourceSheet.State == 2) {
-                        targetSheet.SetVeryHidden(true);
+                    if (sourceSheet.State == 1 || sourceSheet.State == 2) {
+                        targetSheet.ApplyImportedVisibility(hidden: true, veryHidden: sourceSheet.State == 2);
                     }
                 }
 
+                // The workbook view is not projected, so the implicit first tab must not be a hidden sheet.
+                document.EnsureActiveWorksheetVisible();
                 relatedParts.ProjectTheme();
                 relatedParts.ProjectVba();
                 XlsbDefinedNameProjector.Apply(document, workbook.DefinedNames);

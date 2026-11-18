@@ -210,6 +210,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void SetFontName(DocumentFormat.OpenXml.Spreadsheet.Font font, string fontName) {
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(fontName, nameof(fontName), "Font name");
             font.RemoveAllChildren<FontScheme>();
             font.FontName = new FontName {
                 Val = fontName.Trim()

@@ -452,6 +452,9 @@ namespace OfficeIMO.Excel {
 
             internal DateTime Materialize() =>
                 CalendarStyle ? ExcelDateSystemConverter.FromSerial(Serial, DateSystem) : DateTime.FromOADate(Serial);
+
+            /// <summary>Returns the date, or the serial when no date represents it.</summary>
+            internal object MaterializeValue() => ExcelDateSystemConverter.FromSerialOrNumber(Serial, DateSystem, CalendarStyle);
         }
 
         private sealed partial class ExcelRangeDataReader : DbDataReader {
@@ -806,7 +809,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (value is ExcelDataReaderDateSerial dateSerial) {
-                    return preserveDateSerial ? dateSerial.Serial : dateSerial.Materialize();
+                    return preserveDateSerial ? dateSerial.Serial : dateSerial.MaterializeValue();
                 }
 
                 return value;
@@ -862,7 +865,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static object? MaterializeDataReaderValue(object? value) =>
-                value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
+                value is ExcelDataReaderDateSerial dateSerial ? dateSerial.MaterializeValue() : value;
 
             private static object?[] NormalizeRow(object?[] source, int fieldCount) {
                 if (source.Length == fieldCount) {
@@ -877,7 +880,7 @@ namespace OfficeIMO.Excel {
 
         private static object ToDataReaderValue(object? value)
             => value == null || ReferenceEquals(value, DBNull.Value) ? DBNull.Value
-                : value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
+                : value is ExcelDataReaderDateSerial dateSerial ? dateSerial.MaterializeValue() : value;
 
         private static int CopyDataReaderValues(object?[] row, int fieldCount, object[] values) {
             int count = Math.Min(values.Length, fieldCount);

@@ -159,16 +159,12 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     [Theory]
     [InlineData(ExcelFileFormat.Xls)]
     [InlineData(ExcelFileFormat.Xlsb)]
-    public void InvalidDateSerialKeepsGenericConstructionAndFormatSpecificFailure(ExcelFileFormat format) {
+    public void InvalidDateSerialKeepsGenericConstructionAndFailsMapping(ExcelFileFormat format) {
         byte[] workbook = CreateWorkbook(format, ["Date"], [[3000000d]], styledSerialColumn: 1);
         using var reader = ExcelDocument.OpenReader(workbook);
         DateConstructorRow.Calls = 0;
-        if (format == ExcelFileFormat.Xlsb) {
-            Assert.Throws<InvalidCastException>(() => reader.RowsAs<DateConstructorRow>().ToArray());
-        } else {
-            // XLS treats an unrepresentable styled serial as a number before mapping.
-            Assert.Throws<DataMappingException>(() => reader.RowsAs<DateConstructorRow>().ToArray());
-        }
+        // An unrepresentable styled serial reads as a number, which cannot be mapped to DateTime.
+        Assert.Throws<DataMappingException>(() => reader.RowsAs<DateConstructorRow>().ToArray());
         Assert.Equal(1, DateConstructorRow.Calls);
         Assert.False(reader.IsClosed);
     }

@@ -46,5 +46,40 @@ namespace OfficeIMO.Excel {
                 SetActiveWorksheet(activate);
             }
         }
+    
+        /// <summary>
+        /// Moves the activation off a worksheet that was just hidden: to the nearest visible worksheet on its right,
+        /// otherwise on its left. Leaves the workbook unchanged when the hidden worksheet was not active or no
+        /// worksheet is visible.
+        /// </summary>
+        /// <summary>
+        /// Activates a visible worksheet when the active one is hidden. Used after imports whose source workbook
+        /// view is not carried over, so the implicit first tab may be a hidden sheet.
+        /// </summary>
+        internal void EnsureActiveWorksheetVisible() {
+            ExcelSheet? active = ActiveWorksheet;
+            if (active != null && active.Hidden) {
+                ActivateVisibleWorksheetAfterHiding(active);
+            }
+        }
+
+        internal void ActivateVisibleWorksheetAfterHiding(ExcelSheet hiddenSheet) {
+            ExcelSheet? activate = Locking.ExecuteRead(EnsureLock(), () => {
+                List<Sheet> tabs = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
+                int hiddenTab = tabs.FindIndex(tab => ReferenceEquals(tab, hiddenSheet.SheetElement));
+                if (hiddenTab < 0 || GetActiveWorksheetIndex(WorkbookRoot, tabs.Count) != hiddenTab) {
+                    return null;
+                }
+
+                List<ExcelSheet> worksheets = GetSheetsForLockedOperation();
+                int TabOf(ExcelSheet sheet) => tabs.FindIndex(tab => ReferenceEquals(tab, sheet.SheetElement));
+                return worksheets.Where(sheet => !sheet.Hidden && TabOf(sheet) > hiddenTab).OrderBy(TabOf).FirstOrDefault()
+                    ?? worksheets.Where(sheet => !sheet.Hidden && TabOf(sheet) < hiddenTab).OrderByDescending(TabOf).FirstOrDefault();
+            });
+
+            if (activate != null) {
+                SetActiveWorksheet(activate);
+            }
+        }
     }
 }
