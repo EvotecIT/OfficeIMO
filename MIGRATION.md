@@ -10176,7 +10176,7 @@ Worksheet names, number format codes and font names that contain a UTF-16 surrog
 
 ## Excel columns created without a width
 
-`SetColumnHidden`, `SetColumnOutline`, `GroupColumns` and the style-only columns created when importing an XLS workbook now give a column definition they create the worksheet's default width. Excel reads a `col` element without a width as a zero-width, hidden column, so these columns used to appear hidden in Excel, and the XLSB and XLS writers wrote them with zero or a narrow width. Saved files now contain an explicit `width` on such columns, without `customWidth`. `ClearColumnGroup` still removes a column definition that carries nothing but that default width.
+`SetColumnHidden`, `SetColumnOutline`, `GroupColumns` and the style-only columns created when importing an XLS workbook now give a column definition they create the worksheet's default width. Excel reads a `col` element without a width as a zero-width, hidden column, so these columns used to appear hidden in Excel, and the XLSB and XLS writers wrote them with zero or a narrow width. Saved files now contain an explicit `width` on such columns, without `customWidth`. They follow a later `SetDefaultColumnWidth`, and `ClearColumnGroup` still removes a column definition that carries nothing but that default width.
 
 ## Excel dates past 9999-12-31
 

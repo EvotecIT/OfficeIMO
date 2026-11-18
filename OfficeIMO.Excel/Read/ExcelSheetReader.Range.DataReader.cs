@@ -450,9 +450,6 @@ namespace OfficeIMO.Excel {
             private ExcelDateSystem DateSystem { get; }
             private bool CalendarStyle { get; }
 
-            internal DateTime Materialize() =>
-                CalendarStyle ? ExcelDateSystemConverter.FromSerial(Serial, DateSystem) : DateTime.FromOADate(Serial);
-
             /// <summary>Returns the date, or the serial when no date represents it.</summary>
             internal object MaterializeValue() => ExcelDateSystemConverter.FromSerialOrNumber(Serial, DateSystem, CalendarStyle);
         }

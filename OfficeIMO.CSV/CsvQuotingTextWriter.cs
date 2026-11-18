@@ -42,16 +42,24 @@ internal sealed class CsvQuotingTextWriter : TextWriter
         _escape = options.EscapeCharacter ?? options.QuoteCharacter;
         _delimiter = CsvWriter.GetDelimiterText(options);
         _recordSeparator = options.NewLine;
-        ValidateDialect(options);
+        // The destination's own encoding decides what can be written; Encoding in the options applies to files and streams.
+        ValidateQuotingShape(options);
+        ValidateEncodableDialect(options, inner.Encoding);
     }
 
     /// <summary>
-    /// Rejects quote and escape characters that cannot be written unambiguously. Path writers call it before they
-    /// open the destination, so a rejected dialect never truncates an existing file.
+    /// Rejects quote and escape characters that cannot be written unambiguously, and separators the configured output
+    /// encoding cannot write. Path and stream writers call it before they open or write the destination, so a
+    /// rejected dialect never truncates an existing file.
     /// </summary>
     internal static void ValidateDialect(CsvSaveOptions options)
     {
         ValidateEncodableDialect(options, options.Encoding);
+        ValidateQuotingShape(options);
+    }
+
+    private static void ValidateQuotingShape(CsvSaveOptions options)
+    {
         if (!options.UsesCustomQuoting)
         {
             return;

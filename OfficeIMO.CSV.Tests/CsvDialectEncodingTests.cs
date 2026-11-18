@@ -56,4 +56,18 @@ public sealed class CsvDialectEncodingTests
         Assert.Equal("x§y", row.Get<string>("A"));
         Assert.Equal("�", row.Get<string>("B"));
     }
+
+    [Fact]
+    public void CallerTextWriter_IsValidatedAgainstItsOwnEncoding()
+    {
+        // Encoding applies to file and stream output; a supplied writer decides what it can hold.
+        var options = new CsvSaveOptions { QuoteCharacter = '§', Encoding = Encoding.ASCII };
+        using var text = new StringWriter();
+        using (var writer = new CsvRowWriter(text, options, leaveOpen: true))
+        {
+            writer.WriteTextRow(new[] { "A" }, new[] { "x,y" });
+        }
+
+        Assert.Contains("§x,y§", text.ToString(), StringComparison.Ordinal);
+    }
 }

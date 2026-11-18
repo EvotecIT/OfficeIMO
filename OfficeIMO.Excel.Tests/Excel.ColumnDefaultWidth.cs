@@ -40,4 +40,21 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public void ColumnsWithTheDefaultWidth_FollowALaterDefaultWidthChange() {
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.GroupColumns(2, 3);
+        sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(12));
+
+        sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(20));
+
+        Column[] columns = sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().ToArray();
+        Assert.Equal(new double?[] { 20, 20, 12 }, columns.Select(column => column.Width?.Value).ToArray());
+
+        sheet.ClearColumnGroup(2, 3);
+        Assert.Equal(new uint[] { 4 }, sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>()
+            .Select(column => column.Min!.Value).ToArray());
+    }
 }

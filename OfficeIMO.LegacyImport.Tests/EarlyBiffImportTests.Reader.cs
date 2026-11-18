@@ -137,12 +137,13 @@ public sealed partial class EarlyBiffImportTests {
     }
 
     [Fact]
-    public void ForwardReaderDefersInvalidDateMaterializationUntilADateValueIsRequested() {
+    public void ForwardReaderReadsADatelessDateSerialAsItsNumber() {
         using var source = new MemoryStream(BuildReaderDateWorksheet(use1904: false, includeInvalidDate: true));
         using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(source, new ExcelReaderOptions { HasHeaderRow = false });
         Assert.True(reader.Read());
         Assert.Equal(1_000_000_000d, reader.GetDouble(3));
-        Assert.Throws<ArgumentException>(() => reader.GetValue(3));
+        Assert.Equal(1_000_000_000d, reader.GetValue(3));
+        Assert.Throws<InvalidCastException>(() => reader.GetDateTime(3));
         Assert.Equal(1_000_000_000d, reader.GetDouble(3));
     }
 

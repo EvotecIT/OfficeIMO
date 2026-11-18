@@ -32,6 +32,25 @@ namespace OfficeIMO.Excel {
             return OfficeIMO.Excel.Utilities.ExcelColumnGeometry.ToStoredWidth(pixels, digit);
         }
 
+        /// <summary>
+        /// Applies a change to the worksheet default width and moves the columns that only carry the previous default,
+        /// such as those created for visibility or outline levels, to the new default. Custom and best-fit widths stay.
+        /// </summary>
+        private void ChangeDefaultColumnWidth(Action change) {
+            Columns? columns = WorksheetRoot.GetFirstChild<Columns>();
+            double previous = columns == null ? 0D : GetDefaultStoredColumnWidth();
+            change();
+            if (columns == null) return;
+
+            double current = GetDefaultStoredColumnWidth();
+            if (current == previous) return;
+            foreach (Column column in columns.Elements<Column>()) {
+                if (column.CustomWidth?.Value != true && column.BestFit == null && column.Width?.Value == previous) {
+                    column.Width = current;
+                }
+            }
+        }
+
         /// <summary>Creates a single-column definition that keeps the worksheet's default width.</summary>
         private Column CreateDefaultWidthColumn(uint columnIndex) =>
             new Column { Min = columnIndex, Max = columnIndex, Width = GetDefaultStoredColumnWidth() };
