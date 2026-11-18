@@ -34,13 +34,14 @@ namespace OfficeIMO.Spreadsheet {
             SelectNumberFormatSection(formatCode, preferredSection, value: null, out selectedSection);
 
         internal static string SelectNumberFormatSection(string formatCode, int preferredSection, double? value, out int selectedSection) {
-            string[] sections = SplitNumberFormatSections(formatCode);
+            NumberFormatSections split = GetNumberFormatSections(formatCode);
+            string[] sections = split.Sections;
             selectedSection = 0;
             if (sections.Length == 0) {
                 return formatCode;
             }
 
-            if (value.HasValue && sections.Any(section => TryGetSectionCondition(section, out _, out _))) {
+            if (value.HasValue && split.HasConditions) {
                 int fallbackSection = -1;
                 for (int i = 0; i < sections.Length; i++) {
                     if (TryGetSectionCondition(sections[i], out string? op, out double threshold)) {
@@ -67,7 +68,49 @@ namespace OfficeIMO.Spreadsheet {
             return sections[0];
         }
 
-        private static string[] SplitNumberFormatSections(string formatCode) {
+        private sealed class NumberFormatSections {
+            // 0 until scanned, then 1 without conditions or 2 with one. Split-only callers never scan.
+            private int _conditions;
+
+            internal NumberFormatSections(string[] sections) => Sections = sections;
+
+            // Shared between callers; never modified after construction.
+            internal string[] Sections { get; }
+
+            internal bool HasConditions {
+                get {
+                    int conditions = Volatile.Read(ref _conditions);
+                    if (conditions == 0) {
+                        conditions = 1;
+                        foreach (string section in Sections) {
+                            if (TryGetSectionCondition(section, out _, out _)) { conditions = 2; break; }
+                        }
+                        Volatile.Write(ref _conditions, conditions);
+                    }
+                    return conditions == 2;
+                }
+            }
+        }
+
+        // A workbook uses a handful of format codes for many cells; split each code once.
+        private static readonly OfficeIMO.Drawing.OfficeBoundedCache<string, NumberFormatSections> SectionCache =
+            new OfficeIMO.Drawing.OfficeBoundedCache<string, NumberFormatSections>(1024, StringComparer.Ordinal);
+
+        private const int MaximumCachedFormatCodeLength = 256;
+
+        private static NumberFormatSections GetNumberFormatSections(string formatCode) {
+            if (SectionCache.TryGetValue(formatCode, out NumberFormatSections? cached)) return cached;
+            var created = new NumberFormatSections(SplitNumberFormatSectionsCore(formatCode));
+            // Long codes are rare and unbounded in size; keep the cache to ordinary format codes.
+            if (formatCode.Length <= MaximumCachedFormatCodeLength) SectionCache.TryAdd(formatCode, created);
+            return created;
+        }
+
+        // A code too long to cache is split directly; the condition scan only serves cached entries.
+        private static string[] SplitNumberFormatSections(string formatCode) => formatCode.Length > MaximumCachedFormatCodeLength
+            ? SplitNumberFormatSectionsCore(formatCode) : GetNumberFormatSections(formatCode).Sections;
+
+        private static string[] SplitNumberFormatSectionsCore(string formatCode) {
             var sections = new List<string>();
             var builder = new StringBuilder(Math.Min(formatCode.Length, 256));
             bool inQuote = false;

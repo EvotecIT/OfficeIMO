@@ -62,13 +62,26 @@ public sealed partial class OfficeRasterCanvas {
             if (!AddContours(clip.FilledContours, rules.Count - 1)) return Unmeasured();
         }
         long work = 4_000_000;
-        for (int i = 0; i < edges.Count; i++) {
+        // Every edge pair is charged to the work budget, as if each were compared. Only pairs whose vertical
+        // spans overlap can cross inside a slab, so edges are visited in order of their lowest y and each one is
+        // compared with the later edges that start below its top. The crossing test is symmetric in its two
+        // edges, so this finds exactly the boundaries the all-pairs comparison finds.
+        cancellationToken.ThrowIfCancellationRequested();
+        long pairs = (long)edges.Count * (edges.Count - 1) / 2;
+        if (pairs > work) return Unmeasured();
+        work -= pairs;
+        int[] order = scratch.EdgeOrder(edges.Count);
+        double[] lows = scratch.EdgeLows(edges.Count);
+        for (int index = 0; index < edges.Count; index++) { order[index] = index; lows[index] = edges[index].LowY; }
+        Array.Sort(lows, order, 0, edges.Count);
+        for (int first = 0; first < edges.Count; first++) {
             cancellationToken.ThrowIfCancellationRequested();
-            for (int j = i + 1; j < edges.Count; j++) {
-                if (--work < 0) return Unmeasured();
-                if ((j & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
-                InkBoundEdge a = edges[i], b = edges[j];
-                double low = Math.Max(a.LowY, b.LowY), high = Math.Min(a.HighY, b.HighY);
+            InkBoundEdge a = edges[order[first]];
+            double aHigh = a.HighY;
+            for (int second = first + 1; second < edges.Count && lows[second] < aHigh; second++) {
+                if ((second & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                InkBoundEdge b = edges[order[second]];
+                double low = Math.Max(a.LowY, b.LowY), high = Math.Min(aHigh, b.HighY);
                 if (high <= low || Math.Max(a.Start.X, a.End.X) < Math.Min(b.Start.X, b.End.X)
                     || Math.Max(b.Start.X, b.End.X) < Math.Min(a.Start.X, a.End.X)) continue;
                 double atLow = a.XAt(low) - b.XAt(low), atHigh = a.XAt(high) - b.XAt(high);
@@ -170,6 +183,18 @@ public sealed partial class OfficeRasterCanvas {
         private static InkBoundScratch? _cached;
 
         private int[] _winding = new int[4];
+        private int[] _edgeOrder = new int[64];
+        private double[] _edgeLows = new double[64];
+
+        internal int[] EdgeOrder(int count) {
+            if (_edgeOrder.Length < count) _edgeOrder = new int[Math.Max(count, _edgeOrder.Length * 2)];
+            return _edgeOrder;
+        }
+
+        internal double[] EdgeLows(int count) {
+            if (_edgeLows.Length < count) _edgeLows = new double[Math.Max(count, _edgeLows.Length * 2)];
+            return _edgeLows;
+        }
 
         internal List<InkBoundEdge> Edges { get; } = new();
         internal List<double> Boundaries { get; } = new();
