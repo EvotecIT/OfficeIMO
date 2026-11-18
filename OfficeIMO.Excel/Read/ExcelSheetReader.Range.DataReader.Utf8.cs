@@ -935,8 +935,9 @@ namespace OfficeIMO.Excel {
                 objectValue = null;
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
                 if (targetKind == XmlDataReaderTargetKind.String) {
-                    if (dateStyle && TryParseDouble(trimmed, out double serialDate)) {
-                        objectValue = _owner.FromExcelSerialDate(serialDate, calendarStyle).ToString(_options.Culture);
+                    if (dateStyle && TryParseDouble(trimmed, out double serialDate)
+                        && _owner.TryFromExcelSerialDate(serialDate, calendarStyle, out DateTime serialDateValue)) {
+                        objectValue = serialDateValue.ToString(_options.Culture);
                     } else {
                         objectValue = DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]);
                     }
@@ -945,14 +946,18 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryParseDouble(trimmed, out double number)) {
-                    if (dateStyle
-                        && targetKind != XmlDataReaderTargetKind.Numeric) {
-                        DateTime date = _owner.FromExcelSerialDate(number, calendarStyle);
-                        if (targetKind == XmlDataReaderTargetKind.DateTime) {
-                            primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
-                            dateTimeValue = date;
+                    if (dateStyle && targetKind != XmlDataReaderTargetKind.Numeric) {
+                        if (_owner.TryFromExcelSerialDate(number, calendarStyle, out DateTime date)) {
+                            if (targetKind == XmlDataReaderTargetKind.DateTime) {
+                                primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
+                                dateTimeValue = date;
+                            } else {
+                                objectValue = date;
+                            }
                         } else {
-                            objectValue = date;
+                            // A serial without a DateTime (Excel shows ####) reads as a double in every reader,
+                            // whatever NumericAsDecimal says.
+                            objectValue = number;
                         }
 
                         return;
@@ -1007,12 +1012,16 @@ namespace OfficeIMO.Excel {
                 if (parsedNumber
                     && dateStyle
                     && targetKind != XmlDataReaderTargetKind.Numeric) {
-                    DateTime date = _owner.FromExcelSerialDate(number, calendarStyle);
-                    if (targetKind == XmlDataReaderTargetKind.DateTime) {
-                        primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
-                        dateTimeValue = date;
+                    if (_owner.TryFromExcelSerialDate(number, calendarStyle, out DateTime date)) {
+                        if (targetKind == XmlDataReaderTargetKind.DateTime) {
+                            primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
+                            dateTimeValue = date;
+                        } else {
+                            objectValue = date;
+                        }
                     } else {
-                        objectValue = date;
+                        // Dateless serials read as a double, as in the other readers.
+                        objectValue = number;
                     }
 
                     return;

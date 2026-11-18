@@ -20,6 +20,14 @@ allocated megabytes per operation, the process peak working set, the output
 size and the validation result. The process exits with 1 when validation fails.
 A pair that a library cannot run prints `not applicable`.
 
+EPPlus is a restricted library in
+[`Build/benchmark-libraries.json`](../../Build/benchmark-libraries.json). Its
+lanes run only when `OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES` lists `epplus` after
+you have reviewed and accepted its licence; otherwise they print `skipped` and
+exit 0. EPPlus also reads your own licence declaration from `EPPlusLicense`.
+NPOI's package shows a build warning about its OSMF binary EULA; the project
+does not accept it for you.
+
 | Lane | Workload |
 |---|---|
 | `write1m` | 1,000,000 rows of number, text, decimal and Boolean cells |

@@ -80,6 +80,12 @@ namespace OfficeIMO.Excel {
                     worksheet.Append(element);
                 }
 
+                // Library-created columns that follow the default width keep following it in the copy. Only a loaded
+                // source can hold such columns, so a streamed source is not loaded for this.
+                if (sourcePart.IsRootElementLoaded) {
+                    CarryDefaultWidthColumns(sourceDocument, sourcePart.Worksheet, worksheet);
+                }
+
                 if (!ReferenceEquals(sourceDocument, this)) {
                     BindCopiedSheetViewsToWorkbookViews(worksheet);
                     BindCopiedWorksheetColors(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, worksheet);

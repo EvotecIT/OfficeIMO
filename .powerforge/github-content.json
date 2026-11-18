@@ -12,6 +12,15 @@
       "useDefaultTiers": true,
       "unmappedTierKey": "Sponsors"
     },
+    "manualEntries": [
+      {
+        "key": "coderabbit",
+        "displayName": "CodeRabbit",
+        "profileUrl": "https://coderabbit.link/evotecit",
+        "avatarUrl": "Website/static/assets/sponsors/coderabbit-mark.svg",
+        "recognitionTierKey": "Sponsors"
+      }
+    ],
     "outputs": [
       {
         "path": "SPONSORS.md",

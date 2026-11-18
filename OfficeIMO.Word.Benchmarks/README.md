@@ -160,21 +160,22 @@ after `validate-openxml` to check them. The process-peak reading is unavailable
 on the current macOS host.
 
 The shared repository runner adds provenance capture and PowerForge-normalized
-JSON/CSV/Markdown evidence. Word workloads are excluded from the default `all`
-selection so ordinary comparison runs do not restore NPOI or require its license
-acknowledgement. `word` expands to the four comparison workloads:
+JSON/CSV/Markdown evidence. `word` expands to the four comparison workloads:
 
 ```powershell
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -AcceptNPOIOSMFLicense
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0
 ```
 
 Use `-RunMode quick` only for a clean-source smoke run. The isolated benchmark
-project records `AcceptNPOIOSMFLicense=true`, as required by the NPOI package;
-it is nonpackable and outside the normal solution. The interoperability CI job
+project is nonpackable and outside the normal solution. The interoperability CI job
 restores and builds this project to run the deterministic `validate-workflows`
-checks; comparison measurements remain opt-in. The shared runner also requires
-`-AcceptNPOIOSMFLicense` before starting a Word comparison. Review the EULA and
-decide whether its maintenance-fee conditions apply to your use.
+checks; comparison measurements remain opt-in. NPOI is Apache-2.0 and open in
+[`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json); its package
+shows a build warning about the OSMF EULA on its binaries, which the project does
+not accept for you. DocX is acceptance-required: Xceed's Community License is
+limited to non-commercial use and does not allow publishing DocX benchmark results
+without Xceed's permission. Published Word comparisons leave DocX out, and its cases
+run locally only after you accept its licence with `-AcceptLibraryLicense docx`.
 The benchmark project pins `System.Security.Cryptography.Xml` 10.0.13 because
 NPOI's transitive 10.0.10 minimum is affected by a
 [published high-severity advisory](https://github.com/advisories/GHSA-7hqp-7c5m-4vq6).

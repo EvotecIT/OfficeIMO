@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using NpoiDocument = NPOI.XWPF.UserModel.XWPFDocument;
@@ -19,7 +20,7 @@ public class WordReadComparisonBenchmarks {
     [GlobalSetup]
     public void Setup() {
         SetupOfficeAndOpenXml();
-        EnsureExpected(nameof(DocX), DocX());
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) EnsureExpected(nameof(DocX), DocX());
         EnsureExpected(nameof(NPOI), NPOI());
 #if NET10_0_OR_GREATER
         EnsureExpected(nameof(OneDocument), OneDocument());
@@ -58,6 +59,7 @@ public class WordReadComparisonBenchmarks {
     public WordReadObservation OfficeIMOReaderStreamedText() => WordReaderTextWorkload.ReadStreamed(_fixture);
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);

@@ -29,6 +29,7 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Compile Remove="@(Compile)" />
     <Compile Include="ExcelEngineLanes.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkLibrarySelection.cs" Link="Shared\BenchmarkLibrarySelection.cs" />
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
@@ -61,6 +62,8 @@
 
   <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkLibrarySelection.cs" Link="Shared\BenchmarkLibrarySelection.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkLibraryFilter.cs" Link="Shared\BenchmarkLibraryFilter.cs" />
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
     <Compile Include="..\Benchmarks\SalesMappingFixture.cs" Link="Shared\SalesMappingFixture.cs" />

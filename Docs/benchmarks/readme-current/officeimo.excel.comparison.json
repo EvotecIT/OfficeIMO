@@ -10,54 +10,6 @@
   "comparison": [
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Feature-rich report to XLSX",
-      "operation": "Create",
-      "host": ".NET 8",
-      "os": "Microsoft Windows 10.0.26200",
-      "runMode": "local, affinity 0xFFFF, Normal priority",
-      "variables": {
-        "Format": ".xlsx",
-        "Rows": "25,000",
-        "Snapshot": "2026-09-28",
-        "Runner": "rotated local",
-        "Warmups": "20",
-        "MeasuredIterations": "9"
-      },
-      "engine": "OfficeIMO.Excel",
-      "baselineEngine": "OfficeIMO.Excel",
-      "status": "Succeeded",
-      "actual": 52.1094,
-      "baseline": 52.1094,
-      "ratio": 1.0,
-      "metric": "MedianMs",
-      "tieTolerance": 0.05
-    },
-    {
-      "suite": "OfficeIMO README highlights",
-      "scenario": "Feature-rich report to XLSX",
-      "operation": "Create",
-      "host": ".NET 8",
-      "os": "Microsoft Windows 10.0.26200",
-      "runMode": "local, affinity 0xFFFF, Normal priority",
-      "variables": {
-        "Format": ".xlsx",
-        "Rows": "25,000",
-        "Snapshot": "2026-09-28",
-        "Runner": "rotated local",
-        "Warmups": "20",
-        "MeasuredIterations": "9"
-      },
-      "engine": "EPPlus",
-      "baselineEngine": "OfficeIMO.Excel",
-      "status": "Succeeded",
-      "actual": 612.0525,
-      "baseline": 52.1094,
-      "ratio": 11.74552959734712,
-      "metric": "MedianMs",
-      "tieTolerance": 0.05
-    },
-    {
-      "suite": "OfficeIMO README highlights",
       "scenario": "Styled DataReader table to XLSX",
       "operation": "Write",
       "host": ".NET 8",
@@ -106,30 +58,6 @@
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Styled DataReader table to XLSX",
-      "operation": "Write",
-      "host": ".NET 8",
-      "os": "Microsoft Windows 10.0.26200",
-      "runMode": "local, affinity 0xFFFF, Normal priority",
-      "variables": {
-        "Format": ".xlsx",
-        "Rows": "25,000",
-        "Snapshot": "2026-09-28",
-        "Runner": "rotated local",
-        "Warmups": "20",
-        "MeasuredIterations": "9"
-      },
-      "engine": "EPPlus",
-      "baselineEngine": "OfficeIMO.Excel",
-      "status": "Succeeded",
-      "actual": 405.9693,
-      "baseline": 28.4756,
-      "ratio": 14.256742614729802,
-      "metric": "MedianMs",
-      "tieTolerance": 0.05
-    },
-    {
-      "suite": "OfficeIMO README highlights",
       "scenario": "Typed objects streamed from XLSX",
       "operation": "Read",
       "host": ".NET 8",
@@ -173,30 +101,6 @@
       "actual": 470.8873,
       "baseline": 32.7918,
       "ratio": 14.359910099476087,
-      "metric": "MedianMs",
-      "tieTolerance": 0.05
-    },
-    {
-      "suite": "OfficeIMO README highlights",
-      "scenario": "Typed objects streamed from XLSX",
-      "operation": "Read",
-      "host": ".NET 8",
-      "os": "Microsoft Windows 10.0.26200",
-      "runMode": "local, affinity 0xFFFF, Normal priority",
-      "variables": {
-        "Format": ".xlsx",
-        "Rows": "25,000",
-        "Snapshot": "2026-09-28",
-        "Runner": "rotated local",
-        "Warmups": "20",
-        "MeasuredIterations": "9"
-      },
-      "engine": "EPPlus",
-      "baselineEngine": "OfficeIMO.Excel",
-      "status": "Succeeded",
-      "actual": 319.1369,
-      "baseline": 32.7918,
-      "ratio": 9.73221659073305,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },

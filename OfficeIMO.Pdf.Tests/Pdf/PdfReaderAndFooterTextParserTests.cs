@@ -264,6 +264,27 @@ public partial class PdfReaderAndFooterRegressionTests {
             block => block.Text.Contains("Decorative header", StringComparison.Ordinal));
     }
 
+    // Reads that ask for artifact text reuse one parse made with it, beside the default parse; a cancelled
+    // attempt is not remembered.
+    [Fact]
+    public void PdfDocument_ArtifactTextReadsReuseOneParse() {
+        byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
+        PdfDocument document = PdfDocument.Load(bytes);
+        using (var cancelled = new CancellationTokenSource()) {
+            cancelled.Cancel();
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                document.GetReadDocument(document.ArtifactTextReadOptions, cancelled.Token));
+        }
+
+        PdfReadDocument artifactParse = document.GetReadDocument(document.ArtifactTextReadOptions);
+        Assert.Same(artifactParse, document.GetReadDocument(document.ArtifactTextReadOptions));
+        Assert.Same(document.GetReadDocument(), document.GetReadDocument());
+        Assert.NotSame(artifactParse, document.GetReadDocument());
+
+        PdfDocument withArtifacts = PdfDocument.Load(bytes, new PdfLoadOptions { IncludeArtifactText = true });
+        Assert.Same(withArtifacts.GetReadDocument(), withArtifacts.GetReadDocument(withArtifacts.ArtifactTextReadOptions));
+    }
+
     [Fact]
     public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
         byte[] bytes = BuildPdfWithFontEncodingDifferences();

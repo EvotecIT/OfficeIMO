@@ -15,9 +15,14 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Hides or shows the worksheet in the workbook.
         /// </summary>
+        /// <remarks>
+        /// Hiding the active worksheet activates the nearest visible sheet, as Excel does, when another sheet is visible. Excel shows a
+        /// workbook whose active tab is hidden by unhiding that tab.
+        /// </remarks>
         public void SetHidden(bool hidden) {
             WriteLockConditional(() => {
                 SetHiddenCore(hidden);
+                if (hidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore(TabIndex());
                 WorkbookRoot.Save();
             });
         }
@@ -26,9 +31,22 @@ namespace OfficeIMO.Excel {
         /// Makes the worksheet very hidden, or restores it to visible.
         /// </summary>
         /// <param name="veryHidden">Whether to set the worksheet to the very hidden workbook state.</param>
+        /// <remarks>Making the active worksheet very hidden activates the nearest visible sheet, as <see cref="SetHidden"/> does.</remarks>
         public void SetVeryHidden(bool veryHidden) {
             WriteLockConditional(() => {
                 SetVeryHiddenCore(veryHidden);
+                if (veryHidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore(TabIndex());
+                WorkbookRoot.Save();
+            });
+        }
+
+        /// <summary>
+        /// Applies a sheet state read from a source workbook. The source's own workbook view chooses the active
+        /// sheet, so this does not move the activation.
+        /// </summary>
+        internal void ApplyImportedVisibility(bool hidden, bool veryHidden) {
+            WriteLockConditional(() => {
+                _sheet.State = veryHidden ? SheetStateValues.VeryHidden : hidden ? SheetStateValues.Hidden : (SheetStateValues?)null;
                 WorkbookRoot.Save();
             });
         }
@@ -42,6 +60,9 @@ namespace OfficeIMO.Excel {
 
             WriteLockConditional(() => SetHiddenCore(hidden));
         }
+
+        private int TabIndex() =>
+            WorkbookRoot.Sheets?.Elements<Sheet>().ToList().FindIndex(tab => ReferenceEquals(tab, _sheet)) ?? -1;
 
         private void SetHiddenCore(bool hidden) {
             _sheet.State = hidden ? SheetStateValues.Hidden : (SheetStateValues?)null;

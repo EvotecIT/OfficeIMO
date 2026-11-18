@@ -12,6 +12,9 @@ param(
     [string] $RunMode = "unrecorded",
     [ValidateSet("unrecorded", "windows", "linux", "macos")]
     [string] $Platform = "unrecorded",
+    # Further libraries to leave off the website. Every library that Build/benchmark-libraries.json does not class
+    # as open is always left off as well; the remaining libraries keep their measured values.
+    [string[]] $ExcludedLibrary = @(),
     [switch] $Publish,
     [switch] $NoPublish
 )
@@ -345,6 +348,54 @@ function Add-PackageProfileRatios([object[]] $Rows) {
     }
 }
 
+# Recomputes the best result and outcome of scenarios that lost an excluded library, matching
+# ExcelComparisonSummaryWriter: results within 5% of the best are practical ties.
+function Update-ExcludedGroupComparisons([object[]] $Rows, [System.Collections.Generic.HashSet[string]] $Groups) {
+    $culture = [System.Globalization.CultureInfo]::InvariantCulture
+    $groupedRows = $Rows | Where-Object { $Groups.Contains("$($_["artifactKind"])|$($_["rowCount"])|$($_["scenario"])") } |
+        Group-Object { "$($_["artifactKind"])|$($_["rowCount"])|$($_["scenario"])" }
+    foreach ($group in $groupedRows) {
+        $means = @($group.Group | ForEach-Object { [double] $_["meanMilliseconds"] })
+        $bestMean = ($means | Measure-Object -Minimum).Minimum
+        $isTie = { param([double] $Value, [double] $Baseline) $Baseline -le 0 -or [math]::Abs($Value - $Baseline) / $Baseline -le 0.05 }
+        $bestRows = @($group.Group | Where-Object { & $isTie ([double] $_["meanMilliseconds"]) $bestMean } |
+            Sort-Object { [double] $_["meanMilliseconds"] }, { $_["library"].ToUpperInvariant() })
+        $bestLibraries = ($bestRows | ForEach-Object { $_["library"] }) -join ", "
+        $office = $group.Group | Where-Object { $_["library"] -eq "OfficeIMO.Excel" } | Select-Object -First 1
+        $officeMean = if ($office) { [double] $office["meanMilliseconds"] } else { $null }
+        foreach ($row in $group.Group) {
+            if ($null -eq $office) {
+                # The OfficeIMO baseline was filtered out, so ratios against it no longer describe a published row.
+                foreach ($name in @("ratioToOfficeImo", "allocatedRatioToOfficeImo", "packageRatioToOfficeImo")) {
+                    $row[$name] = $null
+                    $row[$name + "Text"] = $null
+                }
+            }
+            $mean = [double] $row["meanMilliseconds"]
+            $row["bestLibrary"] = $bestLibraries
+            $row["bestMeanMilliseconds"] = $bestMean
+            $row["ratioToBest"] = if ($bestMean -le 0) { $null } else { $mean / $bestMean }
+            $row["ratioToBestText"] = Format-Ratio $row["ratioToBest"]
+            $row["outcome"] = if ($row["library"] -eq "OfficeIMO.Excel") {
+                if (& $isTie $mean $bestMean) {
+                    if ($bestRows.Count -gt 1) { "Tie for best" } else { "Win" }
+                } else {
+                    $lossPercent = if ($bestMean -le 0) { 0 } else { (($mean / $bestMean) - 1) * 100 }
+                    [string]::Format($culture, "Loss +{0:F1}%", $lossPercent)
+                }
+            } elseif ($null -eq $officeMean -or $officeMean -le 0) {
+                ""
+            } elseif (& $isTie $mean $officeMean) {
+                "Tie vs OfficeIMO"
+            } elseif ($mean -lt $officeMean) {
+                [string]::Format($culture, "{0:F1}% faster than OfficeIMO", (1 - ($mean / $officeMean)) * 100)
+            } else {
+                [string]::Format($culture, "{0:F1}% slower than OfficeIMO", (($mean / $officeMean) - 1) * 100)
+            }
+        }
+    }
+}
+
 function Build-Summary([object[]] $Rows) {
     $summary = @()
     $groups = @{}
@@ -631,6 +682,10 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     Write-TextUtf8NoBom $Path (($lines -join "`n") + "`n")
 }
 
+. (Join-Path $PSScriptRoot 'BenchmarkLibraryPolicy.ps1')
+$ExcludedLibrary = @(@($ExcludedLibrary) + @((Get-BenchmarkLibraryPolicy).libraries | Where-Object restriction -ne 'open' |
+        ForEach-Object { @($_.name) + @($_.aliases | Where-Object { $_ }) }) | Where-Object { $_ } | Select-Object -Unique)
+
 $summaryInput = Read-JsonFile $SummaryPath
 $manifest = if (Test-Path $ManifestPath) { Read-JsonFile $ManifestPath } else { $null }
 $publishValue = if ($Publish) { $true } elseif ($NoPublish) { $false } else { $RunMode -eq "full" }
@@ -647,15 +702,25 @@ $packageProfilePaths = @(
 
 $rows = New-Object System.Collections.Generic.List[object]
 $packageProfiles = New-Object System.Collections.Generic.List[object]
+$excludedGroups = New-Object 'System.Collections.Generic.HashSet[string]'
 foreach ($row in $summaryInput.Rows) {
+    if ($row.Library -in $ExcludedLibrary) {
+        # A scenario needs new comparisons when the excluded library was its best result or its OfficeIMO baseline.
+        if ((([string] $row.BestLibrary -split ', ') -contains $row.Library) -or $row.Library -eq "OfficeIMO.Excel") {
+            [void] $excludedGroups.Add("$($row.ArtifactKind)|$($row.RowCount)|$($row.Scenario)")
+        }
+        continue
+    }
     $rows.Add((Convert-SummaryRow $row))
 }
+Update-ExcludedGroupComparisons -Rows ([object[]] $rows.ToArray()) -Groups $excludedGroups
 
 foreach ($path in $packageProfilePaths) {
     if ([string]::IsNullOrWhiteSpace($path)) { continue }
     $profile = Read-JsonFile $path
     $packageProfiles.Add($profile)
     foreach ($scenario in $profile.Scenarios) {
+        if ($scenario.Library -in $ExcludedLibrary) { continue }
         $rows.Add((Convert-PackageProfileScenario $scenario ([int] $profile.RowCount) $path))
     }
 }

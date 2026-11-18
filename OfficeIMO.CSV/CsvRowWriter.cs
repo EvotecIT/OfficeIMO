@@ -72,6 +72,7 @@ public sealed partial class CsvRowWriter : IDisposable
     {
         ArgumentNullException.ThrowIfNull(writer);
         _options = options ?? new CsvSaveOptions();
+        CsvQuotingTextWriter.ValidateEncodableDialect(_options, writer.Encoding);
         // Other quote or escape characters are applied to the RFC 4180 text the row paths write.
         _writer = CsvQuotingTextWriter.Wrap(writer, _options, leaveOpen);
         writer = _writer;

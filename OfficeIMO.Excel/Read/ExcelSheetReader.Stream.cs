@@ -13,7 +13,10 @@ namespace OfficeIMO.Excel {
         /// Lazily reads a rectangular A1 range as ordered row chunks. DOM traversal is single-threaded;
         /// per-chunk value conversion is offloaded in parallel based on Execution policy.
         /// </summary>
-        public IEnumerable<RangeChunk> ReadRangeStream(string a1Range, int chunkRows = 1024, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+        public IEnumerable<RangeChunk> ReadRangeStream(string a1Range, int chunkRows = 1024, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) =>
+            ExcelReadCancellation.ObservePerItem(ReadRangeStreamCore(a1Range, chunkRows, mode, ct), ct);
+
+        private IEnumerable<RangeChunk> ReadRangeStreamCore(string a1Range, int chunkRows, OfficeIMO.Excel.ExcelExecutionMode? mode, CancellationToken ct) {
             if (chunkRows <= 0) throw new ArgumentOutOfRangeException(nameof(chunkRows), "Chunk row count must be greater than zero.");
 
             (int r1, int c1, int r2, int c2) = ExcelA1.ParseRange(a1Range);

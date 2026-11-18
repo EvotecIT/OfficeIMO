@@ -300,6 +300,25 @@ namespace OfficeIMO.Tests {
             File.Delete(targetPath);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_WorksheetValuesCopy_KeepsDefaultWidthColumnsFollowingTheDefault(bool sameWorkbook) {
+            using var source = ExcelDocument.Create();
+            ExcelSheet original = source.AddSheet("Data");
+            original.Cell(1, 1).SetValue("Value");
+            original.GroupColumns(2, 3);
+            using var other = ExcelDocument.Create();
+            other.AddSheet("Existing").Cell(1, 1).SetValue("Existing");
+            ExcelDocument target = sameWorkbook ? source : other;
+
+            ExcelSheet copy = target.CopyWorksheetFrom(source, "Data", "Copy");
+            copy.SetDefaultColumnWidth(ExcelColumnWidth.Characters(20));
+
+            Assert.Equal(new[] { (2U, 20D), (3U, 20D) }, copy.WorksheetPart.Worksheet!.GetFirstChild<Columns>()!.Elements<Column>()
+                .Select(column => (column.Min!.Value, column.Width!.Value)).ToArray());
+        }
+
         private static void AddLinkedWorkbook(string path, string linkedFile) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(path, true);
             WorkbookPart workbookPart = spreadsheet.WorkbookPart!;

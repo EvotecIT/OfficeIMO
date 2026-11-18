@@ -10,12 +10,12 @@ internal static partial class PdfSyntax {
         cancellationToken.ThrowIfCancellationRequested();
         decryptor = null;
         PdfReference? encryptReference = FindEncryptReference(map, trailerRaw, options?.Limits, cancellationToken);
+        PdfDictionary? encryptionDictionary;
         if (encryptReference is null) {
-            return false;
-        }
-
-        if (!PdfObjectLookup.TryGet(map, encryptReference, out PdfIndirectObject? encryptObject) ||
-            encryptObject.Value is not PdfDictionary encryptionDictionary) {
+            encryptionDictionary = ReadDirectTrailerEncryptionDictionary(trailerRaw, options?.Limits, cancellationToken);
+            if (encryptionDictionary is null) return false;
+        } else if (!PdfObjectLookup.TryGet(map, encryptReference, out PdfIndirectObject? encryptObject) ||
+            (encryptionDictionary = encryptObject.Value as PdfDictionary) is null) {
             throw new PdfUnsupportedEncryptionException("PDF encryption dictionary could not be read.");
         }
 
@@ -129,6 +129,22 @@ internal static partial class PdfSyntax {
     }
 
     /// <summary>
+    /// An encryption dictionary written directly in the trailer instead of as an indirect object. Its strings are
+    /// never encrypted, because only indirect objects are.
+    /// </summary>
+    internal static PdfDictionary? ReadDirectTrailerEncryptionDictionary(string? trailerRaw, PdfReadLimits? limits,
+        CancellationToken cancellationToken) {
+        if (string.IsNullOrEmpty(trailerRaw)) return null;
+        int searchIndex = 0;
+        PdfReadLimits effectiveLimits = limits ?? new PdfReadLimits();
+        while (TryReadNextTrailerDictionary(trailerRaw!, ref searchIndex, effectiveLimits, out PdfDictionary dictionary, cancellationToken)) {
+            if (dictionary.Items.TryGetValue("Encrypt", out PdfObject? value)) return value as PdfDictionary;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The trailer's /Encrypt reference, or, when the trailer chain cannot be recovered, the one /Encrypt reference
     /// that the document's cross-reference streams agree on.
     /// </summary>
@@ -215,7 +231,7 @@ internal static partial class PdfSyntax {
     private static void DecryptObjects(
         Dictionary<int, PdfIndirectObject> map,
         PdfStandardSecurityHandler decryptor,
-        int encryptObjectNumber, CancellationToken cancellationToken) {
+        int? encryptObjectNumber, CancellationToken cancellationToken) {
         var replacements = new List<PdfIndirectObject>();
         decryptor.ReferenceResolver = reference =>
             PdfObjectLookup.TryGet(map, reference, out PdfIndirectObject? target) ? target.Value : null;

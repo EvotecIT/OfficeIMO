@@ -106,6 +106,7 @@ namespace OfficeIMO.Excel {
 
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
+                CarryDefaultWidthColumns(sourceDocument, sourcePart.Worksheet, copiedPart.Worksheet);
                 BindCopiedSheetViewsToWorkbookViews(copiedPart.Worksheet);
                 RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
                 WorksheetStyleCopyMap styleMap = WorksheetStyleCopyMap.Empty;

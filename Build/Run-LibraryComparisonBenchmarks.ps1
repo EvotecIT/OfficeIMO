@@ -15,12 +15,16 @@ param(
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
     [string] $BuildArtifactsPath,
     [UInt64] $AffinityMask = 0,
+    # A QuestPDF release other than the pinned public one; it resolves to the 'questpdf-latest' library policy.
     [string] $QuestPdfPackageVersion,
-    [ValidateSet('Community', 'Evaluation', 'Professional', 'Enterprise')]
-    [string] $QuestPdfLicenseType = 'Community',
-    [switch] $InternalQuestPdf,
-    [switch] $ConfirmQuestPdfAuthorization,
-    [switch] $AcceptNPOIOSMFLicense,
+    # Restricted libraries to run (ids or names from Build/benchmark-libraries.json).
+    [string[]] $IncludeLibrary = @(),
+    # Libraries to leave out; a comparison that needs one of them is skipped.
+    [string[]] $ExcludeLibrary = @(),
+    # Licences you have reviewed and accepted; the library's own key or setting still comes from you.
+    [string[]] $AcceptLibraryLicense = @(),
+    # Keeps every result out of the shared catalog, whatever libraries the run uses.
+    [switch] $LocalOnly,
     [switch] $Publish,
     [switch] $PlanOnly,
     [switch] $KeepBenchmarkFiles,
@@ -40,6 +44,7 @@ if ($MeasurementProfile -eq 'WarmedV1' -and
 }
 
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
+. (Join-Path $PSScriptRoot 'BenchmarkLibraryPolicy.ps1')
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $questPdfBenchmarkVersion = '2026.5.0'
@@ -122,20 +127,27 @@ $explicitWorkloads = @(
 $selected = @(@(if ($includeAll) { $definitions.Keys }; $explicitWorkloads) | Select-Object -Unique)
 if ($selected.Count -eq 0) { throw 'Select at least one workload.' }
 $containsQuestPdfWorkload = @($selected | Where-Object { $_ -in $questPdfWorkloads }).Count -gt 0
-$effectiveQuestPdfVersion = if ($InternalQuestPdf) { $QuestPdfPackageVersion } else { $questPdfBenchmarkVersion }
+$alternateQuestPdf = -not [string]::IsNullOrWhiteSpace($QuestPdfPackageVersion) -and $QuestPdfPackageVersion -ne $questPdfBenchmarkVersion
+$effectiveQuestPdfVersion = if ($alternateQuestPdf) { $QuestPdfPackageVersion } else { $questPdfBenchmarkVersion }
 
-if ($InternalQuestPdf) {
-    if ($Publish) {
-        throw 'Internal QuestPDF comparisons cannot be published or written to the website benchmark catalog.'
-    }
+$libraryPolicy = Get-BenchmarkLibraryPolicy
+$librarySelection = Get-BenchmarkLibrarySelection -Policy $libraryPolicy -IncludeLibrary $IncludeLibrary `
+    -ExcludeLibrary $ExcludeLibrary -AcceptLibraryLicense $AcceptLibraryLicense
+if ($alternateQuestPdf) {
     if (-not $containsQuestPdfWorkload -or @($selected | Where-Object { $_ -notin $questPdfWorkloads }).Count -gt 0) {
-        throw 'Internal QuestPDF mode accepts only workloads that actually exercise QuestPDF.'
+        throw 'An alternate QuestPDF release accepts only workloads that actually exercise QuestPDF.'
     }
-    if ([string]::IsNullOrWhiteSpace($QuestPdfPackageVersion)) {
-        throw 'Internal QuestPDF mode requires an explicit -QuestPdfPackageVersion.'
+    if ('questpdf-latest' -notin $librarySelection.Enabled) {
+        throw "QuestPDF $QuestPdfPackageVersion is restricted; review its licence and add -AcceptLibraryLicense questpdf-latest."
     }
-} elseif (-not [string]::IsNullOrWhiteSpace($QuestPdfPackageVersion)) {
-    throw '-QuestPdfPackageVersion is available only with -InternalQuestPdf.'
+}
+# Any enabled restricted library keeps the whole run local: it may add cases to otherwise published comparisons.
+$localOnlyRun = $LocalOnly -or $alternateQuestPdf -or $librarySelection.Enabled.Count -gt 0
+if ($LocalOnly -and $Publish) {
+    throw '-LocalOnly cannot be combined with -Publish.'
+}
+if ($localOnlyRun -and $Publish) {
+    throw "Restricted libraries ($(@($librarySelection.Enabled) -join ', ')) cannot be published; drop -Publish or the restricted libraries."
 }
 
 if ($containsQuestPdfWorkload) {
@@ -152,6 +164,54 @@ if ($containsQuestPdfWorkload) {
 $executionPlan = @(
     foreach ($name in $selected) {
         $definition = $definitions[$name]
+        # Library policy: restricted libraries make a comparison unpublishable, and their cases are left out
+        # unless the caller enabled them.
+        $workloadLibraries = @(
+            foreach ($libraryName in @($definition.Libraries)) {
+                $library = Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name $libraryName
+                if ($alternateQuestPdf -and $library.id -eq 'questpdf') {
+                    $library = Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name 'questpdf-latest'
+                }
+                $library
+            }
+            # Every QuestPDF workload builds against the selected release, even when QuestPDF is not a listed peer.
+            if ($alternateQuestPdf -and $name -in $questPdfWorkloads -and 'QuestPDF' -notin @($definition.Libraries)) {
+                Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name 'questpdf-latest'
+            }
+        )
+        # A published lane drops restricted libraries' cases and publishes the rest. Only a restricted library whose
+        # cases cannot be identified (it has no case patterns) makes the comparison unpublishable.
+        $restrictedLibraries = @($workloadLibraries | Where-Object restriction -ne 'open')
+        $inseparableLibraries = @($restrictedLibraries | Where-Object { @($_.cases | Where-Object { $_ }).Count -eq 0 })
+        $publishedLibraries = @($definition.Libraries | Where-Object {
+                (Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name $_).restriction -eq 'open'
+            })
+        $publishableByPolicy = $inseparableLibraries.Count -eq 0
+        $licenseRestriction = if ($inseparableLibraries.Count -gt 0) {
+            (@($inseparableLibraries | ForEach-Object { "$($_.name): $($_.reason)" }) -join ' ')
+        } else { $null }
+        $leftOutLibraries = @($libraryPolicy.libraries | Where-Object {
+                ($_.restriction -ne 'open' -and $_.id -notin $librarySelection.Enabled) -or $_.id -in $librarySelection.Excluded
+            })
+        $enabledLibraries = @($libraryPolicy.libraries | Where-Object { $_.id -in $librarySelection.Enabled })
+        $expectedCases = @($definition.ExpectedCases | Where-Object {
+                $case = $_
+                @($leftOutLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $case }).Count -eq 0
+            })
+        # Values the libraries in this run read from the caller stay; values belonging only to libraries left out
+        # of the run are hidden from it, and the plan shows them as cleared.
+        $keptVariables = @(
+            $workloadLibraries + $enabledLibraries | Where-Object { $_.restriction -eq 'open' -or $_.id -in $librarySelection.Enabled } |
+                ForEach-Object { @($_.environmentVariables) + @($_.acceptance.environmentVariables) } | Where-Object { $_ }
+        )
+        $leftOutVariables = @($leftOutLibraries | ForEach-Object { @($_.acceptance.environmentVariables) + @($_.environmentVariables) } |
+            Where-Object { $_ -and $_ -notin $keptVariables } | Select-Object -Unique)
+        $buildProperties = [ordered]@{}
+        foreach ($library in @($workloadLibraries | Where-Object { $_.id -in $librarySelection.Enabled -and $null -ne $_.acceptance })) {
+            foreach ($property in @($library.acceptance.msbuildProperties.PSObject.Properties | Where-Object { $_ })) {
+                $buildProperties[$property.Name] = [string] $property.Value
+            }
+        }
         $catalogComparisonId = if ($null -ne $affinityLabel) {
             '{0}-affinity-{1}' -f $definition.ComparisonId, $affinityLabel.ToLowerInvariant()
         } else {
@@ -165,22 +225,28 @@ $executionPlan = @(
             if ($null -ne $definition.Frameworks -and $Framework -notin $definition.Frameworks) {
                 "This comparison requires $($definition.Frameworks -join ', '); ShapeCrawler 0.82.0 ships only net10.0."
             }
-            if ($name -like 'word*') {
-                if ($Publish) { $definition.PublishRestriction }
-                if (-not $AcceptNPOIOSMFLicense) {
-                    'NPOI 2.8.1 OSMF EULA acknowledgement required: -AcceptNPOIOSMFLicense (https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt).'
+            foreach ($library in $workloadLibraries) {
+                if ($library.restriction -eq 'excluded') {
+                    "$($library.name) is excluded by the library policy: $($library.reason)"
+                } elseif ($library.id -in $librarySelection.Excluded) {
+                    "This comparison needs $($library.name), which -ExcludeLibrary removed."
+                } elseif ($library.restriction -ne 'open' -and $library.id -notin $librarySelection.Enabled -and
+                    @($library.cases).Count -eq 0) {
+                    "$($library.name) is $($library.restriction): $($library.reason)"
+                } elseif ($library.id -in $librarySelection.Enabled) {
+                    Get-BenchmarkLibraryAcceptanceIssues -Library $library
                 }
             }
-            if ($InternalQuestPdf -and -not $ConfirmQuestPdfAuthorization) {
-                'Internal QuestPDF requires -ConfirmQuestPdfAuthorization for the selected version.'
+            if ($Publish -and -not $publishableByPolicy -and $definition.CatalogEligible) {
+                $licenseRestriction
             }
             if ($name -eq 'pdfcorpusread' -and [string]::IsNullOrWhiteSpace($PdfCorpusRoot)) {
                 'PdfCorpusRoot is required; prepare the independent PDF corpus first.'
             }
             if ($AffinityMask -ne 0 -and $Platform -eq 'macos') { 'Nonzero affinity is unsupported on macOS.' }
         )
-        $catalogEligibleByPolicy = -not $InternalQuestPdf -and $definition.CatalogEligible
-        $willCatalog = -not $InternalQuestPdf -and
+        $catalogEligibleByPolicy = -not $localOnlyRun -and $definition.CatalogEligible -and $publishableByPolicy
+        $willCatalog = -not $localOnlyRun -and
             ($catalogEligibleByPolicy -or $definition.CollectNonPublishedEvidence) -and
             $blockedReasons.Count -eq 0
         $artifactsPath = Join-Path $OutputRoot "$Platform-$name-$RunMode-$stamp"
@@ -192,9 +258,8 @@ $executionPlan = @(
             ArtifactsPath = $artifactsPath
             BuildArtifactsPath = $BuildArtifactsPath
             KeepBenchmarkFiles = $KeepBenchmarkFiles
-            Word = $name -like 'word*'
+            BuildProperties = $buildProperties
             QuestPdfVersion = if ($name -in $questPdfWorkloads) { $effectiveQuestPdfVersion } else { $null }
-            InternalQuestPdf = $InternalQuestPdf
         }
         $commands = @(Get-LibraryComparisonCommands @commandOptions)
         foreach ($command in $commands) {
@@ -206,9 +271,13 @@ $executionPlan = @(
             Workload = $name
             Area = $definition.Area
             Title = $definition.Title
-            Libraries = $definition.Libraries
+            # Libraries that may appear in published results; restricted ones are listed separately.
+            Libraries = $publishedLibraries
+            DeclaredLibraries = @($definition.Libraries)
             ExpectedPlatforms = $definition.ExpectedPlatforms
-            PublishRestriction = $definition.PublishRestriction
+            PublishRestriction = @(@($definition.PublishRestriction, $licenseRestriction) | Where-Object { $_ -and $_ -ne 'None' }) -join ' '
+            RestrictedLibraries = @($restrictedLibraries.id)
+            EnabledLibraries = @($librarySelection.Enabled)
             Platform = $Platform
             BlockedReasons = $blockedReasons
             CanRun = $blockedReasons.Count -eq 0
@@ -219,11 +288,15 @@ $executionPlan = @(
                 OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $affinityLabel
                 OFFICEIMO_PDF_CORPUS_ROOT = if ($name -eq 'pdfcorpusread') { $PdfCorpusRoot } else { $null }
                 HTMLTINKERX_PROJECT_PATH = if ($name -in @('pdfhtml', 'pdfhtmlpayload')) { $htmlTinkerXProjectPath } else { $null }
-                OFFICEIMO_QUESTPDF_LICENSE_TYPE = if ($name -in $questPdfWorkloads) { $QuestPdfLicenseType } else { $null }
+                OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = @($librarySelection.Enabled) -join ','
             }
+            LeftOutVariables = $leftOutVariables
+            AllowedExtraCaseLibraries = $enabledLibraries
+            # Enabled restricted libraries may add cases beyond ExpectedCases; the plan names them.
+            OptionalCaseLibraries = @($enabledLibraries.id)
             ArtifactsPath = $artifactsPath
             BundleRoot = $staticRoot
-            ComparisonPath = if (-not $InternalQuestPdf) { $comparisonPath } else { $null }
+            ComparisonPath = if (-not $localOnlyRun) { $comparisonPath } else { $null }
             EvidenceCatalog = if ($willCatalog) { $catalogPath } else { $null }
             Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
@@ -232,11 +305,15 @@ $executionPlan = @(
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog
             Publish = [bool] $Publish -and $catalogEligibleByPolicy -and $willCatalog
-            ExpectedCaseCount = @($definition.ExpectedCases).Count
+            ExpectedCases = $expectedCases
+            ExpectedCaseCount = $expectedCases.Count
             AffinityMask = $affinityLabel
             AffinityApplication = $effectiveAffinityApplication
             QuestPdfPackageVersion = if ($name -in $questPdfWorkloads) { $effectiveQuestPdfVersion } else { $null }
-            InternalOnly = [bool] $InternalQuestPdf
+            InternalOnly = [bool] $localOnlyRun
+        }
+        foreach ($variable in $leftOutVariables) {
+            $planItem.Environment[$variable] = $null
         }
         if ($MeasurementProfile -eq 'WarmedV1') {
             $planItem | Add-Member -NotePropertyName MeasurementProfile -NotePropertyValue 'WarmedV1'
@@ -386,13 +463,14 @@ foreach ($name in $selected) {
     }
     if ($name -in $questPdfWorkloads) {
         $provenanceMetadata['benchmark.dependency.questpdf.version'] = $effectiveQuestPdfVersion
-        $provenanceMetadata['benchmark.dependency.questpdf.licenseType'] = $QuestPdfLicenseType
-        if (-not $InternalQuestPdf) {
+        $provenanceMetadata['benchmark.dependency.questpdf.licenseType'] =
+            if ([string]::IsNullOrWhiteSpace($env:OFFICEIMO_QUESTPDF_LICENSE_TYPE)) { 'Community' } else { $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE }
+        if (-not $alternateQuestPdf) {
             $provenanceMetadata['benchmark.dependency.questpdf.license'] = 'MIT'
             $provenanceMetadata['benchmark.dependency.questpdf.licenseUrl'] =
                 'https://github.com/QuestPDF/QuestPDF/blob/2026.5.0/LICENSE.md'
         } else {
-            $provenanceMetadata['benchmark.dependency.questpdf.scope'] = 'internal-only; maintainer-confirmed authorization'
+            $provenanceMetadata['benchmark.dependency.questpdf.scope'] = 'local-only; licence accepted by the caller'
         }
     }
     $provenanceMetadata['benchmark.workload.affinityApplication'] = $effectiveAffinityApplication
@@ -475,16 +553,23 @@ foreach ($name in $selected) {
     $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
     $previousHtmlTinkerXProjectPath = $env:HTMLTINKERX_PROJECT_PATH
     $previousExpectedAffinity = $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY
-    $previousQuestPdfLicenseType = $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE
+    $previousEnabledLibraries = $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES
+    $previousLeftOutValues = @{}
+    foreach ($variable in $workloadPlan.LeftOutVariables) {
+        $previousLeftOutValues[$variable] = [Environment]::GetEnvironmentVariable($variable)
+    }
     try {
+        # Benchmark code runs only the restricted libraries listed here. Licence values belonging to libraries
+        # left out of this run are hidden from it; enabled libraries read the caller's own values.
+        $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $workloadPlan.Environment.OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES
+        foreach ($variable in $workloadPlan.LeftOutVariables) {
+            [Environment]::SetEnvironmentVariable($variable, $null)
+        }
         if ($name -eq 'pdfcorpusread') {
             $env:OFFICEIMO_PDF_CORPUS_ROOT = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PdfCorpusRoot)
         }
         if ($isPdfComparison) {
             $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath
-        }
-        if ($name -in $questPdfWorkloads) {
-            $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE = $QuestPdfLicenseType
         }
         $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $affinityLabel
         & dotnet @arguments
@@ -493,7 +578,10 @@ foreach ($name in $selected) {
         $env:OFFICEIMO_PDF_CORPUS_ROOT = $previousPdfCorpusRoot
         $env:HTMLTINKERX_PROJECT_PATH = $previousHtmlTinkerXProjectPath
         $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $previousExpectedAffinity
-        $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE = $previousQuestPdfLicenseType
+        $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $previousEnabledLibraries
+        foreach ($variable in $previousLeftOutValues.Keys) {
+            [Environment]::SetEnvironmentVariable($variable, $previousLeftOutValues[$variable])
+        }
         Pop-Location
     }
     if ($benchmarkExitCode -ne 0) {
@@ -551,12 +639,16 @@ foreach ($name in $selected) {
             Sort-Object -Unique
     )
     $missingCases = @(
-        $definition.ExpectedCases |
+        $workloadPlan.ExpectedCases |
             Where-Object { $_ -notin $successfulCases }
     )
     $unexpectedCases = @(
         $successfulCases |
-            Where-Object { $_ -notin $definition.ExpectedCases }
+            Where-Object { $_ -notin $workloadPlan.ExpectedCases } |
+            Where-Object {
+                $case = $_
+                @($workloadPlan.AllowedExtraCaseLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $case }).Count -eq 0
+            }
     )
     if ($missingCases.Count -gt 0 -or $unexpectedCases.Count -gt 0) {
         $details = @()
@@ -612,7 +704,7 @@ if ($catalogEligible) {
     }
 }
 
-if (-not $InternalQuestPdf) {
+if (-not $localOnlyRun) {
     # Declarations include restricted and uncollected workloads, even for a subset run.
     # Keep this metadata outside completed raw provenance; PowerForge owns catalog merging.
     $catalogDeclarations = [ordered]@{}
@@ -629,7 +721,9 @@ if (-not $InternalQuestPdf) {
             comparisonId = $definition.ComparisonId
             area = $definition.Area
             title = $definition.Title
-            libraries = @($definition.Libraries)
+            libraries = @($definition.Libraries | Where-Object {
+                    (Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name $_).restriction -eq 'open'
+                })
             expectedPlatforms = @($definition.ExpectedPlatforms)
         }
     }
@@ -680,8 +774,8 @@ $outputs = foreach ($measurement in $measurements) {
         }
         SizeEvidence = $measurement.SizeEvidence
         BundleRoot = $staticRoot
-        ComparisonPath = if (-not $InternalQuestPdf) { $comparisonPath } else { $null }
-        EvidenceCatalog = if (-not $InternalQuestPdf) { $catalogPath } else { $null }
+        ComparisonPath = if (-not $localOnlyRun) { $comparisonPath } else { $null }
+        EvidenceCatalog = if (-not $localOnlyRun) { $catalogPath } else { $null }
     }
 }
 

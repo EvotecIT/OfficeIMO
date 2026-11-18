@@ -10,6 +10,9 @@ param(
     [ValidateRange(3, 200)] [int] $IterationCount = 12,
     [string] $AffinityMask,
     [switch] $LatestCompetitors,
+    # Restricted libraries from Build/benchmark-libraries.json to include, and licences you have accepted.
+    [string[]] $IncludeLibrary = @(),
+    [string[]] $AcceptLibraryLicense = @(),
     [switch] $SkipBuild,
     [switch] $Plan
 )
@@ -57,11 +60,23 @@ $lanes = [ordered]@{
     CsvDbatoolsParity = @{ Project = 'CSV'; Filters = @('*.CsvDbatoolsLibraryParityBenchmarks.*') }
 }
 
-# EPPlus 8 refuses to run without a license declaration; the run includes it only when the caller made one.
+# Restricted libraries run only when the caller includes them; their cases are otherwise left out of each lane.
+. (Join-Path $repositoryRoot 'Build/BenchmarkLibraryPolicy.ps1')
+$libraryPolicy = Get-BenchmarkLibraryPolicy
+$librarySelection = Get-BenchmarkLibrarySelection -Policy $libraryPolicy -IncludeLibrary $IncludeLibrary -AcceptLibraryLicense $AcceptLibraryLicense
+foreach ($library in @($libraryPolicy.libraries | Where-Object { $_.id -in $librarySelection.Enabled })) {
+    foreach ($issue in @(Get-BenchmarkLibraryAcceptanceIssues -Library $library)) { throw $issue }
+}
+$env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = @($librarySelection.Enabled) -join ','
 $laneNotes = @{}
-if (-not $env:EPPlusLicense) {
-    $lanes.Xlsx65K.Filters = @($lanes.Xlsx65K.Filters | Where-Object { $_ -notlike '*.EPPlus' })
-    $laneNotes.Xlsx65K = 'EPPlus excluded: set EPPlusLicense to its license declaration to include it.'
+foreach ($library in @($libraryPolicy.libraries | Where-Object { $_.restriction -ne 'open' -and $_.id -notin $librarySelection.Enabled })) {
+    foreach ($laneName in @($lanes.Keys)) {
+        $kept = @($lanes[$laneName].Filters | Where-Object { -not (Test-BenchmarkCaseMatchesLibrary -Library $library -Case (($_ -split '\.')[-1])) })
+        if ($kept.Count -ne @($lanes[$laneName].Filters).Count) {
+            $lanes[$laneName].Filters = $kept
+            $laneNotes[$laneName] = (@($laneNotes[$laneName], "$($library.name) excluded: it is $($library.restriction); see Build/benchmark-libraries.json.") | Where-Object { $_ }) -join ' '
+        }
+    }
 }
 
 function Get-HostDescription {

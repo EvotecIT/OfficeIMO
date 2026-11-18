@@ -21,7 +21,10 @@ namespace OfficeIMO.Excel {
         /// Reads a rectangular range and maps rows (excluding the header row) into instances of T.
         /// Header cells are matched to public writable properties on T by name (case-insensitive).
         /// </summary>
-        public IEnumerable<T> ReadObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) where T : new() {
+        public IEnumerable<T> ReadObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode = null, CancellationToken ct = default) where T : new() =>
+            ExcelReadCancellation.ObservePerItem(ReadObjectsCore<T>(a1Range, mode, ct), ct);
+
+        private IEnumerable<T> ReadObjectsCore<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(string a1Range, OfficeIMO.Excel.ExcelExecutionMode? mode, CancellationToken ct) where T : new() {
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (r1 > r2 || c1 > c2) throw new ArgumentException($"Invalid range '{a1Range}'.");
 

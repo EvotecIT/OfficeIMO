@@ -401,6 +401,9 @@ public sealed partial class PdfDocument : IDisposable {
         return (bytes, PdfReadDocument.Open(bytes, effectiveOptions, cancellationToken), effectiveOptions);
     }
 
+    /// <summary>The read settings with artifact text included; for opened bytes, an instance whose parse is reused.</summary>
+    internal PdfLoadOptions ArtifactTextReadOptions => _source?.ArtifactTextOptions ?? PdfLoadOptions.WithArtifactText(ReadOptions);
+
     internal PdfLoadOptions ReadOptions {
         get {
             if (_source is not null) {

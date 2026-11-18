@@ -119,9 +119,9 @@ function Get-LibraryComparisonCommands {
         [string] $ArtifactsPath,
         [string] $BuildArtifactsPath,
         [bool] $KeepBenchmarkFiles,
-        [bool] $Word,
-        [string] $QuestPdfVersion,
-        [bool] $InternalQuestPdf
+        # MSBuild properties that the caller's accepted library licences require (from the library policy).
+        [System.Collections.IDictionary] $BuildProperties = @{},
+        [string] $QuestPdfVersion
     )
 
     $hostArguments = @(
@@ -132,10 +132,11 @@ function Get-LibraryComparisonCommands {
         $hostArguments += @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath))
     }
     $buildArguments = @()
-    if ($Word) { $buildArguments += '-p:AcceptNPOIOSMFLicense=true' }
     if (-not [string]::IsNullOrWhiteSpace($QuestPdfVersion)) {
         $buildArguments += "-p:QuestPdfBenchmarkVersion=$QuestPdfVersion"
-        $buildArguments += "-p:QuestPdfInternalAuthorization=$($InternalQuestPdf.ToString().ToLowerInvariant())"
+    }
+    foreach ($property in $BuildProperties.GetEnumerator()) {
+        $buildArguments += "-p:$($property.Key)=$($property.Value)"
     }
     if ($Definition.Suite -in @('OfficeIMO.Pdf.HtmlGeneration', 'OfficeIMO.Pdf.Html21KiBPayload')) {
         $packagePath = Join-Path (Split-Path -Parent $ArtifactsPath) (

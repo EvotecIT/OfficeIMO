@@ -17,7 +17,7 @@ meta.content_engine: scriban
         <p class="imo-benchmark-eyebrow">Complete engineering matrix</p>
         <h2 id="historical-benchmark-title">Explore every measured Excel scenario.</h2>
       </div>
-      <p>The full matrix keeps all 274 scenario rows, 1,106 measurements, eight libraries, row tiers, workloads, categories, package sizes, and relative timings available for filtering and sorting. Its original artifact did not record operating system or run mode, so it remains separate from the platform-specific selector above.</p>
+      <p>The full matrix keeps all 274 scenario rows, 848 measurements, seven libraries, row tiers, workloads, categories, package sizes, and relative timings available for filtering and sorting. Its original artifact did not record operating system or run mode, so it remains separate from the platform-specific selector above. EPPlus 8 results from that run are not shown: EPPlus 8 is licensed for non-commercial use unless you buy a commercial licence, so it runs only after a caller accepts its licence and never appears in published benchmarks. EPPlus 4.5.3.3 is the last LGPL release, so its results remain; new runs include it only on request.</p>
     </header>
     {{ include "generated/benchmarks-excel" }}
     <details class="imo-benchmark-snapshots">
