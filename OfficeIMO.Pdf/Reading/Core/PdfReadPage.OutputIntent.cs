@@ -260,21 +260,26 @@ public sealed partial class PdfReadPage {
             this, static (page, token) => page.ScanOutputIntentCompositionInteraction(token), cancellationToken);
 
     // A text read that leaves out damaged page content streams leaves them out of the composition scan too. That
-    // result belongs to the one read and is never cached, so a strict read of the page still reports the damage.
+    // result belongs to the one read and is never cached, so a strict read of the page still reports the damage. When
+    // the read already skipped a stream, the scan skips it too instead of decoding the page again to the same failure.
     private PdfOutputIntentColorTransform? GetEffectiveOutputIntentColorTransform(PageContentBudget? budget) {
         if (budget is null || !budget.SkipsUndecodableContentStreams || _outputIntentColorTransform == null) {
             return EffectiveOutputIntentColorTransform;
         }
 
         if (!budget.HasRecoveredOutputIntentColorTransform) {
-            try {
-                budget.RecoveredOutputIntentColorTransform = EffectiveOutputIntentColorTransform;
-            } catch (InvalidDataException) {
-                budget.RecoveredOutputIntentColorTransform =
-                    ScanOutputIntentCompositionInteraction(budget.CancellationToken, skipUndecodableContentStreams: true)
-                        ? null
-                        : _outputIntentColorTransform;
+            bool interacts;
+            if (budget.SkippedContentStreams > 0) {
+                interacts = ScanOutputIntentCompositionInteraction(budget.CancellationToken, skipUndecodableContentStreams: true);
+            } else {
+                try {
+                    interacts = GetOutputIntentCompositionInteraction(budget.CancellationToken);
+                } catch (InvalidDataException) {
+                    interacts = ScanOutputIntentCompositionInteraction(budget.CancellationToken, skipUndecodableContentStreams: true);
+                }
             }
+
+            budget.RecoveredOutputIntentColorTransform = interacts ? null : _outputIntentColorTransform;
 
             budget.HasRecoveredOutputIntentColorTransform = true;
         }
