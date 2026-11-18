@@ -21,15 +21,16 @@ internal static class Program {
 
         string library = args[0];
         string lane = args[1];
+        // EPPlus and NPOI are restricted libraries in Build/benchmark-libraries.json; they run only when enabled,
+        // so a disabled lane is skipped before its workbook is read.
+        if (library is "epplus" or "npoi" && !OfficeIMO.Benchmarks.BenchmarkLibrarySelection.IsEnabled(library)) {
+            Console.WriteLine($"{library} {lane}: {OfficeIMO.Benchmarks.BenchmarkLibrarySelection.SkippedMessage(library)}");
+            return 0;
+        }
         byte[]? input = args.Length > 3 ? File.ReadAllBytes(args[3]) : null;
         if ((lane is "preserve" or "recalc") && input == null) {
             Console.Error.WriteLine(lane + " needs a workbook path.");
             return 2;
-        }
-        // EPPlus and NPOI are restricted libraries in Build/benchmark-libraries.json; they run only when enabled.
-        if (library is "epplus" or "npoi" && !OfficeIMO.Benchmarks.BenchmarkLibrarySelection.IsEnabled(library)) {
-            Console.WriteLine($"{library} {lane}: {OfficeIMO.Benchmarks.BenchmarkLibrarySelection.SkippedMessage(library)}");
-            return 0;
         }
         Func<(double Milliseconds, byte[]? Output, double Check)>? run = Resolve(library, lane, input);
         if (run == null) {

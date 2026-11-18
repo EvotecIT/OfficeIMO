@@ -51,6 +51,9 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static readonly IReadOnlyDictionary<string, string> RestrictedLibraries =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["EPPlus"] = "epplus" };
 
+    // Scenarios that matched the filters but whose selected libraries are all restricted and not enabled.
+    private static readonly List<string> RestrictedOnlyScenarios = new();
+
     private static bool IsLibraryAllowed(string library) =>
         !RestrictedLibraries.TryGetValue(library, out string? libraryId) || BenchmarkLibrarySelection.IsEnabled(libraryId);
 #if DEBUG
@@ -85,6 +88,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
         _libraryFilter = BuildLibraryFilter(libraryFilters);
+        RestrictedOnlyScenarios.Clear();
         foreach (var restricted in RestrictedLibraries.Where(static restricted => !BenchmarkLibrarySelection.IsEnabled(restricted.Value))) {
             Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage(restricted.Value));
         }
@@ -686,6 +690,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         AddHelloWorldScenarioGroups(scenarios, scenarioFilter, rowCount, warmupIterations, measuredIterations);
 
         if (scenarios.Count == 0) {
+            if (RestrictedOnlyScenarios.Count > 0) {
+                throw new ArgumentException(
+                    $"The requested libraries in {string.Join(", ", RestrictedOnlyScenarios)} are restricted and not enabled; see Build/benchmark-libraries.json.");
+            }
             throw new ArgumentException("No comparison scenarios matched the requested --scenario filter.");
         }
 
@@ -1174,6 +1182,10 @@ internal static partial class ExcelLibraryComparisonRunner {
                 && IsLibraryAllowed(comparisonCase.Library))
             .ToArray();
         if (selectedCases.Count == 0) {
+            if (cases.Any(comparisonCase => (_libraryFilter == null || _libraryFilter.Contains(comparisonCase.Library))
+                && !IsLibraryAllowed(comparisonCase.Library))) {
+                RestrictedOnlyScenarios.Add(scenario);
+            }
             return;
         }
 

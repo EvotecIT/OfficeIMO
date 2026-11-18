@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Licence and restriction policy for every library OfficeIMO benchmarks compare against. Runners read it to decide which libraries may run and which results may be published.",
+  "description": "Licence and restriction policy for every library OfficeIMO benchmarks compare against. Runners read it to decide which libraries may run and which results may be published. environmentVariables lists values a library reads from the caller when it runs; acceptance lists what an enabled restricted library needs.",
   "restrictionClasses": {
     "open": "Runs by default and may appear in published comparisons.",
     "publish-restricted": "May run locally when included with -IncludeLibrary; its results are never published.",
@@ -337,7 +337,8 @@
       "license": { "name": "QuestPDF Community MIT License, or a QuestPDF Professional or Enterprise licence", "url": "https://github.com/QuestPDF/QuestPDF/blob/2026.5.0/LICENSE.md" },
       "licenseSource": "package-file",
       "restriction": "open",
-      "reason": "The pinned public release. Its Community MIT terms are free for open-source projects, evaluation and companies under USD 1M annual revenue; other companies need a paid licence. The benchmark sets QuestPDF's Community licence type unless OFFICEIMO_QUESTPDF_LICENSE_TYPE names another."
+      "reason": "The pinned public release. Its Community MIT terms are free for open-source projects, evaluation and companies under USD 1M annual revenue; other companies need a paid licence. The benchmark sets QuestPDF's Community licence type unless OFFICEIMO_QUESTPDF_LICENSE_TYPE names another.",
+      "environmentVariables": [ "OFFICEIMO_QUESTPDF_LICENSE_TYPE" ]
     },
     {
       "id": "questpdf-latest",

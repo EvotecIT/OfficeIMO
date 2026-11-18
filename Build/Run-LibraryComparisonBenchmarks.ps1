@@ -187,6 +187,14 @@ $executionPlan = @(
                 $case = $_
                 @($leftOutLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $case }).Count -eq 0
             })
+        # Values the libraries in this run read from the caller stay; values belonging only to libraries left out
+        # of the run are hidden from it, and the plan shows them as cleared.
+        $keptVariables = @(
+            $workloadLibraries + $enabledLibraries | Where-Object { $_.restriction -eq 'open' -or $_.id -in $librarySelection.Enabled } |
+                ForEach-Object { @($_.environmentVariables) + @($_.acceptance.environmentVariables) } | Where-Object { $_ }
+        )
+        $leftOutVariables = @($leftOutLibraries | ForEach-Object { @($_.acceptance.environmentVariables) + @($_.environmentVariables) } |
+            Where-Object { $_ -and $_ -notin $keptVariables } | Select-Object -Unique)
         $buildProperties = [ordered]@{}
         foreach ($library in @($workloadLibraries | Where-Object { $_.id -in $librarySelection.Enabled -and $null -ne $_.acceptance })) {
             foreach ($property in @($library.acceptance.msbuildProperties.PSObject.Properties | Where-Object { $_ })) {
@@ -269,8 +277,10 @@ $executionPlan = @(
                 HTMLTINKERX_PROJECT_PATH = if ($name -in @('pdfhtml', 'pdfhtmlpayload')) { $htmlTinkerXProjectPath } else { $null }
                 OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = @($librarySelection.Enabled) -join ','
             }
-            LeftOutVariables = @($leftOutLibraries | ForEach-Object { @($_.acceptance.environmentVariables | Where-Object { $_ }) } | Select-Object -Unique)
+            LeftOutVariables = $leftOutVariables
             AllowedExtraCaseLibraries = $enabledLibraries
+            # Enabled restricted libraries may add cases beyond ExpectedCases; the plan names them.
+            OptionalCaseLibraries = @($enabledLibraries.id)
             ArtifactsPath = $artifactsPath
             BundleRoot = $staticRoot
             ComparisonPath = if (-not $localOnlyRun) { $comparisonPath } else { $null }
@@ -288,6 +298,9 @@ $executionPlan = @(
             AffinityApplication = $effectiveAffinityApplication
             QuestPdfPackageVersion = if ($name -in $questPdfWorkloads) { $effectiveQuestPdfVersion } else { $null }
             InternalOnly = [bool] $localOnlyRun
+        }
+        foreach ($variable in $leftOutVariables) {
+            $planItem.Environment[$variable] = $null
         }
         if ($MeasurementProfile -eq 'WarmedV1') {
             $planItem | Add-Member -NotePropertyName MeasurementProfile -NotePropertyValue 'WarmedV1'

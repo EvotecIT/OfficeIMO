@@ -285,6 +285,44 @@ foreach ($tag in @(
         throw "$($tag.Path) no longer marks its restricted library cases ($($tag.Pattern))."
     }
 }
+# The measured process must start only after restricted-library settings are applied: the enabled list is set and
+# values belonging to libraries left out of the run are cleared, in the same try block, before dotnet launches.
+$runnerAst = [System.Management.Automation.Language.Parser]::ParseFile($runner, [ref] $null, [ref] $null)
+$measureLaunch = @($runnerAst.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.CommandAst] -and
+            $node.CommandElements.Count -ge 2 -and $node.CommandElements[0].Extent.Text -eq 'dotnet' -and
+            $node.CommandElements[1].Extent.Text -eq '@arguments'
+        }, $true))
+if ($measureLaunch.Count -ne 1) { throw 'The runner no longer has exactly one measured dotnet launch.' }
+$measureTry = $measureLaunch[0].Parent
+while ($null -ne $measureTry -and $measureTry -isnot [System.Management.Automation.Language.TryStatementAst]) { $measureTry = $measureTry.Parent }
+if ($null -eq $measureTry) { throw 'The measured dotnet launch is no longer inside the environment try block.' }
+$launchOffset = $measureLaunch[0].Extent.StartOffset
+$clears = @($measureTry.Body.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+            $node.Member.Extent.Text -eq 'SetEnvironmentVariable' -and $node.Arguments.Count -eq 2 -and
+            $node.Arguments[1].Extent.Text -eq '$null'
+        }, $true))
+$enables = @($measureTry.Body.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left.Extent.Text -eq '$env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES'
+        }, $true))
+if ($clears.Count -eq 0 -or $enables.Count -eq 0 -or
+    @($clears + $enables | Where-Object { $_.Extent.StartOffset -gt $launchOffset }).Count -gt 0) {
+    throw 'The runner must set the enabled libraries and clear left-out licence values before launching dotnet.'
+}
+$pinnedQuestPdf = @(& $runner -Workload pdfgenerate -RunMode quick -PlanOnly)
+if ($pinnedQuestPdf[0].Environment.Contains('OFFICEIMO_QUESTPDF_LICENSE_TYPE')) {
+    throw 'A pinned QuestPDF run must keep the caller''s OFFICEIMO_QUESTPDF_LICENSE_TYPE.'
+}
+$xlsxPlan = @(& $runner -Workload xlsx -RunMode quick -PlanOnly)
+if (-not $xlsxPlan[0].Environment.Contains('EPPlusLicense') -or $null -ne $xlsxPlan[0].Environment['EPPlusLicense']) {
+    throw 'The plan must show that EPPlusLicense is cleared when EPPlus is not enabled.'
+}
+
 # Licence acceptance is a per-run decision, never a project default.
 $acceptingProjects = @(Get-ChildItem -LiteralPath $repositoryRoot -Recurse -Filter '*.csproj' -File |
     Where-Object { $_.FullName -notmatch '[\\/](bin|obj|Ignore|artifacts)[\\/]' } |

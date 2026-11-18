@@ -12,9 +12,9 @@ param(
     [string] $RunMode = "unrecorded",
     [ValidateSet("unrecorded", "windows", "linux", "macos")]
     [string] $Platform = "unrecorded",
-    # Libraries left off the website even when an older run measured them. Defaults to every library that
-    # Build/benchmark-libraries.json does not class as open; the remaining libraries keep their measured values.
-    [string[]] $ExcludedLibrary,
+    # Further libraries to leave off the website. Every library that Build/benchmark-libraries.json does not class
+    # as open is always left off as well; the remaining libraries keep their measured values.
+    [string[]] $ExcludedLibrary = @(),
     [switch] $Publish,
     [switch] $NoPublish
 )
@@ -364,6 +364,13 @@ function Update-ExcludedGroupComparisons([object[]] $Rows, [System.Collections.G
         $office = $group.Group | Where-Object { $_["library"] -eq "OfficeIMO.Excel" } | Select-Object -First 1
         $officeMean = if ($office) { [double] $office["meanMilliseconds"] } else { $null }
         foreach ($row in $group.Group) {
+            if ($null -eq $office) {
+                # The OfficeIMO baseline was filtered out, so ratios against it no longer describe a published row.
+                foreach ($name in @("ratioToOfficeImo", "allocatedRatioToOfficeImo", "packageRatioToOfficeImo")) {
+                    $row[$name] = $null
+                    $row[$name + "Text"] = $null
+                }
+            }
             $mean = [double] $row["meanMilliseconds"]
             $row["bestLibrary"] = $bestLibraries
             $row["bestMeanMilliseconds"] = $bestMean
@@ -675,11 +682,9 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     Write-TextUtf8NoBom $Path (($lines -join "`n") + "`n")
 }
 
-if (-not $PSBoundParameters.ContainsKey('ExcludedLibrary')) {
-    . (Join-Path $PSScriptRoot 'BenchmarkLibraryPolicy.ps1')
-    $ExcludedLibrary = @((Get-BenchmarkLibraryPolicy).libraries | Where-Object restriction -ne 'open' |
-        ForEach-Object { @($_.name) + @($_.aliases | Where-Object { $_ }) })
-}
+. (Join-Path $PSScriptRoot 'BenchmarkLibraryPolicy.ps1')
+$ExcludedLibrary = @(@($ExcludedLibrary) + @((Get-BenchmarkLibraryPolicy).libraries | Where-Object restriction -ne 'open' |
+        ForEach-Object { @($_.name) + @($_.aliases | Where-Object { $_ }) }) | Where-Object { $_ } | Select-Object -Unique)
 
 $summaryInput = Read-JsonFile $SummaryPath
 $manifest = if (Test-Path $ManifestPath) { Read-JsonFile $ManifestPath } else { $null }
@@ -700,8 +705,8 @@ $packageProfiles = New-Object System.Collections.Generic.List[object]
 $excludedGroups = New-Object 'System.Collections.Generic.HashSet[string]'
 foreach ($row in $summaryInput.Rows) {
     if ($row.Library -in $ExcludedLibrary) {
-        # Only a scenario whose best result included the excluded library needs a new best and outcome.
-        if (([string] $row.BestLibrary -split ', ') -contains $row.Library) {
+        # A scenario needs new comparisons when the excluded library was its best result or its OfficeIMO baseline.
+        if ((([string] $row.BestLibrary -split ', ') -contains $row.Library) -or $row.Library -eq "OfficeIMO.Excel") {
             [void] $excludedGroups.Add("$($row.ArtifactKind)|$($row.RowCount)|$($row.Scenario)")
         }
         continue

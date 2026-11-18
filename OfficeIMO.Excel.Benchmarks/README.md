@@ -1119,7 +1119,7 @@ your own EPPlus licence declaration. Otherwise they are left out of every run.
 its AutoFit path needs `libgdiplus` on macOS:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 25000 --scenario copy-worksheet-package --warmup 1 --iterations 3
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 25000 --scenario write-bulk-report --include-legacy-epplus --warmup 1 --iterations 3
 ```
 
 ## Website data
