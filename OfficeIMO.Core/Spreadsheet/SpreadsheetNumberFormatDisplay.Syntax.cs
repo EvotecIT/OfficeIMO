@@ -83,15 +83,19 @@ namespace OfficeIMO.Spreadsheet {
         private static readonly OfficeIMO.Drawing.OfficeBoundedCache<string, NumberFormatSections> SectionCache =
             new OfficeIMO.Drawing.OfficeBoundedCache<string, NumberFormatSections>(1024, StringComparer.Ordinal);
 
+        private const int MaximumCachedFormatCodeLength = 256;
+
         private static NumberFormatSections GetNumberFormatSections(string formatCode) {
             if (SectionCache.TryGetValue(formatCode, out NumberFormatSections? cached)) return cached;
             var created = new NumberFormatSections(SplitNumberFormatSectionsCore(formatCode));
             // Long codes are rare and unbounded in size; keep the cache to ordinary format codes.
-            if (formatCode.Length <= 256) SectionCache.TryAdd(formatCode, created);
+            if (formatCode.Length <= MaximumCachedFormatCodeLength) SectionCache.TryAdd(formatCode, created);
             return created;
         }
 
-        private static string[] SplitNumberFormatSections(string formatCode) => GetNumberFormatSections(formatCode).Sections;
+        // A code too long to cache is split directly; the condition scan only serves cached entries.
+        private static string[] SplitNumberFormatSections(string formatCode) => formatCode.Length > MaximumCachedFormatCodeLength
+            ? SplitNumberFormatSectionsCore(formatCode) : GetNumberFormatSections(formatCode).Sections;
 
         private static string[] SplitNumberFormatSectionsCore(string formatCode) {
             var sections = new List<string>();

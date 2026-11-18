@@ -235,13 +235,15 @@ internal static partial class PdfWriter {
                         admittedClips.Clear();
                         admittedClips.AddRange(sourcePaintClips);
                         admittedClips.AddRange(targetClips);
-                        // Whether the admitted clips leave any ink. Each loss measurement below reports it from the
-                        // same pass, so the admitted paint is measured on its own only when that pass is unmeasured.
+                        // Whether the admitted clips leave any ink. The outer-loss pass measures exactly the admitted
+                        // clips, so it answers this too. A frame or page pass adds edges and cannot decide that the
+                        // admitted paint is empty; it is decided on its own only when such a pass finds a loss.
                         bool? admittedInk = null;
                         if (checkOuter) {
-                            var outer = MeasureLossAndAdmittedInk(admittedClips, sourcePaintClips.Count);
+                            var outer = OfficeRasterCanvas.MeasureNominalAdditionalInkLoss(contours, OfficeFillRule.NonZero,
+                                admittedClips, sourcePaintClips.Count, cancellationToken);
                             RequireMeasured(outer.IsMeasured);
-                            admittedInk = outer.HasAdmittedInk;
+                            admittedInk = outer.HasInk;
                             outerClipped = Loss(sourcePaintClips, admittedClips, outer.IsClipped);
                         }
                         if (admittedInk == false || !checkFrame && !checkPage) return;
@@ -251,8 +253,9 @@ internal static partial class PdfWriter {
                         withFrame.Add(frameClip);
                         if (secondInkClip.HasValue) withFrame.Add(secondInkClip.Value);
                         if (checkFrame) {
-                            var frameLoss = MeasureLossAndAdmittedInk(withFrame, admittedClips.Count);
-                            if (!AdmittedInkAfter(frameLoss)) return;
+                            var frameLoss = OfficeRasterCanvas.MeasureNominalAdditionalInkLoss(contours, OfficeFillRule.NonZero,
+                                withFrame, admittedClips.Count, cancellationToken);
+                            if (!AdmittedInkFor(frameLoss.IsMeasured, frameLoss.IsClipped)) return;
                             if (clipsToFrame) clipped = Loss(admittedClips, withFrame, frameLoss.IsClipped);
                             else overflow = Loss(admittedClips, withFrame, frameLoss.IsClipped);
                         }
@@ -262,29 +265,24 @@ internal static partial class PdfWriter {
                             withPage.Clear();
                             withPage.AddRange(paintClips);
                             withPage.Add(pageClip);
-                            var pageLoss = MeasureLossAndAdmittedInk(withPage, paintClips.Count);
-                            if (!AdmittedInkAfter(pageLoss)) return;
+                            var pageLoss = OfficeRasterCanvas.MeasureNominalAdditionalInkLoss(contours, OfficeFillRule.NonZero,
+                                withPage, paintClips.Count, cancellationToken);
+                            if (!AdmittedInkFor(pageLoss.IsMeasured, pageLoss.IsClipped)) return;
                             outsidePage = Loss(paintClips, withPage, pageLoss.IsClipped);
                         }
 
-                        (bool IsMeasured, bool IsClipped, bool HasAdmittedInk) MeasureLossAndAdmittedInk(List<OfficeTextInkClip> clips, int lossAfter) =>
-                            OfficeRasterCanvas.MeasureNominalAdditionalInkLossAndAdmittedInk(contours, OfficeFillRule.NonZero, clips,
-                                lossAfter, admittedClips.Count, cancellationToken);
-
-                        // A paint the admitted clips reject entirely has nothing further to lose. When the combined pass is
-                        // unmeasured, the admitted paint alone decides whether that ends the inspection or is reported.
-                        bool AdmittedInkAfter((bool IsMeasured, bool IsClipped, bool HasAdmittedInk) measured) {
-                            if (!measured.IsMeasured) {
-                                if (!admittedInk.HasValue) {
-                                    var admitted = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, admittedClips, cancellationToken);
-                                    RequireMeasured(admitted.IsMeasured);
-                                    admittedInk = admitted.HasInk;
-                                    if (!admitted.HasInk) return false;
-                                }
-                                RequireMeasured(false);
+                        // Paint the admitted clips reject entirely has nothing further to lose, so inspection stops. A
+                        // measured pass without loss changes no finding whatever the admitted paint holds, so only a
+                        // loss or an unmeasured pass needs the admitted paint measured on its own.
+                        bool AdmittedInkFor(bool isMeasured, bool isClipped) {
+                            if (!admittedInk.HasValue && (!isMeasured || isClipped)) {
+                                var admitted = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, admittedClips, cancellationToken);
+                                RequireMeasured(admitted.IsMeasured);
+                                admittedInk = admitted.HasInk;
                             }
-                            admittedInk ??= measured.HasAdmittedInk;
-                            return admittedInk.Value;
+                            if (admittedInk == false) return false;
+                            RequireMeasured(isMeasured);
+                            return true;
                         }
 
                         bool Loss(List<OfficeTextInkClip> before, List<OfficeTextInkClip> after, bool additionalLoss) {

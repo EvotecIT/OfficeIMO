@@ -31,6 +31,10 @@ internal static partial class PdfWriter {
         private readonly Dictionary<(byte[] Data, string Family, OfficeFontStyle Style, IOfficeTextShapingProvider? Shaping, string? Language), OfficeRasterCanvas?> canvases =
             new Dictionary<(byte[], string, OfficeFontStyle, IOfficeTextShapingProvider?, string?), OfficeRasterCanvas?>();
         private readonly object gate = new object();
+        private int generation;
+
+        /// <summary>Changes whenever the cache drops its canvases, so a remembered canvas is only reused while it is still cached.</summary>
+        internal int Generation => Volatile.Read(ref generation);
 
         internal OfficeRasterCanvas? GetOrCreate(byte[] data, string family, OfficeFontStyle style, PdfCreateOptions options,
             Dictionary<OfficeRasterCanvas, OfficeCffOperationBudget> budgets, System.Threading.CancellationToken cancellationToken) {
@@ -42,7 +46,10 @@ internal static partial class PdfWriter {
                         canvas = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, fonts,
                             options.TextShapingProvider, options.EffectiveTextShapingLanguage, cancellationToken: cancellationToken);
                     }
-                    if (canvases.Count >= MaximumCanvases) canvases.Clear();
+                    if (canvases.Count >= MaximumCanvases) {
+                        canvases.Clear();
+                        Interlocked.Increment(ref generation);
+                    }
                     canvases[key] = canvas;
                 }
                 if (canvas != null) {
@@ -66,13 +73,14 @@ internal static partial class PdfWriter {
         private readonly string? language;
 
         internal DrawingTextCanvasSelection(byte[] data, string family, OfficeFontStyle style, IOfficeTextShapingProvider? shaping,
-            string? language, OfficeRasterCanvas canvas, OfficeCffOperationBudget budget) {
+            string? language, OfficeRasterCanvas canvas, OfficeCffOperationBudget budget, int generation) {
             this.data = data; this.family = family; this.style = style; this.shaping = shaping; this.language = language;
-            Canvas = canvas; Budget = budget;
+            Canvas = canvas; Budget = budget; Generation = generation;
         }
 
         internal OfficeRasterCanvas Canvas { get; }
         internal OfficeCffOperationBudget Budget { get; }
+        internal int Generation { get; }
 
         internal bool Matches(byte[] data, string family, OfficeFontStyle style, IOfficeTextShapingProvider? shaping, string? language) =>
             ReferenceEquals(data, this.data) && style == this.style && ReferenceEquals(shaping, this.shaping)
@@ -132,12 +140,13 @@ internal static partial class PdfWriter {
             IOfficeTextShapingProvider? shaping = options.TextShapingProvider;
             string? language = options.EffectiveTextShapingLanguage;
             DrawingTextCanvasSelection? last = lastSelection;
-            if (last != null && last.Matches(data, family, style, shaping, language)) {
+            if (last != null && last.Generation == canvases.Generation && last.Matches(data, family, style, shaping, language)) {
                 last.Canvas.UseCffOperationBudget(last.Budget);
                 return last.Canvas;
             }
+            int generation = canvases.Generation;
             OfficeRasterCanvas? canvas = canvases.GetOrCreate(data, family, style, options, budgets, cancellationToken);
-            if (canvas != null) lastSelection = new DrawingTextCanvasSelection(data, family, style, shaping, language, canvas, budgets[canvas]);
+            if (canvas != null) lastSelection = new DrawingTextCanvasSelection(data, family, style, shaping, language, canvas, budgets[canvas], generation);
             return canvas;
         }
 

@@ -17,40 +17,30 @@ public sealed partial class OfficeRasterCanvas {
     internal static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
         MeasureNominalFilledContourBounds(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
             IReadOnlyList<OfficeTextInkClip>? clips = null, CancellationToken cancellationToken = default) =>
-        MeasureNominalFilledContourBoundsCore(contours, rule, clips, 0, -1, cancellationToken, out _);
+        MeasureNominalFilledContourBoundsCore(contours, rule, clips, 0, cancellationToken);
 
-    /// <summary>
-    /// Reports loss only for filled ink admitted by the first <paramref name="admittedClipCount"/> clips and rejected by
-    /// later clips. The same pass also reports whether the first <paramref name="inkClipCount"/> clips admit any filled ink,
-    /// which otherwise takes a separate measurement of the admitted paint.
-    /// </summary>
-    internal static (bool IsMeasured, bool IsClipped, bool HasAdmittedInk) MeasureNominalAdditionalInkLossAndAdmittedInk(
-        IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule, IReadOnlyList<OfficeTextInkClip> clips,
-        int admittedClipCount, int inkClipCount, CancellationToken cancellationToken = default) {
+    /// <summary>Reports loss only for filled ink admitted by the prefix clips and rejected by later clips.</summary>
+    internal static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
+        MeasureNominalAdditionalInkLoss(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
+            IReadOnlyList<OfficeTextInkClip> clips, int admittedClipCount, CancellationToken cancellationToken = default) {
         ArgumentOutOfRangeException.ThrowIfNegative(admittedClipCount);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(admittedClipCount, clips.Count);
-        ArgumentOutOfRangeException.ThrowIfNegative(inkClipCount);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(inkClipCount, clips.Count);
         // This overload receives filled clip geometry. Half-plane clips are applied by the
         // caller before inspection, as in the existing positioned-text inspection route.
         foreach (OfficeTextInkClip clip in clips)
             if (clip.FilledContours == null) throw new ArgumentException("Additional-loss inspection requires filled clip contours.", nameof(clips));
-        var measured = MeasureNominalFilledContourBoundsCore(contours, rule, clips, admittedClipCount, inkClipCount, cancellationToken,
-            out bool hasAdmittedInk);
-        return (measured.IsMeasured, measured.IsClipped, measured.IsMeasured && hasAdmittedInk);
+        return MeasureNominalFilledContourBoundsCore(contours, rule, clips, admittedClipCount, cancellationToken);
     }
 
     private static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
         MeasureNominalFilledContourBoundsCore(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
-            IReadOnlyList<OfficeTextInkClip>? clips, int admittedClipCount, int inkClipCount, CancellationToken cancellationToken,
-            out bool hasPrefixInk) {
+            IReadOnlyList<OfficeTextInkClip>? clips, int admittedClipCount, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         // Diagnostics measure many small paints in a row. The working lists are borrowed per thread and returned
         // afterwards, so repeated calls reuse their capacity; a nested or failed call simply starts a new set.
         InkBoundScratch scratch = InkBoundScratch.Rent();
         try {
-            return MeasureNominalFilledContourBoundsCore(contours, rule, clips, admittedClipCount, inkClipCount, scratch,
-                cancellationToken, out hasPrefixInk);
+            return MeasureNominalFilledContourBoundsCore(contours, rule, clips, admittedClipCount, scratch, cancellationToken);
         } finally {
             InkBoundScratch.Return(scratch);
         }
@@ -58,9 +48,7 @@ public sealed partial class OfficeRasterCanvas {
 
     private static (double Left, double Top, double Right, double Bottom, bool HasInk, bool IsMeasured, bool IsClipped)
         MeasureNominalFilledContourBoundsCore(IReadOnlyList<List<OfficePoint>> contours, OfficeFillRule rule,
-            IReadOnlyList<OfficeTextInkClip>? clips, int admittedClipCount, int inkClipCount, InkBoundScratch scratch,
-            CancellationToken cancellationToken, out bool hasPrefixInk) {
-        hasPrefixInk = false;
+            IReadOnlyList<OfficeTextInkClip>? clips, int admittedClipCount, InkBoundScratch scratch, CancellationToken cancellationToken) {
         List<InkBoundEdge> edges = scratch.Edges;
         List<double> boundaries = scratch.Boundaries;
         List<OfficeFillRule> rules = scratch.Rules;
@@ -78,6 +66,7 @@ public sealed partial class OfficeRasterCanvas {
         // spans overlap can cross inside a slab, so edges are visited in order of their lowest y and each one is
         // compared with the later edges that start below its top. The crossing test is symmetric in its two
         // edges, so this finds exactly the boundaries the all-pairs comparison finds.
+        cancellationToken.ThrowIfCancellationRequested();
         long pairs = (long)edges.Count * (edges.Count - 1) / 2;
         if (pairs > work) return Unmeasured();
         work -= pairs;
@@ -138,8 +127,6 @@ public sealed partial class OfficeRasterCanvas {
                 bool subjectInside = IsInside(0), inside = subjectInside;
                 for (int group = 1; group < rules.Count && inside; group++) inside &= IsInside(group);
                 if (subjectInside && !inside && WasAdmitted() && previousEdge >= 0 && crossing.X > previousX) isClipped = true;
-                if (inkClipCount >= 0 && !hasPrefixInk && subjectInside && previousEdge >= 0 && crossing.X > previousX
-                    && InsideFirst(inkClipCount)) hasPrefixInk = true;
                 if (inside && previousEdge >= 0 && crossing.X > previousX) {
                     InkBoundEdge a = edges[previousEdge], b = edges[crossing.Edge];
                     double x1 = a.XAt(low), x2 = a.XAt(high), x3 = b.XAt(low), x4 = b.XAt(high);
@@ -158,9 +145,8 @@ public sealed partial class OfficeRasterCanvas {
         }
         return (left, top, right, bottom, hasInk, true, isClipped);
 
-        bool WasAdmitted() => InsideFirst(admittedClipCount);
-        bool InsideFirst(int clipCount) {
-            for (int group = 1; group <= clipCount; group++) if (!IsInside(group)) return false;
+        bool WasAdmitted() {
+            for (int group = 1; group <= admittedClipCount; group++) if (!IsInside(group)) return false;
             return true;
         }
         bool IsInside(int group) => rules[group] == OfficeFillRule.NonZero ? winding[group] != 0 : (winding[group] & 1) != 0;
