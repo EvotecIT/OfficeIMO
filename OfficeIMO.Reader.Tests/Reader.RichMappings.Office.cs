@@ -237,6 +237,10 @@ public sealed class ReaderOfficeRichMappingTests {
         OfficeDocumentPage inventoryPage = Assert.Single(result.Pages, page => page.Name == "Inventory");
         Assert.Contains(inventoryPage.Tables, table => ReferenceEquals(table, mapped));
         Assert.Single(inventoryPage.Tables);
+        // The sheet text already holds the workbook table; plain text must not repeat it after the grid.
+        string text = result.GetText();
+        Assert.Equal(text.IndexOf("Bandage", StringComparison.Ordinal), text.LastIndexOf("Bandage", StringComparison.Ordinal));
+        Assert.Contains("Unstructured", text, StringComparison.Ordinal);
         Assert.Contains("officeimo.excel.inspection-snapshot", result.CapabilitiesUsed);
     }
 
