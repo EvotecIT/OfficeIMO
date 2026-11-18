@@ -236,8 +236,10 @@ public static partial class HtmlComputedStyleEngine {
                 : string.Equals(name, "font-family", StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
                 ? CssKeywordResolution.ForInheritedValue(string.Empty)
+                // justify-all sets the parent's last-line alignment without a text-align-last value.
                 : (string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "text-transform", StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(name, "text-transform", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(name, "text-align-last", StringComparison.OrdinalIgnoreCase))
                 ? CssKeywordResolution.ForInheritedValue("inherit")
                 : CssKeywordResolution.Clear;
         }

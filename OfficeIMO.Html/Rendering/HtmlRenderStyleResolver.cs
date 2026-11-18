@@ -1012,8 +1012,11 @@ internal sealed partial class HtmlRenderStyleResolver {
             case "justify": return OfficeTextAlignment.Justify;
             case "start": return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
             case "end": return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
-            // The parent's computed value; this element's own text-justify then applies.
-            case "match-parent": return parent?.ComputedTextAlignLast;
+            // The parent's computed value; this element's own text-justify then applies. inherit
+            // stays as a keyword when the parent's value came from justify-all.
+            case "match-parent":
+            case "inherit":
+                return parent?.ComputedTextAlignLast;
             default: return null;
         }
     }

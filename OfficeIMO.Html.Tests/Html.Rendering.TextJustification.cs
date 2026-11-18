@@ -33,6 +33,9 @@ public sealed partial class HtmlRenderingTests {
         // An explicit reset is not inherited.
         { "<div style='text-align:justify;text-align-last:center;width:300px'><p style='margin:0;text-align-last:initial'>" + JustifiedText + "</p></div>", "start" },
         { "<p style='text-align:justify-all;text-align-last:initial;width:300px;margin:0'>" + JustifiedText + "</p>", "start" },
+        // Explicit inheritance keeps a last-line value the parent took from justify-all.
+        { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:justify;text-align-last:inherit'>" + JustifiedText + "</p></div>", "justified" },
+        { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:justify;text-align-last:unset'>" + JustifiedText + "</p></div>", "justified" },
         // Inherited start and match-parent justification resolve against the child's own direction.
         { "<div style='text-align:justify;text-align-last:start;width:300px'><p dir='rtl' style='margin:0'>" + JustifiedText + "</p></div>", "end" },
         { "<div style='text-align:justify;width:300px'><p dir='rtl' style='margin:0;text-align:match-parent'>" + JustifiedText + "</p></div>", "end" },
