@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Projection;
@@ -97,6 +98,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks, maximumBytes);
                     rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
+                    rewrittenPart = ApplyTabSelection(rewrittenPart, TabSelectionFor(structure, binding.Index, sheet), maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
@@ -131,6 +133,40 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             // Re-read the result before exposing it so record framing, relationships, and projected cells are proven.
             XlsbWorkbookReader.Load(rewritten, new XlsbImportOptions { ReportPreservedRecords = false });
             return rewritten;
+        }
+
+        /// <summary>
+        /// The tab selection a rewritten sheet needs so it agrees with the workbook's active tab: the active sheet is
+        /// selected and a hidden sheet is not. Other sheets keep their source selection, so a group selection of
+        /// visible sheets survives. Null leaves the record unchanged.
+        /// </summary>
+        private static bool? TabSelectionFor(XlsbSheetStructure structure, int tabIndex, ExcelSheet sheet) {
+            if (!structure.ActiveTab.HasValue) return null;
+            if (structure.ActiveTab.Value == (uint)tabIndex) return true;
+            return sheet.Hidden ? false : null;
+        }
+
+        /// <summary>Sets or clears fSelected (0x40 in the first flags byte) on the primary window's BrtBeginWsView.</summary>
+        private static byte[] ApplyTabSelection(byte[] part, bool? selected, long maximumBytes) {
+            if (!selected.HasValue) return part;
+            const int BrtBeginWsView = 137;
+            using var input = new MemoryStream(part, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            bool changed = false;
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
+            foreach (XlsbRecord record in records) {
+                byte[] payload = record.Data;
+                // iWbkView, the owning workbook window, follows 22 bytes of view settings.
+                if (record.Type == BrtBeginWsView && payload.Length >= 26 && BitConverter.ToUInt32(payload, 22) == 0U
+                    && ((payload[0] & 0x40) != 0) != selected.Value) {
+                    payload = (byte[])payload.Clone();
+                    payload[0] = (byte)(selected.Value ? payload[0] | 0x40 : payload[0] & ~0x40);
+                    changed = true;
+                }
+                XlsbRecordWriter.Write(output, record.Type, payload);
+            }
+
+            return changed ? output.ToArray() : part;
         }
 
         /// <summary>A single workbook view that sets only the active and first tab, which the rewrite carries over.</summary>

@@ -14,6 +14,9 @@ internal sealed class XlsbSheetStructure {
     private const string WorksheetType = "application/vnd.ms-excel.worksheet";
     private readonly XlsbWorkbook _source;
     private readonly uint? _activeTab;
+
+    /// <summary>The active tab the rewrite writes into the workbook view, when the document sets one.</summary>
+    internal uint? ActiveTab => _activeTab;
     private readonly uint? _firstSheet;
     private readonly BookViews? _views;
     internal IReadOnlyList<ExcelLegacySheetBindings.Binding> Bindings { get; }

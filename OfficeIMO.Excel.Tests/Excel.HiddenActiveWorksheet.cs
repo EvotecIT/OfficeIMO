@@ -448,4 +448,41 @@ public partial class Excel {
             Directory.Delete(directory, recursive: true);
         }
     }
+
+    [Fact]
+    public void LoadedXlsb_MovesTabSelectionWithTheActiveSheet() {
+        string directory = Path.Combine(Path.GetTempPath(), $"OfficeIMO.XlsbSelection.{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try {
+            string source = Path.Combine(directory, "source.xlsb");
+            using (var created = ExcelDocument.Create(source)) {
+                created.AddSheet("A").Cell(1, 1).SetValue("a");
+                created.AddSheet("B").Cell(1, 1).SetValue("b");
+                created.SetActiveWorksheet(0);
+                created.Save();
+            }
+            Assert.Equal(new[] { true, false }, ReadXlsbTabSelection(source));
+
+            string path = Path.Combine(directory, "result.xlsb");
+            using (var loaded = ExcelDocument.Load(source)) {
+                loaded.Sheets[0].SetHidden(true);
+                loaded.Save(path);
+            }
+
+            Assert.Equal(new[] { 1U }, ReadXlsbActiveTabs(path));
+            Assert.Equal(new[] { false, true }, ReadXlsbTabSelection(path));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>Reads fSelected from each worksheet's primary BrtBeginWsView, in workbook order.</summary>
+    private static bool[] ReadXlsbTabSelection(string path) {
+        byte[] package = File.ReadAllBytes(path);
+        return new[] { "xl/worksheets/sheet1.bin", "xl/worksheets/sheet2.bin" }.Select(part => {
+            using var stream = new MemoryStream(ReadZipEntry(package, part));
+            var view = OfficeIMO.Excel.Xlsb.Biff12.XlsbRecordReader.ReadAll(stream).First(record => record.Type == 137);
+            return (view.Data[0] & 0x40) != 0;
+        }).ToArray();
+    }
 }
