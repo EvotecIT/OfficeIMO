@@ -62,7 +62,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         ownerBounds.RetainDecorationFallback();
                     } else {
                         double contentX = x;
-                        double contentWidth = segment.Width;
+                        double contentWidth = segment.Width + segment.JustificationAdvance;
                         HtmlInlineEdgeScope? scope = run.InlineEdgeScopes.FirstOrDefault(edge => ReferenceEquals(edge.Owner, current));
                         if (scope != null && _currentInlineEdgeGeometry.TryGetValue(scope, out var edges)) {
                             contentX = edges.Left;

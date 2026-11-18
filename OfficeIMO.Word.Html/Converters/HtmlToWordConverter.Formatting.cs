@@ -295,6 +295,10 @@ namespace OfficeIMO.Word.Html {
             var align = GetInlinePropertyValue(declaration, styleAttribute, "text-align")?.Trim();
             if (TryMapTextAlign(align, GetBidiFromDir(element), out var mappedAlignment)) {
                 alignment = mappedAlignment;
+            } else if (IsLegacyAlignedBlock(element)
+                && TryMapTextAlign(element.GetAttribute("align"), GetBidiFromDir(element), out mappedAlignment)) {
+                // The align attribute is a presentational hint below authored CSS.
+                alignment = mappedAlignment;
             }
 
             var floatVal = GetInlinePropertyValue(declaration, styleAttribute, "float")?.Trim();
@@ -399,6 +403,9 @@ namespace OfficeIMO.Word.Html {
             return parsed;
         }
 
+        private static bool IsLegacyAlignedBlock(IElement element) =>
+            element.LocalName is "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";
+
         private static bool TryMapTextAlign(string? value, bool? bidi, out JustificationValues alignment) {
             alignment = JustificationValues.Left;
             if (string.IsNullOrWhiteSpace(value)) {
@@ -407,15 +414,23 @@ namespace OfficeIMO.Word.Html {
 
             switch (value!.Trim().ToLowerInvariant()) {
                 case "center":
+                case "-webkit-center":
+                case "-moz-center":
                     alignment = JustificationValues.Center;
                     return true;
                 case "right":
+                case "-webkit-right":
+                case "-moz-right":
                     alignment = JustificationValues.Right;
                     return true;
                 case "justify":
+                // Word justifies every line except the last; the last-line part of justify-all is reported.
+                case "justify-all":
                     alignment = JustificationValues.Both;
                     return true;
                 case "left":
+                case "-webkit-left":
+                case "-moz-left":
                     alignment = JustificationValues.Left;
                     return true;
                 case "start":

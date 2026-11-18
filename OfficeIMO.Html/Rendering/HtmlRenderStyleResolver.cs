@@ -268,6 +268,7 @@ internal sealed partial class HtmlRenderStyleResolver {
 
         double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight, out bool usesNaturalLineHeight);
         string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
+        ReportUnrenderedTextValues(element, display, verticalAlign, textTransform);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
             verticalAlign,
@@ -281,6 +282,16 @@ internal sealed partial class HtmlRenderStyleResolver {
             : computed.IsImplicitlyInheritedValue("color") && parent != null
             ? parent.Color
             : ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
+        string whiteSpace = computed.GetValue("white-space").Trim().ToLowerInvariant();
+        bool defaultCentered = (tag == "caption" || (tag == "math" && display == "block"))
+            && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"));
+        OfficeTextAlignment alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent,
+            out bool justifyText, out bool justifyAll);
+        OfficeTextAlignment? textAlignLast = ResolveTextAlignLast(computed.GetValue("text-align-last"), direction, parent, justifyAll);
+        bool textJustify = !justifyText && textAlignLast != OfficeTextAlignment.Justify
+            || ResolveTextJustify(element, computed.GetValue("text-justify"), pseudoElement);
+        justifyText &= !defaultCentered && textJustify;
+        if (!textJustify && textAlignLast == OfficeTextAlignment.Justify) textAlignLast = null;
         var style = new HtmlRenderBoxStyle {
             Display = display,
             DisplayWasSpecified = computed.IsSpecifiedValue("display") || computed.IsInheritedValue("display"),
@@ -308,10 +319,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             DecorationColor = propagatedUnderline && !ownsUnderline
                 ? parent!.DecorationColor
                 : ResolveColor(element, computed.GetValue("text-decoration-color"), color, pseudoElement, "text-decoration-color"),
-            Alignment = (tag == "caption" || (tag == "math" && display == "block"))
-                && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"))
-                ? OfficeTextAlignment.Center
-                : ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
+            Alignment = defaultCentered ? OfficeTextAlignment.Center : alignment,
+            JustifyText = justifyText,
+            TextAlignLast = textAlignLast,
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
             LineHeight = lineHeight,
@@ -320,9 +330,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
-            PreserveWhitespace = IsPreformatted(computed.GetValue("white-space")),
-            BreakSpaces = string.Equals(computed.GetValue("white-space"), "break-spaces", StringComparison.OrdinalIgnoreCase),
-            PreventTextWrapping = PreventsTextWrapping(computed.GetValue("white-space")),
+            PreserveWhitespace = IsPreformatted(whiteSpace),
+            PreserveLineBreaks = whiteSpace == "pre-line",
+            BreakSpaces = whiteSpace == "break-spaces",
+            PreventTextWrapping = PreventsTextWrapping(whiteSpace),
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
@@ -340,7 +351,11 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextOrientation = textOrientation,
             RubyPosition = ResolveRubyPosition(computed.GetValue("ruby-position"), parent?.RubyPosition),
             RubyAlign = ResolveRubyAlign(computed.GetValue("ruby-align"), parent?.RubyAlign),
-            OverflowWrap = ResolveOverflowWrap(computed.GetValue("overflow-wrap"), parent?.OverflowWrap),
+            // word-wrap is the legacy name of overflow-wrap.
+            OverflowWrap = ResolveOverflowWrap(
+                HasAuthoredValue(computed, "overflow-wrap") || !HasAuthoredValue(computed, "word-wrap")
+                    ? computed.GetValue("overflow-wrap") : computed.GetValue("word-wrap"),
+                parent?.OverflowWrap),
             WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
             Hyphens = ResolveHyphens(computed.GetValue("hyphens"), parent?.Hyphens),
             HyphenateCharacter = ResolveHyphenateCharacter(computed.GetValue("hyphenate-character"), parent?.HyphenateCharacter),
@@ -766,8 +781,10 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static OfficeFontStyle ResolveTextDecorations(string tag, HtmlComputedStyle computed) {
         OfficeFontStyle result = OfficeFontStyle.Regular;
         string decoration = computed.GetValue("text-decoration-line");
-        if (tag == "u" || decoration.IndexOf("underline", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Underline;
-        if (tag == "s" || tag == "strike" || tag == "del" || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Strikethrough;
+        // The u, s, strike and del decorations are user-agent defaults; authored text-decoration replaces them.
+        bool tagDefault = !HasAuthoredValue(computed, "text-decoration-line") && !HasAuthoredValue(computed, "text-decoration");
+        if (tagDefault && tag == "u" || decoration.IndexOf("underline", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Underline;
+        if (tagDefault && (tag == "s" || tag == "strike" || tag == "del") || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Strikethrough;
         return result;
     }
 
@@ -886,17 +903,87 @@ internal sealed partial class HtmlRenderStyleResolver {
     private static OfficeTextAlignment ResolveAlignment(
         string value,
         string direction,
-        OfficeTextAlignment? parentAlignment) {
-        if (string.Equals(value, "center", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Center;
-        if (string.Equals(value, "right", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Right;
-        if (string.Equals(value, "left", StringComparison.OrdinalIgnoreCase)) return OfficeTextAlignment.Left;
-        if (string.Equals(value, "match-parent", StringComparison.OrdinalIgnoreCase) && parentAlignment.HasValue) {
-            return parentAlignment.Value;
-        }
+        HtmlRenderBoxStyle? parent,
+        out bool justify,
+        out bool justifyAll) {
+        justify = false;
+        justifyAll = false;
         bool rightToLeft = string.Equals(direction, "rtl", StringComparison.Ordinal);
-        if (string.Equals(value, "end", StringComparison.OrdinalIgnoreCase)) return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
-        return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
+        OfficeTextAlignment start = rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
+        switch (value.Trim().ToLowerInvariant()) {
+            case "center":
+            case "-webkit-center":
+            case "-moz-center":
+                return OfficeTextAlignment.Center;
+            case "right":
+            case "-webkit-right":
+            case "-moz-right":
+                return OfficeTextAlignment.Right;
+            case "left":
+            case "-webkit-left":
+            case "-moz-left":
+                return OfficeTextAlignment.Left;
+            case "end":
+                return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
+            case "justify":
+                // Lines that are not justified, such as the last line, align to start.
+                justify = true;
+                return start;
+            case "justify-all":
+                justify = true;
+                justifyAll = true;
+                return start;
+            case "match-parent" when parent != null:
+                // The parent's start and end are already resolved against its own direction.
+                justify = parent.JustifyText;
+                return parent.Alignment;
+            default:
+                return start;
+        }
     }
+
+    // text-align-last applies to the last line of a block and to lines ending in a
+    // forced break. Null keeps auto: the line follows text-align, and justified
+    // text falls back to start.
+    private static OfficeTextAlignment? ResolveTextAlignLast(
+        string value,
+        string direction,
+        HtmlRenderBoxStyle? parent,
+        bool justifyAll) {
+        bool rightToLeft = string.Equals(direction, "rtl", StringComparison.Ordinal);
+        switch (value.Trim().ToLowerInvariant()) {
+            case "left": return OfficeTextAlignment.Left;
+            case "right": return OfficeTextAlignment.Right;
+            case "center": return OfficeTextAlignment.Center;
+            case "justify": return OfficeTextAlignment.Justify;
+            case "start": return rightToLeft ? OfficeTextAlignment.Right : OfficeTextAlignment.Left;
+            case "end": return rightToLeft ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
+            case "match-parent": return parent?.TextAlignLast;
+            default: return justifyAll ? OfficeTextAlignment.Justify : null;
+        }
+    }
+
+    // CSS Text 3 text-justify. None turns justification off. Inter-character and the
+    // legacy distribute value have no character-spacing route in line layout, so
+    // they justify between words and report the approximation.
+    private bool ResolveTextJustify(IElement element, string value, bool pseudoElement) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (normalized == "none") return false;
+        if ((normalized == "inter-character" || normalized == "distribute")
+            && _reportedTextJustifyApproximations.Add(element)) {
+            _diagnostics.Add(
+                "OfficeIMO.Html.Renderer",
+                HtmlRenderDiagnosticCodes.CssPropertyUnsupported,
+                "Inter-character justification is not implemented; justified text was spaced between words.",
+                HtmlDiagnosticSeverity.Warning,
+                DescribeSource(element) + (pseudoElement ? "::generated" : string.Empty),
+                "text-justify=" + normalized,
+                OfficeConversionLossKind.Approximation);
+        }
+        return true;
+    }
+
+    private readonly HashSet<IElement> _reportedTextJustifyApproximations = new HashSet<IElement>();
 
     private static string ResolveSemanticRole(string tag) {
         if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') return "heading-" + tag[1];
@@ -1207,6 +1294,27 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private readonly HashSet<string> _reportedUnimplementedProperties = new(StringComparer.Ordinal);
+
+    // Recognised keywords that line layout does not position or transform yet. They are
+    // reported once per value instead of silently using the baseline or the original text.
+    private void ReportUnrenderedTextValues(IElement element, string display, string verticalAlign, string textTransform) {
+        // Table cells apply these keywords, and atomic inline boxes apply top.
+        if (!display.StartsWith("table", StringComparison.Ordinal)
+            && verticalAlign is "middle" or "bottom" or "text-top" or "text-bottom") {
+            ReportUnrenderedTextValue(element, "vertical-align", verticalAlign,
+                "This vertical-align keyword is not applied to inline content; it was aligned on the baseline.");
+        }
+        if (textTransform is "full-width" or "full-size-kana") {
+            ReportUnrenderedTextValue(element, "text-transform", textTransform,
+                "This text-transform keyword is not implemented; the text was not transformed.");
+        }
+    }
+
+    private void ReportUnrenderedTextValue(IElement element, string property, string value, string message) {
+        if (!_reportedUnimplementedProperties.Add(property + "=" + value)) return;
+        _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.CssPropertyUnsupported, message,
+            HtmlDiagnosticSeverity.Warning, DescribeSource(element), property + "=" + value, OfficeConversionLossKind.Approximation);
+    }
 
     private HtmlRenderBackgroundLayer? TryCreateGradientLayer(string value) {
         const string position = "0% 0%", repeat = "no-repeat", size = "100% 100%", box = "border-box", attachment = "scroll";

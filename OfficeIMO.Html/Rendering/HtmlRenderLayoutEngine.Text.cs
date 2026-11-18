@@ -685,7 +685,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Width { get; private set; }
         internal double LeadingAdvance { get; set; }
         internal double TrailingAdvance { get; set; }
-        internal double Advance => LeadingAdvance + Width + TrailingAdvance;
+        // Space added after a word separator on a justified line. It belongs to the
+        // separator, so it is painted with it and moves the following content.
+        internal double JustificationAdvance { get; set; }
+        internal double Advance => LeadingAdvance + Width + JustificationAdvance + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal OfficeTextDirection? ResolvedDirection { get; }
