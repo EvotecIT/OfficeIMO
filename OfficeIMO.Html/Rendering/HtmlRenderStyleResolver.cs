@@ -308,9 +308,9 @@ internal sealed partial class HtmlRenderStyleResolver {
         OfficeTextAlignment? textAlignLast = computedTextAlignLast;
         string textJustifyValue = computed.GetValue("text-justify").Trim().ToLowerInvariant();
         bool textJustifyNone = textJustifyValue == "none";
-        bool textJustify = !textJustifyNone;
-        justifyText = textAlignJustify && textJustify;
-        if (!textJustify && textAlignLast == OfficeTextAlignment.Justify) textAlignLast = null;
+        // text-justify applies to text, so it does not decide whether the block's lines are justified:
+        // runs with none keep their spaces, and inline descendants can override it.
+        justifyText = textAlignJustify;
         var style = new HtmlRenderBoxStyle {
             Display = display,
             DisplayWasSpecified = computed.IsSpecifiedValue("display") || computed.IsInheritedValue("display"),

@@ -136,6 +136,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_InlineTextJustifyOverridesTheParagraphNone() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align-last:justify;text-justify:none;width:300px;margin:0'><span style='text-justify:inter-word'>one two</span></p>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        Assert.Equal(300D, Assert.Single(JustifiedLines(rendered)).Right, 1);
+    }
+
+    [Fact]
     public void HtmlRenderer_RightToLeftLinesWithInlineBoxesKeepLeftToRightWordOrder() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<p dir='rtl' style='text-align:justify;width:300px;margin:0'>שלום <span style='display:inline-block;width:10px;height:10px'></span> "
