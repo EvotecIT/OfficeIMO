@@ -76,12 +76,15 @@ public sealed class PdfCompositeCidTextTests {
         Assert.Equal("XBCD", PdfDocument.Load(pdf).Read().Text.Trim());
 
         // A code neither ToUnicode nor the collection maps stays unmapped: a named CMap refuses the run, and an
-        // Identity run reports the code's bytes as unmapped.
-        byte[] unmapped = BuildCompositePdf(encoding, "Japan1", firstCode + "FFFF", toUnicode: toUnicode);
+        // Identity run reports the code's bytes as unmapped. Lenient plain extraction leaves the refused run out and
+        // keeps the rest of the page; strict parsing fails.
+        byte[] unmapped = BuildCompositePdf(encoding, "Japan1", firstCode + "FFFF", toUnicode: toUnicode, followingText: "Readable");
         if (encoding == "UniJIS-UCS2-H") {
-            Assert.Throws<PdfUnsupportedTextMappingException>(() => PdfReadDocument.Open(unmapped).ExtractText());
+            Assert.Equal("Readable", PdfReadDocument.Open(unmapped).ExtractText().Trim());
+            Assert.Throws<PdfUnsupportedTextMappingException>(() =>
+                PdfReadDocument.Open(unmapped, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText());
         } else {
-            PdfTextSpan partial = Assert.Single(PdfReadDocument.Open(unmapped).Pages[0].GetTextSpans());
+            PdfTextSpan partial = PdfReadDocument.Open(unmapped).Pages[0].GetTextSpans()[0];
             Assert.Equal(2, partial.DecodingEvidence.UnmappedCodeBytes);
             Assert.True(partial.DecodingEvidence.UsedFallback);
         }
@@ -139,13 +142,15 @@ public sealed class PdfCompositeCidTextTests {
 
     private static byte[] BuildCompositePdf(string encoding, string ordering, string codes, string? toUnicode = null,
         string? toUnicodeName = null, string descendantSubtype = "CIDFontType0", byte[]? fontProgram = null,
-        byte[]? cidToGlyphMap = null, bool embeddedEncoding = false) {
+        byte[]? cidToGlyphMap = null, bool embeddedEncoding = false, string? followingText = null) {
         var objects = new List<object> {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R " +
+                "/F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> /Contents 5 0 R >>",
             string.Empty, // 4: Type0 font
-            Stream("BT /F1 18 Tf 72 700 Td <" + codes + "> Tj ET"),
+            Stream("BT /F1 18 Tf 72 700 Td <" + codes + "> Tj ET" +
+                (followingText is null ? string.Empty : " BT /F2 12 Tf 72 650 Td (" + followingText + ") Tj ET")),
             string.Empty // 6: descendant
         };
         string fontEntries = string.Empty;

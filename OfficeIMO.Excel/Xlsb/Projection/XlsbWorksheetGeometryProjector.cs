@@ -18,7 +18,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             worksheet.RemoveAllChildren<SheetViews>();
-            worksheet.InsertBefore(CreateSheetViews(sourceSheet), sheetData);
+            SheetViews views = CreateSheetViews(sourceSheet);
+            if (sourceSheet.TabSelected == true) views.Elements<SheetView>().Single().TabSelected = true;
+            worksheet.InsertBefore(views, sheetData);
 
             SheetFormatProperties? format = CreateSheetFormatProperties(sourceSheet.FormatInfo);
             if (format != null) {
@@ -64,16 +66,26 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             }
 
             ValidateDimension(worksheet, sourceSheet, sheet);
-            SheetViews[] actualViews = worksheet.Elements<SheetViews>().ToArray();
+            // Tab selection is written from the document model by the rewrite; it is not pane geometry.
+            SheetViews[] actualViews = worksheet.Elements<SheetViews>().Select(WithoutTabSelection).ToArray();
             bool equivalentDefaultView = sourceSheet.Pane == null && sourceSheet.ShowGridLines != false
                 && (actualViews.Length == 0 || actualViews.Length == 1 && ExcelSheet.IsNeutralSheetViews(actualViews[0]));
             if (!equivalentDefaultView) {
-                ValidateSingleElement(worksheet, CreateSheetViews(sourceSheet), sheet, "worksheet panes");
+                SheetViews expectedViews = CreateSheetViews(sourceSheet);
+                if (actualViews.Length != 1 || !string.Equals(actualViews[0].OuterXml, expectedViews.OuterXml, StringComparison.Ordinal)) {
+                    ThrowGeometryMutation(sheet, "worksheet panes");
+                }
             }
             ValidateSingleElement(worksheet, CreateSheetFormatProperties(sourceSheet.FormatInfo), sheet, "worksheet defaults");
             ValidateSingleElement(worksheet, CreateColumns(sourceSheet.Columns), sheet, "column metadata");
             ValidateSingleElement(worksheet, CreateMergeCells(sourceSheet.MergedRanges), sheet, "merged ranges");
             ValidateRows(worksheet.GetFirstChild<SheetData>(), sourceSheet, sheet);
+        }
+
+        private static SheetViews WithoutTabSelection(SheetViews views) {
+            var copy = (SheetViews)views.CloneNode(true);
+            foreach (SheetView view in copy.Elements<SheetView>()) view.TabSelected = null;
+            return copy;
         }
 
         private static SheetDimension? CreateSheetDimension(XlsbCellRange? range) {
@@ -82,8 +94,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
 
         private static void ValidateDimension(Worksheet worksheet, XlsbSheet sourceSheet, ExcelSheet sheet) {
             SheetDimension[] dimensions = worksheet.Elements<SheetDimension>().ToArray();
-            if (sourceSheet.UsedRange == null) {
-                if (dimensions.Length != 0) ThrowGeometryMutation(sheet, "worksheet dimension");
+            // BrtWsDim is optional. Without it there is no stored range to keep, so only a dimension derived from the
+            // current cells is accepted, such as the one bulk row appends maintain.
+            if (sourceSheet.UsedRange == null && dimensions.Length == 0) {
                 return;
             }
             int firstRow = 0;
@@ -99,10 +112,10 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             if (!TryParseDimension(currentReference, out int currentFirstRow, out int currentFirstColumn, out int currentLastRow, out int currentLastColumn)) {
                 ThrowGeometryMutation(sheet, "worksheet dimension");
             }
-            int minimumRow = Math.Min(sourceSheet.UsedRange.FirstRow, currentFirstRow);
-            int minimumColumn = Math.Min(sourceSheet.UsedRange.FirstColumn, currentFirstColumn);
-            int maximumRow = Math.Max(sourceSheet.UsedRange.LastRow, currentLastRow);
-            int maximumColumn = Math.Max(sourceSheet.UsedRange.LastColumn, currentLastColumn);
+            int minimumRow = sourceSheet.UsedRange == null ? currentFirstRow : Math.Min(sourceSheet.UsedRange.FirstRow, currentFirstRow);
+            int minimumColumn = sourceSheet.UsedRange == null ? currentFirstColumn : Math.Min(sourceSheet.UsedRange.FirstColumn, currentFirstColumn);
+            int maximumRow = sourceSheet.UsedRange == null ? currentLastRow : Math.Max(sourceSheet.UsedRange.LastRow, currentLastRow);
+            int maximumColumn = sourceSheet.UsedRange == null ? currentLastColumn : Math.Max(sourceSheet.UsedRange.LastColumn, currentLastColumn);
             if (firstRow < minimumRow
                 || firstColumn < minimumColumn
                 || lastRow > maximumRow

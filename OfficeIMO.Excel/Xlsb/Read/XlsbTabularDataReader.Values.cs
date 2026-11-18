@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => GetCanonicalText(ordinal),
                 XlsbTabularValueKind.Number => GetNumericValue(_numbers[ordinal]),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal],
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDateOrSerial(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom => _customValues[ordinal] ?? DBNull.Value,
                 _ => DBNull.Value
             };
@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => GetCanonicalText(ordinal),
                 XlsbTabularValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date).ToString(_options.Culture),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom when !IsMissingCustomValue(_customValues[ordinal]) =>
                     Convert.ToString(_customValues[ordinal], _options.Culture)
                     ?? string.Empty,

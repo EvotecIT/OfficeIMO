@@ -4,10 +4,11 @@ using OfficeOpenXml;
 using OfficeOpenXml.DataValidation;
 using OfficeOpenXml.Style;
 
-/// <summary>EPPlus's workbook model, declared for non-commercial use as EPPlus 8 requires.</summary>
+/// <summary>
+/// EPPlus's workbook model. These lanes run only when the caller enables the restricted <c>epplus</c> library and
+/// supplies their own licence declaration in <c>EPPlusLicense</c>, which EPPlus reads itself.
+/// </summary>
 internal static class EpPlusLanes {
-    static EpPlusLanes() => ExcelPackage.License.SetNonCommercialOrganization("OfficeIMO benchmarks");
-
     internal static byte[] Write1M() {
         using var package = new ExcelPackage();
         ExcelWorksheet sheet = package.Workbook.Worksheets.Add("Data");

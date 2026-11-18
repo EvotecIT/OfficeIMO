@@ -33,10 +33,9 @@
   "metrics": {
     "scenarioGroups": 274,
     "matrixRows": 274,
-    "measurementRows": 1106,
+    "measurementRows": 848,
     "libraries": [
       "ClosedXML",
-      "EPPlus",
       "EPPlus 4.5.3.3",
       "ExcelDataReader",
       "LargeXlsx",
@@ -44,7 +43,7 @@
       "OfficeIMO.Excel",
       "Sylvan.Data.Excel"
     ],
-    "libraryCount": 8,
+    "libraryCount": 7,
     "rowCounts": [
       2500,
       10000,
@@ -63,7 +62,6 @@
   "matrix": {
     "libraries": [
       "ClosedXML",
-      "EPPlus",
       "EPPlus 4.5.3.3",
       "ExcelDataReader",
       "LargeXlsx",
@@ -95,19 +93,6 @@
             "ratioToFastest": 25.7013,
             "ratioToFastestText": "25.7x",
             "allocatedRatioToFastestText": "44.6x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 153.26343333333332,
-            "meanText": "153.26 ms",
-            "allocatedText": "49.5 MB",
-            "packageText": null,
-            "ratioToFastest": 15.994,
-            "ratioToFastestText": "16.0x",
-            "allocatedRatioToFastestText": "26.8x",
             "packageRatioToFastestText": null
           },
           {
@@ -216,19 +201,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 52.209333333333326,
-            "meanText": "52.21 ms",
-            "allocatedText": "32.1 MB",
-            "packageText": null,
-            "ratioToFastest": 3.3035,
-            "ratioToFastestText": "3.30x",
-            "allocatedRatioToFastestText": "2.00x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -331,19 +303,6 @@
             "ratioToFastest": null,
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 72.95236666666666,
-            "meanText": "72.95 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": null,
-            "ratioToFastest": 5.9257,
-            "ratioToFastestText": "5.93x",
-            "allocatedRatioToFastestText": "7.33x",
             "packageRatioToFastestText": null
           },
           {
@@ -452,19 +411,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 75.44033333333333,
-            "meanText": "75.44 ms",
-            "allocatedText": "57.8 MB",
-            "packageText": null,
-            "ratioToFastest": 4.1515,
-            "ratioToFastestText": "4.15x",
-            "allocatedRatioToFastestText": "3.36x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -567,19 +513,6 @@
             "ratioToFastest": null,
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 77.28779999999999,
-            "meanText": "77.29 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": null,
-            "ratioToFastest": 4.8008,
-            "ratioToFastestText": "4.80x",
-            "allocatedRatioToFastestText": "3.31x",
             "packageRatioToFastestText": null
           },
           {
@@ -688,19 +621,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 70.13183333333333,
-            "meanText": "70.13 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": null,
-            "ratioToFastest": 3.135,
-            "ratioToFastestText": "3.13x",
-            "allocatedRatioToFastestText": "3.31x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -794,19 +714,6 @@
         "cells": [
           {
             "library": "ClosedXML",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
             "measured": false,
             "style": "missing",
             "meanMilliseconds": null,
@@ -924,19 +831,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -1039,19 +933,6 @@
             "ratioToFastest": 5.3034,
             "ratioToFastestText": "5.30x",
             "allocatedRatioToFastestText": "6.72x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 34.2697,
-            "meanText": "34.27 ms",
-            "allocatedText": "19.7 MB",
-            "packageText": null,
-            "ratioToFastest": 5.6672,
-            "ratioToFastestText": "5.67x",
-            "allocatedRatioToFastestText": "7.96x",
             "packageRatioToFastestText": null
           },
           {
@@ -1160,19 +1041,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 23.0829,
-            "meanText": "23.08 ms",
-            "allocatedText": "12.8 MB",
-            "packageText": null,
-            "ratioToFastest": 5.8776,
-            "ratioToFastestText": "5.88x",
-            "allocatedRatioToFastestText": "24.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -1275,19 +1143,6 @@
             "ratioToFastest": 6.3471,
             "ratioToFastestText": "6.35x",
             "allocatedRatioToFastestText": "6.72x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 34.7984,
-            "meanText": "34.80 ms",
-            "allocatedText": "19.7 MB",
-            "packageText": null,
-            "ratioToFastest": 6.0281,
-            "ratioToFastestText": "6.03x",
-            "allocatedRatioToFastestText": "7.96x",
             "packageRatioToFastestText": null
           },
           {
@@ -1396,19 +1251,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 26.3038,
-            "meanText": "26.30 ms",
-            "allocatedText": "12.1 MB",
-            "packageText": null,
-            "ratioToFastest": 35.7486,
-            "ratioToFastestText": "35.7x",
-            "allocatedRatioToFastestText": "43.5x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -1511,19 +1353,6 @@
             "ratioToFastest": 7.9873,
             "ratioToFastestText": "7.99x",
             "allocatedRatioToFastestText": "16.6x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 39.2252,
-            "meanText": "39.23 ms",
-            "allocatedText": "24.1 MB",
-            "packageText": null,
-            "ratioToFastest": 10.4223,
-            "ratioToFastestText": "10.4x",
-            "allocatedRatioToFastestText": "18.4x",
             "packageRatioToFastestText": null
           },
           {
@@ -1632,19 +1461,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 44.67296666666667,
-            "meanText": "44.67 ms",
-            "allocatedText": "26.5 MB",
-            "packageText": null,
-            "ratioToFastest": 8.8016,
-            "ratioToFastestText": "8.80x",
-            "allocatedRatioToFastestText": "14.3x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -1747,19 +1563,6 @@
             "ratioToFastest": 7.7677,
             "ratioToFastestText": "7.77x",
             "allocatedRatioToFastestText": "15.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 40.5366,
-            "meanText": "40.54 ms",
-            "allocatedText": "24.2 MB",
-            "packageText": null,
-            "ratioToFastest": 10.1528,
-            "ratioToFastestText": "10.2x",
-            "allocatedRatioToFastestText": "17.6x",
             "packageRatioToFastestText": null
           },
           {
@@ -1868,19 +1671,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 47.85616666666667,
-            "meanText": "47.86 ms",
-            "allocatedText": "24.1 MB",
-            "packageText": null,
-            "ratioToFastest": 12.6372,
-            "ratioToFastestText": "12.6x",
-            "allocatedRatioToFastestText": "18.2x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -1983,19 +1773,6 @@
             "ratioToFastest": 8.5198,
             "ratioToFastestText": "8.52x",
             "allocatedRatioToFastestText": "16.5x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 46.014633333333336,
-            "meanText": "46.01 ms",
-            "allocatedText": "24.2 MB",
-            "packageText": null,
-            "ratioToFastest": 12.9935,
-            "ratioToFastestText": "13.0x",
-            "allocatedRatioToFastestText": "18.4x",
             "packageRatioToFastestText": null
           },
           {
@@ -2104,19 +1881,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 50.66746666666668,
-            "meanText": "50.67 ms",
-            "allocatedText": "28.8 MB",
-            "packageText": null,
-            "ratioToFastest": 3.2606,
-            "ratioToFastestText": "3.26x",
-            "allocatedRatioToFastestText": "1.88x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -2219,19 +1983,6 @@
             "ratioToFastest": null,
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 78.39566666666667,
-            "meanText": "78.40 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": null,
-            "ratioToFastest": 4.1697,
-            "ratioToFastestText": "4.17x",
-            "allocatedRatioToFastestText": "3.31x",
             "packageRatioToFastestText": null
           },
           {
@@ -2340,19 +2091,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 66.0396,
-            "meanText": "66.04 ms",
-            "allocatedText": "46.2 MB",
-            "packageText": null,
-            "ratioToFastest": 14.8306,
-            "ratioToFastestText": "14.8x",
-            "allocatedRatioToFastestText": "31.8x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -2455,19 +2193,6 @@
             "ratioToFastest": null,
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 118.61026666666665,
-            "meanText": "118.61 ms",
-            "allocatedText": "75.7 MB",
-            "packageText": null,
-            "ratioToFastest": 3.8217,
-            "ratioToFastestText": "3.82x",
-            "allocatedRatioToFastestText": "3.79x",
             "packageRatioToFastestText": null
           },
           {
@@ -2576,19 +2301,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 117.97526666666666,
-            "meanText": "117.98 ms",
-            "allocatedText": "70.3 MB",
-            "packageText": null,
-            "ratioToFastest": 16.2612,
-            "ratioToFastestText": "16.3x",
-            "allocatedRatioToFastestText": "26.5x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -2691,19 +2403,6 @@
             "ratioToFastest": null,
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 109.46053333333334,
-            "meanText": "109.46 ms",
-            "allocatedText": "64.4 MB",
-            "packageText": null,
-            "ratioToFastest": 3.9308,
-            "ratioToFastestText": "3.93x",
-            "allocatedRatioToFastestText": "3.18x",
             "packageRatioToFastestText": null
           },
           {
@@ -2812,19 +2511,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 100.44003333333332,
-            "meanText": "100.44 ms",
-            "allocatedText": "59.1 MB",
-            "packageText": null,
-            "ratioToFastest": 15.4095,
-            "ratioToFastestText": "15.4x",
-            "allocatedRatioToFastestText": "20.3x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -2928,19 +2614,6 @@
             "ratioToFastestText": "11.0x",
             "allocatedRatioToFastestText": "37.8x",
             "packageRatioToFastestText": "0.95x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 30.389799999999997,
-            "meanText": "30.39 ms",
-            "allocatedText": "14.0 MB",
-            "packageText": "56.9 KB",
-            "ratioToFastest": 19.5684,
-            "ratioToFastestText": "19.6x",
-            "allocatedRatioToFastestText": "48.5x",
-            "packageRatioToFastestText": "0.90x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -3048,19 +2721,6 @@
             "packageRatioToFastestText": "0.84x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 85.46103333333333,
-            "meanText": "85.46 ms",
-            "allocatedText": "49.5 MB",
-            "packageText": "115.0 KB",
-            "ratioToFastest": 9.5457,
-            "ratioToFastestText": "9.55x",
-            "allocatedRatioToFastestText": "26.8x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -3164,19 +2824,6 @@
             "ratioToFastestText": "6.37x",
             "allocatedRatioToFastestText": "4.63x",
             "packageRatioToFastestText": "0.91x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 33.28926666666667,
-            "meanText": "33.29 ms",
-            "allocatedText": "12.5 MB",
-            "packageText": "48.1 KB",
-            "ratioToFastest": 15.5939,
-            "ratioToFastestText": "15.6x",
-            "allocatedRatioToFastestText": "5.25x",
-            "packageRatioToFastestText": "0.87x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -3284,19 +2931,6 @@
             "packageRatioToFastestText": "0.84x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 45.17296666666667,
-            "meanText": "45.17 ms",
-            "allocatedText": "24.1 MB",
-            "packageText": "114.2 KB",
-            "ratioToFastest": 11.499,
-            "ratioToFastestText": "11.5x",
-            "allocatedRatioToFastestText": "18.4x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -3400,19 +3034,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 45.0301,
-            "meanText": "45.03 ms",
-            "allocatedText": "26.5 MB",
-            "packageText": "117.0 KB",
-            "ratioToFastest": 8.9834,
-            "ratioToFastestText": "8.98x",
-            "allocatedRatioToFastestText": "14.3x",
-            "packageRatioToFastestText": "0.79x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -3520,19 +3141,6 @@
             "packageRatioToFastestText": "0.84x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 41.71386666666667,
-            "meanText": "41.71 ms",
-            "allocatedText": "24.2 MB",
-            "packageText": "114.3 KB",
-            "ratioToFastest": 10.481,
-            "ratioToFastestText": "10.5x",
-            "allocatedRatioToFastestText": "17.6x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -3636,19 +3244,6 @@
             "ratioToFastestText": "8.52x",
             "allocatedRatioToFastestText": "16.4x",
             "packageRatioToFastestText": "0.84x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 43.46006666666667,
-            "meanText": "43.46 ms",
-            "allocatedText": "24.1 MB",
-            "packageText": "114.2 KB",
-            "ratioToFastest": 9.334,
-            "ratioToFastestText": "9.33x",
-            "allocatedRatioToFastestText": "18.2x",
-            "packageRatioToFastestText": "0.80x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -3756,19 +3351,6 @@
             "packageRatioToFastestText": "0.84x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 51.42693333333333,
-            "meanText": "51.43 ms",
-            "allocatedText": "24.2 MB",
-            "packageText": "114.3 KB",
-            "ratioToFastest": 12.2185,
-            "ratioToFastestText": "12.2x",
-            "allocatedRatioToFastestText": "18.4x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -3872,19 +3454,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 75.84863333333332,
-            "meanText": "75.85 ms",
-            "allocatedText": "28.8 MB",
-            "packageText": "117.4 KB",
-            "ratioToFastest": 1.8761,
-            "ratioToFastestText": "1.88x",
-            "allocatedRatioToFastestText": "1.88x",
-            "packageRatioToFastestText": "0.59x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -3992,19 +3561,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 109.92900000000002,
-            "meanText": "109.93 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": "121.8 KB",
-            "ratioToFastest": 5.8489,
-            "ratioToFastestText": "5.85x",
-            "allocatedRatioToFastestText": "3.31x",
-            "packageRatioToFastestText": "0.59x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -4108,19 +3664,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 92.36900000000001,
-            "meanText": "92.37 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": "121.8 KB",
-            "ratioToFastest": 5.1606,
-            "ratioToFastestText": "5.16x",
-            "allocatedRatioToFastestText": "7.33x",
-            "packageRatioToFastestText": "0.59x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -4228,19 +3771,6 @@
             "packageRatioToFastestText": "0.84x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 95.80776666666668,
-            "meanText": "95.81 ms",
-            "allocatedText": "46.2 MB",
-            "packageText": "115.6 KB",
-            "ratioToFastest": 14.9802,
-            "ratioToFastestText": "15.0x",
-            "allocatedRatioToFastestText": "31.8x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -4344,19 +3874,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 110.90666666666668,
-            "meanText": "110.91 ms",
-            "allocatedText": "57.8 MB",
-            "packageText": "128.4 KB",
-            "ratioToFastest": 4.5753,
-            "ratioToFastestText": "4.58x",
-            "allocatedRatioToFastestText": "3.36x",
-            "packageRatioToFastestText": "0.59x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -4464,19 +3981,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 55.13536666666666,
-            "meanText": "55.14 ms",
-            "allocatedText": "32.1 MB",
-            "packageText": "121.8 KB",
-            "ratioToFastest": 2.9032,
-            "ratioToFastestText": "2.90x",
-            "allocatedRatioToFastestText": "2.00x",
-            "packageRatioToFastestText": "0.59x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -4580,19 +4084,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 89.44386666666666,
-            "meanText": "89.44 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": "121.9 KB",
-            "ratioToFastest": 4.4748,
-            "ratioToFastestText": "4.47x",
-            "allocatedRatioToFastestText": "3.31x",
-            "packageRatioToFastestText": "0.59x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -4700,19 +4191,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 124.36786666666667,
-            "meanText": "124.37 ms",
-            "allocatedText": "53.3 MB",
-            "packageText": "124.3 KB",
-            "ratioToFastest": 6.6161,
-            "ratioToFastestText": "6.62x",
-            "allocatedRatioToFastestText": "3.31x",
-            "packageRatioToFastestText": "0.59x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -4816,19 +4294,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 97.74536666666665,
-            "meanText": "97.75 ms",
-            "allocatedText": "75.7 MB",
-            "packageText": "161.8 KB",
-            "ratioToFastest": 3.9865,
-            "ratioToFastestText": "3.99x",
-            "allocatedRatioToFastestText": "3.78x",
-            "packageRatioToFastestText": "0.59x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -4936,19 +4401,6 @@
             "packageRatioToFastestText": "0.88x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 102.3796,
-            "meanText": "102.38 ms",
-            "allocatedText": "70.3 MB",
-            "packageText": "157.2 KB",
-            "ratioToFastest": 15.4451,
-            "ratioToFastestText": "15.4x",
-            "allocatedRatioToFastestText": "26.5x",
-            "packageRatioToFastestText": "0.84x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -5052,19 +4504,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 108.48113333333333,
-            "meanText": "108.48 ms",
-            "allocatedText": "64.4 MB",
-            "packageText": "161.8 KB",
-            "ratioToFastest": 4.8632,
-            "ratioToFastestText": "4.86x",
-            "allocatedRatioToFastestText": "3.18x",
-            "packageRatioToFastestText": "0.59x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -5172,19 +4611,6 @@
             "packageRatioToFastestText": "0.88x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 108.7228,
-            "meanText": "108.72 ms",
-            "allocatedText": "59.1 MB",
-            "packageText": "157.2 KB",
-            "ratioToFastest": 16.914,
-            "ratioToFastestText": "16.9x",
-            "allocatedRatioToFastestText": "20.3x",
-            "packageRatioToFastestText": "0.84x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -5288,19 +4714,6 @@
             "ratioToFastestText": "23.3x",
             "allocatedRatioToFastestText": "83.3x",
             "packageRatioToFastestText": "1.08x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -5408,19 +4821,6 @@
             "packageRatioToFastestText": "0.84x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 74.4443,
-            "meanText": "74.44 ms",
-            "allocatedText": "46.1 MB",
-            "packageText": "115.0 KB",
-            "ratioToFastest": 15.802,
-            "ratioToFastestText": "15.8x",
-            "allocatedRatioToFastestText": "33.7x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -5524,19 +4924,6 @@
             "ratioToFastestText": "8.62x",
             "allocatedRatioToFastestText": "8.70x",
             "packageRatioToFastestText": "1.06x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 46.103833333333334,
-            "meanText": "46.10 ms",
-            "allocatedText": "17.7 MB",
-            "packageText": "62.1 KB",
-            "ratioToFastest": 17.7402,
-            "ratioToFastestText": "17.7x",
-            "allocatedRatioToFastestText": "13.1x",
-            "packageRatioToFastestText": "0.93x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -5644,19 +5031,6 @@
             "packageRatioToFastestText": "1.02x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 31.054266666666667,
-            "meanText": "31.05 ms",
-            "allocatedText": "11.5 MB",
-            "packageText": "42.0 KB",
-            "ratioToFastest": 15.6658,
-            "ratioToFastestText": "15.7x",
-            "allocatedRatioToFastestText": "6.59x",
-            "packageRatioToFastestText": "0.95x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -5760,19 +5134,6 @@
             "ratioToFastestText": "5.61x",
             "allocatedRatioToFastestText": "8.19x",
             "packageRatioToFastestText": "0.98x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 28.872200000000003,
-            "meanText": "28.87 ms",
-            "allocatedText": "12.6 MB",
-            "packageText": "43.7 KB",
-            "ratioToFastest": 13.1943,
-            "ratioToFastestText": "13.2x",
-            "allocatedRatioToFastestText": "11.5x",
-            "packageRatioToFastestText": "0.93x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -5880,19 +5241,6 @@
             "packageRatioToFastestText": "0.97x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 31.215033333333334,
-            "meanText": "31.22 ms",
-            "allocatedText": "15.3 MB",
-            "packageText": "58.9 KB",
-            "ratioToFastest": 12.1125,
-            "ratioToFastestText": "12.1x",
-            "allocatedRatioToFastestText": "8.87x",
-            "packageRatioToFastestText": "0.96x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -5996,19 +5344,6 @@
             "ratioToFastestText": "5.59x",
             "allocatedRatioToFastestText": "7.50x",
             "packageRatioToFastestText": "0.85x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 31.926933333333334,
-            "meanText": "31.93 ms",
-            "allocatedText": "14.6 MB",
-            "packageText": "54.2 KB",
-            "ratioToFastest": 10.5263,
-            "ratioToFastestText": "10.5x",
-            "allocatedRatioToFastestText": "9.93x",
-            "packageRatioToFastestText": "0.88x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -6116,19 +5451,6 @@
             "packageRatioToFastestText": "0.85x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 32.599199999999996,
-            "meanText": "32.60 ms",
-            "allocatedText": "14.6 MB",
-            "packageText": "54.2 KB",
-            "ratioToFastest": 10.5438,
-            "ratioToFastestText": "10.5x",
-            "allocatedRatioToFastestText": "9.93x",
-            "packageRatioToFastestText": "0.88x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -6232,19 +5554,6 @@
             "ratioToFastestText": "6.33x",
             "allocatedRatioToFastestText": "7.93x",
             "packageRatioToFastestText": "0.98x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 28.887666666666664,
-            "meanText": "28.89 ms",
-            "allocatedText": "12.5 MB",
-            "packageText": "42.4 KB",
-            "ratioToFastest": 15.01,
-            "ratioToFastestText": "15.0x",
-            "allocatedRatioToFastestText": "11.3x",
-            "packageRatioToFastestText": "0.91x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -6352,19 +5661,6 @@
             "packageRatioToFastestText": "0.91x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 39.97390000000001,
-            "meanText": "39.97 ms",
-            "allocatedText": "12.5 MB",
-            "packageText": "48.1 KB",
-            "ratioToFastest": 11.6433,
-            "ratioToFastestText": "11.6x",
-            "allocatedRatioToFastestText": "4.89x",
-            "packageRatioToFastestText": "0.87x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -6467,19 +5763,6 @@
             "ratioToFastest": 8.0986,
             "ratioToFastestText": "8.10x",
             "allocatedRatioToFastestText": "5.52x",
-            "packageRatioToFastestText": "1.19x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 32.7858,
-            "meanText": "32.79 ms",
-            "allocatedText": "13.6 MB",
-            "packageText": "61.5 KB",
-            "ratioToFastest": 14.9454,
-            "ratioToFastestText": "14.9x",
-            "allocatedRatioToFastestText": "5.84x",
             "packageRatioToFastestText": "1.19x"
           },
           {
@@ -6588,19 +5871,6 @@
             "packageRatioToFastestText": "0.97x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 29.122766666666667,
-            "meanText": "29.12 ms",
-            "allocatedText": "11.1 MB",
-            "packageText": "34.8 KB",
-            "ratioToFastest": 15.5485,
-            "ratioToFastestText": "15.5x",
-            "allocatedRatioToFastestText": "7.17x",
-            "packageRatioToFastestText": "0.87x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -6704,19 +5974,6 @@
             "ratioToFastestText": "5.52x",
             "allocatedRatioToFastestText": "6.76x",
             "packageRatioToFastestText": "0.86x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 33.318900000000006,
-            "meanText": "33.32 ms",
-            "allocatedText": "14.4 MB",
-            "packageText": "53.1 KB",
-            "ratioToFastest": 10.3035,
-            "ratioToFastestText": "10.3x",
-            "allocatedRatioToFastestText": "10.3x",
-            "packageRatioToFastestText": "0.84x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -6824,19 +6081,6 @@
             "packageRatioToFastestText": "1.12x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 28.682599999999997,
-            "meanText": "28.68 ms",
-            "allocatedText": "12.7 MB",
-            "packageText": "52.5 KB",
-            "ratioToFastest": 20.1296,
-            "ratioToFastestText": "20.1x",
-            "allocatedRatioToFastestText": "29.2x",
-            "packageRatioToFastestText": "1.11x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -6940,19 +6184,6 @@
             "ratioToFastestText": "11.2x",
             "allocatedRatioToFastestText": "29.3x",
             "packageRatioToFastestText": "0.87x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 50.306466666666665,
-            "meanText": "50.31 ms",
-            "allocatedText": "24.1 MB",
-            "packageText": "114.1 KB",
-            "ratioToFastest": 15.9948,
-            "ratioToFastestText": "16.0x",
-            "allocatedRatioToFastestText": "32.6x",
-            "packageRatioToFastestText": "0.82x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -7060,19 +6291,6 @@
             "packageRatioToFastestText": "1.53x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 47.49873333333333,
-            "meanText": "47.50 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 15.6314,
-            "ratioToFastestText": "15.6x",
-            "allocatedRatioToFastestText": "21.9x",
-            "packageRatioToFastestText": "1.46x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -7176,19 +6394,6 @@
             "ratioToFastestText": "7.60x",
             "allocatedRatioToFastestText": "10.7x",
             "packageRatioToFastestText": "0.87x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 45.48276666666666,
-            "meanText": "45.48 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 9.1684,
-            "ratioToFastestText": "9.17x",
-            "allocatedRatioToFastestText": "9.38x",
-            "packageRatioToFastestText": "0.83x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -7296,19 +6501,6 @@
             "packageRatioToFastestText": "0.87x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 58.634833333333326,
-            "meanText": "58.63 ms",
-            "allocatedText": "37.4 MB",
-            "packageText": "115.1 KB",
-            "ratioToFastest": 12.1919,
-            "ratioToFastestText": "12.2x",
-            "allocatedRatioToFastestText": "21.5x",
-            "packageRatioToFastestText": "0.83x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -7412,19 +6604,6 @@
             "ratioToFastestText": "12.3x",
             "allocatedRatioToFastestText": "24.4x",
             "packageRatioToFastestText": "0.97x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 57.77323333333334,
-            "meanText": "57.77 ms",
-            "allocatedText": "21.4 MB",
-            "packageText": "144.5 KB",
-            "ratioToFastest": 13.2703,
-            "ratioToFastestText": "13.3x",
-            "allocatedRatioToFastestText": "19.5x",
-            "packageRatioToFastestText": "0.88x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -7532,19 +6711,6 @@
             "packageRatioToFastestText": "0.91x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 56.041500000000006,
-            "meanText": "56.04 ms",
-            "allocatedText": "21.4 MB",
-            "packageText": "144.5 KB",
-            "ratioToFastest": 12.2738,
-            "ratioToFastestText": "12.3x",
-            "allocatedRatioToFastestText": "7.60x",
-            "packageRatioToFastestText": "0.82x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -7648,19 +6814,6 @@
             "ratioToFastestText": "8.87x",
             "allocatedRatioToFastestText": "9.14x",
             "packageRatioToFastestText": "0.89x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 40.5973,
-            "meanText": "40.60 ms",
-            "allocatedText": "18.3 MB",
-            "packageText": "116.6 KB",
-            "ratioToFastest": 10.2338,
-            "ratioToFastestText": "10.2x",
-            "allocatedRatioToFastestText": "9.05x",
-            "packageRatioToFastestText": "0.84x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -7768,19 +6921,6 @@
             "packageRatioToFastestText": "0.89x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 60.89143333333334,
-            "meanText": "60.89 ms",
-            "allocatedText": "40.5 MB",
-            "packageText": "116.9 KB",
-            "ratioToFastest": 13.777,
-            "ratioToFastestText": "13.8x",
-            "allocatedRatioToFastestText": "19.9x",
-            "packageRatioToFastestText": "0.84x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -7884,19 +7024,6 @@
             "ratioToFastestText": "6.90x",
             "allocatedRatioToFastestText": "6.62x",
             "packageRatioToFastestText": "0.87x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 52.16636666666667,
-            "meanText": "52.17 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 11.7597,
-            "ratioToFastestText": "11.8x",
-            "allocatedRatioToFastestText": "9.52x",
-            "packageRatioToFastestText": "0.83x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -8004,19 +7131,6 @@
             "packageRatioToFastestText": "0.87x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 49.40906666666666,
-            "meanText": "49.41 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 12.518,
-            "ratioToFastestText": "12.5x",
-            "allocatedRatioToFastestText": "9.45x",
-            "packageRatioToFastestText": "0.83x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -8120,19 +7234,6 @@
             "ratioToFastestText": "8.94x",
             "allocatedRatioToFastestText": "15.3x",
             "packageRatioToFastestText": "0.87x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 49.20473333333333,
-            "meanText": "49.20 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 15.0308,
-            "ratioToFastestText": "15.0x",
-            "allocatedRatioToFastestText": "22.0x",
-            "packageRatioToFastestText": "0.83x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -8240,19 +7341,6 @@
             "packageRatioToFastestText": "0.84x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 74.14943333333333,
-            "meanText": "74.15 ms",
-            "allocatedText": "37.4 MB",
-            "packageText": "115.1 KB",
-            "ratioToFastest": 14.5854,
-            "ratioToFastestText": "14.6x",
-            "allocatedRatioToFastestText": "28.5x",
-            "packageRatioToFastestText": "0.81x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -8356,19 +7444,6 @@
             "ratioToFastestText": "8.98x",
             "allocatedRatioToFastestText": "8.65x",
             "packageRatioToFastestText": "0.84x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 50.64863333333333,
-            "meanText": "50.65 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 12.1936,
-            "ratioToFastestText": "12.2x",
-            "allocatedRatioToFastestText": "12.4x",
-            "packageRatioToFastestText": "0.81x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -8476,19 +7551,6 @@
             "packageRatioToFastestText": "0.87x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 62.63796666666667,
-            "meanText": "62.64 ms",
-            "allocatedText": "37.4 MB",
-            "packageText": "115.1 KB",
-            "ratioToFastest": 11.2589,
-            "ratioToFastestText": "11.3x",
-            "allocatedRatioToFastestText": "25.5x",
-            "packageRatioToFastestText": "0.83x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -8592,19 +7654,6 @@
             "ratioToFastestText": "8.26x",
             "allocatedRatioToFastestText": "15.3x",
             "packageRatioToFastestText": "0.87x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 48.272,
-            "meanText": "48.27 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 11.969,
-            "ratioToFastestText": "12.0x",
-            "allocatedRatioToFastestText": "22.0x",
-            "packageRatioToFastestText": "0.83x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -8712,19 +7761,6 @@
             "packageRatioToFastestText": "0.87x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 44.735566666666664,
-            "meanText": "44.74 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": "114.9 KB",
-            "ratioToFastest": 13.2945,
-            "ratioToFastestText": "13.3x",
-            "allocatedRatioToFastestText": "22.0x",
-            "packageRatioToFastestText": "0.83x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -8828,19 +7864,6 @@
             "ratioToFastestText": "12.0x",
             "allocatedRatioToFastestText": "21.2x",
             "packageRatioToFastestText": "0.84x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 62.004933333333334,
-            "meanText": "62.00 ms",
-            "allocatedText": "26.7 MB",
-            "packageText": "115.0 KB",
-            "ratioToFastest": 13.3052,
-            "ratioToFastestText": "13.3x",
-            "allocatedRatioToFastestText": "20.3x",
-            "packageRatioToFastestText": "0.81x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -8948,19 +7971,6 @@
             "packageRatioToFastestText": "0.88x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 56.356100000000005,
-            "meanText": "56.36 ms",
-            "allocatedText": "19.6 MB",
-            "packageText": "152.1 KB",
-            "ratioToFastest": 9.5124,
-            "ratioToFastestText": "9.51x",
-            "allocatedRatioToFastestText": "8.59x",
-            "packageRatioToFastestText": "0.83x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -9064,19 +8074,6 @@
             "ratioToFastestText": "8.59x",
             "allocatedRatioToFastestText": "21.1x",
             "packageRatioToFastestText": "0.88x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 54.631099999999996,
-            "meanText": "54.63 ms",
-            "allocatedText": "19.6 MB",
-            "packageText": "152.1 KB",
-            "ratioToFastest": 12.3774,
-            "ratioToFastestText": "12.4x",
-            "allocatedRatioToFastestText": "25.1x",
-            "packageRatioToFastestText": "0.83x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -9184,19 +8181,6 @@
             "packageRatioToFastestText": "0.95x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 197.3024,
-            "meanText": "197.30 ms",
-            "allocatedText": "67.5 MB",
-            "packageText": "548.9 KB",
-            "ratioToFastest": 8.9579,
-            "ratioToFastestText": "8.96x",
-            "allocatedRatioToFastestText": "15.4x",
-            "packageRatioToFastestText": "0.84x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -9302,19 +8286,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 22.420866666666665,
-            "meanText": "22.42 ms",
-            "allocatedText": "7.5 MB",
-            "packageText": null,
-            "ratioToFastest": 8.4348,
-            "ratioToFastestText": "8.43x",
-            "allocatedRatioToFastestText": "10.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -9408,19 +8379,6 @@
         "cells": [
           {
             "library": "ClosedXML",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
             "measured": false,
             "style": "missing",
             "meanMilliseconds": null,
@@ -9538,19 +8496,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -9653,19 +8598,6 @@
             "ratioToFastest": 4.354,
             "ratioToFastestText": "4.35x",
             "allocatedRatioToFastestText": "24.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 43.15123333333333,
-            "meanText": "43.15 ms",
-            "allocatedText": "42.1 MB",
-            "packageText": null,
-            "ratioToFastest": 35.8707,
-            "ratioToFastestText": "35.9x",
-            "allocatedRatioToFastestText": "243x",
             "packageRatioToFastestText": null
           },
           {
@@ -9774,19 +8706,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 78.2225,
-            "meanText": "78.22 ms",
-            "allocatedText": "42.1 MB",
-            "packageText": null,
-            "ratioToFastest": 45.2171,
-            "ratioToFastestText": "45.2x",
-            "allocatedRatioToFastestText": "136x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -9889,19 +8808,6 @@
             "ratioToFastest": 6.5912,
             "ratioToFastestText": "6.59x",
             "allocatedRatioToFastestText": "18.3x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 20.580233333333336,
-            "meanText": "20.58 ms",
-            "allocatedText": "10.1 MB",
-            "packageText": null,
-            "ratioToFastest": 8.7557,
-            "ratioToFastestText": "8.76x",
-            "allocatedRatioToFastestText": "20.0x",
             "packageRatioToFastestText": null
           },
           {
@@ -10010,19 +8916,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 25.84763333333333,
-            "meanText": "25.85 ms",
-            "allocatedText": "12.1 MB",
-            "packageText": null,
-            "ratioToFastest": 5.5878,
-            "ratioToFastestText": "5.59x",
-            "allocatedRatioToFastestText": "33.2x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -10125,19 +9018,6 @@
             "ratioToFastest": 5.4206,
             "ratioToFastestText": "5.42x",
             "allocatedRatioToFastestText": "8.18x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 34.54063333333333,
-            "meanText": "34.54 ms",
-            "allocatedText": "21.2 MB",
-            "packageText": null,
-            "ratioToFastest": 5.4052,
-            "ratioToFastestText": "5.41x",
-            "allocatedRatioToFastestText": "9.71x",
             "packageRatioToFastestText": null
           },
           {
@@ -10246,19 +9126,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 25.435333333333332,
-            "meanText": "25.44 ms",
-            "allocatedText": "12.8 MB",
-            "packageText": null,
-            "ratioToFastest": 5.5056,
-            "ratioToFastestText": "5.51x",
-            "allocatedRatioToFastestText": "17.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -10361,19 +9228,6 @@
             "ratioToFastest": 8.3196,
             "ratioToFastestText": "8.32x",
             "allocatedRatioToFastestText": "6.26x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 40.39456666666667,
-            "meanText": "40.39 ms",
-            "allocatedText": "19.7 MB",
-            "packageText": null,
-            "ratioToFastest": 4.2306,
-            "ratioToFastestText": "4.23x",
-            "allocatedRatioToFastestText": "7.48x",
             "packageRatioToFastestText": null
           },
           {
@@ -10482,19 +9336,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 33.16753333333333,
-            "meanText": "33.17 ms",
-            "allocatedText": "19.7 MB",
-            "packageText": null,
-            "ratioToFastest": 5.4048,
-            "ratioToFastestText": "5.40x",
-            "allocatedRatioToFastestText": "7.32x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -10597,19 +9438,6 @@
             "ratioToFastest": 65.0195,
             "ratioToFastestText": "65.0x",
             "allocatedRatioToFastestText": "44.1x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 27.47436666666667,
-            "meanText": "27.47 ms",
-            "allocatedText": "12.1 MB",
-            "packageText": null,
-            "ratioToFastest": 51.6856,
-            "ratioToFastestText": "51.7x",
-            "allocatedRatioToFastestText": "35.6x",
             "packageRatioToFastestText": null
           },
           {
@@ -10718,19 +9546,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 37.200199999999995,
-            "meanText": "37.20 ms",
-            "allocatedText": "19.7 MB",
-            "packageText": null,
-            "ratioToFastest": 7.969,
-            "ratioToFastestText": "7.97x",
-            "allocatedRatioToFastestText": "30.8x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -10833,19 +9648,6 @@
             "ratioToFastest": 8.0586,
             "ratioToFastestText": "8.06x",
             "allocatedRatioToFastestText": "40.7x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 24.499166666666667,
-            "meanText": "24.50 ms",
-            "allocatedText": "12.1 MB",
-            "packageText": null,
-            "ratioToFastest": 6.9343,
-            "ratioToFastestText": "6.93x",
-            "allocatedRatioToFastestText": "32.9x",
             "packageRatioToFastestText": null
           },
           {
@@ -10954,19 +9756,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 30.902600000000003,
-            "meanText": "30.90 ms",
-            "allocatedText": "19.7 MB",
-            "packageText": null,
-            "ratioToFastest": 6.8556,
-            "ratioToFastestText": "6.86x",
-            "allocatedRatioToFastestText": "30.8x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -11069,19 +9858,6 @@
             "ratioToFastest": 71.3285,
             "ratioToFastestText": "71.3x",
             "allocatedRatioToFastestText": "44.1x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 24.437966666666668,
-            "meanText": "24.44 ms",
-            "allocatedText": "12.1 MB",
-            "packageText": null,
-            "ratioToFastest": 58.3756,
-            "ratioToFastestText": "58.4x",
-            "allocatedRatioToFastestText": "35.6x",
             "packageRatioToFastestText": null
           },
           {
@@ -11190,19 +9966,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 26.2019,
-            "meanText": "26.20 ms",
-            "allocatedText": "12.1 MB",
-            "packageText": null,
-            "ratioToFastest": 62.714,
-            "ratioToFastestText": "62.7x",
-            "allocatedRatioToFastestText": "35.6x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -11305,19 +10068,6 @@
             "ratioToFastest": 5.0955,
             "ratioToFastestText": "5.10x",
             "allocatedRatioToFastestText": "6.93x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 49.6884,
-            "meanText": "49.69 ms",
-            "allocatedText": "20.9 MB",
-            "packageText": null,
-            "ratioToFastest": 3.754,
-            "ratioToFastestText": "3.75x",
-            "allocatedRatioToFastestText": "8.74x",
             "packageRatioToFastestText": null
           },
           {
@@ -11426,19 +10176,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 43.60013333333333,
-            "meanText": "43.60 ms",
-            "allocatedText": "20.8 MB",
-            "packageText": null,
-            "ratioToFastest": 5.7418,
-            "ratioToFastestText": "5.74x",
-            "allocatedRatioToFastestText": "8.81x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -11541,19 +10278,6 @@
             "ratioToFastest": 21.796,
             "ratioToFastestText": "21.8x",
             "allocatedRatioToFastestText": "32.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 59.00483333333333,
-            "meanText": "59.00 ms",
-            "allocatedText": "37.4 MB",
-            "packageText": null,
-            "ratioToFastest": 7.789,
-            "ratioToFastestText": "7.79x",
-            "allocatedRatioToFastestText": "21.5x",
             "packageRatioToFastestText": null
           },
           {
@@ -11662,19 +10386,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 151.9539,
-            "meanText": "151.95 ms",
-            "allocatedText": "42.4 MB",
-            "packageText": null,
-            "ratioToFastest": 25.4597,
-            "ratioToFastestText": "25.5x",
-            "allocatedRatioToFastestText": "20.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -11777,19 +10488,6 @@
             "ratioToFastest": 7.8741,
             "ratioToFastestText": "7.87x",
             "allocatedRatioToFastestText": "37.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 85.75396666666666,
-            "meanText": "85.75 ms",
-            "allocatedText": "37.4 MB",
-            "packageText": null,
-            "ratioToFastest": 5.6933,
-            "ratioToFastestText": "5.69x",
-            "allocatedRatioToFastestText": "28.5x",
             "packageRatioToFastestText": null
           },
           {
@@ -11898,19 +10596,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 70.60003333333334,
-            "meanText": "70.60 ms",
-            "allocatedText": "37.4 MB",
-            "packageText": null,
-            "ratioToFastest": 9.3857,
-            "ratioToFastestText": "9.39x",
-            "allocatedRatioToFastestText": "25.5x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -12013,19 +10698,6 @@
             "ratioToFastest": 9.3485,
             "ratioToFastestText": "9.35x",
             "allocatedRatioToFastestText": "21.2x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 78.96696666666668,
-            "meanText": "78.97 ms",
-            "allocatedText": "26.7 MB",
-            "packageText": null,
-            "ratioToFastest": 10.3677,
-            "ratioToFastestText": "10.4x",
-            "allocatedRatioToFastestText": "20.3x",
             "packageRatioToFastestText": null
           },
           {
@@ -12134,19 +10806,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 22.5261,
-            "meanText": "22.53 ms",
-            "allocatedText": "11.5 MB",
-            "packageText": null,
-            "ratioToFastest": 8.5663,
-            "ratioToFastestText": "8.57x",
-            "allocatedRatioToFastestText": "6.59x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -12249,19 +10908,6 @@
             "ratioToFastest": 3.7643,
             "ratioToFastestText": "3.76x",
             "allocatedRatioToFastestText": "8.19x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 25.624233333333333,
-            "meanText": "25.62 ms",
-            "allocatedText": "12.6 MB",
-            "packageText": null,
-            "ratioToFastest": 8.0018,
-            "ratioToFastestText": "8.00x",
-            "allocatedRatioToFastestText": "11.5x",
             "packageRatioToFastestText": null
           },
           {
@@ -12370,19 +11016,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 27.64363333333333,
-            "meanText": "27.64 ms",
-            "allocatedText": "15.3 MB",
-            "packageText": null,
-            "ratioToFastest": 8.115,
-            "ratioToFastestText": "8.12x",
-            "allocatedRatioToFastestText": "8.87x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -12485,19 +11118,6 @@
             "ratioToFastest": 4.1262,
             "ratioToFastestText": "4.13x",
             "allocatedRatioToFastestText": "7.50x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 28.515133333333335,
-            "meanText": "28.52 ms",
-            "allocatedText": "14.6 MB",
-            "packageText": null,
-            "ratioToFastest": 7.656,
-            "ratioToFastestText": "7.66x",
-            "allocatedRatioToFastestText": "9.93x",
             "packageRatioToFastestText": null
           },
           {
@@ -12606,19 +11226,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 26.9331,
-            "meanText": "26.93 ms",
-            "allocatedText": "14.6 MB",
-            "packageText": null,
-            "ratioToFastest": 8.7503,
-            "ratioToFastestText": "8.75x",
-            "allocatedRatioToFastestText": "9.93x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -12721,19 +11328,6 @@
             "ratioToFastest": 4.715,
             "ratioToFastestText": "4.71x",
             "allocatedRatioToFastestText": "7.93x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 25.3651,
-            "meanText": "25.37 ms",
-            "allocatedText": "12.5 MB",
-            "packageText": null,
-            "ratioToFastest": 9.868,
-            "ratioToFastestText": "9.87x",
-            "allocatedRatioToFastestText": "11.3x",
             "packageRatioToFastestText": null
           },
           {
@@ -12842,19 +11436,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 29.04303333333333,
-            "meanText": "29.04 ms",
-            "allocatedText": "14.4 MB",
-            "packageText": null,
-            "ratioToFastest": 7.9758,
-            "ratioToFastestText": "7.98x",
-            "allocatedRatioToFastestText": "10.3x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -12957,19 +11538,6 @@
             "ratioToFastest": 13.4845,
             "ratioToFastestText": "13.5x",
             "allocatedRatioToFastestText": "9.16x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 101.57869999999998,
-            "meanText": "101.58 ms",
-            "allocatedText": "18.0 MB",
-            "packageText": null,
-            "ratioToFastest": 20.5084,
-            "ratioToFastestText": "20.5x",
-            "allocatedRatioToFastestText": "8.92x",
             "packageRatioToFastestText": null
           },
           {
@@ -13078,19 +11646,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 105.75259999999999,
-            "meanText": "105.75 ms",
-            "allocatedText": "22.1 MB",
-            "packageText": null,
-            "ratioToFastest": 14.4175,
-            "ratioToFastestText": "14.4x",
-            "allocatedRatioToFastestText": "7.85x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -13193,19 +11748,6 @@
             "ratioToFastest": 11.3718,
             "ratioToFastestText": "11.4x",
             "allocatedRatioToFastestText": "9.13x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 70.74726666666668,
-            "meanText": "70.75 ms",
-            "allocatedText": "19.0 MB",
-            "packageText": null,
-            "ratioToFastest": 12.7583,
-            "ratioToFastestText": "12.8x",
-            "allocatedRatioToFastestText": "9.40x",
             "packageRatioToFastestText": null
           },
           {
@@ -13314,19 +11856,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 44.604166666666664,
-            "meanText": "44.60 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": null,
-            "ratioToFastest": 9.5492,
-            "ratioToFastestText": "9.55x",
-            "allocatedRatioToFastestText": "9.38x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -13429,19 +11958,6 @@
             "ratioToFastest": 4.8298,
             "ratioToFastestText": "4.83x",
             "allocatedRatioToFastestText": "6.62x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 43.912233333333326,
-            "meanText": "43.91 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": null,
-            "ratioToFastest": 5.6999,
-            "ratioToFastestText": "5.70x",
-            "allocatedRatioToFastestText": "9.52x",
             "packageRatioToFastestText": null
           },
           {
@@ -13550,19 +12066,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 46.89266666666666,
-            "meanText": "46.89 ms",
-            "allocatedText": "16.0 MB",
-            "packageText": null,
-            "ratioToFastest": 8.8778,
-            "ratioToFastestText": "8.88x",
-            "allocatedRatioToFastestText": "11.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -13665,19 +12168,6 @@
             "ratioToFastest": 10.2872,
             "ratioToFastestText": "10.3x",
             "allocatedRatioToFastestText": "10.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 48.367066666666666,
-            "meanText": "48.37 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": null,
-            "ratioToFastest": 10.0857,
-            "ratioToFastestText": "10.1x",
-            "allocatedRatioToFastestText": "9.46x",
             "packageRatioToFastestText": null
           },
           {
@@ -13786,19 +12276,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 127.90753333333333,
-            "meanText": "127.91 ms",
-            "allocatedText": "48.0 MB",
-            "packageText": null,
-            "ratioToFastest": 22.0392,
-            "ratioToFastestText": "22.0x",
-            "allocatedRatioToFastestText": "35.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -13904,19 +12381,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 51.93996666666666,
-            "meanText": "51.94 ms",
-            "allocatedText": "17.7 MB",
-            "packageText": null,
-            "ratioToFastest": 11.9238,
-            "ratioToFastestText": "11.9x",
-            "allocatedRatioToFastestText": "11.2x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -14010,19 +12474,6 @@
         "cells": [
           {
             "library": "ClosedXML",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
             "measured": false,
             "style": "missing",
             "meanMilliseconds": null,
@@ -14140,19 +12591,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 59.34326666666667,
-            "meanText": "59.34 ms",
-            "allocatedText": "19.6 MB",
-            "packageText": null,
-            "ratioToFastest": 13.0813,
-            "ratioToFastestText": "13.1x",
-            "allocatedRatioToFastestText": "25.1x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -14255,19 +12693,6 @@
             "ratioToFastest": 13.7834,
             "ratioToFastestText": "13.8x",
             "allocatedRatioToFastestText": "21.1x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 71.0521,
-            "meanText": "71.05 ms",
-            "allocatedText": "19.6 MB",
-            "packageText": null,
-            "ratioToFastest": 14.6349,
-            "ratioToFastestText": "14.6x",
-            "allocatedRatioToFastestText": "25.1x",
             "packageRatioToFastestText": null
           },
           {
@@ -14376,19 +12801,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 176.5965666666667,
-            "meanText": "176.60 ms",
-            "allocatedText": "67.5 MB",
-            "packageText": null,
-            "ratioToFastest": 7.9359,
-            "ratioToFastestText": "7.94x",
-            "allocatedRatioToFastestText": "15.4x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -14491,19 +12903,6 @@
             "ratioToFastest": 9.4571,
             "ratioToFastestText": "9.46x",
             "allocatedRatioToFastestText": "37.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 28.158033333333332,
-            "meanText": "28.16 ms",
-            "allocatedText": "14.0 MB",
-            "packageText": null,
-            "ratioToFastest": 16.9229,
-            "ratioToFastestText": "16.9x",
-            "allocatedRatioToFastestText": "48.5x",
             "packageRatioToFastestText": null
           },
           {
@@ -14612,19 +13011,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 24.649933333333333,
-            "meanText": "24.65 ms",
-            "allocatedText": "12.7 MB",
-            "packageText": null,
-            "ratioToFastest": 17.2277,
-            "ratioToFastestText": "17.2x",
-            "allocatedRatioToFastestText": "29.2x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -14727,19 +13113,6 @@
             "ratioToFastest": 7.8361,
             "ratioToFastestText": "7.84x",
             "allocatedRatioToFastestText": "10.7x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 43.019933333333334,
-            "meanText": "43.02 ms",
-            "allocatedText": "24.1 MB",
-            "packageText": null,
-            "ratioToFastest": 10.1291,
-            "ratioToFastestText": "10.1x",
-            "allocatedRatioToFastestText": "11.9x",
             "packageRatioToFastestText": null
           },
           {
@@ -14848,19 +13221,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 26.14616666666667,
-            "meanText": "26.15 ms",
-            "allocatedText": "14.6 MB",
-            "packageText": null,
-            "ratioToFastest": 10.6467,
-            "ratioToFastestText": "10.6x",
-            "allocatedRatioToFastestText": "10.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -14963,19 +13323,6 @@
             "ratioToFastest": 5.9559,
             "ratioToFastestText": "5.96x",
             "allocatedRatioToFastestText": "15.3x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 37.05863333333333,
-            "meanText": "37.06 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": null,
-            "ratioToFastest": 7.8787,
-            "ratioToFastestText": "7.88x",
-            "allocatedRatioToFastestText": "21.9x",
             "packageRatioToFastestText": null
           },
           {
@@ -15084,19 +13431,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 70.0929,
-            "meanText": "70.09 ms",
-            "allocatedText": "21.8 MB",
-            "packageText": null,
-            "ratioToFastest": 9.5673,
-            "ratioToFastestText": "9.57x",
-            "allocatedRatioToFastestText": "10.4x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -15199,19 +13533,6 @@
             "ratioToFastest": 20.6225,
             "ratioToFastestText": "20.6x",
             "allocatedRatioToFastestText": "83.3x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
           },
           {
@@ -15320,19 +13641,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 25.402533333333334,
-            "meanText": "25.40 ms",
-            "allocatedText": "12.5 MB",
-            "packageText": null,
-            "ratioToFastest": 12.4214,
-            "ratioToFastestText": "12.4x",
-            "allocatedRatioToFastestText": "5.25x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -15435,19 +13743,6 @@
             "ratioToFastest": 4.139,
             "ratioToFastestText": "4.14x",
             "allocatedRatioToFastestText": "4.32x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 23.728666666666665,
-            "meanText": "23.73 ms",
-            "allocatedText": "12.5 MB",
-            "packageText": null,
-            "ratioToFastest": 8.3219,
-            "ratioToFastestText": "8.32x",
-            "allocatedRatioToFastestText": "4.89x",
             "packageRatioToFastestText": null
           },
           {
@@ -15556,19 +13851,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 23.433966666666667,
-            "meanText": "23.43 ms",
-            "allocatedText": "13.6 MB",
-            "packageText": null,
-            "ratioToFastest": 9.3643,
-            "ratioToFastestText": "9.36x",
-            "allocatedRatioToFastestText": "5.84x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -15671,19 +13953,6 @@
             "ratioToFastest": 6.042,
             "ratioToFastestText": "6.04x",
             "allocatedRatioToFastestText": "5.84x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 23.44496666666667,
-            "meanText": "23.44 ms",
-            "allocatedText": "11.1 MB",
-            "packageText": null,
-            "ratioToFastest": 11.3572,
-            "ratioToFastestText": "11.4x",
-            "allocatedRatioToFastestText": "7.17x",
             "packageRatioToFastestText": null
           },
           {
@@ -15792,19 +14061,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 39.290733333333336,
-            "meanText": "39.29 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": null,
-            "ratioToFastest": 11.6261,
-            "ratioToFastestText": "11.6x",
-            "allocatedRatioToFastestText": "22.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -15907,19 +14163,6 @@
             "ratioToFastest": 14.5389,
             "ratioToFastestText": "14.5x",
             "allocatedRatioToFastestText": "15.3x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 64.42899999999999,
-            "meanText": "64.43 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": null,
-            "ratioToFastest": 15.736,
-            "ratioToFastestText": "15.7x",
-            "allocatedRatioToFastestText": "22.0x",
             "packageRatioToFastestText": null
           },
           {
@@ -16028,19 +14271,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 58.71353333333334,
-            "meanText": "58.71 ms",
-            "allocatedText": "16.3 MB",
-            "packageText": null,
-            "ratioToFastest": 11.8915,
-            "ratioToFastestText": "11.9x",
-            "allocatedRatioToFastestText": "22.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -16146,19 +14376,6 @@
             "packageRatioToFastestText": "1.15x"
           },
           {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -16261,19 +14478,6 @@
             "ratioToFastest": 17.0739,
             "ratioToFastestText": "17.1x",
             "allocatedRatioToFastestText": "52.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 460.13436666666666,
-            "meanText": "460.13 ms",
-            "allocatedText": "245.1 MB",
-            "packageText": null,
-            "ratioToFastest": 5.3755,
-            "ratioToFastestText": "5.38x",
-            "allocatedRatioToFastestText": "16.0x",
             "packageRatioToFastestText": null
           },
           {
@@ -16382,19 +14586,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 405.17946666666666,
-            "meanText": "405.18 ms",
-            "allocatedText": "229.3 MB",
-            "packageText": null,
-            "ratioToFastest": 1.7288,
-            "ratioToFastestText": "1.73x",
-            "allocatedRatioToFastestText": "1.62x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "mid",
@@ -16497,19 +14688,6 @@
             "ratioToFastest": null,
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 434.65766666666667,
-            "meanText": "434.66 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": null,
-            "ratioToFastest": 4.6709,
-            "ratioToFastestText": "4.67x",
-            "allocatedRatioToFastestText": "5.01x",
             "packageRatioToFastestText": null
           },
           {
@@ -16618,19 +14796,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 528.9261,
-            "meanText": "528.93 ms",
-            "allocatedText": "295.7 MB",
-            "packageText": null,
-            "ratioToFastest": 1.4846,
-            "ratioToFastestText": "1.48x",
-            "allocatedRatioToFastestText": "1.93x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -16733,19 +14898,6 @@
             "ratioToFastest": null,
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 515.9160666666667,
-            "meanText": "515.92 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": null,
-            "ratioToFastest": 1.6078,
-            "ratioToFastestText": "1.61x",
-            "allocatedRatioToFastestText": "1.91x",
             "packageRatioToFastestText": null
           },
           {
@@ -16854,19 +15006,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 463.36736666666667,
-            "meanText": "463.37 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": null,
-            "ratioToFastest": 1.8289,
-            "ratioToFastestText": "1.83x",
-            "allocatedRatioToFastestText": "1.91x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -16960,19 +15099,6 @@
         "cells": [
           {
             "library": "ClosedXML",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
             "measured": false,
             "style": "missing",
             "meanMilliseconds": null,
@@ -17090,19 +15216,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -17205,19 +15318,6 @@
             "ratioToFastest": 6.6825,
             "ratioToFastestText": "6.68x",
             "allocatedRatioToFastestText": "6.79x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 267.1152333333334,
-            "meanText": "267.12 ms",
-            "allocatedText": "183.0 MB",
-            "packageText": null,
-            "ratioToFastest": 5.1197,
-            "ratioToFastestText": "5.12x",
-            "allocatedRatioToFastestText": "7.64x",
             "packageRatioToFastestText": null
           },
           {
@@ -17326,19 +15426,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 227.3012666666667,
-            "meanText": "227.30 ms",
-            "allocatedText": "112.8 MB",
-            "packageText": null,
-            "ratioToFastest": 6.4594,
-            "ratioToFastestText": "6.46x",
-            "allocatedRatioToFastestText": "30.1x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -17441,19 +15528,6 @@
             "ratioToFastest": 7.26,
             "ratioToFastestText": "7.26x",
             "allocatedRatioToFastestText": "6.79x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 279.89300000000003,
-            "meanText": "279.89 ms",
-            "allocatedText": "183.0 MB",
-            "packageText": null,
-            "ratioToFastest": 5.6534,
-            "ratioToFastestText": "5.65x",
-            "allocatedRatioToFastestText": "7.64x",
             "packageRatioToFastestText": null
           },
           {
@@ -17562,19 +15636,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 226.94186666666667,
-            "meanText": "226.94 ms",
-            "allocatedText": "103.1 MB",
-            "packageText": null,
-            "ratioToFastest": 373.1369,
-            "ratioToFastestText": "373x",
-            "allocatedRatioToFastestText": "370x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -17677,19 +15738,6 @@
             "ratioToFastest": 9.1396,
             "ratioToFastestText": "9.14x",
             "allocatedRatioToFastestText": "18.3x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 433.24496666666664,
-            "meanText": "433.24 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": null,
-            "ratioToFastest": 10.0485,
-            "ratioToFastestText": "10.0x",
-            "allocatedRatioToFastestText": "18.4x",
             "packageRatioToFastestText": null
           },
           {
@@ -17798,19 +15846,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 452.2028666666667,
-            "meanText": "452.20 ms",
-            "allocatedText": "209.9 MB",
-            "packageText": null,
-            "ratioToFastest": 10.1731,
-            "ratioToFastestText": "10.2x",
-            "allocatedRatioToFastestText": "17.1x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -17913,19 +15948,6 @@
             "ratioToFastest": 8.7013,
             "ratioToFastestText": "8.70x",
             "allocatedRatioToFastestText": "18.2x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 430.0197333333333,
-            "meanText": "430.02 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": null,
-            "ratioToFastest": 10.0106,
-            "ratioToFastestText": "10.0x",
-            "allocatedRatioToFastestText": "18.3x",
             "packageRatioToFastestText": null
           },
           {
@@ -18034,19 +16056,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 428.3568333333333,
-            "meanText": "428.36 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": null,
-            "ratioToFastest": 9.8432,
-            "ratioToFastestText": "9.84x",
-            "allocatedRatioToFastestText": "18.4x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -18152,19 +16161,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 458.1792,
-            "meanText": "458.18 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": null,
-            "ratioToFastest": 11.071,
-            "ratioToFastestText": "11.1x",
-            "allocatedRatioToFastestText": "18.4x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -18266,19 +16262,6 @@
             "packageText": null,
             "ratioToFastest": null,
             "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 464.34336666666667,
-            "meanText": "464.34 ms",
-            "allocatedText": "225.4 MB",
-            "packageText": null,
-            "ratioToFastest": 1.5699,
-            "ratioToFastestText": "1.57x",
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
           },
@@ -18388,19 +16371,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 435.1042333333333,
-            "meanText": "435.10 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": null,
-            "ratioToFastest": 1.9202,
-            "ratioToFastestText": "1.92x",
-            "allocatedRatioToFastestText": "1.91x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -18503,19 +16473,6 @@
             "ratioToFastest": 22.4811,
             "ratioToFastestText": "22.5x",
             "allocatedRatioToFastestText": "58.4x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 471.2999,
-            "meanText": "471.30 ms",
-            "allocatedText": "249.1 MB",
-            "packageText": null,
-            "ratioToFastest": 10.1705,
-            "ratioToFastestText": "10.2x",
-            "allocatedRatioToFastestText": "21.9x",
             "packageRatioToFastestText": null
           },
           {
@@ -18624,19 +16581,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 571.2431666666666,
-            "meanText": "571.24 ms",
-            "allocatedText": "356.2 MB",
-            "packageText": null,
-            "ratioToFastest": 1.6665,
-            "ratioToFastestText": "1.67x",
-            "allocatedRatioToFastestText": "1.86x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -18739,19 +16683,6 @@
             "ratioToFastest": 23.0449,
             "ratioToFastestText": "23.0x",
             "allocatedRatioToFastestText": "88.9x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 563.8560000000001,
-            "meanText": "563.86 ms",
-            "allocatedText": "334.8 MB",
-            "packageText": null,
-            "ratioToFastest": 10.959,
-            "ratioToFastestText": "11.0x",
-            "allocatedRatioToFastestText": "31.2x",
             "packageRatioToFastestText": null
           },
           {
@@ -18860,19 +16791,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 560.4568666666668,
-            "meanText": "560.46 ms",
-            "allocatedText": "242.0 MB",
-            "packageText": null,
-            "ratioToFastest": 1.6734,
-            "ratioToFastestText": "1.67x",
-            "allocatedRatioToFastestText": "1.24x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -18975,19 +16893,6 @@
             "ratioToFastest": 20.7992,
             "ratioToFastestText": "20.8x",
             "allocatedRatioToFastestText": "60.6x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 527.5102666666668,
-            "meanText": "527.51 ms",
-            "allocatedText": "220.7 MB",
-            "packageText": null,
-            "ratioToFastest": 10.399,
-            "ratioToFastestText": "10.4x",
-            "allocatedRatioToFastestText": "16.5x",
             "packageRatioToFastestText": null
           },
           {
@@ -19096,19 +17001,6 @@
             "packageRatioToFastestText": "0.89x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 244.49946666666665,
-            "meanText": "244.50 ms",
-            "allocatedText": "98.0 MB",
-            "packageText": "525.6 KB",
-            "ratioToFastest": 17.067,
-            "ratioToFastestText": "17.1x",
-            "allocatedRatioToFastestText": "36.2x",
-            "packageRatioToFastestText": "0.87x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -19212,19 +17104,6 @@
             "ratioToFastestText": "19.2x",
             "allocatedRatioToFastestText": "52.8x",
             "packageRatioToFastestText": "0.80x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 594.5683,
-            "meanText": "594.57 ms",
-            "allocatedText": "245.1 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 6.4064,
-            "ratioToFastestText": "6.41x",
-            "allocatedRatioToFastestText": "16.0x",
-            "packageRatioToFastestText": "0.76x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -19332,19 +17211,6 @@
             "packageRatioToFastestText": "0.87x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 283.72583333333336,
-            "meanText": "283.73 ms",
-            "allocatedText": "82.4 MB",
-            "packageText": "444.7 KB",
-            "ratioToFastest": 14.1436,
-            "ratioToFastestText": "14.1x",
-            "allocatedRatioToFastestText": "5.36x",
-            "packageRatioToFastestText": "0.84x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -19448,19 +17314,6 @@
             "ratioToFastestText": "9.09x",
             "allocatedRatioToFastestText": "18.3x",
             "packageRatioToFastestText": "0.80x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 477.4376333333333,
-            "meanText": "477.44 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 10.8897,
-            "ratioToFastestText": "10.9x",
-            "allocatedRatioToFastestText": "18.4x",
-            "packageRatioToFastestText": "0.76x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -19568,19 +17421,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 513.8159,
-            "meanText": "513.82 ms",
-            "allocatedText": "209.9 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 11.2013,
-            "ratioToFastestText": "11.2x",
-            "allocatedRatioToFastestText": "17.1x",
-            "packageRatioToFastestText": "0.76x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -19684,19 +17524,6 @@
             "ratioToFastestText": "9.39x",
             "allocatedRatioToFastestText": "18.2x",
             "packageRatioToFastestText": "0.80x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 522.1302333333333,
-            "meanText": "522.13 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 12.2227,
-            "ratioToFastestText": "12.2x",
-            "allocatedRatioToFastestText": "18.3x",
-            "packageRatioToFastestText": "0.76x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -19804,19 +17631,6 @@
             "packageRatioToFastestText": "0.80x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 527.6464666666667,
-            "meanText": "527.65 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 12.3112,
-            "ratioToFastestText": "12.3x",
-            "allocatedRatioToFastestText": "18.4x",
-            "packageRatioToFastestText": "0.76x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -19920,19 +17734,6 @@
             "ratioToFastestText": "9.29x",
             "allocatedRatioToFastestText": "18.3x",
             "packageRatioToFastestText": "0.80x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 463.68533333333335,
-            "meanText": "463.69 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 10.9025,
-            "ratioToFastestText": "10.9x",
-            "allocatedRatioToFastestText": "18.4x",
-            "packageRatioToFastestText": "0.76x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -20040,19 +17841,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 602.4895,
-            "meanText": "602.49 ms",
-            "allocatedText": "225.4 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 1.4648,
-            "ratioToFastestText": "1.46x",
-            "allocatedRatioToFastestText": "1.61x",
-            "packageRatioToFastestText": "0.55x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -20156,19 +17944,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 527.2146000000001,
-            "meanText": "527.21 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 1.7173,
-            "ratioToFastestText": "1.72x",
-            "allocatedRatioToFastestText": "1.91x",
-            "packageRatioToFastestText": "0.55x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -20276,19 +18051,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 535.9763333333334,
-            "meanText": "535.98 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 4.5026,
-            "ratioToFastestText": "4.50x",
-            "allocatedRatioToFastestText": "5.01x",
-            "packageRatioToFastestText": "0.55x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -20392,19 +18154,6 @@
             "ratioToFastestText": "23.3x",
             "allocatedRatioToFastestText": "58.4x",
             "packageRatioToFastestText": "0.80x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 516.2810666666667,
-            "meanText": "516.28 ms",
-            "allocatedText": "249.1 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 11.0412,
-            "ratioToFastestText": "11.0x",
-            "allocatedRatioToFastestText": "21.9x",
-            "packageRatioToFastestText": "0.76x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -20512,19 +18261,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 572.3873,
-            "meanText": "572.39 ms",
-            "allocatedText": "295.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 1.757,
-            "ratioToFastestText": "1.76x",
-            "allocatedRatioToFastestText": "1.93x",
-            "packageRatioToFastestText": "0.55x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -20628,19 +18364,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 498.49736666666666,
-            "meanText": "498.50 ms",
-            "allocatedText": "229.3 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 1.5575,
-            "ratioToFastestText": "1.56x",
-            "allocatedRatioToFastestText": "1.62x",
-            "packageRatioToFastestText": "0.55x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -20748,19 +18471,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 564.9253,
-            "meanText": "564.93 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 1.6786,
-            "ratioToFastestText": "1.68x",
-            "allocatedRatioToFastestText": "1.91x",
-            "packageRatioToFastestText": "0.55x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -20864,19 +18574,6 @@
             "ratioToFastestText": null,
             "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 537.1941333333333,
-            "meanText": "537.19 ms",
-            "allocatedText": "270.6 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 1.6483,
-            "ratioToFastestText": "1.65x",
-            "allocatedRatioToFastestText": "1.91x",
-            "packageRatioToFastestText": "0.54x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -20984,19 +18681,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 711.7555333333333,
-            "meanText": "711.76 ms",
-            "allocatedText": "356.2 MB",
-            "packageText": "1.5 MB",
-            "ratioToFastest": 1.6046,
-            "ratioToFastestText": "1.60x",
-            "allocatedRatioToFastestText": "1.86x",
-            "packageRatioToFastestText": "0.57x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -21100,19 +18784,6 @@
             "ratioToFastestText": "22.9x",
             "allocatedRatioToFastestText": "88.9x",
             "packageRatioToFastestText": "0.85x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 673.9948666666667,
-            "meanText": "673.99 ms",
-            "allocatedText": "334.8 MB",
-            "packageText": "1.5 MB",
-            "ratioToFastest": 10.6572,
-            "ratioToFastestText": "10.7x",
-            "allocatedRatioToFastestText": "31.2x",
-            "packageRatioToFastestText": "0.82x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -21220,19 +18891,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "mid",
-            "meanMilliseconds": 710.8917666666666,
-            "meanText": "710.89 ms",
-            "allocatedText": "242.0 MB",
-            "packageText": "1.5 MB",
-            "ratioToFastest": 1.5198,
-            "ratioToFastestText": "1.52x",
-            "allocatedRatioToFastestText": "1.24x",
-            "packageRatioToFastestText": "0.57x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -21336,19 +18994,6 @@
             "ratioToFastestText": "18.5x",
             "allocatedRatioToFastestText": "60.6x",
             "packageRatioToFastestText": "0.85x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 678.1560666666668,
-            "meanText": "678.16 ms",
-            "allocatedText": "220.7 MB",
-            "packageText": "1.5 MB",
-            "ratioToFastest": 8.8326,
-            "ratioToFastestText": "8.83x",
-            "allocatedRatioToFastestText": "16.5x",
-            "packageRatioToFastestText": "0.82x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -21456,19 +19101,6 @@
             "packageRatioToFastestText": "1.06x"
           },
           {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -21572,19 +19204,6 @@
             "ratioToFastestText": "24.5x",
             "allocatedRatioToFastestText": "49.0x",
             "packageRatioToFastestText": "0.80x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 507.39529999999996,
-            "meanText": "507.40 ms",
-            "allocatedText": "249.0 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 12.1512,
-            "ratioToFastestText": "12.2x",
-            "allocatedRatioToFastestText": "22.1x",
-            "packageRatioToFastestText": "0.76x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -21692,19 +19311,6 @@
             "packageRatioToFastestText": "0.96x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 443.2501333333333,
-            "meanText": "443.25 ms",
-            "allocatedText": "137.4 MB",
-            "packageText": "593.9 KB",
-            "ratioToFastest": 14.0505,
-            "ratioToFastestText": "14.1x",
-            "allocatedRatioToFastestText": "13.9x",
-            "packageRatioToFastestText": "0.89x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -21808,19 +19414,6 @@
             "ratioToFastestText": "9.54x",
             "allocatedRatioToFastestText": "13.5x",
             "packageRatioToFastestText": "0.88x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 205.95373333333336,
-            "meanText": "205.95 ms",
-            "allocatedText": "72.7 MB",
-            "packageText": "390.6 KB",
-            "ratioToFastest": 12.7358,
-            "ratioToFastestText": "12.7x",
-            "allocatedRatioToFastestText": "10.8x",
-            "packageRatioToFastestText": "0.87x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -21928,19 +19521,6 @@
             "packageRatioToFastestText": "0.89x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 231.6457,
-            "meanText": "231.65 ms",
-            "allocatedText": "84.4 MB",
-            "packageText": "406.5 KB",
-            "ratioToFastest": 13.1549,
-            "ratioToFastestText": "13.2x",
-            "allocatedRatioToFastestText": "14.5x",
-            "packageRatioToFastestText": "0.88x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -22044,19 +19624,6 @@
             "ratioToFastestText": "9.11x",
             "allocatedRatioToFastestText": "13.3x",
             "packageRatioToFastestText": "0.91x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 267.32753333333335,
-            "meanText": "267.33 ms",
-            "allocatedText": "110.6 MB",
-            "packageText": "544.3 KB",
-            "ratioToFastest": 11.7832,
-            "ratioToFastestText": "11.8x",
-            "allocatedRatioToFastestText": "13.6x",
-            "packageRatioToFastestText": "0.93x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -22164,19 +19731,6 @@
             "packageRatioToFastestText": "0.77x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 258.5831,
-            "meanText": "258.58 ms",
-            "allocatedText": "103.8 MB",
-            "packageText": "494.4 KB",
-            "ratioToFastest": 9.9797,
-            "ratioToFastestText": "9.98x",
-            "allocatedRatioToFastestText": "14.3x",
-            "packageRatioToFastestText": "0.81x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -22280,19 +19834,6 @@
             "ratioToFastestText": "8.51x",
             "allocatedRatioToFastestText": "14.2x",
             "packageRatioToFastestText": "0.77x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 291.04403333333335,
-            "meanText": "291.04 ms",
-            "allocatedText": "103.8 MB",
-            "packageText": "494.4 KB",
-            "ratioToFastest": 12.1056,
-            "ratioToFastestText": "12.1x",
-            "allocatedRatioToFastestText": "14.3x",
-            "packageRatioToFastestText": "0.81x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -22400,19 +19941,6 @@
             "packageRatioToFastestText": "0.89x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 226.89173333333335,
-            "meanText": "226.89 ms",
-            "allocatedText": "83.1 MB",
-            "packageText": "379.3 KB",
-            "ratioToFastest": 14.724,
-            "ratioToFastestText": "14.7x",
-            "allocatedRatioToFastestText": "13.9x",
-            "packageRatioToFastestText": "0.86x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -22516,19 +20044,6 @@
             "ratioToFastestText": "6.84x",
             "allocatedRatioToFastestText": "6.79x",
             "packageRatioToFastestText": "0.87x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 227.20686666666666,
-            "meanText": "227.21 ms",
-            "allocatedText": "82.4 MB",
-            "packageText": "444.7 KB",
-            "ratioToFastest": 10.3627,
-            "ratioToFastestText": "10.4x",
-            "allocatedRatioToFastestText": "5.50x",
-            "packageRatioToFastestText": "0.84x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -22636,19 +20151,6 @@
             "packageRatioToFastestText": "1.11x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 264.91976666666665,
-            "meanText": "264.92 ms",
-            "allocatedText": "95.4 MB",
-            "packageText": "565.1 KB",
-            "ratioToFastest": 14.9256,
-            "ratioToFastestText": "14.9x",
-            "allocatedRatioToFastestText": "7.07x",
-            "packageRatioToFastestText": "1.13x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -22752,19 +20254,6 @@
             "ratioToFastestText": "8.08x",
             "allocatedRatioToFastestText": "11.2x",
             "packageRatioToFastestText": "0.88x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 192.12310000000002,
-            "meanText": "192.12 ms",
-            "allocatedText": "68.4 MB",
-            "packageText": "300.8 KB",
-            "ratioToFastest": 11.671,
-            "ratioToFastestText": "11.7x",
-            "allocatedRatioToFastestText": "9.31x",
-            "packageRatioToFastestText": "0.80x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -22872,19 +20361,6 @@
             "packageRatioToFastestText": "0.78x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 248.1467,
-            "meanText": "248.15 ms",
-            "allocatedText": "101.4 MB",
-            "packageText": "495.1 KB",
-            "ratioToFastest": 8.7757,
-            "ratioToFastestText": "8.78x",
-            "allocatedRatioToFastestText": "13.9x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -22988,19 +20464,6 @@
             "ratioToFastestText": "13.0x",
             "allocatedRatioToFastestText": "27.9x",
             "packageRatioToFastestText": "1.05x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 236.59069999999997,
-            "meanText": "236.59 ms",
-            "allocatedText": "85.4 MB",
-            "packageText": "484.1 KB",
-            "ratioToFastest": 18.7879,
-            "ratioToFastestText": "18.8x",
-            "allocatedRatioToFastestText": "25.4x",
-            "packageRatioToFastestText": "1.09x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -23108,19 +20571,6 @@
             "packageRatioToFastestText": "0.82x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 502.29206666666664,
-            "meanText": "502.29 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 13.166,
-            "ratioToFastestText": "13.2x",
-            "allocatedRatioToFastestText": "37.7x",
-            "packageRatioToFastestText": "0.79x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -23224,19 +20674,6 @@
             "ratioToFastestText": "11.6x",
             "allocatedRatioToFastestText": "18.3x",
             "packageRatioToFastestText": "1.51x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 512.7512333333333,
-            "meanText": "512.75 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 12.7967,
-            "ratioToFastestText": "12.8x",
-            "allocatedRatioToFastestText": "20.6x",
-            "packageRatioToFastestText": "1.44x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -23344,19 +20781,6 @@
             "packageRatioToFastestText": "0.82x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 468.9882333333333,
-            "meanText": "468.99 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 10.1934,
-            "ratioToFastestText": "10.2x",
-            "allocatedRatioToFastestText": "9.02x",
-            "packageRatioToFastestText": "0.79x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -23460,19 +20884,6 @@
             "ratioToFastestText": "19.6x",
             "allocatedRatioToFastestText": "43.5x",
             "packageRatioToFastestText": "0.82x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 466.74516666666665,
-            "meanText": "466.75 ms",
-            "allocatedText": "156.0 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 8.3815,
-            "ratioToFastestText": "8.38x",
-            "allocatedRatioToFastestText": "12.3x",
-            "packageRatioToFastestText": "0.79x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -23580,19 +20991,6 @@
             "packageRatioToFastestText": "1.14x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 590.5589333333334,
-            "meanText": "590.56 ms",
-            "allocatedText": "132.5 MB",
-            "packageText": "1.4 MB",
-            "ratioToFastest": 13.9593,
-            "ratioToFastestText": "14.0x",
-            "allocatedRatioToFastestText": "13.8x",
-            "packageRatioToFastestText": "1.05x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -23696,19 +21094,6 @@
             "ratioToFastestText": "14.3x",
             "allocatedRatioToFastestText": "20.8x",
             "packageRatioToFastestText": "0.85x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 592.8604333333333,
-            "meanText": "592.86 ms",
-            "allocatedText": "132.5 MB",
-            "packageText": "1.4 MB",
-            "ratioToFastest": 11.893,
-            "ratioToFastestText": "11.9x",
-            "allocatedRatioToFastestText": "10.1x",
-            "packageRatioToFastestText": "0.77x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -23816,19 +21201,6 @@
             "packageRatioToFastestText": "0.83x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 416.3269,
-            "meanText": "416.33 ms",
-            "allocatedText": "108.2 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 8.4531,
-            "ratioToFastestText": "8.45x",
-            "allocatedRatioToFastestText": "10.8x",
-            "packageRatioToFastestText": "0.80x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -23932,19 +21304,6 @@
             "ratioToFastestText": "17.7x",
             "allocatedRatioToFastestText": "53.4x",
             "packageRatioToFastestText": "0.83x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 643.5761333333334,
-            "meanText": "643.58 ms",
-            "allocatedText": "190.8 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 9.2174,
-            "ratioToFastestText": "9.22x",
-            "allocatedRatioToFastestText": "19.0x",
-            "packageRatioToFastestText": "0.80x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -24052,19 +21411,6 @@
             "packageRatioToFastestText": "0.82x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 387.7657666666667,
-            "meanText": "387.77 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 9.7327,
-            "ratioToFastestText": "9.73x",
-            "allocatedRatioToFastestText": "12.3x",
-            "packageRatioToFastestText": "0.79x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -24168,19 +21514,6 @@
             "ratioToFastestText": "10.8x",
             "allocatedRatioToFastestText": "13.6x",
             "packageRatioToFastestText": "0.82x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 420.28999999999996,
-            "meanText": "420.29 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 9.0941,
-            "ratioToFastestText": "9.09x",
-            "allocatedRatioToFastestText": "9.22x",
-            "packageRatioToFastestText": "0.79x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -24288,19 +21621,6 @@
             "packageRatioToFastestText": "0.82x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 390.8497666666667,
-            "meanText": "390.85 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 12.0154,
-            "ratioToFastestText": "12.0x",
-            "allocatedRatioToFastestText": "20.9x",
-            "packageRatioToFastestText": "0.79x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -24404,19 +21724,6 @@
             "ratioToFastestText": "18.2x",
             "allocatedRatioToFastestText": "43.2x",
             "packageRatioToFastestText": "0.80x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 629.1419999999999,
-            "meanText": "629.14 ms",
-            "allocatedText": "156.0 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 11.5001,
-            "ratioToFastestText": "11.5x",
-            "allocatedRatioToFastestText": "13.9x",
-            "packageRatioToFastestText": "0.76x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -24524,19 +21831,6 @@
             "packageRatioToFastestText": "0.82x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 435.7255666666667,
-            "meanText": "435.73 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 12.404,
-            "ratioToFastestText": "12.4x",
-            "allocatedRatioToFastestText": "20.9x",
-            "packageRatioToFastestText": "0.79x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -24640,19 +21934,6 @@
             "ratioToFastestText": "15.6x",
             "allocatedRatioToFastestText": "48.8x",
             "packageRatioToFastestText": "0.82x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 477.41069999999996,
-            "meanText": "477.41 ms",
-            "allocatedText": "156.0 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 8.0258,
-            "ratioToFastestText": "8.03x",
-            "allocatedRatioToFastestText": "15.7x",
-            "packageRatioToFastestText": "0.79x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -24760,19 +22041,6 @@
             "packageRatioToFastestText": "0.82x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 424.5506666666667,
-            "meanText": "424.55 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 11.725,
-            "ratioToFastestText": "11.7x",
-            "allocatedRatioToFastestText": "20.9x",
-            "packageRatioToFastestText": "0.79x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -24876,19 +22144,6 @@
             "ratioToFastestText": "9.02x",
             "allocatedRatioToFastestText": "18.6x",
             "packageRatioToFastestText": "0.82x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 422.80553333333336,
-            "meanText": "422.81 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 10.9375,
-            "ratioToFastestText": "10.9x",
-            "allocatedRatioToFastestText": "20.9x",
-            "packageRatioToFastestText": "0.79x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -24996,19 +22251,6 @@
             "packageRatioToFastestText": "0.80x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 424.5234333333333,
-            "meanText": "424.52 ms",
-            "allocatedText": "135.1 MB",
-            "packageText": "1.1 MB",
-            "ratioToFastest": 9.0759,
-            "ratioToFastestText": "9.08x",
-            "allocatedRatioToFastestText": "12.0x",
-            "packageRatioToFastestText": "0.76x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -25112,19 +22354,6 @@
             "ratioToFastestText": "9.58x",
             "allocatedRatioToFastestText": "29.7x",
             "packageRatioToFastestText": "0.86x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 556.5237999999999,
-            "meanText": "556.52 ms",
-            "allocatedText": "141.5 MB",
-            "packageText": "1.4 MB",
-            "ratioToFastest": 10.9043,
-            "ratioToFastestText": "10.9x",
-            "allocatedRatioToFastestText": "24.0x",
-            "packageRatioToFastestText": "0.81x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -25232,19 +22461,6 @@
             "packageRatioToFastestText": "0.86x"
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 538.0715,
-            "meanText": "538.07 ms",
-            "allocatedText": "141.5 MB",
-            "packageText": "1.4 MB",
-            "ratioToFastest": 10.9483,
-            "ratioToFastestText": "10.9x",
-            "allocatedRatioToFastestText": "24.0x",
-            "packageRatioToFastestText": "0.81x"
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -25348,19 +22564,6 @@
             "ratioToFastestText": "5.35x",
             "allocatedRatioToFastestText": "13.5x",
             "packageRatioToFastestText": "0.92x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 1869.7045333333333,
-            "meanText": "1.87 s",
-            "allocatedText": "549.7 MB",
-            "packageText": "5.3 MB",
-            "ratioToFastest": 6.8807,
-            "ratioToFastestText": "6.88x",
-            "allocatedRatioToFastestText": "15.6x",
-            "packageRatioToFastestText": "0.81x"
           },
           {
             "library": "EPPlus 4.5.3.3",
@@ -25468,19 +22671,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 193.0747,
-            "meanText": "193.07 ms",
-            "allocatedText": "69.2 MB",
-            "packageText": null,
-            "ratioToFastest": 6.6634,
-            "ratioToFastestText": "6.66x",
-            "allocatedRatioToFastestText": "11.4x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -25574,19 +22764,6 @@
         "cells": [
           {
             "library": "ClosedXML",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
             "measured": false,
             "style": "missing",
             "meanMilliseconds": null,
@@ -25704,19 +22881,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -25819,19 +22983,6 @@
             "ratioToFastest": 4.312,
             "ratioToFastestText": "4.31x",
             "allocatedRatioToFastestText": "24.8x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 101.17393333333332,
-            "meanText": "101.17 ms",
-            "allocatedText": "42.1 MB",
-            "packageText": null,
-            "ratioToFastest": 117.4529,
-            "ratioToFastestText": "117x",
-            "allocatedRatioToFastestText": "243x",
             "packageRatioToFastestText": null
           },
           {
@@ -25940,19 +23091,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 95.8111,
-            "meanText": "95.81 ms",
-            "allocatedText": "42.1 MB",
-            "packageText": null,
-            "ratioToFastest": 110.807,
-            "ratioToFastestText": "111x",
-            "allocatedRatioToFastestText": "243x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -26055,19 +23193,6 @@
             "ratioToFastest": 8.3799,
             "ratioToFastestText": "8.38x",
             "allocatedRatioToFastestText": "46.7x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 183.69096666666667,
-            "meanText": "183.69 ms",
-            "allocatedText": "87.3 MB",
-            "packageText": null,
-            "ratioToFastest": 7.023,
-            "ratioToFastestText": "7.02x",
-            "allocatedRatioToFastestText": "46.1x",
             "packageRatioToFastestText": null
           },
           {
@@ -26176,19 +23301,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 227.00486666666666,
-            "meanText": "227.00 ms",
-            "allocatedText": "103.1 MB",
-            "packageText": null,
-            "ratioToFastest": 6.9934,
-            "ratioToFastestText": "6.99x",
-            "allocatedRatioToFastestText": "94.1x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -26291,19 +23403,6 @@
             "ratioToFastest": 6.1038,
             "ratioToFastestText": "6.10x",
             "allocatedRatioToFastestText": "9.70x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 278.7044,
-            "meanText": "278.70 ms",
-            "allocatedText": "197.5 MB",
-            "packageText": null,
-            "ratioToFastest": 4.7571,
-            "ratioToFastestText": "4.76x",
-            "allocatedRatioToFastestText": "11.0x",
             "packageRatioToFastestText": null
           },
           {
@@ -26412,19 +23511,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 237.7182,
-            "meanText": "237.72 ms",
-            "allocatedText": "112.8 MB",
-            "packageText": null,
-            "ratioToFastest": 6.4826,
-            "ratioToFastestText": "6.48x",
-            "allocatedRatioToFastestText": "28.6x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -26527,19 +23613,6 @@
             "ratioToFastest": 7.688,
             "ratioToFastestText": "7.69x",
             "allocatedRatioToFastestText": "46.3x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 257.21686666666665,
-            "meanText": "257.22 ms",
-            "allocatedText": "183.0 MB",
-            "packageText": null,
-            "ratioToFastest": 5.882,
-            "ratioToFastestText": "5.88x",
-            "allocatedRatioToFastestText": "53.0x",
             "packageRatioToFastestText": null
           },
           {
@@ -26648,19 +23721,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 270.0794,
-            "meanText": "270.08 ms",
-            "allocatedText": "183.0 MB",
-            "packageText": null,
-            "ratioToFastest": 5.2276,
-            "ratioToFastestText": "5.23x",
-            "allocatedRatioToFastestText": "41.8x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -26763,19 +23823,6 @@
             "ratioToFastest": 653.5927,
             "ratioToFastestText": "654x",
             "allocatedRatioToFastestText": "429x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 244.0323,
-            "meanText": "244.03 ms",
-            "allocatedText": "103.1 MB",
-            "packageText": null,
-            "ratioToFastest": 481.8646,
-            "ratioToFastestText": "482x",
-            "allocatedRatioToFastestText": "303x",
             "packageRatioToFastestText": null
           },
           {
@@ -26884,19 +23931,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 273.40253333333334,
-            "meanText": "273.40 ms",
-            "allocatedText": "183.0 MB",
-            "packageText": null,
-            "ratioToFastest": 6.059,
-            "ratioToFastestText": "6.06x",
-            "allocatedRatioToFastestText": "53.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -26999,19 +24033,6 @@
             "ratioToFastest": 10.579,
             "ratioToFastestText": "10.6x",
             "allocatedRatioToFastestText": "133x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 332.9993,
-            "meanText": "333.00 ms",
-            "allocatedText": "103.1 MB",
-            "packageText": null,
-            "ratioToFastest": 9.2281,
-            "ratioToFastestText": "9.23x",
-            "allocatedRatioToFastestText": "93.8x",
             "packageRatioToFastestText": null
           },
           {
@@ -27120,19 +24141,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 257.5245,
-            "meanText": "257.52 ms",
-            "allocatedText": "183.0 MB",
-            "packageText": null,
-            "ratioToFastest": 5.6783,
-            "ratioToFastestText": "5.68x",
-            "allocatedRatioToFastestText": "53.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -27235,19 +24243,6 @@
             "ratioToFastest": 762.3118,
             "ratioToFastestText": "762x",
             "allocatedRatioToFastestText": "429x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 226.6021333333333,
-            "meanText": "226.60 ms",
-            "allocatedText": "103.1 MB",
-            "packageText": null,
-            "ratioToFastest": 499.9312,
-            "ratioToFastestText": "500x",
-            "allocatedRatioToFastestText": "303x",
             "packageRatioToFastestText": null
           },
           {
@@ -27356,19 +24351,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 346.90260000000006,
-            "meanText": "346.90 ms",
-            "allocatedText": "103.1 MB",
-            "packageText": null,
-            "ratioToFastest": 797.5384,
-            "ratioToFastestText": "798x",
-            "allocatedRatioToFastestText": "303x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -27471,19 +24453,6 @@
             "ratioToFastest": 7.0207,
             "ratioToFastestText": "7.02x",
             "allocatedRatioToFastestText": "28.5x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 258.28946666666667,
-            "meanText": "258.29 ms",
-            "allocatedText": "194.9 MB",
-            "packageText": null,
-            "ratioToFastest": 5.4791,
-            "ratioToFastestText": "5.48x",
-            "allocatedRatioToFastestText": "34.4x",
             "packageRatioToFastestText": null
           },
           {
@@ -27592,19 +24561,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 248.5649,
-            "meanText": "248.56 ms",
-            "allocatedText": "194.7 MB",
-            "packageText": null,
-            "ratioToFastest": 5.4485,
-            "ratioToFastestText": "5.45x",
-            "allocatedRatioToFastestText": "8.53x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -27707,19 +24663,6 @@
             "ratioToFastest": 18.2098,
             "ratioToFastestText": "18.2x",
             "allocatedRatioToFastestText": "43.5x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 370.43799999999993,
-            "meanText": "370.44 ms",
-            "allocatedText": "156.0 MB",
-            "packageText": null,
-            "ratioToFastest": 8.6971,
-            "ratioToFastestText": "8.70x",
-            "allocatedRatioToFastestText": "12.3x",
             "packageRatioToFastestText": null
           },
           {
@@ -27828,19 +24771,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 522.8701333333333,
-            "meanText": "522.87 ms",
-            "allocatedText": "190.8 MB",
-            "packageText": null,
-            "ratioToFastest": 12.0438,
-            "ratioToFastestText": "12.0x",
-            "allocatedRatioToFastestText": "19.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -27943,19 +24873,6 @@
             "ratioToFastest": 17.2359,
             "ratioToFastestText": "17.2x",
             "allocatedRatioToFastestText": "43.2x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 369.7246333333333,
-            "meanText": "369.72 ms",
-            "allocatedText": "156.0 MB",
-            "packageText": null,
-            "ratioToFastest": 9.3588,
-            "ratioToFastestText": "9.36x",
-            "allocatedRatioToFastestText": "13.9x",
             "packageRatioToFastestText": null
           },
           {
@@ -28064,19 +24981,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 399.6074999999999,
-            "meanText": "399.61 ms",
-            "allocatedText": "156.0 MB",
-            "packageText": null,
-            "ratioToFastest": 9.3008,
-            "ratioToFastestText": "9.30x",
-            "allocatedRatioToFastestText": "15.7x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -28179,19 +25083,6 @@
             "ratioToFastest": 11.4731,
             "ratioToFastestText": "11.5x",
             "allocatedRatioToFastestText": "23.9x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 359.1043333333333,
-            "meanText": "359.10 ms",
-            "allocatedText": "135.1 MB",
-            "packageText": null,
-            "ratioToFastest": 9.6467,
-            "ratioToFastestText": "9.65x",
-            "allocatedRatioToFastestText": "12.0x",
             "packageRatioToFastestText": null
           },
           {
@@ -28300,19 +25191,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 168.92746666666667,
-            "meanText": "168.93 ms",
-            "allocatedText": "72.7 MB",
-            "packageText": null,
-            "ratioToFastest": 13.6868,
-            "ratioToFastestText": "13.7x",
-            "allocatedRatioToFastestText": "10.8x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -28415,19 +25293,6 @@
             "ratioToFastest": 7.196,
             "ratioToFastestText": "7.20x",
             "allocatedRatioToFastestText": "14.1x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 185.487,
-            "meanText": "185.49 ms",
-            "allocatedText": "84.4 MB",
-            "packageText": null,
-            "ratioToFastest": 12.4778,
-            "ratioToFastestText": "12.5x",
-            "allocatedRatioToFastestText": "14.5x",
             "packageRatioToFastestText": null
           },
           {
@@ -28536,19 +25401,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 216.5362,
-            "meanText": "216.54 ms",
-            "allocatedText": "110.6 MB",
-            "packageText": null,
-            "ratioToFastest": 12.5429,
-            "ratioToFastestText": "12.5x",
-            "allocatedRatioToFastestText": "13.6x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -28651,19 +25503,6 @@
             "ratioToFastest": 7.5456,
             "ratioToFastestText": "7.55x",
             "allocatedRatioToFastestText": "14.2x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 221.18359999999998,
-            "meanText": "221.18 ms",
-            "allocatedText": "103.8 MB",
-            "packageText": null,
-            "ratioToFastest": 11.3856,
-            "ratioToFastestText": "11.4x",
-            "allocatedRatioToFastestText": "14.3x",
             "packageRatioToFastestText": null
           },
           {
@@ -28772,19 +25611,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 222.8456666666667,
-            "meanText": "222.85 ms",
-            "allocatedText": "103.8 MB",
-            "packageText": null,
-            "ratioToFastest": 12.4826,
-            "ratioToFastestText": "12.5x",
-            "allocatedRatioToFastestText": "14.3x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -28887,19 +25713,6 @@
             "ratioToFastest": 9.4491,
             "ratioToFastestText": "9.45x",
             "allocatedRatioToFastestText": "13.4x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 180.23726666666667,
-            "meanText": "180.24 ms",
-            "allocatedText": "83.1 MB",
-            "packageText": null,
-            "ratioToFastest": 16.4357,
-            "ratioToFastestText": "16.4x",
-            "allocatedRatioToFastestText": "13.9x",
             "packageRatioToFastestText": null
           },
           {
@@ -29008,19 +25821,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 198.90286666666665,
-            "meanText": "198.90 ms",
-            "allocatedText": "101.4 MB",
-            "packageText": null,
-            "ratioToFastest": 7.4254,
-            "ratioToFastestText": "7.43x",
-            "allocatedRatioToFastestText": "13.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -29123,19 +25923,6 @@
             "ratioToFastest": 9.2107,
             "ratioToFastestText": "9.21x",
             "allocatedRatioToFastestText": "13.2x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 487.2048,
-            "meanText": "487.20 ms",
-            "allocatedText": "108.6 MB",
-            "packageText": null,
-            "ratioToFastest": 12.1977,
-            "ratioToFastestText": "12.2x",
-            "allocatedRatioToFastestText": "8.53x",
             "packageRatioToFastestText": null
           },
           {
@@ -29244,19 +26031,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 681.5425333333333,
-            "meanText": "681.54 ms",
-            "allocatedText": "132.5 MB",
-            "packageText": null,
-            "ratioToFastest": 15.0434,
-            "ratioToFastestText": "15.0x",
-            "allocatedRatioToFastestText": "10.1x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -29359,19 +26133,6 @@
             "ratioToFastest": 9.5466,
             "ratioToFastestText": "9.55x",
             "allocatedRatioToFastestText": "16.7x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 395.10370000000006,
-            "meanText": "395.10 ms",
-            "allocatedText": "108.2 MB",
-            "packageText": null,
-            "ratioToFastest": 10.3074,
-            "ratioToFastestText": "10.3x",
-            "allocatedRatioToFastestText": "10.8x",
             "packageRatioToFastestText": null
           },
           {
@@ -29480,19 +26241,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 326.3331333333333,
-            "meanText": "326.33 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": null,
-            "ratioToFastest": 8.7867,
-            "ratioToFastestText": "8.79x",
-            "allocatedRatioToFastestText": "9.02x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -29595,19 +26343,6 @@
             "ratioToFastest": 8.1865,
             "ratioToFastestText": "8.19x",
             "allocatedRatioToFastestText": "10.9x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 419.2272333333333,
-            "meanText": "419.23 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": null,
-            "ratioToFastest": 11.6283,
-            "ratioToFastestText": "11.6x",
-            "allocatedRatioToFastestText": "12.3x",
             "packageRatioToFastestText": null
           },
           {
@@ -29716,19 +26451,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 321.93786666666665,
-            "meanText": "321.94 ms",
-            "allocatedText": "112.0 MB",
-            "packageText": null,
-            "ratioToFastest": 8.6371,
-            "ratioToFastestText": "8.64x",
-            "allocatedRatioToFastestText": "11.5x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -29831,19 +26553,6 @@
             "ratioToFastest": 11.9429,
             "ratioToFastestText": "11.9x",
             "allocatedRatioToFastestText": "13.6x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 396.5827,
-            "meanText": "396.58 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": null,
-            "ratioToFastest": 11.0598,
-            "ratioToFastestText": "11.1x",
-            "allocatedRatioToFastestText": "9.22x",
             "packageRatioToFastestText": null
           },
           {
@@ -29952,19 +26661,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 458.9452666666666,
-            "meanText": "458.95 ms",
-            "allocatedText": "249.0 MB",
-            "packageText": null,
-            "ratioToFastest": 10.9952,
-            "ratioToFastestText": "11.0x",
-            "allocatedRatioToFastestText": "22.1x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -30070,19 +26766,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 343.56940000000003,
-            "meanText": "343.57 ms",
-            "allocatedText": "137.4 MB",
-            "packageText": null,
-            "ratioToFastest": 15.9159,
-            "ratioToFastestText": "15.9x",
-            "allocatedRatioToFastestText": "13.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -30176,19 +26859,6 @@
         "cells": [
           {
             "library": "ClosedXML",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
             "measured": false,
             "style": "missing",
             "meanMilliseconds": null,
@@ -30306,19 +26976,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 493.6179666666667,
-            "meanText": "493.62 ms",
-            "allocatedText": "141.5 MB",
-            "packageText": null,
-            "ratioToFastest": 12.0015,
-            "ratioToFastestText": "12.0x",
-            "allocatedRatioToFastestText": "24.0x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -30421,19 +27078,6 @@
             "ratioToFastest": 8.8476,
             "ratioToFastestText": "8.85x",
             "allocatedRatioToFastestText": "29.7x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 487.1013,
-            "meanText": "487.10 ms",
-            "allocatedText": "141.5 MB",
-            "packageText": null,
-            "ratioToFastest": 10.4943,
-            "ratioToFastestText": "10.5x",
-            "allocatedRatioToFastestText": "24.0x",
             "packageRatioToFastestText": null
           },
           {
@@ -30542,19 +27186,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 1710.6599999999999,
-            "meanText": "1.71 s",
-            "allocatedText": "549.7 MB",
-            "packageText": null,
-            "ratioToFastest": 7.905,
-            "ratioToFastestText": "7.91x",
-            "allocatedRatioToFastestText": "15.6x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -30657,19 +27288,6 @@
             "ratioToFastest": 12.4682,
             "ratioToFastestText": "12.5x",
             "allocatedRatioToFastestText": "37.6x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 212.18740000000003,
-            "meanText": "212.19 ms",
-            "allocatedText": "98.0 MB",
-            "packageText": null,
-            "ratioToFastest": 18.344,
-            "ratioToFastestText": "18.3x",
-            "allocatedRatioToFastestText": "36.2x",
             "packageRatioToFastestText": null
           },
           {
@@ -30778,19 +27396,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 184.55679999999998,
-            "meanText": "184.56 ms",
-            "allocatedText": "85.4 MB",
-            "packageText": null,
-            "ratioToFastest": 16.1203,
-            "ratioToFastestText": "16.1x",
-            "allocatedRatioToFastestText": "12.6x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -30893,19 +27498,6 @@
             "ratioToFastest": 9.9499,
             "ratioToFastestText": "9.95x",
             "allocatedRatioToFastestText": "37.5x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 353.9660666666667,
-            "meanText": "353.97 ms",
-            "allocatedText": "206.9 MB",
-            "packageText": null,
-            "ratioToFastest": 12.0118,
-            "ratioToFastestText": "12.0x",
-            "allocatedRatioToFastestText": "37.7x",
             "packageRatioToFastestText": null
           },
           {
@@ -31014,19 +27606,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 206.8531,
-            "meanText": "206.85 ms",
-            "allocatedText": "103.8 MB",
-            "packageText": null,
-            "ratioToFastest": 9.4637,
-            "ratioToFastestText": "9.46x",
-            "allocatedRatioToFastestText": "13.5x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -31129,19 +27708,6 @@
             "ratioToFastest": 9.8518,
             "ratioToFastestText": "9.85x",
             "allocatedRatioToFastestText": "18.3x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 317.3288,
-            "meanText": "317.33 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": null,
-            "ratioToFastest": 11.3394,
-            "ratioToFastestText": "11.3x",
-            "allocatedRatioToFastestText": "20.6x",
             "packageRatioToFastestText": null
           },
           {
@@ -31250,19 +27816,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 599.0004666666666,
-            "meanText": "599.00 ms",
-            "allocatedText": "132.5 MB",
-            "packageText": null,
-            "ratioToFastest": 17.1639,
-            "ratioToFastestText": "17.2x",
-            "allocatedRatioToFastestText": "13.8x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -31365,19 +27918,6 @@
             "ratioToFastest": 24.1507,
             "ratioToFastestText": "24.2x",
             "allocatedRatioToFastestText": "70.4x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
             "packageRatioToFastestText": null
           },
           {
@@ -31486,19 +28026,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 220.48533333333333,
-            "meanText": "220.49 ms",
-            "allocatedText": "82.4 MB",
-            "packageText": null,
-            "ratioToFastest": 11.0082,
-            "ratioToFastestText": "11.0x",
-            "allocatedRatioToFastestText": "5.36x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -31601,19 +28128,6 @@
             "ratioToFastest": 6.6609,
             "ratioToFastestText": "6.66x",
             "allocatedRatioToFastestText": "6.79x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 191.7968,
-            "meanText": "191.80 ms",
-            "allocatedText": "82.4 MB",
-            "packageText": null,
-            "ratioToFastest": 11.1749,
-            "ratioToFastestText": "11.2x",
-            "allocatedRatioToFastestText": "5.50x",
             "packageRatioToFastestText": null
           },
           {
@@ -31722,19 +28236,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 209.40863333333334,
-            "meanText": "209.41 ms",
-            "allocatedText": "95.4 MB",
-            "packageText": null,
-            "ratioToFastest": 16.5142,
-            "ratioToFastestText": "16.5x",
-            "allocatedRatioToFastestText": "7.07x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -31837,19 +28338,6 @@
             "ratioToFastest": 7.6697,
             "ratioToFastestText": "7.67x",
             "allocatedRatioToFastestText": "11.2x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 145.99486666666667,
-            "meanText": "145.99 ms",
-            "allocatedText": "68.4 MB",
-            "packageText": null,
-            "ratioToFastest": 11.4001,
-            "ratioToFastestText": "11.4x",
-            "allocatedRatioToFastestText": "9.31x",
             "packageRatioToFastestText": null
           },
           {
@@ -31958,19 +28446,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 342.2866333333333,
-            "meanText": "342.29 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": null,
-            "ratioToFastest": 11.8536,
-            "ratioToFastestText": "11.9x",
-            "allocatedRatioToFastestText": "20.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": true,
             "style": "slow",
@@ -32073,19 +28548,6 @@
             "ratioToFastest": 10.0894,
             "ratioToFastestText": "10.1x",
             "allocatedRatioToFastestText": "18.6x",
-            "packageRatioToFastestText": null
-          },
-          {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 351.4049333333333,
-            "meanText": "351.40 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": null,
-            "ratioToFastest": 12.3895,
-            "ratioToFastestText": "12.4x",
-            "allocatedRatioToFastestText": "20.9x",
             "packageRatioToFastestText": null
           },
           {
@@ -32194,19 +28656,6 @@
             "packageRatioToFastestText": null
           },
           {
-            "library": "EPPlus",
-            "measured": true,
-            "style": "slow",
-            "meanMilliseconds": 349.7772333333333,
-            "meanText": "349.78 ms",
-            "allocatedText": "114.7 MB",
-            "packageText": null,
-            "ratioToFastest": 11.8179,
-            "ratioToFastestText": "11.8x",
-            "allocatedRatioToFastestText": "20.9x",
-            "packageRatioToFastestText": null
-          },
-          {
             "library": "EPPlus 4.5.3.3",
             "measured": false,
             "style": "missing",
@@ -32310,19 +28759,6 @@
             "ratioToFastestText": "25.0x",
             "allocatedRatioToFastestText": "93.6x",
             "packageRatioToFastestText": "1.08x"
-          },
-          {
-            "library": "EPPlus",
-            "measured": false,
-            "style": "missing",
-            "meanMilliseconds": null,
-            "meanText": null,
-            "allocatedText": null,
-            "packageText": null,
-            "ratioToFastest": null,
-            "ratioToFastestText": null,
-            "allocatedRatioToFastestText": null,
-            "packageRatioToFastestText": null
           },
           {
             "library": "EPPlus 4.5.3.3",

@@ -33,6 +33,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return _kinds[ordinal] switch {
                 ValueKind.Text or ValueKind.Error => _strings[ordinal]!,
                 ValueKind.Number => GetNumericValue(_numbers[ordinal]),
+                // A date-formatted serial with no DateTime reads as a double, as in the other formats.
+                ValueKind.DatelessSerial => _numbers[ordinal],
                 ValueKind.Boolean => _booleans[ordinal],
                 ValueKind.Date => _dates[ordinal],
                 _ => DBNull.Value
@@ -55,7 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] switch {
                 ValueKind.Text or ValueKind.Error => _strings[ordinal]!,
-                ValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
+                ValueKind.Number or ValueKind.DatelessSerial => _numbers[ordinal].ToString("R", _options.Culture),
                 ValueKind.Boolean => _booleans[ordinal].ToString(),
                 ValueKind.Date => _dates[ordinal].ToString(_options.Culture),
                 _ => throw new InvalidCastException("The XLS cell is blank.")
@@ -71,49 +73,49 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         public override byte GetByte(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToByte(_numbers[ordinal])
                 : Convert.ToByte(GetValue(ordinal), _options.Culture);
         }
 
         public override short GetInt16(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToInt16(_numbers[ordinal])
                 : Convert.ToInt16(GetValue(ordinal), _options.Culture);
         }
 
         public override int GetInt32(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToInt32(_numbers[ordinal])
                 : Convert.ToInt32(GetValue(ordinal), _options.Culture);
         }
 
         public override long GetInt64(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? Convert.ToInt64(_numbers[ordinal])
                 : Convert.ToInt64(GetValue(ordinal), _options.Culture);
         }
 
         public override float GetFloat(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? (float)_numbers[ordinal]
                 : Convert.ToSingle(GetValue(ordinal), _options.Culture);
         }
 
         public override double GetDouble(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date
+            return _kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial
                 ? _numbers[ordinal]
                 : Convert.ToDouble(GetValue(ordinal), _options.Culture);
         }
 
         public override decimal GetDecimal(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            if (_kinds[ordinal] is ValueKind.Number or ValueKind.Date) {
+            if (_kinds[ordinal] is ValueKind.Number or ValueKind.Date or ValueKind.DatelessSerial) {
                 try {
                     return OfficeDecimalConversion.FromDouble(_numbers[ordinal]);
                 } catch (OverflowException) {

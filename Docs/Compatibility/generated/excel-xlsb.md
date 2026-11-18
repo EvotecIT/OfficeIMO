@@ -16,6 +16,7 @@ Schema version: 1
 | Security | Excel.Xlsb.Security.Protection | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Names | Excel.Xlsb.Names.DefinedNames | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
 | Calculation | Excel.Xlsb.Calculation.Settings | Excel.Xlsb | Native | Native | Native | PreservedOpaque | Native | Native | None |  |
+| Metadata | Excel.Xlsb.Metadata.Properties | Excel.Xlsb | Native | Native | Native | Native | Native | Native | None |  |
 | Drawing | Excel.Xlsb.Drawing.ImagesShapes | Excel.Xlsb | Approximation | PreservedOpaque | Blocked | PreservedOpaque | Rasterized | EmbeddedSource | Visual, Editability, Carrier | Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier. |
 | Drawing | Excel.Xlsb.Drawing.Charts | Excel.Xlsb | Approximation | PreservedOpaque | Blocked | PreservedOpaque | Rasterized | EmbeddedSource | Visual, Editability, Carrier | Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback. |
 | Analytics | Excel.Xlsb.Analytics.Pivots | Excel.Xlsb | Approximation | PreservedOpaque | Blocked | PreservedOpaque | Rasterized | EmbeddedSource | Visual, Editability, Carrier | Existing package parts are preservation-owned. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback. |

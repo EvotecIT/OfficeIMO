@@ -145,6 +145,54 @@ public sealed class PdfStandardEncryptionInteroperabilityTests {
         Assert.Equal(-4, info.Security.EncryptionPermissions);
     }
 
+    // The trailer may hold the encryption dictionary itself instead of a reference to it. Such a file decrypts the
+    // same way, and one that needs a password asks for it instead of failing on undecrypted streams.
+    [Fact]
+    public void EncryptionDictionaryWrittenInTheTrailerDecryptsOrAsksForThePassword() {
+        byte[] open = WithEncryptionDictionaryInTrailer(Fixture("r6-indirect-crypt-filters.pdf"));
+        Assert.Contains("Indirect filters R6", PdfDocument.Load(open).ExtractText(), StringComparison.Ordinal);
+
+        byte[] locked = WithEncryptionDictionaryInTrailer(Fixture("r6-saslprep.pdf"));
+        Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(locked).ExtractText());
+    }
+
+    // The security information describes a trailer encryption dictionary as it does a referenced one, so permission
+    // checks apply to the text it decrypts.
+    [Fact]
+    public void EncryptionDictionaryWrittenInTheTrailerIsReportedInTheSecurityInformation() {
+        byte[] referenced = Fixture("r6-indirect-crypt-filters.pdf");
+        byte[] direct = WithEncryptionDictionaryInTrailer(referenced);
+        PdfDocumentSecurityInfo expected = PdfInspector.Inspect(referenced).Security;
+
+        foreach (PdfDocumentSecurityInfo security in new[] { PdfInspector.Inspect(direct).Security, PdfSyntax.ReadDocumentSecurityInfo(direct) }) {
+            Assert.True(security.HasEncryption);
+            Assert.Null(security.EncryptObjectNumber);
+            Assert.Equal(-4, security.EncryptionPermissions);
+            Assert.Equal(expected.EncryptionRevision, security.EncryptionRevision);
+            Assert.Equal(expected.PasswordAuthenticationRole, security.PasswordAuthenticationRole);
+        }
+    }
+
+    // A trailer encryption dictionary is not an object, so every object is decrypted, including one numbered 0.
+    [Fact]
+    public void EncryptionDictionaryWrittenInTheTrailerLeavesNoObjectEncrypted() {
+        string text = PdfEncoding.Latin1GetString(WithEncryptionDictionaryInTrailer(Fixture("r6-indirect-crypt-filters.pdf")));
+        // AES-256 keys do not depend on the object number, so the content stream decrypts under its new number.
+        string renumbered = text.Replace("\n4 0 obj\n", "\n0 0 obj\n").Replace("/Contents 4 0 R", "/Contents 0 0 R");
+        Assert.Contains("/Contents 0 0 R", renumbered, StringComparison.Ordinal);
+
+        Assert.Contains("Indirect filters R6", PdfDocument.Load(PdfEncoding.Latin1GetBytes(renumbered)).ExtractText(), StringComparison.Ordinal);
+    }
+
+    private static byte[] WithEncryptionDictionaryInTrailer(byte[] pdf) {
+        string text = PdfEncoding.Latin1GetString(pdf);
+        int objectStart = text.IndexOf("\n7 0 obj\n", StringComparison.Ordinal) + "\n7 0 obj\n".Length;
+        string dictionary = text.Substring(objectStart, text.IndexOf("\nendobj", objectStart, StringComparison.Ordinal) - objectStart);
+        int trailer = text.LastIndexOf("trailer", StringComparison.Ordinal);
+        return PdfEncoding.Latin1GetBytes(text.Substring(0, trailer) +
+            text.Substring(trailer).Replace("/Encrypt 7 0 R", "/Encrypt " + dictionary));
+    }
+
     [Fact]
     public void DocumentsEncryptingOnlyEmbeddedFilesOpenWithoutPasswordAndKeepAttachmentsLocked() {
         byte[] pdf = Fixture("r6-embedded-files-only.pdf");

@@ -35,6 +35,7 @@ namespace OfficeIMO.Excel {
                 options.MaxTotalInCellImageBytes);
             List<ExcelSheet> sourceSheets = ResolveWorkbookMergeSheets(sourceDocument, options).ToList();
             Dictionary<string, string>? targetSheetNames = ResolveWorkbookMergeTargetSheetNames(sourceSheets, options);
+            IReadOnlyDictionary<int, int> valuesExternalReferenceMap = new Dictionary<int, int>();
             if (options.CopyMode == ExcelWorksheetCopyMode.Package) {
                 foreach (ExcelSheet sourceSheet in sourceSheets) {
                     sourceSheet.PreflightInCellImages(inCellImageContext);
@@ -45,6 +46,11 @@ namespace OfficeIMO.Excel {
                         sourceSheets,
                         definedNameBudget);
                 }
+            } else {
+                // Values copies keep conditional formats and validations, so the names those rules use come along.
+                PreflightReferencedDefinedNamesFromSource(sourceDocument, sourceSheets, definedNameBudget, layoutFormulasOnly: true);
+                valuesExternalReferenceMap = PrepareValuesCopyExternalWorkbookReferences(
+                    sourceDocument, sourceSheets, options.CopyExternalWorkbookReferences);
             }
             var importedSourceNames = new List<string>(sourceSheets.Count);
             var createdTargetNames = new List<string>(sourceSheets.Count);
@@ -56,7 +62,17 @@ namespace OfficeIMO.Excel {
                 string requestedName = ResolveWorkbookMergeSheetName(sourceSheet, options, targetSheetNames);
                 ExcelSheet targetSheet;
                 if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
-                    targetSheet = CopyWorksheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                    WorksheetPackageCopyResult copyResult = CopyWorksheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                    targetSheet = copyResult.Sheet;
+                    foreach (var tableName in copyResult.TableNameMap) {
+                        tableNameMap[tableName.Key] = tableName.Value;
+                    }
+
+                    if (valuesExternalReferenceMap.Count > 0) {
+                        RewriteCopiedWorksheetExternalReferences(targetSheet.WorksheetPart, valuesExternalReferenceMap);
+                        targetSheet.WorksheetPart.Worksheet!.Save();
+                        externalReferenceMaps[targetSheet.Name] = valuesExternalReferenceMap;
+                    }
                 } else if (ReferenceEquals(sourceDocument, this)) {
                     WorksheetPackageCopyResult copyResult = CopyWorksheetWithinWorkbook(sourceSheet, requestedName, options.SheetNameValidationMode);
                     targetSheet = copyResult.Sheet;
@@ -89,17 +105,21 @@ namespace OfficeIMO.Excel {
             }
 
             RewriteMergedWorksheetReferences(createdTargetNames, sheetNameMap, tableNameMap);
-            if (options.CopyMode == ExcelWorksheetCopyMode.Package) {
-                for (int index = 0; index < importedSourceNames.Count; index++) {
-                    ExcelSheet targetSheet = GetSheet(createdTargetNames[index]);
-                    externalReferenceMaps.TryGetValue(targetSheet.Name, out IReadOnlyDictionary<int, int>? externalReferenceMap);
-                    CopyReferencedDefinedNamesFromSource(
-                        sourceDocument,
-                        targetSheet,
-                        sheetNameMap,
-                        tableNameMap,
-                        externalReferenceMap);
-                }
+            for (int index = 0; index < importedSourceNames.Count; index++) {
+                ExcelSheet targetSheet = GetSheet(createdTargetNames[index]);
+                externalReferenceMaps.TryGetValue(targetSheet.Name, out IReadOnlyDictionary<int, int>? externalReferenceMap);
+                CopyReferencedDefinedNamesFromSource(
+                    sourceDocument,
+                    targetSheet,
+                    sheetNameMap,
+                    tableNameMap,
+                    externalReferenceMap,
+                    layoutFormulasOnly: options.CopyMode == ExcelWorksheetCopyMode.Values);
+            }
+
+            for (int index = 0; index < importedSourceNames.Count; index++) {
+                externalReferenceMaps.TryGetValue(createdTargetNames[index], out IReadOnlyDictionary<int, int>? printExternalReferenceMap);
+                CopyPrintDefinedNamesFromSource(sourceDocument, importedSourceNames[index], GetSheet(createdTargetNames[index]), sheetNameMap, tableNameMap, printExternalReferenceMap);
             }
 
             if (createdTargetNames.Count > 0) {
@@ -247,6 +267,14 @@ namespace OfficeIMO.Excel {
                 changed |= RewriteFormulaSheetReference(formula, sheetNameMap);
             }
 
+            foreach (ConditionalFormatValueObject threshold in FormulaThresholds(worksheet)) {
+                string rewritten = RewriteCopiedFormula(threshold.Val!.Value, sheetNameMap);
+                if (!string.Equals(rewritten, threshold.Val.Value, StringComparison.Ordinal)) {
+                    threshold.Val = rewritten;
+                    changed = true;
+                }
+            }
+
             foreach (OfficeFormula formula in worksheet.Descendants<OfficeFormula>()) {
                 changed |= RewriteFormulaSheetReference(formula, sheetNameMap);
             }
@@ -275,7 +303,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string updated = ReplaceSheetNameReferences(text!, sheetNameMap);
+            string updated = RewriteCopiedFormula(text, sheetNameMap);
 
             if (string.Equals(updated, text, StringComparison.Ordinal)) {
                 return false;

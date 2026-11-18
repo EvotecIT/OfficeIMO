@@ -167,6 +167,7 @@ namespace OfficeIMO.Excel {
             _xlsbPreservedRecords = workbook.PreservedRecords.ToArray();
             _packageDirty = false;
             _packagePropertiesDirty = false;
+            CaptureXlsbDocumentPropertiesState();
             _requiresSavePreflight = false;
             _unchangedPackageBytes = null;
             _packageContentTypesKnownNormalized = false;

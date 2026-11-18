@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using LargeXlsx;
+using OfficeIMO.Benchmarks;
 using MiniExcelApi = MiniExcelLibs.MiniExcel;
 using MiniExcelConfiguration = MiniExcelLibs.OpenXml.OpenXmlConfiguration;
 using MiniExcelTableStyles = MiniExcelLibs.OpenXml.TableStyles;
@@ -45,6 +46,16 @@ internal static partial class ExcelLibraryComparisonRunner {
     };
     private static readonly XlsxStyle LargeXlsxDateTimeStyle = XlsxStyle.Default.With(new XlsxNumberFormat("yyyy-mm-dd hh:mm"));
     private static IReadOnlySet<string>? _libraryFilter;
+
+    // Case library names that belong to restricted libraries in Build/benchmark-libraries.json, by library id.
+    private static readonly IReadOnlyDictionary<string, string> RestrictedLibraries =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["EPPlus"] = "epplus" };
+
+    // Scenarios that matched the filters but whose selected libraries are all restricted and not enabled.
+    private static readonly List<string> RestrictedOnlyScenarios = new();
+
+    private static bool IsLibraryAllowed(string library) =>
+        !RestrictedLibraries.TryGetValue(library, out string? libraryId) || BenchmarkLibrarySelection.IsEnabled(libraryId);
 #if DEBUG
     private const string BuildConfiguration = "Debug";
 #else
@@ -77,6 +88,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
         _libraryFilter = BuildLibraryFilter(libraryFilters);
+        RestrictedOnlyScenarios.Clear();
+        foreach (var restricted in RestrictedLibraries.Where(static restricted => !BenchmarkLibrarySelection.IsEnabled(restricted.Value))) {
+            Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage(restricted.Value));
+        }
         var scenarioFilter = BuildScenarioFilter(scenarioFilters);
         if (ContainsOnlyHelloWorldScenarios(scenarioFilter)) {
             var helloWorldScenarios = new List<ExcelLibraryComparisonScenario>();
@@ -675,6 +690,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         AddHelloWorldScenarioGroups(scenarios, scenarioFilter, rowCount, warmupIterations, measuredIterations);
 
         if (scenarios.Count == 0) {
+            if (RestrictedOnlyScenarios.Count > 0) {
+                throw new ArgumentException(
+                    $"The requested libraries in {string.Join(", ", RestrictedOnlyScenarios)} are restricted and not enabled; see Build/benchmark-libraries.json.");
+            }
             throw new ArgumentException("No comparison scenarios matched the requested --scenario filter.");
         }
 
@@ -1158,10 +1177,15 @@ internal static partial class ExcelLibraryComparisonRunner {
             return;
         }
 
-        IReadOnlyList<LibraryComparisonCase> selectedCases = _libraryFilter == null
-            ? cases
-            : cases.Where(comparisonCase => _libraryFilter.Contains(comparisonCase.Library)).ToArray();
+        IReadOnlyList<LibraryComparisonCase> selectedCases = cases
+            .Where(comparisonCase => (_libraryFilter == null || _libraryFilter.Contains(comparisonCase.Library))
+                && IsLibraryAllowed(comparisonCase.Library))
+            .ToArray();
         if (selectedCases.Count == 0) {
+            if (cases.Any(comparisonCase => (_libraryFilter == null || _libraryFilter.Contains(comparisonCase.Library))
+                && !IsLibraryAllowed(comparisonCase.Library))) {
+                RestrictedOnlyScenarios.Add(scenario);
+            }
             return;
         }
 
@@ -1208,6 +1232,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             return;
         }
 
+        cases = cases.Where(packageCase => IsLibraryAllowed(packageCase.Library)).ToArray();
         Console.WriteLine($"Running {scenario} package profile group...");
         var semanticSnapshots = new List<WorkbookSemanticSnapshot>(cases.Count);
         foreach (var packageCase in cases) {
@@ -2491,7 +2516,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         IReadOnlyList<(string Library, Func<byte[]> CreatePackage)> cases) {
         int expectedMetric = ReadSalesDataReaderMetric(sourceWorkbookBytes, "Data", dataRange);
         foreach (var copyCase in cases) {
-            if (_libraryFilter != null && !_libraryFilter.Contains(copyCase.Library)) {
+            if ((_libraryFilter != null && !_libraryFilter.Contains(copyCase.Library)) || !IsLibraryAllowed(copyCase.Library)) {
                 continue;
             }
 

@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
+            if (!_keepModifiedTimestampOnSave) _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
             byte[]? package = ExcelPackageEntrySplicer.TryEdit(source, splicer => {
                 if (ExtendedPropertiesMayCarrySignature(splicer)) {
                     throw new InvalidOperationException("Signed extended properties take the full save.");

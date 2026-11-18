@@ -215,6 +215,7 @@ namespace OfficeIMO.Excel.Pdf {
                 0,
                 chunk.ColumnIndexes.Count);
             style.HeaderFill = null;
+            style.DiagnosticCellAddress = CreateWorksheetCellAddress(plan.SheetName, data.CellReferences, data.MergedCells);
             ApplyGeneralCellAlignments(style, data.Values, Enumerable.Range(0, chunk.RowIndexes.Count).ToArray());
             style.RightAlignNumeric = false;
             style.HeaderBold = false;

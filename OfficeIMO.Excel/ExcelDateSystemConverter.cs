@@ -33,6 +33,21 @@ namespace OfficeIMO.Excel {
             return DateTime.FromOADate(oa);
         }
 
+        /// <summary>
+        /// Converts a date-formatted serial, or returns false when no <see cref="DateTime"/> represents it, the case
+        /// Excel displays as <c>####</c>. A non-calendar (elapsed time) style converts without the date-system shift.
+        /// </summary>
+        internal static bool TryFromSerial(double serial, ExcelDateSystem dateSystem, bool calendarStyle, out DateTime value) =>
+            OfficeIMO.Excel.LegacyXls.Projection.LegacyXlsDateSerialConverter.TryConvert(
+                serial, dateSystem == ExcelDateSystem.NineteenFour, out value, calendarStyle);
+
+        /// <summary>
+        /// Returns the date for a date-formatted serial, or the serial number itself when it has no date. Untyped
+        /// reads use it so one out-of-range cell does not stop a whole read or conversion.
+        /// </summary>
+        internal static object FromSerialOrNumber(double serial, ExcelDateSystem dateSystem, bool calendarStyle) =>
+            TryFromSerial(serial, dateSystem, calendarStyle, out DateTime value) ? value : serial;
+
         /// <summary>Resolves a calendar value's format section without discarding its submillisecond ticks.</summary>
         internal static double ToSerialForDisplay(DateTime date, ExcelDateSystem dateSystem) =>
             (date - (dateSystem == ExcelDateSystem.NineteenFour ? new DateTime(1904, 1, 1)

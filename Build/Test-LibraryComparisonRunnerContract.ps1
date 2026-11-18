@@ -51,9 +51,7 @@ $internalQuestPdf = @(
         -Workload pdfgenerate `
         -RunMode full `
         -QuestPdfPackageVersion 2026.9.0 `
-        -QuestPdfLicenseType Evaluation `
-        -InternalQuestPdf `
-        -ConfirmQuestPdfAuthorization `
+        -AcceptLibraryLicense questpdf-latest `
         -PlanOnly
 )
 if ($internalQuestPdf.Count -ne 1 -or
@@ -65,14 +63,23 @@ if ($internalQuestPdf.Count -ne 1 -or
     throw 'The internal QuestPDF lane can still reach shared benchmark publication.'
 }
 
+$unacceptedQuestPdfBlocked = $false
+try {
+    & $runner -Workload pdfgenerate -RunMode quick -QuestPdfPackageVersion 2026.9.0 -PlanOnly | Out-Null
+} catch {
+    $unacceptedQuestPdfBlocked = $true
+}
+if (-not $unacceptedQuestPdfBlocked) {
+    throw 'A newer QuestPDF release can run without accepting its licence.'
+}
+
 $internalPublishBlocked = $false
 try {
     & $runner `
         -Workload pdfgenerate `
         -RunMode full `
         -QuestPdfPackageVersion 2026.9.0 `
-        -InternalQuestPdf `
-        -ConfirmQuestPdfAuthorization `
+        -AcceptLibraryLicense questpdf-latest `
         -Publish `
         -PlanOnly | Out-Null
 } catch {
@@ -220,4 +227,158 @@ if ($pdfStructuredRead.Count -ne 1 -or
     throw 'The canonical PDF read profiles are not isolated as non-catalog route-health measurements.'
 }
 
-Write-Host 'Library comparison runner policy verified for standalone diagnostics, canonical PDF structured read, HTML-to-PDF route health, and mixed comparison selection.'
+# The library policy declares every compared library, and only open libraries reach a published lane.
+. (Join-Path $PSScriptRoot 'LibraryComparisonDefinitions.ps1')
+. (Join-Path $PSScriptRoot 'BenchmarkLibraryPolicy.ps1')
+$policy = Get-BenchmarkLibraryPolicy
+foreach ($library in @($policy.libraries)) {
+    $hasLicense = $library.license -and ($library.license.expression -or $library.license.name) -and $library.license.url
+    if (-not $hasLicense -or [string]::IsNullOrWhiteSpace($library.reason) -or $null -eq $library.packages) {
+        throw "Benchmark library '$($library.id)' needs packages, a licence with a URL and a reason."
+    }
+    if ($library.restriction -eq 'acceptance-required' -and $null -eq $library.acceptance) {
+        throw "Benchmark library '$($library.id)' requires acceptance but does not say what the caller supplies."
+    }
+}
+foreach ($framework in @('net8.0', 'net10.0')) {
+    foreach ($entry in (Get-LibraryComparisonDefinitions -Framework $framework).GetEnumerator()) {
+        foreach ($name in @($entry.Value.Libraries)) {
+            $null = Resolve-BenchmarkLibrary -Policy $policy -Name $name
+        }
+    }
+}
+foreach ($framework in @('net8.0', 'net10.0')) {
+    $publishedPlan = @(& $runner -Workload all -RunMode full -Framework $framework -Publish -PlanOnly)
+    foreach ($item in @($publishedPlan | Where-Object Publish)) {
+        $restricted = @($item.Libraries | ForEach-Object { Resolve-BenchmarkLibrary -Policy $policy -Name $_ } |
+            Where-Object restriction -ne 'open')
+        $restrictedCases = @($item.ExpectedCases | Where-Object {
+                $case = $_
+                @($policy.libraries | Where-Object { $_.restriction -ne 'open' -and (Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $case) }).Count -gt 0
+            })
+        if ($restricted.Count -gt 0 -or $restrictedCases.Count -gt 0 -or $item.Environment.OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES) {
+            throw "Published lane '$($item.Workload)' ($framework) can include a restricted library."
+        }
+    }
+}
+# A published Word lane drops the acceptance-required DocX cases and publishes OfficeIMO, NPOI and Open XML SDK.
+$wordPlan = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -Publish -PlanOnly)
+if (-not $wordPlan[0].Publish -or 'DocX' -in @($wordPlan[0].Libraries) -or
+    @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^DocX\|' }).Count -gt 0 -or
+    @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^NPOI\|' }).Count -eq 0) {
+    throw 'Word comparisons must publish without DocX cases and with NPOI.'
+}
+$docxIncludeRejected = $false
+try {
+    & $runner -Workload wordcreate -RunMode full -Framework net8.0 -IncludeLibrary docx -PlanOnly | Out-Null
+} catch {
+    $docxIncludeRejected = $true
+}
+if (-not $docxIncludeRejected) {
+    throw 'DocX must need -AcceptLibraryLicense docx, not only -IncludeLibrary.'
+}
+$localDocX = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -AcceptLibraryLicense docx -PlanOnly)
+if ($localDocX[0].CatalogEligible -or $localDocX[0].Publish -or $localDocX[0].Environment.OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES -ne 'docx') {
+    throw 'Accepting DocX must keep the Word run local.'
+}
+# An explicitly enabled restricted library is required, not merely tolerated: its cases join the expected set and
+# its own licence value is checked before the run.
+$previousEpPlusLicense = $env:EPPlusLicense
+try {
+    $env:EPPlusLicense = $null
+    $defaultXlsx = @(& $runner -Workload xlsx -RunMode full -PlanOnly)
+    $enabledXlsx = @(& $runner -Workload xlsx -RunMode full -AcceptLibraryLicense epplus -PlanOnly)
+} finally {
+    $env:EPPlusLicense = $previousEpPlusLicense
+}
+if ('EPPlus' -in @($defaultXlsx[0].ExpectedCases) -or 'EPPlus' -in @($defaultXlsx[0].Libraries) -or
+    'EPPlus' -notin @($enabledXlsx[0].ExpectedCases) -or
+    @($enabledXlsx[0].BlockedReasons | Where-Object { $_ -match 'EPPlusLicense' }).Count -eq 0) {
+    throw 'Enabling EPPlus must require its XLSX case and its own licence declaration; leaving it out must drop both.'
+}
+
+# -LocalOnly keeps a run, even a pinned QuestPDF one, out of the shared catalog; the QuestPDF wrapper always uses it.
+$localPinned = @(& $runner -Workload pdfgenerate -RunMode quick -QuestPdfPackageVersion 2026.5.0 -LocalOnly -PlanOnly)
+if ($localPinned[0].WillCatalog -or $localPinned[0].Publish -or $null -ne $localPinned[0].ComparisonPath -or
+    -not $localPinned[0].InternalOnly) {
+    throw '-LocalOnly must keep the run out of the shared catalog.'
+}
+$wrapperAst = [System.Management.Automation.Language.Parser]::ParseFile(
+    (Join-Path $PSScriptRoot 'Run-InternalQuestPdfBenchmarks.ps1'), [ref] $null, [ref] $null)
+$wrapperCall = @($wrapperAst.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.CommandAst] -and $node.InvocationOperator -eq 'Ampersand' -and
+            $node.CommandElements[0].Extent.Text -match 'Run-LibraryComparisonBenchmarks\.ps1'
+        }, $true))
+if ($wrapperCall.Count -ne 1 -or
+    @($wrapperCall[0].CommandElements | Where-Object { $_.Extent.Text -eq '-LocalOnly' }).Count -ne 1 -or
+    @($wrapperCall[0].CommandElements | Where-Object { $_.Extent.Text -eq '-EvidenceRoot' }).Count -ne 1) {
+    throw 'The QuestPDF wrapper must run the comparison with -LocalOnly and its own evidence root.'
+}
+
+$restrictedPublishBlocked = $false
+try {
+    & $runner -Workload xlsx -RunMode full -Publish -AcceptLibraryLicense epplus -PlanOnly | Out-Null
+} catch {
+    $restrictedPublishBlocked = $true
+}
+if (-not $restrictedPublishBlocked) {
+    throw 'An enabled restricted library can be combined with benchmark publication.'
+}
+$repositoryRoot = Split-Path -Parent $PSScriptRoot
+foreach ($tag in @(
+        @{ Path = 'OfficeIMO.Excel.Benchmarks\MarkPflug65KExcelBenchmarks.cs'; Pattern = 'CategoryPrefix \+ "epplus"' },
+        @{ Path = 'OfficeIMO.Excel.Benchmarks\ExcelLibraryComparisonRunner.cs'; Pattern = '\["EPPlus"\] = "epplus"' },
+        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:docx' },
+        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'IsEnabled\("docx"\)\) WordBenchmarkCorpus' })) {
+    if ((Get-Content -LiteralPath (Join-Path $repositoryRoot $tag.Path) -Raw) -notmatch $tag.Pattern) {
+        throw "$($tag.Path) no longer marks its restricted library cases ($($tag.Pattern))."
+    }
+}
+# The measured process must start only after restricted-library settings are applied: the enabled list is set and
+# values belonging to libraries left out of the run are cleared, in the same try block, before dotnet launches.
+$runnerAst = [System.Management.Automation.Language.Parser]::ParseFile($runner, [ref] $null, [ref] $null)
+$measureLaunch = @($runnerAst.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.CommandAst] -and
+            $node.CommandElements.Count -ge 2 -and $node.CommandElements[0].Extent.Text -eq 'dotnet' -and
+            $node.CommandElements[1].Extent.Text -eq '@arguments'
+        }, $true))
+if ($measureLaunch.Count -ne 1) { throw 'The runner no longer has exactly one measured dotnet launch.' }
+$measureTry = $measureLaunch[0].Parent
+while ($null -ne $measureTry -and $measureTry -isnot [System.Management.Automation.Language.TryStatementAst]) { $measureTry = $measureTry.Parent }
+if ($null -eq $measureTry) { throw 'The measured dotnet launch is no longer inside the environment try block.' }
+$launchOffset = $measureLaunch[0].Extent.StartOffset
+$clears = @($measureTry.Body.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.InvokeMemberExpressionAst] -and
+            $node.Member.Extent.Text -eq 'SetEnvironmentVariable' -and $node.Arguments.Count -eq 2 -and
+            $node.Arguments[1].Extent.Text -eq '$null'
+        }, $true))
+$enables = @($measureTry.Body.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left.Extent.Text -eq '$env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES'
+        }, $true))
+if ($clears.Count -eq 0 -or $enables.Count -eq 0 -or
+    @($clears + $enables | Where-Object { $_.Extent.StartOffset -gt $launchOffset }).Count -gt 0) {
+    throw 'The runner must set the enabled libraries and clear left-out licence values before launching dotnet.'
+}
+$pinnedQuestPdf = @(& $runner -Workload pdfgenerate -RunMode quick -PlanOnly)
+if ($pinnedQuestPdf[0].Environment.Contains('OFFICEIMO_QUESTPDF_LICENSE_TYPE')) {
+    throw 'A pinned QuestPDF run must keep the caller''s OFFICEIMO_QUESTPDF_LICENSE_TYPE.'
+}
+$xlsxPlan = @(& $runner -Workload xlsx -RunMode quick -PlanOnly)
+if (-not $xlsxPlan[0].Environment.Contains('EPPlusLicense') -or $null -ne $xlsxPlan[0].Environment['EPPlusLicense']) {
+    throw 'The plan must show that EPPlusLicense is cleared when EPPlus is not enabled.'
+}
+
+# Licence acceptance is a per-run decision, never a project default.
+$acceptingProjects = @(Get-ChildItem -LiteralPath $repositoryRoot -Recurse -Filter '*.csproj' -File |
+    Where-Object { $_.FullName -notmatch '[\\/](bin|obj|Ignore|artifacts)[\\/]' } |
+    Where-Object { (Get-Content -LiteralPath $_.FullName -Raw) -match '<AcceptNPOIOSMFLicense>\s*true' })
+if ($acceptingProjects.Count -gt 0) {
+    throw "Project files accept NPOI's OSMF EULA by default: $($acceptingProjects.Name -join ', ')."
+}
+
+Write-Host 'Library comparison runner policy verified for the library policy, standalone diagnostics, canonical PDF structured read, HTML-to-PDF route health, and mixed comparison selection.'

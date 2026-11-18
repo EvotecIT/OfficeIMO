@@ -57,6 +57,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal bool? ShowGridLines { get; set; }
 
+        /// <summary>Whether the primary window's sheet view selects this tab (fSelected), when the sheet has a view.</summary>
+        internal bool? TabSelected { get; set; }
+
         internal XlsbWorksheetProtection? Protection { get; set; }
 
         internal XlsbAutoFilter? AutoFilter { get; set; }

@@ -1,5 +1,7 @@
 #if NETFRAMEWORK
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Word.Benchmarks;
 
@@ -14,6 +16,6 @@ internal static class NetFrameworkProgram {
             typeof(WordCreateReportComparisonBenchmarks),
             typeof(WordReadComparisonBenchmarks),
             typeof(WordReplaceComparisonBenchmarks)
-        ]).Run(args);
+        ]).Run(args, ManualConfig.Create(DefaultConfig.Instance).AddRestrictedLibraryFilter());
 }
 #endif

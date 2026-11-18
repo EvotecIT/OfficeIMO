@@ -322,10 +322,11 @@ internal static partial class PdfSyntax {
         }
         PdfStandardSecurityHandler? decryptor = null;
         int? encryptObjectNumber = FindEncryptReference(map, trailerRaw, limits, cancellationToken)?.ObjectNumber;
-        if (encryptObjectNumber.HasValue) {
+        // A direct /Encrypt dictionary in the trailer is not an object, so no object is left undecrypted for it.
+        if (encryptObjectNumber.HasValue || ReadDirectTrailerEncryptionDictionary(trailerRaw, limits, cancellationToken) is not null) {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor, cancellationToken);
             if (decryptor is not null) {
-                DecryptObjects(map, decryptor, encryptObjectNumber.Value, cancellationToken);
+                DecryptObjects(map, decryptor, encryptObjectNumber, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
             }
         }

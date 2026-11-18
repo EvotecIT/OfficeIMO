@@ -77,6 +77,11 @@ internal static partial class PdfWriter {
                 List<OfficeTextInkClip>? frameClipBuilder = null;
                 List<OfficeTextInkClip>? pageClipBuilder = null;
                 OfficeTextInkClip? secondInkClipCache = null;
+                // A summarized cell only needs each finding once. Whole glyphs that lie beyond a clip prove that
+                // finding from their exact outline extrema, so the exact ink measurement runs only when no glyph does.
+                bool summarizing = _diagnosticCellAddress != null && currentOpts.TableCellDiagnosticSummary != null;
+                DiagnosticRectangleBounds sourceBounds = summarizing ? DiagnosticRectangleBounds.Of(sourceClips, this) : default;
+                DiagnosticRectangleBounds admittedBounds = summarizing ? sourceBounds.Intersect(DiagnosticRectangleBounds.Of(targetClips, this)) : default;
                 for (int index = 0; index < lines.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     List<RichSeg> line = lines[index];
@@ -105,6 +110,7 @@ internal static partial class PdfWriter {
                         ? CreateDiagnosticGlyphClipBounds(targetClips, frameClip, pageClip, secondClip, transform)
                         : default;
                     Func<DiagnosticPaintBounds, bool>? containsGlyph = null;
+                    Func<DiagnosticPaintBounds, IOfficeBoundedFontProgram, int, double, bool>? proveGlyphLoss = null;
                     for (int partIndex = 0; partIndex < line.Count; partIndex++) {
                         RichSeg segment = line[partIndex];
                         double gap = segment.LeadingSpace ? segment.LeadingAdvance +
@@ -165,6 +171,7 @@ internal static partial class PdfWriter {
                                 Paint(paint.Contours, imageClips);
                             }
                         } else if (segment.InlineElement == null && !segment.IsLineBoxStrut) {
+                            if (summarizing && positiveDiagonal) ProveSegmentGlyphLoss(segment, segment.Text, x, runY, proveGlyphLoss ??= ProveGlyphLoss);
                             foreach (var glyph in DiagnosticGlyphContours(segment, segment.Text, x, runY, containsGlyph ??= ContainsGlyph)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
                             if (segment.Underline) {
                                 if (segment.UnderlineStyle == OfficeTextDecorationStyle.Words) {
@@ -200,9 +207,34 @@ internal static partial class PdfWriter {
                         // finding is still open changes nothing: the frame (with any second clip) until clipping or
                         // overflow is proven, the enclosing target clips until their loss is proven, and the page
                         // until paint outside it is proven. Source clips never produce a finding.
-                        if (!(clipsToFrame ? clipped : overflow) && !glyphClipBounds.Frame.Encloses(pageBounds)) return false;
-                        if (!outerClipped && targetClips.Count > 0 && !glyphClipBounds.Target.Encloses(pageBounds)) return false;
-                        return outsidePage || glyphClipBounds.Page.Encloses(pageBounds);
+                        // A summarized cell also skips a glyph wholly outside the clips that admit its ink: none of it is
+                        // admitted, so the frame and page cannot remove any, and paint outside the source clips cannot be
+                        // lost to the enclosing target clips.
+                        bool unadmitted = summarizing && admittedBounds.Excludes(pageBounds);
+                        if (!(clipsToFrame ? clipped : overflow) && !glyphClipBounds.Frame.Encloses(pageBounds) && !unadmitted) return false;
+                        if (!outerClipped && targetClips.Count > 0 && !glyphClipBounds.Target.Encloses(pageBounds)
+                            && !(summarizing && sourceBounds.Excludes(pageBounds))) return false;
+                        return outsidePage || glyphClipBounds.Page.Encloses(pageBounds) || unadmitted;
+                    }
+                    // Called with the exact outline extrema of a glyph. A glyph wholly beyond the frame (or the enclosing
+                    // target clips) and wholly inside the clips that admit it loses ink there for certain, provided it has
+                    // ink, which is confirmed only for a glyph that would prove a finding. Returns true once nothing
+                    // further can be proven this way.
+                    bool ProveGlyphLoss(DiagnosticPaintBounds bounds, IOfficeBoundedFontProgram font, int glyphId, double size) {
+                        OfficePoint first = transform.TransformPoint(new OfficePoint(bounds.Left, bounds.Top));
+                        OfficePoint second = transform.TransformPoint(new OfficePoint(bounds.Right, bounds.Bottom));
+                        var glyph = new DiagnosticPaintBounds(first.X, first.Y, second.X, second.Y);
+                        if (!glyph.IsFinite) return false;
+                        bool frameLoss = !(clipsToFrame ? clipped : overflow) && glyphClipBounds.Frame.IsFinite
+                            && DiagnosticRectangleBounds.Apart(glyph, glyphClipBounds.Frame) && admittedBounds.Encloses(glyph);
+                        bool outerLoss = !outerClipped && targetClips.Count > 0 && glyphClipBounds.Target.IsFinite
+                            && DiagnosticRectangleBounds.Apart(glyph, glyphClipBounds.Target) && sourceBounds.Encloses(glyph);
+                        if ((frameLoss || outerLoss) && DiagnosticGlyphHasInk(font, glyphId, size)) {
+                            if (frameLoss && clipsToFrame) clipped = true;
+                            else if (frameLoss) overflow = true;
+                            if (outerLoss) outerClipped = true;
+                        }
+                        return (clipsToFrame ? clipped : overflow) && (outerClipped || targetClips.Count == 0);
                     }
                     void Paint(List<List<OfficePoint>> contours, List<OfficeTextInkClip>? imageClips = null, bool nominalGlyphBounds = false) {
                         foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) contour[p] = transform.TransformPoint(contour[p]);

@@ -148,6 +148,7 @@ namespace OfficeIMO.Excel {
         /// Applies a number format to the cell.
         /// </summary>
         public ExcelCell SetNumberFormat(string numberFormat) {
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(numberFormat, nameof(numberFormat), "Number format");
             Sheet.FormatCell(Row, Column, numberFormat);
             return this;
         }
@@ -222,6 +223,7 @@ namespace OfficeIMO.Excel {
         /// Sets the font family name.
         /// </summary>
         public ExcelCell SetFontFamily(string fontFamily) {
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(fontFamily, nameof(fontFamily), "Font name");
             Sheet.CellFontName(Row, Column, fontFamily);
             return this;
         }
@@ -497,6 +499,7 @@ namespace OfficeIMO.Excel {
         /// Applies a number format to every cell in the range.
         /// </summary>
         public ExcelRange SetNumberFormat(string numberFormat) {
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(numberFormat, nameof(numberFormat), "Number format");
             ForEachArea(area => Sheet.FormatRange(area, numberFormat));
             return this;
         }
@@ -563,6 +566,7 @@ namespace OfficeIMO.Excel {
         /// Applies a font family name to every cell in the range.
         /// </summary>
         public ExcelRange SetFontFamily(string fontFamily) {
+            ExcelTextValidation.ThrowIfUnpairedSurrogate(fontFamily, nameof(fontFamily), "Font name");
             ForEachCell((row, column) => Sheet.CellFontName(row, column, fontFamily));
             return this;
         }

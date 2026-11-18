@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -23,7 +24,7 @@ public class WordCreateImageComparisonBenchmarks {
     [GlobalSetup]
     public void Validate() {
         WordWorkloadCorpus.ValidateImageDocument(OfficeIMO(), ImageCount);
-        WordWorkloadCorpus.ValidateImageDocument(DocX(), ImageCount, requireOpenXmlSdkConformance: false);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateImageDocument(DocX(), ImageCount, requireOpenXmlSdkConformance: false);
         WordWorkloadCorpus.ValidateImageDocument(NPOI(), ImageCount);
         WordWorkloadCorpus.ValidateImageDocument(OpenXmlSdk(), ImageCount);
     }
@@ -42,6 +43,7 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -131,7 +133,7 @@ public class WordTemplateFillComparisonBenchmarks {
     public void Setup() {
         _fixture = WordWorkloadCorpus.CreateTemplateFixture(ItemCount);
         WordWorkloadCorpus.ValidateFilledDocument(OfficeIMO(), ItemCount);
-        WordWorkloadCorpus.ValidateFilledDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateFilledDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
         WordWorkloadCorpus.ValidateFilledDocument(NPOI(), ItemCount);
         WordWorkloadCorpus.ValidateFilledDocument(OpenXmlSdk(), ItemCount);
     }
@@ -148,6 +150,7 @@ public class WordTemplateFillComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var input = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(input);
@@ -219,7 +222,7 @@ public class WordReadTableComparisonBenchmarks {
         _fixture = WordWorkloadCorpus.CreateReportFixture(RowCount);
         _expected = WordWorkloadCorpus.ExpectedReportCells(RowCount);
         Ensure(nameof(OfficeIMO), OfficeIMO());
-        Ensure(nameof(DocX), DocX());
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) Ensure(nameof(DocX), DocX());
         Ensure(nameof(NPOI), NPOI());
         Ensure(nameof(OpenXmlSdk), OpenXmlSdk());
     }
@@ -240,6 +243,7 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);

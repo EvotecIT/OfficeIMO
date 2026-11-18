@@ -25,6 +25,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            // Validate the whole plan before the styles part or stylesheet is created or changed.
+            foreach (string format in _formats) {
+                ExcelTextValidation.ThrowIfUnpairedSurrogate(format, "numberFormat", "Number format");
+            }
+
             var workbookPart = doc.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart? stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null) {

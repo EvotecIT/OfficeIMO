@@ -67,6 +67,17 @@
       {{ end }}
     </div>
 
+    {{ if data.community && data.community.sponsors && data.community.sponsors.size > 0 }}
+    <div class="imo-footer__sponsors">
+      <p class="imo-footer__heading">Sponsored by</p>
+      <ul>
+        {{ for sponsor in data.community.sponsors }}
+        <li><a class="imo-footer__sponsor" href="{{ sponsor.url }}" target="_blank" rel="noopener sponsored" title="{{ sponsor.name }}"><img class="imo-footer__sponsor-logo imo-footer__sponsor-logo--light" src="{{ sponsor.logoLight }}" width="{{ sponsor.logoWidth }}" height="{{ sponsor.logoHeight }}" alt="{{ sponsor.name }}" loading="lazy" decoding="async"><img class="imo-footer__sponsor-logo imo-footer__sponsor-logo--dark" src="{{ sponsor.logoDark }}" width="{{ sponsor.logoWidth }}" height="{{ sponsor.logoHeight }}" alt="" aria-hidden="true" loading="lazy" decoding="async"></a></li>
+        {{ end }}
+      </ul>
+    </div>
+    {{ end }}
+
     <nav class="imo-footer__family" aria-label="Also from Evotec">
       <p class="imo-footer__heading">Also from Evotec</p>
       <ul>

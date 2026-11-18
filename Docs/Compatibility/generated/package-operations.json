@@ -5071,6 +5071,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Metadata.Properties:modern-to-legacy",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel",
+      "targetFormatId":"Excel.Xlsb",
+      "capabilityId":"Excel.Xlsb.Metadata.Properties",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Metadata.Properties::modern-to-legacy",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Names.DefinedNames:modern-to-legacy",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel",
@@ -7437,6 +7451,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Metadata.Properties:new-legacy-write",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Metadata.Properties",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Metadata.Properties::new-legacy-write",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Names.DefinedNames:new-legacy-write",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7712,6 +7740,20 @@
       "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Lifecycle.File::legacy-import",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Metadata.Properties:legacy-import",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Metadata.Properties",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Metadata.Properties::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
       "limitation":""
@@ -7997,6 +8039,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Metadata.Properties:legacy-round-trip-edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Metadata.Properties",
+      "operation":"Edit",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Metadata.Properties::legacy-round-trip-edit",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Names.DefinedNames:legacy-round-trip-edit",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8277,6 +8333,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Metadata.Properties:legacy-round-trip-preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Metadata.Properties",
+      "operation":"Preserve",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Metadata.Properties::legacy-round-trip-preserve",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Names.DefinedNames:legacy-round-trip-preserve",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8552,6 +8622,20 @@
       "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Lifecycle.File::legacy-to-modern",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Metadata.Properties:legacy-to-modern",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"Excel",
+      "capabilityId":"Excel.Xlsb.Metadata.Properties",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Metadata.Properties::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
       "limitation":""

@@ -96,6 +96,7 @@ public sealed partial class PdfCreateOptions {
             TextShapingLanguageOverride = TextShapingLanguageOverride,
             _diagnosticsReport = _diagnosticsReport,
             _diagnosticsConverter = _diagnosticsConverter,
+            TableCellDiagnosticSummary = TableCellDiagnosticSummary,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
             _embedDefaultFonts = _embedDefaultFonts,
             _defaultFontsUseStandardMetrics = _defaultFontsUseStandardMetrics,

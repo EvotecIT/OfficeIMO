@@ -32,10 +32,10 @@ internal static partial class PdfDocumentReadEngine {
 
     /// <summary>
     /// Pages are parsed with the settings the document was opened with. Artifact text changes which content a page
-    /// yields, so a read that asks for it parses the source with artifact text included.
+    /// yields, so a read that asks for it uses the source parsed once with artifact text included.
     /// </summary>
     internal static PdfLoadOptions GetSourceReadOptions(PdfDocument source, PdfLoadOptions? options) =>
-        options?.IncludeArtifactText == true ? PdfLoadOptions.WithArtifactText(source.ReadOptions) : source.ReadOptions;
+        options?.IncludeArtifactText == true ? source.ArtifactTextReadOptions : source.ReadOptions;
 
     internal static PdfDocumentReadResult Read(
         PdfReadDocument document,

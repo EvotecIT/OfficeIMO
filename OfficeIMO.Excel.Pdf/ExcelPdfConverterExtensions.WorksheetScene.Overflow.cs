@@ -285,6 +285,10 @@ namespace OfficeIMO.Excel.Pdf {
                     SpacingAfter = OfficeLength.Points(0D),
                     AlternativeText = "Worksheet " + plan.SheetName + " cell text"
                 };
+                // The spilled text box is a one-cell table; its findings belong to the source cell.
+                Func<int, int, PdfCore.PdfTableCellDiagnosticAddress?>? sourceCell = CreateWorksheetCellAddress(plan.SheetName, data.CellReferences, data.MergedCells);
+                int sourceRow = overflow.Row, sourceColumn = overflow.Column;
+                if (sourceCell != null) style.DiagnosticCellAddress = (_, _) => sourceCell(sourceRow, sourceColumn);
                 if (sceneStyle.CellPaddings != null && sceneStyle.CellPaddings.TryGetValue((overflow.Row, overflow.Column), out PdfCore.PdfCellPadding? padding)) {
                     style.CellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding> { [(0, 0)] = padding };
                 }
