@@ -22,7 +22,7 @@ internal static partial class PdfSyntax {
         byte[] fileId = ReadFirstFileId(map, trailerRaw, cancellationToken);
         bool supplied = options != null && options.Password != null;
         decryptor = PdfStandardSecurityHandler.Create(
-            encryptionDictionary,
+            ResolveEncryptionDictionaryReferences(map, encryptionDictionary, cancellationToken),
             fileId,
             options?.Password,
             supplied,
@@ -31,6 +31,101 @@ internal static partial class PdfSyntax {
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return true;
+    }
+
+    /// <summary>
+    /// Returns the encryption dictionary with indirect values resolved in its own entries, in /CF and in each crypt
+    /// filter dictionary. ISO 32000-2 7.3.10 lets /CF, the crypt filter dictionaries and their entries be indirect
+    /// objects; strings in the encryption dictionary must be direct, and a stream or an unresolvable reference is left
+    /// as stored. The security handler reads these values before the document's objects are decrypted.
+    /// </summary>
+    private static PdfDictionary ResolveEncryptionDictionaryReferences(
+        Dictionary<int, PdfIndirectObject> map,
+        PdfDictionary encryptionDictionary,
+        CancellationToken cancellationToken) {
+        if (!NeedsResolution(encryptionDictionary)) return encryptionDictionary;
+
+        // Each reference chain is walked once for the whole dictionary, and a crypt filter dictionary shared by
+        // several names is copied once, so the work is linear in the entries and the objects they reach.
+        var resolvedReferences = new Dictionary<(int ObjectNumber, int Generation), PdfObject?>();
+        var normalizedFilters = new Dictionary<PdfDictionary, PdfDictionary>(); // PdfDictionary compares by identity.
+        PdfDictionary resolved = ResolveEntries(encryptionDictionary);
+        if (resolved.Get<PdfDictionary>("CF") is PdfDictionary filters) {
+            PdfDictionary resolvedFilters = ResolveEntries(filters);
+            foreach (string name in resolvedFilters.Items.Keys.ToList()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (resolvedFilters.Items[name] is not PdfDictionary filter) continue;
+                // A dictionary shared by several names is scanned and, when needed, copied once.
+                if (!normalizedFilters.TryGetValue(filter, out PdfDictionary? normalized)) {
+                    normalized = ContainsReference(filter) ? ResolveEntries(filter) : filter;
+                    normalizedFilters.Add(filter, normalized);
+                }
+
+                resolvedFilters.Items[name] = normalized;
+            }
+
+            resolved.Items["CF"] = resolvedFilters;
+        }
+
+        return resolved;
+
+        static bool NeedsResolution(PdfDictionary dictionary) {
+            if (ContainsReference(dictionary)) return true;
+            if (dictionary.Get<PdfDictionary>("CF") is not PdfDictionary filters) return false;
+            if (ContainsReference(filters)) return true;
+            foreach (PdfObject filter in filters.Items.Values) {
+                if (filter is PdfDictionary filterDictionary && ContainsReference(filterDictionary)) return true;
+            }
+
+            return false;
+        }
+
+        static bool ContainsReference(PdfDictionary dictionary) {
+            foreach (PdfObject value in dictionary.Items.Values) {
+                if (value is PdfReference) return true;
+            }
+
+            return false;
+        }
+
+        PdfDictionary ResolveEntries(PdfDictionary source) {
+            var copy = new PdfDictionary(source.Items.Count);
+            foreach (KeyValuePair<string, PdfObject> entry in source.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
+                PdfObject value = entry.Value;
+                if (value is PdfReference reference && Resolve(reference) is PdfObject target && target is not PdfStream) {
+                    value = target;
+                }
+
+                copy.Items[entry.Key] = value;
+            }
+
+            return copy;
+        }
+
+        // Follows a reference chain to its first non-reference value. Every reference on the way records the result,
+        // so a later entry that reaches the same chain stops at the first recorded reference. A cycle or a missing
+        // object resolves to null.
+        PdfObject? Resolve(PdfReference reference) {
+            var walked = new List<(int ObjectNumber, int Generation)>();
+            var onChain = new HashSet<(int ObjectNumber, int Generation)>();
+            PdfObject? result = null;
+            PdfReference current = reference;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var key = (current.ObjectNumber, current.Generation);
+                if (resolvedReferences.TryGetValue(key, out PdfObject? known)) { result = known; break; }
+                if (!onChain.Add(key)) break;
+                walked.Add(key);
+                if (!PdfObjectLookup.TryGet(map, current, out PdfIndirectObject? indirect)) break;
+                if (indirect.Value is PdfReference next) { current = next; continue; }
+                result = indirect.Value;
+                break;
+            }
+
+            foreach (var key in walked) resolvedReferences[key] = result;
+            return result;
+        }
     }
 
     /// <summary>
