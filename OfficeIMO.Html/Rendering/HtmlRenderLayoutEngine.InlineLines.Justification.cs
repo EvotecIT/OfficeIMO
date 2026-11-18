@@ -43,6 +43,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // CJK text has no word separators; browsers justify it between characters.
                 if (line.Segments.Any(static segment => AllowsJustification(segment) && ContainsCjkText(segment.Text)))
                     limits |= JustificationLimit.CjkWithoutSeparators;
+                // inter-character text would be spread between its characters even without word separators.
+                if (line.Segments.Any(static segment => AllowsJustification(segment)
+                        && segment.Run.Style.TextJustifyInterCharacter && segment.Text.Length > 1))
+                    limits |= JustificationLimit.InterCharacter;
                 continue;
             }
 

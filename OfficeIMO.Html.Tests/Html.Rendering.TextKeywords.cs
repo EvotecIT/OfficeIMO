@@ -128,6 +128,8 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData("<p style='text-align:justify;width:150px;margin:0'>漢字の文章は単語の間に空白がないので文字の間で両端揃えにする必要があります。</p>", "text-align=justify;cjk")]
     [InlineData("<p dir='rtl' style='text-align:justify;width:150px;margin:0'>שלום <span style='display:inline-block;width:5px;height:5px'></span> one two three four five six seven eight</p>", "text-align=justify;rtl-inline-boxes")]
+    // A line without word separators is still left unjustified for inter-character text.
+    [InlineData("<p style='width:300px;margin:0;text-align-last:justify;text-justify:inter-character'>abcdef</p>", "text-justify=inter-character")]
     public void HtmlRenderer_ReportsJustifiedLinesLeftAtStart(string html, string detail) {
         Assert.Contains(detail, UnsupportedTextDetails(html));
     }

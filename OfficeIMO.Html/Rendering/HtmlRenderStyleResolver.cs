@@ -294,17 +294,19 @@ internal sealed partial class HtmlRenderStyleResolver {
         OfficeTextAlignment alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent,
             out bool justifyText, out bool justifyAll);
         bool textAlignJustify = justifyText && !defaultCentered;
-        // justify-all also sets text-align-last; a text-align-last that wins the cascade over it still
-        // applies. An element that inherits both keeps its parent's computed last-line value; an
+        // text-align-last is inherited on its own. A justify-all declared on this element also sets it,
+        // unless a text-align-last declaration wins the cascade. Without a declaration this element
+        // keeps its parent's computed last-line value, including one that came from justify-all; an
         // inherited start or end keyword resolves against this element's direction.
-        bool inheritsLastLine = parent != null && computed.IsImplicitlyInheritedValue("text-align")
-            && !computed.IsResetValue("text-align-last")
-            && (string.IsNullOrWhiteSpace(computed.GetValue("text-align-last")) || computed.IsImplicitlyInheritedValue("text-align-last"));
-        string inheritedLastLine = computed.GetValue("text-align-last").Trim().ToLowerInvariant();
-        OfficeTextAlignment? computedTextAlignLast = inheritsLastLine
-                ? inheritedLastLine is "start" or "end" ? ResolveTextAlignLast(inheritedLastLine, direction, parent) : parent!.ComputedTextAlignLast
-            : justifyAll && !OutranksTextAlign(computed, "text-align-last") ? OfficeTextAlignment.Justify
-            : ResolveTextAlignLast(computed.GetValue("text-align-last"), direction, parent);
+        string lastLineValue = computed.GetValue("text-align-last").Trim().ToLowerInvariant();
+        bool declaresLastLine = computed.IsResetValue("text-align-last")
+            || lastLineValue.Length > 0 && !computed.IsImplicitlyInheritedValue("text-align-last");
+        bool declaresJustifyAll = justifyAll && !computed.IsImplicitlyInheritedValue("text-align");
+        OfficeTextAlignment? computedTextAlignLast = declaresJustifyAll && !OutranksTextAlign(computed, "text-align-last")
+                ? OfficeTextAlignment.Justify
+            : declaresLastLine || parent == null ? ResolveTextAlignLast(lastLineValue, direction, parent)
+            : lastLineValue is "start" or "end" ? ResolveTextAlignLast(lastLineValue, direction, parent)
+            : parent.ComputedTextAlignLast;
         OfficeTextAlignment? textAlignLast = computedTextAlignLast;
         string textJustifyValue = computed.GetValue("text-justify").Trim().ToLowerInvariant();
         bool textJustifyNone = textJustifyValue == "none";

@@ -33,6 +33,8 @@ public sealed partial class HtmlRenderingTests {
         // An explicit reset is not inherited.
         { "<div style='text-align:justify;text-align-last:center;width:300px'><p style='margin:0;text-align-last:initial'>" + JustifiedText + "</p></div>", "start" },
         { "<p style='text-align:justify-all;text-align-last:initial;width:300px;margin:0'>" + JustifiedText + "</p>", "start" },
+        // A last-line value the parent took from justify-all is inherited, also by an element that sets text-align.
+        { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:justify'>" + JustifiedText + "</p></div>", "justified" },
         // Explicit inheritance keeps a last-line value the parent took from justify-all.
         { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:justify;text-align-last:inherit'>" + JustifiedText + "</p></div>", "justified" },
         { "<div style='text-align:justify-all;width:300px'><p style='margin:0;text-align:justify;text-align-last:unset'>" + JustifiedText + "</p></div>", "justified" },
