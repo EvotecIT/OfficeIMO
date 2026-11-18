@@ -1,8 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using HtmlTinkerX;
-#if NET10_0_OR_GREATER
-using OneRender.Text;
-#endif
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
@@ -21,10 +18,6 @@ public class PdfHtmlBenchmarks {
     private byte[]? _pdfPeckerResult;
     private byte[]? _iTextPdfHtmlResult;
     private byte[]? _chromiumResult;
-#if NET10_0_OR_GREATER
-    private TextFontProvider? _oneRenderFonts;
-    private byte[]? _oneRenderResult;
-#endif
 
     [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High)]
     public PdfBenchmarkScale Scale { get; set; }
@@ -52,14 +45,6 @@ public class PdfHtmlBenchmarks {
         DisposeChromiumSession();
     }
 
-#if NET10_0_OR_GREATER
-    [GlobalSetup(Target = nameof(OneRender))]
-    public void SetupOneRender() {
-        InitializeScenario();
-        _oneRenderFonts = OneRenderHtmlGenerator.CreateFontProvider();
-    }
-#endif
-
     private void InitializeScenario() {
         _scenario = PdfBenchmarkScenario.Get(Scale);
         _html = PdfHtmlScenarioBuilder.Create(_scenario);
@@ -81,14 +66,6 @@ public class PdfHtmlBenchmarks {
     public byte[] ITextPdfHtml() =>
         _iTextPdfHtmlResult = HtmlPdfComparisonRenderers.RenderManaged(HtmlPdfComparisonEngine.ITextPdfHtml, _html);
 
-#if NET10_0_OR_GREATER
-    [Benchmark]
-    [BenchmarkCategory("library:onerender")]
-    public byte[] OneRender() =>
-        _oneRenderResult = OneRenderHtmlGenerator.Generate(_html, _oneRenderFonts
-            ?? throw new InvalidOperationException("The OneRender font provider was not initialized."));
-#endif
-
     [Benchmark]
     public async Task<byte[]> Chromium() {
         HtmlBrowserSession session = _browserSession
@@ -108,11 +85,6 @@ public class PdfHtmlBenchmarks {
 
     [GlobalCleanup(Target = nameof(ITextPdfHtml))]
     public void ValidateITextPdfHtml() => Validate(nameof(ITextPdfHtml), _iTextPdfHtmlResult);
-
-#if NET10_0_OR_GREATER
-    [GlobalCleanup(Target = nameof(OneRender))]
-    public void ValidateOneRender() => Validate(nameof(OneRender), _oneRenderResult);
-#endif
 
     [GlobalCleanup(Target = nameof(Chromium))]
     public void ValidateChromium() {

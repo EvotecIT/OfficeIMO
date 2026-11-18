@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 public partial class MarkPflug65KXlsxBenchmarks {
     /// <summary>Observes the same typed sales values through OneDocument's forward-only XLSX cursor.</summary>
     [Benchmark]
-    [BenchmarkCategory(BenchmarkLibrarySelection.CategoryPrefix + "onedocument")]
+    [BenchmarkCategory("library:onedocument")]
     public ExcelReadObservation OneDocument() {
         using XlsxStreamReader workbook = XlsxStreamReader.Open(MarkPflug65KFixture.XlsxPath);
         using SheetCursor sheet = workbook.OpenSheet(0);
@@ -20,7 +20,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
 public partial class MarkPflug65KXlsbBenchmarks {
     /// <summary>Observes the same typed sales values through OneDocument's forward-only XLSB cursor.</summary>
     [Benchmark]
-    [BenchmarkCategory(BenchmarkLibrarySelection.CategoryPrefix + "onedocument")]
+    [BenchmarkCategory("library:onedocument")]
     public ExcelReadObservation OneDocument() {
         using XlsbStreamReader workbook = XlsbStreamReader.Open(MarkPflug65KFixture.XlsbPath);
         using XlsbSheetCursor sheet = workbook.OpenSheet(0);
@@ -31,7 +31,7 @@ public partial class MarkPflug65KXlsbBenchmarks {
 public partial class MarkPflug65KXlsBenchmarks {
     /// <summary>Observes the same typed sales values through OneDocument's forward-only BIFF cursor.</summary>
     [Benchmark]
-    [BenchmarkCategory(BenchmarkLibrarySelection.CategoryPrefix + "onedocument")]
+    [BenchmarkCategory("library:onedocument")]
     public ExcelReadObservation OneDocument() {
         using XlsStreamReader workbook = XlsStreamReader.Open(MarkPflug65KFixture.XlsPath);
         using XlsSheetCursor sheet = workbook.OpenSheet(0);

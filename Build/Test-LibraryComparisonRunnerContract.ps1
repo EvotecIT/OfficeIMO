@@ -149,8 +149,8 @@ if ($pdfHtml.Count -ne 1 -or
 }
 
 $pdfHtmlPayload = @(& $runner -Workload pdfhtmlpayload -RunMode quick -PlanOnly)
-if ($pdfHtmlPayload.Count -ne 1 -or $pdfHtmlPayload[0].ExpectedCaseCount -ne 9) {
-    throw 'The exact 21 KiB HTML comparison plan does not require all three engines and payloads.'
+if ($pdfHtmlPayload.Count -ne 1 -or $pdfHtmlPayload[0].ExpectedCaseCount -ne 12) {
+    throw 'The exact 21 KiB HTML comparison plan does not require all four engines and payloads.'
 }
 
 $unrelated = @(

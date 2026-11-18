@@ -18,6 +18,9 @@ function Get-LibraryComparisonDefinitions {
         [string] $Framework = 'net10.0'
     )
 
+    # The Recursive AI One libraries (OnePDF, OneDocument, OneRender, OneImage, OneMail, OneArchive) ship net10.0
+    # only, so their cases and library names are declared only for that target.
+    $one = $Framework -eq 'net10.0'
     # Full JSON exports import Scenario from the CLR Method, not Benchmark.Description.
     $definitions = [ordered]@{
         csvlargefirstrow = [pscustomobject]@{
@@ -149,7 +152,7 @@ function Get-LibraryComparisonDefinitions {
         xls = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLS 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader')
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -158,14 +161,14 @@ function Get-LibraryComparisonDefinitions {
             ComparisonId = "markpflug-65k-xls-typed-$Framework"
             Suite = 'OfficeIMO.Excel.Xls.MarkPflug65K'
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMO', 'ExcelReaderNet', 'Sylvan', 'ExcelDataReader')
+            ExpectedCases = @('OfficeIMO', 'ExcelReaderNet', 'Sylvan', 'ExcelDataReader'; if ($one) { 'OneDocument' })
         }
         xlsx = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSX 65K typed reading'
             # EPPlus is restricted by the library policy: published and default runs drop its case, and a run that
             # enables it requires the case to succeed.
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur')
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -189,10 +192,11 @@ function Get-LibraryComparisonDefinitions {
                 'OfficeIMO_Loaded'
                 'OfficeIMO_SinglePass'
                 'OfficeIMO_Memory'
-                # These factories/options are compiled only for the modern ExcelReader.NET API.
+                # These factories/options are compiled only for the modern ExcelReader.NET API; OneDocument ships net10.0 only.
                 if ($Framework -eq 'net10.0') {
                     'ExcelReaderNet_Memory'
                     'ExcelReaderNet_InternStrings'
+                    'OneDocument'
                 }
                 'ExcelPrime'
                 'ExcelPrime_TypedStyles'
@@ -203,7 +207,7 @@ function Get-LibraryComparisonDefinitions {
         xlsxwrite = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSX data-reader writing'
-            Libraries = @('OfficeIMO', 'SpreadCheetah', 'Sylvan', 'LargeXlsx')
+            Libraries = @('OfficeIMO', 'SpreadCheetah', 'Sylvan', 'LargeXlsx'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -217,12 +221,13 @@ function Get-LibraryComparisonDefinitions {
                 'SpreadCheetah|RowCount=25000'
                 'Sylvan|RowCount=25000'
                 'LargeXlsx|RowCount=25000'
+                if ($one) { 'OneDocument|RowCount=25000' }
             )
         }
         xlsb = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSB 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'Excel-PRIME')
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'Excel-PRIME'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -241,6 +246,7 @@ function Get-LibraryComparisonDefinitions {
                 'ExcelPrime_TypedStyles'
                 if ($Framework -eq 'net10.0') {
                     'ExcelReaderNet_Prefetch'
+                    'OneDocument'
                 }
             )
         }
@@ -383,7 +389,7 @@ function Get-LibraryComparisonDefinitions {
         emailmimeread = [pscustomobject]@{
             Area = 'email'
             Title = 'MIME email reading'
-            Libraries = @('OfficeIMO', 'MimeKit')
+            Libraries = @('OfficeIMO', 'MimeKit'; if ($one) { 'OneMail' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -395,7 +401,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('scale')
             ExpectedCases = @(
                 foreach ($scale in @('Small', 'Normal')) {
-                    foreach ($engine in @('OfficeIMO', 'MimeKit')) {
+                    foreach ($engine in @('OfficeIMO', 'MimeKit'; if ($one) { 'OneMail' })) {
                         "$engine|Scale=$scale"
                     }
                 }
@@ -404,7 +410,7 @@ function Get-LibraryComparisonDefinitions {
         emailmimewrite = [pscustomobject]@{
             Area = 'email'
             Title = 'MIME email writing'
-            Libraries = @('OfficeIMO', 'MimeKit')
+            Libraries = @('OfficeIMO', 'MimeKit'; if ($one) { 'OneMail' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -416,7 +422,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('scale')
             ExpectedCases = @(
                 foreach ($scale in @('Small', 'Normal')) {
-                    foreach ($engine in @('OfficeIMO', 'MimeKit')) {
+                    foreach ($engine in @('OfficeIMO', 'MimeKit'; if ($one) { 'OneMail' })) {
                         "$engine|Scale=$scale"
                     }
                 }
@@ -446,7 +452,7 @@ function Get-LibraryComparisonDefinitions {
         ziptraverse = [pscustomobject]@{
             Area = 'zip'
             Title = 'ZIP guarded metadata traversal'
-            Libraries = @('OfficeIMO', 'System.IO.Compression')
+            Libraries = @('OfficeIMO', 'System.IO.Compression'; if ($one) { 'OneArchive' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'OfficeIMO enforces path and expansion safety; the platform lane projects raw metadata without equivalent safety policy. Not a public like-for-like safety comparison.'
             Project = 'OfficeIMO.Archives.Benchmarks\OfficeIMO.Archives.Benchmarks.csproj'
@@ -458,7 +464,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('scale')
             ExpectedCases = @(
                 foreach ($scale in @('Small', 'Normal', 'Large')) {
-                    foreach ($engine in @('OfficeIMO', 'Platform')) {
+                    foreach ($engine in @('OfficeIMO', 'Platform'; if ($one) { 'OneArchive' })) {
                         "$engine|Scale=$scale"
                     }
                 }
@@ -709,7 +715,7 @@ function Get-LibraryComparisonDefinitions {
         imagepngdecode = [pscustomobject]@{
             Area = 'image'
             Title = 'PNG decoding'
-            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET', 'StbImageSharp')
+            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET', 'StbImageSharp'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -718,12 +724,12 @@ function Get-LibraryComparisonDefinitions {
             ComparisonId = "image-png-decode-$Framework"
             Suite = 'OfficeIMO.Drawing.PngDecode'
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp')
+            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp'; if ($one) { 'OneImage' })
         }
         imagejpegdecode = [pscustomobject]@{
             Area = 'image'
             Title = 'JPEG decoding'
-            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET', 'StbImageSharp')
+            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET', 'StbImageSharp'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -732,12 +738,12 @@ function Get-LibraryComparisonDefinitions {
             ComparisonId = "image-jpeg-decode-$Framework"
             Suite = 'OfficeIMO.Drawing.JpegDecode'
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp')
+            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp'; if ($one) { 'OneImage' })
         }
         imagepngencode = [pscustomobject]@{
             Area = 'image'
             Title = 'PNG encoding'
-            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET')
+            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -746,12 +752,12 @@ function Get-LibraryComparisonDefinitions {
             ComparisonId = "image-png-encode-$Framework"
             Suite = 'OfficeIMO.Drawing.PngEncode'
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET')
+            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET'; if ($one) { 'OneImage' })
         }
         imagetifflzw = [pscustomobject]@{
             Area = 'image'
             Title = 'TIFF LZW round trip'
-            Libraries = @('OfficeIMO', 'Magick.NET')
+            Libraries = @('OfficeIMO', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -760,12 +766,12 @@ function Get-LibraryComparisonDefinitions {
             ComparisonId = "image-tiff-lzw-$Framework"
             Suite = 'OfficeIMO.Drawing.TiffLzw'
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal')
+            ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal'; if ($one) { 'OneImageEncode'; 'OneImageDecodeExternal' })
         }
         imagewebplossless = [pscustomobject]@{
             Area = 'image'
             Title = 'Lossless WebP encoding and decoding'
-            Libraries = @('OfficeIMO', 'Magick.NET')
+            Libraries = @('OfficeIMO', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -774,12 +780,12 @@ function Get-LibraryComparisonDefinitions {
             ComparisonId = "image-webp-lossless-$Framework"
             Suite = 'OfficeIMO.Drawing.WebpLossless'
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal')
+            ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal'; if ($one) { 'OneImageEncode'; 'OneImageDecodeExternal' })
         }
         imageresize = [pscustomobject]@{
             Area = 'image'
             Title = 'Image resizing'
-            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET')
+            Libraries = @('OfficeIMO', 'SkiaSharp', 'Magick.NET'; if ($one) { 'OneImage' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -788,12 +794,12 @@ function Get-LibraryComparisonDefinitions {
             ComparisonId = "image-resize-$Framework"
             Suite = 'OfficeIMO.Drawing.Resize'
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET')
+            ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET'; if ($one) { 'OneImage' })
         }
         pdfgenerate = [pscustomobject]@{
             Area = 'pdf'
             Title = 'Structured PDF generation'
-            Libraries = @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'iText')
+            Libraries = @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'iText'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -804,7 +810,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('scale')
             ExpectedCases = @(
                 foreach ($scale in @('Easy', 'Medium', 'High')) {
-                    foreach ($engine in @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'IText')) {
+                    foreach ($engine in @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'IText'; if ($one) { 'OnePdfLayout' })) {
                         "$engine|Scale=$scale"
                     }
                 }
@@ -813,7 +819,7 @@ function Get-LibraryComparisonDefinitions {
         pdfinvoice = [pscustomobject]@{
             Area = 'pdf'
             Title = 'PDF invoice generation'
-            Libraries = @('OfficeIMO', 'QuestPDF', 'iText')
+            Libraries = @('OfficeIMO', 'QuestPDF', 'iText'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'Existing invoice comparison is not qualified for the public catalog; retain the reviewed exclusion.'
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
@@ -822,7 +828,7 @@ function Get-LibraryComparisonDefinitions {
             Suite = 'OfficeIMO.Pdf.RealWorldInvoice'
             CatalogEligible = $false
             IdentityVariables = @()
-            ExpectedCases = @('OfficeIMO', 'QuestPDF', 'IText')
+            ExpectedCases = @('OfficeIMO', 'QuestPDF', 'IText'; if ($one) { 'OnePdfLayout' })
         }
         pdfinvoiceworkflow = [pscustomobject]@{
             Area = 'pdf'
@@ -861,7 +867,7 @@ function Get-LibraryComparisonDefinitions {
         pdfhtmlpayload = [pscustomobject]@{
             Area = 'pdf'
             Title = 'HTML 21 KiB payload to PDF'
-            Libraries = @('OfficeIMO', 'PeachPDF', 'PdfPecker')
+            Libraries = @('OfficeIMO', 'PeachPDF', 'PdfPecker'; if ($one) { 'OneRender' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -872,7 +878,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('payload')
             ExpectedCases = @(
                 foreach ($payload in @('PlainText', 'Table', 'Multilingual')) {
-                    foreach ($engine in @('OfficeIMO', 'PeachPDF', 'PdfPecker')) {
+                    foreach ($engine in @('OfficeIMO', 'PeachPDF', 'PdfPecker'; if ($one) { 'OneRender' })) {
                         "$engine|Payload=$payload"
                     }
                 }
@@ -913,7 +919,7 @@ function Get-LibraryComparisonDefinitions {
         pdfread = [pscustomobject]@{
             Area = 'pdf'
             Title = 'PDF text extraction'
-            Libraries = @('OfficeIMO', 'PdfPig', 'iText')
+            Libraries = @('OfficeIMO', 'PdfPig', 'iText'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -925,7 +931,7 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($scale in @('Easy', 'Medium', 'High')) {
                     foreach ($producer in @('OfficeIMO', 'QuestPDF', 'PeachPDF', 'MigraDoc', 'IText')) {
-                        foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
+                        foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText'; if ($one) { 'OnePdf'; 'OnePdfParallel' })) {
                             "$engine|Producer=$producer&Scale=$scale"
                         }
                     }
@@ -984,7 +990,7 @@ function Get-LibraryComparisonDefinitions {
         pdfcorpusread = [pscustomobject]@{
             Area = 'pdf'
             Title = 'Independent PDF corpus text extraction'
-            Libraries = @('OfficeIMO', 'PdfPig', 'iText')
+            Libraries = @('OfficeIMO', 'PdfPig', 'iText'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -995,7 +1001,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('document')
             ExpectedCases = @(
                 foreach ($document in @('OfficeIMO-500p', 'NIST-492p', 'Type3-85p', 'PDFA-258p-12MB')) {
-                    foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
+                    foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText'; if ($one) { 'OnePdf'; 'OnePdfParallel' })) {
                         "$engine|Document=$document"
                     }
                 }
@@ -1004,7 +1010,7 @@ function Get-LibraryComparisonDefinitions {
         pdfsplit = [pscustomobject]@{
             Area = 'pdf'
             Title = 'PDF splitting'
-            Libraries = @('OfficeIMO', 'iText', 'PDFsharp')
+            Libraries = @('OfficeIMO', 'iText', 'PDFsharp'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1018,7 +1024,7 @@ function Get-LibraryComparisonDefinitions {
                     foreach ($producer in @('OfficeIMO', 'IText')) {
                         foreach ($density in @('Standard', 'Dense')) {
                             foreach ($workflow in @('EveryPage', 'Bundles')) {
-                                foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                                foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp'; if ($one) { 'OnePdf' })) {
                                     "$engine|Density=$density&Producer=$producer&Scale=$scale&Workflow=$workflow"
                                 }
                             }
@@ -1030,7 +1036,7 @@ function Get-LibraryComparisonDefinitions {
         pdfmerge = [pscustomobject]@{
             Area = 'pdf'
             Title = 'PDF merging'
-            Libraries = @('OfficeIMO', 'iText', 'PDFsharp')
+            Libraries = @('OfficeIMO', 'iText', 'PDFsharp'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1043,7 +1049,7 @@ function Get-LibraryComparisonDefinitions {
                 foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                     foreach ($producer in @('OfficeIMO', 'IText')) {
                         foreach ($density in @('Standard', 'Dense')) {
-                            foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                            foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp'; if ($one) { 'OnePdf' })) {
                                 "$engine|Density=$density&Producer=$producer&Scale=$scale"
                             }
                         }
@@ -1054,7 +1060,7 @@ function Get-LibraryComparisonDefinitions {
         pdfselect = [pscustomobject]@{
             Area = 'pdf'
             Title = 'PDF page selection'
-            Libraries = @('OfficeIMO', 'iText', 'PDFsharp')
+            Libraries = @('OfficeIMO', 'iText', 'PDFsharp'; if ($one) { 'OnePDF' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1067,7 +1073,7 @@ function Get-LibraryComparisonDefinitions {
                 foreach ($scale in @('Easy', 'Medium', 'High', 'VeryHigh')) {
                     foreach ($producer in @('OfficeIMO', 'IText')) {
                         foreach ($density in @('Standard', 'Dense')) {
-                            foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp')) {
+                            foreach ($engine in @('OfficeIMO', 'IText', 'PdfSharp'; if ($one) { 'OnePdf' })) {
                                 "$engine|Density=$density&Producer=$producer&Scale=$scale"
                             }
                         }
@@ -1078,7 +1084,7 @@ function Get-LibraryComparisonDefinitions {
         wordcreate = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX paragraph creation'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1089,7 +1095,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('itemcount')
             ExpectedCases = @(
                 foreach ($itemCount in @(100, 1000, 10000)) {
-                    foreach ($engine in @('OfficeIMO', 'DocX', 'NPOI', 'OpenXmlSdkMinimal', 'OpenXmlSdkEquivalent')) {
+                    foreach ($engine in @('OfficeIMO', 'DocX', 'NPOI', 'OpenXmlSdkMinimal', 'OpenXmlSdkEquivalent'; if ($one) { 'OneDocument' })) {
                         "$engine|ItemCount=$itemCount"
                     }
                 }
@@ -1098,7 +1104,7 @@ function Get-LibraryComparisonDefinitions {
         wordreport = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX report creation'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1118,12 +1124,13 @@ function Get-LibraryComparisonDefinitions {
                 'OpenXmlSdkMinimal|RowCount=1000'
                 'OpenXmlSdkEquivalent|RowCount=100'
                 'OpenXmlSdkEquivalent|RowCount=1000'
+                if ($one) { 'OneDocument|RowCount=100'; 'OneDocument|RowCount=1000' }
             )
         }
         wordread = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX paragraph reading'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1134,7 +1141,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('itemcount')
             ExpectedCases = @(
                 foreach ($itemCount in @(100, 1000, 10000)) {
-                    foreach ($engine in @('OfficeIMO', 'DocX', 'NPOI', 'OpenXmlSdk')) {
+                    foreach ($engine in @('OfficeIMO', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
                         "$engine|ItemCount=$itemCount"
                     }
                 }
@@ -1143,7 +1150,7 @@ function Get-LibraryComparisonDefinitions {
         wordreplace = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX text replacement and save'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1161,12 +1168,13 @@ function Get-LibraryComparisonDefinitions {
                 'NPOI|ItemCount=1000'
                 'OpenXmlSdk|ItemCount=100'
                 'OpenXmlSdk|ItemCount=1000'
+                if ($one) { 'OneDocument|ItemCount=100'; 'OneDocument|ItemCount=1000' }
             )
         }
         pptxcreate = [pscustomobject]@{
             Area = 'powerpoint'
             Title = 'PPTX create and save'
-            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK')
+            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK', 'OneDocument')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1179,7 +1187,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('slidecount')
             ExpectedCases = @(
                 foreach ($slideCount in @(20, 200)) {
-                    foreach ($engine in @('OfficeIMO', 'ShapeCrawler', 'OpenXmlSdk')) {
+                    foreach ($engine in @('OfficeIMO', 'ShapeCrawler', 'OpenXmlSdk', 'OneDocument')) {
                         "$engine|SlideCount=$slideCount"
                     }
                 }
@@ -1188,7 +1196,7 @@ function Get-LibraryComparisonDefinitions {
         pptxedit = [pscustomobject]@{
             Area = 'powerpoint'
             Title = 'PPTX open, edit, and save'
-            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK')
+            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK', 'OneDocument')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1201,7 +1209,7 @@ function Get-LibraryComparisonDefinitions {
             IdentityVariables = @('slidecount')
             ExpectedCases = @(
                 foreach ($slideCount in @(20, 200)) {
-                    foreach ($engine in @('OfficeIMO', 'ShapeCrawler', 'OpenXmlSdk')) {
+                    foreach ($engine in @('OfficeIMO', 'ShapeCrawler', 'OpenXmlSdk', 'OneDocument')) {
                         "$engine|SlideCount=$slideCount"
                     }
                 }
