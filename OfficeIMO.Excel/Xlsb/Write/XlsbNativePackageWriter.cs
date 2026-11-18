@@ -316,7 +316,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return directory + "_rels/" + fileName + ".rels";
         }
 
-        private static string NormalizePartName(string partName) {
+        internal static string NormalizePartName(string partName) {
             ArgumentException.ThrowIfNullOrWhiteSpace(partName);
             string normalized = partName.Replace('\\', '/').TrimStart('/');
             if (normalized.EndsWith("/", StringComparison.Ordinal)

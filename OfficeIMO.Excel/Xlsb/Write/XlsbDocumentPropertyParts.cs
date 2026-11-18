@@ -134,7 +134,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (customDirty) document.MarkCustomDocumentPropertiesPending();
             XDocument relationships = LoadXml(replacements.TryGetValue("_rels/.rels", out byte[]? currentRelationships) ? currentRelationships : readPart("_rels/.rels"));
             XDocument types = LoadXml(replacements.TryGetValue("[Content_Types].xml", out byte[]? currentTypes) ? currentTypes : readPart("[Content_Types].xml"));
-            var entries = new HashSet<string>(existingEntries, StringComparer.OrdinalIgnoreCase);
+            // Entry names are compared the way RewritePackage writes them, so docProps\core.xml
+            // occupies docProps/core.xml.
+            var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string entry in existingEntries) {
+                string? normalized = TryNormalizePartName(entry);
+                if (normalized != null) entries.Add(normalized);
+            }
             // A part the model never held (absent or unreadable in the source) is not deleted, and its
             // relationship is never trusted as a write target; one the model held and no longer has is dropped.
             if (coreChanged) {
@@ -244,7 +250,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static string? GetDeclaredContentType(XDocument types, string partName) {
             XElement? partOverride = types.Root!.Elements().FirstOrDefault(element => element.Name.LocalName == "Override"
-                && string.Equals(((string?)element.Attribute("PartName"))?.TrimStart('/'), partName, StringComparison.OrdinalIgnoreCase));
+                && string.Equals(TryNormalizePartName((string?)element.Attribute("PartName")), partName, StringComparison.OrdinalIgnoreCase));
             if (partOverride != null) return (string?)partOverride.Attribute("ContentType");
             string extension = Path.GetExtension(partName).TrimStart('.');
             return (string?)types.Root.Elements().FirstOrDefault(element => element.Name.LocalName == "Default"
@@ -263,8 +269,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static void RemoveOverride(XDocument types, string partName) {
             types.Root!.Elements()
                 .Where(element => element.Name.LocalName == "Override"
-                    && string.Equals(((string?)element.Attribute("PartName"))?.TrimStart('/'), partName, StringComparison.OrdinalIgnoreCase))
+                    && string.Equals(TryNormalizePartName((string?)element.Attribute("PartName")), partName, StringComparison.OrdinalIgnoreCase))
                 .Remove();
+        }
+
+        private static string? TryNormalizePartName(string? partName) {
+            // Directory entries and unsafe names are not parts; RewritePackage skips or rejects them itself.
+            if (string.IsNullOrWhiteSpace(partName) || partName!.EndsWith("/", StringComparison.Ordinal) || partName.EndsWith("\\", StringComparison.Ordinal)) return null;
+            try {
+                return XlsbNativePackageWriter.NormalizePartName(partName);
+            } catch (InvalidDataException) {
+                return null;
+            }
         }
 
         private static string NextRelationshipId(XDocument relationships) {

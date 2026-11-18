@@ -211,10 +211,11 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData("core", "custom")]
-    [InlineData("extended", "custom")]
-    [InlineData("custom", "core")]
-    public void Xlsb_PropertyEditsNeverOverwriteOtherPropertiesAtTheirDefaultPartName(string edited, string occupant) {
+    [InlineData("core", "custom", false)]
+    [InlineData("core", "custom", true)]
+    [InlineData("extended", "custom", false)]
+    [InlineData("custom", "core", false)]
+    public void Xlsb_PropertyEditsNeverOverwriteOtherPropertiesAtTheirDefaultPartName(string edited, string occupant, bool backslashEntry) {
         string[] kinds = { "core", "extended", "custom" };
         string[] partNames = { "docProps/core.xml", "docProps/app.xml", "docProps/custom.xml" };
         string[] relationshipTypes = {
@@ -242,7 +243,9 @@ public partial class Excel {
             // relationship points at them by mistake, so the reader skips it.
             string occupantXml = occupant == "custom" ? customXml : ReadEntry(archive, partNames[occupantIndex]);
             archive.GetEntry(partNames[occupantIndex])?.Delete();
-            ReplaceEntry(archive, occupiedPart, occupantXml);
+            // A ZIP entry may spell the part with a backslash; it still names the same part.
+            archive.GetEntry(occupiedPart)?.Delete();
+            ReplaceEntry(archive, backslashEntry ? occupiedPart.Replace('/', '\\') : occupiedPart, occupantXml);
             XDocument relationships = XDocument.Parse(ReadEntry(archive, "_rels/.rels"));
             XNamespace rels = "http://schemas.openxmlformats.org/package/2006/relationships";
             foreach (int index in new[] { editedIndex, occupantIndex }) {
@@ -291,6 +294,7 @@ public partial class Excel {
         }
         using ZipArchive saved = ZipFile.OpenRead(savedPath);
         Assert.Contains(occupant == "custom" ? "custom-properties" : "core-properties", ReadEntry(saved, occupiedPart), StringComparison.Ordinal);
+        Assert.Single(saved.Entries, entry => string.Equals(entry.FullName.Replace('\\', '/'), occupiedPart, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
