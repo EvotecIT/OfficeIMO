@@ -51,9 +51,7 @@ $internalQuestPdf = @(
         -Workload pdfgenerate `
         -RunMode full `
         -QuestPdfPackageVersion 2026.9.0 `
-        -QuestPdfLicenseType Evaluation `
-        -InternalQuestPdf `
-        -ConfirmQuestPdfAuthorization `
+        -AcceptLibraryLicense questpdf-latest `
         -PlanOnly
 )
 if ($internalQuestPdf.Count -ne 1 -or
@@ -65,14 +63,23 @@ if ($internalQuestPdf.Count -ne 1 -or
     throw 'The internal QuestPDF lane can still reach shared benchmark publication.'
 }
 
+$unacceptedQuestPdfBlocked = $false
+try {
+    & $runner -Workload pdfgenerate -RunMode quick -QuestPdfPackageVersion 2026.9.0 -PlanOnly | Out-Null
+} catch {
+    $unacceptedQuestPdfBlocked = $true
+}
+if (-not $unacceptedQuestPdfBlocked) {
+    throw 'A newer QuestPDF release can run without accepting its licence.'
+}
+
 $internalPublishBlocked = $false
 try {
     & $runner `
         -Workload pdfgenerate `
         -RunMode full `
         -QuestPdfPackageVersion 2026.9.0 `
-        -InternalQuestPdf `
-        -ConfirmQuestPdfAuthorization `
+        -AcceptLibraryLicense questpdf-latest `
         -Publish `
         -PlanOnly | Out-Null
 } catch {
@@ -220,4 +227,62 @@ if ($pdfStructuredRead.Count -ne 1 -or
     throw 'The canonical PDF read profiles are not isolated as non-catalog route-health measurements.'
 }
 
-Write-Host 'Library comparison runner policy verified for standalone diagnostics, canonical PDF structured read, HTML-to-PDF route health, and mixed comparison selection.'
+# The library policy declares every compared library, and only open libraries reach a published lane.
+. (Join-Path $PSScriptRoot 'LibraryComparisonDefinitions.ps1')
+. (Join-Path $PSScriptRoot 'BenchmarkLibraryPolicy.ps1')
+$policy = Get-BenchmarkLibraryPolicy
+foreach ($library in @($policy.libraries)) {
+    $hasLicense = $library.license -and ($library.license.expression -or $library.license.name) -and $library.license.url
+    if (-not $hasLicense -or [string]::IsNullOrWhiteSpace($library.reason) -or $null -eq $library.packages) {
+        throw "Benchmark library '$($library.id)' needs packages, a licence with a URL and a reason."
+    }
+    if ($library.restriction -eq 'acceptance-required' -and $null -eq $library.acceptance) {
+        throw "Benchmark library '$($library.id)' requires acceptance but does not say what the caller supplies."
+    }
+}
+foreach ($framework in @('net8.0', 'net10.0')) {
+    foreach ($entry in (Get-LibraryComparisonDefinitions -Framework $framework).GetEnumerator()) {
+        foreach ($name in @($entry.Value.Libraries)) {
+            $null = Resolve-BenchmarkLibrary -Policy $policy -Name $name
+        }
+    }
+}
+foreach ($framework in @('net8.0', 'net10.0')) {
+    $publishedPlan = @(& $runner -Workload all -RunMode full -Framework $framework -Publish -PlanOnly)
+    foreach ($item in @($publishedPlan | Where-Object Publish)) {
+        $restricted = @($item.Libraries | ForEach-Object { Resolve-BenchmarkLibrary -Policy $policy -Name $_ } |
+            Where-Object restriction -ne 'open')
+        $restrictedCases = @($item.ExpectedCases | Where-Object {
+                $case = $_
+                @($policy.libraries | Where-Object { $_.restriction -ne 'open' -and (Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $case) }).Count -gt 0
+            })
+        if ($restricted.Count -gt 0 -or $restrictedCases.Count -gt 0 -or $item.Environment.OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES) {
+            throw "Published lane '$($item.Workload)' ($framework) can include a restricted library."
+        }
+    }
+}
+$wordPlan = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -PlanOnly)
+if ($wordPlan[0].CatalogEligible -or @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^(DocX|NPOI)\|' }).Count -gt 0) {
+    throw 'Word comparisons must leave DocX and NPOI out and stay unpublished unless the caller enables them.'
+}
+$restrictedPublishBlocked = $false
+try {
+    & $runner -Workload xlsx -RunMode full -Publish -AcceptLibraryLicense epplus -PlanOnly | Out-Null
+} catch {
+    $restrictedPublishBlocked = $true
+}
+if (-not $restrictedPublishBlocked) {
+    throw 'An enabled restricted library can be combined with benchmark publication.'
+}
+$repositoryRoot = Split-Path -Parent $PSScriptRoot
+foreach ($tag in @(
+        @{ Path = 'OfficeIMO.Excel.Benchmarks\MarkPflug65KExcelBenchmarks.cs'; Pattern = 'CategoryPrefix \+ "epplus"' },
+        @{ Path = 'OfficeIMO.Excel.Benchmarks\ExcelLibraryComparisonRunner.cs'; Pattern = '\["EPPlus"\] = "epplus"' },
+        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:docx' },
+        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:npoi' })) {
+    if ((Get-Content -LiteralPath (Join-Path $repositoryRoot $tag.Path) -Raw) -notmatch $tag.Pattern) {
+        throw "$($tag.Path) no longer marks its restricted library cases ($($tag.Pattern))."
+    }
+}
+
+Write-Host 'Library comparison runner policy verified for the library policy, standalone diagnostics, canonical PDF structured read, HTML-to-PDF route health, and mixed comparison selection.'

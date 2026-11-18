@@ -58,6 +58,7 @@ public class WordReadComparisonBenchmarks {
     public WordReadObservation OfficeIMOReaderStreamedText() => WordReaderTextWorkload.ReadStreamed(_fixture);
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);
@@ -69,6 +70,7 @@ public class WordReadComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:npoi")]
     public WordReadObservation NPOI() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(stream);

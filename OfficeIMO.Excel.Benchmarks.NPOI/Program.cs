@@ -24,6 +24,12 @@ if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?"))
     return;
 }
 
+// NPOI's binaries are under the OSMF EULA; this runner measures NPOI only after the caller enables it.
+if (!BenchmarkLibrarySelection.IsEnabled("npoi")) {
+    Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage("npoi"));
+    return;
+}
+
 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(warmupIterations);

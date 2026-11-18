@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkLibrarySelection.cs" Link="Shared\BenchmarkLibrarySelection.cs" />
   </ItemGroup>
 
 </Project>

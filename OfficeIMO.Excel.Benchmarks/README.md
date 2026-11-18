@@ -583,8 +583,8 @@ rotated execution order, `High` process priority, and separate runs on both
 parallel projection are included.
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\psobject-domain0.json --rows 25000 --scenario write-powershell-psobject-mixed-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 60 --affinity 0xFFFF --priority High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\psobject-domain1.json --rows 25000 --scenario write-powershell-psobject-mixed-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 60 --affinity 0xFFFF0000 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\psobject-domain0.json --rows 25000 --scenario write-powershell-psobject-mixed-direct --library OfficeIMO.Excel --library LargeXlsx --warmup 12 --iterations 60 --affinity 0xFFFF --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\psobject-domain1.json --rows 25000 --scenario write-powershell-psobject-mixed-direct --library OfficeIMO.Excel --library LargeXlsx --warmup 12 --iterations 60 --affinity 0xFFFF0000 --priority High
 ```
 
 | Library | Domain 0 average / median | Domain 1 average / median | Average managed allocation |
@@ -721,8 +721,8 @@ auto-fit also require richer processing. Reproduce one launch per CPU below;
 repeat each command in three independent processes for the table above.
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\datareader-compact-cpu0.json --rows 25000 --scenario write-datareader-compact-package --library OfficeIMO.Excel --library Sylvan.Data.Excel --library SpreadCheetah --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x1 --priority High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\datareader-compact-cpu16.json --rows 25000 --scenario write-datareader-compact-package --library OfficeIMO.Excel --library Sylvan.Data.Excel --library SpreadCheetah --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x10000 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\datareader-compact-cpu0.json --rows 25000 --scenario write-datareader-compact-package --library OfficeIMO.Excel --library Sylvan.Data.Excel --library SpreadCheetah --library LargeXlsx --warmup 12 --iterations 31 --affinity 0x1 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\datareader-compact-cpu16.json --rows 25000 --scenario write-datareader-compact-package --library OfficeIMO.Excel --library Sylvan.Data.Excel --library SpreadCheetah --library LargeXlsx --warmup 12 --iterations 31 --affinity 0x10000 --priority High
 ```
 
 The measured binaries were
@@ -761,8 +761,8 @@ the editable `CellValues` contract snapshots caller-owned values while the
 LargeXlsx comparison streams typed rows. Reproduce one launch per domain with:
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\cellvalues-domain0.json --rows 25000 --scenario write-cellvalues-rectangle-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0xFFFF --priority High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\cellvalues-domain1.json --rows 25000 --scenario write-cellvalues-rectangle-direct --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0xFFFF0000 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\cellvalues-domain0.json --rows 25000 --scenario write-cellvalues-rectangle-direct --library OfficeIMO.Excel --library LargeXlsx --warmup 12 --iterations 31 --affinity 0xFFFF --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\cellvalues-domain1.json --rows 25000 --scenario write-cellvalues-rectangle-direct --library OfficeIMO.Excel --library LargeXlsx --warmup 12 --iterations 31 --affinity 0xFFFF0000 --priority High
 ```
 
 ### Dated 25K dictionary-stream snapshot (2026-08-10)
@@ -783,8 +783,8 @@ and ties one, while LargeXlsx retains the allocation advantage. Reproduce one
 launch per domain with:
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\dictionary-stream-cpu0.json --rows 25000 --scenario write-flat-dictionaries-direct-package --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x1 --priority High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\dictionary-stream-cpu16.json --rows 25000 --scenario write-flat-dictionaries-direct-package --library OfficeIMO.Excel --library LargeXlsx --skip-legacy-epplus --warmup 12 --iterations 31 --affinity 0x10000 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\dictionary-stream-cpu0.json --rows 25000 --scenario write-flat-dictionaries-direct-package --library OfficeIMO.Excel --library LargeXlsx --warmup 12 --iterations 31 --affinity 0x1 --priority High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj --no-build -- compare .\Ignore\Benchmarks\dictionary-stream-cpu16.json --rows 25000 --scenario write-flat-dictionaries-direct-package --library OfficeIMO.Excel --library LargeXlsx --warmup 12 --iterations 31 --affinity 0x10000 --priority High
 ```
 
 The hash-pinned Mark Pflug 65K-record read comparisons are available as focused
@@ -1020,8 +1020,9 @@ control short-run ordering drift; use the BenchmarkDotNet class filters above
 when statistical error and allocation measurements are required.
 
 The XLS lane includes OfficeIMO, ExcelReader.NET, Sylvan.Data.Excel, and
-ExcelDataReader. The XLSX lane includes those readers plus ClosedXML, EPPlus,
-and MiniExcel. The XLSB lane includes the four compatible readers: OfficeIMO,
+ExcelDataReader. The XLSX lane includes those readers plus ClosedXML and
+MiniExcel, and EPPlus when you accept its licence with
+`-AcceptLibraryLicense epplus`. The XLSB lane includes the four compatible readers: OfficeIMO,
 ExcelReader.NET, Sylvan.Data.Excel, and ExcelDataReader. Every implementation
 reads the same fourteen typed columns and must produce the same row count, cell
 count, and deterministic payload observation before a measurement is accepted.
@@ -1054,7 +1055,7 @@ constants, so rerun the focused scenarios before making a release claim.
 For release-style evidence:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --skip-legacy-epplus --warmup 20 --iterations 9
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 20 --iterations 9
 ```
 
 The twenty warmups let tiered compilation settle before the custom rotated
@@ -1080,13 +1081,13 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 Compare row scanning, selective field access, full `GetValues`, and typed getters:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-datareader-25000.json --rows 25000 --scenario read-datareader-readonly,read-datareader-first-column,read-datareader-getvalues,read-datareader-typed --skip-legacy-epplus --warmup 3 --iterations 15
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-datareader-25000.json --rows 25000 --scenario read-datareader-readonly,read-datareader-first-column,read-datareader-getvalues,read-datareader-typed --warmup 3 --iterations 15
 ```
 
 Compare the fastest package-native write paths:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-write-25000.json --rows 25000 --scenario write-datareader-compact-package,write-typed-rows-compact-package --skip-legacy-epplus --warmup 20 --iterations 31
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-write-25000.json --rows 25000 --scenario write-datareader-compact-package,write-typed-rows-compact-package --warmup 20 --iterations 31
 ```
 
 ## Historical generated workstation snapshot
@@ -1101,20 +1102,24 @@ Treat differences below 5% as ties. Use the hash-pinned CSV/XLSX/XLSB website
 matrix for current platform-separated evidence.
 
 <!-- officeimo-excel-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Compact DataReader to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (27ms) | n/a | n/a | 1.29x (34ms) | 1.08x (29ms) | 1.32x (35ms) | Fastest: OfficeIMO.Excel |
-| Feature-rich report to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Create | 1.00x (52ms) | n/a | 11.75x (612ms) | n/a | n/a | n/a | Fastest: OfficeIMO.Excel |
-| Styled DataReader table to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (28ms) | 17.76x (506ms) | 14.26x (406ms) | n/a | n/a | n/a | Fastest: OfficeIMO.Excel |
-| Typed objects streamed from XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Read | 1.00x (33ms) | 14.36x (471ms) | 9.73x (319ms) | n/a | n/a | 1.88x (62ms) | Fastest: OfficeIMO.Excel |
+| Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Compact DataReader to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (27ms) | n/a | 1.29x (34ms) | 1.08x (29ms) | 1.32x (35ms) | Fastest: OfficeIMO.Excel |
+| Styled DataReader table to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (28ms) | 17.76x (506ms) | n/a | n/a | n/a | Fastest: OfficeIMO.Excel |
+| Typed objects streamed from XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Read | 1.00x (33ms) | 14.36x (471ms) | n/a | n/a | 1.88x (62ms) | Fastest: OfficeIMO.Excel |
 <!-- officeimo-excel-benchmark-table:end -->
 
-`--skip-legacy-epplus` omits only the isolated EPPlus 4.x subprocess; current
-EPPlus remains in the comparison. Keep this flag on modern macOS unless
-`libgdiplus` is installed because the legacy AutoFit path depends on it:
+EPPlus 8 is licensed under PolyForm Noncommercial unless you buy a commercial
+licence, so it is a restricted library in
+[`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json). Its cases
+run only when `OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES` lists `epplus` (the shared
+runners set it from `-AcceptLibraryLicense epplus`) and `EPPlusLicense` holds
+your own EPPlus licence declaration. Otherwise they are left out of every run.
+`--include-legacy-epplus` adds the isolated EPPlus 4.5.3.3 (LGPL) subprocess;
+its AutoFit path needs `libgdiplus` on macOS:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 25000 --scenario copy-worksheet-package --skip-legacy-epplus --warmup 1 --iterations 3
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 25000 --scenario copy-worksheet-package --warmup 1 --iterations 3
 ```
 
 ## Website data

@@ -47,6 +47,7 @@ public class WordCreateParagraphComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -59,6 +60,7 @@ public class WordCreateParagraphComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         for (int index = 0; index < ItemCount; index++) {
@@ -143,6 +145,7 @@ public class WordCreateReportComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -166,6 +169,7 @@ public class WordCreateReportComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         var header = document.CreateHeader(NpoiHeaderFooterType.DEFAULT);

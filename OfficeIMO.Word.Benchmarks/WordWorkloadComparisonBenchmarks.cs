@@ -42,6 +42,7 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -58,6 +59,7 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         for (int index = 0; index < ImageCount; index++) {
@@ -148,6 +150,7 @@ public class WordTemplateFillComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var input = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(input);
@@ -165,6 +168,7 @@ public class WordTemplateFillComparisonBenchmarks {
 
     /// <summary>NPOI has no document-level replace; this is the usual single pass over runs.</summary>
     [Benchmark]
+    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var input = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(input);
@@ -240,6 +244,7 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);
@@ -255,6 +260,7 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:npoi")]
     public WordReadObservation NPOI() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(stream);

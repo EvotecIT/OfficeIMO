@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using OfficeIMO;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Reports;
 using OfficeOpenXml;
@@ -27,8 +28,6 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// <c>--compare-engine-lanes [--rows 5000,10000,25000] [--iterations 9] [--warmups 3] [--lane autofit,table-save,table-chart,table-pivot,report]</c>
 /// </remarks>
 internal static class ExcelEngineLanes {
-    static ExcelEngineLanes() => ExcelPackage.License.SetNonCommercialOrganization("OfficeIMO benchmarks");
-
     private static readonly string[] ColumnNames = {
         "Id", "Name", "Department", "Region", "Score", "IsEnabled", "Created", "Owner", "TicketCount", "Notes"
     };
@@ -77,11 +76,12 @@ internal static class ExcelEngineLanes {
         new Lane("report", autoFit: false, chart: false, pivot: true, formatting: true)
     };
 
-    private static readonly (string Name, Func<DataTable, Lane, byte[]> Write, Func<Lane, bool> Supports)[] Libraries = {
-        ("OfficeIMO", WriteOfficeImo, _ => true),
-        ("EPPlus", WriteEpPlus, _ => true),
+    // RestrictedId names a library from Build/benchmark-libraries.json that runs only when the caller enabled it.
+    private static readonly (string Name, Func<DataTable, Lane, byte[]> Write, Func<Lane, bool> Supports, string? RestrictedId)[] AllLibraries = {
+        ("OfficeIMO", WriteOfficeImo, _ => true, null),
+        ("EPPlus", WriteEpPlus, _ => true, "epplus"),
         // ClosedXML does not create charts; the pivot and report lanes compare with EPPlus.
-        ("ClosedXML", WriteClosedXml, lane => !lane.Chart && !lane.Pivot)
+        ("ClosedXML", WriteClosedXml, lane => !lane.Chart && !lane.Pivot, null)
     };
 
     internal static int Run(string[] args) {
@@ -89,19 +89,21 @@ internal static class ExcelEngineLanes {
         int iterations = ReadList(args, "--iterations", new[] { 9 })[0];
         int warmups = ReadList(args, "--warmups", new[] { 3 })[0];
         string[]? selected = ReadOption(args, "--lane")?.Split(',');
+        var libraries = AllLibraries.Where(library => library.RestrictedId == null || BenchmarkLibrarySelection.IsEnabled(library.RestrictedId)).ToArray();
+        foreach (var skipped in AllLibraries.Except(libraries)) Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage(skipped.RestrictedId!));
         var lanes = Lanes.Where(lane => selected == null || selected.Contains(lane.Name, StringComparer.OrdinalIgnoreCase)).ToArray();
 
         string runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
         Console.WriteLine($"Runtime: {runtime}, {(Environment.Is64BitProcess ? "64" : "32")}-bit; iterations {iterations}, warmups {warmups}; median ms");
         Console.WriteLine();
-        Console.WriteLine("| Lane | Rows | " + string.Join(" | ", Libraries.Select(library => library.Name)) + " | OfficeIMO vs best |");
-        Console.WriteLine("| --- | ---: | " + string.Join(" | ", Libraries.Select(_ => "---:")) + " | --- |");
+        Console.WriteLine("| Lane | Rows | " + string.Join(" | ", libraries.Select(library => library.Name)) + " | OfficeIMO vs best |");
+        Console.WriteLine("| --- | ---: | " + string.Join(" | ", libraries.Select(_ => "---:")) + " | --- |");
         int failures = 0;
         foreach (int rowCount in rows) {
             DataTable table = CreateTable(rowCount);
             foreach (Lane lane in lanes) {
                 var medians = new List<double?>();
-                foreach (var library in Libraries) {
+                foreach (var library in libraries) {
                     if (!library.Supports(lane)) {
                         medians.Add(null);
                         continue;

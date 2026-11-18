@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "description": "Licence and restriction policy for every library OfficeIMO benchmarks compare against. Runners read it to decide which libraries may run and which results may be published.",
+  "restrictionClasses": {
+    "open": "Runs by default and may appear in published comparisons.",
+    "publish-restricted": "May run locally when included with -IncludeLibrary; its results are never published.",
+    "acceptance-required": "Runs only after the caller accepts its licence with -AcceptLibraryLicense and supplies whatever the library itself needs; its results are never published.",
+    "excluded": "Never runs."
+  },
+  "libraries": [
+    {
+      "id": "officeimo",
+      "name": "OfficeIMO",
+      "packages": [],
+      "license": { "expression": "MIT", "url": "https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE" },
+      "licenseSource": "repository",
+      "restriction": "open",
+      "reason": "The library under test, built from this repository."
+    },
+    {
+      "id": "excelreader-net",
+      "name": "ExcelReader.NET",
+      "packages": [ { "id": "ExcelReader.NET", "version": "3.1.0" }, { "id": "ExcelReader.NET", "version": "7.5.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "sep",
+      "name": "Sep",
+      "packages": [ { "id": "Sep", "version": "0.17.1" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "sylvan",
+      "name": "Sylvan",
+      "aliases": [ "Sylvan.Data.Csv", "Sylvan.Data.Excel" ],
+      "packages": [ { "id": "Sylvan.Data.Csv", "version": "1.4.4" }, { "id": "Sylvan.Data.Excel", "version": "0.5.8" }, { "id": "Sylvan.Data", "version": "0.2.17" } ],
+      "license": { "expression": "MIT", "url": "https://github.com/MarkPflug/Sylvan/blob/main/license.txt" },
+      "licenseSource": "package-file",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "csvhelper",
+      "name": "CsvHelper",
+      "packages": [ { "id": "CsvHelper", "version": "33.1.0" }, { "id": "CsvHelper", "version": "34.0.0" } ],
+      "license": { "expression": "MS-PL OR Apache-2.0", "url": "https://licenses.nuget.org/MS-PL%20OR%20Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MS-PL or Apache-2.0."
+    },
+    {
+      "id": "dataplat-dbatools-csv",
+      "name": "Dataplat.Dbatools.Csv",
+      "packages": [ { "id": "Dataplat.Dbatools.Csv", "version": "1.1.15" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "lumenworks",
+      "name": "LumenWorks",
+      "packages": [ { "id": "LumenWorksCsvReader2", "version": "4.4.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "exceldatareader",
+      "name": "ExcelDataReader",
+      "packages": [ { "id": "ExcelDataReader", "version": "3.9.0" }, { "id": "ExcelDataReader.DataSet", "version": "3.9.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "closedxml",
+      "name": "ClosedXML",
+      "packages": [ { "id": "ClosedXML", "version": "0.105.1" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "epplus",
+      "name": "EPPlus",
+      "packages": [ { "id": "EPPlus", "version": "8.7.2" } ],
+      "license": { "name": "PolyForm Noncommercial 1.0.0, or an EPPlus commercial licence", "url": "https://www.epplussoftware.com/en/LicenseOverview" },
+      "licenseSource": "package-file",
+      "restriction": "acceptance-required",
+      "reason": "EPPlus 5 and later are free only for non-commercial use; commercial use needs a paid licence. EPPlus refuses to run without a licence declaration, which the caller must make for themselves.",
+      "acceptance": {
+        "environmentVariables": [ "EPPlusLicense" ],
+        "msbuildProperties": {}
+      },
+      "cases": [ "EPPlus" ]
+    },
+    {
+      "id": "epplus-legacy",
+      "name": "EPPlus 4.5.3.3",
+      "packages": [ { "id": "EPPlus", "version": "4.5.3.3" } ],
+      "license": { "name": "GNU LGPL 3.0", "url": "https://www.gnu.org/licenses/lgpl-3.0.html" },
+      "licenseSource": "package-file",
+      "restriction": "open",
+      "reason": "The last LGPL release of EPPlus. It runs in its own process and only when the Excel comparison suite is given --include-legacy-epplus.",
+      "cases": [ "EPPlus 4.5.3.3" ]
+    },
+    {
+      "id": "miniexcel",
+      "name": "MiniExcel",
+      "packages": [ { "id": "MiniExcel", "version": "1.46.0" } ],
+      "license": { "expression": "Apache-2.0", "url": "https://licenses.nuget.org/Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "Apache-2.0."
+    },
+    {
+      "id": "excel-prime",
+      "name": "Excel-PRIME",
+      "packages": [ { "id": "Excel-PRIME", "version": "5.2610.18" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "hypelab-io-excel",
+      "name": "HypeLab.IO.Excel",
+      "packages": [ { "id": "HypeLab.IO.Excel", "version": "1.0.7" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "xlibur",
+      "name": "XLibur",
+      "packages": [ { "id": "XLibur.Bundle", "version": "0.800.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "spreadcheetah",
+      "name": "SpreadCheetah",
+      "packages": [ { "id": "SpreadCheetah", "version": "1.28.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "largexlsx",
+      "name": "LargeXlsx",
+      "packages": [ { "id": "LargeXlsx", "version": "2.0.2" } ],
+      "license": { "expression": "BSD-2-Clause", "url": "https://github.com/salvois/LargeXlsx/blob/master/LICENSE.txt" },
+      "licenseSource": "package-file",
+      "restriction": "open",
+      "reason": "Two-clause BSD licence text in the package."
+    },
+    {
+      "id": "markdig",
+      "name": "Markdig",
+      "packages": [ { "id": "Markdig", "version": "1.3.2" } ],
+      "license": { "expression": "BSD-2-Clause", "url": "https://licenses.nuget.org/BSD-2-Clause" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "BSD-2-Clause."
+    },
+    {
+      "id": "reversemarkdown",
+      "name": "ReverseMarkdown",
+      "packages": [ { "id": "ReverseMarkdown", "version": "6.1.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "rtfpipe",
+      "name": "RtfPipe",
+      "packages": [ { "id": "RtfPipe", "version": "2.0.7677.4303" } ],
+      "license": { "expression": "MIT", "url": "https://github.com/erdomke/RtfPipe" },
+      "licenseSource": "repository",
+      "restriction": "open",
+      "reason": "MIT according to the source repository; the package itself carries no licence metadata."
+    },
+    {
+      "id": "openstandardlibrary",
+      "name": "OpenStandardLibrary",
+      "packages": [ { "id": "OpenStandardLibrary", "version": "1.0.2" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "mimekit",
+      "name": "MimeKit",
+      "packages": [ { "id": "MimeKit", "version": "5.0.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "versone-epub",
+      "name": "VersOne.Epub",
+      "packages": [ { "id": "VersOne.Epub", "version": "3.3.6" } ],
+      "license": { "expression": "Unlicense", "url": "https://licenses.nuget.org/Unlicense" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "Unlicense."
+    },
+    {
+      "id": "htmlagilitypack",
+      "name": "HtmlAgilityPack",
+      "packages": [ { "id": "HtmlAgilityPack", "version": "1.12.4" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "system-io-compression",
+      "name": "System.IO.Compression",
+      "packages": [],
+      "license": { "expression": "MIT", "url": "https://github.com/dotnet/runtime/blob/main/LICENSE.TXT" },
+      "licenseSource": "runtime",
+      "restriction": "open",
+      "reason": "Part of the .NET runtime."
+    },
+    {
+      "id": "yamldotnet",
+      "name": "YamlDotNet",
+      "packages": [ { "id": "YamlDotNet", "version": "18.1.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "sharpyaml",
+      "name": "SharpYaml",
+      "packages": [ { "id": "SharpYaml", "version": "3.17.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "vyaml",
+      "name": "VYaml",
+      "packages": [ { "id": "VYaml", "version": "1.6.1" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "oneyaml",
+      "name": "OneYaml",
+      "packages": [ { "id": "OneYaml", "version": "1.2.1" } ],
+      "license": { "expression": "MIT OR Apache-2.0", "url": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT or Apache-2.0."
+    },
+    {
+      "id": "tomlyn",
+      "name": "Tomlyn",
+      "packages": [ { "id": "Tomlyn", "version": "2.11.1" } ],
+      "license": { "expression": "BSD-2-Clause", "url": "https://licenses.nuget.org/BSD-2-Clause" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "BSD-2-Clause."
+    },
+    {
+      "id": "tomlet",
+      "name": "Tomlet",
+      "packages": [ { "id": "Samboy063.Tomlet", "version": "6.2.0" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "cstoml",
+      "name": "CsToml",
+      "packages": [ { "id": "CsToml", "version": "1.8.6" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "skiasharp",
+      "name": "SkiaSharp",
+      "packages": [ { "id": "SkiaSharp", "version": "3.119.2" }, { "id": "SkiaSharp", "version": "4.151.1" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "magick-net",
+      "name": "Magick.NET",
+      "packages": [ { "id": "Magick.NET-Q8-AnyCPU", "version": "14.16.0" } ],
+      "license": { "expression": "Apache-2.0", "url": "https://licenses.nuget.org/Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "Apache-2.0."
+    },
+    {
+      "id": "stbimagesharp",
+      "name": "StbImageSharp",
+      "packages": [ { "id": "StbImageSharp", "version": "2.30.16" } ],
+      "license": { "expression": "Unlicense OR MIT", "url": "https://licenses.nuget.org/Unlicense%20OR%20MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "Unlicense or MIT."
+    },
+    {
+      "id": "questpdf",
+      "name": "QuestPDF",
+      "packages": [ { "id": "QuestPDF", "version": "2026.5.0" } ],
+      "license": { "name": "QuestPDF Community MIT License, or a QuestPDF Professional or Enterprise licence", "url": "https://github.com/QuestPDF/QuestPDF/blob/2026.5.0/LICENSE.md" },
+      "licenseSource": "package-file",
+      "restriction": "open",
+      "reason": "The pinned public release. Its Community MIT terms are free for open-source projects, evaluation and companies under USD 1M annual revenue; other companies need a paid licence. The benchmark sets QuestPDF's Community licence type unless OFFICEIMO_QUESTPDF_LICENSE_TYPE names another."
+    },
+    {
+      "id": "questpdf-latest",
+      "name": "QuestPDF (newer release)",
+      "packages": [ { "id": "QuestPDF", "version": "2026.6.0 or later" } ],
+      "license": { "name": "QuestPDF licence of the selected release", "url": "https://www.questpdf.com/license/" },
+      "licenseSource": "package-file",
+      "restriction": "publish-restricted",
+      "reason": "QuestPDF 2026.6.0 and later restrict use by competing PDF products. A release other than the pinned one runs only through -QuestPdfPackageVersion with the caller's own licence type, and its results stay local.",
+      "acceptance": {
+        "environmentVariables": [ "OFFICEIMO_QUESTPDF_LICENSE_TYPE" ],
+        "msbuildProperties": { "QuestPdfInternalAuthorization": "true" }
+      }
+    },
+    {
+      "id": "migradoc",
+      "name": "MigraDoc",
+      "packages": [ { "id": "PDFsharp-MigraDoc", "version": "6.2.4" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "pdfsharp",
+      "name": "PDFsharp",
+      "packages": [ { "id": "PDFsharp-MigraDoc", "version": "6.2.4" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "itext",
+      "name": "iText",
+      "packages": [ { "id": "itext", "version": "9.7.0" } ],
+      "license": { "expression": "AGPL-3.0-only", "url": "https://www.gnu.org/licenses/agpl.html" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "AGPL-3.0 or an iText commercial licence. Running and publishing comparison results is allowed; benchmark binaries are not distributed."
+    },
+    {
+      "id": "itext-pdfhtml",
+      "name": "iText pdfHTML",
+      "packages": [ { "id": "itext.pdfhtml", "version": "6.3.3" } ],
+      "license": { "expression": "AGPL-3.0-only", "url": "https://www.gnu.org/licenses/agpl.html" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "AGPL-3.0 or an iText commercial licence. Running and publishing comparison results is allowed; benchmark binaries are not distributed."
+    },
+    {
+      "id": "peachpdf",
+      "name": "PeachPDF",
+      "packages": [ { "id": "PeachPDF", "version": "0.9.25" } ],
+      "license": { "expression": "BSD-3-Clause", "url": "https://licenses.nuget.org/BSD-3-Clause" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "BSD-3-Clause."
+    },
+    {
+      "id": "pdfpecker",
+      "name": "PdfPecker",
+      "packages": [ { "id": "PdfPecker", "version": "1.22.0" } ],
+      "license": { "expression": "MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c", "url": "https://www.nuget.org/packages/PdfPecker/1.22.0/License" },
+      "licenseSource": "package-file",
+      "restriction": "open",
+      "reason": "MIT with bundled third-party notices."
+    },
+    {
+      "id": "chromium",
+      "name": "Chromium",
+      "packages": [ { "id": "HtmlTinkerX", "version": "3.0.5" } ],
+      "license": { "expression": "BSD-3-Clause", "url": "https://chromium.googlesource.com/chromium/src/+/main/LICENSE" },
+      "licenseSource": "runtime",
+      "restriction": "open",
+      "reason": "Reference renderer driven through HtmlTinkerX (MIT); Chromium is BSD-3-Clause."
+    },
+    {
+      "id": "pdfpig",
+      "name": "PdfPig",
+      "packages": [ { "id": "PdfPig", "version": "0.1.15" } ],
+      "license": { "expression": "Apache-2.0", "url": "https://licenses.nuget.org/Apache-2.0" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "Apache-2.0."
+    },
+    {
+      "id": "docx",
+      "name": "DocX",
+      "packages": [ { "id": "DocX", "version": "5.2.0" } ],
+      "license": { "name": "Xceed Community License Agreement (non-commercial use)", "url": "https://github.com/xceedsoftware/DocX/blob/master/LICENSE" },
+      "licenseSource": "package-file",
+      "restriction": "publish-restricted",
+      "reason": "The Xceed Community License does not allow publishing benchmark or performance comparison results without Xceed's advance permission.",
+      "cases": [ "DocX" ]
+    },
+    {
+      "id": "npoi",
+      "name": "NPOI",
+      "packages": [ { "id": "NPOI", "version": "2.8.1" } ],
+      "license": { "name": "OSMF EULA for the NPOI binaries", "url": "https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt" },
+      "licenseSource": "package-file",
+      "restriction": "acceptance-required",
+      "reason": "The NPOI 2.8 binaries are distributed under the OSMF EULA, which requires explicit acceptance and may require a maintenance fee.",
+      "acceptance": {
+        "environmentVariables": [],
+        "msbuildProperties": { "AcceptNPOIOSMFLicense": "true" }
+      },
+      "cases": [ "NPOI" ]
+    },
+    {
+      "id": "open-xml-sdk",
+      "name": "Open XML SDK",
+      "packages": [ { "id": "DocumentFormat.OpenXml", "version": "3.5.1" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "shapecrawler",
+      "name": "ShapeCrawler",
+      "packages": [ { "id": "ShapeCrawler", "version": "0.82.0" } ],
+      "license": { "expression": "MIT", "url": "https://github.com/ShapeCrawler/ShapeCrawler" },
+      "licenseSource": "repository",
+      "restriction": "open",
+      "reason": "MIT according to the source repository; the package itself carries no licence metadata."
+    }
+  ]
+}

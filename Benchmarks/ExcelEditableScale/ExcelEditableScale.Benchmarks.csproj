@@ -27,4 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="../../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../BenchmarkLibrarySelection.cs" Link="Shared/BenchmarkLibrarySelection.cs" />
+  </ItemGroup>
 </Project>

@@ -20,6 +20,13 @@ allocated megabytes per operation, the process peak working set, the output
 size and the validation result. The process exits with 1 when validation fails.
 A pair that a library cannot run prints `not applicable`.
 
+EPPlus and NPOI are restricted libraries in
+[`Build/benchmark-libraries.json`](../../Build/benchmark-libraries.json). Their
+lanes run only when `OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES` lists them (for
+example `epplus,npoi`) after you have reviewed and accepted their licences;
+otherwise they print `skipped` and exit 0. EPPlus also reads your own licence
+declaration from `EPPlusLicense`.
+
 | Lane | Workload |
 |---|---|
 | `write1m` | 1,000,000 rows of number, text, decimal and Boolean cells |

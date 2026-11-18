@@ -1,4 +1,6 @@
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.Word.Benchmarks;
 
 if (args.Length > 0 && string.Equals(args[0], "--evidence-probe", StringComparison.OrdinalIgnoreCase)) {
@@ -36,4 +38,5 @@ if (args.Length > 0 && string.Equals(args[0], "validate-workflows", StringCompar
     return;
 }
 
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+// DocX and NPOI cases carry Library: categories and run only when the caller enabled those restricted libraries.
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, ManualConfig.Create(DefaultConfig.Instance).AddRestrictedLibraryFilter());

@@ -1,4 +1,6 @@
 # Shared workload declarations for collection and site generation. Loading this file performs no work.
+# PublishRestriction records why a comparison's shape is unpublishable. Licence restrictions come from the
+# libraries in Build/benchmark-libraries.json; the runner derives publishability from both.
 function Get-LibraryComparisonDefinitions {
     <#
     .SYNOPSIS
@@ -161,7 +163,7 @@ function Get-LibraryComparisonDefinitions {
         xlsx = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSX 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur')
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -178,7 +180,6 @@ function Get-LibraryComparisonDefinitions {
                 'Sylvan'
                 'ExcelDataReader'
                 'ClosedXML'
-                'EPPlus'
                 'MiniExcel'
                 'OfficeIMO_DefaultNumbers'
                 'OfficeIMO_DefaultNumbers_Prefetch'
@@ -791,7 +792,7 @@ function Get-LibraryComparisonDefinitions {
             Title = 'Structured PDF generation'
             Libraries = @('OfficeIMO', 'QuestPDF', 'MigraDoc', 'iText')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'QuestPDF is pinned to MIT-compatible 2026.5.0; alternate versions require confirmed authorization and internal-only output.'
+            PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfGenerationBenchmarks*'
@@ -911,7 +912,7 @@ function Get-LibraryComparisonDefinitions {
             Title = 'PDF text extraction'
             Libraries = @('OfficeIMO', 'PdfPig', 'iText')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'QuestPDF is pinned to MIT-compatible 2026.5.0; alternate versions require confirmed authorization and internal-only output.'
+            PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfReadBenchmarks*'
@@ -952,7 +953,7 @@ function Get-LibraryComparisonDefinitions {
             Title = 'PDF reverse conversion'
             Libraries = @('OfficeIMO')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'QuestPDF is pinned to MIT-compatible 2026.5.0; alternate versions require confirmed authorization and internal-only output.'
+            PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfReverseConversionBenchmarks*'
@@ -1076,8 +1077,8 @@ function Get-LibraryComparisonDefinitions {
             Title = 'DOCX paragraph creation'
             Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'DocX Xceed Community License prohibits benchmark publication without advance permission; NPOI 2.8.1 requires explicit OSMF EULA acknowledgement for execution.'
-            CatalogEligible = $false
+            PublishRestriction = 'None'
+            CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordCreateParagraphComparisonBenchmarks*'
             ComparisonId = "word-docx-create-paragraphs-$Framework"
@@ -1096,8 +1097,8 @@ function Get-LibraryComparisonDefinitions {
             Title = 'DOCX report creation'
             Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'DocX Xceed Community License prohibits benchmark publication without advance permission; NPOI 2.8.1 requires explicit OSMF EULA acknowledgement for execution.'
-            CatalogEligible = $false
+            PublishRestriction = 'None'
+            CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordCreateReportComparisonBenchmarks*'
             ComparisonId = "word-docx-create-report-$Framework"
@@ -1121,8 +1122,8 @@ function Get-LibraryComparisonDefinitions {
             Title = 'DOCX paragraph reading'
             Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'DocX Xceed Community License prohibits benchmark publication without advance permission; NPOI 2.8.1 requires explicit OSMF EULA acknowledgement for execution.'
-            CatalogEligible = $false
+            PublishRestriction = 'None'
+            CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordReadComparisonBenchmarks*'
             ComparisonId = "word-docx-read-paragraphs-$Framework"
@@ -1141,8 +1142,8 @@ function Get-LibraryComparisonDefinitions {
             Title = 'DOCX text replacement and save'
             Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
-            PublishRestriction = 'DocX Xceed Community License prohibits benchmark publication without advance permission; NPOI 2.8.1 requires explicit OSMF EULA acknowledgement for execution.'
-            CatalogEligible = $false
+            PublishRestriction = 'None'
+            CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordReplaceComparisonBenchmarks*'
             ComparisonId = "word-docx-replace-and-save-$Framework"

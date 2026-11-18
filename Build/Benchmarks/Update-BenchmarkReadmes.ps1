@@ -141,8 +141,8 @@ try {
             "run", "-c", "Release", "--framework", "net8.0",
             "--project", "OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj", "--",
             "comparison-suite", "--out-dir", $excelRunPath, "--row-set", "25000",
-            "--scenario", "realworld-report-all-in-one,write-datareader-table,read-objects-stream,write-datareader-compact-package",
-            "--skip-package-profile", "--skip-dense-helloworld", "--skip-legacy-epplus",
+            "--scenario", "write-datareader-table,read-objects-stream,write-datareader-compact-package",
+            "--skip-package-profile", "--skip-dense-helloworld",
             "--warmup", "20", "--iterations", "9"
         )
         $ExcelSummaryPath = "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json"
@@ -228,10 +228,10 @@ try {
                 $excelRunMode += ", $($excelManifest.ProcessPriority) priority"
             }
         }
+        # EPPlus 8 is PolyForm Noncommercial unless licensed commercially, so it is not part of published comparisons.
         $excelSelections = [ordered]@{
-            "Feature-rich report to XLSX" = @{ Scenario = "realworld-report-all-in-one"; Operation = "Create"; Libraries = @("OfficeIMO.Excel", "EPPlus") }
-            "Styled DataReader table to XLSX" = @{ Scenario = "write-datareader-table"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "ClosedXML", "EPPlus") }
-            "Typed objects streamed from XLSX" = @{ Scenario = "read-objects-stream"; Operation = "Read"; Libraries = @("OfficeIMO.Excel", "ClosedXML", "EPPlus", "Sylvan.Data.Excel") }
+            "Styled DataReader table to XLSX" = @{ Scenario = "write-datareader-table"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "ClosedXML") }
+            "Typed objects streamed from XLSX" = @{ Scenario = "read-objects-stream"; Operation = "Read"; Libraries = @("OfficeIMO.Excel", "ClosedXML", "Sylvan.Data.Excel") }
             "Compact DataReader to XLSX" = @{ Scenario = "write-datareader-compact-package"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "SpreadCheetah", "LargeXlsx", "Sylvan.Data.Excel") }
         }
         $excelRows = [System.Collections.Generic.List[object]]::new()

@@ -22,12 +22,20 @@ merge retains the other lanes already in the destination catalog.
   Keep equivalent engines on the same processor domain and settings. Leave
   `-AffinityMask 0` on macOS. A nonzero mask on Windows or Linux identifies a
   separate comparison profile; select it from the host's actual topology.
-- Review the exact dependency licenses before running restricted lanes. Public
-  QuestPDF comparisons pin 2026.5.0, whose embedded license permits the public
-  lane; this is a historical version. Word's DocX comparison cannot be published
-  without Xceed's advance permission. Word also requires explicit
-  `-AcceptNPOIOSMFLicense` acknowledgement. `all -Publish` reports restricted
-  optional lanes as skipped and leaves their declarations visible.
+- Every compared library is declared in `Build/benchmark-libraries.json` with
+  its packages, licence and restriction class. `open` libraries run and may be
+  published. `publish-restricted` libraries (DocX, QuestPDF releases after the
+  pinned 2026.5.0) run only locally after `-IncludeLibrary <id>`.
+  `acceptance-required` libraries (EPPlus 8, NPOI) run only locally after
+  `-AcceptLibraryLicense <id>`, and still read their own key or setting from
+  you, such as `EPPlusLicense`. `excluded` libraries never run. The runner never
+  declares a licence for you; review each licence before enabling it.
+- A comparison that lists a restricted library is never published, and the
+  restricted library's cases are left out unless enabled. Enabling any
+  restricted library makes the whole run local, so `-Publish` rejects it.
+  `-ExcludeLibrary <id>` skips comparisons that need that library. `all -Publish`
+  reports restricted optional lanes as skipped and leaves their declarations
+  visible.
 - Prepare the independent PDF corpus and pass `-PdfCorpusRoot` to include
   `pdfcorpusread`. Without it, `all` reports that lane as skipped. An explicit
   selection with a missing prerequisite fails. Review `BlockedReasons` in the

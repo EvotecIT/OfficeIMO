@@ -26,6 +26,11 @@ internal static class Program {
             Console.Error.WriteLine(lane + " needs a workbook path.");
             return 2;
         }
+        // EPPlus and NPOI are restricted libraries in Build/benchmark-libraries.json; they run only when enabled.
+        if (library is "epplus" or "npoi" && !OfficeIMO.Benchmarks.BenchmarkLibrarySelection.IsEnabled(library)) {
+            Console.WriteLine($"{library} {lane}: {OfficeIMO.Benchmarks.BenchmarkLibrarySelection.SkippedMessage(library)}");
+            return 0;
+        }
         Func<(double Milliseconds, byte[]? Output, double Check)>? run = Resolve(library, lane, input);
         if (run == null) {
             Console.WriteLine($"{library} {lane}: not applicable");

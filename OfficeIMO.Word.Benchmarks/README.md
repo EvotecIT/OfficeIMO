@@ -165,16 +165,20 @@ selection so ordinary comparison runs do not restore NPOI or require its license
 acknowledgement. `word` expands to the four comparison workloads:
 
 ```powershell
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -AcceptNPOIOSMFLicense
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -IncludeLibrary docx -AcceptLibraryLicense npoi
 ```
 
 Use `-RunMode quick` only for a clean-source smoke run. The isolated benchmark
 project records `AcceptNPOIOSMFLicense=true`, as required by the NPOI package;
 it is nonpackable and outside the normal solution. The interoperability CI job
 restores and builds this project to run the deterministic `validate-workflows`
-checks; comparison measurements remain opt-in. The shared runner also requires
-`-AcceptNPOIOSMFLicense` before starting a Word comparison. Review the EULA and
-decide whether its maintenance-fee conditions apply to your use.
+checks; comparison measurements remain opt-in. DocX and NPOI are restricted
+libraries in [`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json):
+their cases run only with `-IncludeLibrary docx` and `-AcceptLibraryLicense npoi`,
+and are otherwise left out of the Word comparisons. Review the NPOI EULA and
+decide whether its maintenance-fee conditions apply to your use. Xceed's
+Community License does not allow publishing DocX benchmark results without its
+permission, so Word comparisons stay local.
 The benchmark project pins `System.Security.Cryptography.Xml` 10.0.13 because
 NPOI's transitive 10.0.10 minimum is affected by a
 [published high-severity advisory](https://github.com/advisories/GHSA-7hqp-7c5m-4vq6).

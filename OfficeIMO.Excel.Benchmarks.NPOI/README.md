@@ -4,8 +4,11 @@ Opt-in benchmark verification runner for OfficeIMO.Excel and NPOI.
 
 This project is not included in `OfficeIMO.slnx`, so normal solution restore and
 build do not pull NPOI. Run it explicitly when external benchmark verification
-evidence is wanted. The project sets NPOI's OSMF EULA acceptance property for
-this runner.
+evidence is wanted. The project sets NPOI's OSMF EULA acceptance property so it
+builds, but NPOI is a restricted library in
+[`Build/benchmark-libraries.json`](../Build/benchmark-libraries.json): the runner
+measures only when `OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES` includes `npoi`,
+after you have reviewed the EULA and its maintenance-fee conditions.
 SkiaSharp is referenced explicitly here because NPOI HSSF comment/drawing reads
 load it at runtime while NPOI's package metadata excludes those runtime assets
 from the transitive reference.
