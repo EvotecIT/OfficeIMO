@@ -21,9 +21,9 @@ internal static class Program {
 
         string library = args[0];
         string lane = args[1];
-        // EPPlus and NPOI are restricted libraries in Build/benchmark-libraries.json; they run only when enabled,
-        // so a disabled lane is skipped before its workbook is read.
-        if (library is "epplus" or "npoi" && !OfficeIMO.Benchmarks.BenchmarkLibrarySelection.IsEnabled(library)) {
+        // EPPlus is a restricted library in Build/benchmark-libraries.json; it runs only when enabled, so a disabled
+        // lane is skipped before its workbook is read.
+        if (library == "epplus" && !OfficeIMO.Benchmarks.BenchmarkLibrarySelection.IsEnabled(library)) {
             Console.WriteLine($"{library} {lane}: {OfficeIMO.Benchmarks.BenchmarkLibrarySelection.SkippedMessage(library)}");
             return 0;
         }

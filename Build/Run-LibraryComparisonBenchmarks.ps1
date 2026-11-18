@@ -174,10 +174,16 @@ $executionPlan = @(
                 Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name 'questpdf-latest'
             }
         )
+        # A published lane drops restricted libraries' cases and publishes the rest. Only a restricted library whose
+        # cases cannot be identified (it has no case patterns) makes the comparison unpublishable.
         $restrictedLibraries = @($workloadLibraries | Where-Object restriction -ne 'open')
-        $publishableByPolicy = $restrictedLibraries.Count -eq 0
-        $licenseRestriction = if ($restrictedLibraries.Count -gt 0) {
-            (@($restrictedLibraries | ForEach-Object { "$($_.name): $($_.reason)" }) -join ' ')
+        $inseparableLibraries = @($restrictedLibraries | Where-Object { @($_.cases | Where-Object { $_ }).Count -eq 0 })
+        $publishedLibraries = @($definition.Libraries | Where-Object {
+                (Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name $_).restriction -eq 'open'
+            })
+        $publishableByPolicy = $inseparableLibraries.Count -eq 0
+        $licenseRestriction = if ($inseparableLibraries.Count -gt 0) {
+            (@($inseparableLibraries | ForEach-Object { "$($_.name): $($_.reason)" }) -join ' ')
         } else { $null }
         $leftOutLibraries = @($libraryPolicy.libraries | Where-Object {
                 ($_.restriction -ne 'open' -and $_.id -notin $librarySelection.Enabled) -or $_.id -in $librarySelection.Excluded
@@ -260,7 +266,9 @@ $executionPlan = @(
             Workload = $name
             Area = $definition.Area
             Title = $definition.Title
-            Libraries = $definition.Libraries
+            # Libraries that may appear in published results; restricted ones are listed separately.
+            Libraries = $publishedLibraries
+            DeclaredLibraries = @($definition.Libraries)
             ExpectedPlatforms = $definition.ExpectedPlatforms
             PublishRestriction = @(@($definition.PublishRestriction, $licenseRestriction) | Where-Object { $_ -and $_ -ne 'None' }) -join ' '
             RestrictedLibraries = @($restrictedLibraries.id)
@@ -708,7 +716,9 @@ if (-not $localOnlyRun) {
             comparisonId = $definition.ComparisonId
             area = $definition.Area
             title = $definition.Title
-            libraries = @($definition.Libraries)
+            libraries = @($definition.Libraries | Where-Object {
+                    (Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name $_).restriction -eq 'open'
+                })
             expectedPlatforms = @($definition.ExpectedPlatforms)
         }
     }

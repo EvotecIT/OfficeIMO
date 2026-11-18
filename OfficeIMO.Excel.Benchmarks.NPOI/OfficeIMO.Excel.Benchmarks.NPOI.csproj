@@ -6,9 +6,9 @@
 
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
-    <!-- NPOI's build target warns, without a warning code, unless AcceptNPOIOSMFLicense is true. The project does not
-         accept NPOI's OSMF terms for anyone: acceptance happens per run with -AcceptLibraryLicense npoi, which passes
-         the property, and NPOI's cases run only when the runner enables it. The warning does not fail the build. -->
+    <!-- NPOI's build target warns, without a warning code, unless AcceptNPOIOSMFLicense is true. The property only
+         silences that warning; the project does not accept NPOI's OSMF binary terms for anyone. NPOI itself is
+         Apache-2.0 and open in Build/benchmark-libraries.json. The warning does not fail the build. -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,7 +22,7 @@
 
   <ItemGroup>
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
-    <Compile Include="..\Benchmarks\BenchmarkLibrarySelection.cs" Link="Shared\BenchmarkLibrarySelection.cs" />
+
   </ItemGroup>
 
 </Project>

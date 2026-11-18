@@ -26,13 +26,14 @@ merge retains the other lanes already in the destination catalog.
   its packages, licence and restriction class. `open` libraries run and may be
   published. `publish-restricted` libraries (DocX, QuestPDF releases after the
   pinned 2026.5.0) run only locally after `-IncludeLibrary <id>`.
-  `acceptance-required` libraries (EPPlus 8, NPOI) run only locally after
+  `acceptance-required` libraries (EPPlus 8) run only locally after
   `-AcceptLibraryLicense <id>`, and still read their own key or setting from
   you, such as `EPPlusLicense`. `excluded` libraries never run. The runner never
   declares a licence for you; review each licence before enabling it.
-- A comparison that lists a restricted library is never published, and the
-  restricted library's cases are left out unless enabled. Enabling any
-  restricted library makes the whole run local, so `-Publish` rejects it.
+- A published comparison leaves out restricted libraries' cases and publishes
+  the rest; Word, for example, publishes OfficeIMO, NPOI and Open XML SDK
+  without DocX. Enabling any restricted library makes the whole run local, so
+  `-Publish` rejects it.
   `-ExcludeLibrary <id>` skips comparisons that need that library. `all -Publish`
   reports restricted optional lanes as skipped and leaves their declarations
   visible.

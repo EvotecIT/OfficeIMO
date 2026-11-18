@@ -3,8 +3,8 @@
   "description": "Licence and restriction policy for every library OfficeIMO benchmarks compare against. Runners read it to decide which libraries may run and which results may be published. environmentVariables lists values a library reads from the caller when it runs; acceptance lists what an enabled restricted library needs.",
   "restrictionClasses": {
     "open": "Runs by default and may appear in published comparisons.",
-    "publish-restricted": "May run locally when included with -IncludeLibrary; its results are never published.",
-    "acceptance-required": "Runs only after the caller accepts its licence with -AcceptLibraryLicense and supplies whatever the library itself needs; its results are never published.",
+    "publish-restricted": "May run locally when included with -IncludeLibrary; published comparisons leave its cases out.",
+    "acceptance-required": "Runs only after the caller accepts its licence with -AcceptLibraryLicense and supplies whatever the library itself needs; published comparisons leave its cases out.",
     "excluded": "Never runs."
   },
   "libraries": [
@@ -337,7 +337,7 @@
       "license": { "name": "QuestPDF Community MIT License, or a QuestPDF Professional or Enterprise licence", "url": "https://github.com/QuestPDF/QuestPDF/blob/2026.5.0/LICENSE.md" },
       "licenseSource": "package-file",
       "restriction": "open",
-      "reason": "The pinned public release. Its Community MIT terms are free for open-source projects, evaluation and companies under USD 1M annual revenue; other companies need a paid licence. The benchmark sets QuestPDF's Community licence type unless OFFICEIMO_QUESTPDF_LICENSE_TYPE names another.",
+      "reason": "Pinned to 2026.5.0, the last release before QuestPDF restricted benchmarking by competing PDF products, so its results may be published. Its Community MIT terms are free for open-source projects such as OfficeIMO. The benchmark uses QuestPDF's Community licence type unless OFFICEIMO_QUESTPDF_LICENSE_TYPE names another.",
       "environmentVariables": [ "OFFICEIMO_QUESTPDF_LICENSE_TYPE" ]
     },
     {
@@ -439,14 +439,10 @@
       "id": "npoi",
       "name": "NPOI",
       "packages": [ { "id": "NPOI", "version": "2.8.1" } ],
-      "license": { "name": "OSMF EULA for the NPOI binaries", "url": "https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt" },
-      "licenseSource": "package-file",
-      "restriction": "acceptance-required",
-      "reason": "The NPOI 2.8 binaries are distributed under the OSMF EULA, which requires explicit acceptance and may require a maintenance fee.",
-      "acceptance": {
-        "environmentVariables": [],
-        "msbuildProperties": { "AcceptNPOIOSMFLicense": "true" }
-      },
+      "license": { "expression": "Apache-2.0", "url": "https://github.com/nissl-lab/npoi/blob/master/LICENSE", "binaries": "OSMF EULA (https://github.com/nissl-lab/npoi/blob/master/OSMFEULA.txt)" },
+      "licenseSource": "repository",
+      "restriction": "open",
+      "reason": "NPOI is Apache-2.0, which places no restriction on benchmarking or publishing results. The OSMF EULA on the prebuilt 2.8 binaries asks organisations with revenue of USD 10,000 or more for a maintenance fee when NPOI is used as part of revenue-generating activities; benchmarking OfficeIMO, an MIT open-source project, is not. The package's build warning about the EULA stays visible; no project accepts it by default.",
       "cases": [ "NPOI" ]
     },
     {

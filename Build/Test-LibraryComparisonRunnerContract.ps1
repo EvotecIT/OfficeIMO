@@ -261,9 +261,16 @@ foreach ($framework in @('net8.0', 'net10.0')) {
         }
     }
 }
-$wordPlan = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -PlanOnly)
-if ($wordPlan[0].CatalogEligible -or @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^(DocX|NPOI)\|' }).Count -gt 0) {
-    throw 'Word comparisons must leave DocX and NPOI out and stay unpublished unless the caller enables them.'
+# A published Word lane drops the publish-restricted DocX cases and publishes OfficeIMO, NPOI and Open XML SDK.
+$wordPlan = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -Publish -PlanOnly)
+if (-not $wordPlan[0].Publish -or 'DocX' -in @($wordPlan[0].Libraries) -or
+    @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^DocX\|' }).Count -gt 0 -or
+    @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^NPOI\|' }).Count -eq 0) {
+    throw 'Word comparisons must publish without DocX cases and with NPOI.'
+}
+$localDocX = @(& $runner -Workload wordcreate -RunMode full -Framework net8.0 -IncludeLibrary docx -PlanOnly)
+if ($localDocX[0].CatalogEligible -or $localDocX[0].Publish -or $localDocX[0].Environment.OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES -ne 'docx') {
+    throw 'Including DocX must keep the Word run local.'
 }
 $restrictedPublishBlocked = $false
 try {
@@ -279,8 +286,7 @@ foreach ($tag in @(
         @{ Path = 'OfficeIMO.Excel.Benchmarks\MarkPflug65KExcelBenchmarks.cs'; Pattern = 'CategoryPrefix \+ "epplus"' },
         @{ Path = 'OfficeIMO.Excel.Benchmarks\ExcelLibraryComparisonRunner.cs'; Pattern = '\["EPPlus"\] = "epplus"' },
         @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:docx' },
-        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'Library:npoi' },
-        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'IsEnabled\("npoi"\)\) WordBenchmarkCorpus' })) {
+        @{ Path = 'OfficeIMO.Word.Benchmarks\WordCreateComparisonBenchmarks.cs'; Pattern = 'IsEnabled\("docx"\)\) WordBenchmarkCorpus' })) {
     if ((Get-Content -LiteralPath (Join-Path $repositoryRoot $tag.Path) -Raw) -notmatch $tag.Pattern) {
         throw "$($tag.Path) no longer marks its restricted library cases ($($tag.Pattern))."
     }

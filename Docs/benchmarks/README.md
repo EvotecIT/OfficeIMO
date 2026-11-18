@@ -537,7 +537,7 @@ set and the output contract each library must satisfy.
 
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- validate
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -IncludeLibrary docx -AcceptLibraryLicense npoi
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0
 ```
 
 The public repository keeps the benchmark code, inputs, validators, workload

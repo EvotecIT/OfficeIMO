@@ -20,11 +20,9 @@ if (args.Length > 0 && string.Equals(args[0], "validate-openxml", StringComparis
 }
 
 if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.OrdinalIgnoreCase)) {
-    // DocX and NPOI are validated only when the caller enabled them; see Build/benchmark-libraries.json.
-    foreach (string restricted in new[] { "docx", "npoi" }) {
-        if (!BenchmarkLibrarySelection.IsEnabled(restricted)) {
-            Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage(restricted));
-        }
+    // DocX is validated only when the caller enabled it; see Build/benchmark-libraries.json.
+    if (!BenchmarkLibrarySelection.IsEnabled("docx")) {
+        Console.WriteLine(BenchmarkLibrarySelection.SkippedMessage("docx"));
     }
     WordLibraryBenchmarkValidation.RunAll();
     Console.WriteLine("The enabled Word library benchmark scenarios produced equivalent validated DOCX payloads.");
@@ -44,5 +42,5 @@ if (args.Length > 0 && string.Equals(args[0], "validate-workflows", StringCompar
     return;
 }
 
-// DocX and NPOI cases carry Library: categories and run only when the caller enabled those restricted libraries.
+// DocX cases carry a Library: category and run only when the caller enabled that restricted library.
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, ManualConfig.Create(DefaultConfig.Instance).AddRestrictedLibraryFilter());

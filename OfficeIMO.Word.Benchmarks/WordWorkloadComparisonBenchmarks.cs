@@ -25,7 +25,7 @@ public class WordCreateImageComparisonBenchmarks {
     public void Validate() {
         WordWorkloadCorpus.ValidateImageDocument(OfficeIMO(), ImageCount);
         if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateImageDocument(DocX(), ImageCount, requireOpenXmlSdkConformance: false);
-        if (BenchmarkLibrarySelection.IsEnabled("npoi")) WordWorkloadCorpus.ValidateImageDocument(NPOI(), ImageCount);
+        WordWorkloadCorpus.ValidateImageDocument(NPOI(), ImageCount);
         WordWorkloadCorpus.ValidateImageDocument(OpenXmlSdk(), ImageCount);
     }
 
@@ -60,7 +60,6 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         for (int index = 0; index < ImageCount; index++) {
@@ -135,7 +134,7 @@ public class WordTemplateFillComparisonBenchmarks {
         _fixture = WordWorkloadCorpus.CreateTemplateFixture(ItemCount);
         WordWorkloadCorpus.ValidateFilledDocument(OfficeIMO(), ItemCount);
         if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateFilledDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
-        if (BenchmarkLibrarySelection.IsEnabled("npoi")) WordWorkloadCorpus.ValidateFilledDocument(NPOI(), ItemCount);
+        WordWorkloadCorpus.ValidateFilledDocument(NPOI(), ItemCount);
         WordWorkloadCorpus.ValidateFilledDocument(OpenXmlSdk(), ItemCount);
     }
 
@@ -169,7 +168,6 @@ public class WordTemplateFillComparisonBenchmarks {
 
     /// <summary>NPOI has no document-level replace; this is the usual single pass over runs.</summary>
     [Benchmark]
-    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var input = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(input);
@@ -225,7 +223,7 @@ public class WordReadTableComparisonBenchmarks {
         _expected = WordWorkloadCorpus.ExpectedReportCells(RowCount);
         Ensure(nameof(OfficeIMO), OfficeIMO());
         if (BenchmarkLibrarySelection.IsEnabled("docx")) Ensure(nameof(DocX), DocX());
-        if (BenchmarkLibrarySelection.IsEnabled("npoi")) Ensure(nameof(NPOI), NPOI());
+        Ensure(nameof(NPOI), NPOI());
         Ensure(nameof(OpenXmlSdk), OpenXmlSdk());
     }
 
@@ -261,7 +259,6 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:npoi")]
     public WordReadObservation NPOI() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(stream);

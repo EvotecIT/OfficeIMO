@@ -1372,7 +1372,6 @@
       "title": "DOCX paragraph creation",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],
@@ -1388,7 +1387,6 @@
       "title": "DOCX paragraph creation",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],
@@ -1404,7 +1402,6 @@
       "title": "DOCX report creation",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],
@@ -1420,7 +1417,6 @@
       "title": "DOCX report creation",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],
@@ -1436,7 +1432,6 @@
       "title": "DOCX paragraph reading",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],
@@ -1452,7 +1447,6 @@
       "title": "DOCX paragraph reading",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],
@@ -1468,7 +1462,6 @@
       "title": "DOCX text replacement and save",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],
@@ -1484,7 +1477,6 @@
       "title": "DOCX text replacement and save",
       "libraries": [
         "OfficeIMO",
-        "DocX",
         "NPOI",
         "Open XML SDK"
       ],

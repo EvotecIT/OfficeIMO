@@ -22,7 +22,7 @@ public class WordReplaceComparisonBenchmarks {
     public void Setup() {
         SetupOfficeAndOpenXml();
         if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateReplacedDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
-        if (BenchmarkLibrarySelection.IsEnabled("npoi")) WordBenchmarkCorpus.ValidateReplacedDocument(NPOI(), ItemCount);
+        WordBenchmarkCorpus.ValidateReplacedDocument(NPOI(), ItemCount);
 #if NET10_0_OR_GREATER
         WordBenchmarkCorpus.ValidateReplacedDocument(OneDocument(), ItemCount);
 #endif
@@ -63,7 +63,6 @@ public class WordReplaceComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var input = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(input);

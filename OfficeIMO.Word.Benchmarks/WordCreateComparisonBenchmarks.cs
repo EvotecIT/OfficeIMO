@@ -31,7 +31,7 @@ public class WordCreateParagraphComparisonBenchmarks {
         WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount);
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
         if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
-        if (BenchmarkLibrarySelection.IsEnabled("npoi")) WordBenchmarkCorpus.ValidateParagraphDocument(NPOI(), ItemCount);
+        WordBenchmarkCorpus.ValidateParagraphDocument(NPOI(), ItemCount);
         WordBenchmarkCorpus.ValidateParagraphDocument(OpenXmlSdkMinimal(), ItemCount);
         byte[] equivalent = OpenXmlSdkEquivalent();
         WordBenchmarkCorpus.ValidateParagraphDocument(equivalent, ItemCount);
@@ -61,7 +61,6 @@ public class WordCreateParagraphComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         for (int index = 0; index < ItemCount; index++) {
@@ -113,7 +112,7 @@ public class WordCreateReportComparisonBenchmarks {
         WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount);
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
         if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
-        if (BenchmarkLibrarySelection.IsEnabled("npoi")) WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
+        WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
         WordBenchmarkCorpus.ValidateReportDocument(OpenXmlSdkMinimal(), RowCount);
         byte[] equivalent = OpenXmlSdkEquivalent();
         WordBenchmarkCorpus.ValidateReportDocument(equivalent, RowCount);
@@ -170,7 +169,6 @@ public class WordCreateReportComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:npoi")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         var header = document.CreateHeader(NpoiHeaderFooterType.DEFAULT);

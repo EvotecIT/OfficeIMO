@@ -21,7 +21,7 @@ public class WordReadComparisonBenchmarks {
     public void Setup() {
         SetupOfficeAndOpenXml();
         if (BenchmarkLibrarySelection.IsEnabled("docx")) EnsureExpected(nameof(DocX), DocX());
-        if (BenchmarkLibrarySelection.IsEnabled("npoi")) EnsureExpected(nameof(NPOI), NPOI());
+        EnsureExpected(nameof(NPOI), NPOI());
 #if NET10_0_OR_GREATER
         EnsureExpected(nameof(OneDocument), OneDocument());
         EnsureExpected(nameof(OneDocumentExtractText), OneDocumentExtractText());
@@ -71,7 +71,6 @@ public class WordReadComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:npoi")]
     public WordReadObservation NPOI() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(stream);
