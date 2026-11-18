@@ -22,6 +22,24 @@ namespace OfficeIMO.Excel {
             private long _definedNameMutationVersion;
             internal bool IsDisposed { get; private set; }
 
+            /// <summary>
+            /// Sizes the per-cell caches for the formulas a sheet is about to evaluate. Growing them one doubling at a
+            /// time copies each cache several times over, and for a few thousand formulas every copy is a large object.
+            /// </summary>
+            internal void ReserveFormulaCells(string sheetName, int formulaCells) {
+#if NET8_0_OR_GREATER
+                if (formulaCells <= 0) return;
+                Cache.EnsureCapacity(Cache.Count + formulaCells);
+                DepthCache.EnsureCapacity(DepthCache.Count + formulaCells);
+                if (!CacheKeys.TryGetValue(sheetName, out Dictionary<string, string>? keys)) {
+                    keys = new Dictionary<string, string>(formulaCells, StringComparer.Ordinal);
+                    CacheKeys.Add(sheetName, keys);
+                } else {
+                    keys.EnsureCapacity(keys.Count + formulaCells);
+                }
+#endif
+            }
+
             // Cross-sheet wrappers borrow this snapshot only while the pass owns it.
             internal SharedStringCache GetSharedStrings(DocumentFormat.OpenXml.Packaging.SpreadsheetDocument document, long mutationVersion) {
                 if (_sharedStrings == null || _sharedStringMutationVersion != mutationVersion) {

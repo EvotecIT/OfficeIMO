@@ -25,6 +25,12 @@ namespace OfficeIMO.Excel {
         }
 
         internal void ReadFrom(Stream source) {
+            // A part stream that knows its length gets one array of that size instead of a doubling series,
+            // which for a large worksheet would be a run of large-object allocations.
+            if (source.CanSeek) {
+                long remaining = source.Length - source.Position;
+                if (remaining > 0 && remaining < int.MaxValue - 1 - _length) EnsureCapacity((int)remaining + _length + 1);
+            }
             while (true) {
                 if (_length == _buffer.Length) Grow(_length + 1);
                 int read = source.Read(_buffer, _length, _buffer.Length - _length);
@@ -37,6 +43,15 @@ namespace OfficeIMO.Excel {
             if (count > _buffer.Length - _length) Grow(checked(_length + count));
             System.Buffer.BlockCopy(buffer, offset, _buffer, _length, count);
             _length += count;
+        }
+
+        /// <summary>Makes room for <paramref name="capacity"/> bytes in one step.</summary>
+        internal void EnsureCapacity(int capacity) {
+            if (capacity <= _buffer.Length) return;
+            byte[] larger = ExcelArrayPool.RentBytes(capacity);
+            System.Buffer.BlockCopy(_buffer, 0, larger, 0, _length);
+            if (_buffer.Length != 0) ExcelArrayPool.Return(_buffer);
+            _buffer = larger;
         }
 
         private void Grow(int required) {
