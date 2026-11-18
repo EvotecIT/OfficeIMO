@@ -68,12 +68,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(JustifiedLines(rendered)[0].Right < 195D, "The preserved spaces stay at the end of the line.");
     }
 
-    [Fact]
-    public void HtmlRenderer_ReportsInterCharacterJustificationOnInlineText() {
-        Assert.Contains("text-justify=inter-character", UnsupportedTextDetails(
-            "<p style='text-align:justify;width:150px;margin:0'>alpha <span style='text-justify:inter-character'>one two three four five six seven eight nine</span></p>"));
-    }
-
     [Theory]
     [InlineData("white-space:pre-line")]
     // Anonymous flex item text is laid out without DOM run collection.
@@ -97,22 +91,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(line.Left > 10D);
     }
 
-    [Fact]
-    public void HtmlRenderer_ReportsTextKeywordsThatLayoutDoesNotApply() {
-        string[] details = UnsupportedTextDetails(
-            "<p>Icon <span style='display:inline-block;width:10px;height:20px;vertical-align:middle'></span> and "
-            + "<span style='vertical-align:middle'>text</span> <span style='text-transform:full-width'>abc</span></p>");
-
-        // Reported once per value.
-        Assert.Equal(new[] { "text-transform=full-width", "vertical-align=middle" }, details.OrderBy(item => item, StringComparer.Ordinal));
-    }
-
     [Theory]
     // Table cells apply the keyword; blocks, floats, positioned boxes and flex or grid items ignore vertical-align.
     [InlineData("<p>Text <img style='float:right;vertical-align:middle;width:5px;height:5px' src='data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='></p>")]
     [InlineData("<p style='position:relative'>Text <span style='position:absolute;vertical-align:bottom'>abs</span></p>")]
     [InlineData("<style>div::before{content:'x';vertical-align:middle}</style><div style='display:flex'>item</div>")]
-    // inter-character is reported only when a line is actually justified.
+    // Inter-character justification is applied, not approximated.
+    [InlineData("<p style='text-align:justify;width:150px;margin:0'>alpha <span style='text-justify:inter-character'>one two three four five six seven eight nine</span></p>")]
     [InlineData("<p style='text-align:justify;text-justify:inter-character'>Short</p>")]
     [InlineData("<table><tr><td style='vertical-align:middle'>cell</td></tr></table>")]
     [InlineData("<div style='vertical-align:bottom'>Blocks ignore vertical-align.</div>")]
@@ -121,20 +106,14 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<p dir='rtl' style='text-align:justify;text-justify:none;width:150px;margin:0'>שלום <span style='display:inline-block;width:5px;height:5px'></span> one two three four five six seven eight</p>")]
     [InlineData("<div style='display:flex'><span style='vertical-align:middle'>Flex item</span></div>")]
     [InlineData("<div style='display:grid'><span style='vertical-align:text-top'>Grid item</span></div>")]
-    // Hidden boxes are never laid out, so their keywords and unimplemented properties lose nothing.
-    [InlineData("<p>Visible<span style='display:none;text-transform:full-width;vertical-align:middle'>Hidden</span></p>")]
+    // Hidden boxes are never laid out, so their unimplemented properties lose nothing.
     [InlineData("<p>Visible<span style='display:none;text-emphasis:dot'>Hidden</span></p>")]
-    // Text that overrides an inherited unimplemented transform renders without loss.
-    [InlineData("<div style='text-transform:full-width'><span style='text-transform:none'>Visible</span></div>")]
     public void HtmlRenderer_DoesNotReportKeywordsWhereNothingIsApproximated(string html) {
         Assert.Empty(UnsupportedTextDetails(html));
     }
 
     [Theory]
-    [InlineData("<p style='text-align:justify;width:150px;margin:0'>漢字の文章は単語の間に空白がないので文字の間で両端揃えにする必要があります。</p>", "text-align=justify;cjk")]
     [InlineData("<p dir='rtl' style='text-align:justify;width:150px;margin:0'>שלום <span style='display:inline-block;width:5px;height:5px'></span> one two three four five six seven eight</p>", "text-align=justify;rtl-inline-boxes")]
-    // A line without word separators is still left unjustified for inter-character text.
-    [InlineData("<p style='width:300px;margin:0;text-align-last:justify;text-justify:inter-character'>abcdef</p>", "text-justify=inter-character")]
     public void HtmlRenderer_ReportsJustifiedLinesLeftAtStart(string html, string detail) {
         Assert.Contains(detail, UnsupportedTextDetails(html));
     }

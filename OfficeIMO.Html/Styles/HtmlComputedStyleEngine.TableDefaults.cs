@@ -21,6 +21,9 @@ public static partial class HtmlComputedStyleEngine {
         if (element.LocalName is "td" or "th" or "tr" or "thead" or "tbody" or "tfoot"
                 or "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6"
             && ResolveTableAlignAttribute(element) is string hint) {
+            // On div, HTML's legacy alignment also aligns the child blocks, which the
+            // -webkit- keywords express.
+            if (element.LocalName == "div" && hint is "left" or "right" or "center") hint = "-webkit-" + hint;
             ApplyHtmlUserAgentDefault("text-align", hint, hasLocalDeclaration, properties,
                 inheritedProperties, resetProperties, originRevertedProperties, cascadePriorities, cascadeTraces);
             return;

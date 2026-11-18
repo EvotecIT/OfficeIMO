@@ -310,6 +310,11 @@ namespace OfficeIMO.Word.Html {
                 // The align attribute is a presentational hint below authored CSS, including
                 // resets such as initial or unset, so it applies only without a text-align declaration.
                 alignment = mappedAlignment;
+            } else if ((string.IsNullOrWhiteSpace(align) || string.Equals(align, "inherit", StringComparison.OrdinalIgnoreCase))
+                && TryResolveInheritedTextAlign(element, out mappedAlignment)) {
+                // text-align is inherited: body, list and other container alignment reaches
+                // descendants that are converted to their own paragraphs.
+                alignment = mappedAlignment;
             }
 
             var floatVal = GetInlinePropertyValue(declaration, styleAttribute, "float")?.Trim();
@@ -451,6 +456,25 @@ namespace OfficeIMO.Word.Html {
 
         private bool IsInjectedInheritedProperty(IElement element, string property) =>
             _injectedInheritedCssProperties.TryGetValue(element, out HashSet<string>? injected) && injected.Contains(property);
+
+        // The nearest ancestor's text-align declaration, or its legacy align attribute. start and
+        // end resolve against this element's own direction, as an inherited keyword does in CSS.
+        private bool TryResolveInheritedTextAlign(IElement element, out JustificationValues alignment) {
+            alignment = JustificationValues.Left;
+            bool? bidi = GetBidiFromDir(element);
+            for (IElement? ancestor = element.ParentElement; ancestor != null; ancestor = ancestor.ParentElement) {
+                string? styleAttribute = ancestor.GetAttribute("style");
+                string? value = string.IsNullOrWhiteSpace(styleAttribute) ? null
+                    : GetInlinePropertyValue(ParseInlineDeclaration(styleAttribute), styleAttribute, "text-align")?.Trim();
+                if (!string.IsNullOrWhiteSpace(value) && !string.Equals(value, "inherit", StringComparison.OrdinalIgnoreCase)) {
+                    return TryMapTextAlign(value, bidi, out alignment);
+                }
+                if (string.IsNullOrWhiteSpace(value) && IsLegacyAlignedBlock(ancestor)
+                    && TryMapTextAlign(ancestor.GetAttribute("align"), bidi, out alignment)) return true;
+                if (ancestor.LocalName is "td" or "th" or "table") return false;
+            }
+            return false;
+        }
 
         private static bool IsLegacyAlignedBlock(IElement element) =>
             element.LocalName is "p" or "div" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6";

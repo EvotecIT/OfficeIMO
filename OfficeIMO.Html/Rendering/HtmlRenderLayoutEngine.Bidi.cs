@@ -328,6 +328,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             first.LeadingAdvance += sources[sourceIndex].LeadingAdvance;
             last.TrailingAdvance += sources[sourceIndex].TrailingAdvance;
             last.JustificationAdvance += sources[sourceIndex].JustificationAdvance;
+            // Reordered text keeps the added space at the end of its last visual group.
+            if (last.JustificationAdvance > 0D) last.ClusterJustification = new[] { last.JustificationAdvance };
         }
         return result.AsReadOnly();
     }

@@ -483,10 +483,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // pre-line text measures its lines separately, as line layout breaks it. Zero-size text only
     // gives context to line layout, so its line feeds do not break there.
     private static IReadOnlyList<IntrinsicTextRun> ExpandIntrinsicPreservedLineBreaks(IReadOnlyList<IntrinsicTextRun> runs) {
-        if (!runs.Any(run => run.Style.PreserveLineBreaks && !run.Style.PreserveWhitespace
+        if (!runs.Any(run => (run.Style.PreserveLineBreaks && !run.Style.PreserveWhitespace || run.Style.CollapseSegmentBreaks)
                 && run.Text.IndexOfAny(SegmentBreakCharacters) >= 0)) return runs;
         var expanded = new List<IntrinsicTextRun>(runs.Count + 4);
         foreach (IntrinsicTextRun run in runs) {
+            // preserve-spaces measures segment breaks as the spaces it paints.
+            if (run.Style.CollapseSegmentBreaks && !run.IsForcedBreak && !run.IsReplaced && !run.IsParagraphStart
+                && run.Text.IndexOfAny(SegmentBreakCharacters) >= 0) {
+                expanded.Add(new IntrinsicTextRun(ReplaceSegmentBreaks(run.Text), run.Style));
+                continue;
+            }
             if (!run.Style.PreserveLineBreaks || run.Style.PreserveWhitespace || run.Style.Font.Size <= 0D || run.IsForcedBreak || run.IsReplaced
                 || run.IsParagraphStart || run.Text.IndexOfAny(SegmentBreakCharacters) < 0) {
                 expanded.Add(run);

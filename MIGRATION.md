@@ -10225,4 +10225,16 @@ HTML rendered to PDF and images now justifies `text-align: justify` text. Each l
 
 Word output keeps a paragraph's own `text-align` inside a table cell that sets a different alignment, instead of taking the cell's alignment.
 
-`vertical-align: middle`, `bottom`, `text-top` and `text-bottom` on inline-level boxes outside flex and grid containers, `text-transform: full-width` and `full-size-kana`, `text-justify: inter-character` on lines that are justified, and justified lines that stay at start (CJK text without word separators, and right-to-left lines with inline boxes) are still approximated, and are now reported as `HtmlRenderCssPropertyUnsupported` approximations. Conversions that use `HtmlRenderFidelityPolicy.FailOnLoss` or call `ThrowIfLoss()` now fail on documents that use them; remove the declaration or use a policy that accepts approximations.
+## HTML vertical alignment, wrapping and legacy alignment are rendered
+
+PDF and image output now positions `vertical-align` values on inline content as browsers do: `middle`, `top`, `bottom`, `text-top`, `text-bottom`, `sub`, `super`, lengths and percentages move inline-blocks, images and inline text, and lines grow to fit them. Icons with `vertical-align: middle` that previously sat on the baseline now centre on the text, and lines holding `top`- or `bottom`-aligned boxes can change height. These values are no longer reported as `HtmlRenderCssPropertyUnsupported`.
+
+Other output changes:
+
+- `text-justify: inter-character` and justified CJK text spread the space between characters instead of only between words, and are no longer reported. Justified right-to-left lines that hold inline boxes still stay at start and are still reported. A no-break space between words also stretches in justified text, while still keeping the words on one line.
+- `text-transform: full-width` and `full-size-kana` transform the text, alone or with a case keyword, and are no longer reported.
+- `font-variant-caps: petite-caps` and `all-petite-caps` draw like small caps; percentage `letter-spacing` and `word-spacing` resolve against the font size; decimal `font-weight` values and `oblique` angles in `rad`, `grad` and `turn` apply instead of falling back to the parent's.
+- `white-space-collapse`, `text-wrap-mode`, `text-wrap-style` and the `text-wrap` shorthand are applied with `white-space`, so `pre` text with `text-wrap-mode: wrap` wraps. `text-wrap: balance` evens out the lines of blocks up to six lines long; `pretty` and `stable` wrap as `auto`.
+- `<div align="center">` and `align="right"` also align child blocks with a set width, such as tables, as `text-align: -webkit-center` and `-webkit-right` do. Child blocks with their own horizontal margins keep them.
+
+Word output passes `text-align` from `body`, and from a `div` around a list, to the paragraphs and list items inside. RTF and PowerPoint table cells, and RTF paragraphs, resolve `text-align: start` and `end` against right-to-left direction instead of always using left and right.

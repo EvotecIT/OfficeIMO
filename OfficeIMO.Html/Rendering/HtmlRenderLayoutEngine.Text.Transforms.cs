@@ -9,7 +9,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.ApproximateSmallCaps && ContainsSmallCapital(text, IsAllSmallCaps(style))) {
             ReportSyntheticSmallCaps(style, "generated-text", style.FontVariant);
         }
-        ReportUnappliedTextTransform(style, new[] { text }, "generated-text");
         return ApplyTextTransformSegments(new[] { text }, style)[0];
     }
 
@@ -42,8 +41,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 end++;
             }
 
-            ReportUnappliedTextTransform(first.Style, textRuns.Select(static run => run.Text),
-                first.OwnerElement != null ? HtmlRenderStyleResolver.DescribeSource(first.OwnerElement) : first.Source);
             IReadOnlyList<string> transformed = ApplyTextTransformSegments(
                 textRuns.Select(static run => run.Text).ToArray(), first.Style, applySmallCaps: false);
             for (int index = 0; index < textRuns.Count; index++) {
@@ -93,7 +90,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool IsAllSmallCaps(HtmlRenderBoxStyle style) =>
-        style.FontVariant.IndexOf("all-small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
+        style.FontVariant.IndexOf("all-small-caps", StringComparison.OrdinalIgnoreCase) >= 0
+        || style.FontVariant.IndexOf("all-petite-caps", StringComparison.OrdinalIgnoreCase) >= 0;
 
     private static bool ContainsSmallCapital(string text, bool capitals) {
         foreach (char character in text) {
@@ -134,30 +132,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private readonly HashSet<object> _reportedSyntheticSmallCaps = new HashSet<object>();
-
-    // full-width and full-size-kana are recognised but not applied. They are reported once per keyword, and only when
-    // text that uses them is laid out, so hidden boxes and containers whose text overrides the keyword lose nothing.
-    private void ReportUnappliedTextTransform(HtmlRenderBoxStyle style, IEnumerable<string> segments, string source) {
-        string? keyword = null;
-        foreach (string token in style.TextTransform.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-            if (token.Equals("full-width", StringComparison.OrdinalIgnoreCase) || token.Equals("full-size-kana", StringComparison.OrdinalIgnoreCase)) {
-                keyword = token.ToLowerInvariant();
-                break;
-            }
-        }
-        if (keyword == null || !segments.Any(static segment => !string.IsNullOrWhiteSpace(segment))
-            || !_reportedUnappliedTextTransforms.Add(keyword)) return;
-        _diagnostics.Add(
-            ComponentName,
-            HtmlRenderDiagnosticCodes.CssPropertyUnsupported,
-            "This text-transform keyword is not implemented; the text was not transformed.",
-            HtmlDiagnosticSeverity.Warning,
-            source,
-            "text-transform=" + keyword,
-            OfficeConversionLossKind.Approximation);
-    }
-
-    private readonly HashSet<string> _reportedUnappliedTextTransforms = new HashSet<string>(StringComparer.Ordinal);
 
     // Synthesized pieces keep their source case as logical text, so extraction returns what the author wrote.
     private static int SynthesizeSmallCaps(IList<HtmlInlineRun> runs, int index, HtmlInlineRun run, bool capitals, bool split) {
@@ -244,15 +218,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         bool applySmallCaps = true) {
         CultureInfo culture = ResolveTextTransformCulture(style.Language);
-        OfficeTextCase textCase = style.TextTransform.ToLowerInvariant() switch {
-            "uppercase" => OfficeTextCase.Uppercase,
-            "lowercase" => OfficeTextCase.Lowercase,
-            "capitalize" => OfficeTextCase.Capitalize,
-            _ => OfficeTextCase.None
-        };
+        // text-transform combines one case keyword with full-width and full-size-kana.
+        OfficeTextCase textCase = OfficeTextCase.None;
+        bool fullWidth = false, fullSizeKana = false;
+        foreach (string keyword in HtmlRenderCssValues.SplitWhitespace(style.TextTransform.ToLowerInvariant())) {
+            switch (keyword) {
+                case "uppercase": textCase = OfficeTextCase.Uppercase; break;
+                case "lowercase": textCase = OfficeTextCase.Lowercase; break;
+                case "capitalize": textCase = OfficeTextCase.Capitalize; break;
+                case "full-width": fullWidth = true; break;
+                case "full-size-kana": fullSizeKana = true; break;
+            }
+        }
         IReadOnlyList<string> transformed = string.Equals(style.TextTransform, "math-auto", StringComparison.OrdinalIgnoreCase)
             ? segments.Select(OfficeMathTextTransform.MathAuto).ToArray()
             : OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
+        if (fullWidth || fullSizeKana) {
+            transformed = transformed.Select(segment => HtmlTextWidthTransform.Apply(segment, fullWidth, fullSizeKana)).ToArray();
+        }
         return applySmallCaps && style.ApproximateSmallCaps
             ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)
             : transformed;

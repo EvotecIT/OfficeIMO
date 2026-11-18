@@ -16,7 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<HtmlFloatExclusion>? inheritedFloats = null,
         InlinePaintCapture? paintCapture = null, InlineFloatContext? floatContext = null,
         bool inlineEdgesPrepared = false, int? maximumLines = null, Action? onLineLimitExceeded = null,
-        bool retainPreparedTokenClusters = false) {
+        bool retainPreparedTokenClusters = false, double? renderWidth = null, Action<int>? admittedLines = null) {
         AssignLogicalTextOrders(runs);
         if (!inlineEdgesPrepared) PrepareInlineEdgeScopes(runs);
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D,
@@ -26,6 +26,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (floatContext?.HasFloats == true || runs.Any(run => run.FloatingBlock != null) || inheritedFloats?.Count > 0) {
             return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer, pageBoundary, inheritedFloats, paintCapture, floatContext);
+        }
+        if (renderWidth == null && admittedLines == null
+            && CanBalanceInlineLines(runs, paragraphStyle, skipLogicalCharacters, maximumLines, paintCapture)) {
+            return LayoutBalancedInlineRuns(runs, width, paragraphStyle, formattingContainer);
         }
         bool supportsContinuationReflow = runs.All(run =>
             run.AtomicBlock == null
@@ -302,6 +306,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } catch (InlineLineLimitException) {
             onLineLimitExceeded?.Invoke();
         }
+        if (admittedLines != null) {
+            admittedLines(lines.Count);
+            return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
+        }
         ExpandLeaderSegments(lines, width);
         int completeLogicalProgress = lines
             .SelectMany(candidate => candidate.Segments)
@@ -324,7 +332,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         return RenderInlineLines(
             lines,
-            width,
+            renderWidth ?? width,
             paragraphStyle,
             formattingContainer,
             supportsContinuationReflow: supportsContinuationReflow,

@@ -14,7 +14,11 @@ internal static class OfficeFontFaceCssParser {
             case "bolder": weight = inherited < 350 ? 400 : inherited < 550 ? 700 : Math.Max(900, inherited); return true;
             case "lighter": weight = inherited < 550 ? Math.Min(100, inherited) : inherited < 750 ? 400 : 700; return true;
         }
-        return int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight) && weight >= 1 && weight <= 1000;
+        // CSS weights are numbers from 1 to 1000; faces are matched on whole weights.
+        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
+            || number < 1D || number > 1000D) return false;
+        weight = (int)Math.Round(number, MidpointRounding.AwayFromZero);
+        return true;
     }
 
     private static readonly string[] StretchNames = { "ultra-condensed", "extra-condensed", "condensed", "semi-condensed", "normal", "semi-expanded", "expanded", "extra-expanded", "ultra-expanded" };
@@ -51,7 +55,20 @@ internal static class OfficeFontFaceCssParser {
         if (parts.Length == 0 || parts[0] != "oblique" || parts.Length > 2) return false;
         slant = OfficeFontSlant.Oblique; angle = 14D;
         if (parts.Length == 1) return true;
-        return parts[1].EndsWith("deg", StringComparison.Ordinal) && double.TryParse(parts[1].Substring(0, parts[1].Length - 3),
-            NumberStyles.Float, CultureInfo.InvariantCulture, out angle) && angle > -90D && angle < 90D;
+        return TryAngleDegrees(parts[1], out angle) && angle >= -90D && angle <= 90D;
+    }
+
+    // CSS <angle> in deg, grad, rad or turn, in degrees.
+    private static bool TryAngleDegrees(string value, out double degrees) {
+        degrees = 0D;
+        (string Unit, double Scale)[] units = { ("deg", 1D), ("grad", 0.9D), ("rad", 180D / Math.PI), ("turn", 360D) };
+        foreach ((string unit, double scale) in units) {
+            if (!value.EndsWith(unit, StringComparison.Ordinal)) continue;
+            if (!double.TryParse(value.Substring(0, value.Length - unit.Length), NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out double number)) return false;
+            degrees = number * scale;
+            return true;
+        }
+        return false;
     }
 }

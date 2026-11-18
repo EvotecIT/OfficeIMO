@@ -45,6 +45,19 @@ public sealed partial class HtmlRenderingTests {
         { "<div style='text-align:justify;text-align-last:justify;text-justify:none;width:300px'><p style='margin:0;text-align:justify;text-align-last:match-parent;text-justify:inter-word'>" + JustifiedText + "</p></div>", "justified" }
     };
 
+    [Fact]
+    public void HtmlRenderer_JustifiesAtNoBreakSpaces() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align:justify;width:300px;margin:0'>alpha&nbsp;beta&nbsp;gamma&nbsp;delta&nbsp;epsilon "
+            + "unbreakablewordthatwrapsontothenextline</p>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        // The first line holds only words joined by no-break spaces; they are its separators.
+        IReadOnlyList<JustifiedLine> lines = JustifiedLines(rendered);
+        Assert.True(lines.Count >= 2, "The fixture must wrap.");
+        Assert.Equal(300D, lines[0].Right, 1);
+    }
+
     [Theory]
     [MemberData(nameof(JustifiedParagraphCases))]
     public void HtmlRenderer_JustifiesWrappedLinesAndAlignsTheLastLine(string html, string lastLine) {
@@ -147,6 +160,25 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_JustifiesInterCharacterTextWithoutWordSeparators() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='width:300px;margin:0;text-align-last:justify;text-justify:inter-character'>abcdef</p>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        Assert.Equal(300D, Assert.Single(JustifiedLines(rendered)).Right, 1);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.CssPropertyUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRenderer_InlineInterCharacterOverridesTheParagraphNone() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align-last:justify;text-justify:none;width:300px;margin:0'><span style='text-justify:inter-character'>abcdef</span></p>",
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+
+        Assert.Equal(300D, Assert.Single(JustifiedLines(rendered)).Right, 1);
+    }
+
+    [Fact]
     public void HtmlRenderer_RightToLeftLinesWithInlineBoxesKeepLeftToRightWordOrder() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<p dir='rtl' style='text-align:justify;width:300px;margin:0'>שלום <span style='display:inline-block;width:10px;height:10px'></span> "
@@ -155,18 +187,6 @@ public sealed partial class HtmlRenderingTests {
 
         // Without bidi resolution the line keeps the phrase whole, so its words stay in order.
         Assert.Contains(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("one two"));
-    }
-
-    [Fact]
-    public void HtmlRenderer_ReportsInterCharacterJustificationAsWordSpacing() {
-        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<p style='text-align:justify;text-justify:inter-character;width:300px;margin:0'>" + JustifiedText + "</p>",
-            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
-
-        Assert.Equal(300D, JustifiedLines(rendered)[0].Right, 1);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics,
-            item => item.Code == HtmlRenderDiagnosticCodes.CssPropertyUnsupported && item.Detail == "text-justify=inter-character");
-        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
     }
 
     [Fact]

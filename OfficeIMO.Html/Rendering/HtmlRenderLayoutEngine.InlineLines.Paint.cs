@@ -29,7 +29,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var trailingGroups = hasFloats ? new List<HtmlRenderTrailingGroup>() : null;
         _currentInlineEdgeGeometry.Clear();
         double[] lineJustification = ApplyInlineLineJustification(lines, width, paragraphStyle, out JustificationLimit justificationLimits);
-        ReportJustificationLimits(lineJustification, justificationLimits, paragraphStyle, formattingContainer);
+        ReportJustificationLimits(justificationLimits, paragraphStyle, formattingContainer);
         IReadOnlyList<IReadOnlyList<InlineSegment>> mergedLines = lines
             .Select(line => (IReadOnlyList<InlineSegment>)MergeAdjacentInlineSegments(line.Segments))
             .ToArray();
@@ -90,6 +90,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : textLineMetrics ? resolvedTextBaseline : alignTextBaseline || current.HasReplacedImage
                 ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
                 : current.ResolveBaseline(paragraphStyle);
+            AlignedInlineLine? aligned = ResolveAlignedInlineLine(current, paragraphStyle);
+            if (aligned != null) {
+                lineHeight = aligned.Height;
+                baseline = aligned.Baseline;
+                alignTextBaseline = true;
+                emptyAtomicBaseline = false;
+                textLineMetrics = false;
+                ordinaryLineCarrier = false;
+            }
             double lineY = current.HasExplicitPlacement ? current.Y : flowY;
             double availableWidth = current.ResolveAvailableWidth(width);
             double lineX = (current.HasExplicitPlacement ? current.X : 0D) + current.IndentOffset;
@@ -155,6 +164,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double atomicBaseline = segment.Run.AtomicBaseline ?? atomic.Height;
                     double atomicY = lineY + Math.Max(0D, (current.HasReplacedImage || emptyAtomicBaseline ? baseline : lineHeight) - atomicBaseline);
                     if (segment.Run.Style.TableVerticalAlignment == "top") atomicY = lineY;
+                    if (aligned != null && aligned.AtomicTops.TryGetValue(segment.Run, out double alignedTop))
+                        atomicY = lineY + aligned.Baseline + alignedTop;
                     RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
                     double anchorTop = Math.Min(lineY, atomicY);
                     RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, anchorTop,
@@ -209,17 +220,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     RecordInlineAnchorGeometry(segment.Run, formattingContainer, x, lineY, 0D, lineHeight, anchorBounds);
                     EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
                 } else if (segment.Text.Length > 0) {
+                    double segmentBaseline = aligned != null ? ResolveAlignedTextBaseline(aligned, segment) : baseline;
                     double textLineHeight = current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline ? segment.Run.Style.LineHeight : lineHeight;
                     double paintLineHeight = textLineHeight;
                     if (current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline) {
                         // A smaller run shares the line baseline without extending
                         // its inherited leading below the containing line box.
-                        double baselineOffset = Math.Max(0D, baseline - segment.Run.Style.Font.Size);
+                        double baselineOffset = Math.Max(0D, segmentBaseline - segment.Run.Style.Font.Size);
                         paintLineHeight = Math.Min(textLineHeight, Math.Max(0.01D, lineHeight - baselineOffset));
                         if (!textLineMetrics) textLineHeight = paintLineHeight;
                     }
                     ResolveInlineTextVerticalPlacement(segment, current.HasReplacedImage || alignTextBaseline || emptyAtomicBaseline, lineY,
-                        paintLineHeight, baseline, textLineMetrics, out double textY, out double paintHeight,
+                        paintLineHeight, segmentBaseline, textLineMetrics, out double textY, out double paintHeight,
                         out double paintTopOverflow);
                     // A legal zero CSS line height still paints glyphs. Retain that
                     // metric while giving their fragmentation carrier the same
@@ -245,8 +257,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         continue;
                     }
                     double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
-                    IReadOnlyList<InlinePaintSegment> paintSegments = WidenJustifiedSeparator(
-                        ResolveInlinePaintSegments(segment, x), segment.JustificationAdvance);
+                    IReadOnlyList<InlinePaintSegment> paintSegments = ApplyJustificationToPaint(segment,
+                        ResolveInlinePaintSegments(segment, x));
                     var textVisuals = new List<HtmlRenderVisual>(paintSegments.Count);
                     foreach (InlinePaintSegment paintSegment in paintSegments) {
                         // Retained glyph paths cannot delegate decoration to SVG <text>.

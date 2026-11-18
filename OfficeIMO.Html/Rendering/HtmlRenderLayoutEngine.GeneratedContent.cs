@@ -233,6 +233,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         IsTextTransformContextOnly = contextOnly,
                         SemanticSourceOrder = sourceOrder
                     };
+                    if (style.CollapseSegmentBreaks) text = ReplaceSegmentBreaks(text);
                     if (style.PreserveLineBreaks && !style.PreserveWhitespace && !contextOnly && text.IndexOfAny(SegmentBreakCharacters) >= 0) {
                         // Generated line feeds (content: "A\A B") break pre-line text like source line feeds.
                         AddPreservedLineBreakRuns(text, value => runs.Add(TextRun(value)), () => runs.Add(TextRun("\u2028")));

@@ -52,11 +52,13 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool TextAlignJustify;
     // text-justify: none on this element; its word separators are not stretched.
     internal bool TextJustifyNone;
-    // text-justify: inter-character or distribute, which line layout approximates between words.
-    internal bool TextJustifyInterCharacter;
     // text-align-last as computed, before text-justify: none turns a justified last line off.
     internal OfficeTextAlignment? ComputedTextAlignLast;
+    // left, center or right from a -webkit- text-align keyword, which also aligns child blocks.
+    internal string LegacyBlockAlign = string.Empty;
     internal OfficeTextAlignment? TextAlignLast;
+    // auto, inter-word or inter-character; none clears JustifyText instead.
+    internal string TextJustifyMode = "auto";
     internal double LineHeight;
     internal bool UsesNaturalLineHeight;
     // Keep the used alignment height separate from ordinary text paint and the
@@ -82,6 +84,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool PreserveWhitespace;
     // white-space: pre-line keeps segment breaks while other white space collapses.
     internal bool PreserveLineBreaks;
+    // white-space-collapse: preserve-spaces keeps spaces and turns segment breaks into spaces.
+    internal bool CollapseSegmentBreaks;
+    // text-wrap-style: auto, balance, stable or pretty.
+    internal string TextWrapStyle = "auto";
     internal bool PreventTextWrapping;
     internal string Language = string.Empty;
     // Resolved box applicability survives positioning/float clones that reset
@@ -178,6 +184,11 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeTextBaseline Baseline { get => _text.Baseline; set { if (!(_text.Baseline == value)) MutableText().Baseline = value; } }
     internal int BaselineLevel { get => _text.BaselineLevel; set { if (!(_text.BaselineLevel == value)) MutableText().BaselineLevel = value; } }
     internal double BaselineScale { get => _text.BaselineScale; set { if (!(SameValue(_text.BaselineScale, value))) MutableText().BaselineScale = value; } }
+    // The part of BaselineOffset added by a middle, text-top or text-bottom keyword for text boxes.
+    // Atomic inline boxes replace it with a shift computed from their own height.
+    internal double VerticalAlignShift { get => _text.VerticalAlignShift; set { if (!(SameValue(_text.VerticalAlignShift, value))) MutableText().VerticalAlignShift = value; } }
+    // top or bottom from the box's own vertical-align or an inline ancestor's; empty otherwise.
+    internal string LineRelativeAlign { get => _text.LineRelativeAlign; set { if (!(string.Equals(_text.LineRelativeAlign, value, StringComparison.Ordinal))) MutableText().LineRelativeAlign = value; } }
     internal double BaselineOffset { get => _text.BaselineOffset; set { if (!(SameValue(_text.BaselineOffset, value))) MutableText().BaselineOffset = value; } }
     internal HtmlRenderTextIndent? TextIndent { get => _text.TextIndent; set { if (!(ReferenceEquals(_text.TextIndent, value))) MutableText().TextIndent = value; } }
     internal double CharacterAdvance { get => _text.CharacterAdvance; set { if (!(SameValue(_text.CharacterAdvance, value))) MutableText().CharacterAdvance = value; } }
@@ -454,6 +465,8 @@ internal sealed class HtmlRenderBoxStyle {
         internal int BaselineLevel;
         internal double BaselineScale = 1D;
         internal double BaselineOffset;
+        internal double VerticalAlignShift;
+        internal string LineRelativeAlign = string.Empty;
         internal HtmlRenderTextIndent? TextIndent;
         internal double CharacterAdvance = double.NaN;
         internal double LetterSpacing;

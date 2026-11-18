@@ -698,6 +698,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Space added after a word separator on a justified line. It belongs to the
         // separator, so it is painted with it and moves the following content.
         internal double JustificationAdvance { get; set; }
+        // Space added after each text element of this segment; its sum is JustificationAdvance.
+        internal double[]? ClusterJustification { get; set; }
         internal double Advance => LeadingAdvance + Width + JustificationAdvance + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }

@@ -252,7 +252,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             ? fontVariant
             : computed.GetValue("font-variant-caps").Trim().ToLowerInvariant();
         string textTransform = ResolveTextTransform(element, computed, parent?.TextTransform ?? "none");
-        bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
+        // Petite capitals use the small-cap route, as CSS Fonts allows when a font has no petite caps.
+        bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0
+            || fontVariantCaps.IndexOf("petite-caps", StringComparison.OrdinalIgnoreCase) >= 0;
         OfficeTextFeatureSettings textFeatureSettings = ResolveTextFeatureSettings(computed);
         DeclarationFacts declarationFacts = GetDeclarationFacts(computed);
         _activeCharacterAdvance = declarationFacts.HasCharacterUnits
@@ -268,13 +270,6 @@ internal sealed partial class HtmlRenderStyleResolver {
 
         double lineHeight = ResolveComputedLineHeight(computed, fontSize, parent, out double alignmentLineHeight, out bool usesNaturalLineHeight);
         string verticalAlign = ResolveTextVerticalAlign(pseudoElement ? string.Empty : tag, computed);
-        // Floats, absolutely positioned boxes and flex or grid items are blockified, so
-        // vertical-align does not apply to them. A pseudo-element's parent is its host.
-        bool blockified = parent != null && (parent.Display.IndexOf("flex", StringComparison.Ordinal) >= 0
-                || parent.Display.IndexOf("grid", StringComparison.Ordinal) >= 0)
-            || computed.GetValue("float").Trim().ToLowerInvariant() is "left" or "right" or "inline-start" or "inline-end"
-            || computed.GetValue("position").Trim().ToLowerInvariant() is "absolute" or "fixed";
-        ReportUnrenderedTextValues(element, display, blockified, verticalAlign);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
             verticalAlign,
@@ -283,12 +278,22 @@ internal sealed partial class HtmlRenderStyleResolver {
             fontSize,
             lineHeight);
         if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
+        // middle, text-top and text-bottom shift an inline box against its parent's font. The shift
+        // is a position, not a superscript or subscript, so it does not change the baseline level.
+        bool inlineLevel = display.StartsWith("inline", StringComparison.Ordinal) || pseudoElement && display == "inline";
+        double keywordShift = inlineLevel
+            ? ResolveVerticalAlignKeywordShift(verticalAlign, parent?.Font.Size ?? fontSize, fontSize, lineHeight)
+            : 0D;
+        string lineRelativeAlign = !inlineLevel ? string.Empty
+            : verticalAlign is "top" or "bottom" ? verticalAlign
+            : verticalAlign == "baseline" && display == "inline" ? parent?.LineRelativeAlign ?? string.Empty
+            : string.Empty;
         OfficeColor color = defaultLink && !HasAuthoredValue(computed, "color")
             ? OfficeColor.FromRgb(0, 0, 238)
             : computed.IsImplicitlyInheritedValue("color") && parent != null
             ? parent.Color
             : ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
-        string whiteSpace = computed.GetValue("white-space").Trim().ToLowerInvariant();
+        ResolveWhiteSpace(computed, out string whiteSpaceCollapse, out string textWrapMode, out string textWrapStyle);
         bool defaultCentered = (tag == "caption" || (tag == "math" && display == "block"))
             && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"));
         OfficeTextAlignment alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent,
@@ -308,8 +313,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             : lastLineValue is "start" or "end" ? ResolveTextAlignLast(lastLineValue, direction, parent)
             : parent.ComputedTextAlignLast;
         OfficeTextAlignment? textAlignLast = computedTextAlignLast;
-        string textJustifyValue = computed.GetValue("text-justify").Trim().ToLowerInvariant();
-        bool textJustifyNone = textJustifyValue == "none";
+        string textJustifyMode = ResolveTextJustifyMode(computed.GetValue("text-justify"));
+        bool textJustifyNone = textJustifyMode == "none";
         // text-justify applies to text, so it does not decide whether the block's lines are justified:
         // runs with none keep their spaces, and inline descendants can override it.
         justifyText = textAlignJustify;
@@ -335,7 +340,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             },
             BaselineLevel = baselineLevel,
             BaselineScale = 1D,
-            BaselineOffset = baselineOffset,
+            BaselineOffset = baselineOffset + keywordShift,
+            VerticalAlignShift = keywordShift,
+            LineRelativeAlign = lineRelativeAlign,
             Color = color,
             DecorationColor = propagatedUnderline && !ownsUnderline
                 ? parent!.DecorationColor
@@ -344,9 +351,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             JustifyText = justifyText,
             TextAlignJustify = textAlignJustify,
             TextJustifyNone = textJustifyNone,
-            TextJustifyInterCharacter = textJustifyValue is "inter-character" or "distribute",
             ComputedTextAlignLast = computedTextAlignLast,
+            LegacyBlockAlign = ResolveLegacyBlockAlign(computed.GetValue("text-align"), parent),
             TextAlignLast = textAlignLast,
+            TextJustifyMode = textJustifyMode,
             TextIndent = ResolveTextIndent(element, computed, fontSize, parent),
             CharacterAdvance = _activeCharacterAdvance,
             LineHeight = lineHeight,
@@ -355,10 +363,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
             WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
-            PreserveWhitespace = IsPreformatted(whiteSpace),
-            PreserveLineBreaks = whiteSpace == "pre-line",
-            BreakSpaces = whiteSpace == "break-spaces",
-            PreventTextWrapping = PreventsTextWrapping(whiteSpace),
+            PreserveWhitespace = whiteSpaceCollapse is "preserve" or "break-spaces" or "preserve-spaces",
+            PreserveLineBreaks = whiteSpaceCollapse == "preserve-breaks",
+            CollapseSegmentBreaks = whiteSpaceCollapse == "preserve-spaces",
+            BreakSpaces = whiteSpaceCollapse == "break-spaces",
+            PreventTextWrapping = textWrapMode == "nowrap",
+            TextWrapStyle = textWrapStyle,
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
@@ -423,6 +433,16 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyOverflow(computed, style);
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
+        if (!pseudoElement && parent != null && parent.LegacyBlockAlign.Length > 0 && !display.StartsWith("inline", StringComparison.Ordinal)
+            && style.Position is not ("absolute" or "fixed") && style.FloatSide is "" or "none") {
+            // A -webkit-center, -webkit-right or -webkit-left parent (div align) also aligns its child
+            // blocks, as HTML's legacy alignment does. Authored horizontal margins win.
+            bool authoredMargins = HasAuthoredValue(physicalComputed, "margin-left") || HasAuthoredValue(physicalComputed, "margin-right");
+            if (!authoredMargins) {
+                if (parent.LegacyBlockAlign is "center" or "right") style.MarginLeftAuto = true;
+                if (parent.LegacyBlockAlign is "center" or "left") style.MarginRightAuto = true;
+            }
+        }
         style.TransformAppliesToBox = IsTransformableBox(element, style, parent, pseudoElement);
         // Positioned layout temporarily uses a static clone; retain applicability here.
         style.Clip = style.Position is "absolute" or "fixed"
@@ -999,6 +1019,15 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
     }
 
+    private static string ResolveLegacyBlockAlign(string value, HtmlRenderBoxStyle? parent) =>
+        value.Trim().ToLowerInvariant() switch {
+            "-webkit-center" or "-moz-center" => "center",
+            "-webkit-right" or "-moz-right" => "right",
+            "-webkit-left" or "-moz-left" => "left",
+            "match-parent" => parent?.LegacyBlockAlign ?? string.Empty,
+            _ => string.Empty
+        };
+
     // text-align-last applies to the last line of a block and to lines ending in a
     // forced break. Null keeps auto: the line follows text-align, and justified
     // text falls back to start.
@@ -1023,6 +1052,14 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
     }
 
+    // CSS Text 3 text-justify, with the legacy distribute value as inter-character.
+    // none turns justification off.
+    private static string ResolveTextJustifyMode(string value) => value.Trim().ToLowerInvariant() switch {
+        "none" => "none",
+        "inter-word" => "inter-word",
+        "inter-character" or "distribute" => "inter-character",
+        _ => "auto"
+    };
 
     private static string ResolveSemanticRole(string tag) {
         if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') return "heading-" + tag[1];
@@ -1034,11 +1071,53 @@ internal sealed partial class HtmlRenderStyleResolver {
         return tag;
     }
 
-    private static bool IsPreformatted(string whiteSpace) =>
-        whiteSpace == "pre" || whiteSpace == "pre-wrap" || whiteSpace == "break-spaces";
+    // white-space is a shorthand for white-space-collapse and text-wrap-mode, and text-wrap for
+    // text-wrap-mode and text-wrap-style. For each part, the declaration that wins the cascade
+    // among the shorthand and its longhand applies, as if the shorthand had been expanded.
+    private static void ResolveWhiteSpace(HtmlComputedStyle computed, out string collapse, out string wrapMode, out string wrapStyle) {
+        string whiteSpace = computed.GetValue("white-space").Trim().ToLowerInvariant();
+        string? shorthandCollapse = null, shorthandMode = null;
+        if (whiteSpace.Length > 0 && HtmlComputedStyleEngine.TryExpandWhiteSpace(whiteSpace, out string expandedCollapse, out string expandedMode)) {
+            shorthandCollapse = expandedCollapse;
+            shorthandMode = expandedMode;
+        }
+        string textWrap = computed.GetValue("text-wrap").Trim().ToLowerInvariant();
+        string? textWrapMode = null, textWrapStyle = null;
+        if (textWrap.Length > 0 && HtmlComputedStyleEngine.TryExpandTextWrap(textWrap, out string expandedWrapMode, out string expandedWrapStyle)) {
+            textWrapMode = expandedWrapMode;
+            textWrapStyle = expandedWrapStyle;
+        }
+        collapse = PickCascadeWinner(computed, "collapse",
+            ("white-space", shorthandCollapse), ("white-space-collapse", computed.GetValue("white-space-collapse")));
+        wrapMode = PickCascadeWinner(computed, "wrap",
+            ("white-space", shorthandMode), ("text-wrap", textWrapMode), ("text-wrap-mode", computed.GetValue("text-wrap-mode")));
+        wrapStyle = PickCascadeWinner(computed, "auto",
+            ("text-wrap", textWrapStyle), ("text-wrap-style", computed.GetValue("text-wrap-style")));
+    }
 
-    private static bool PreventsTextWrapping(string whiteSpace) =>
-        whiteSpace == "pre" || whiteSpace == "nowrap";
+    private static string PickCascadeWinner(HtmlComputedStyle computed, string fallback,
+        params (string Property, string? Value)[] candidates) {
+        string? winner = null;
+        bool winnerInherited = false;
+        HtmlCssCascadePriority? winnerPriority = null;
+        foreach ((string property, string? value) in candidates) {
+            string normalized = value?.Trim().ToLowerInvariant() ?? string.Empty;
+            if (normalized.Length == 0) continue;
+            // A value of this element beats an inherited one; then cascade priority; then the longhand.
+            bool inherited = computed.IsImplicitlyInheritedValue(property);
+            HtmlCssCascadePriority? priority = computed.TryGetCascadePriority(property, out HtmlCssCascadePriority found)
+                ? found : null;
+            bool wins = winner == null
+                || inherited != winnerInherited ? !inherited || winner == null
+                : priority.HasValue && winnerPriority.HasValue ? priority.Value.OutranksOrEquals(winnerPriority.Value)
+                : true;
+            if (!wins) continue;
+            winner = normalized;
+            winnerInherited = inherited;
+            winnerPriority = priority;
+        }
+        return winner ?? fallback;
+    }
 
     private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
         if (tag == "body" && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || _options.UsesBrowserBodyMargin)) {
@@ -1334,28 +1413,6 @@ internal sealed partial class HtmlRenderStyleResolver {
     }
 
     private readonly HashSet<string> _reportedUnimplementedProperties = new(StringComparer.Ordinal);
-
-    // Recognised keywords that line layout does not position or transform yet. They are
-    // reported once per value instead of silently using the baseline or the original text.
-    private void ReportUnrenderedTextValues(IElement element, string display, bool blockified, string verticalAlign) {
-        // A display:none box is never laid out, so none of its text is approximated.
-        if (display == "none") return;
-        // vertical-align applies only to inline-level boxes and table cells, and table cells apply
-        // these keywords. Blocks ignore the property, so nothing is lost for them.
-        // Flex and grid items are blockified, so vertical-align does not apply to them either.
-        if (display.StartsWith("inline", StringComparison.Ordinal) && !blockified
-            && verticalAlign is "middle" or "bottom" or "text-top" or "text-bottom") {
-            ReportUnrenderedTextValue(element, "vertical-align", verticalAlign,
-                "This vertical-align keyword is not applied to inline content; it was aligned on the baseline.");
-        }
-        // Unimplemented text-transform keywords are reported by layout, only for text that uses them.
-    }
-
-    private void ReportUnrenderedTextValue(IElement element, string property, string value, string message) {
-        if (!_reportedUnimplementedProperties.Add(property + "=" + value)) return;
-        _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.CssPropertyUnsupported, message,
-            HtmlDiagnosticSeverity.Warning, DescribeSource(element), property + "=" + value, OfficeConversionLossKind.Approximation);
-    }
 
     private HtmlRenderBackgroundLayer? TryCreateGradientLayer(string value) {
         const string position = "0% 0%", repeat = "no-repeat", size = "100% 100%", box = "border-box", attachment = "scroll";
