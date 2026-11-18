@@ -52,6 +52,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 structure.PreparePackage(document, workbookPart, archive.Entries.Select(entry => entry.FullName).ToArray(),
                     ReadPart(workbookPart), ReadPart(XlsbSheetStructure.RelationshipPartName(workbookPart)), ReadPart("[Content_Types].xml"), replacements, deletions, maximumBytes);
                 CopyRenamedRelatedParts(document, sourceWorkbook, replacements);
+                XlsbDocumentPropertyParts.ApplyToRewrite(document, ReadPart,
+                    archive.Entries.Select(entry => entry.FullName).ToArray(), replacements, deletions);
                 foreach (var sheet in sheets) {
                     var binding = structure.Bindings.Single(item => ReferenceEquals(item.Part, sheet.WorksheetPart));
                     if (binding.Original == null) {
@@ -137,10 +139,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
             byte[] sourcePackageBytes, XlsbSheetStructure structure) {
-            if (document.HasPackagePropertiesDirty) {
-                throw new NotSupportedException("Native XLSB rewriting currently accepts cell-value edits only. Document-property changes must be saved as .xlsx.");
-            }
-
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
                 .FirstOrDefault(element => !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views))
                     && element is not Sheets

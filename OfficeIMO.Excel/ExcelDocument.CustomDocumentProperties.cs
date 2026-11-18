@@ -78,6 +78,8 @@ namespace OfficeIMO.Excel {
             CustomProperties.ReplaceWith(loadedProperties);
         }
 
+        internal bool HasCustomDocumentPropertiesDirty => _customDocumentPropertiesDirty;
+
         internal void SaveCustomDocumentProperties() {
             CustomFilePropertiesPart? customPart = _spreadSheetDocument.CustomFilePropertiesPart;
             if (CustomProperties.Count == 0 && !_customDocumentPropertiesDirty) {

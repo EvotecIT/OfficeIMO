@@ -35,6 +35,13 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? ThemePartName { get; set; }
 
+        /// <summary>Package-level core, extended and custom property XML, kept as read for projection.</summary>
+        internal byte[]? CorePropertiesXml { get; set; }
+
+        internal byte[]? ExtendedPropertiesXml { get; set; }
+
+        internal byte[]? CustomPropertiesXml { get; set; }
+
         internal IReadOnlyList<XlsbDefinedName> DefinedNames => _definedNames;
 
         internal IReadOnlyList<XlsbExternalSheetReference> ExternalSheetReferences => _externalSheetReferences;

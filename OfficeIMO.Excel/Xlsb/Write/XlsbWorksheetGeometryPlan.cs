@@ -179,7 +179,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             SheetView view = sheetViews[0];
-            EnsureOnlyAttributes(view, sheetName, "workbookViewId", "showGridLines", "tabSelected");
+            OpenXmlAttribute? unsupportedView = XlsbOpenXmlAttributeValidator.FindUnsupported(
+                view, new[] { "workbookViewId", "showGridLines", "tabSelected" }, IsDefaultSheetViewAttribute);
+            if (unsupportedView.HasValue) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support attribute '{unsupportedView.Value.LocalName}' with value '{unsupportedView.Value.Value}' on worksheet element 'sheetView' in worksheet '{sheetName}'.");
+            }
             if ((view.WorkbookViewId?.Value ?? 0U) != 0U) {
                 throw new NotSupportedException($"Native XLSB generation supports workbookViewId 0 on worksheet '{sheetName}'.");
             }
@@ -252,6 +256,36 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteUInt32(payload, activePane);
             payload.WriteByte(flags);
             records.Add(new XlsbGeneratedRecord(BrtPane, payload.ToArray()));
+        }
+
+        // The BrtBeginWsView payload below fixes these settings at Excel's defaults, so an
+        // explicit default (as XLS imports write them) is already represented.
+        private static bool IsDefaultSheetViewAttribute(OpenXmlAttribute attribute) {
+            if (!string.IsNullOrEmpty(attribute.NamespaceUri)) return false;
+            switch (attribute.LocalName) {
+                case "showFormulas":
+                case "rightToLeft":
+                case "windowProtection":
+                    return attribute.Value is "0" or "false";
+                case "showRowColHeaders":
+                case "showZeros":
+                case "showOutlineSymbols":
+                case "defaultGridColor":
+                case "showRuler":
+                case "showWhiteSpace":
+                    return attribute.Value is "1" or "true";
+                case "view":
+                    return attribute.Value == "normal";
+                case "topLeftCell":
+                    return attribute.Value == "A1";
+                case "colorId":
+                    return attribute.Value == "64";
+                case "zoomScale":
+                case "zoomScaleNormal":
+                    return attribute.Value == "100";
+                default:
+                    return false;
+            }
         }
 
         private static byte[] CreateSheetViewPayload(SheetView view) {
