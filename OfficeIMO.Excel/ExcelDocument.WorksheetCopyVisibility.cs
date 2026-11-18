@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -8,7 +9,13 @@ namespace OfficeIMO.Excel {
         /// default-width change or count as empty when cleared; a loaded width that merely equals the default stays as
         /// authored. The table holds no strong references, so removed definitions are released with the DOM.
         /// </summary>
-        internal System.Runtime.CompilerServices.ConditionalWeakTable<Column, object> DefaultWidthColumns { get; } = new();
+        internal System.Runtime.CompilerServices.ConditionalWeakTable<Column, AssignedColumnWidth> DefaultWidthColumns { get; } = new();
+
+        /// <summary>The width the library last assigned to a column it created.</summary>
+        internal sealed class AssignedColumnWidth {
+            internal AssignedColumnWidth(double width) => Width = width;
+            internal double Width { get; set; }
+        }
 
         /// <summary>
         /// Registers the copies of library-created default-width columns after a worksheet is cloned, so the copy keeps
@@ -20,10 +27,10 @@ namespace OfficeIMO.Excel {
             if (sourceColumns == null || copiedColumns == null || sourceColumns.Count != copiedColumns.Count) return;
             for (int index = 0; index < sourceColumns.Count; index++) {
                 Column original = sourceColumns[index], copy = copiedColumns[index];
-                if (source.DefaultWidthColumns.TryGetValue(original, out _)
+                if (source.DefaultWidthColumns.TryGetValue(original, out AssignedColumnWidth? assigned)
                     && original.Min?.Value == copy.Min?.Value && original.Max?.Value == copy.Max?.Value
                     && !DefaultWidthColumns.TryGetValue(copy, out _)) {
-                    DefaultWidthColumns.Add(copy, copy);
+                    DefaultWidthColumns.Add(copy, new AssignedColumnWidth(assigned.Width));
                 }
             }
         }
@@ -72,53 +79,40 @@ namespace OfficeIMO.Excel {
                 SetActiveWorksheet(activate);
             }
         }
-    
+
         /// <summary>
-        /// Moves the activation off a worksheet that was just hidden: to the nearest visible worksheet on its right,
-        /// otherwise on its left. Leaves the workbook unchanged when the hidden worksheet was not active or no
-        /// worksheet is visible.
-        /// </summary>
-        /// <summary>
-        /// Moves every workbook view whose active tab is hidden to the nearest visible tab on its right, otherwise on
-        /// its left, as Excel does when the active sheet is hidden. A workbook without views has the first tab active
-        /// implicitly, so a primary view is created when that tab is hidden. Views keep their active tab when no tab
-        /// is visible. Callers hold the document write lock, so the hide and the new activation are one change.
+        /// Moves workbook views whose active tab is a hidden sheet to the nearest visible tab on its right, otherwise
+        /// on its left, as Excel does when the active sheet is hidden. With <paramref name="hiddenTab"/> only views on
+        /// that tab move (the public hide path); without it every view on a hidden tab moves (import repair). A
+        /// workbook without views has the first tab active implicitly, so a primary view is created when needed. Views
+        /// keep their tab when no other tab is visible. Each moved view's tab selection moves with it. Callers hold
+        /// the document write lock, so the hide and the new activation are one change.
         /// </summary>
         /// <returns>True when a view changed.</returns>
-        internal bool MoveActiveTabsOffHiddenSheetsCore() {
+        internal bool MoveActiveTabsOffHiddenSheetsCore(int? hiddenTab = null) {
             List<Sheet> tabs = WorkbookRoot.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
             if (tabs.Count == 0) return false;
 
+            bool ShouldMove(int active) => IsHiddenSheet(tabs[active]) && (hiddenTab == null || hiddenTab == active);
+
             List<WorkbookView> views = WorkbookRoot.GetFirstChild<BookViews>()?.Elements<WorkbookView>().ToList() ?? new List<WorkbookView>();
             if (views.Count == 0) {
-                if (!IsHiddenSheet(tabs[0]) || FindVisibleTab(tabs, 0) < 0) return false;
+                if (!ShouldMove(0) || FindVisibleTab(tabs, 0) < 0) return false;
                 views.Add(GetOrCreatePrimaryWorkbookViewForActiveWorksheet());
             }
 
             bool changed = false;
-            int primaryActive = -1;
             for (int viewIndex = 0; viewIndex < views.Count; viewIndex++) {
                 WorkbookView view = views[viewIndex];
                 int active = (int)Math.Min(view.ActiveTab?.Value ?? 0U, (uint)(tabs.Count - 1));
-                if (!IsHiddenSheet(tabs[active])) continue;
+                if (!ShouldMove(active)) continue;
                 int replacement = FindVisibleTab(tabs, active);
                 if (replacement < 0) continue;
                 view.ActiveTab = (uint)replacement;
-                view.FirstSheet = (uint)replacement;
-                if (viewIndex == 0) primaryActive = replacement;
+                if ((view.FirstSheet?.Value ?? 0U) > (uint)replacement) view.FirstSheet = (uint)replacement;
+                SetTabSelected(tabs[active], (uint)viewIndex, selected: false);
+                SetTabSelected(tabs[replacement], (uint)viewIndex, selected: true);
                 changed = true;
-            }
-
-            if (primaryActive >= 0) {
-                for (int index = 0; index < tabs.Count; index++) {
-                    string? relationshipId = tabs[index].Id?.Value;
-                    if (relationshipId == null || WorkbookPartRoot.GetPartById(relationshipId) is not WorksheetPart worksheetPart) continue;
-                    Worksheet worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
-                    SheetView sheetView = GetOrCreatePrimarySheetViewForActiveWorksheet(worksheet);
-                    sheetView.WorkbookViewId ??= 0U;
-                    sheetView.TabSelected = index == primaryActive;
-                    worksheet.Save();
-                }
             }
 
             if (changed) {
@@ -127,6 +121,43 @@ namespace OfficeIMO.Excel {
             }
 
             return changed;
+        }
+
+        /// <summary>
+        /// Sets the tab selection of one workbook view on a worksheet or chart sheet, matching its view by
+        /// <c>workbookViewId</c>. A missing primary worksheet view is created in schema order only to select the tab.
+        /// </summary>
+        private void SetTabSelected(Sheet tab, uint workbookViewId, bool selected) {
+            string? relationshipId = tab.Id?.Value;
+            if (relationshipId == null) return;
+            OpenXmlPart part = WorkbookPartRoot.GetPartById(relationshipId);
+            if (part is WorksheetPart worksheetPart && worksheetPart.Worksheet is Worksheet worksheet) {
+                SheetView? view = worksheet.GetFirstChild<SheetViews>()?.Elements<SheetView>()
+                    .FirstOrDefault(candidate => (candidate.WorkbookViewId?.Value ?? 0U) == workbookViewId);
+                if (view == null) {
+                    // Only the primary window gets a new view; a per-window view for another window is left to the
+                    // application, since several sheet views per worksheet limit the formats the workbook can be saved in.
+                    if (!selected || workbookViewId != 0U) return;
+                    SheetViews? views = worksheet.GetFirstChild<SheetViews>();
+                    if (views == null) {
+                        views = new SheetViews();
+                        worksheet.AddChild(views, true);
+                    }
+                    view = new SheetView { WorkbookViewId = workbookViewId };
+                    views.Append(view);
+                }
+
+                if (selected) view.TabSelected = true;
+                else if (view.TabSelected?.Value == true) view.TabSelected = null;
+                worksheet.Save();
+            } else if (part is ChartsheetPart chartsheetPart && chartsheetPart.Chartsheet is Chartsheet chartsheet) {
+                ChartSheetView? view = chartsheet.GetFirstChild<ChartSheetViews>()?.Elements<ChartSheetView>()
+                    .FirstOrDefault(candidate => (candidate.WorkbookViewId?.Value ?? 0U) == workbookViewId);
+                if (view == null) return;
+                if (selected) view.TabSelected = true;
+                else if (view.TabSelected?.Value == true) view.TabSelected = null;
+                chartsheet.Save();
+            }
         }
 
         /// <summary>Used after imports whose source workbook view is not carried over.</summary>
@@ -144,5 +175,5 @@ namespace OfficeIMO.Excel {
 
             return -1;
         }
-}
+    }
 }

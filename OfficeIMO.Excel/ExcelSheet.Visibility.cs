@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         public void SetHidden(bool hidden) {
             WriteLockConditional(() => {
                 SetHiddenCore(hidden);
-                if (hidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore();
+                if (hidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore(TabIndex());
                 WorkbookRoot.Save();
             });
         }
@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         public void SetVeryHidden(bool veryHidden) {
             WriteLockConditional(() => {
                 SetVeryHiddenCore(veryHidden);
-                if (veryHidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore();
+                if (veryHidden) _excelDocument.MoveActiveTabsOffHiddenSheetsCore(TabIndex());
                 WorkbookRoot.Save();
             });
         }
@@ -60,6 +60,9 @@ namespace OfficeIMO.Excel {
 
             WriteLockConditional(() => SetHiddenCore(hidden));
         }
+
+        private int TabIndex() =>
+            WorkbookRoot.Sheets?.Elements<Sheet>().ToList().FindIndex(tab => ReferenceEquals(tab, _sheet)) ?? -1;
 
         private void SetHiddenCore(bool hidden) {
             _sheet.State = hidden ? SheetStateValues.Hidden : (SheetStateValues?)null;

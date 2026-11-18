@@ -133,6 +133,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return rewritten;
         }
 
+        /// <summary>A single workbook view that sets only the active and first tab, which the rewrite carries over.</summary>
+        private static bool HasOnlyActiveTabChanges(BookViews views) => views.GetAttributes().Count == 0
+            && views.ChildElements.Count == 1 && views.FirstChild is WorkbookView view && !view.HasChildren
+            && view.GetAttributes().All(attribute => attribute.LocalName is "activeTab" or "firstSheet");
+
         private static void ThrowIfUnsupportedWorkbookMutation(
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
@@ -142,7 +147,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
-                .FirstOrDefault(element => !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views))
+                .FirstOrDefault(element => !(element is BookViews views
+                        && (ExcelDocument.IsNeutralWorkbookViews(views) || HasOnlyActiveTabChanges(views)))
                     && element is not Sheets
                     && element is not WorkbookProperties
                     && element is not WorkbookProtection

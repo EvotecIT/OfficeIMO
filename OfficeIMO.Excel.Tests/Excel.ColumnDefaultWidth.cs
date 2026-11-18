@@ -93,4 +93,44 @@ public partial class Excel {
         copy.ClearColumnGroup(2, 3);
         Assert.Null(copy.WorksheetPart.Worksheet.GetFirstChild<Columns>());
     }
+
+    [Fact]
+    public void DefaultWidthColumns_FollowFromTheWidthTheLibraryAssigned() {
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(12));
+        sheet.GroupColumns(2, 3);
+        Worksheet worksheet = sheet.WorksheetPart.Worksheet;
+        // The default changes outside the library, and the caller resizes one column directly.
+        worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth = 16;
+        worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single(column => column.Min!.Value == 3).Width = 15;
+
+        sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(20));
+
+        Assert.Equal(new double?[] { 20, 15 }, worksheet.GetFirstChild<Columns>()!.Elements<Column>().Select(column => column.Width?.Value).ToArray());
+    }
+
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".xlsb")]
+    [InlineData(".xls")]
+    public void DefaultWidthColumns_StayWithinTheBinaryWidthLimit(string extension) {
+        string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.WideDefault.{Guid.NewGuid():N}{extension}");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddSheet("Data");
+                sheet.Cell(1, 1).SetValue(1);
+                sheet.SetImportedBaseColumnWidth(255);
+                sheet.SetColumnHidden(2, false);
+                Assert.Equal(255D, sheet.WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single().Width!.Value);
+                document.Save();
+            }
+
+            using var loaded = ExcelDocument.Load(path);
+            Column column = loaded.Sheets[0].WorksheetPart.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Single();
+            Assert.Equal(255D, column.Width!.Value, 2);
+        } finally {
+            File.Delete(path);
+        }
+    }
 }

@@ -173,13 +173,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static string TrimSanitizedSheetNameEdges(string name) {
-            string trimmed = name;
-            string previous;
-            do {
-                previous = trimmed;
-                trimmed = trimmed.Trim().Trim('_').Trim('\'');
-            } while (trimmed.Length != previous.Length);
-            return trimmed;
+            static bool IsEdge(char character) => char.IsWhiteSpace(character) || character == '_' || character == '\'';
+            int start = 0, end = name.Length;
+            while (start < end && IsEdge(name[start])) start++;
+            while (end > start && IsEdge(name[end - 1])) end--;
+            return name.Substring(start, end - start);
         }
 
         private static string GenerateDefaultSheetName(System.Collections.Generic.ISet<string> existing) {

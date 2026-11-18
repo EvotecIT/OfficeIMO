@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -19,7 +20,8 @@ public partial class Excel {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
         sheet.Cell(1, 1).SetValue(1.5);
-        string stylesBefore = document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart?.Stylesheet?.OuterXml ?? string.Empty;
+        WorkbookStylesPart? stylesPartBefore = document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart;
+        string? stylesBefore = stylesPartBefore?.Stylesheet?.OuterXml;
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => {
             switch (target) {
@@ -35,7 +37,9 @@ public partial class Excel {
         Assert.Contains("unpaired UTF-16 surrogate", exception.Message, StringComparison.Ordinal);
         Assert.Equal(new[] { "Data" }, document.Sheets.Select(item => item.Name).ToArray());
         // A rejected value leaves no partial stylesheet change behind.
-        Assert.Equal(stylesBefore, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart?.Stylesheet?.OuterXml ?? string.Empty);
+        WorkbookStylesPart? stylesPartAfter = document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart;
+        Assert.Same(stylesPartBefore, stylesPartAfter);
+        Assert.Equal(stylesBefore, stylesPartAfter?.Stylesheet?.OuterXml);
     }
 
     [Fact]

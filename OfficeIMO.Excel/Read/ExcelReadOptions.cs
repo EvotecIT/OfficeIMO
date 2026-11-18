@@ -47,6 +47,13 @@ namespace OfficeIMO.Excel {
         /// Gets or sets whether the data-reader schema is inferred from worksheet values.
         /// Native cell values are preserved regardless of this setting.
         /// </summary>
+        /// <remarks>
+        /// Field types describe the rows sampled within <see cref="SchemaSampleRows"/>. Values are not converted to the
+        /// inferred type, so a row after the sample can return a different type; for example a column sampled as
+        /// <see cref="double"/> returns a <see cref="DateTime"/> for a later date-formatted cell, and a date-formatted
+        /// serial with no calendar date returns a <see cref="double"/>. Check the value type, or raise
+        /// <see cref="SchemaSampleRows"/>, when later rows can differ.
+        /// </remarks>
         public bool InferSchema { get; set; }
 
         /// <summary>

@@ -13,6 +13,8 @@ internal sealed class XlsbSheetStructure {
     private static readonly XNamespace ContentTypes = "http://schemas.openxmlformats.org/package/2006/content-types";
     private const string WorksheetType = "application/vnd.ms-excel.worksheet";
     private readonly XlsbWorkbook _source;
+    private readonly uint? _activeTab;
+    private readonly uint? _firstSheet;
     internal IReadOnlyList<ExcelLegacySheetBindings.Binding> Bindings { get; }
     internal Dictionary<string, string> PartNames { get; } = new(StringComparer.Ordinal);
     internal Dictionary<string, string> NewCodeNames { get; } = new(StringComparer.Ordinal);
@@ -21,9 +23,14 @@ internal sealed class XlsbSheetStructure {
 
     internal XlsbSheetStructure(ExcelDocument document, XlsbWorkbook source) {
         _source = source; Bindings = document.NativeXlsbPreservation.ReadCurrent(document);
+        // The workbook view's active and first tab, set by activation or by hiding the active sheet, are written over
+        // the source view record; other view settings keep their source values.
+        WorkbookView? view = document.WorkbookRoot.GetFirstChild<BookViews>()?.GetFirstChild<WorkbookView>();
+        _activeTab = view?.ActiveTab?.Value;
+        _firstSheet = view?.FirstSheet?.Value;
         if (Bindings.Count == 0 || Bindings.Count > 32767 || Bindings.Select(binding => binding.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != Bindings.Count)
             throw new NotSupportedException("Native XLSB requires a nonempty collection of uniquely named sheets.");
-        Changed = Bindings.Count != source.Sheets.Count || Bindings.Any(binding => binding.Original == null || binding.Original.NativeIndex != binding.Index
+        Changed = _activeTab.HasValue || _firstSheet.HasValue || Bindings.Count != source.Sheets.Count || Bindings.Any(binding => binding.Original == null || binding.Original.NativeIndex != binding.Index
             || binding.Name != binding.Original.Name || State(binding) != source.Sheets[binding.Original.NativeIndex].State);
         uint keptNames = 0;
         for (int index = 0; index < source.DefinedNames.Count; index++) {
@@ -96,6 +103,7 @@ internal sealed class XlsbSheetStructure {
         using var input = new MemoryStream(original); var records = XlsbRecordReader.ReadAll(input);
         using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
         bool written = false;
+        int bookViews = 0;
         foreach (var record in records) {
             if (record.Type == 156) {
                 if (!written) foreach (byte[] bundle in bundles) XlsbRecordWriter.Write(output, 156, bundle);
@@ -127,6 +135,10 @@ internal sealed class XlsbSheetStructure {
             } else if (record.Type == 158 && payload.Length >= 29) {
                 payload = (byte[])payload.Clone();
                 foreach (int offset in new[] { 20, 24 }) Put(payload, offset, checked((uint)Math.Max(0, Map(checked((int)Read(payload, offset))))));
+                if (bookViews++ == 0) {
+                    if (_firstSheet.HasValue) Put(payload, 20, _firstSheet.Value);
+                    if (_activeTab.HasValue) Put(payload, 24, _activeTab.Value);
+                }
             }
             if (record.Type == 39 && NameIndexes.Any(item => item.Value != item.Key)) payload = XlsbFormulaRecordRebinder.Rebind(record.Type, payload, NameIndexes);
             XlsbRecordWriter.Write(output, record.Type, payload);

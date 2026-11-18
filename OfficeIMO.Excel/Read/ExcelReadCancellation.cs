@@ -14,8 +14,10 @@ namespace OfficeIMO.Excel {
             using IEnumerator<T> enumerator = source.GetEnumerator();
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!enumerator.MoveNext()) yield break;
+                bool advanced = enumerator.MoveNext();
+                // A cancel during the final advance is reported, not mistaken for the end of the sequence.
                 cancellationToken.ThrowIfCancellationRequested();
+                if (!advanced) yield break;
                 yield return enumerator.Current;
             }
         }
