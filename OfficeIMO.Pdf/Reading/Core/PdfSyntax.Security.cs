@@ -119,7 +119,7 @@ internal static partial class PdfSyntax {
                     encryptionRevision = TryReadInteger(objects, parsedEncryptionDictionary, "R");
                     encryptionLengthBits = TryReadInteger(objects, parsedEncryptionDictionary, "Length");
                     encryptionPermissions = TryReadPermissionMask(objects, parsedEncryptionDictionary);
-                    encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
+                    encryptMetadata = TryReadBoolean(objects, parsedEncryptionDictionary, "EncryptMetadata");
                     if (TryCreateDecryptor(objects, trailerRaw, options, out PdfStandardSecurityHandler? authenticatedHandler, cancellationToken) &&
                         authenticatedHandler is not null) {
                         passwordAuthenticationRole = authenticatedHandler.AuthenticationRole;
@@ -1052,7 +1052,7 @@ internal static partial class PdfSyntax {
 
     private static bool? TryReadBoolean(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
-            ResolveObject(objects, value) is PdfBoolean boolean
+            PdfObjectLookup.ResolveChain(objects, value) is PdfBoolean boolean
             ? boolean.Value
             : null;
     }
@@ -1063,9 +1063,9 @@ internal static partial class PdfSyntax {
             : null;
     }
 
-    // The security handler authenticates with an indirect /P resolved, so the reported flags resolve it too.
+    // The security handler authenticates with indirect values resolved, so the reported values resolve them too.
     private static int? TryReadPermissionMask(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) =>
-        dictionary.Items.TryGetValue("P", out PdfObject? value) && ResolveObject(objects, value) is PdfNumber number
+        dictionary.Items.TryGetValue("P", out PdfObject? value) && PdfObjectLookup.ResolveChain(objects, value) is PdfNumber number
             ? ToPermissionMask(number)
             : null;
 
@@ -1084,7 +1084,7 @@ internal static partial class PdfSyntax {
 
     private static int? TryReadInteger(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         return dictionary.Items.TryGetValue(key, out PdfObject? value) &&
-            ResolveObject(objects, value) is PdfNumber number
+            PdfObjectLookup.ResolveChain(objects, value) is PdfNumber number
             ? ToInteger(number)
             : null;
     }

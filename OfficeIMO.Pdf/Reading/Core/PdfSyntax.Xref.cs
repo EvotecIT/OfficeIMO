@@ -401,7 +401,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable, Action<int> reportRelocated,
+    private static bool ApplyCompressedXrefStreamEntries(Dictionary<int, PdfIndirectObject> map, byte[] pdf, PdfByteContentText text, Dictionary<int, int> parsedOffsets, PdfReadLimits limits, PdfDecodedStreamBudget decodedStreamBudget, Action<int> reportUnreadable, Action<int> reportRelocated, bool rejectRelocation,
         System.Threading.CancellationToken cancellationToken) {
         var xrefStreams = new List<(int ObjectNumber, int Offset, PdfStream Stream)>();
         foreach (var entry in map.Values) {
@@ -477,7 +477,7 @@ internal static partial class PdfSyntax {
 
             int objectStreamNumber = (int)entry.Field1;
             int objectStreamIndex = (int)entry.Field2;
-            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, deferredScan, reportRelocated, cancellationToken)) {
+            if (TryParseObjectFromObjectStream(map, parsedOffsets, objectStreamNumber, objectStreamIndex, entry.ObjectNumber, limits, decodedStreamBudget, out PdfIndirectObject parsed, out int objectStreamOffset, headerMemo, deferredScan, reportRelocated, rejectRelocation, cancellationToken)) {
                 // A deferred object passed the complete-syntax scan, so only eagerly parsed objects can be incomplete.
                 if (parsed.IsValueBuilt && parsed.Value.HasIncompleteSyntax) reportUnreadable(entry.ObjectNumber);
                 map[entry.ObjectNumber] = parsed;
@@ -822,6 +822,7 @@ internal static partial class PdfSyntax {
         ObjectStreamHeaderMemo? headerMemo = null,
         DeferredObjectScan? deferredScan = null,
         Action<int>? reportRelocated = null,
+        bool rejectRelocation = false,
         System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         parsed = null!;
@@ -848,9 +849,15 @@ internal static partial class PdfSyntax {
         if (pairs[objectStreamIndex].Obj != expectedObjectNumber) {
             // The object stream header, not the cross-reference index, names each object (ISO 32000-2 7.5.7). Some
             // writers store indexes above 65,535 in a two-byte field, so they wrap; lenient reading locates the object
-            // by its number in the header instead, and reports it once the object is accepted.
+            // by its number in the header instead, and reports it once the object is accepted. Strict parsing rejects
+            // the mismatch as soon as it is found.
             if (reportRelocated is null ||
                 !TryFindObjectStreamIndex(pairs, expectedObjectNumber, headerMemo, out objectStreamIndex)) {
+                return false;
+            }
+
+            if (rejectRelocation) {
+                reportRelocated(expectedObjectNumber);
                 return false;
             }
 

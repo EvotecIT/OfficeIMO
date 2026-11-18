@@ -54,9 +54,10 @@ internal static partial class PdfSyntax {
             PdfDictionary resolvedFilters = ResolveEntries(filters);
             foreach (string name in resolvedFilters.Items.Keys.ToList()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (resolvedFilters.Items[name] is not PdfDictionary filter || !ContainsReference(filter)) continue;
+                if (resolvedFilters.Items[name] is not PdfDictionary filter) continue;
+                // A dictionary shared by several names is scanned and, when needed, copied once.
                 if (!normalizedFilters.TryGetValue(filter, out PdfDictionary? normalized)) {
-                    normalized = ResolveEntries(filter);
+                    normalized = ContainsReference(filter) ? ResolveEntries(filter) : filter;
                     normalizedFilters.Add(filter, normalized);
                 }
 
