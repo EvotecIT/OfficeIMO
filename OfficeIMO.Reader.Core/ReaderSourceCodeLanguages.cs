@@ -1,6 +1,6 @@
 namespace OfficeIMO.Reader;
 
-/// <summary>Maps source-code file extensions and script interpreters to stable language identifiers.</summary>
+/// <summary>Maps source-code file extensions, well-known file names and script interpreters to stable language identifiers.</summary>
 /// <remarks>
 /// Extensions owned by structured format readers (JSON, YAML, TOML, XML, Markdown, CSV, HTML, LaTeX and others)
 /// are deliberately absent so those readers keep their richer projections.
@@ -60,6 +60,8 @@ internal static class ReaderSourceCodeLanguages {
     private static readonly Language Terraform = new("hcl", "HCL");
     private static readonly Language Ini = new("ini", "INI");
     private static readonly Language Properties = new("properties", "Properties");
+    private static readonly Language Dockerfile = new("dockerfile", "Dockerfile");
+    private static readonly Language Makefile = new("makefile", "Makefile");
 
     private static readonly Dictionary<string, Language> ByExtension = new(StringComparer.OrdinalIgnoreCase) {
         [".cs"] = CSharp,
@@ -135,7 +137,32 @@ internal static class ReaderSourceCodeLanguages {
         [".ini"] = Ini,
         [".cfg"] = Ini,
         [".conf"] = Ini,
-        [".properties"] = Properties
+        [".properties"] = Properties,
+        [".dockerfile"] = Dockerfile,
+        [".mk"] = Makefile,
+        [".mak"] = Makefile
+    };
+
+    // Extensionless build, container and dependency files named by convention, mapped to the extension that owns the language.
+    private static readonly Dictionary<string, string> ExtensionByFileName = new(StringComparer.OrdinalIgnoreCase) {
+        ["Dockerfile"] = ".dockerfile",
+        ["Containerfile"] = ".dockerfile",
+        ["Makefile"] = ".mk",
+        ["GNUmakefile"] = ".mk",
+        ["Jenkinsfile"] = ".groovy",
+        ["Gemfile"] = ".rb",
+        ["Rakefile"] = ".rb",
+        ["Podfile"] = ".rb",
+        ["Vagrantfile"] = ".rb",
+        ["Brewfile"] = ".rb",
+        ["Guardfile"] = ".rb",
+        ["Capfile"] = ".rb",
+        ["Fastfile"] = ".rb",
+        ["Appfile"] = ".rb",
+        ["Dangerfile"] = ".rb",
+        ["Snakefile"] = ".py",
+        ["SConstruct"] = ".py",
+        ["SConscript"] = ".py"
     };
 
     // Interpreter names found after "#!" (directly or through env) mapped to the extension that owns the language.
@@ -178,6 +205,17 @@ internal static class ReaderSourceCodeLanguages {
         if (string.IsNullOrEmpty(extension)) return false;
         if (!ByExtension.TryGetValue(extension!, out Language? resolved)) return false;
         language = resolved;
+        return true;
+    }
+
+    /// <summary>
+    /// Resolves the extension that owns the language of an extensionless file named by convention, such as
+    /// <c>Dockerfile</c>, <c>Makefile</c>, <c>Jenkinsfile</c> or <c>Gemfile</c>.
+    /// </summary>
+    internal static bool TryGetExtensionFromFileName(string? fileName, out string extension) {
+        extension = string.Empty;
+        if (string.IsNullOrEmpty(fileName) || !ExtensionByFileName.TryGetValue(fileName!, out string? mapped)) return false;
+        extension = mapped;
         return true;
     }
 

@@ -296,6 +296,25 @@ public sealed partial class OfficeDocumentReader {
     }
 
     /// <summary>
+    /// Maps a read exception to a stable <see cref="ReaderErrorCodes"/> value using this reader's handlers, the same
+    /// classification batch outcomes and folder documents report.
+    /// </summary>
+    /// <param name="exception">Exception thrown by a read.</param>
+    /// <param name="path">
+    /// Optional path of the file that failed. Encrypted Office files report a missing or wrong password as a general load
+    /// failure; with the path, bounded detection of the file refines that to <see cref="ReaderErrorCodes.PasswordRequired"/>
+    /// or <see cref="ReaderErrorCodes.InvalidPassword"/>.
+    /// </param>
+    /// <param name="options">Options used for the failed read, for its <see cref="ReaderOptions.OpenPassword"/> and detection limits.</param>
+    /// <remarks>Use it around single-document reads, which keep throwing.</remarks>
+    public string ClassifyReadError(Exception exception, string? path = null, ReaderOptions? options = null) {
+        ArgumentNullException.ThrowIfNull(exception);
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.ClassifyReadError(exception, path, options ?? _defaultReadOptions);
+        }
+    }
+
+    /// <summary>
     /// Detects a reader input kind using this reader's handler configuration.
     /// </summary>
     public ReaderInputKind DetectKind(string path) {

@@ -33,9 +33,14 @@ internal static class SourceCodeReaderAdapter {
 
         string detectedBy = "extension";
         ReaderSourceCodeLanguages.Language? language = null;
-        if (ReaderSourceCodeLanguages.TryGetByExtension(DocumentReaderEngine.NormalizeExtension(ReaderLogicalPath.GetExtension(sourceName)),
-                out ReaderSourceCodeLanguages.Language byExtension)) {
+        string extension = DocumentReaderEngine.NormalizeExtension(ReaderLogicalPath.GetExtension(sourceName));
+        if (ReaderSourceCodeLanguages.TryGetByExtension(extension, out ReaderSourceCodeLanguages.Language byExtension)) {
             language = byExtension;
+        } else if (extension.Length == 0 &&
+                   ReaderSourceCodeLanguages.TryGetExtensionFromFileName(ReaderLogicalPath.GetFileName(sourceName), out string namedExtension) &&
+                   ReaderSourceCodeLanguages.TryGetByExtension(namedExtension, out ReaderSourceCodeLanguages.Language byFileName)) {
+            language = byFileName;
+            detectedBy = "file-name";
         } else if (ReaderSourceCodeLanguages.TryGetExtensionFromShebang(text, out string scriptExtension) &&
                    ReaderSourceCodeLanguages.TryGetByExtension(scriptExtension, out ReaderSourceCodeLanguages.Language byShebang)) {
             language = byShebang;

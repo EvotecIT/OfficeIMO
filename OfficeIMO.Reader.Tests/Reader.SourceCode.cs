@@ -97,6 +97,41 @@ public sealed class ReaderSourceCodeTests {
     }
 
     [Theory]
+    [InlineData("Dockerfile", "# Build stage\nFROM mcr.microsoft.com/dotnet/sdk:10.0\nRUN dotnet build\n", "dockerfile")]
+    [InlineData("Makefile", "# Targets\nall:\n\tdotnet build\n", "makefile")]
+    [InlineData("Jenkinsfile", "pipeline {\n    agent any\n}\n", "groovy")]
+    [InlineData("Gemfile", "source 'https://rubygems.org'\ngem 'rake'\n", "ruby")]
+    public void ExtensionlessConventionalFileNamesAreReadAsTheirLanguage(string fileName, string code, string languageId) {
+        // Leading '# ' comments make content detection call several of these Markdown, so the name must route them.
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-Reader-SourceCode-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string path = Path.Combine(root, fileName);
+            File.WriteAllText(path, code, new UTF8Encoding(false));
+            OfficeDocumentReader reader = CreateAllReader();
+
+            foreach (OfficeDocumentReadResult result in new[] {
+                         reader.ReadDocument(path),
+                         reader.ReadDocument(Encoding.UTF8.GetBytes(code), fileName),
+                         reader.ReadDocument(Encoding.UTF8.GetBytes(code), fileName,
+                             new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent })
+                     }) {
+                Assert.Contains(OfficeDocumentReaderBuilderSourceCodeExtensions.HandlerId, result.CapabilitiesUsed);
+                Assert.StartsWith("```" + languageId + "\n", Assert.Single(result.Chunks).Markdown);
+                OfficeDocumentMetadataEntry language = Assert.Single(result.Metadata, entry => entry.Id == "source-code-language");
+                Assert.Equal(languageId, language.Value);
+                Assert.Equal("file-name", language.Attributes["detectedBy"]);
+            }
+
+            ReaderSourceDocument folderDocument = Assert.Single(reader.EnumerateFolderDocuments(root));
+            Assert.True(folderDocument.Parsed);
+            Assert.Equal(code, Assert.Single(folderDocument.Chunks).Text);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void Utf16SourceIsDecodedFromItsByteOrderMarkOrConfiguredEncoding(bool byteOrderMark) {

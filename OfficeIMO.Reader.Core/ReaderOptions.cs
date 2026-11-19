@@ -114,6 +114,19 @@ public sealed class ReaderOptions {
     public long? MaxOpenXmlImageTotalAssetBytes { get; set; } = DefaultMaxOpenXmlImageTotalAssetBytes;
 
     /// <summary>
+    /// Maximum time one read may spend laying out or rendering pages, such as Word page locations or DjVu page images.
+    /// Default: <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>.
+    /// </summary>
+    /// <remarks>
+    /// The limit uses the shared image-export deadline, so exceeding it throws <c>OfficeImageExportTimeoutException</c>
+    /// (a <see cref="TimeoutException"/>) rather than <see cref="OperationCanceledException"/>. Cancelling the caller's
+    /// token still throws <see cref="OperationCanceledException"/>. Routes that do not lay out pages ignore the limit.
+    /// A format option with its own render timeout, such as <c>ReaderWordOptions.PageLocationOptions</c>, uses the
+    /// shorter of the two.
+    /// </remarks>
+    public TimeSpan LayoutTimeout { get; set; } = Timeout.InfiniteTimeSpan;
+
+    /// <summary>
     /// Maximum characters per emitted chunk (best-effort).
     /// </summary>
     public int MaxChars { get; set; } = 8_000;

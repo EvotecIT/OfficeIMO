@@ -34,7 +34,10 @@ public static class OfficeDocumentReaderBuilderEmailStoreExtensions {
             DefaultMaxInputBytes = storeOptions.MaxInputBytes,
             SourceHashBehavior = ReaderSourceHashBehavior.HandlerManaged,
             WarningBehavior = ReaderWarningBehavior.Mixed,
-            DeterministicOutput = true
+            DeterministicOutput = true,
+            ClassifyReadError = static exception => exception is EmailStorePasswordException password
+                ? password.PasswordWasProvided ? ReaderErrorCodes.InvalidPassword : ReaderErrorCodes.PasswordRequired
+                : null
         }, replaceExisting);
     }
 }

@@ -119,7 +119,8 @@ internal static partial class DocumentReaderEngine {
                 SourceLengthBytes = document.SourceLengthBytes,
                 Parsed = document.Parsed,
                 ChunksProduced = document.ChunksProduced,
-                Warnings = document.Warnings
+                Warnings = document.Warnings,
+                ErrorCode = document.ErrorCode
             });
             if (document.Parsed) {
                 filesParsed++;
@@ -213,7 +214,7 @@ internal static partial class DocumentReaderEngine {
         foreach (string file in EnumerateFilesSafeDeterministic(folderPath, effectiveFolder, cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (state.FilesScanned >= effectiveFolder.MaxFiles) break;
-            string extension = NormalizeExtension(TryGetExtension(file));
+            string extension = GetRoutingExtension(file);
             if (!allowedExtensions.Contains(extension) &&
                 !string.Equals(Path.GetFileName(file), "winmail.dat", StringComparison.OrdinalIgnoreCase)) continue;
             state.FilesScanned++;
@@ -242,7 +243,9 @@ internal static partial class DocumentReaderEngine {
             if (!document.Parsed && includeSkippedWarningChunks) {
                 string warning = document.Warnings?.FirstOrDefault() ?? "Skipped file because it could not be read.";
                 ReaderChunk warningChunk = EnrichChunk(BuildFolderWarningChunk(file, 0, warning), source, computeHashes: false);
+                string? errorCode = document.ErrorCode;
                 document = BuildSourceDocument(source, false, new[] { warningChunk }, document.Warnings);
+                document.ErrorCode = errorCode;
             }
             if (document.Parsed) {
                 state.FilesParsed++;
@@ -279,7 +282,9 @@ internal static partial class DocumentReaderEngine {
             throw;
         } catch (Exception exception) {
             string warning = $"Skipped file due read error: {exception.GetType().Name}. {exception.Message}";
-            return BuildSourceDocument(source, false, null, new[] { warning });
+            ReaderSourceDocument skipped = BuildSourceDocument(source, false, null, new[] { warning });
+            skipped.ErrorCode = ClassifyReadError(exception, path, options);
+            return skipped;
         }
     }
 
@@ -341,6 +346,7 @@ internal static partial class DocumentReaderEngine {
         Warnings = string.IsNullOrWhiteSpace(warning)
             ? source.Warnings
             : (source.Warnings ?? Array.Empty<string>()).Concat(new[] { warning! }).Distinct(StringComparer.Ordinal).ToArray(),
+        ErrorCode = source.ErrorCode,
         Chunks = chunks
     };
 

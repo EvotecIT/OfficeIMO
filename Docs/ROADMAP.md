@@ -450,10 +450,6 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 - [ ] Add an optional QR and barcode decoding processor for images and rendered pages through the optional CodeGlyphX provider, which already decodes QR codes and linear and 2-D barcodes from pixels (`QrImageDecoder`, `BarcodeDecoder`). Decoding is never built into the Reader: one package adds it and one builder call enables it. Report each decoded symbol with its symbology, text, page and bounds as structured Reader output, with resource limits and cancellation.
 - [ ] Serve the PowerPoint text-and-metadata projection from `PowerPointSlideReader`, as the text projection already is. It still loads every slide and notes part as a full DOM for shape geometry, hyperlinks, slide size and comments. Add those to the streamed slide records and keep the model path for chart snapshots, Markdown rendering and inspection.
-- [ ] Report bad inputs as typed per-input error results with stable codes, such as `password-required` and `invalid-password`, instead of exceptions, so batch and folder reads can continue and callers can branch on the code. Keep exceptions for caller errors and keep the existing admission and resource-limit contracts.
-- [ ] Add a layout time limit to Reader routes that lay out or render pages, raising a dedicated timeout exception that callers can tell apart from their own cancellation, as image export already does with `RenderTimeout` and `OfficeImageExportTimeoutException`.
-- [ ] Report encryption from `DocumentReader.Detect` without opening the file. Detection returns format, media type, confidence and evidence today, but an encrypted Office package comes back as an unknown kind with only an evidence string. Add the detected format and a typed encrypted or password-protected flag for Office, PDF and ZIP inputs.
-- [ ] Recognize extensionless well-known source files, such as `Dockerfile`, `Makefile`, `Jenkinsfile` and `Gemfile`, in the source-code handler. `ReaderSourceCodeLanguages` maps extensions and script interpreters only, so these files are not read as code.
 
 ## Independent HTML engine
 

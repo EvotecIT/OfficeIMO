@@ -1,8 +1,13 @@
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Core.Internal {
+#endif
     internal static partial class OfficeCompoundFileReader {
         /// <summary>
         /// Opens one compound payload as a bounded seekable view without materializing its bytes.
         /// The returned stream owns <paramref name="source"/> unless <paramref name="leaveOpen"/> is true.
+        /// <paramref name="maxViewBytes"/> limits the view to a prefix, so only the sectors it covers are resolved.
         /// </summary>
         internal static bool TryOpenStream(
             Stream source,
@@ -11,7 +16,8 @@ namespace OfficeIMO.Core.Internal {
             bool leaveOpen,
             CancellationToken cancellationToken,
             out Stream? selectedStream,
-            out string? error) {
+            out string? error,
+            long maxViewBytes = long.MaxValue) {
             selectedStream = null;
             error = null;
             ArgumentNullException.ThrowIfNull(source);
@@ -126,6 +132,7 @@ namespace OfficeIMO.Core.Internal {
                     return false;
                 }
 
+                long viewSize = Math.Min(selected.Size, Math.Max(0, maxViewBytes));
                 List<uint>? regularChain = null;
                 List<uint>? miniChain = null;
                 List<uint>? rootChain = null;
@@ -134,12 +141,12 @@ namespace OfficeIMO.Core.Internal {
                         source,
                         basePosition,
                         selected.StartSector,
-                        selected.Size,
+                        viewSize,
                         sectorSize,
                         physicalSectorCount,
                         fatSectorIds,
                         cancellationToken);
-                } else if (selected.Size > 0) {
+                } else if (viewSize > 0) {
                     var fatCache = new Dictionary<uint, byte[]>();
                     uint[] miniFat = miniFatStart == EndOfChain || miniFatSectorCount == 0
                         ? Array.Empty<uint>()
@@ -164,14 +171,14 @@ namespace OfficeIMO.Core.Internal {
                             physicalSectorCount,
                             fatSectorIds,
                             cancellationToken);
-                    miniChain = GetMiniSectorChain(selected.StartSector, selected.Size, miniFat);
+                    miniChain = GetMiniSectorChain(selected.StartSector, viewSize, miniFat);
                 }
 
                 selectedStream = new CompoundEntryStream(
                     source,
                     basePosition,
                     sectorSize,
-                    selected.Size,
+                    viewSize,
                     regularChain,
                     miniChain,
                     rootChain,

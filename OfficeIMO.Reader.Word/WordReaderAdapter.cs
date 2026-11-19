@@ -109,6 +109,10 @@ internal static class WordReaderAdapter {
             WordImageExportOptions layoutOptions = options.PageLocationOptions?.Clone() ?? new WordImageExportOptions();
             layoutOptions.PageIndex = 0;
             layoutOptions.PageCount = null;
+            if (readerOptions.LayoutTimeout != Timeout.InfiniteTimeSpan &&
+                (layoutOptions.RenderTimeout == Timeout.InfiniteTimeSpan || readerOptions.LayoutTimeout < layoutOptions.RenderTimeout)) {
+                layoutOptions.RenderTimeout = readerOptions.LayoutTimeout;
+            }
             pageSnapshots = document.CreateVisualSnapshots(layoutOptions, cancellationToken);
         }
         IReadOnlyList<string>? legacyWarnings = Combine(sourceWarnings, BuildSourceWarnings(document));

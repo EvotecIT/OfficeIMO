@@ -9,13 +9,24 @@ public sealed partial class DjVuPage {
     public DjVuRenderResult Render(DjVuRenderOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var settings = (options ?? new DjVuRenderOptions()).Snapshot();
+        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(settings.RenderTimeout, cancellationToken);
+        try {
+            DjVuRenderResult result = RenderSnapshot(settings, execution.Token);
+            execution.ThrowIfCancellationRequested();
+            return result;
+        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
+            throw execution.CreateTimeoutException(exception);
+        }
+    }
+
+    private DjVuRenderResult RenderSnapshot(DjVuRenderOptions settings, CancellationToken cancellationToken) {
         var limits = Document.ReadOptions.Snapshot();
         limits.MaxCodecBytes = Math.Min(limits.MaxCodecBytes, settings.MaxBytes);
         var budget = new DjVuReadBudget(limits, cancellationToken);
         var region = settings.Region ?? new DjVuRectangle(0, 0, Width, Height);
         if (region.X < 0 || region.Y < 0 || region.Width <= 0 || region.Height <= 0 ||
             (long)region.X + region.Width > Width || (long)region.Y + region.Height > Height)
-            throw new ArgumentOutOfRangeException(nameof(options), "The selected region must be inside the unrotated page.");
+            throw new ArgumentOutOfRangeException("options", "The selected region must be inside the unrotated page.");
         int dpi = settings.Dpi ?? Dpi;
         long outputWidth = Math.Max(1, (long)Math.Round(region.Width * (double)dpi / Dpi, MidpointRounding.AwayFromZero));
         long outputHeight = Math.Max(1, (long)Math.Round(region.Height * (double)dpi / Dpi, MidpointRounding.AwayFromZero));

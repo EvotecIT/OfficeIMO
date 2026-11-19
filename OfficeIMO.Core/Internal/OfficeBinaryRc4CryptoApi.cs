@@ -82,7 +82,7 @@ namespace OfficeIMO.Core.Internal {
                 0, VerifierSize));
             if (!FixedTimeEquals(expectedHash, verifierAndHash,
                     VerifierSize, Sha1HashSize)) {
-                throw new CryptographicException("The password is incorrect.");
+                throw OfficePasswordRejection.Mark(new CryptographicException("The password is incorrect."));
             }
             return session;
         }
