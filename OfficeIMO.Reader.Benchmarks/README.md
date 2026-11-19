@@ -54,7 +54,7 @@ Use the in-process dry job only to smoke-test benchmark discovery and corpus val
 dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csproj -c Release -f net8.0 -- --job Dry
 ```
 
-BenchmarkDotNet does not report peak memory. For the PowerPoint streaming lanes, `-- powerpoint-streaming-memory [slides]` runs each lane in its own process with a 2 MiB generation-0 budget and prints the peak managed heap growth and process peak working set:
+BenchmarkDotNet does not report peak memory. For the PowerPoint streaming lanes, `-- powerpoint-streaming-memory [slides]` runs each lane in its own process and prints the largest sampled managed heap growth and the process peak working set. The managed samples come from `GC.GetTotalMemory(false)`, so they include garbage not yet collected rather than only live objects; each process sets a 2 MiB generation-0 budget, which is a minimum and keeps collections frequent but does not cap the heap:
 
 ```powershell
 dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csproj -c Release -f net8.0 -- powerpoint-streaming-memory 1000

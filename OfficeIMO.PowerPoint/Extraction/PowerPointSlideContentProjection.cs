@@ -70,6 +70,6 @@ internal static class PowerPointSlideContentProjection {
         A.AutoNumberedBullet? numbering = properties?.GetFirstChild<A.AutoNumberedBullet>();
         return new PowerPointParagraphContent(inlines, properties?.Level?.Value,
             properties?.GetFirstChild<A.CharacterBullet>()?.Char?.Value, numbering != null,
-            numbering?.Type?.Value.ToOfficeEnum(), numbering?.StartAt?.Value);
+            PowerPointSlideReader.ParseNumberingScheme(numbering?.Type?.InnerText), numbering?.StartAt?.Value);
     }
 }

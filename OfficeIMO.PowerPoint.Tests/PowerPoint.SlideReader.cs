@@ -82,6 +82,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, numbered.Level);
             Assert.Equal(3, numbered.NumberingStartAt);
             Assert.Equal(PowerPointNumberingScheme.RomanUpperCharacterPeriod, numbered.NumberingScheme);
+            // An automatic-numbering type outside the schema still numbers the paragraph, with no scheme.
+            Assert.True(body.Paragraphs[6].IsNumbered);
+            Assert.Null(body.Paragraphs[6].NumberingScheme);
             Assert.Equal(new[] { PowerPointParagraphInlineKind.Run, PowerPointParagraphInlineKind.LineBreak, PowerPointParagraphInlineKind.Field, PowerPointParagraphInlineKind.Field },
                 body.Paragraphs[3].Inlines.Select(inline => inline.Kind));
             Assert.Equal(" " + Environment.NewLine + "7", body.Paragraphs[3].Text);
@@ -156,6 +159,90 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void OpenRejectsAPackageWhoseMainPartIsNotAPresentation() {
+            using var word = new MemoryStream();
+            using (WordprocessingDocument document = WordprocessingDocument.Create(word, DocumentFormat.OpenXml.WordprocessingDocumentType.Document)) {
+                document.AddMainDocumentPart().Document = new DocumentFormat.OpenXml.Wordprocessing.Document(
+                    new DocumentFormat.OpenXml.Wordprocessing.Body());
+            }
+            word.Position = 0;
+            Assert.Throws<InvalidDataException>(() => PowerPointDocument.Load(word));
+            word.Position = 0;
+            Assert.Throws<InvalidDataException>(() => PowerPointSlideReader.Open(word));
+
+            using var empty = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(empty)) presentation.Save();
+            empty.Position = 0;
+            using PowerPointSlideReader reader = PowerPointSlideReader.Open(empty);
+            Assert.Equal(0, reader.SlideCount);
+            Assert.Empty(reader.ReadSlides());
+        }
+
+        // Cancellation requested while a slide's notes are read stops that slide instead of returning it.
+        [Fact]
+        public void CancellationDuringNotesStopsTheSlide() {
+            using var cancellation = new CancellationTokenSource();
+            using var source = new CancelOnEntryStream(CreateCraftedDeck(), "ppt/notesSlides/notesSlide1.xml", cancellation);
+            using PowerPointSlideReader reader = PowerPointSlideReader.Open(source);
+            source.Armed = true;
+            using IEnumerator<PowerPointSlideContent> slides = reader.ReadSlides(cancellationToken: cancellation.Token).GetEnumerator();
+
+            Assert.Throws<OperationCanceledException>(() => slides.MoveNext());
+            Assert.True(source.Triggered);
+        }
+
+        // Cancels when the package first reads the stored data of the named ZIP entry.
+        private sealed class CancelOnEntryStream : MemoryStream {
+            private readonly long _dataStart;
+            private readonly CancellationTokenSource _cancellation;
+
+            internal CancelOnEntryStream(byte[] bytes, string entryName, CancellationTokenSource cancellation) : base(bytes, writable: false) {
+                _dataStart = FindEntryData(bytes, System.Text.Encoding.ASCII.GetBytes(entryName));
+                _cancellation = cancellation;
+            }
+
+            internal bool Armed { get; set; }
+            internal bool Triggered { get; private set; }
+
+            public override int Read(byte[] buffer, int offset, int count) {
+                long position = Position;
+                int read = base.Read(buffer, offset, count);
+                Inspect(position, read);
+                return read;
+            }
+
+#if NETCOREAPP
+            public override int Read(Span<byte> buffer) {
+                long position = Position;
+                int read = base.Read(buffer);
+                Inspect(position, read);
+                return read;
+            }
+#endif
+
+            private void Inspect(long position, int count) {
+                if (Armed && !Triggered && position <= _dataStart && _dataStart < position + count) {
+                    Triggered = true;
+                    _cancellation.Cancel();
+                }
+            }
+
+            // The data of a stored entry follows its local header: 30 bytes, then the name and the extra field.
+            private static long FindEntryData(byte[] bytes, byte[] name) {
+                for (int index = 0; index + 30 + name.Length <= bytes.Length; index++) {
+                    if (bytes[index] != 0x50 || bytes[index + 1] != 0x4B || bytes[index + 2] != 3 || bytes[index + 3] != 4) continue;
+                    int nameLength = bytes[index + 26] | bytes[index + 27] << 8;
+                    int extraLength = bytes[index + 28] | bytes[index + 29] << 8;
+                    if (nameLength != name.Length) continue;
+                    bool match = true;
+                    for (int at = 0; at < name.Length && match; at++) match = bytes[index + 30 + at] == name[at];
+                    if (match) return index + 30 + nameLength + extraLength;
+                }
+                throw new InvalidOperationException("The entry is not in the package.");
+            }
+        }
+
         private static string Describe(PowerPointExtractChunk chunk) =>
             chunk.Id + "|" + chunk.Location.Slide + "|" + chunk.Location.BlockIndex + "|" + chunk.Text + "|" + chunk.Markdown
             + "|" + string.Join(";", chunk.Warnings ?? Array.Empty<string>());
@@ -215,6 +302,7 @@ namespace OfficeIMO.Tests {
                     <a:p><a:r><a:t> </a:t></a:r><a:br/><a:fld id="{1}" type="slidenum"><a:t>7</a:t></a:fld><a:fld id="{2}" type="datetime"><a:rPr lang="en-US"/></a:fld></a:p>
                     <a:p><a:r><a:rPr><a:hlinkClick r:id="rIdJump" action="ppaction://hlinksldjump"/></a:rPr><a:t>Go to two</a:t></a:r></a:p>
                     <a:p><a:endParaRPr lang="en-US"/></a:p>
+                    <a:p><a:pPr><a:buAutoNum type="notAScheme"/></a:pPr><a:r><a:t>unknown numbering</a:t></a:r></a:p>
                   </p:txBody></p:sp>
                 <p:sp><p:nvSpPr><p:cNvPr id="4" name="Hidden" hidden="1"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/>
                   <p:txBody><a:bodyPr/><a:p><a:r><a:t>secret</a:t></a:r></a:p></p:txBody></p:sp>

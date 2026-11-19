@@ -57,7 +57,7 @@ limit on process memory or every decoder's actual work.
 
 ## Read only text
 
-`ReaderProjection.Text` reads PPTX packages slide by slide with `PowerPointSlideReader` instead of loading the presentation model. The chunks and `GetText()` output are the same as the text-and-metadata projection's, and the result lists `officeimo.reader.powerpoint.streamed-text` in `CapabilitiesUsed`. Reads with a password or inspection options, binary PPT input, and packages the slide reader cannot read, such as a table without a column grid or input over the configured limits, use the presentation model and report errors as before.
+`ReaderProjection.Text` reads PPTX packages slide by slide with `PowerPointSlideReader` instead of loading the presentation model. `GetText()` returns the same text, in the same order, as the text-and-metadata projection, the chunks are the ones a text projection read through the presentation model returns, and the result lists `officeimo.reader.powerpoint.streamed-text` in `CapabilitiesUsed`. Reads with a password or inspection options, binary PPT input, and packages the slide reader cannot read, such as a table without a column grid or input over the configured limits, use the presentation model and report errors as before.
 
 ```csharp
 using OfficeIMO.Reader;

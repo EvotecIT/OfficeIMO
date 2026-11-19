@@ -28,7 +28,10 @@ namespace OfficeIMO.PowerPoint {
             var slides = new List<SlideEntry>();
             using Stream stream = presentationPart.GetStream(FileMode.Open, FileAccess.Read);
             using XmlReader reader = XmlReader.Create(stream, settings);
-            if (reader.MoveToContent() != XmlNodeType.Element) return slides;
+            if (reader.MoveToContent() != XmlNodeType.Element || !IsPresentation(reader, "presentation")) {
+                // A model load rejects a package whose main part is another document, such as a renamed DOCX.
+                throw new InvalidDataException("The package is not a PowerPoint presentation.");
+            }
             bool listSeen = false;
             ForEachChild(reader, () => {
                 if (listSeen || !IsPresentation(reader, "sldIdLst")) return false;
@@ -80,7 +83,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool hidden = show.HasValue ? !show.Value : IsHiddenShowValue(entry.ListShowValue);
-            string? notes = includeNotes ? ReadNotes(_package, entry.Part, _xmlSettings) : null;
+            string? notes = includeNotes ? ReadNotes(_package, entry.Part, _xmlSettings, cancellationToken) : null;
+            cancellationToken.ThrowIfCancellationRequested();
             return new PowerPointSlideContent(index + 1, hidden, context.Build(), notes);
         }
 
@@ -325,7 +329,7 @@ namespace OfficeIMO.PowerPoint {
                                 numberingSeen = true;
                                 numbered = true;
                                 string? type = reader.GetAttribute("type");
-                                scheme = type == null ? null : ParseNumberingScheme(type);
+                                scheme = ParseNumberingScheme(type);
                                 string? start = reader.GetAttribute("startAt");
                                 startAt = start == null ? null : ParseInt32(start);
                             }
@@ -390,7 +394,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         // Matches PowerPointNotes.TryGetExistingText: the text of every top-level notes shape, blank ones skipped.
-        private static string? ReadNotes(Package package, PackagePart slidePart, XmlReaderSettings settings) {
+        private static string? ReadNotes(Package package, PackagePart slidePart, XmlReaderSettings settings,
+            CancellationToken cancellationToken) {
             try {
                 PackagePart? notesPart = null;
                 foreach (PackageRelationship relationship in slidePart.GetRelationships()) {
@@ -411,6 +416,7 @@ namespace OfficeIMO.PowerPoint {
                             treeFound = true;
                             ForEachChild(reader, () => {
                                 if (!IsPresentation(reader, "sp")) return false;
+                                cancellationToken.ThrowIfCancellationRequested();
                                 string text = ReadNotesShapeText(reader);
                                 if (!string.IsNullOrWhiteSpace(text)) shapes.Add(text);
                                 return true;
@@ -423,7 +429,7 @@ namespace OfficeIMO.PowerPoint {
                 if (!treeFound) return null;
                 string notes = string.Join(Environment.NewLine + Environment.NewLine, shapes).Trim();
                 return notes.Length > 0 ? notes : null;
-            } catch (Exception exception) when (exception is not OutOfMemoryException) {
+            } catch (Exception exception) when (exception is not OutOfMemoryException and not OperationCanceledException) {
                 return null;
             }
         }
@@ -555,10 +561,17 @@ namespace OfficeIMO.PowerPoint {
             return parsed.ToOfficeEnum();
         }
 
-        private static PowerPointNumberingScheme ParseNumberingScheme(string value) {
+        // Like the Markdown renderer for an unset scheme, an unknown automatic-numbering type falls back to plain
+        // numbers instead of failing the slide; both the streamed and the loaded projection read it this way.
+        internal static PowerPointNumberingScheme? ParseNumberingScheme(string? value) {
+            if (value == null) return null;
             var parsed = new A.TextAutoNumberSchemeValues(value);
-            if (!((IEnumValue)parsed).IsValid) throw new InvalidDataException($"'{value}' is not a valid numbering scheme.");
-            return parsed.ToOfficeEnum();
+            if (!((IEnumValue)parsed).IsValid) return null;
+            try {
+                return parsed.ToOfficeEnum();
+            } catch (ArgumentOutOfRangeException) {
+                return null;
+            }
         }
 
         private const string RelationshipTypeBase = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";

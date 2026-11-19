@@ -151,8 +151,10 @@ internal static class PowerPointStreamingDeck {
 
 /// <summary>
 /// Measures each lane's peak memory in its own process, which BenchmarkDotNet does not report:
-/// <c>powerpoint-streaming-memory [slides]</c>. The child runs with a 2 MiB generation-0 budget so the sampled managed
-/// heap follows live data rather than uncollected garbage; the process peak working set includes the runtime itself.
+/// <c>powerpoint-streaming-memory [slides]</c>. The managed figure is the largest <see cref="GC.GetTotalMemory(bool)"/>
+/// sample taken without a collection, so it includes garbage not yet collected; the child sets a 2 MiB generation-0
+/// budget, which is a minimum rather than a ceiling, to keep collections frequent. The process peak working set
+/// includes the runtime itself.
 /// </summary>
 internal static class PowerPointStreamingMemoryCommand {
     internal static int Run(string[] args) {
@@ -164,7 +166,7 @@ internal static class PowerPointStreamingMemoryCommand {
         string path = PowerPointStreamingDeck.Create(slides);
         try {
             PowerPointStreamingDeck.Validate(path);
-            Console.WriteLine("| Lane | Peak managed heap growth (MiB) | Process peak working set (MiB) |");
+            Console.WriteLine("| Lane | Sampled managed heap growth, max (MiB) | Process peak working set (MiB) |");
             Console.WriteLine("| --- | ---: | ---: |");
             foreach (string lane in PowerPointStreamingDeck.Lanes) {
                 string[] values = RunChild(lane, path).Split(' ');

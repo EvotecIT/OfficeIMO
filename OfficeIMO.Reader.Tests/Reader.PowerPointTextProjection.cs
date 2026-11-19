@@ -31,6 +31,7 @@ public sealed class ReaderPowerPointTextProjectionTests {
             OfficeDocumentReadResult fromPath = reader.ReadDocument(path, options);
             OfficeDocumentReadResult fromStream;
             using (FileStream stream = File.OpenRead(path)) fromStream = reader.ReadDocument(stream, path, options);
+            OfficeDocumentReadResult lean = reader.ReadDocument(path, new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, MaxTableRows = 2 });
             OfficeDocumentReadResult model;
             using (PowerPointDocument presentation = PowerPointDocument.Load(path, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly })) {
                 model = presentation.ReadDocument(path, options, formatOptions);
@@ -41,6 +42,7 @@ public sealed class ReaderPowerPointTextProjectionTests {
             Assert.DoesNotContain(StreamedCapability, model.CapabilitiesUsed);
             Assert.Equal(Describe(model), Describe(fromPath));
             Assert.Equal(Describe(model), Describe(fromStream));
+            Assert.Equal(lean.GetText(), fromPath.GetText());
         }
     }
 
