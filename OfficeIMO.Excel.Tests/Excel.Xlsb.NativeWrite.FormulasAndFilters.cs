@@ -92,6 +92,7 @@ public sealed class ExcelXlsbFormulasAndFiltersTests {
     [Theory]
     [InlineData("STDEV.S(A1:A3)", "_xlfn.STDEV.S(A1:A3)", "1")]
     [InlineData("1+CONCAT(\"a\",A2)", "1+_xlfn.CONCAT(\"a\",A2)", null)]
+    [InlineData("_xlfn.CONCAT (\"a\",A2)", "_xlfn.CONCAT(\"a\",A2)", null)]
     [InlineData("IFNA(MATCH(9,A1:A3,0),-1)*2", "_xlfn.IFNA(MATCH(9,A1:A3,0),-1)*2", "-2")]
     [InlineData("SUM(A1,MAXIFS(A1:A3,A1:A3,\"<3\"))", "SUM(A1,_xlfn.MAXIFS(A1:A3,A1:A3,\"<3\"))", "3")]
     public void Future_function_cell_formulas_survive_native_xlsb_save(string authored, string stored, string? value) {

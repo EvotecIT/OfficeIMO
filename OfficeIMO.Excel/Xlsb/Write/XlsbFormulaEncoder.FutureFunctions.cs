@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         };
 
         // True when the formula calls an _xlfn. function: the prefix starts an identifier outside string literals, quoted
-        // sheet names and brackets, and the identifier is followed by "(". '_xlfn.Data'!A1 names a sheet, not a function.
+        // sheet names and brackets, and the identifier is followed by "(", optionally after whitespace. '_xlfn.Data'!A1 names a sheet, not a function.
         private static bool ContainsFutureFunction(string formulaText) {
             string scan = MaskQuotedText(formulaText);
             for (int index = 0; index < scan.Length; index++) {
@@ -30,6 +30,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
                 int end = index + FutureFunctionPrefix.Length;
                 while (end < scan.Length && IsIdentifierCharacter(scan[end])) end++;
+                // The formula parser accepts whitespace between a function name and its "(".
+                while (end < scan.Length && char.IsWhiteSpace(scan[end])) end++;
                 if (end < scan.Length && scan[end] == '(') return true;
             }
             return false;
