@@ -79,13 +79,16 @@ public static partial class WordPdfConverterExtensions {
 
         var imageCanvas = new PdfCore.PdfPageCanvas();
         PdfCore.PdfImageStyle imageStyle = CreateNativeImageStyle(image, options, source);
+        string? linkUri = GetNativeImageLink(image);
+        string? linkContents = linkUri != null && !string.IsNullOrWhiteSpace(image.AltText) ? image.AltText : null;
         // Effects retain signed producer offsets without weakening the public canvas coordinate contract.
         imageCanvas.Effect(OfficeTransform.Translate(placement.X, placement.Y), 1D, content => {
             if (layout.BehindDocument)
-                content.Image(bytes, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style: imageStyle);
+                content.Image(bytes, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style: imageStyle,
+                    linkUri: linkUri, linkContents: linkContents);
             else
                 content.ForegroundImage(bytes, 0D, 0D, width, height,
-                    zOrder: layout.RelativeHeight, style: imageStyle);
+                    zOrder: layout.RelativeHeight, style: imageStyle, linkUri: linkUri, linkContents: linkContents);
         });
         IReadOnlyList<PdfCore.PdfCanvasItem> items = imageCanvas.Items;
         if (placement.MarginX) items = new PdfCore.PdfCanvasItem[] { new PdfCore.PdfCanvasMarginAnchorItem(items, margins.Left.ToPoints()) };

@@ -2,7 +2,7 @@ namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
     internal static bool HasIncrementalHandler(string? name, bool pathInput) =>
-        GetActiveHandlerRegistry().TryResolve(NormalizeExtension(TryGetExtension(name ?? string.Empty)), out var handler) &&
+        GetActiveHandlerRegistry().TryResolve(GetRoutingExtension(name), out var handler) &&
         (pathInput ? handler.SupportsIncrementalPath : handler.SupportsIncrementalStream);
 
     internal static IEnumerable<ReaderChunk> EnumerateChunks(string path, ReaderOptions options, CancellationToken token) {
@@ -41,7 +41,7 @@ internal static partial class DocumentReaderEngine {
         // Forward-only extraction is selected only by an exact registered extension.
         // Content-first routing retains the snapshot-based rich read contract.
         if (options.DetectionMode == ReaderDetectionMode.PreferContent ||
-            !GetActiveHandlerRegistry().TryResolve(NormalizeExtension(TryGetExtension(sourceName)), out var handler) ||
+            !GetActiveHandlerRegistry().TryResolve(GetRoutingExtension(sourceName), out var handler) ||
             !handler.SupportsIncrementalStream || (!stream.CanSeek && options.ComputeHashes)) {
             foreach (var chunk in Read(stream, sourceName, options, token)) {
                 token.ThrowIfCancellationRequested();

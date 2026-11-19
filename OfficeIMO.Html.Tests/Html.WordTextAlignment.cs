@@ -29,6 +29,16 @@ namespace OfficeIMO.Tests {
         [InlineData("<div style='text-align:right'><div style='text-align:initial'>Aligned</div></div>", null)]
         // An inner container's align attribute outranks alignment inherited from an outer one.
         [InlineData("<div style='text-align:right'><div align='left'>Aligned</div></div>", WordParagraphAlignment.Left)]
+        // text-align is inherited by descendants that become their own paragraphs.
+        [InlineData("<body style='text-align:center'><p>Aligned</p></body>", WordParagraphAlignment.Center)]
+        [InlineData("<div style='text-align:justify'><ul><li>Aligned</li></ul></div>", WordParagraphAlignment.Both)]
+        [InlineData("<div align='right'><ol><li>Aligned</li></ol></div>", WordParagraphAlignment.Right)]
+        [InlineData("<div style='text-align:center'><ul><li style='text-align:left'>Aligned</li></ul></div>", WordParagraphAlignment.Left)]
+        // unset inherits like inherit, on the item and on the containers in between.
+        [InlineData("<body style='text-align:center'><ul style='text-align:unset'><li>Aligned</li></ul></body>", WordParagraphAlignment.Center)]
+        [InlineData("<body style='text-align:center'><ul><li style='text-align:unset'>Aligned</li></ul></body>", WordParagraphAlignment.Center)]
+        // An inner div's align attribute outranks the alignment an outer container passed down to it.
+        [InlineData("<div style='text-align:right'><div align='left'><ul><li>Aligned</li></ul></div></div>", WordParagraphAlignment.Left)]
         public void HtmlToWord_MapsParagraphAlignmentSources(string html, WordParagraphAlignment? expected) {
             using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             WordParagraph paragraph = Assert.Single(document.Paragraphs

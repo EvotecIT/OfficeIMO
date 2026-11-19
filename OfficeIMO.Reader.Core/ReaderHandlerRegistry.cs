@@ -167,6 +167,7 @@ internal sealed class ReaderHandlerDescriptor {
     public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; private set; } = Array.Empty<ReaderFormatQualification>();
     public bool SupportsIncrementalPath { get; private set; }
     public bool SupportsIncrementalStream { get; private set; }
+    public Func<Exception, string?>? ClassifyReadError { get; private set; }
     private const int MaximumInputLimitProbeBytes = 64 * 1024;
 
     private ReaderHandlerDescriptor(
@@ -327,7 +328,8 @@ internal sealed class ReaderHandlerDescriptor {
                 SupportsTextAndMetadata = registration.SupportsTextAndMetadata,
                 TextAndMetadataExtensions = Array.AsReadOnly(projectionExtensions.ToArray()),
                 SupportsIncrementalPath = registration.SupportsIncrementalPath,
-                SupportsIncrementalStream = registration.SupportsIncrementalStream
+                SupportsIncrementalStream = registration.SupportsIncrementalStream,
+                ClassifyReadError = registration.ClassifyReadError
             };
     }
 
@@ -374,14 +376,8 @@ internal sealed class ReaderHandlerDescriptor {
     }
 
     public long? ResolveDefaultMaxInputBytes(string? sourceName) {
-        string extension;
-        try {
-            extension = DocumentReaderEngine.NormalizeExtension(Path.GetExtension(sourceName ?? string.Empty));
-        } catch (ArgumentException) {
-            extension = string.Empty;
-        } catch (NotSupportedException) {
-            extension = string.Empty;
-        }
+        // Use the same extension as handler selection, including the routed extension of a conventional file name.
+        string extension = DocumentReaderEngine.GetRoutingExtension(sourceName);
         return extension.Length > 0 && DefaultMaxInputBytesByExtension.TryGetValue(extension, out long value)
             ? value
             : DefaultMaxInputBytes;

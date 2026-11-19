@@ -47,7 +47,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     AddPreservedLineBreakRuns(textNode.Data, AddText, () => runs.Add(new HtmlInlineRun("\u2028", inheritedStyle,
                         inheritedLink, source, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement)));
                 } else {
-                    AddText(textNode.Data);
+                    AddText(inheritedStyle.CollapseSegmentBreaks ? ReplaceSegmentBreaks(textNode.Data) : textNode.Data);
                 }
             }
 

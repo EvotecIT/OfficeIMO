@@ -29,7 +29,7 @@ internal static partial class DocumentReaderEngine {
         options.Projection == ReaderProjection.Full ||
         handler.SupportsTextAndMetadata && (handler.TextAndMetadataExtensions.Count == 0 ||
             handler.TextAndMetadataExtensions.Contains(
-                NormalizeExtension(TryGetExtension(sourceName ?? string.Empty)), StringComparer.OrdinalIgnoreCase));
+                GetRoutingExtension(sourceName), StringComparer.OrdinalIgnoreCase));
 
     private static void ValidateProjection(ReaderHandlerDescriptor handler, ReaderOptions options, string? sourceName) {
         if (!IsProjectionEligible(handler, options, sourceName)) {

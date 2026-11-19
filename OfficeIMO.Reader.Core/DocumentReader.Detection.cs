@@ -339,6 +339,7 @@ internal static partial class DocumentReaderEngine {
         try {
             byte[] prefix = ReadDetectionPrefix(stream, options.MaxProbeBytes);
             DetectionCandidate candidate = DetectContent(prefix);
+            bool zipContainer = candidate.Kind == ReaderInputKind.Zip;
             bool containerInspected = false;
 
             if (candidate.Kind == ReaderInputKind.Zip && options.InspectContainers && restorePosition) {
@@ -363,6 +364,8 @@ internal static partial class DocumentReaderEngine {
                 containerInspected = true;
             }
 
+            candidate = ApplyContentEncryption(candidate, extensionResult, stream, originalPosition, restorePosition, prefix,
+                options, zipContainer, CancellationToken.None);
             return BuildCombinedDetection(
                 extensionResult,
                 candidate,
@@ -389,6 +392,7 @@ internal static partial class DocumentReaderEngine {
         try {
             byte[] prefix = await ReadDetectionPrefixAsync(stream, options.MaxProbeBytes, cancellationToken).ConfigureAwait(false);
             DetectionCandidate candidate = DetectContent(prefix);
+            bool zipContainer = candidate.Kind == ReaderInputKind.Zip;
             bool containerInspected = false;
             if (candidate.Kind == ReaderInputKind.Zip && options.InspectContainers && restorePosition) {
                 DetectionCandidate containerCandidate = await InspectZipContainerAsync(
@@ -415,6 +419,8 @@ internal static partial class DocumentReaderEngine {
                 containerInspected = true;
             }
 
+            candidate = ApplyContentEncryption(candidate, extensionResult, stream, originalPosition, restorePosition, prefix,
+                options, zipContainer, cancellationToken);
             return BuildCombinedDetection(extensionResult, candidate, prefix.Length, containerInspected, options.Mode);
         } finally {
             if (restorePosition) stream.Position = originalPosition;
@@ -423,10 +429,13 @@ internal static partial class DocumentReaderEngine {
 
     private static ReaderDetectionResult BuildExtensionDetection(string sourceName) {
         string extension = NormalizeExtension(TryGetExtension(sourceName));
-        ReaderInputKind extensionKind = extension.Length == 0 ? ReaderInputKind.Unknown : DetectKind(sourceName);
-        var evidence = extension.Length == 0
-            ? Array.Empty<string>()
-            : new[] { "extension:" + extension };
+        bool conventionalName = extension.Length == 0 && GetRoutingExtension(sourceName).Length > 0;
+        ReaderInputKind extensionKind = extension.Length == 0 && !conventionalName ? ReaderInputKind.Unknown : DetectKind(sourceName);
+        var evidence = extension.Length > 0
+            ? new[] { "extension:" + extension }
+            : conventionalName && extensionKind != ReaderInputKind.Unknown
+                ? new[] { "file-name:" + ReaderLogicalPath.GetFileName(sourceName) }
+                : Array.Empty<string>();
 
         return new ReaderDetectionResult {
             SourceName = sourceName,
@@ -492,6 +501,7 @@ internal static partial class DocumentReaderEngine {
             ContentInspected = true,
             ContainerInspected = containerInspected,
             InspectedBytes = inspectedBytes,
+            IsEncrypted = content.IsEncrypted,
             Evidence = evidence.ToArray()
         };
     }
@@ -1061,12 +1071,14 @@ internal static partial class DocumentReaderEngine {
             ReaderDetectionConfidence confidence,
             string? mediaType,
             IReadOnlyList<string> evidence,
-            bool mediaTypeIsDeclared = false) {
+            bool mediaTypeIsDeclared = false,
+            bool isEncrypted = false) {
             Kind = kind;
             Confidence = confidence;
             MediaType = mediaType;
             Evidence = evidence;
             MediaTypeIsDeclared = mediaTypeIsDeclared;
+            IsEncrypted = isEncrypted;
         }
 
         public ReaderInputKind Kind { get; }
@@ -1074,6 +1086,16 @@ internal static partial class DocumentReaderEngine {
         public string? MediaType { get; }
         public IReadOnlyList<string> Evidence { get; }
         public bool MediaTypeIsDeclared { get; }
+        public bool IsEncrypted { get; }
+
+        /// <summary>Returns this candidate with a different kind, keeping its evidence and encryption state.</summary>
+        public DetectionCandidate WithKind(ReaderInputKind kind, ReaderDetectionConfidence confidence, string? mediaType) =>
+            new DetectionCandidate(kind, confidence, mediaType, Evidence, mediaTypeIsDeclared: false, IsEncrypted);
+
+        /// <summary>Returns this candidate marked encrypted, with the evidence token that found the encryption.</summary>
+        public DetectionCandidate WithEncryption(string evidence) =>
+            new DetectionCandidate(Kind, Confidence, MediaType, Evidence.Concat(new[] { evidence }).ToArray(),
+                MediaTypeIsDeclared, isEncrypted: true);
 
         public static DetectionCandidate Unknown(string evidence) =>
             new DetectionCandidate(ReaderInputKind.Unknown, ReaderDetectionConfidence.None, null, new[] { evidence });

@@ -24,11 +24,23 @@ internal static partial class DocumentReaderEngine {
         }
     }
 
+    /// <summary>
+    /// Returns the normalized extension used to select a handler. An extensionless source file named by convention,
+    /// such as <c>Dockerfile</c> or <c>Gemfile</c>, routes as the extension that owns its language.
+    /// </summary>
+    internal static string GetRoutingExtension(string? path) {
+        string extension = NormalizeExtension(TryGetExtension(path));
+        if (extension.Length > 0 || string.IsNullOrWhiteSpace(path)) return extension;
+        return ReaderSourceCodeLanguages.TryGetExtensionFromFileName(ReaderLogicalPath.GetFileName(path!), out string mapped)
+            ? mapped
+            : extension;
+    }
+
     private static bool TryResolveCustomHandlerByPath(string path, out ReaderHandlerDescriptor handler) =>
-        TryResolveCustomHandlerByExtension(NormalizeExtension(TryGetExtension(path)), out handler);
+        TryResolveCustomHandlerByExtension(GetRoutingExtension(path), out handler);
 
     private static bool TryResolveCustomHandlerBySourceName(string? sourceName, out ReaderHandlerDescriptor handler) =>
-        TryResolveCustomHandlerByExtension(NormalizeExtension(TryGetExtension(sourceName)), out handler);
+        TryResolveCustomHandlerByExtension(GetRoutingExtension(sourceName), out handler);
 
     internal static bool CanReadNestedSource(string sourceName) =>
         TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
@@ -130,6 +142,10 @@ internal static partial class DocumentReaderEngine {
             throw new ArgumentOutOfRangeException(nameof(ReaderOptions.OpenXmlMaxPartUncompressedBytes));
         if (source?.OpenXmlMaxTotalUncompressedBytes < 1)
             throw new ArgumentOutOfRangeException(nameof(ReaderOptions.OpenXmlMaxTotalUncompressedBytes));
+        if (source != null && source.LayoutTimeout != Timeout.InfiniteTimeSpan &&
+            (source.LayoutTimeout <= TimeSpan.Zero || source.LayoutTimeout.TotalMilliseconds > int.MaxValue))
+            throw new ArgumentOutOfRangeException(nameof(ReaderOptions.LayoutTimeout),
+                "LayoutTimeout must be positive and at most Int32.MaxValue milliseconds, or Timeout.InfiniteTimeSpan.");
         ReaderProjection projection = RequestedProjection(source);
         if (inheritProjection && ReaderReadScope.Current is { } scope) projection = NarrowestProjection(scope.Projection, projection);
         var clone = new ReaderOptions {
@@ -148,6 +164,7 @@ internal static partial class DocumentReaderEngine {
             OpenXmlMaxTotalUncompressedBytes = source?.OpenXmlMaxTotalUncompressedBytes,
             MaxOpenXmlImageAssets = source == null ? ReaderOptions.DefaultMaxOpenXmlImageAssets : source.MaxOpenXmlImageAssets,
             OpenPassword = source?.OpenPassword,
+            LayoutTimeout = source?.LayoutTimeout ?? Timeout.InfiniteTimeSpan,
             MaxOpenXmlImagePlacementsPerRelationship = source == null ? ReaderOptions.DefaultMaxOpenXmlImagePlacementsPerRelationship : source.MaxOpenXmlImagePlacementsPerRelationship,
             MaxOpenXmlImageAssetBytes = source == null ? ReaderOptions.DefaultMaxOpenXmlImageAssetBytes : source.MaxOpenXmlImageAssetBytes,
             MaxOpenXmlImageTotalAssetBytes = source == null ? ReaderOptions.DefaultMaxOpenXmlImageTotalAssetBytes : source.MaxOpenXmlImageTotalAssetBytes,

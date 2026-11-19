@@ -2,9 +2,11 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private static readonly char[] SegmentBreakCharacters = { '\n', '\r' };
+    private static readonly char[] PreserveSpacesConvertedCharacters = { '\n', '\r', '\t' };
 
     /// <summary>Text runs for anonymous text that bypasses DOM run collection, such as anonymous flex items.</summary>
     private static IReadOnlyList<HtmlInlineRun> CreateAnonymousTextRuns(string text, HtmlRenderBoxStyle style, string? link, string source) {
+        if (style.CollapseSegmentBreaks) text = ReplaceSegmentBreaks(text);
         if (!style.PreserveLineBreaks || style.PreserveWhitespace || text.IndexOfAny(SegmentBreakCharacters) < 0)
             return new[] { new HtmlInlineRun(text, style, link, source) };
         var runs = new List<HtmlInlineRun>();
@@ -12,6 +14,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             () => runs.Add(new HtmlInlineRun("\u2028", style, link, source)));
         return runs;
     }
+
+    /// <summary>white-space-collapse: preserve-spaces turns each segment break and tab into a space.</summary>
+    private static string ReplaceSegmentBreaks(string text) =>
+        text.IndexOfAny(PreserveSpacesConvertedCharacters) < 0 ? text
+            : text.Replace("\r\n", " ").Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
 
     /// <summary>
     /// Splits <c>white-space: pre-line</c> text at its segment breaks. Each break becomes a forced

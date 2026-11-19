@@ -185,6 +185,9 @@ namespace OfficeIMO.Excel {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
+                if (workbook.Diagnostics.Any(diagnostic => diagnostic.Code == OfficeDiagnosticCodes.XlsBiffFilepassPasswordInvalid)) {
+                    throw OfficePasswordRejection.Mark(new InvalidDataException("Legacy XLS import failed: the password did not open the encrypted workbook."));
+                }
                 throw new InvalidDataException("Legacy XLS import failed: no supported worksheets or chart sheets were projected. Unsupported legacy sheet content cannot be saved as a normal .xlsx workbook.");
             }
 

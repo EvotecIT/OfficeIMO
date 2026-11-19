@@ -153,7 +153,6 @@ Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It ren
 - [ ] Preserve named link destinations targeting table headers inside clipped, transformed containers during PDF export.
 - [ ] Project imported Word bookmark destinations inside table cells, text boxes and running stories. Keep the [visible-link fallback and omission diagnostics](../OfficeIMO.Word.Pdf/README.md#what-it-exports) until each source position has a qualified PDF destination.
 - [ ] Preserve rich text-box paragraphs and anchored placement inside Word table cells, including nested tables and running stories. Qualify inner paragraph formatting, boundaries, shape geometry, wrapping and pagination beyond the [diagnosed flattened-cell profile](../OfficeIMO.Word.Pdf/README.md#what-it-exports).
-- [ ] Carry click hyperlinks on floating Word pictures placed at their anchors, behind or in front of text, into PDF links over their transformed frame. Inline pictures and pictures placed in document flow already keep them.
 
 
 - [ ] Qualify picture-wrapping profiles beyond the [rectangular body/header/footer contract](../OfficeIMO.Word.Pdf/README.md#word-to-pdf-layout), including other Square sides, inferred or child distances, tight/through contours, wrapped pictures in tables/text boxes/notes, rotated/grouped/effect-expanded pictures, column-dependent anchors and broader object interactions. Continue qualifying Word line/paragraph-spacing differences against pinned Microsoft Word exports, including automatic line height for mixed Latin and East Asian fonts.
@@ -451,10 +450,6 @@ Current APIs and qualification limits are documented in the [architecture and su
 
 - [ ] Add an optional QR and barcode decoding processor for images and rendered pages through the optional CodeGlyphX provider, which already decodes QR codes and linear and 2-D barcodes from pixels (`QrImageDecoder`, `BarcodeDecoder`). Decoding is never built into the Reader: one package adds it and one builder call enables it. Report each decoded symbol with its symbology, text, page and bounds as structured Reader output, with resource limits and cancellation.
 - [ ] Serve the PowerPoint text-and-metadata projection from `PowerPointSlideReader`, as the text projection already is. It still loads every slide and notes part as a full DOM for shape geometry, hyperlinks, slide size and comments. Add those to the streamed slide records and keep the model path for chart snapshots, Markdown rendering and inspection.
-- [ ] Report bad inputs as typed per-input error results with stable codes, such as `password-required` and `invalid-password`, instead of exceptions, so batch and folder reads can continue and callers can branch on the code. Keep exceptions for caller errors and keep the existing admission and resource-limit contracts.
-- [ ] Add a layout time limit to Reader routes that lay out or render pages, raising a dedicated timeout exception that callers can tell apart from their own cancellation, as image export already does with `RenderTimeout` and `OfficeImageExportTimeoutException`.
-- [ ] Report encryption from `DocumentReader.Detect` without opening the file. Detection returns format, media type, confidence and evidence today, but an encrypted Office package comes back as an unknown kind with only an evidence string. Add the detected format and a typed encrypted or password-protected flag for Office, PDF and ZIP inputs.
-- [ ] Recognize extensionless well-known source files, such as `Dockerfile`, `Makefile`, `Jenkinsfile` and `Gemfile`, in the source-code handler. `ReaderSourceCodeLanguages` maps extensions and script interpreters only, so these files are not read as code.
 
 ## Independent HTML engine
 

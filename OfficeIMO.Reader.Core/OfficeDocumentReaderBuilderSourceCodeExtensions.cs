@@ -11,7 +11,9 @@ public static class OfficeDocumentReaderBuilderSourceCodeExtensions {
     /// <remarks>
     /// Text is returned verbatim with normalized line breaks, Markdown wraps each chunk in a fenced block tagged with the
     /// language, and the language is reported as document metadata. Inputs that contain binary data are refused.
-    /// Extensionless scripts are recognised by their <c>#!</c> line when no other handler claims them.
+    /// Extensionless files named by convention, such as <c>Dockerfile</c>, <c>Makefile</c>, <c>Jenkinsfile</c> and
+    /// <c>Gemfile</c>, are read as their language. Other extensionless scripts are recognised by their <c>#!</c> line
+    /// when no other handler claims them.
     /// Extensions owned by structured readers, such as JSON, YAML, TOML, XML, Markdown, CSV and HTML, are not claimed.
     /// </remarks>
     public static OfficeDocumentReaderBuilder AddSourceCodeHandler(this OfficeDocumentReaderBuilder builder, bool replaceExisting = false) {

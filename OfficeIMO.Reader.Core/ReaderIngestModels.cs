@@ -43,6 +43,12 @@ public sealed class ReaderIngestFileResult {
     /// Optional warnings associated with this file.
     /// </summary>
     public IReadOnlyList<string>? Warnings { get; set; }
+
+    /// <summary>
+    /// Stable <see cref="ReaderErrorCodes"/> value when reading this file failed; null when it was parsed or skipped by a
+    /// folder byte budget.
+    /// </summary>
+    public string? ErrorCode { get; set; }
 }
 
 /// <summary>
@@ -93,6 +99,12 @@ public sealed class ReaderSourceDocument {
     /// Optional source-level warnings (parse errors, limit skips, extraction warnings).
     /// </summary>
     public IReadOnlyList<string>? Warnings { get; set; }
+
+    /// <summary>
+    /// Stable <see cref="ReaderErrorCodes"/> value when reading this source failed; null when it was parsed or skipped by a
+    /// folder byte budget.
+    /// </summary>
+    public string? ErrorCode { get; set; }
 
     /// <summary>
     /// Emitted chunks for this source (empty for skipped files).

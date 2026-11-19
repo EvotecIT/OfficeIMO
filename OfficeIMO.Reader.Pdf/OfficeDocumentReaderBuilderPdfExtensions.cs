@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf;
+
 namespace OfficeIMO.Reader.Pdf;
 
 /// <summary>
@@ -51,7 +53,18 @@ public static class OfficeDocumentReaderBuilderPdfExtensions {
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
-                cancellationToken: ct)
+                cancellationToken: ct),
+            ClassifyReadError = ClassifyReadError
         };
     }
+
+    private static string? ClassifyReadError(Exception exception) => exception switch {
+        PdfPasswordRequiredException => ReaderErrorCodes.PasswordRequired,
+        PdfInvalidPasswordException => ReaderErrorCodes.InvalidPassword,
+        // Certificate-protected files need a recipient key that the common read options cannot supply.
+        PdfUnsupportedEncryptionException or PdfRecipientCertificateRequiredException or PdfRecipientNotFoundException
+            or PdfRecipientDecryptionException => ReaderErrorCodes.UnsupportedEncryption,
+        PdfPermissionDeniedException => ReaderErrorCodes.PermissionDenied,
+        _ => null
+    };
 }

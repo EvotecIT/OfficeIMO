@@ -44,8 +44,29 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ApplyPendingInlineTextTransforms(runs, retainSuppressedText: true);
         ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
         RemoveSuppressedInlineText(runs);
-        ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
+        var runsBeforeFirstLine = new List<HtmlInlineRun>(runs);
+        bool styledFirstLine = ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
+        double layoutWidth = width;
+        double? renderWidth = null;
+        if (styledFirstLine && skipLogicalCharacters == 0
+            && TryResolveBalancedLineWidth(runs, width, parentStyle, formattingContainer, inheritedFloats, floatContext,
+                out double balanced, out int balancedLines)) {
+            // Balancing moves words off the first line, so ::first-line is matched again at the chosen length.
+            // Words that leave it change size, so the length is kept only if the line count still holds;
+            // otherwise the block keeps its unbalanced lines.
+            var rematched = new List<HtmlInlineRun>(runsBeforeFirstLine);
+            ApplyFirstLineStyle(formattingContainer, width, parentStyle, rematched, balanced);
+            rematched = ApplyScopedFontFallbacks(rematched);
+            bool keepsLineCount = CountAdmittedInlineLines(rematched, balanced, width, parentStyle, formattingContainer,
+                edgesPrepared: false) == balancedLines;
+            if (keepsLineCount) {
+                runs = rematched;
+                layoutWidth = balanced;
+            }
+            // An explicit render width also keeps LayoutInlineRuns from balancing the runs again.
+            renderWidth = width;
+        }
 
         if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
             int semanticNodeId = GetSemanticNodeId(formattingContainer);
@@ -54,7 +75,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AssignSemanticFragmentOrders(runs);
 
         if (marker == null || !marker.IsOutside || skipLogicalCharacters > 0) {
-            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats, floatContext: floatContext);
+            return LayoutInlineRuns(runs, layoutWidth, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats,
+                floatContext: floatContext, renderWidth: renderWidth);
         }
 
         HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
@@ -70,7 +92,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
         double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
         HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
-        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats, floatContext: floatContext);
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, layoutWidth, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats,
+            floatContext: floatContext, renderWidth: renderWidth);
         return CombineOutsideListMarker(markerLayout, bodyLayout, width, gap, parentStyle);
     }
 
@@ -698,6 +721,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Space added after a word separator on a justified line. It belongs to the
         // separator, so it is painted with it and moves the following content.
         internal double JustificationAdvance { get; set; }
+        // Space added after each text element of this segment; its sum is JustificationAdvance.
+        internal double[]? ClusterJustification { get; set; }
         internal double Advance => LeadingAdvance + Width + JustificationAdvance + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }

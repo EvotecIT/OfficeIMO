@@ -1,0 +1,78 @@
+namespace OfficeIMO.Html;
+
+internal sealed partial class HtmlRenderLayoutEngine {
+    // Balancing lays a block out several times, so it is limited to short blocks, as in browsers.
+    private const int MaximumBalancedLines = 6;
+    private const int MaximumBalancedCharacters = 1000;
+    private const int BalanceIterations = 12;
+
+    private static bool CanBalanceInlineLines(IReadOnlyList<HtmlInlineRun> runs, HtmlRenderBoxStyle paragraphStyle,
+        int skipLogicalCharacters, int? maximumLines, InlinePaintCapture? paintCapture) {
+        if (paragraphStyle.TextWrapStyle != "balance" || paragraphStyle.PreventTextWrapping
+            || skipLogicalCharacters > 0 || maximumLines.HasValue || paintCapture != null
+            || paragraphStyle.LineClamp.HasValue) return false;
+        int characters = 0;
+        foreach (HtmlInlineRun run in runs) {
+            // Inline box edges record their first and last content while lines are admitted.
+            if (run.InlineEdgeScopes.Count > 0 || run.PositionedMarkerElement != null
+                || run.RunningStringElement != null || run.RunningElementAssignment != null) return false;
+            characters += run.Text.Length;
+            if (characters > MaximumBalancedCharacters) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// text-wrap: balance. Finds the narrowest line length that keeps the block's line count, so its
+    /// lines have similar lengths, and paints the lines in the full width for alignment.
+    /// </summary>
+    private HtmlInlineLayout LayoutBalancedInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width,
+        HtmlRenderBoxStyle paragraphStyle, AngleSharp.Dom.IElement? formattingContainer) =>
+        LayoutInlineRuns(runs, ResolveBalancedLineLength(runs, width, paragraphStyle, formattingContainer, out _), paragraphStyle,
+            formattingContainer, inlineEdgesPrepared: true, renderWidth: width);
+
+    // The balanced line length for runs that LayoutInlineRuns would balance, when it is narrower than width.
+    private bool TryResolveBalancedLineWidth(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle,
+        AngleSharp.Dom.IElement? formattingContainer, IReadOnlyList<HtmlFloatExclusion>? inheritedFloats,
+        InlineFloatContext? floatContext, out double balanced, out int lineCount) {
+        balanced = width;
+        lineCount = 0;
+        if (runs.Count == 0 || width <= 0D || runs.Any(run => run.IsBlockInterruption)
+            || floatContext?.HasFloats == true || runs.Any(run => run.FloatingBlock != null) || inheritedFloats?.Count > 0
+            ) return false;
+        PrepareInlineEdgeScopes(runs);
+        if (!CanBalanceInlineLines(runs, paragraphStyle, 0, null, null)) return false;
+        balanced = ResolveBalancedLineLength(runs, width, paragraphStyle, formattingContainer, out lineCount);
+        return balanced < width;
+    }
+
+    // The number of lines the runs take at a line length, painted in the block width.
+    private int CountAdmittedInlineLines(IReadOnlyList<HtmlInlineRun> runs, double lineLength, double width,
+        HtmlRenderBoxStyle paragraphStyle, AngleSharp.Dom.IElement? formattingContainer, bool edgesPrepared) {
+        int count = 0;
+        LayoutInlineRuns(runs, lineLength, paragraphStyle, formattingContainer, inlineEdgesPrepared: edgesPrepared,
+            renderWidth: width, admittedLines: value => count = value);
+        return count;
+    }
+
+    private double ResolveBalancedLineLength(IReadOnlyList<HtmlInlineRun> runs, double width,
+        HtmlRenderBoxStyle paragraphStyle, AngleSharp.Dom.IElement? formattingContainer, out int target) {
+        int CountLines(double candidate, bool edgesPrepared) =>
+            CountAdmittedInlineLines(runs, candidate, width, paragraphStyle, formattingContainer, edgesPrepared);
+
+        target = CountLines(width, edgesPrepared: false);
+        double balanced = width;
+        if (target >= 2 && target <= MaximumBalancedLines) {
+            int lines = target;
+            double low = width / lines, high = width;
+            for (int iteration = 0; iteration < BalanceIterations && high - low > 0.5D; iteration++) {
+                CheckCancellation();
+                double middle = (low + high) / 2D;
+                if (CountLines(middle, edgesPrepared: true) <= lines) high = middle;
+                else low = middle;
+            }
+            balanced = high;
+        }
+        return balanced;
+    }
+}

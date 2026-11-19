@@ -48,6 +48,26 @@ internal static partial class RtfHtmlReader {
             }
         }
 
+        /// <summary>Resolves start and end against the element's own direction, its ancestors' or the document's.</summary>
+        private RtfTextAlignment ResolveTextAlignment(HtmlStyleDeclaration style) {
+            RtfTextAlignment alignment = style.TextAlignment!.Value;
+            if (!style.TextAlignmentIsLogical) return alignment;
+            RtfTextDirection? direction = style.Direction;
+            if (!direction.HasValue) {
+                foreach (HtmlStyleScope scope in _styles) {
+                    if (scope.Style.Direction.HasValue) {
+                        direction = scope.Style.Direction.Value;
+                        break;
+                    }
+                }
+            }
+            direction ??= _document.Settings.Direction;
+            if (direction != RtfTextDirection.RightToLeft) return alignment;
+            return alignment == RtfTextAlignment.Left ? RtfTextAlignment.Right
+                : alignment == RtfTextAlignment.Right ? RtfTextAlignment.Left
+                : alignment;
+        }
+
         private RtfTextDirection? ResolveTextDirection() {
             foreach (HtmlStyleScope scope in _styles) {
                 if (IsBlockDirectionScope(scope.Name)) {

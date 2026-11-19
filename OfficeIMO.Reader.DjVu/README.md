@@ -19,7 +19,7 @@ var result = reader.ReadDocument("book.djvu");
 Console.WriteLine(result.Kind); // DjVu
 ```
 
-`OfficeIMO.Reader.All` registers this handler with its default text-only policy. `ImageMode.None` avoids decoding images. `MissingTextPages` emits PNG assets for absent or empty text; `AllPages` emits every selected page. Assets default to 150 DPI and have per-page and aggregate limits. `PageNumbers` controls selection and order, preserving each native source page number.
+`OfficeIMO.Reader.All` registers this handler with its default text-only policy. `ImageMode.None` avoids decoding images. `MissingTextPages` emits PNG assets for absent or empty text; `AllPages` emits every selected page. Assets default to 150 DPI and have per-page and aggregate limits. `PageNumbers` controls selection and order, preserving each native source page number. `ReaderOptions.LayoutTimeout` bounds the time spent rendering and PNG-encoding page images across one read; stored-text extraction is not counted. It throws `OfficeImageExportTimeoutException` when exceeded; a shorter `RenderOptions.RenderTimeout` still applies to each page. Text-only reads ignore it.
 
 Stored text retains UTF-16 offsets, rotated geometry in PDF points, source identity, and the primary input hash. Its historical OCR engine is unknown, so the adapter does not invent recognition provenance. Absent and empty text produce explicit OCR candidates; corrupt text produces a parsing diagnostic. Executing OCR requires the separate Reader OCR contract and an explicitly supplied engine.
 

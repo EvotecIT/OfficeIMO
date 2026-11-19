@@ -287,6 +287,11 @@ internal readonly struct HtmlCssCascadePriority : IEquatable<HtmlCssCascadePrior
 
     internal bool OutranksOrEquals(HtmlCssCascadePriority existing) {
         if (existing.Inherited != Inherited) return !Inherited;
+        return OutranksOrEqualsAsDeclaration(existing);
+    }
+
+    // Compares two of an element's own declarations, an explicit inherit among them, by cascade order.
+    internal bool OutranksOrEqualsAsDeclaration(HtmlCssCascadePriority existing) {
         if (Important != existing.Important) return Important;
         if (Important && Inline != existing.Inline) return Inline;
         if ((LayerOrder != null) != (existing.LayerOrder != null)) {

@@ -35,7 +35,8 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => ExcelReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
             ProbeStream = (stream, sourceName, readerOptions, token) => ExcelReaderAdapter.ProbeEncryptedOpenXml(stream, sourceName, readerOptions, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
-            DeterministicOutput = true
+            DeterministicOutput = true,
+            ClassifyReadError = OfficeIMO.Reader.FormatInternals.OpenXmlReaderAdmission.ClassifyReadError
         }, replaceExisting);
     }
 
@@ -83,6 +84,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) => LegacySpreadsheetReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
+            ClassifyReadError = OfficeIMO.Reader.FormatInternals.OpenXmlReaderAdmission.ClassifyReadError,
             DefaultMaxInputBytes = legacyMaxInputBytes,
             MaxInputBytesCeiling = legacyMaxInputBytes
         }, replaceExisting);

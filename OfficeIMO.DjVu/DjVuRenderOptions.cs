@@ -22,6 +22,11 @@ public sealed class DjVuRenderOptions {
     public long MaxBytes { get; set; } = 256L * 1024 * 1024;
     /// <summary>Maximum aggregate bitmap samples inspected while painting clipped mask placements, including overlap.</summary>
     public long MaxMaskPaintSamples { get; set; } = 128L * 1024 * 1024;
+    /// <summary>
+    /// Maximum time for one render. Exceeding it throws <see cref="OfficeImageExportTimeoutException"/>, which callers
+    /// can tell apart from their own cancellation. Default: <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>.
+    /// </summary>
+    public TimeSpan RenderTimeout { get; set; } = System.Threading.Timeout.InfiniteTimeSpan;
 
     /// <summary>Creates an independent, validated settings snapshot.</summary>
     public DjVuRenderOptions Clone() => Snapshot();
@@ -33,6 +38,9 @@ public sealed class DjVuRenderOptions {
         if (copy.MaxPixels <= 0 || copy.MaxPixels > 50_000_000) throw new ArgumentOutOfRangeException(nameof(MaxPixels));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxBytes, nameof(MaxBytes));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxMaskPaintSamples, nameof(MaxMaskPaintSamples));
+        if (copy.RenderTimeout != System.Threading.Timeout.InfiniteTimeSpan &&
+            (copy.RenderTimeout <= TimeSpan.Zero || copy.RenderTimeout.TotalMilliseconds > int.MaxValue))
+            throw new ArgumentOutOfRangeException(nameof(RenderTimeout), "RenderTimeout must be positive and at most Int32.MaxValue milliseconds, or Timeout.InfiniteTimeSpan.");
         if (!Enum.IsDefined(typeof(OfficeRasterResamplingMode), copy.Resampling)) throw new ArgumentOutOfRangeException(nameof(Resampling));
         if (copy.Background.A != 255) throw new ArgumentException("DjVu page rendering requires an opaque background.", nameof(Background));
         return copy;
