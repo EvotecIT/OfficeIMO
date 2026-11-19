@@ -121,6 +121,9 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("<p dir='rtl' style='text-align:justify;text-justify:none;width:150px;margin:0'>שלום <span style='display:inline-block;width:5px;height:5px'></span> one two three four five six seven eight</p>")]
     [InlineData("<div style='display:flex'><span style='vertical-align:middle'>Flex item</span></div>")]
     [InlineData("<div style='display:grid'><span style='vertical-align:text-top'>Grid item</span></div>")]
+    // Hidden boxes are never laid out, so their keywords and unimplemented properties lose nothing.
+    [InlineData("<p>Visible<span style='display:none;text-transform:full-width;vertical-align:middle'>Hidden</span></p>")]
+    [InlineData("<p>Visible<span style='display:none;text-emphasis:dot'>Hidden</span></p>")]
     public void HtmlRenderer_DoesNotReportKeywordsWhereNothingIsApproximated(string html) {
         Assert.Empty(UnsupportedTextDetails(html));
     }

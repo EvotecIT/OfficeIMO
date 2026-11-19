@@ -1322,6 +1322,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     };
 
     private void ReportUnimplementedProperties(IElement element, HtmlComputedStyle computed) {
+        if (computed.GetValue("display").Trim().Equals("none", StringComparison.OrdinalIgnoreCase)) return;
         foreach (string property in UnimplementedProperties) {
             string value = computed.GetValue(property).Trim();
             if (value.Length == 0 || value.Equals("none", StringComparison.OrdinalIgnoreCase)
@@ -1337,6 +1338,8 @@ internal sealed partial class HtmlRenderStyleResolver {
     // Recognised keywords that line layout does not position or transform yet. They are
     // reported once per value instead of silently using the baseline or the original text.
     private void ReportUnrenderedTextValues(IElement element, string display, bool blockified, string verticalAlign, string textTransform) {
+        // A display:none box is never laid out, so none of its text is approximated.
+        if (display == "none") return;
         // vertical-align applies only to inline-level boxes and table cells, and table cells apply
         // these keywords. Blocks ignore the property, so nothing is lost for them.
         // Flex and grid items are blockified, so vertical-align does not apply to them either.
