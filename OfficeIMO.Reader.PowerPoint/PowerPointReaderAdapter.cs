@@ -17,13 +17,20 @@ internal static class PowerPointReaderAdapter {
     };
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
+        if (PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(path)) {
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+            if (PowerPointStreamingTextReader.TryRead(file, path, readerOptions, options, cancellationToken) is { } streamed) return streamed;
+        }
         using PowerPointDocument presentation = Load(path, readerOptions, cancellationToken);
         return Project(presentation, path, readerOptions, options, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderPowerPointOptions options, CancellationToken cancellationToken) {
+        string name = string.IsNullOrWhiteSpace(sourceName) ? "presentation.pptx" : sourceName!;
+        if (PowerPointStreamingTextReader.Applies(readerOptions) && !IsLegacySourceName(sourceName)
+            && PowerPointStreamingTextReader.TryRead(stream, name, readerOptions, options, cancellationToken) is { } streamed) return streamed;
         using PowerPointDocument presentation = Load(stream, sourceName, readerOptions, cancellationToken);
-        return Project(presentation, string.IsNullOrWhiteSpace(sourceName) ? "presentation.pptx" : sourceName!, readerOptions, options, cancellationToken);
+        return Project(presentation, name, readerOptions, options, cancellationToken);
     }
 
     internal static bool ProbeEncryptedOpenXml(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
@@ -116,20 +123,7 @@ internal static OfficeDocumentReadResult Project(PowerPointDocument presentation
                 new PowerPointExtractChunkingOptions { MaxChars = readerOptions.MaxChars },
                 sourceName,
                 cancellationToken)
-            .Select((chunk, index) => new ReaderChunk {
-                Id = chunk.Id,
-                Kind = ReaderInputKind.PowerPoint,
-                Location = new ReaderLocation {
-                    Path = sourceName,
-                    Slide = chunk.Location.Slide,
-                    BlockIndex = index,
-                    SourceBlockIndex = chunk.Location.BlockIndex,
-                    SourceBlockKind = "slide"
-                },
-                Text = chunk.Text,
-                Markdown = chunk.Markdown,
-                Warnings = Combine(chunk.Warnings, index == 0 ? legacyWarnings : null)
-            })
+            .Select((chunk, index) => ToReaderChunk(chunk, index, sourceName, index == 0 ? legacyWarnings : null))
             .ToArray();
 
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
@@ -141,6 +135,22 @@ internal static OfficeDocumentReadResult Project(PowerPointDocument presentation
         result = PowerPointRichMapping.Apply(presentation, readerOptions, options, result, cancellationToken);
         return PowerPointInspectionProjection.Apply(presentation, readerOptions, result, cancellationToken);
     }
+
+    internal static ReaderChunk ToReaderChunk(PowerPointExtractChunk chunk, int index, string sourceName,
+        IReadOnlyList<string>? additionalWarnings) => new ReaderChunk {
+        Id = chunk.Id,
+        Kind = ReaderInputKind.PowerPoint,
+        Location = new ReaderLocation {
+            Path = sourceName,
+            Slide = chunk.Location.Slide,
+            BlockIndex = index,
+            SourceBlockIndex = chunk.Location.BlockIndex,
+            SourceBlockKind = "slide"
+        },
+        Text = chunk.Text,
+        Markdown = chunk.Markdown,
+        Warnings = Combine(chunk.Warnings, additionalWarnings)
+    };
 
     private static IReadOnlyList<string>? Combine(IReadOnlyList<string>? first, IReadOnlyList<string>? second) {
         if (first == null || first.Count == 0) return second;
