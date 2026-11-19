@@ -308,8 +308,8 @@ foreach ($framework in @('net8.0', 'net10.0')) {
         }
     }
 }
-# A published Word lane drops the acceptance-required DocX cases and publishes OfficeIMO, NPOI and Open XML SDK.
-$wordPlan = @(& $runner -Workload wordcreate -Profile full -Framework net8.0 -Publish -PlanOnly)
+# A published Word lane drops the acceptance-required DocX cases and publishes OfficeIMO, NPOI, Open XML SDK and OneDocument.
+$wordPlan = @(& $runner -Workload wordcreate -Profile full -Framework net10.0 -Publish -PlanOnly)
 if (-not $wordPlan[0].Publish -or 'DocX' -in @($wordPlan[0].Libraries) -or
     @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^DocX\|' }).Count -gt 0 -or
     @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^NPOI\|' }).Count -eq 0) {
