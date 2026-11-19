@@ -98,8 +98,9 @@ public sealed class ReaderDetectionResult {
 
     /// <summary>
     /// True when bounded content inspection found encryption that requires a password or key before the content can be
-    /// read: an encrypted Office package, a PDF with an encryption dictionary, a ZIP archive with encrypted entries, or a
-    /// legacy Word, Excel or PowerPoint file that marks itself encrypted. The file is not opened or decrypted. False means
+    /// read: an encrypted Office package, an OpenDocument package whose manifest declares encrypted entries, a PDF with an
+    /// encryption dictionary, a ZIP archive with encrypted entries, or a legacy Word, Excel or PowerPoint file that marks
+    /// itself encrypted. The file is not opened or decrypted. False means
     /// detection saw no encryption, not that the input is known to be unencrypted.
     /// </summary>
     /// <remarks>

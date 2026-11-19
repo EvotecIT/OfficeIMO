@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using OfficeIMO;
 using OfficeIMO.Excel;
+using OfficeIMO.OpenDocument;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
@@ -35,19 +36,41 @@ public sealed class ReaderEncryptionDetectionTests {
     public async Task PdfEncryptionDictionaryIsFoundInTheTrailerWithoutOpeningTheFile() {
         byte[] plain = PdfDocument.Create(pdf => pdf.Page(page => page.Content(content => content.AddParagraph("Quarterly figures.")))).ToBytes();
         byte[] encrypted = PdfDocument.Load(plain).Security.Encrypt(new("reader") { OwnerPassword = "owner" }).Pdf;
+        // An owner-only file opens without a password but still carries an encryption dictionary.
+        byte[] ownerOnly = PdfDocument.Load(plain).Security.Encrypt(
+            PdfStandardEncryptionOptions.ForPermissions("owner", PdfStandardPermissions.Print)).Pdf;
         // A small probe keeps the trailer out of the prefix, so the tail and startxref lookup must find it.
         var smallProbe = new ReaderDetectionOptions { MaxProbeBytes = 256 };
         Assert.True(encrypted.Length > 4 * smallProbe.MaxProbeBytes);
 
-        ReaderDetectionResult detection = Reader.Detect(encrypted, "report.pdf", smallProbe);
-        Assert.True(detection.IsEncrypted);
-        Assert.Equal(ReaderInputKind.Pdf, detection.Kind);
-        Assert.Contains("encryption:pdf-encrypt-dictionary", detection.Evidence);
+        foreach (byte[] protectedPdf in new[] { encrypted, ownerOnly }) {
+            ReaderDetectionResult detection = Reader.Detect(protectedPdf, "report.pdf", smallProbe);
+            Assert.True(detection.IsEncrypted);
+            Assert.Equal(ReaderInputKind.Pdf, detection.Kind);
+            Assert.Contains("encryption:pdf-encrypt-dictionary", detection.Evidence);
+        }
         using var stream = new MemoryStream(encrypted);
         stream.Position = 0;
         Assert.True((await Reader.DetectAsync(stream, "report.pdf", smallProbe)).IsEncrypted);
         Assert.Equal(0, stream.Position);
         Assert.False(Reader.Detect(plain, "report.pdf", smallProbe).IsEncrypted);
+    }
+
+    [Fact]
+    public void OpenDocumentManifestEncryptionIsReported() {
+        OdtDocument document = OdtDocument.Create();
+        document.AddParagraph("Encrypted text document");
+        byte[] encrypted = document.ToBytes(new OdfSaveOptions {
+            Encryption = new OdfEncryptionOptions { Password = "odf-secret" }
+        });
+        byte[] plain = document.ToBytes();
+
+        ReaderDetectionResult detection = Reader.Detect(encrypted, "letter.odt");
+        Assert.True(detection.IsEncrypted);
+        Assert.Equal(ReaderInputKind.OpenDocument, detection.Kind);
+        Assert.Contains("encryption:opendocument-manifest", detection.Evidence);
+        Assert.True(Reader.Detect(encrypted, "attachment").IsEncrypted);
+        Assert.False(Reader.Detect(plain, "letter.odt").IsEncrypted);
     }
 
     [Fact]
@@ -75,6 +98,16 @@ public sealed class ReaderEncryptionDetectionTests {
             plainWorkbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls, LossPolicy = OfficeConversionLossPolicy.Allow });
         }
 
+        // No writer produces encrypted .doc files, so set the FIB fEncrypted bit on a real Word 97 document.
+        byte[] plainDocument = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(),
+            "OfficeIMO.TestAssets", "Documents", "LegacyDocCorpus", "ComSimpleParagraphs.doc"));
+        byte[] wordDocument = SetWordFibEncrypted(plainDocument);
+
+        ReaderDetectionResult doc = Reader.Detect(wordDocument, "letter.doc");
+        Assert.True(doc.IsEncrypted);
+        Assert.Equal(ReaderInputKind.Word, doc.ContentKind);
+        Assert.Contains("encryption:legacy-word-fib", doc.Evidence);
+        Assert.False(Reader.Detect(plainDocument, "letter.doc").IsEncrypted);
         ReaderDetectionResult ppt = Reader.Detect(presentation, "deck.ppt");
         Assert.True(ppt.IsEncrypted);
         Assert.Equal(ReaderInputKind.PowerPoint, ppt.ContentKind);
@@ -85,6 +118,19 @@ public sealed class ReaderEncryptionDetectionTests {
         Assert.Contains("encryption:legacy-excel-filepass", xls.Evidence);
         Assert.False(Reader.Detect(plainPresentation, "deck.ppt").IsEncrypted);
         Assert.False(Reader.Detect(plainWorkbook, "book.xls").IsEncrypted);
+    }
+
+    private static byte[] SetWordFibEncrypted(byte[] document) {
+        // The WordDocument stream starts with the FIB (wIdent 0xA5EC) on a sector boundary after the 512-byte header;
+        // fEncrypted is bit 8 of the 16-bit flags at FIB offset 10.
+        byte[] copy = (byte[])document.Clone();
+        for (int offset = 512; offset + 12 <= copy.Length; offset += 512) {
+            if (copy[offset] != 0xEC || copy[offset + 1] != 0xA5) continue;
+            Assert.Equal(0, copy[offset + 11] & 0x01);
+            copy[offset + 11] |= 0x01;
+            return copy;
+        }
+        throw new InvalidDataException("The Word document has no FIB on a sector boundary.");
     }
 
     private static byte[] CreatePresentation(PowerPointSaveOptions? options) {

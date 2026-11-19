@@ -118,6 +118,9 @@ text chunks only, with the same `GetText()` output as the text-and-metadata
 projection, and no blocks, tables, pages, links, metadata or inspection data:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
 
 string text = reader.ReadDocument("notes.docx", new ReaderOptions {

@@ -6,7 +6,7 @@ internal static partial class DocumentReaderEngine {
 
     /// <summary>
     /// Adds encryption evidence that bounded reads can confirm without opening or decrypting the input: a PDF encryption
-    /// dictionary in the active trailer and encrypted ZIP entries. An encrypted Office package takes its kind from a
+    /// dictionary in the active trailer, encrypted entries declared by an OpenDocument manifest, and encrypted ZIP entries. An encrypted Office package takes its kind from a
     /// matching Word, Excel or PowerPoint extension at low confidence, because the format is only recorded inside the
     /// encrypted payload.
     /// </summary>
@@ -32,6 +32,14 @@ internal static partial class DocumentReaderEngine {
         if (candidate.Kind == ReaderInputKind.Pdf) {
             return HasPdfEncryptDictionary(stream, start, seekable, prefix, options.MaxProbeBytes, cancellationToken)
                 ? candidate.WithEncryption("encryption:pdf-encrypt-dictionary")
+                : candidate;
+        }
+
+        if (candidate.Kind == ReaderInputKind.OpenDocument &&
+            candidate.Evidence.Contains("container:opendocument-mimetype", StringComparer.Ordinal)) {
+            return seekable && options.InspectContainers &&
+                   HasEncryptedOpenDocumentEntries(stream, start, options.MaxContainerEntries, cancellationToken)
+                ? candidate.WithEncryption("encryption:opendocument-manifest")
                 : candidate;
         }
 

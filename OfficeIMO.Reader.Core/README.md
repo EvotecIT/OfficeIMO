@@ -46,6 +46,11 @@ immutable snapshot is needed.
 Enable native inspection on rich document or structured reads:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
 OfficeDocumentReadResult inspected = reader.ReadDocument("Review.docx", new ReaderOptions {
     Inspection = new ReaderInspectionOptions {
         MaxRecords = 4096,
@@ -87,6 +92,11 @@ Page-aware reading stays on `OfficeDocumentReadResult`; it is not a separate con
 populates `Pages`, and Reader Core provides shared location, search, and page-scoped Markdown helpers:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
+OfficeDocumentReadResult document = new OfficeDocumentReaderBuilder().AddWordHandler().Build().ReadDocument("Policy.docx");
+
 OfficeDocumentSearchResult matches = document.Search("retention period");
 
 foreach (OfficeDocumentSearchHit hit in matches.Hits) {
@@ -107,6 +117,11 @@ accept `"quoted phrases"`, `prefix*`, `OR` and parentheses, and adjacent words m
 words, or no ranked match, falls back to literal search, which `Ranked` on the result reports.
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
+OfficeDocumentReadResult document = new OfficeDocumentReaderBuilder().AddWordHandler().Build().ReadDocument("Policy.docx");
+
 OfficeDocumentSearchResult ranked = document.Search("\"retention period\" OR archiv*",
     new OfficeDocumentSearchOptions { Mode = OfficeDocumentSearchMode.Ranked });
 foreach (OfficeDocumentSearchHit hit in ranked.Hits) {
@@ -136,6 +151,8 @@ The original document-wide `Markdown`, `Blocks`, and `Chunks` remain available o
 For dependency-free plain text and an explicit unknown-payload fallback:
 
 ```csharp
+using OfficeIMO.Reader;
+
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPlainTextHandlers()
     .Build();
@@ -145,6 +162,8 @@ For source code, `AddSourceCodeHandler()` reads common programming, scripting an
 (`.cs`, `.ps1`, `.psm1`, `.py`, `.js`, `.ts`, `.java`, `.go`, `.rs`, `.c`, `.cpp`, `.h`, `.sql`, `.sh`, `.ini` and more):
 
 ```csharp
+using OfficeIMO.Reader;
+
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPlainTextHandlers()
     .AddSourceCodeHandler()
@@ -173,6 +192,8 @@ explicit package and builder decision, while every built reader remains immutabl
 Use `Enumerate` when a consumer can process and discard one chunk at a time:
 
 ```csharp
+using OfficeIMO.Reader;
+
 var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
 var options = ReaderOptions.CreateSafeIngestion();
 options.ComputeHashes = false;
@@ -180,6 +201,8 @@ options.ComputeHashes = false;
 foreach (ReaderChunk chunk in reader.Enumerate("large.txt", options)) {
     IndexChunk(chunk);
 }
+
+static void IndexChunk(ReaderChunk chunk) => Console.WriteLine(chunk.Id);
 ```
 
 `EnumerateAsync` provides asynchronous pull and backpressure on .NET 8 and .NET 10.
@@ -262,11 +285,11 @@ if (detection.IsEncrypted) {
 ```
 
 It covers password-encrypted Office packages, legacy Word, Excel and PowerPoint files that mark themselves encrypted,
-PDFs whose trailer has an encryption dictionary, and ZIP archives with an encrypted entry. An `encryption:` evidence
+OpenDocument packages whose `META-INF/manifest.xml` declares encrypted entries, PDFs whose trailer has an encryption
+dictionary, and ZIP archives with an encrypted entry. An `encryption:` evidence
 token names the signal. An encrypted Office package stores its format inside the encrypted payload, so its `Kind`
 comes from a `.docx`, `.xlsx`, `.pptx` or related extension. A PDF protected only by an owner password also reports
-`IsEncrypted` even though it opens without a password. OpenDocument encryption lives in the package manifest and is not
-reported. Detection inspects content only in `PreferContent` mode, the standalone default, or when the extension is
+`IsEncrypted` even though it opens without a password. Detection inspects content only in `PreferContent` mode, the standalone default, or when the extension is
 unknown.
 
 ## Reuse an immutable read policy
@@ -288,6 +311,8 @@ extension lookup that does not open a file.
 characters, blocks, assets and nested content. Its values are a starting policy that applications can tighten:
 
 ```csharp
+using OfficeIMO.Reader;
+
 var options = ReaderOptions.CreateSafeIngestion();
 options.ResourceLimits!.MaxChunks = 2_000;
 options.ResourceLimits.MaxNestedInputBytes = 32L * 1024 * 1024;
@@ -342,6 +367,11 @@ Supporting handlers can read text and metadata without building secondary Markdo
 form or OCR projections:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
 var options = ReaderOptions.CreateSafeIngestion();
 options.Projection = ReaderProjection.TextAndMetadata;
 OfficeDocumentReadResult document = reader.ReadDocument("Policy.docx", options);
@@ -371,6 +401,11 @@ assets, metadata, Markdown or nested results; it keeps the source, diagnostics a
 `CapabilitiesUsed`, which includes `officeimo.reader.projection.text`:
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Word;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
 var options = ReaderOptions.CreateSafeIngestion();
 options.Projection = ReaderProjection.Text;
 string text = reader.ReadDocument("Policy.docx", options).GetText();
@@ -410,10 +445,18 @@ supply immutable `ReaderFormatQualification` values when registering a custom ha
 For model-specific token budgets, pass a `ReaderDelegateTokenCounter` to `ReaderHierarchicalChunkingOptions`:
 
 ```csharp
+using OfficeIMO.Reader;
+
+var tokenizer = new WhitespaceTokenizer();
 var chunking = new ReaderHierarchicalChunkingOptions {
     MaxTokens = 800,
     TokenCounter = new ReaderDelegateTokenCounter("my-model:vocabulary-version", tokenizer.CountTokens)
 };
+
+// Stand-in for your model's tokenizer.
+sealed class WhitespaceTokenizer {
+    public int CountTokens(string text) => text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+}
 ```
 
 The optional range callback counts the exact prefix-plus-source range without a temporary substring.
