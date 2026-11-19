@@ -27,14 +27,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double visualBottom = visual.LayoutY + visual.LayoutHeight;
                 // Paint-neutral wrappers can retain the CSS box height while
                 // their visible children continue across printed pages.
-                if (visual is HtmlRenderSemanticGroup semanticOverflow) {
-                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(semanticOverflow.Visuals));
-                } else if (visual is HtmlRenderLayoutRegion regionOverflow) {
-                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(regionOverflow.Visuals));
+                if (visual is HtmlRenderSemanticGroup or HtmlRenderLayoutRegion or HtmlRenderClipGroup { ClipVertical: false }) {
+                    visualBottom = Math.Max(visualBottom, ChildScrollBottom(visual)!.Value);
                 } else if (visual is HtmlRenderEffectGroup effectOverflow) {
-                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(new[] { effectOverflow }));
-                } else if (visual is HtmlRenderClipGroup { ClipVertical: false } visibleVerticalClip) {
-                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(visibleVerticalClip.Visuals));
+                    visualBottom = Math.Max(visualBottom, Math.Max(0D, ScrollBottom(effectOverflow)));
                 }
                 if (visual is HtmlRenderShape { CollapsedBorderBoundaryY: double boundary }
                     && Math.Abs(boundary - start) <= 0.0001D) {
