@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitHeadingBlock(Omd.HeadingBlock block) {
                 var headingParagraph = _host.CreateParagraph();
                 bool nativeTheme = ResolveTheme(_options)?.SourceTheme != null;
-                if (nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
+                ResolveBlockParagraphStyle(headingParagraph, block.Level, _listLevel, QuoteLevels, _options);
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 if (!nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
@@ -111,7 +111,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
                 var paragraph = _host.CreateParagraph();
-                ApplyBodyParagraphStyle(paragraph, _listLevel, QuoteLevels, _options);
+                ResolveBlockParagraphStyle(paragraph, headingLevel: null, _listLevel, QuoteLevels, _options);
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
             }
@@ -284,7 +284,7 @@ namespace OfficeIMO.Word.Markdown {
                 var headingParagraph = _host.CreateParagraph();
                 int headingLevel = NormalizeTocTitleLevel(block.TitleLevel);
                 bool nativeTheme = ResolveTheme(_options)?.SourceTheme != null;
-                if (nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(headingLevel);
+                ResolveBlockParagraphStyle(headingParagraph, headingLevel, _listLevel, QuoteLevels, _options);
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment, _options);
                 AddContextText(headingParagraph, block.Title.Trim(), _options);
                 if (!nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(headingLevel);

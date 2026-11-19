@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Html {
         };
 
         private readonly Dictionary<string, string?> _documentParagraphStyleIds = new(StringComparer.Ordinal);
-        // Paragraphs that carry the default paragraph style rather than a style of their own.
+        // Paragraphs the converter gave the default paragraph style when it created them.
         private readonly HashSet<Paragraph> _defaultStyledParagraphs = new();
         private string? _defaultParagraphStyleId;
         private TableCell? _insertionCell;
@@ -45,9 +45,16 @@ namespace OfficeIMO.Word.Html {
             _defaultStyledParagraphs.Add(paragraph._paragraph);
         }
 
-        /// <summary>Whether a paragraph has a style of its own, not the default paragraph style.</summary>
-        private bool HasOwnStyle(WordParagraph paragraph) =>
-            paragraph.StyleId != null && !_defaultStyledParagraphs.Contains(paragraph._paragraph);
+        /// <summary>
+        /// Whether a paragraph's current style is its own: any style other than the default paragraph style the converter
+        /// assigned when it created the paragraph. A class or semantic style that replaced the default counts as its own.
+        /// </summary>
+        private bool HasOwnStyle(WordParagraph paragraph) {
+            string? styleId = paragraph.StyleId;
+            if (styleId == null) return false;
+            return !(_defaultStyledParagraphs.Contains(paragraph._paragraph) &&
+                string.Equals(styleId, _defaultParagraphStyleId, StringComparison.Ordinal));
+        }
 
         /// <summary>Gives generated body paragraphs the importer created some other way the default paragraph style.</summary>
         private void ApplyDefaultParagraphStyle(WordDocument doc, IEnumerable<OpenXmlElement> generatedBlocks) {

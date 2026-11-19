@@ -190,6 +190,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlQuoteKeepsAClassStyleThatReplacedTheDefaultStyle() {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.AddParagraphStyle("CorpsTexte", "Corps de texte");
+            document.Styles.AddParagraphStyle("Citation", "Quote");
+            document.Styles.AddParagraphStyle("Note", "Note").IndentationBefore = OfficeLength.Points(18);
+
+            document.AddHtml("<blockquote><p class=\"Note\">Noted</p><p>Plain</p></blockquote>",
+                new HtmlWordExportOptions { PreferDocumentStyles = true, DefaultParagraphStyleId = "CorpsTexte" });
+
+            WordParagraph noted = document.Paragraphs.Single(paragraph => paragraph.Text == "Noted");
+            Assert.Equal("Note", noted.StyleId);
+            Assert.Equal(1080, checked((int?)noted.IndentationBefore?.ToTwips()));
+            Assert.Equal("Citation", document.Paragraphs.Single(paragraph => paragraph.Text == "Plain").StyleId);
+            Assert.Contains("> Noted", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create(stream)) {

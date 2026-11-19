@@ -130,6 +130,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownIntoTemplate_QuotedHeadingIndentStartsFromTheHeadingStyle() {
+            using var stream = new MemoryStream();
+            using (WordDocument template = WordDocument.Create(stream)) {
+                template.Styles.Remove("Heading1");
+                template.Styles.AddParagraphStyle("Titre1", "heading 1").IndentationBefore = OfficeLength.Points(18);
+                template.AddParagraph("PLACEHOLDER").AddBookmark("Content");
+                template.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            var options = new MarkdownWordExportOptions { Template = document, BookmarkName = "Content" };
+
+            OfficeIMO.Markdown.MarkdownDocument.Parse("> # Quoted heading", options.CreateReaderOptions()).ToWord(options);
+
+            Paragraph heading = Assert.Single(document.BodyRoot.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Quoted heading");
+            Assert.Equal("Titre1", heading.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            // The heading style's 360 twips stay under the quotation's 720.
+            Assert.Equal("1080", heading.ParagraphProperties?.Indentation?.Left?.Value);
+            Assert.Contains("> # Quoted heading", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void MarkdownToWord_WithUnknownDefaultParagraphStyle_Throws() {
             var options = new MarkdownWordExportOptions { DefaultParagraphStyleId = "MissingBody" };
 

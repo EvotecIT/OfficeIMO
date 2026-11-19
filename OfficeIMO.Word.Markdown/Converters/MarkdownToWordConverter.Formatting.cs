@@ -104,6 +104,18 @@ namespace OfficeIMO.Word.Markdown {
             ApplyAlignment(alignment, paragraph);
         }
 
+        /// <summary>
+        /// Gives a block paragraph its final style: the heading style for a heading, otherwise the quote or default
+        /// paragraph style for body text. It runs before any indent or quote formatting, which start from that style.
+        /// </summary>
+        private static void ResolveBlockParagraphStyle(WordParagraph paragraph, int? headingLevel, int listLevel, int quoteLevels, MarkdownWordExportOptions options) {
+            if (headingLevel is int level) {
+                paragraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(level);
+                return;
+            }
+            ApplyBodyParagraphStyle(paragraph, listLevel, quoteLevels, options);
+        }
+
         /// <summary>Gives a body paragraph outside lists the document's quote style or the default paragraph style.</summary>
         private static void ApplyBodyParagraphStyle(WordParagraph paragraph, int listLevel, int quoteLevels, MarkdownWordExportOptions options) {
             if (listLevel > 0 || paragraph.StyleId != null) return;
