@@ -20,10 +20,11 @@ public class ImagePngEncodeBenchmarks {
         byte[] rgba = _officeImage.GetPixels();
         _skiaImage = ImageComparisonAdapters.CreateSkiaBitmap(rgba, _officeImage.Width, _officeImage.Height);
         _magickImage = ImageComparisonAdapters.CreateMagickImage(rgba, _officeImage.Width, _officeImage.Height);
-        ImageComparisonValidation.ValidatePngEncode(_officeImage, OfficeIMO(), SkiaSharp(), MagickNET());
 #if NET10_0_OR_GREATER
         _oneImage = OneImageComparisonAdapters.CreateImage(rgba, _officeImage.Width, _officeImage.Height);
-        ImageComparisonValidation.ValidatePngEncode(_officeImage, OneImage());
+        ImageComparisonValidation.ValidatePngEncode(_officeImage, OfficeIMO(), SkiaSharp(), MagickNET(), OneImage());
+#else
+        ImageComparisonValidation.ValidatePngEncode(_officeImage, OfficeIMO(), SkiaSharp(), MagickNET());
 #endif
     }
 
@@ -34,17 +35,20 @@ public class ImagePngEncodeBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => ImageComparisonAdapters.EncodeOfficeImo(_officeImage);
 
     [Benchmark]
+    [BenchmarkCategory("library:SkiaSharp", "case:Default")]
     public byte[] SkiaSharp() => ImageComparisonAdapters.EncodeSkia(_skiaImage);
 
     [Benchmark]
+    [BenchmarkCategory("library:Magick.NET", "case:Default")]
     public byte[] MagickNET() => ImageComparisonAdapters.EncodeMagick(_magickImage);
 #if NET10_0_OR_GREATER
 
     [Benchmark]
-    [BenchmarkCategory("library:oneimage")]
+    [BenchmarkCategory("library:OneImage", "case:Default")]
     public byte[] OneImage() => OneImageComparisonAdapters.EncodePng(_oneImage);
 #endif
 }

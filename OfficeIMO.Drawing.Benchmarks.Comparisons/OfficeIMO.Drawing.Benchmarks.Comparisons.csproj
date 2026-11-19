@@ -23,6 +23,7 @@
   <ItemGroup>
     <Compile Include="..\OfficeIMO.Drawing.Benchmarks\ImageBenchmarkCorpus.cs"
              Link="Shared\ImageBenchmarkCorpus.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
     <None Include="..\Assets\Images\Others\Logo-evotec.png"
           Link="Corpus\logo.png"
           CopyToOutputDirectory="PreserveNewest" />
