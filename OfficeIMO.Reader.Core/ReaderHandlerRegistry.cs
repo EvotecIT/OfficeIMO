@@ -167,6 +167,7 @@ internal sealed class ReaderHandlerDescriptor {
     public IReadOnlyList<ReaderFormatQualification> FormatQualifications { get; private set; } = Array.Empty<ReaderFormatQualification>();
     public bool SupportsIncrementalPath { get; private set; }
     public bool SupportsIncrementalStream { get; private set; }
+    public Func<Exception, string?>? ClassifyReadError { get; private set; }
     private const int MaximumInputLimitProbeBytes = 64 * 1024;
 
     private ReaderHandlerDescriptor(
@@ -327,7 +328,8 @@ internal sealed class ReaderHandlerDescriptor {
                 SupportsTextAndMetadata = registration.SupportsTextAndMetadata,
                 TextAndMetadataExtensions = Array.AsReadOnly(projectionExtensions.ToArray()),
                 SupportsIncrementalPath = registration.SupportsIncrementalPath,
-                SupportsIncrementalStream = registration.SupportsIncrementalStream
+                SupportsIncrementalStream = registration.SupportsIncrementalStream,
+                ClassifyReadError = registration.ClassifyReadError
             };
     }
 

@@ -8,11 +8,13 @@ public sealed class ReaderDocumentReadOutcome {
         int index,
         string path,
         OfficeDocumentReadResult? document,
-        Exception? error) {
+        Exception? error,
+        string? errorCode = null) {
         Index = index;
         Path = path;
         Document = document;
         Error = error;
+        ErrorCode = error == null ? null : errorCode ?? ReaderErrorCodes.ReadFailed;
     }
 
     /// <summary>Zero-based input position assigned after path expansion.</summary>
@@ -26,6 +28,12 @@ public sealed class ReaderDocumentReadOutcome {
 
     /// <summary>Original read exception when reading failed.</summary>
     public Exception? Error { get; }
+
+    /// <summary>
+    /// Stable <see cref="ReaderErrorCodes"/> value for a failed read, such as <see cref="ReaderErrorCodes.PasswordRequired"/>;
+    /// null when reading succeeded.
+    /// </summary>
+    public string? ErrorCode { get; }
 
     /// <summary>True when the document was read successfully.</summary>
     public bool Succeeded => Document != null && Error == null;

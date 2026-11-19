@@ -1,4 +1,8 @@
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Core.Internal {
+#endif
     internal static partial class OfficeCompoundFileReader {
         /// <summary>Reads metadata streams while copying selected payload streams to caller-owned destinations.</summary>
         internal static bool TryReadSelective(Stream stream, OfficeCompoundReadOptions options,

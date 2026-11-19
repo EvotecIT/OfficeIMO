@@ -113,6 +113,13 @@ public sealed class ReaderHandlerRegistration {
     /// </summary>
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; set; }
 
+    /// <summary>
+    /// Optional mapping from an exception this handler's engine throws to a stable <see cref="ReaderErrorCodes"/> value,
+    /// such as a native password exception to <see cref="ReaderErrorCodes.PasswordRequired"/>. Return null to use the
+    /// common classification. The delegate must not throw.
+    /// </summary>
+    public Func<Exception, string?>? ClassifyReadError { get; set; }
+
     // A strict path handler also protects content detection before the kind is known.
     // Internal because consumers do not otherwise need to change Reader path-opening policy.
     internal Func<string, FileStream>? OpenPathForContentDetection { get; set; }

@@ -19,6 +19,23 @@ internal static class DjVuReaderAdapter {
         foreach (var chunk in result.Chunks) DocumentReaderEngine.ApplyAdapterSource(chunk, input, reader.ComputeHashes);
         return result;
     }
+    /// <summary>Renders one page within the remainder of the read's layout deadline, keeping a shorter configured timeout.</summary>
+    private static DjVuRenderResult RenderPage(DjVuPage page, DjVuRenderOptions configured, TimeSpan layoutTimeout,
+        System.Diagnostics.Stopwatch? timer, CancellationToken token) {
+        if (timer == null) return page.Render(configured, token);
+        TimeSpan remaining = layoutTimeout - timer.Elapsed;
+        if (remaining <= TimeSpan.Zero) throw new OfficeImageExportTimeoutException(layoutTimeout);
+        if (configured.RenderTimeout != Timeout.InfiniteTimeSpan && configured.RenderTimeout <= remaining) return page.Render(configured, token);
+        DjVuRenderOptions bounded = configured.Clone();
+        bounded.RenderTimeout = remaining;
+        try {
+            return page.Render(bounded, token);
+        } catch (OfficeImageExportTimeoutException exception) {
+            // Report the read's layout limit rather than the share of it left for this page.
+            throw new OfficeImageExportTimeoutException(layoutTimeout, exception);
+        }
+    }
+
     private static DjVuLoadOptions Limits(ReaderOptions reader, ReaderDjVuOptions options) {
         var limits = options.ReadOptions.Clone();
         if (reader.MaxInputBytes.HasValue) limits.MaxSourceBytes = Math.Min(limits.MaxSourceBytes, reader.MaxInputBytes.Value);
@@ -39,6 +56,7 @@ internal static class DjVuReaderAdapter {
         metadata.Add(new OfficeDocumentMetadataEntry { Id = "djvu-page-count", Category = "reader.container", Name = "PageCount",
             Value = document.Pages.Count.ToString(CultureInfo.InvariantCulture), ValueType = "count" });
         long assetBytes = 0, chunkCharacters = 0, blockCharacters = 0;
+        var layoutTimer = reader.LayoutTimeout == Timeout.InfiniteTimeSpan ? null : System.Diagnostics.Stopwatch.StartNew();
         foreach (var page in DjVuPageSelection.Select(document, options.PageNumbers, options.ReadOptions.MaxPages, token)) {
             token.ThrowIfCancellationRequested();
             int pageOrder = pages.Count + 1;
@@ -100,7 +118,7 @@ internal static class DjVuReaderAdapter {
                     remaining = options.MaxPageImageBytes;
                     byteLimitName = nameof(ReaderDjVuOptions.MaxPageImageBytes); byteLimit = options.MaxPageImageBytes;
                 }
-                var rendered = page.Render(options.RenderOptions, token);
+                var rendered = RenderPage(page, options.RenderOptions, reader.LayoutTimeout, layoutTimer, token);
                 byte[] payload;
                 try { payload = OfficeRasterImageEncoder.Encode(rendered.Image, OfficeImageExportFormat.Png, null, remaining, token); }
                 catch (OfficeImageExportBatchLimitException) { throw new ReaderResourceLimitException(byteLimitName, byteLimit); }

@@ -1,4 +1,8 @@
+#if OFFICEIMO_READER_CORE
+namespace OfficeIMO.Reader.Internal.Compound {
+#else
 namespace OfficeIMO.Core.Internal {
+#endif
     internal static partial class OfficeCompoundFileReader {
         /// <summary>
         /// Opens one compound payload as a bounded seekable view without materializing its bytes.
