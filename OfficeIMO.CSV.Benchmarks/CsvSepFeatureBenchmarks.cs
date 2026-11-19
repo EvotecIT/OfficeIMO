@@ -51,12 +51,14 @@ public class CsvTrimUnescapeBenchmarks {
 
         _csvText = text.ToString();
         _expected = expected.ToObservation(RowCount);
-        Validate(nameof(OfficeIMODataReaderStrings), OfficeIMODataReaderStrings());
-        Validate(nameof(SepStrings), SepStrings());
-        Validate(nameof(CsvHelperStrings), CsvHelperStrings());
+        string detail = $"RowCount={RowCount}; observation of every trimmed, unescaped value matches the generated rows";
+        CsvBenchmarkOutputValidator.Record("OfficeIMO", "Strings", detail, () => { Validate(nameof(OfficeIMODataReaderStrings), OfficeIMODataReaderStrings()); return true; });
+        CsvBenchmarkOutputValidator.Record("Sep", "Strings", detail, () => { Validate(nameof(SepStrings), SepStrings()); return true; });
+        CsvBenchmarkOutputValidator.Record("CsvHelper", "Strings", detail, () => { Validate(nameof(CsvHelperStrings), CsvHelperStrings()); return true; });
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Strings")]
     public CsvReadObservation OfficeIMODataReaderStrings() {
         using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(_csvText),
             options: new CsvReaderOptions {
@@ -79,6 +81,7 @@ public class CsvTrimUnescapeBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Strings")]
     public CsvReadObservation SepStrings() {
         var options = SepLib.New(',').Reader(value => value with {
             HasHeader = false,
@@ -99,6 +102,7 @@ public class CsvTrimUnescapeBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Strings")]
     public CsvReadObservation CsvHelperStrings() {
         using var text = new StringReader(_csvText);
         var configuration = new CsvConfiguration(CultureInfo.InvariantCulture) {
@@ -167,11 +171,13 @@ public class CsvTrimUnescapeSpanBenchmarks {
 
         _csvText = text.ToString();
         _expected = expected.ToObservation(RowCount);
-        Validate(nameof(OfficeIMOFieldSpans), OfficeIMOFieldSpans());
-        Validate(nameof(SepSpans), SepSpans());
+        string detail = $"RowCount={RowCount}; observation of every trimmed, unescaped span matches the generated rows";
+        CsvBenchmarkOutputValidator.Record("OfficeIMO", "Spans", detail, () => { Validate(nameof(OfficeIMOFieldSpans), OfficeIMOFieldSpans()); return true; });
+        CsvBenchmarkOutputValidator.Record("Sep", "Spans", detail, () => { Validate(nameof(SepSpans), SepSpans()); return true; });
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Spans")]
     public CsvReadObservation OfficeIMOFieldSpans() {
         var visitor = new ObservingFieldSpanVisitor();
         CsvDocument.ReadFieldSpansFromText(
@@ -187,6 +193,7 @@ public class CsvTrimUnescapeSpanBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Spans")]
     public CsvReadObservation SepSpans() {
         var options = SepLib.New(',').Reader(value => value with {
             HasHeader = false,
@@ -240,15 +247,25 @@ public class CsvTypedSequentialBenchmarks {
     public int RowCount { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _fixture = CsvTypedMaterializationFixture.Create(RowCount);
+    public void Setup() {
+        // The fixture compares every typed row of the OfficeIMO, Sep and RecordParser sequential readers and throws on a mismatch.
+        _fixture = CsvTypedMaterializationFixture.Create(RowCount);
+        string detail = $"RowCount={RowCount}; every typed row equals the source rows";
+        global::OfficeIMO.Benchmarks.BenchmarkOutputValidationLog.Passed("OfficeIMO", detail, "Sequential");
+        global::OfficeIMO.Benchmarks.BenchmarkOutputValidationLog.Passed("Sep", detail, "Sequential");
+        global::OfficeIMO.Benchmarks.BenchmarkOutputValidationLog.Passed("RecordParser", detail, "Sequential");
+    }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Sequential")]
     public CsvBenchmarkRow[] OfficeIMOManual() => _fixture.OfficeIMOManual();
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Sequential")]
     public CsvBenchmarkRow[] SepSequential() => _fixture.SepSequential();
 
     [Benchmark]
+    [BenchmarkCategory("library:RecordParser", "case:Sequential")]
     public CsvBenchmarkRow[] RecordParserSequential() => _fixture.RecordParserSequential();
 }
 
@@ -268,9 +285,11 @@ public class CsvAutomaticMappingBenchmarks {
     public void Setup() => _fixture = CsvTypedMaterializationFixture.Create(RowCount);
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMOManual")]
     public CsvBenchmarkRow[] OfficeIMOManual() => _fixture.OfficeIMOManual();
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMORowsAs")]
     public CsvBenchmarkRow[] OfficeIMORowsAs() => _fixture.OfficeIMORowsAs();
 }
 
@@ -291,17 +310,22 @@ public class CsvParallelScalingBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _fixture = CsvTypedMaterializationFixture.Create(100_000);
-        _fixture.ValidateParallel(OfficeIMOParallel(), SepParallel());
-        _fixture.ValidateRecordParser(RecordParserParallel());
+        string detail = $"DegreeOfParallelism={DegreeOfParallelism}; all 100000 typed rows equal the source rows in order";
+        CsvBenchmarkOutputValidator.Record("OfficeIMO", "Parallel", detail, () => { _fixture.ValidateOfficeParallel(OfficeIMOParallel()); return true; });
+        CsvBenchmarkOutputValidator.Record("Sep", "Parallel", detail, () => { _fixture.ValidateParallel(OfficeIMOParallel(), SepParallel()); return true; });
+        CsvBenchmarkOutputValidator.Record("RecordParser", "Parallel", detail, () => { _fixture.ValidateRecordParser(RecordParserParallel()); return true; });
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Parallel")]
     public CsvBenchmarkRow[] OfficeIMOParallel() => _fixture.OfficeIMORecordParallel(DegreeOfParallelism);
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Parallel")]
     public CsvBenchmarkRow[] SepParallel() => _fixture.SepParallel(DegreeOfParallelism);
 
     [Benchmark]
+    [BenchmarkCategory("library:RecordParser", "case:Parallel")]
     public CsvBenchmarkRow[] RecordParserParallel() => _fixture.RecordParserParallel(DegreeOfParallelism);
 }
 
@@ -320,13 +344,17 @@ public class CsvParallelCrossoverBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _fixture = CsvTypedMaterializationFixture.Create(25_000);
-        _fixture.ValidateParallel(OfficeIMOParallel(), SepParallel());
+        string detail = $"DegreeOfParallelism={DegreeOfParallelism}; all 25000 typed rows equal the source rows in order";
+        CsvBenchmarkOutputValidator.Record("OfficeIMO", "Parallel", detail, () => { _fixture.ValidateOfficeParallel(OfficeIMOParallel()); return true; });
+        CsvBenchmarkOutputValidator.Record("Sep", "Parallel", detail, () => { _fixture.ValidateParallel(OfficeIMOParallel(), SepParallel()); return true; });
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Parallel")]
     public CsvBenchmarkRow[] OfficeIMOParallel() => _fixture.OfficeIMORecordParallel(DegreeOfParallelism);
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Parallel")]
     public CsvBenchmarkRow[] SepParallel() => _fixture.SepParallel(DegreeOfParallelism);
 }
 
@@ -353,6 +381,7 @@ public class CsvParallelOfficeTuningBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMORecordParallel")]
     public CsvBenchmarkRow[] OfficeIMORecordParallel() =>
         _fixture.OfficeIMORecordParallel(DegreeOfParallelism, BatchSize);
 }
@@ -380,6 +409,7 @@ public class CsvParallelCrossoverTuningBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMORecordParallel")]
     public CsvBenchmarkRow[] OfficeIMORecordParallel() =>
         _fixture.OfficeIMORecordParallel(DegreeOfParallelism, BatchSize);
 }

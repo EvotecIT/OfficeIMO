@@ -149,6 +149,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteObjects")]
     public int OfficeIMO_WriteObjects()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -157,6 +158,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteProjectedRows")]
     public int OfficeIMO_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -167,6 +169,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteIncrementalProjectedRows")]
     public int OfficeIMO_WriteIncrementalProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -186,6 +189,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteValidatedTextRows")]
     public int OfficeIMO_WriteValidatedTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -196,6 +200,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteTextRows")]
     public int OfficeIMO_WriteTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -215,6 +220,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteDataReader")]
     public int OfficeIMO_WriteDataReader()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -224,6 +230,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteProjectedRowsAlwaysQuoted")]
     public int OfficeIMO_WriteProjectedRowsAlwaysQuoted()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -237,6 +244,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:WriteTypedRecords")]
     public int CsvHelper_WriteTypedRecords()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -246,6 +254,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteProjectedRowsUtf8")]
     public int OfficeIMO_WriteProjectedRowsUtf8()
     {
         using var stream = new MemoryStream();
@@ -263,6 +272,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:WriteProjectedRows")]
     public int ExcelReaderNet_WriteProjectedRows()
     {
         using var stream = new MemoryStream();
@@ -301,6 +311,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WriteTypedRecordsUtf8")]
     public int OfficeIMO_WriteTypedRecordsUtf8()
     {
         using var stream = new MemoryStream();
@@ -317,6 +328,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:WriteTypedRecords")]
     public int ExcelReaderNet_WriteTypedRecords()
     {
         using var stream = new MemoryStream();
@@ -355,6 +367,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:WriteProjectedRows")]
     public int CsvHelper_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -380,6 +393,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:WriteTextRows")]
     public int CsvHelper_WriteTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -405,6 +419,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:WriteTextRows")]
     public int ExcelReaderNet_WriteTextRows()
     {
         using var stream = new MemoryStream();
@@ -437,6 +452,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:WriteProjectedRows")]
     public int Sylvan_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -447,6 +463,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:WriteTextRows")]
     public int Sylvan_WriteTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -457,6 +474,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:WriteProjectedRows")]
     public int Dataplat_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -471,6 +489,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:WriteTextRows")]
     public int Dataplat_WriteTextRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -485,6 +504,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:WriteFromReader")]
     public int Dataplat_WriteFromReader()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -495,6 +515,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:WriteTextRows")]
     public int Sep_WriteTextRows()
     {
         var options = SepWriteOptions;
@@ -512,6 +533,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadRowsCallback")]
     public int OfficeIMO_ReadRowsCallback()
     {
         using var reader = new StringReader(_csvText);
@@ -525,6 +547,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadRowsReusableCallback")]
     public int OfficeIMO_ReadRowsReusableCallback()
     {
         using var reader = new StringReader(_csvText);
@@ -543,6 +566,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadRowFieldSpansMaterialized")]
     public int OfficeIMO_ReadRowFieldSpansMaterialized()
     {
         using var reader = new StringReader(_csvText);
@@ -552,6 +576,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadTextRowFieldSpansMaterialized")]
     public int OfficeIMO_ReadTextRowFieldSpansMaterialized()
     {
         var visitor = new CsvMaterializingRowFieldSpanVisitor();
@@ -560,6 +585,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadFieldSpansMaterialized")]
     public int OfficeIMO_ReadFieldSpansMaterialized()
     {
         using var reader = new StringReader(_csvText);
@@ -573,6 +599,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadFieldSpanVisitorSkipHeader")]
     public int OfficeIMO_ReadFieldSpanVisitorSkipHeader()
     {
         using var reader = new StringReader(_csvText);
@@ -586,6 +613,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadTextFieldSpanVisitorSkipHeader")]
     public int OfficeIMO_ReadTextFieldSpanVisitorSkipHeader()
     {
         var visitor = new CountingFieldSpanVisitor();
@@ -598,6 +626,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadStreamingRows")]
     public int OfficeIMO_ReadStreamingRows()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -611,6 +640,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadInMemoryRows")]
     public int OfficeIMO_ReadInMemoryRows()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
@@ -624,6 +654,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadDataTableStrings")]
     public int OfficeIMO_ReadDataTableStrings()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
@@ -632,6 +663,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadStreamingDataTableStrings")]
     public int OfficeIMO_ReadStreamingDataTableStrings()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -640,6 +672,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadDataTableInferredSchema")]
     public int OfficeIMO_ReadDataTableInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -648,6 +681,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadStreamingDataTableInferredSchemaDefaultSample")]
     public int OfficeIMO_ReadStreamingDataTableInferredSchemaDefaultSample()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -656,6 +690,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadDataTableLoadDataReaderStrings")]
     public int OfficeIMO_ReadDataTableLoadDataReaderStrings()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -666,6 +701,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadDataTableLoadDataReaderInferredSchema")]
     public int OfficeIMO_ReadDataTableLoadDataReaderInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -676,6 +712,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadDataReaderStrings")]
     public int OfficeIMO_ReadDataReaderStrings()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -684,6 +721,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadDataReaderGetStrings")]
     public int OfficeIMO_ReadDataReaderGetStrings()
     {
         using var csv = CsvDocument.OpenReader(new System.IO.StringReader(_csvText));
@@ -703,6 +741,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadDataReaderInferredSchema")]
     public int OfficeIMO_ReadDataReaderInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
@@ -715,6 +754,7 @@ public partial class CsvBenchmarks
 
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:ReadDataTableLoad")]
     public int Sylvan_ReadDataTableLoad()
     {
         using var reader = new StringReader(_csvText);
@@ -725,6 +765,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:ReadFieldSpans")]
     public int Sylvan_ReadFieldSpans()
     {
         using var reader = new StringReader(_csvText);
@@ -747,6 +788,7 @@ public partial class CsvBenchmarks
 
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:ReadDataTableLoad")]
     public int Dataplat_ReadDataTableLoad()
     {
         using var reader = new StringReader(_csvText);
@@ -759,6 +801,7 @@ public partial class CsvBenchmarks
 
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:ReadFieldSpans")]
     public int Sep_ReadFieldSpans()
     {
         var options = SepReadOptions;

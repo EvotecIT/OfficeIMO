@@ -43,12 +43,20 @@ public class CsvTextWriteBenchmarks {
         using var peerWriter = new StringWriter(CultureInfo.InvariantCulture);
         WriteOfficeIMO(officeWriter);
         WriteCsvHelper(peerWriter);
-        CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), officeWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
-        CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), peerWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
         if (officeWriter.ToString() != peerWriter.ToString()) throw new InvalidOperationException("CSV writers produced different text or quoting.");
+        string detail = $"TextLength={TextLength}; QuoteMode={QuoteMode}; Delimiter={Delimiter}; TextShape={TextShape}; {_rows.Length} rows read back value by value; identical text from both writers";
+        CsvBenchmarkOutputValidator.Record(nameof(OfficeIMO), detail, () => {
+            CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), officeWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
+            return true;
+        });
+        CsvBenchmarkOutputValidator.Record(nameof(CsvHelper), detail, () => {
+            CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), peerWriter.ToString(), Headers, _rows.Length, expectedTextRows: null, expectedObjectRows: _rows, delimiter: Delimiter);
+            return true;
+        });
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public int OfficeIMO() {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         WriteOfficeIMO(writer);
@@ -56,6 +64,7 @@ public class CsvTextWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Default")]
     public int CsvHelper() {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         WriteCsvHelper(writer);

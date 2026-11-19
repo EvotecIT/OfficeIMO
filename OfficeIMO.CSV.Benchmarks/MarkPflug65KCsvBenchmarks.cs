@@ -44,6 +44,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public CsvReadObservation OfficeIMO() {
         using DbDataReader reader = CsvDocument.OpenReader(MarkPflug65KFixture.CsvPath,
             options: new CsvReaderOptions { DetectDelimiter = false });
@@ -51,6 +52,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Default")]
     public CsvReadObservation ExcelReaderNet() {
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsvFile(MarkPflug65KFixture.CsvPath);
         var values = new CsvObservationAccumulator();
@@ -75,6 +77,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Default")]
     public CsvReadObservation Sep() {
         using var reader = SepLib.Reader().FromFile(MarkPflug65KFixture.CsvPath);
         var values = new CsvObservationAccumulator();
@@ -89,6 +92,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:Default")]
     public CsvReadObservation Sylvan() {
         using var text = new StreamReader(MarkPflug65KFixture.CsvPath);
         using SylvanCsvDataReader reader = SylvanCsvDataReader.Create(text);
@@ -96,6 +100,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Default")]
     public CsvReadObservation CsvHelper() {
         var configuration = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
         using var text = new StreamReader(MarkPflug65KFixture.CsvPath);
@@ -115,6 +120,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:Default")]
     public CsvReadObservation DataplatDbatools() {
         using var reader = new DataplatCsvDataReader(MarkPflug65KFixture.CsvPath);
         return Observe(
@@ -124,6 +130,7 @@ public class MarkPflug65KCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:LumenWorks", "case:Default")]
     public CsvReadObservation LumenWorks() {
         using var text = new StreamReader(MarkPflug65KFixture.CsvPath);
         using var reader = new LumenWorksCsvReader(text, hasHeaders: true);
@@ -160,12 +167,27 @@ public class MarkPflug65KCsvBenchmarks {
         return values.ToObservation(rows);
     }
 
-    private void Validate(string library, CsvReadObservation actual) {
+    private void Validate(string method, CsvReadObservation actual) {
+        string library = method switch {
+            nameof(OfficeIMO) => "OfficeIMO",
+            nameof(ExcelReaderNet) => "ExcelReader.NET",
+            nameof(Sep) => "Sep",
+            nameof(Sylvan) => "Sylvan.Data.Csv",
+            nameof(CsvHelper) => "CsvHelper",
+            nameof(DataplatDbatools) => "Dataplat.Dbatools.Csv",
+            nameof(LumenWorks) => "LumenWorks",
+            _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown read lane.")
+        };
+        // The observation hashes every decoded field in order, so equal observations mean equal values.
+        string detail = $"{method}: rows={actual.Rows}; cells={actual.Cells}; expected {_expected}";
         if (actual != _expected
             || actual.Rows != MarkPflug65KFixture.ExpectedRows
             || actual.Cells != MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns) {
+            BenchmarkOutputValidationLog.Failed(library, detail, "Default");
             throw new InvalidDataException(
-                $"{library} did not perform the same CSV workload. Expected {_expected}; actual {actual}.");
+                $"{method} did not perform the same CSV workload. Expected {_expected}; actual {actual}.");
         }
+
+        BenchmarkOutputValidationLog.Passed(library, detail, "Default");
     }
 }

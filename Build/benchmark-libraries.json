@@ -37,6 +37,15 @@
       "reason": "MIT."
     },
     {
+      "id": "recordparser",
+      "name": "RecordParser",
+      "packages": [ { "id": "RecordParser", "version": "2.3.0" } ],
+      "license": { "expression": "MIT", "url": "https://www.nuget.org/packages/RecordParser/2.3.0/License" },
+      "licenseSource": "package-file",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
       "id": "sylvan",
       "name": "Sylvan",
       "aliases": [ "Sylvan.Data.Csv", "Sylvan.Data.Excel" ],

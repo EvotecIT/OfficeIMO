@@ -50,12 +50,14 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     // CsvHelper 33: object mapping for records, typed fields for readers.
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:ObjectsUtf8")]
     public int CsvHelper_ObjectsUtf8() {
         using (var text = new StreamWriter(ResetStream(), Utf8NoBom, 64 * 1024, leaveOpen: true)) WriteCsvHelperObjects(text);
         return CompleteUtf8();
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:ObjectsText")]
     public int CsvHelper_ObjectsText() {
         StringWriter writer = NewTextWriter();
         WriteCsvHelperObjects(writer);
@@ -63,6 +65,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:DataTableUtf8")]
     public int CsvHelper_DataTableUtf8() {
         using DataTableReader reader = Source.Table.CreateDataReader();
         using (var text = new StreamWriter(ResetStream(), Utf8NoBom, 64 * 1024, leaveOpen: true)) WriteCsvHelperReader(text, reader);
@@ -70,6 +73,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:DataTableText")]
     public int CsvHelper_DataTableText() {
         StringWriter writer = NewTextWriter();
         using DataTableReader reader = Source.Table.CreateDataReader();
@@ -78,6 +82,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:DataReaderUtf8")]
     public int CsvHelper_DataReaderUtf8() {
         using BenchmarkArrayDataReader reader = NewDataReader();
         using (var text = new StreamWriter(ResetStream(), Utf8NoBom, 64 * 1024, leaveOpen: true)) WriteCsvHelperReader(text, reader);
@@ -85,6 +90,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:DataReaderText")]
     public int CsvHelper_DataReaderText() {
         StringWriter writer = NewTextWriter();
         using BenchmarkArrayDataReader reader = NewDataReader();
@@ -131,12 +137,14 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     // Sep: typed column writes by index after declaring the header.
 #if NET9_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:ObjectsUtf8")]
     public int Sep_ObjectsUtf8() {
         using (SepWriter csv = SepOptions.To(ResetStream(), leaveOpen: true)) WriteSepRecords(csv);
         return CompleteUtf8();
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:ObjectsText")]
     public int Sep_ObjectsText() {
         StringWriter writer = NewTextWriter();
         using (SepWriter csv = SepOptions.To(writer, leaveOpen: true)) WriteSepRecords(csv);
@@ -169,6 +177,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
 #endif
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:DataTableUtf8")]
     public int Sep_DataTableUtf8() {
         using DataTableReader reader = Source.Table.CreateDataReader();
         using (SepWriter csv = SepOptions.To(ResetStream(), leaveOpen: true)) WriteSepReader(csv, reader);
@@ -176,6 +185,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:DataTableText")]
     public int Sep_DataTableText() {
         StringWriter writer = NewTextWriter();
         using DataTableReader reader = Source.Table.CreateDataReader();
@@ -184,6 +194,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:DataReaderUtf8")]
     public int Sep_DataReaderUtf8() {
         using BenchmarkArrayDataReader reader = NewDataReader();
         using (SepWriter csv = SepOptions.To(ResetStream(), leaveOpen: true)) WriteSepReader(csv, reader);
@@ -191,6 +202,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:DataReaderText")]
     public int Sep_DataReaderText() {
         StringWriter writer = NewTextWriter();
         using BenchmarkArrayDataReader reader = NewDataReader();
@@ -223,6 +235,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     // Sylvan writes data readers.
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:DataTableUtf8")]
     public int Sylvan_DataTableUtf8() {
         using DataTableReader reader = Source.Table.CreateDataReader();
         using (var text = new StreamWriter(ResetStream(), Utf8NoBom, 64 * 1024, leaveOpen: true))
@@ -231,6 +244,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:DataTableText")]
     public int Sylvan_DataTableText() {
         StringWriter writer = NewTextWriter();
         using DataTableReader reader = Source.Table.CreateDataReader();
@@ -239,6 +253,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:DataReaderUtf8")]
     public int Sylvan_DataReaderUtf8() {
         using BenchmarkArrayDataReader reader = NewDataReader();
         using (var text = new StreamWriter(ResetStream(), Utf8NoBom, 64 * 1024, leaveOpen: true))
@@ -247,6 +262,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:DataReaderText")]
     public int Sylvan_DataReaderText() {
         StringWriter writer = NewTextWriter();
         using BenchmarkArrayDataReader reader = NewDataReader();
@@ -258,6 +274,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     // ExcelReader.NET writes CSV to streams only, with typed row writes.
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:ObjectsUtf8")]
     public int ExcelReaderNet_ObjectsUtf8() {
         using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(ResetStream(), leaveOpen: true))
         using (var csv = workbook.AddSheet("Data")) {
@@ -274,6 +291,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:DataTableUtf8")]
     public int ExcelReaderNet_DataTableUtf8() {
         using DataTableReader reader = Source.Table.CreateDataReader();
         WriteExcelReaderReader(reader);
@@ -281,6 +299,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:DataReaderUtf8")]
     public int ExcelReaderNet_DataReaderUtf8() {
         using BenchmarkArrayDataReader reader = NewDataReader();
         WriteExcelReaderReader(reader);

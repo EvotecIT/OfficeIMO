@@ -87,6 +87,7 @@ public class CsvWideAsyncReadBenchmarks
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMO_Snapshot")]
     public async Task<ReadChecksum> OfficeIMO_Snapshot()
     {
         var document = await CsvDocument.LoadAsync(_path).ConfigureAwait(false);
@@ -95,6 +96,7 @@ public class CsvWideAsyncReadBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMO_Incremental")]
     public async Task<ReadChecksum> OfficeIMO_Incremental()
     {
         using var reader = await CsvDocument.OpenReaderAsync(_path).ConfigureAwait(false);
@@ -130,15 +132,26 @@ public class CsvWideAsyncReadBenchmarks
         {
             for (int column = 0; column < FieldCount; column++)
                 if (reader.GetString(column) != Value(rows, column))
+                {
+                    BenchmarkOutputValidationLog.Failed("OfficeIMO", $"RowCount={RowCount}; Operation={Operation}; field mismatch at row {rows}, column {column}",
+                        incremental ? nameof(OfficeIMO_Incremental) : nameof(OfficeIMO_Snapshot));
                     throw new InvalidDataException($"CSV wide {incremental} field mismatch at row {rows}, column {column}.");
+                }
             rows++;
             if (Operation == AsyncReadOperation.FirstRow) break;
         }
         ReadChecksum actual = incremental
             ? await OfficeIMO_Incremental().ConfigureAwait(false)
             : await OfficeIMO_Snapshot().ConfigureAwait(false);
+        string caseName = incremental ? nameof(OfficeIMO_Incremental) : nameof(OfficeIMO_Snapshot);
+        string detail = $"RowCount={RowCount}; Operation={Operation}; {caseName}: {rows} rows x {FieldCount} generated values, checksum {actual}";
         if (rows != _expected.Rows || actual != _expected)
+        {
+            BenchmarkOutputValidationLog.Failed("OfficeIMO", detail + $"; expected {_expected}", caseName);
             throw new InvalidDataException($"CSV wide {incremental} checksum mismatch: {actual} versus {_expected}.");
+        }
+
+        BenchmarkOutputValidationLog.Passed("OfficeIMO", detail, caseName);
     }
 
     private static string Value(int row, int column) => $"v{row:D6}_{column:D2}";
