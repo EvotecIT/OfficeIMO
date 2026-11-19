@@ -12,8 +12,10 @@ public enum TomlWorkload {
     /// <summary>uv's uv.lock: thousands of [[package]] tables and inline tables (350 KB).</summary>
     LockFile,
     /// <summary>
-    /// Every corpus file once, except uv's ruff.toml: it uses a TOML 1.1 multi-line inline table, which Tomlet, a TOML 1.0
-    /// reader, rejects.
+    /// Every corpus file once, except three Tomlet cannot read correctly: uv's ruff.toml uses a TOML 1.1 multi-line inline
+    /// table, which Tomlet, a TOML 1.0 reader, rejects; Cargo's and ripgrep's Cargo.toml have table headers with literal
+    /// keys containing double quotes (<c>[target.'cfg(target_os = "macos")'.dependencies]</c>), which Tomlet splits into
+    /// the wrong tables, so its model would not hold the same content as the other loaders'.
     /// </summary>
     Corpus
 }
@@ -30,7 +32,9 @@ public static class TomlWorkloads {
                     TomlWorkload.LockFile => new[] { Read("Uv/uv-uv.lock") },
                     _ => Directory.GetFiles(CorpusRoot, "*.*", SearchOption.AllDirectories)
                         .Where(path => path.EndsWith(".toml", StringComparison.Ordinal) || path.EndsWith(".lock", StringComparison.Ordinal))
-                        .Where(path => !path.EndsWith("uv-ruff.toml", StringComparison.Ordinal))
+                        .Where(path => !Path.GetFileName(path).Equals("uv-ruff.toml", StringComparison.Ordinal))
+                        .Where(path => !Path.GetFileName(path).Equals("cargo-Cargo.toml", StringComparison.Ordinal))
+                        .Where(path => !Path.GetFileName(path).Equals("ripgrep-Cargo.toml", StringComparison.Ordinal))
                         .OrderBy(path => path, StringComparer.Ordinal)
                         .Select(path => File.ReadAllText(path, Encoding.UTF8))
                         .ToArray()

@@ -64,11 +64,26 @@ public static class TomlSerializerLibraries {
         Expect(expected, Describe(ReadTomlynGenerated(input, type)), workload, "Tomlyn generated read");
         object model = ReadOfficeIMOGenerated(input, type);
         Expect(expected, Describe(ReadTomlyn(WriteOfficeIMOGenerated(model, type), type)), workload, "OfficeIMO output read by Tomlyn");
-        Expect(expected, Describe(ReadOfficeIMO(WriteOfficeIMO(model, type), type)), workload, "OfficeIMO reflection output");
+        Expect(expected, Describe(ReadTomlyn(WriteOfficeIMO(model, type), type)), workload, "OfficeIMO reflection output read by Tomlyn");
         // Each library writes the model it read: untyped members hold its own model types.
         object tomlynModel = ReadTomlynGenerated(input, type);
         Expect(expected, Describe(ReadOfficeIMO(WriteTomlyn(tomlynModel, type), type)), workload, "Tomlyn output read by OfficeIMO");
         Expect(expected, Describe(ReadOfficeIMO(WriteTomlynGenerated(tomlynModel, type), type)), workload, "Tomlyn generated output read by OfficeIMO");
+    }
+
+    /// <summary>Runs <see cref="Validate"/> and records its result for both libraries.</summary>
+    public static void Record(TomlSerializerWorkload workload, string check) {
+        string detail = "Workload=" + workload + "; " + check + " (" + Describe(ReadOfficeIMOGenerated(Input(workload), ModelType(workload))).Length +
+            " canonical characters of typed members; untyped members compared by presence)";
+        try {
+            Validate(workload);
+        } catch (InvalidOperationException exception) {
+            OfficeIMO.Benchmarks.BenchmarkOutputValidationLog.Failed("OfficeIMO", detail + "; " + exception.Message);
+            OfficeIMO.Benchmarks.BenchmarkOutputValidationLog.Failed("Tomlyn", detail + "; " + exception.Message);
+            throw;
+        }
+        OfficeIMO.Benchmarks.BenchmarkOutputValidationLog.Passed("OfficeIMO", detail);
+        OfficeIMO.Benchmarks.BenchmarkOutputValidationLog.Passed("Tomlyn", detail);
     }
 
     private static void Expect(string expected, string actual, TomlSerializerWorkload workload, string what) {
@@ -138,19 +153,23 @@ public class TomlDeserializeBenchmarks {
     public void Setup() {
         _input = TomlSerializerLibraries.Input(Workload);
         _type = TomlSerializerLibraries.ModelType(Workload);
-        TomlSerializerLibraries.Validate(Workload);
+        TomlSerializerLibraries.Record(Workload, "reflection and generated reads of both libraries hold the same members and values");
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:Tomlyn", "case:Default")]
     public object Tomlyn() => TomlSerializerLibraries.ReadTomlyn(_input, _type);
 
     [Benchmark]
+    [BenchmarkCategory("library:Tomlyn", "case:Generated")]
     public object TomlynGenerated() => TomlSerializerLibraries.ReadTomlynGenerated(_input, _type);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public object OfficeIMOToml() => TomlSerializerLibraries.ReadOfficeIMO(_input, _type);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Generated")]
     public object OfficeIMOTomlGenerated() => TomlSerializerLibraries.ReadOfficeIMOGenerated(_input, _type);
 }
 
@@ -169,18 +188,22 @@ public class TomlSerializeBenchmarks {
         _type = TomlSerializerLibraries.ModelType(Workload);
         _model = TomlSerializerLibraries.ReadOfficeIMOGenerated(TomlSerializerLibraries.Input(Workload), _type);
         _tomlynModel = TomlSerializerLibraries.ReadTomlynGenerated(TomlSerializerLibraries.Input(Workload), _type);
-        TomlSerializerLibraries.Validate(Workload);
+        TomlSerializerLibraries.Record(Workload, "every lane's output, read back by the other library, holds the source model's members and values");
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:Tomlyn", "case:Default")]
     public int Tomlyn() => TomlSerializerLibraries.WriteTomlyn(_tomlynModel, _type).Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:Tomlyn", "case:Generated")]
     public int TomlynGenerated() => TomlSerializerLibraries.WriteTomlynGenerated(_tomlynModel, _type).Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public int OfficeIMOToml() => TomlSerializerLibraries.WriteOfficeIMO(_model, _type).Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Generated")]
     public int OfficeIMOTomlGenerated() => TomlSerializerLibraries.WriteOfficeIMOGenerated(_model, _type).Length;
 }

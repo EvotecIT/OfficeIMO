@@ -9,7 +9,10 @@ namespace OfficeIMO.Toml.Benchmarks;
 public static class TomlLibraries {
     // ---- Parse: one pass over the text, materializing keys and string values -------------------------------------
 
-    /// <summary>OfficeIMO's pull reader; keys and strings are read as strings, as the reference parsers produce them.</summary>
+    /// <summary>
+    /// OfficeIMO's pull reader; keys and strings are read as strings and every other scalar is decoded, as the reference
+    /// parser's events carry them.
+    /// </summary>
     public static long ParseOfficeIMO(string toml) {
         var reader = new TomlReader(toml);
         long values = 0;
@@ -23,12 +26,22 @@ public static class TomlLibraries {
                     values++;
                     break;
                 case TomlTokenType.Integer:
+                    _ = reader.GetInt64();
+                    values++;
+                    break;
                 case TomlTokenType.Float:
+                    _ = reader.GetDouble();
+                    values++;
+                    break;
                 case TomlTokenType.Boolean:
+                    _ = reader.GetBoolean();
+                    values++;
+                    break;
                 case TomlTokenType.OffsetDateTime:
                 case TomlTokenType.LocalDateTime:
                 case TomlTokenType.LocalDate:
                 case TomlTokenType.LocalTime:
+                    _ = reader.GetDateTime();
                     values++;
                     break;
             }
@@ -36,7 +49,7 @@ public static class TomlLibraries {
         return values;
     }
 
-    /// <summary>Tomlyn's incremental event parser.</summary>
+    /// <summary>Tomlyn's incremental event parser, reading every key and value its events carry.</summary>
     public static long ParseTomlyn(string toml) {
         var parser = Tomlyn.Parsing.TomlParser.Create(toml);
         long values = 0;
@@ -50,9 +63,19 @@ public static class TomlLibraries {
                     values++;
                     break;
                 case Tomlyn.Parsing.TomlParseEventKind.Integer:
+                    _ = parser.Current.GetInt64();
+                    values++;
+                    break;
                 case Tomlyn.Parsing.TomlParseEventKind.Float:
+                    _ = parser.Current.GetDouble();
+                    values++;
+                    break;
                 case Tomlyn.Parsing.TomlParseEventKind.Boolean:
+                    _ = parser.Current.GetBoolean();
+                    values++;
+                    break;
                 case Tomlyn.Parsing.TomlParseEventKind.DateTime:
+                    _ = parser.Current.GetTomlDateTime();
                     values++;
                     break;
             }
