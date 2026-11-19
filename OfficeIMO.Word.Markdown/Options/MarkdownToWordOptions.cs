@@ -88,13 +88,11 @@ namespace OfficeIMO.Word.Markdown {
 
         internal string? ResolvedDefaultParagraphStyleId { get; private set; }
         internal string? ResolvedQuoteStyleId { get; private set; }
-        internal int ResolvedQuoteIndentTwips { get; private set; }
 
         /// <summary>Resolves the document styles these options name, before the conversion changes the document.</summary>
         internal void ResolveDocumentStyles(WordDocument document) {
             ResolvedDefaultParagraphStyleId = null;
             ResolvedQuoteStyleId = PreferDocumentStyles ? document.FindBuiltInStyleId("Quote") : null;
-            ResolvedQuoteIndentTwips = ResolvedQuoteStyleId == null ? 0 : document.GetStyleIndentationBeforeTwips(ResolvedQuoteStyleId);
             if (string.IsNullOrWhiteSpace(DefaultParagraphStyleId)) return;
             ResolvedDefaultParagraphStyleId = document.Styles.ResolveParagraphStyleForContent(DefaultParagraphStyleId!.Trim())
                 ?? throw new InvalidOperationException(

@@ -71,17 +71,23 @@ public partial class WordDocument {
     }
 
     /// <summary>
-    /// Returns the left indentation, in twips, a paragraph style gives through its <c>w:basedOn</c> chain, or 0.
+    /// Returns the left indentation, in twips, a paragraph style gives through its <c>w:basedOn</c> chain and then the
+    /// document's default paragraph properties, or 0.
     /// </summary>
     internal int GetStyleIndentationBeforeTwips(string styleId) {
-        foreach (Style style in WordStyleCatalog.For(this).EnumerateChain(styleId, StyleValues.Paragraph)) {
-            Indentation? indentation = style.StyleParagraphProperties?.Indentation;
-            string? left = indentation?.Left?.Value ?? indentation?.Start?.Value;
-            if (left != null && int.TryParse(left, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int twips)) {
-                return twips;
-            }
+        WordStyleCatalog catalog = WordStyleCatalog.For(this);
+        foreach (Style style in catalog.EnumerateChain(styleId, StyleValues.Paragraph)) {
+            if (TryReadLeftIndent(style.StyleParagraphProperties?.Indentation, out int twips)) return twips;
         }
-        return 0;
+        return TryReadLeftIndent(catalog.DocumentDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.Indentation, out int defaultTwips)
+            ? defaultTwips
+            : 0;
+
+        static bool TryReadLeftIndent(Indentation? indentation, out int twips) {
+            twips = 0;
+            string? left = indentation?.Left?.Value ?? indentation?.Start?.Value;
+            return left != null && int.TryParse(left, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out twips);
+        }
     }
 
     /// <summary>Returns the heading level, 1 to 9, of a style identifier, through its built-in name; otherwise 0.</summary>

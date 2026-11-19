@@ -83,12 +83,14 @@ namespace OfficeIMO.Word.Markdown {
             if (quoteDepth > 0) {
                 // The document's quote style owns the first level's indent. Deeper levels step in from it: a direct
                 // indent replaces the style's, so it adds the nesting to the style's own indent.
-                bool quoteStyled = options.ResolvedQuoteStyleId != null &&
-                    string.Equals(paragraph.StyleId, options.ResolvedQuoteStyleId, StringComparison.Ordinal);
+                // Any quote style counts, including one chosen as the default paragraph style, so Word-to-Markdown
+                // reads the same depth back.
+                bool quoteStyled = paragraph.BuiltInStyleId is "Quote" or "IntenseQuote";
                 if (!quoteStyled) {
                     paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * quoteDepth / 20D);
-                } else if (quoteDepth > 1) {
-                    paragraph.IndentationBefore = OfficeLength.Points((options.ResolvedQuoteIndentTwips + IndentTwipsPerLevel * (quoteDepth - 1)) / 20D);
+                } else if (quoteDepth > 1 && paragraph._document is { } document) {
+                    int styleIndent = document.GetStyleIndentationBeforeTwips(paragraph.StyleId!);
+                    paragraph.IndentationBefore = OfficeLength.Points((styleIndent + IndentTwipsPerLevel * (quoteDepth - 1)) / 20D);
                 }
                 if (ResolveTheme(options) is { } theme) {
                     paragraph.Borders.LeftStyle = WordBorderStyle.Single;
