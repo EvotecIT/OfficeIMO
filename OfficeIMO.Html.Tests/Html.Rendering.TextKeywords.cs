@@ -124,6 +124,8 @@ public sealed partial class HtmlRenderingTests {
     // Hidden boxes are never laid out, so their keywords and unimplemented properties lose nothing.
     [InlineData("<p>Visible<span style='display:none;text-transform:full-width;vertical-align:middle'>Hidden</span></p>")]
     [InlineData("<p>Visible<span style='display:none;text-emphasis:dot'>Hidden</span></p>")]
+    // Text that overrides an inherited unimplemented transform renders without loss.
+    [InlineData("<div style='text-transform:full-width'><span style='text-transform:none'>Visible</span></div>")]
     public void HtmlRenderer_DoesNotReportKeywordsWhereNothingIsApproximated(string html) {
         Assert.Empty(UnsupportedTextDetails(html));
     }

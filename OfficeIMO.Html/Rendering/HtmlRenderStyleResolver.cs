@@ -274,7 +274,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 || parent.Display.IndexOf("grid", StringComparison.Ordinal) >= 0)
             || computed.GetValue("float").Trim().ToLowerInvariant() is "left" or "right" or "inline-start" or "inline-end"
             || computed.GetValue("position").Trim().ToLowerInvariant() is "absolute" or "fixed";
-        ReportUnrenderedTextValues(element, display, blockified, verticalAlign, textTransform);
+        ReportUnrenderedTextValues(element, display, blockified, verticalAlign);
         int baselineLevel = ResolveTextBaselineLevel(verticalAlign, parent?.BaselineLevel ?? 0);
         double baselineOffset = ResolveTextBaselineOffset(
             verticalAlign,
@@ -1337,7 +1337,7 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     // Recognised keywords that line layout does not position or transform yet. They are
     // reported once per value instead of silently using the baseline or the original text.
-    private void ReportUnrenderedTextValues(IElement element, string display, bool blockified, string verticalAlign, string textTransform) {
+    private void ReportUnrenderedTextValues(IElement element, string display, bool blockified, string verticalAlign) {
         // A display:none box is never laid out, so none of its text is approximated.
         if (display == "none") return;
         // vertical-align applies only to inline-level boxes and table cells, and table cells apply
@@ -1348,10 +1348,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             ReportUnrenderedTextValue(element, "vertical-align", verticalAlign,
                 "This vertical-align keyword is not applied to inline content; it was aligned on the baseline.");
         }
-        if (textTransform is "full-width" or "full-size-kana") {
-            ReportUnrenderedTextValue(element, "text-transform", textTransform,
-                "This text-transform keyword is not implemented; the text was not transformed.");
-        }
+        // Unimplemented text-transform keywords are reported by layout, only for text that uses them.
     }
 
     private void ReportUnrenderedTextValue(IElement element, string property, string value, string message) {
