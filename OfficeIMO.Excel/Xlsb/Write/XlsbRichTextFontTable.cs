@@ -87,19 +87,16 @@ internal sealed class XlsbRichTextFontTable {
         Add<VerticalTextAlignment>();
         if (properties.GetFirstChild<FontSize>() != null) Add<FontSize>(); else Inherit<FontSize>();
         Add<Color>();
-        RunFont? name = properties.GetFirstChild<RunFont>();
-        if (name?.Val?.Value is string typeface) {
-            font.Append(new FontName { Val = typeface });
-            if (properties.GetFirstChild<FontFamily>()?.Val?.Value is int family) font.Append(new FontFamilyNumbering { Val = family });
-            if (properties.GetFirstChild<RunPropertyCharSet>()?.Val?.Value is int charset) font.Append(new FontCharSet { Val = charset });
-            Add<FontScheme>();
-        } else {
-            // The family, character set and scheme describe the typeface, so they follow it from the cell font.
-            Inherit<FontName>();
-            Inherit<FontFamilyNumbering>();
-            Inherit<FontCharSet>();
-            Inherit<FontScheme>();
-        }
+        // A run without its own typeface inherits the cell's family, character set and scheme as well, unless it sets
+        // them itself. The character set may be stored as an untyped element, so it is read by name.
+        bool ownTypeface = properties.GetFirstChild<RunFont>()?.Val?.Value is string;
+        if (ownTypeface) font.Append(new FontName { Val = properties.GetFirstChild<RunFont>()!.Val!.Value }); else Inherit<FontName>();
+        if (properties.GetFirstChild<FontFamily>()?.Val?.Value is int family) font.Append(new FontFamilyNumbering { Val = family });
+        else if (!ownTypeface) Inherit<FontFamilyNumbering>();
+        if (ExcelRichTextRun.GetFontCharacterSet(properties) is byte charset) font.Append(new FontCharSet { Val = charset });
+        else if (!ownTypeface) Inherit<FontCharSet>();
+        if (properties.GetFirstChild<FontScheme>() != null) Add<FontScheme>();
+        else if (!ownTypeface) Inherit<FontScheme>();
         return font;
     }
 }

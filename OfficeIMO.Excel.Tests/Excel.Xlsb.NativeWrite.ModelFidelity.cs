@@ -163,6 +163,30 @@ public sealed class ExcelXlsbModelFidelityTests {
         Assert.Equal(OfficeLength.Points(20), bold.FontSize);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Rich_text_run_font_metadata_wins_over_the_inherited_cell_font(bool runSetsTypeface) {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            var run = new ExcelRichTextRun("Greek") {
+                Bold = true,
+                FontFamily = runSetsTypeface ? "Times New Roman" : null,
+                FontFamilyClassification = 3,
+                FontCharacterSet = 161
+            };
+            sheet.Cell(1, 1).SetRichText(run, new ExcelRichTextRun(" plain"));
+            sheet.Cell(1, 1).SetFontFamily("Arial");
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx, out _, out _)));
+
+        ExcelRichTextRun actual = reloaded["Data"].Cell(1, 1).GetRichText()[0];
+        Assert.Equal(runSetsTypeface ? "Times New Roman" : "Arial", actual.FontFamily);
+        Assert.Equal((byte)3, actual.FontFamilyClassification);
+        Assert.Equal((byte)161, actual.FontCharacterSet);
+    }
+
     [Fact]
     public void A_shared_string_index_with_surrounding_spaces_keeps_its_runs() {
         byte[] xlsx = CreateXlsx(document => {
