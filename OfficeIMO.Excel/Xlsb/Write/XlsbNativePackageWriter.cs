@@ -63,8 +63,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         var hyperlinks = XlsbWorksheetHyperlinkPlan.Create(sheet, pruneOrphanedRelationships: true);
                         if (hyperlinks.Relationships.Count > 0) replacements[XlsbSheetStructure.RelationshipPartName(structure.PartNames[binding.Part.Uri.OriginalString])] = hyperlinks.CreateRelationshipPart();
                         structure.NewCodeNames.TryGetValue(binding.Name, out string? codeName);
+                        // Relationship-backed content (comments, tables, drawings) cannot yet add parts to a rewritten package.
+                        XlsbWorksheetFeatureRecords newFeatures = XlsbWorksheetFeatureRecords.Create(
+                            new XlsbWorksheetFeatureContext(document, sheet, formulas, parts: null));
                         byte[] createdPart = XlsbWorksheetPartWriter.Create(sheet, newCells,
-                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName);
+                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName,
+                            features: newFeatures);
                         replacements.Add(structure.PartNames[binding.Part.Uri.OriginalString], ApplyFormulaCachePolicy(createdPart, calculation, maximumBytes));
                         continue;
                     }
@@ -100,6 +104,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         autoFilterPlan.Rewrite,
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks, maximumBytes);
+                    rewrittenPart = XlsbRecordBlockEdit.Apply(rewrittenPart, XlsbWorksheetFeatureRewritePlan.Create(
+                        new XlsbWorksheetFeatureContext(document, sheet, formulas, parts: null), sourceSheet), maximumBytes);
                     rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
                     rewrittenPart = ApplyTabSelection(rewrittenPart, TabSelectionFor(sheet), maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {

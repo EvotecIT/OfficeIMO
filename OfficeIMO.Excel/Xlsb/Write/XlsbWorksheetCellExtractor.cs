@@ -111,21 +111,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException($"Native XLSB generation does not yet support relationship-backed content on worksheet '{sheet.Name}'.");
             }
 
-            OpenXmlElement? unsupported = sheet.WorksheetPart.Worksheet?.ChildElements
-                .FirstOrDefault(element => element is not SheetProperties
-                    && element is not SheetDimension
-                    && element is not SheetViews
-                    && element is not SheetFormatProperties
-                    && element is not Columns
-                    && element is not SheetData
-                    && element is not SheetProtection
-                    && element is not AutoFilter
-                    && element is not MergeCells
-                    && element is not Hyperlinks
-                    && element is not PrintOptions
-                    && element is not PageMargins
-                    && element is not PageSetup
-                    && element is not HeaderFooter);
+            OpenXmlElement? unsupported = XlsbWorksheetContent.FindUnsupported(sheet.WorksheetPart.Worksheet);
             if (unsupported != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported.LocalName}' on worksheet '{sheet.Name}'.");
             }

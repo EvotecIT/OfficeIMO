@@ -72,6 +72,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         sourceSheet.PageSetup,
                         sourceSheet.HeaderFooter);
                     XlsbWorksheetHyperlinkProjector.Apply(targetSheet, sourceSheet);
+                    XlsbWorksheetFeatureProjector.Apply(targetSheet, sourceSheet);
                     targetSheet.EnsureWorksheetElementOrder();
                     targetSheet.WorksheetPart.Worksheet?.Save();
 

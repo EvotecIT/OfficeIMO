@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         private readonly List<XlsbColumnInfo> _columns = new List<XlsbColumnInfo>();
         private readonly List<XlsbCellRange> _mergedRanges = new List<XlsbCellRange>();
         private readonly List<XlsbHyperlink> _hyperlinks = new List<XlsbHyperlink>();
+        private readonly List<DocumentFormat.OpenXml.OpenXmlElement> _featureElements = new List<DocumentFormat.OpenXml.OpenXmlElement>();
 
         internal XlsbSheet(string name, string relationshipId, uint tabId, uint state) {
             Name = name;
@@ -84,5 +85,13 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal void AddMergedRange(XlsbCellRange range) => _mergedRanges.Add(range);
 
         internal void AddHyperlink(XlsbHyperlink hyperlink) => _hyperlinks.Add(hyperlink);
+
+        /// <summary>
+        /// Worksheet children decoded from BIFF12 record blocks that project directly to SpreadsheetML, such as page
+        /// breaks or ignored-error ranges. The rewrite compares the document model against these to keep unchanged records.
+        /// </summary>
+        internal IReadOnlyList<DocumentFormat.OpenXml.OpenXmlElement> FeatureElements => _featureElements;
+
+        internal void AddFeatureElement(DocumentFormat.OpenXml.OpenXmlElement element) => _featureElements.Add(element);
     }
 }

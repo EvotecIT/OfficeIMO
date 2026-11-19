@@ -531,6 +531,7 @@ namespace OfficeIMO.Excel.Xlsb {
             bool inHeaderFooter = false;
             uint declaredMergeCount = 0;
             int actualMergeCount = 0;
+            var features = new XlsbWorksheetFeatureReader(worksheet, workbook, sheetIndex, partName);
             foreach (XlsbRecord record in records) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 if (currentAutoFilter != null && !IsSupportedAutoFilterRecord(record.Type)) {
@@ -539,6 +540,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     PreserveRecord(options, workbook, partName, record);
                     continue;
                 }
+                if (!inSheetData && features.TryRead(record)) continue;
                 switch (record.Type) {
                     case BrtBeginSheet:
                     case BrtEndSheet:
@@ -820,6 +822,7 @@ namespace OfficeIMO.Excel.Xlsb {
             if (inSheetData || inColumnInfos || inMergeCells || currentAutoFilter != null || currentFilterColumn != null || inFilterValues || inHeaderFooter) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains an unterminated record collection.");
             }
+            features.Complete();
 
             if (worksheet.AutoFilter?.HasUnsupportedContent == true) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(

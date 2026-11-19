@@ -29,7 +29,7 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
     /// <summary>True once an encoded formula refers to the self-reference table.</summary>
     internal bool UsesExternalSheets => _mapped.Count != 0;
 
-    public bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false) {
+    public bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false, byte resultClass = 0) {
         _links ??= LegacyXlsExternSheetTable.Create(_document, _sheets);
         if (_links.SupportingLinkRecords.Count > 1) {
             throw new NotSupportedException("New external-workbook XLSB formulas require an external-link writer.");
@@ -39,7 +39,7 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
         for (int index = 0; index < _sheets.Count; index++) {
             if (string.Equals(_sheets[index].Name, sheetName, StringComparison.Ordinal)) { sheetIndex = index; break; }
         }
-        return XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex, MapReference, out payload, out reason, arrayFormula);
+        return XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex, MapReference, out payload, out reason, arrayFormula, resultClass);
     }
 
     public XlsbWriteCell RebindSourceCell(XlsbWriteCell cell) => cell;
@@ -88,7 +88,9 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
 
 /// <summary>Encodes edited cell formulas for the native XLSB writers.</summary>
 internal interface IXlsbFormulaEncodingContext {
-    bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false);
+    /// <remarks>resultClass is the operand class the formula result takes (ExcelNativeFormulaOperandTypes), or 0 for the
+    /// cell default: value class, or array class for array formulas.</remarks>
+    bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false, byte resultClass = 0);
 
     XlsbWriteCell RebindSourceCell(XlsbWriteCell cell);
 

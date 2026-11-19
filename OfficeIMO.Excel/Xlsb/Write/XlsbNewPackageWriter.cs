@@ -27,12 +27,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             long remainingBytes = maximumBytes - stylesPart.Length;
             var worksheetParts = new byte[sheets.Length][];
             var hyperlinkPlans = new XlsbWorksheetHyperlinkPlan[sheets.Length];
+            var packageParts = new XlsbWorksheetPackageParts[sheets.Length];
+            var partNames = new XlsbPartNameAllocator();
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
             var formulas = new XlsbNewWorkbookFormulaContext(document, sheets, document.WorkbookRoot.GetFirstChild<DefinedNames>());
             for (int index = 0; index < sheets.Length; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.ExtractNew(document, sheets[index], formulas, richText);
                 hyperlinkPlans[index] = XlsbWorksheetHyperlinkPlan.Create(sheets[index]);
+                packageParts[index] = new XlsbWorksheetPackageParts(WorksheetPartName(index), partNames,
+                    hyperlinkPlans[index].Relationships.Select(relationship => relationship.Id));
+                XlsbWorksheetFeatureRecords features = XlsbWorksheetFeatureRecords.Create(
+                    new XlsbWorksheetFeatureContext(document, sheets[index], formulas, packageParts[index]));
                 XlsbWriteCell? invalidStyle = cells.FirstOrDefault(cell => cell.StyleIndex >= cellFormatCount);
                 if (invalidStyle != null) {
                     throw new NotSupportedException($"Native XLSB generation found cell {sheets[index].Name}!R{invalidStyle.Row}C{invalidStyle.Column} with missing style index {invalidStyle.StyleIndex}.");
@@ -42,7 +48,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     cells,
                     cellFormatCount,
                     hyperlinkPlans[index].Records,
-                    sharedStrings, Math.Max(1, remainingBytes));
+                    sharedStrings, Math.Max(1, remainingBytes), features: features);
                 remainingBytes -= worksheetParts[index].LongLength;
                 if (remainingBytes < 0) throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native XLSB intermediate parts exceed the in-memory save limit.");
             }
@@ -54,8 +60,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 remainingBytes -= stylesPart.Length;
             }
             ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, Math.Max(1, remainingBytes));
-            WritePackage(document, destination, sheets, stylesPart, worksheetParts, hyperlinkPlans, sharedStringsPart, formulas);
+            WritePackage(document, destination, sheets, stylesPart, worksheetParts, hyperlinkPlans, packageParts, sharedStringsPart, formulas);
         }
+
+        private static string WorksheetPartName(int index) =>
+            "xl/worksheets/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin";
 
         internal static bool TryWriteDirectTabular(
             ExcelDocument document,
@@ -209,6 +218,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             byte[]? stylesPart,
             IReadOnlyList<byte[]> worksheetParts,
             IReadOnlyList<XlsbWorksheetHyperlinkPlan> hyperlinkPlans,
+            IReadOnlyList<XlsbWorksheetPackageParts> packageParts,
             ArraySegment<byte>? sharedStringsPart,
             XlsbNewWorkbookFormulaContext formulas) {
             ThemePart? theme = document.WorkbookPartRoot.ThemePart;
@@ -218,7 +228,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 : new ExcelPositionReportingWriteStream(destination);
             Stream packageDestination = positionReportingDestination ?? destination;
             using (var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true)) {
-                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null, documentProperties));
+                WriteEntry(archive, "[Content_Types].xml", CreateContentTypes(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null, documentProperties,
+                    packageParts.SelectMany(parts => parts.Parts)));
                 WriteEntry(archive, "_rels/.rels", documentProperties.CreateRootRelationships("xl/workbook.bin"));
                 documentProperties.WriteEntries((name, content) => WriteEntry(archive, name, content));
                 WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
@@ -232,15 +243,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null));
                 WriteTheme(archive, theme, CompressionLevel.Optimal);
                 for (int index = 0; index < worksheetParts.Count; index++) {
-                    WriteEntry(
-                        archive,
-                        "xl/worksheets/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin",
-                        worksheetParts[index]);
-                    if (hyperlinkPlans[index].Relationships.Count != 0) {
+                    WriteEntry(archive, WorksheetPartName(index), worksheetParts[index]);
+                    if (hyperlinkPlans[index].Relationships.Count != 0 || packageParts[index].Relationships.Count != 0) {
                         WriteEntry(
                             archive,
-                            "xl/worksheets/_rels/sheet" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ".bin.rels",
-                            hyperlinkPlans[index].CreateRelationshipPart());
+                            XlsbWorksheetPackageParts.RelationshipPartName(WorksheetPartName(index)),
+                            hyperlinkPlans[index].CreateRelationshipPart(packageParts[index].RelationshipsById()));
+                    }
+                    foreach (XlsbGeneratedPart part in packageParts[index].Parts) {
+                        WriteEntry(archive, part.PartName, part.Content);
+                        if (part.Relationships.Count != 0) {
+                            WriteEntry(archive, XlsbWorksheetPackageParts.RelationshipPartName(part.PartName),
+                                XlsbWorksheetPackageParts.CreateRelationshipPart(part.Relationships));
+                        }
                     }
                 }
                 if (stylesPart != null) WriteEntry(archive, "xl/styles.bin", stylesPart);
@@ -383,7 +398,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static string CreateContentTypes(int worksheetCount, bool hasStyles, bool hasSharedStrings, bool hasTheme,
-            XlsbDocumentPropertyParts? documentProperties = null) {
+            XlsbDocumentPropertyParts? documentProperties = null, IEnumerable<XlsbGeneratedPart>? generatedParts = null) {
             var builder = new StringBuilder(512 + worksheetCount * 120);
             builder.Append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
             builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -402,6 +417,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             if (hasTheme) builder.Append("<Override PartName=\"/xl/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/>");
             documentProperties?.AppendContentTypeOverrides(builder);
+            foreach (XlsbGeneratedPart part in generatedParts ?? Enumerable.Empty<XlsbGeneratedPart>()) {
+                builder.Append("<Override PartName=\"/");
+                builder.Append(System.Security.SecurityElement.Escape(part.PartName));
+                builder.Append("\" ContentType=\"");
+                builder.Append(System.Security.SecurityElement.Escape(part.ContentType));
+                builder.Append("\"/>");
+            }
             builder.Append("</Types>");
             return builder.ToString();
         }

@@ -57,10 +57,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             IReadOnlyList<XlsbWriteCell> cells,
             int cellFormatCount,
             IReadOnlyList<XlsbGeneratedRecord> hyperlinkRecords,
-            XlsbSharedStringTable? sharedStrings = null, long maximumBytes = int.MaxValue, string? codeName = null) {
+            XlsbSharedStringTable? sharedStrings = null, long maximumBytes = int.MaxValue, string? codeName = null,
+            XlsbWorksheetFeatureRecords? features = null) {
             ArgumentNullException.ThrowIfNull(sheet);
             ArgumentNullException.ThrowIfNull(cells);
             ArgumentNullException.ThrowIfNull(hyperlinkRecords);
+            features ??= XlsbWorksheetFeatureRecords.Empty;
 
             XlsbWorksheetGeometryPlan geometry = XlsbWorksheetGeometryPlan.Create(sheet, cells, cellFormatCount);
 
@@ -97,12 +99,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbRecordWriter.Write(output, BrtEndSheetData);
             XlsbWorksheetProtectionWriter.Write(output, worksheet.GetFirstChild<SheetProtection>());
             XlsbWorksheetAutoFilterWriter.Write(output, worksheet.GetFirstChild<AutoFilter>(), sheet.Name);
-            foreach (XlsbGeneratedRecord record in geometry.SuffixRecords) {
-                XlsbRecordWriter.Write(output, record.Type, record.Payload);
-            }
-            foreach (XlsbGeneratedRecord record in hyperlinkRecords) {
-                XlsbRecordWriter.Write(output, record.Type, record.Payload);
-            }
+            WriteRecords(output, geometry.SuffixRecords);
+            WriteRecords(output, features.ConditionalFormatting);
+            WriteRecords(output, features.DataValidations);
+            WriteRecords(output, hyperlinkRecords);
             XlsbWorksheetPrintSettingsWriter.Write(
                 output,
                 worksheet.GetFirstChild<PrintOptions>(),
@@ -110,8 +110,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 worksheet.GetFirstChild<PageSetup>(),
                 worksheet.GetFirstChild<HeaderFooter>(),
                 sheet.Name);
+            WriteRecords(output, features.PageBreaks);
+            WriteRecords(output, features.IgnoredErrors);
+            WriteRecords(output, features.Drawings);
+            WriteRecords(output, features.TableParts);
+            WriteRecords(output, features.FutureRecords);
             XlsbRecordWriter.Write(output, 130); // BrtEndSheet
             return output.ToArray();
+        }
+
+        private static void WriteRecords(Stream output, IReadOnlyList<XlsbGeneratedRecord> records) {
+            foreach (XlsbGeneratedRecord record in records) {
+                XlsbRecordWriter.Write(output, record.Type, record.Payload);
+            }
         }
 
         internal static byte[] Rewrite(byte[] originalPart, IReadOnlyList<XlsbWriteCell> cells) =>

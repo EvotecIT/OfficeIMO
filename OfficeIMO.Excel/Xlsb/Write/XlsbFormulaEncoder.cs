@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             TryEncode(formulaText, LegacyXlsFormulaNameIndex.Empty, -1, null, out formulaPayload, out reason, arrayFormula);
 
         internal static bool TryEncode(string formulaText, LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal,
-            out byte[] formulaPayload, out string? reason, bool arrayFormula = false) {
+            out byte[] formulaPayload, out string? reason, bool arrayFormula = false, byte resultClass = 0) {
             formulaPayload = Array.Empty<byte>();
             ArgumentNullException.ThrowIfNull(formulaText);
         if (formulaText.Length > MaximumFormulaCharacters) {
@@ -26,8 +26,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
         if (!TryEncodeTokens(formulaText, depth: 0, names, sheetIndex, mapExternal, out byte[] biff12Tokens, out reason)) return false;
 
-            if (!ExcelNativeFormulaOperandTypes.TryApply(biff12Tokens, binary12: true,
-                arrayFormula ? ExcelNativeFormulaOperandTypes.Array : ExcelNativeFormulaOperandTypes.Value, out reason)) return false;
+            if (resultClass == 0) resultClass = arrayFormula ? ExcelNativeFormulaOperandTypes.Array : ExcelNativeFormulaOperandTypes.Value;
+            if (!ExcelNativeFormulaOperandTypes.TryApply(biff12Tokens, binary12: true, resultClass, out reason)) return false;
             using var payload = new MemoryStream(checked(biff12Tokens.Length + 10));
             WriteUInt16(payload, 0); // grbit
             WriteUInt32(payload, checked((uint)biff12Tokens.Length));
