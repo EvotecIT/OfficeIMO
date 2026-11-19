@@ -16,7 +16,7 @@ int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-i
 string? affinityMask = ParseOptionValue(args, "--affinity", "--processor-affinity");
 string? priorityName = ParseOptionValue(args, "--priority", "--process-priority");
 string outputPath = ParseOptionValue(args, "--out", "--output", "--output-path")
-    ?? Path.Combine("Docs", "benchmarks", "officeimo.excel.npoi-comparison.json");
+    ?? Path.Combine("artifacts", "benchmarks", "officeimo.excel.npoi-comparison.json");
 string[] scenarioFilters = ParseOptionValues(args, "--scenario", "--scenarios");
 
 if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?")) {

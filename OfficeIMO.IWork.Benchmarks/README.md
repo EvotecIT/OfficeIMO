@@ -7,27 +7,27 @@ deterministic native-content and cancellation checks run in a dedicated workflow
 warmups, rotated iteration order, elapsed and memory counters, artifacts and gates.
 The library owns synthetic inputs, pinned native fixtures and semantic validation.
 
-The [512-slide Apple-produced run](../Docs/benchmarks/officeimo.iwork-native-large-runtime-2026-10-11.md)
+The 512-slide Apple-produced run
 records eighteen validated reading/conversion and separate memory-sampling
 observations. It covers two repeated native layouts; host contention, varied
 objects and portable resource budgets remain explicit limits.
 
-The [1,000-slide native creation run](../Docs/benchmarks/officeimo.iwork-native-created-runtime-2026-10-09.md)
+The 1,000-slide native creation run
 records 18 semantically validated reading, conversion/save and native encoding/save
 samples on macOS, with separate memory observations and explicit host limits.
 
-The [phase cancellation run](../Docs/benchmarks/officeimo.iwork-phase-cancellation-2026-10-11.md)
+The phase cancellation run
 records twelve successful owned projection/native-encoding cancellations with
 complete 1,000-slide recovery, plus six Apple-produced source projection
 cancellations with complete 512-slide recovery. Timer scheduling and host contention remain
 explicit limits; these observations do not establish portable latency budgets.
 
-The [2026-10-04 portable run](../Docs/benchmarks/officeimo.iwork-portable-runtime-2026-10-04.md)
+The 2026-10-04 portable run
 retains 6,390 validated samples on Linux x64, macOS arm64 and Windows x64. It covers
 two scale/native passes, 50 repeated operations per native case, separate managed/resident
 sampling and active I/O cancellation. Its observations do not establish portable ceilings.
 
-The [2026-10-04 macOS comparison](../Docs/benchmarks/officeimo.iwork-runtime-2026-10-04.md)
+The 2026-10-04 macOS comparison
 retains 360 validated samples from a repeated scale matrix, including slower
 elapsed cases, allocation changes and whole-process memory observations. It does
 not establish portable performance budgets.

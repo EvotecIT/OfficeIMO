@@ -161,9 +161,9 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --fil
 ```
 
 Use topology-derived `--affinityMasks` on Windows to compare cache domains
-separately. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
+separately. The 2026-09-07 measurement
 records the XML escaping improvement, package sizes, and remaining long-text cost.
-The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
+The 2026-09-08 measurement
 records writer buffering and reader allocation results, including ordinary defaults.
 
 ## Public scenario shapes
@@ -374,7 +374,7 @@ set.
 ## Snapshot and profile artifacts
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --snapshot .\Docs\benchmarks\officeimo.excel.snapshot.json
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --snapshot .\artifacts\benchmarks\officeimo.excel.snapshot.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- write-profile --rows 25000
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- read-profile --rows 2500
 ```
@@ -1055,7 +1055,7 @@ constants, so rerun the focused scenarios before making a release claim.
 For release-style evidence:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 20 --iterations 9
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\artifacts\benchmarks\comparison-current --row-set 2500,25000 --warmup 20 --iterations 9
 ```
 
 The twenty warmups let tiered compilation settle before the custom rotated

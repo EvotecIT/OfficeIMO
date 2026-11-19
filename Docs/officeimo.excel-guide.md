@@ -655,7 +655,7 @@ and item/count/character limits, including later unused items. This occurs befor
 the caller's first `Read` or value getter, even with `HasHeaderRow = false`.
 First-row latency includes this opening work; the reader exposes no option to
 replace it with XML count attributes or a partial shared-string table load.
-See the [tabular lifecycle measurements](../Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md)
+See the tabular lifecycle measurements
 for the first-row and full-scan evidence boundaries.
 
 The XML streaming fallback completes a row before returning a cell value, so

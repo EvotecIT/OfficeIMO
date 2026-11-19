@@ -4,7 +4,7 @@ This opt-in BenchmarkDotNet project compares complete EML read and write
 workflows through OfficeIMO.Email and MimeKit 5.0.0. It stays outside `OfficeIMO.slnx`
 so MimeKit does not enter OfficeIMO runtime restore, build, or packages.
 
-The [2026-11-11 evidence](../Docs/benchmarks/officeimo.email-mime-2026-11-11.md)
+The 2026-11-11 evidence
 records the validated MimeKit 5.0 baseline, optimized results and historical 4.17 reference.
 
 The read lane gives both implementations the same MimeKit-generated EML and

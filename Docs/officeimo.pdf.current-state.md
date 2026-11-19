@@ -134,7 +134,7 @@ The PDF evidence lanes cover cold and cached analysis, SVG/PNG rendering, buffer
 
 Each parsed PDF document owns a font-resource cache shared by its pages and Form XObjects. Local resource aliases remain scoped to their declaring resource dictionary. Admission allows up to 64 font resources and an estimated 64 MiB of retained font state; resources beyond admission remain usable without cache retention. The estimate is not a hard heap cap, and page/drawing objects can retain resources independently.
 
-The opt-in [runtime benchmark suites](../Build/Benchmarks/README.md#pdf-runtime-operations) use the shared PowerForge runner for generation, repeated inspection, region edits, SVG/PNG rendering, complete structured reading, and forward-save file destinations, and retain raw samples and output validation separately from measurement. Dated measurements, their hosts, observed losses and repeat cohorts are recorded in [PDF runtime operations](benchmarks/pdf-runtime-2026-10-11.md#cohort-summaries). Performance results apply to the measured input, options, runtime, and operating system. They do not substitute for correctness or preservation proof.
+The opt-in [runtime benchmark suites](../Build/Benchmarks/README.md#pdf-runtime-operations) use the shared PowerForge runner for generation, repeated inspection, region edits, SVG/PNG rendering, complete structured reading, and forward-save file destinations, and retain raw samples and output validation separately from measurement. Dated measurements, their hosts, observed losses and repeat cohorts are recorded in PDF runtime operations. Performance results apply to the measured input, options, runtime, and operating system. They do not substitute for correctness or preservation proof.
 
 ## Documentation rule
 
