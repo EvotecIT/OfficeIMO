@@ -944,7 +944,7 @@ _modules.set("97b7bd3037e8060328387470a7e471b6933f1fa062e9562c7908f8ea9a29044b",
 return _exports;
 })();
 
-const _m26 = _modules.get("9ee68b08aff01ebcd88790854ac27b71235c5df5cab4a9575ffcf267e8fea5ea") ?? (() => {
+const _m26 = _modules.get("99b23f94e240ecbeee81dbc96909e40786623c7df225f74ae7bd4d719b15d1e8") ?? (() => {
 const { cellText } = _c12;
 
 const { cleanXml } = _c16;
@@ -953,7 +953,7 @@ const { cleanXml } = _c16;
 function canopyAbout(request, options) {
     const result = [["revision", request.revision], ["recordCount", request.recordCount === null ? "unknown" : request.recordCount]];
     if (request.scope !== undefined) {
-        if (!["filtered", "selected", "all"].includes(request.scope))
+        if (!["filtered", "visible", "selected", "all"].includes(request.scope))
             throw new TypeError("Invalid Canopy export scope.");
         result.push(["scope", request.scope]);
     }
@@ -999,7 +999,7 @@ function canopyAbout(request, options) {
     return Object.freeze(result.map(row => Object.freeze(row)));
 }
 const _exports = Object.freeze({ canopyAbout: canopyAbout });
-_modules.set("9ee68b08aff01ebcd88790854ac27b71235c5df5cab4a9575ffcf267e8fea5ea", _exports);
+_modules.set("99b23f94e240ecbeee81dbc96909e40786623c7df225f74ae7bd4d719b15d1e8", _exports);
 return _exports;
 })();
 
@@ -1298,7 +1298,7 @@ _modules.set("dab3e04542b3619c5c937162b41068f7cb1c3021b4620987c0fb95d4bd98d8e2",
 return _exports;
 })();
 
-const _m0 = _modules.get("1f0435c9bc6e437b986c72df8ed33a7636aea9e87db25a98bdb2a48a43985e5d") ?? (() => {
+const _m0 = _modules.get("5e3ca0adb71a24d6f5c464db0e63a6bbd2f62d6cba70e4be37afc4518de7d0e3") ?? (() => {
 const { BlobByteSink, ExportCell } = _c0;
 
 const { notifyProgress } = _c1;
@@ -1437,7 +1437,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m13.createCanopyExport, ExportCell: _c11.ExportCell, PdfFont: _c19.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("1f0435c9bc6e437b986c72df8ed33a7636aea9e87db25a98bdb2a48a43985e5d", _exports);
+_modules.set("5e3ca0adb71a24d6f5c464db0e63a6bbd2f62d6cba70e4be37afc4518de7d0e3", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

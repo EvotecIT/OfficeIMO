@@ -940,7 +940,7 @@ const { cleanXml } = _c16;
 function canopyAbout(request, options) {
     const result = [["revision", request.revision], ["recordCount", request.recordCount === null ? "unknown" : request.recordCount]];
     if (request.scope !== undefined) {
-        if (!["filtered", "selected", "all"].includes(request.scope))
+        if (!["filtered", "visible", "selected", "all"].includes(request.scope))
             throw new TypeError("Invalid Canopy export scope.");
         result.push(["scope", request.scope]);
     }
