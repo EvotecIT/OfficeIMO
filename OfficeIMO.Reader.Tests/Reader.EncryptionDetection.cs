@@ -77,6 +77,8 @@ public sealed class ReaderEncryptionDetectionTests {
     [InlineData("<< /Size 5 /Root 1 0 R >>", "BT (trailer /Encrypt 9 0 R) Tj ET", false)]
     [InlineData("<< /Size 5 /Root 1 0 R /Info << /Encrypt 1 >> >>", "BT (plain) Tj ET\n% trailer << /Encrypt 9 0 R >>", false)]
     [InlineData("<< /Size 5 /Root 1 0 R /EncryptMetadata false >>", "BT (plain) Tj ET", false)]
+    [InlineData("<< /Size 5 /Root 1 0 R /Encrypt null >>", "BT (plain) Tj ET", false)]
+    [InlineData("<< /Size 5 /Root 1 0 R /Encrypt 9 0 R /Info null >>", "BT (plain) Tj ET", true)]
     [InlineData("<< /Size 5 /Root 1 0 R /En#63rypt 9 0 R >>", "BT (plain) Tj ET", true)]
     [InlineData("<< /Size 5 /Root 1 0 R /ID [<00> <01>] /Encrypt 9 0 R >>", "BT (plain) Tj ET", true)]
     public void PdfEncryptionComesOnlyFromTheTrailerEncryptKey(string trailer, string content, bool encrypted) {
@@ -84,6 +86,22 @@ public sealed class ReaderEncryptionDetectionTests {
         byte[] pdf = BuildPdf(trailer, content);
         Assert.Equal(encrypted, Reader.Detect(pdf, "file.pdf").IsEncrypted);
         Assert.Equal(encrypted, Reader.Detect(pdf, "file.pdf", new ReaderDetectionOptions { MaxProbeBytes = 64 }).IsEncrypted);
+    }
+
+    [Theory]
+    [InlineData("999999999999999999")]
+    [InlineData("461168601842738791")]
+    [InlineData("5")]
+    public void MalformedPdfCrossReferenceIsReportedWithoutThrowing(string count) {
+        // A subsection count that overruns the file, or one that does not match the entries, leaves the result unproven.
+        string body = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n";
+        string pdf = body + "xref\n0 " + count + "\n0000000000 65535 f \ntrailer\n<< /Size 2 /Encrypt 9 0 R >>\n" +
+                     "startxref\n" + body.Length + "\n%%EOF\n";
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(pdf);
+
+        ReaderDetectionResult detection = Reader.Detect(bytes, "broken.pdf", new ReaderDetectionOptions { MaxProbeBytes = 16 });
+        Assert.Equal(ReaderInputKind.Pdf, detection.Kind);
+        Assert.False(detection.IsEncrypted);
     }
 
     [Fact]

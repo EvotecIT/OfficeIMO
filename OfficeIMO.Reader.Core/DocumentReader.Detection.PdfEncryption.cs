@@ -21,18 +21,26 @@ internal static partial class DocumentReaderEngine {
 
         long originalPosition = stream.Position;
         try {
-            long length = stream.Length - start;
-            if (length <= prefix.Length) return false;
-            int tailBytes = (int)Math.Min(PdfStartXrefTailBytes, length);
-            byte[] tail = ReadPdfWindow(stream, start, length - tailBytes, tailBytes);
-            if (!TryReadPdfStartXref(tail, out long crossReferenceOffset) || crossReferenceOffset >= length) return false;
-            long trailerOffset = LocatePdfTrailerDictionary(stream, start, crossReferenceOffset, length, cancellationToken);
-            if (trailerOffset < 0) return false;
-            byte[] window = ReadPdfWindow(stream, start, trailerOffset, (int)Math.Min(PdfTrailerWindowBytes, length - trailerOffset));
-            return ContainsPdfTrailerEncryptEntry(window, cancellationToken);
+            return HasPdfEncryptDictionaryAtStartXref(stream, start, prefix, cancellationToken);
+        } catch (Exception exception) when (exception is IOException or ArgumentException or OverflowException) {
+            // Detection reports what it can prove; a malformed cross-reference section is not a detection failure.
+            return false;
         } finally {
             stream.Position = originalPosition;
         }
+    }
+
+    private static bool HasPdfEncryptDictionaryAtStartXref(Stream stream, long start, byte[] prefix,
+        CancellationToken cancellationToken) {
+        long length = stream.Length - start;
+        if (length <= prefix.Length) return false;
+        int tailBytes = (int)Math.Min(PdfStartXrefTailBytes, length);
+        byte[] tail = ReadPdfWindow(stream, start, length - tailBytes, tailBytes);
+        if (!TryReadPdfStartXref(tail, out long crossReferenceOffset) || crossReferenceOffset >= length) return false;
+        long trailerOffset = LocatePdfTrailerDictionary(stream, start, crossReferenceOffset, length, cancellationToken);
+        if (trailerOffset < 0 || trailerOffset >= length) return false;
+        byte[] window = ReadPdfWindow(stream, start, trailerOffset, (int)Math.Min(PdfTrailerWindowBytes, length - trailerOffset));
+        return ContainsPdfTrailerEncryptEntry(window, cancellationToken);
     }
 
     /// <summary>
@@ -57,6 +65,8 @@ internal static partial class DocumentReaderEngine {
             while (index < header.Length && (header[index] == (byte)' ' || header[index] == (byte)'\t')) index++;
             if (index < header.Length && header[index] == (byte)'\r') index++;
             if (index < header.Length && header[index] == (byte)'\n') index++;
+            // Entries are 20 bytes each; a count that cannot fit in the rest of the file is malformed.
+            if (count > (length - position - index) / 20) return -1;
             position += index + count * 20;
         }
         return -1;
@@ -74,6 +84,7 @@ internal static partial class DocumentReaderEngine {
         bool dictionaryIsTrailer = false;
         bool dictionaryIsCrossReferenceStream = false;
         bool dictionaryHasEncrypt = false;
+        bool encryptValuePending = false;
         bool expectingValue = false;
         string? currentKey = null;
         int index = 0;
@@ -90,15 +101,18 @@ internal static partial class DocumentReaderEngine {
                     continue;
                 case (byte)'(':
                     index = SkipPdfLiteralString(bytes, index);
+                    RecordPdfValue(isNull: false);
                     CompletePdfValue();
                     continue;
                 case (byte)'<' when index + 1 < bytes.Length && bytes[index + 1] == (byte)'<':
+                    RecordPdfValue(isNull: false);
                     depth++;
                     index += 2;
                     if (depth == 1) {
                         dictionaryIsTrailer = afterTrailerKeyword;
                         dictionaryIsCrossReferenceStream = false;
                         dictionaryHasEncrypt = false;
+                        encryptValuePending = false;
                         expectingValue = false;
                         currentKey = null;
                         arrayDepth = 0;
@@ -108,6 +122,7 @@ internal static partial class DocumentReaderEngine {
                 case (byte)'<':
                     while (index < bytes.Length && bytes[index] != (byte)'>') index++;
                     index++;
+                    RecordPdfValue(isNull: false);
                     CompletePdfValue();
                     continue;
                 case (byte)'>' when index + 1 < bytes.Length && bytes[index + 1] == (byte)'>':
@@ -121,6 +136,7 @@ internal static partial class DocumentReaderEngine {
                     }
                     continue;
                 case (byte)'[':
+                    RecordPdfValue(isNull: false);
                     if (depth > 0) arrayDepth++;
                     index++;
                     continue;
@@ -134,8 +150,9 @@ internal static partial class DocumentReaderEngine {
                         if (!expectingValue) {
                             currentKey = name;
                             expectingValue = true;
-                            if (name == "Encrypt") dictionaryHasEncrypt = true;
+                            encryptValuePending = name == "Encrypt";
                         } else {
+                            RecordPdfValue(isNull: false);
                             if (currentKey == "Type" && name == "XRef") dictionaryIsCrossReferenceStream = true;
                             expectingValue = false;
                         }
@@ -159,10 +176,18 @@ internal static partial class DocumentReaderEngine {
                     index = end + "endstream".Length;
                 }
             } else if (depth == 1 && arrayDepth == 0) {
+                RecordPdfValue(IsPdfToken(bytes, tokenStart, index, "null"));
                 CompletePdfValue();
             }
         }
         return false;
+
+        // A null value means the key is absent; any other value, such as an indirect reference, marks encryption.
+        void RecordPdfValue(bool isNull) {
+            if (depth != 1 || arrayDepth != 0 || !encryptValuePending) return;
+            if (!isNull) dictionaryHasEncrypt = true;
+            encryptValuePending = false;
+        }
 
         // A number, string, reference part or nested dictionary ends the current value and makes the next name a key.
         void CompletePdfValue() {

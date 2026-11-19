@@ -61,7 +61,13 @@ internal static partial class DocumentReaderEngine {
         IReadOnlyList<ReaderHandlerDescriptor> handlers = GetActiveHandlerRegistry().Handlers;
         foreach (Exception current in chain) {
             foreach (ReaderHandlerDescriptor handler in handlers) {
-                string? code = handler.ClassifyReadError?.Invoke(current);
+                string? code;
+                try {
+                    code = handler.ClassifyReadError?.Invoke(current);
+                } catch (Exception classifierFailure) when (classifierFailure is not OutOfMemoryException) {
+                    // A faulty classifier must not replace the read failure it was asked about.
+                    continue;
+                }
                 if (!string.IsNullOrWhiteSpace(code)) return code!;
             }
         }
@@ -105,8 +111,8 @@ internal static partial class DocumentReaderEngine {
             return detection.IsEncrypted && detection.Evidence.Any(IsOfficeEncryptionEvidence)
                 ? ReaderErrorCodes.PasswordRequired
                 : code;
-        } catch (Exception detectionFailure) when (detectionFailure is IOException or UnauthorizedAccessException
-                                                       or InvalidDataException or ReaderResourceLimitException) {
+        } catch (Exception detectionFailure) when (detectionFailure is not OperationCanceledException and not OutOfMemoryException) {
+            // The refinement is best effort; the read failure keeps its general code.
             return code;
         }
     }

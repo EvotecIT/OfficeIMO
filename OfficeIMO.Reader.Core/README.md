@@ -95,7 +95,10 @@ populates `Pages`, and Reader Core provides shared location, search, and page-sc
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Word;
 
-OfficeDocumentReadResult document = new OfficeDocumentReaderBuilder().AddWordHandler().Build().ReadDocument("Policy.docx");
+OfficeDocumentReadResult document = new OfficeDocumentReaderBuilder()
+    .AddWordHandler(new ReaderWordOptions { IncludePageLocations = true })
+    .Build()
+    .ReadDocument("Policy.docx");
 
 OfficeDocumentSearchResult matches = document.Search("retention period");
 
@@ -120,7 +123,10 @@ words, or no ranked match, falls back to literal search, which `Ranked` on the r
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Word;
 
-OfficeDocumentReadResult document = new OfficeDocumentReaderBuilder().AddWordHandler().Build().ReadDocument("Policy.docx");
+OfficeDocumentReadResult document = new OfficeDocumentReaderBuilder()
+    .AddWordHandler(new ReaderWordOptions { IncludePageLocations = true })
+    .Build()
+    .ReadDocument("Policy.docx");
 
 OfficeDocumentSearchResult ranked = document.Search("\"retention period\" OR archiv*",
     new OfficeDocumentSearchOptions { Mode = OfficeDocumentSearchMode.Ranked });

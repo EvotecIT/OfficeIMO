@@ -131,6 +131,35 @@ public sealed class ReaderInputFailureCodeTests {
     }
 
     [Fact]
+    public async Task AThrowingClassifierKeepsTheReadFailureAndItsDefaultCode() {
+        const string extension = ".brokenclassifier";
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-reader-classifier-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string path = Path.Combine(root, "input" + extension);
+            File.WriteAllText(path, "input");
+            var readFailure = new InvalidDataException("Damaged input.");
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.throwing-classifier",
+                    Kind = ReaderInputKind.Text,
+                    Extensions = new[] { extension },
+                    ReadDocumentPath = (_, _, _) => throw readFailure,
+                    ClassifyReadError = _ => throw new InvalidCastException("Classifier bug.")
+                })
+                .Build();
+
+            ReaderDocumentReadOutcome outcome = Assert.Single(await reader.ReadDocumentsDetailedAsync(new[] { path }));
+            Assert.Same(readFailure, outcome.Error);
+            Assert.Equal(ReaderErrorCodes.InvalidContent, outcome.ErrorCode);
+            Assert.Equal(ReaderErrorCodes.InvalidContent, Assert.Single(reader.ReadFolderDetailed(root).Files).ErrorCode);
+            Assert.Equal(ReaderErrorCodes.InvalidContent, reader.ClassifyReadError(readFailure));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ConventionalFileNamesUseTheRoutedExtensionsInputLimit() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddHandler(new ReaderHandlerRegistration {
