@@ -81,12 +81,14 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment, MarkdownWordExportOptions options) {
             if (quoteDepth > 0) {
-                // The document's quote style owns the first level's indent; deeper levels still step in.
+                // The document's quote style owns the first level's indent. Deeper levels step in from it: a direct
+                // indent replaces the style's, so it adds the nesting to the style's own indent.
                 bool quoteStyled = options.ResolvedQuoteStyleId != null &&
                     string.Equals(paragraph.StyleId, options.ResolvedQuoteStyleId, StringComparison.Ordinal);
-                int indentLevels = quoteStyled ? quoteDepth - 1 : quoteDepth;
-                if (indentLevels > 0) {
-                    paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * indentLevels / 20D);
+                if (!quoteStyled) {
+                    paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * quoteDepth / 20D);
+                } else if (quoteDepth > 1) {
+                    paragraph.IndentationBefore = OfficeLength.Points((options.ResolvedQuoteIndentTwips + IndentTwipsPerLevel * (quoteDepth - 1)) / 20D);
                 }
                 if (ResolveTheme(options) is { } theme) {
                     paragraph.Borders.LeftStyle = WordBorderStyle.Single;

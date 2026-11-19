@@ -35,6 +35,13 @@ internal static class WordBuiltInStyleNames {
         return names;
     }
 
+    /// <summary>Returns the <c>w:type</c> a built-in style has: <c>character</c>, <c>table</c> or <c>paragraph</c>.</summary>
+    internal static string GetStyleType(string builtInId) => builtInId switch {
+        "Hyperlink" => "character",
+        "TableGrid" => "table",
+        _ => "paragraph"
+    };
+
     /// <summary>Returns the built-in name of an English built-in style identifier.</summary>
     internal static bool TryGetName(string styleId, out string name) => NameById.TryGetValue(styleId, out name!);
 
@@ -46,10 +53,22 @@ internal static class WordBuiltInStyleNames {
     /// Returns the English identifier of the built-in style a definition is, through its built-in name, or its
     /// identifier when that is an English built-in identifier and the name names no other built-in style.
     /// </summary>
-    internal static string? GetBuiltInId(DocumentFormat.OpenXml.Wordprocessing.Style style) {
-        string? styleId = style.StyleId?.Value;
-        return GetId(style.StyleName?.Val?.Value) ?? (IsBuiltInId(styleId) ? styleId : null);
+    internal static string? GetBuiltInId(DocumentFormat.OpenXml.Wordprocessing.Style style) =>
+        Classify(style.StyleId?.Value, style.StyleName?.Val?.Value, StyleType(style));
+
+    /// <summary>
+    /// Returns the English identifier of the built-in style a definition with this identifier, name and type is. The
+    /// type must match the built-in style's type, so a character style named <c>Quote</c> is not the quote style.
+    /// </summary>
+    internal static string? Classify(string? styleId, string? name, string? type) {
+        string effectiveType = string.IsNullOrEmpty(type) ? "paragraph" : type!;
+        if (GetId(name) is { } byName && string.Equals(GetStyleType(byName), effectiveType, StringComparison.Ordinal)) return byName;
+        return IsBuiltInId(styleId) && string.Equals(GetStyleType(styleId!), effectiveType, StringComparison.Ordinal) ? styleId : null;
     }
+
+    /// <summary>The <c>w:type</c> of a style definition as written, or null when it has none.</summary>
+    internal static string? StyleType(DocumentFormat.OpenXml.Wordprocessing.Style style) =>
+        style.Type == null ? null : style.Type.InnerText;
 
     /// <summary>Returns whether an identifier is the English identifier of a built-in style.</summary>
     internal static bool IsBuiltInId(string? styleId) => styleId != null && NameById.ContainsKey(styleId);

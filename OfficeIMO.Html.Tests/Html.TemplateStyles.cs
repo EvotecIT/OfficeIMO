@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         public void AddHtml_WithDocumentStyles_UsesTemplateStylesWithoutDirectFormatting() {
             using WordDocument document = LoadTemplate();
             const string html = """
-                <style>p { font-family: Georgia; line-height: 2; } .note { color: #336699; }</style>
+                <style>p { font-family: Georgia; line-height: 2; } .note { font-weight: bold; font-size: 48pt; color: #336699; }</style>
                 <h1 style="font-family: 'Comic Sans MS'; color: red">Report</h1>
                 <p class="note" style="font-size: 20px; margin-left: 30px; text-align: center">Body <strong>bold</strong> text</p>
                 <div style="background: yellow">Loose text</div>
@@ -98,6 +98,35 @@ namespace OfficeIMO.Tests {
             Assert.Null(detail.IndentationBefore);
             Assert.Equal("HtmlDefinitionTerm", document.Paragraphs.Single(paragraph => paragraph.Text == "Plain").StyleId);
             Assert.Equal(720, checked((int?)document.Paragraphs.Single(paragraph => paragraph.Text == "Plain detail").IndentationBefore?.ToTwips()));
+        }
+
+        [Fact]
+        public void AddHtml_KeepsCharacterStylesOutOfParagraphRoles() {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.AddCharacterStyle("CodeRun", "Quote");
+            if (!document.Styles.Contains("Hyperlink")) document.Styles.AddCharacterStyle("Hyperlink");
+
+            Assert.Throws<InvalidOperationException>(() =>
+                document.AddHtml("<p>Body</p>", new HtmlWordExportOptions { DefaultParagraphStyleId = "Hyperlink" }));
+            document.AddHtml("<blockquote><p>Quoted</p></blockquote>");
+
+            WordParagraph quoted = document.Paragraphs.Single(paragraph => paragraph.Text == "Quoted");
+            Assert.Null(quoted.StyleId);
+            Assert.Equal(720, checked((int?)quoted.IndentationBefore?.ToTwips()));
+        }
+
+        [Fact]
+        public void AddHtml_ClassMappedBlockquoteKeepsItsAuthoredMargin() {
+            using WordDocument document = WordDocument.Create();
+            var options = new HtmlWordExportOptions();
+            options.ClassStyles["pull"] = WordParagraphStyles.ListParagraph;
+
+            document.AddHtml("<blockquote class=\"pull\" style=\"margin-left: 36pt\"><p>Pulled</p></blockquote><blockquote class=\"pull\"><p>Plain</p></blockquote>", options);
+
+            WordParagraph pulled = document.Paragraphs.Single(paragraph => paragraph.Text == "Pulled");
+            Assert.Equal("ListParagraph", pulled.StyleId);
+            Assert.Equal(720, checked((int?)pulled.IndentationBefore?.ToTwips()));
+            Assert.Null(document.Paragraphs.Single(paragraph => paragraph.Text == "Plain").IndentationBefore);
         }
 
         [Fact]

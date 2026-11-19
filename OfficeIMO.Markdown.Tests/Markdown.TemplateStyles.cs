@@ -12,7 +12,9 @@ namespace OfficeIMO.Tests {
                 template.Styles.AddParagraphStyle("CorpsTexte", "Corps de texte").FontFamily = "Garamond";
                 template.Styles.Remove("Heading1");
                 template.Styles.AddParagraphStyle("Titre1", "heading 1").Bold = true;
-                template.Styles.AddParagraphStyle("Citation", "Quote").Italic = true;
+                WordStyle quoteStyle = template.Styles.AddParagraphStyle("Citation", "Quote");
+                quoteStyle.Italic = true;
+                quoteStyle.IndentationBefore = OfficeLength.Points(48);
                 template.AddParagraph("PLACEHOLDER").AddBookmark("Content");
                 template.Save();
             }
@@ -46,9 +48,14 @@ namespace OfficeIMO.Tests {
             Assert.Null(quoted.ParagraphProperties?.Indentation);
             Paragraph nested = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Nested");
             Assert.Equal("Citation", nested.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
-            Assert.Equal("720", nested.ParagraphProperties?.Indentation?.Left?.Value);
+            // A direct indent replaces the quote style's 48pt, so the nested level adds 36pt to it.
+            Assert.Equal("1680", nested.ParagraphProperties?.Indentation?.Left?.Value);
             Assert.NotEqual("CorpsTexte", StyleOf(paragraphs, "Item"));
             Assert.False(document.Styles.Contains("Heading1"));
+
+            string exported = document.ToMarkdown().ToMarkdown();
+            Assert.Contains("> Quoted", exported, StringComparison.Ordinal);
+            Assert.Contains("> > Nested", exported, StringComparison.Ordinal);
         }
 
         [Fact]

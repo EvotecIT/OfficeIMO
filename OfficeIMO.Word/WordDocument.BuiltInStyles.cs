@@ -18,7 +18,9 @@ public partial class WordDocument {
         }
         BuiltInStyleIndex index = GetBuiltInStyleIndex();
         if (index.IdByBuiltInId.TryGetValue(builtInStyleId, out string? styleId)) return styleId;
-        return index.NameById.ContainsKey(builtInStyleId) ? builtInStyleId : null;
+        // A definition under the English identifier counts only when it has the built-in style's type.
+        return index.Definitions.TryGetValue(builtInStyleId, out var definition) &&
+            WordBuiltInStyleNames.Classify(builtInStyleId, null, definition.Type) != null ? builtInStyleId : null;
     }
 
     /// <summary>
@@ -43,7 +45,7 @@ public partial class WordDocument {
     /// </summary>
     internal string UseStyleId(string styleId) {
         if (WordBuiltInStyleNames.IsBuiltInId(styleId) && GetUnparsedDefaultPackageStyles() == null &&
-            !GetBuiltInStyleIndex().NameById.ContainsKey(styleId)) {
+            !GetBuiltInStyleIndex().Definitions.ContainsKey(styleId)) {
             return UseBuiltInStyle(styleId);
         }
         EnsureStyleDefinition(styleId);
@@ -62,10 +64,26 @@ public partial class WordDocument {
             return WordBuiltInStyleNames.IsBuiltInId(styleId) ? styleId : null;
         }
         BuiltInStyleIndex index = GetBuiltInStyleIndex();
-        if (index.NameById.TryGetValue(styleId!, out string? name) && WordBuiltInStyleNames.GetId(name) is { } builtInId) {
-            return builtInId;
+        if (index.Definitions.TryGetValue(styleId!, out var definition)) {
+            return WordBuiltInStyleNames.Classify(styleId, definition.Name, definition.Type);
         }
         return WordBuiltInStyleNames.IsBuiltInId(styleId) ? styleId : null;
+    }
+
+    /// <summary>
+    /// Returns the left indentation, in twips, a paragraph style gives through its <c>w:basedOn</c> chain, or 0.
+    /// </summary>
+    internal int GetStyleIndentationBeforeTwips(string styleId) {
+        Styles? styles = _wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+        if (styles == null) return 0;
+        foreach (Style style in WordRunFormatting.EnumerateStyleChain(styles, styleId, StyleValues.Paragraph)) {
+            Indentation? indentation = style.StyleParagraphProperties?.Indentation;
+            string? left = indentation?.Left?.Value ?? indentation?.Start?.Value;
+            if (left != null && int.TryParse(left, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int twips)) {
+                return twips;
+            }
+        }
+        return 0;
     }
 
     /// <summary>Returns the heading level, 1 to 9, of a style identifier, through its built-in name; otherwise 0.</summary>
@@ -95,7 +113,7 @@ public partial class WordDocument {
         if (part != null && !part.IsRootElementLoaded) {
             if (index != null && ReferenceEquals(index.Source, part)) return index;
             if (WordStyleDefinitionsReader.TryRead(part) is { } streamed) {
-                index = new BuiltInStyleIndex(part, streamed.Styles.Select(style => (style.StyleId, style.Name)));
+                index = new BuiltInStyleIndex(part, streamed.Styles.Select(style => (style.StyleId, style.Name, style.Type)));
                 _builtInStyleIndex = index;
                 return index;
             }
@@ -103,20 +121,22 @@ public partial class WordDocument {
         Styles? styles = part?.Styles;
         // Adding, removing and renaming styles through OfficeIMO invalidates the index; a replaced part rebuilds it.
         if (index != null && ReferenceEquals(index.Source, styles)) return index;
-        index = new BuiltInStyleIndex(styles, styles?.Elements<Style>().Select(style => (style.StyleId?.Value, style.StyleName?.Val?.Value)));
+        index = new BuiltInStyleIndex(styles, styles?.Elements<Style>().Select(style =>
+            (style.StyleId?.Value, style.StyleName?.Val?.Value, WordBuiltInStyleNames.StyleType(style))));
         _builtInStyleIndex = index;
         return index;
     }
 
     private sealed class BuiltInStyleIndex {
-        internal BuiltInStyleIndex(object? source, IEnumerable<(string? Id, string? Name)>? styles) {
+        internal BuiltInStyleIndex(object? source, IEnumerable<(string? Id, string? Name, string? Type)>? styles) {
             Source = source;
             if (styles == null) return;
-            foreach ((string? id, string? name) in styles) {
-                if (string.IsNullOrEmpty(id) || NameById.ContainsKey(id!)) continue;
-                NameById.Add(id!, name);
-                // Word itself keeps the first definition of a name.
-                if (WordBuiltInStyleNames.GetId(name) is { } builtInId && !IdByBuiltInId.ContainsKey(builtInId)) {
+            foreach ((string? id, string? name, string? type) in styles) {
+                if (string.IsNullOrEmpty(id) || Definitions.ContainsKey(id!)) continue;
+                Definitions.Add(id!, (name, type));
+                // Word itself keeps the first definition of a name; a style of another type never stands in.
+                if (WordBuiltInStyleNames.GetId(name) is { } builtInId &&
+                    WordBuiltInStyleNames.Classify(id, name, type) == builtInId && !IdByBuiltInId.ContainsKey(builtInId)) {
                     IdByBuiltInId.Add(builtInId, id!);
                 }
             }
@@ -124,7 +144,7 @@ public partial class WordDocument {
 
         /// <summary>The style part read as XML, or the loaded styles DOM.</summary>
         internal object? Source { get; }
-        internal Dictionary<string, string?> NameById { get; } = new(StringComparer.Ordinal);
+        internal Dictionary<string, (string? Name, string? Type)> Definitions { get; } = new(StringComparer.Ordinal);
         internal Dictionary<string, string> IdByBuiltInId { get; } = new(StringComparer.Ordinal);
     }
 }

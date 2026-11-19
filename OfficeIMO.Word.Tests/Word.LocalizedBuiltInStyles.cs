@@ -77,6 +77,7 @@ namespace OfficeIMO.Tests {
 
             string markdown = document.ToMarkdown().ToMarkdown();
             Assert.Contains("# Overview", markdown, StringComparison.Ordinal);
+            Assert.Contains("> Quoted text", markdown, StringComparison.Ordinal);
             Assert.Contains("## Details", markdown, StringComparison.Ordinal);
 
             string html = document.ToHtml();
@@ -94,6 +95,60 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, Assert.Single(logical.Headings, heading => heading.Text.Contains("Overview")).Level);
             Assert.Equal(2, Assert.Single(logical.Headings, heading => heading.Text.Contains("Details")).Level);
             Assert.Contains(PdfInspector.Inspect(bytes).Outlines, outline => outline.Title == "Overview");
+        }
+
+        [Fact]
+        public void LocalizedNormalStyleKeepsTheDocumentDefaultBodyFontInHtml() {
+            using WordDocument document = WordDocument.Create();
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style normal = styles.Elements<Style>().Single(style => style.StyleId == "Normal");
+            normal.StyleId = "Standard";
+            normal.StyleRunProperties?.RemoveAllChildren<RunFonts>();
+            foreach (Style basedOnNormal in styles.Elements<Style>().Where(style => style.BasedOn?.Val == "Normal")) basedOnNormal.BasedOn!.Val = "Standard";
+            RunPropertiesBaseStyle defaults = styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!;
+            defaults.RemoveAllChildren<RunFonts>();
+            defaults.PrependChild(new RunFonts { Ascii = "Garamond", HighAnsi = "Garamond" });
+            document.InvalidateBuiltInStyleIndex();
+            document.AddParagraph("Body").SetStyleId("Standard");
+
+            Assert.Contains("--officeimo-font-body:", document.ToHtml(), StringComparison.Ordinal);
+            Assert.Contains("Garamond", document.ToHtml(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
+            using var stream = new MemoryStream();
+            using (WordDocument document = WordDocument.Create(stream)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 1);
+                document.AddParagraph("Overview").Style = WordParagraphStyles.Heading1;
+                toc.RefreshEntries();
+                document.Styles.AddParagraphStyle("TOC1_0", "toc 1_0");
+                foreach (ParagraphStyleId entryStyle in toc.SdtBlock.Descendants<ParagraphStyleId>().Where(style => style.Val == "TOC1")) {
+                    entryStyle.Val = "TOC1_0";
+                }
+                document.Save();
+            }
+            stream.Position = 0;
+            using WordDocument reloaded = WordDocument.Load(stream);
+
+            Assert.Contains(reloaded.TableOfContent!.SdtBlock.Descendants<ParagraphStyleId>(), style => style.Val == "TOC1_0");
+        }
+
+        [Fact]
+        public void MarkdownHeadingSlugsSkipHeadingsInsideTableCells() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 1);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Overview";
+            table.Rows[0].Cells[0].Paragraphs[0].Style = WordParagraphStyles.Heading1;
+            WordParagraph heading = document.AddParagraph("Overview");
+            heading.Style = WordParagraphStyles.Heading1;
+            heading.AddBookmark("BodyOverview");
+            document.AddParagraph("See ").AddHyperLink("overview", "BodyOverview");
+
+            string markdown = document.ToMarkdown().ToMarkdown();
+
+            Assert.Contains("(#overview)", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("(#overview-1)", markdown, StringComparison.Ordinal);
         }
 
         [Theory]

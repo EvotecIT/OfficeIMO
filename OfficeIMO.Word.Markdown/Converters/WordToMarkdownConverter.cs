@@ -51,6 +51,8 @@ namespace OfficeIMO.Word.Markdown {
             foreach (var paragraph in body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
                 string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
                 if (document.GetHeadingLevel(styleId) == 0) continue;
+                // Headings inside table cells are not Markdown headings, so they take no slug.
+                if (paragraph.Ancestors<DocumentFormat.OpenXml.Wordprocessing.TableCell>().Any()) continue;
                 string text = string.Concat(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(item => item.Text)).Trim();
                 if (text.Length == 0) continue;
                 string slug = MarkdownSlug.Generate(text, MarkdownHeadingIdentifierStyle.OfficeIMO, registry);

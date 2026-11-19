@@ -337,8 +337,10 @@ namespace OfficeIMO.Word.Html {
                                     styled = true;
                                 }
                                 // A quote or class style owns the indent; otherwise a direct indent marks the
-                                // quotation, which the block quote's CSS margins replace.
-                                if (!styled) {
+                                // quotation. Authored CSS margins apply afterwards in either case.
+                                bool classStyled = ApplyClassStyle(element, para, options);
+                                string? classStyleId = classStyled ? para.StyleId : null;
+                                if (!styled && !classStyled) {
                                     para.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
                                 }
                                 HtmlSemanticMetadata.MarkBlockquote(para);
@@ -346,11 +348,9 @@ namespace OfficeIMO.Word.Html {
                                     para,
                                     element,
                                     applyVerticalBoxSpacing: false);
-                                if (ApplyClassStyle(element, para, options) && !styled && para.IndentationBefore?.ToTwips() == 720) {
-                                    para.IndentationBefore = null;
-                                    if (para._paragraph.ParagraphProperties?.Indentation is { HasAttributes: false } emptyIndentation) {
-                                        emptyIndentation.Remove();
-                                    }
+                                // The class style outranks a style the CSS heuristics infer.
+                                if (classStyleId != null && !string.Equals(para.StyleId, classStyleId, StringComparison.Ordinal)) {
+                                    para.SetStyleId(classStyleId);
                                 }
                                 ApplyBidiIfPresent(element, para);
                                 if (para == firstPara) {

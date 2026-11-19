@@ -210,7 +210,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             foreach (var cls in (classAttr ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                if (options.ClassStyles.TryGetValue(cls, out var style) || _cssClassStyles.TryGetValue(cls, out style)) {
+                // Stylesheet mappings are inferred from CSS formatting, which IgnoreCssFormatting leaves to the document.
+                if (options.ClassStyles.TryGetValue(cls, out var style) ||
+                    !options.IgnoreCssFormatting && _cssClassStyles.TryGetValue(cls, out style)) {
                     paragraph.Style = style;
                     return true;
                 }

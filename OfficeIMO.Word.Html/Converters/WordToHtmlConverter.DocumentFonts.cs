@@ -46,10 +46,13 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
+            // A localized template stores Normal under a translated identifier, such as Standard.
+            string normalStyleId = document.ResolveBuiltInStyleId("Normal");
+            bool isNormal = string.Equals(styleId, normalStyleId, StringComparison.Ordinal);
             foreach (Style style in styles.EnumerateChain(styleId, StyleValues.Paragraph)) {
                 if (!string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal) &&
-                    !string.Equals(styleId, "Normal", StringComparison.Ordinal) &&
-                    string.Equals(style.StyleId?.Value, "Normal", StringComparison.Ordinal)) {
+                    !isNormal &&
+                    string.Equals(style.StyleId?.Value, normalStyleId, StringComparison.Ordinal)) {
                     // A heading that names no font of its own uses the body font.
                     return null;
                 }
@@ -59,7 +62,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (!string.Equals(styleId, "Normal", StringComparison.Ordinal)) {
+            if (!isNormal) {
                 return null;
             }
 

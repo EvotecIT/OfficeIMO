@@ -18,7 +18,11 @@ public sealed partial class WordStyleCollection {
         string? styleId = FindParagraphStyleId(styleIdOrName);
         if (styleId != null) return styleId;
         // A localized template stores built-in styles under translated identifiers.
-        if (WordBuiltInStyleNames.IsBuiltInId(styleIdOrName) && _document.FindBuiltInStyleId(styleIdOrName) is { } localized) return localized;
+        if (WordBuiltInStyleNames.IsBuiltInId(styleIdOrName) &&
+            WordBuiltInStyleNames.GetStyleType(styleIdOrName) == "paragraph" &&
+            _document.FindBuiltInStyleId(styleIdOrName) is { } localized) return localized;
+        // The library definition is added only where no style of another type already holds the identifier.
+        if (Get(styleIdOrName) != null) return null;
         foreach (WordParagraphStyles style in global::OfficeIMO.Internal.EnumCompat.GetValues<WordParagraphStyles>()) {
             if (style != WordParagraphStyles.Custom && string.Equals(style.ToStringStyle(), styleIdOrName, StringComparison.Ordinal)) {
                 return styleIdOrName;

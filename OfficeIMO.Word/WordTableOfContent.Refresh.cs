@@ -402,7 +402,9 @@ namespace OfficeIMO.Word {
                 instructions.Any(text => !text.StartsWith("TOC", StringComparison.OrdinalIgnoreCase) ||
                     Regex.IsMatch(text, @"\\[cfl]\b", RegexOptions.IgnoreCase))) return;
             bool hasEntries = _sdtBlock.SdtContentBlock.Descendants<ParagraphStyleId>()
-                .Any(style => WordBuiltInStyleNames.GetTocLevel(_document.GetBuiltInStyleId(style.Val?.Value)) > 0);
+                .Any(style => style.Val?.Value is string id &&
+                              (WordBuiltInStyleNames.GetTocLevel(_document.GetBuiltInStyleId(id)) > 0 ||
+                               id.StartsWith("TOC", StringComparison.Ordinal) && id.Length > 3 && char.IsDigit(id[3])));
             if (hasEntries && !_entriesWrittenOnSave) return;
             RefreshEntries();
             _entriesWrittenOnSave = true;
