@@ -165,6 +165,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AddHtml_ContainerMarginsAddToTheStyleIndent() {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.AddParagraphStyle("Note", "Note").IndentationBefore = OfficeLength.Points(18);
+
+            document.AddHtml("<div style=\"margin-left: 15pt\"><p class=\"Note\">Inside</p></div>",
+                new HtmlWordExportOptions { PreferDocumentStyles = true, DefaultParagraphStyleId = "Note" });
+
+            Assert.Equal(660, checked((int?)document.Paragraphs.Single(paragraph => paragraph.Text == "Inside").IndentationBefore?.ToTwips()));
+        }
+
+        [Fact]
         public void AddHtml_ClassMappedBlockquoteKeepsItsAuthoredMargin() {
             using WordDocument document = WordDocument.Create();
             var options = new HtmlWordExportOptions();

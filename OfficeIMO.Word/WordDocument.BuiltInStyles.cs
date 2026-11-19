@@ -72,11 +72,14 @@ public partial class WordDocument {
 
     /// <summary>
     /// Returns the left indentation, in twips, a paragraph style gives through its <c>w:basedOn</c> chain and then the
-    /// document's default paragraph properties, or 0.
+    /// document's default paragraph properties, or 0. No identifier, or one the document does not define, means the
+    /// default paragraph style, as Word reads it.
     /// </summary>
-    internal int GetStyleIndentationBeforeTwips(string styleId) {
+    internal int GetStyleIndentationBeforeTwips(string? styleId) {
         WordStyleCatalog catalog = WordStyleCatalog.For(this);
-        foreach (Style style in catalog.EnumerateChain(styleId, StyleValues.Paragraph)) {
+        IEnumerable<Style> chain = catalog.EnumerateChain(styleId, StyleValues.Paragraph);
+        if (!string.IsNullOrEmpty(styleId) && !chain.Any()) chain = catalog.EnumerateChain(null, StyleValues.Paragraph);
+        foreach (Style style in chain) {
             if (TryReadLeftIndent(style.StyleParagraphProperties?.Indentation, out int twips)) return twips;
         }
         return TryReadLeftIndent(catalog.DocumentDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.Indentation, out int defaultTwips)
@@ -108,6 +111,17 @@ public partial class WordDocument {
                 reference.Val = localized;
             }
         }
+    }
+
+    /// <summary>
+    /// Returns the left indentation, in twips, a paragraph shows before numbering: its direct indent, otherwise the one its
+    /// paragraph style gives. Indents added for quotes, lists and containers go on top of this, because a direct indent
+    /// replaces the style's. Numbered paragraphs take their indent from the list, so they start from their direct indent.
+    /// </summary>
+    internal int GetEffectiveIndentationBeforeTwips(WordParagraph paragraph) {
+        if (paragraph.IndentationBefore is { } direct) return checked((int)direct.ToTwips());
+        if (paragraph._paragraph.ParagraphProperties?.NumberingProperties != null) return 0;
+        return GetStyleIndentationBeforeTwips(paragraph.StyleId);
     }
 
     /// <summary>Drops the built-in style index after a style is added, removed or renamed.</summary>

@@ -232,7 +232,7 @@ namespace OfficeIMO.Word.Markdown {
         private static int GetBlockquoteDepth(WordParagraph paragraph) {
             int direct = paragraph.IndentationBefore.HasValue ? checked((int)paragraph.IndentationBefore.Value.ToTwips()) : 0;
             string? styleId = paragraph.StyleId;
-            int styleIndent = styleId != null ? paragraph._document?.GetStyleIndentationBeforeTwips(styleId) ?? 0 : 0;
+            int styleIndent = paragraph._document?.GetStyleIndentationBeforeTwips(styleId) ?? 0;
             int nested = paragraph.IndentationBefore.HasValue && direct > styleIndent ? GetBoundedBlockquoteDepth(direct - styleIndent) : 0;
             if (paragraph.BuiltInStyleId is "Quote" or "IntenseQuote") {
                 return Math.Min(MaximumBlockquoteDepth, 1 + nested);

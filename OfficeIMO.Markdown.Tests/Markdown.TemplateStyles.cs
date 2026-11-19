@@ -95,6 +95,40 @@ namespace OfficeIMO.Tests {
             Assert.Contains("> > Inner", exported, StringComparison.Ordinal);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MarkdownIntoTemplate_QuotesOnAnIndentedBodyStyleRoundTrip(bool preferDocumentStyles) {
+            using var stream = new MemoryStream();
+            using (WordDocument template = WordDocument.Create(stream)) {
+                template.Styles.AddParagraphStyle("CorpsTexte", "Corps de texte").IndentationBefore = OfficeLength.Points(18);
+                template.AddParagraph("PLACEHOLDER").AddBookmark("Content");
+                template.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            var options = new MarkdownWordExportOptions {
+                Template = document, BookmarkName = "Content", PreferDocumentStyles = preferDocumentStyles, DefaultParagraphStyleId = "CorpsTexte"
+            };
+
+            OfficeIMO.Markdown.MarkdownDocument.Parse("Body\n\n> Outer\n>\n> > Inner", options.CreateReaderOptions()).ToWord(options);
+
+            List<Paragraph> paragraphs = document.BodyRoot.Elements<Paragraph>().ToList();
+            Paragraph body = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Body");
+            Paragraph outer = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Outer");
+            Paragraph inner = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Inner");
+            Assert.Null(body.ParagraphProperties?.Indentation);
+            Assert.Equal("CorpsTexte", outer.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            // The style's 360 twips stay under each 720-twip quote level.
+            Assert.Equal("1080", outer.ParagraphProperties?.Indentation?.Left?.Value);
+            Assert.Equal("1800", inner.ParagraphProperties?.Indentation?.Left?.Value);
+            string exported = document.ToMarkdown().ToMarkdown();
+            Assert.DoesNotContain("> Body", exported, StringComparison.Ordinal);
+            Assert.Contains("> Outer", exported, StringComparison.Ordinal);
+            Assert.DoesNotContain("> > Outer", exported, StringComparison.Ordinal);
+            Assert.Contains("> > Inner", exported, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void MarkdownToWord_WithUnknownDefaultParagraphStyle_Throws() {
             var options = new MarkdownWordExportOptions { DefaultParagraphStyleId = "MissingBody" };

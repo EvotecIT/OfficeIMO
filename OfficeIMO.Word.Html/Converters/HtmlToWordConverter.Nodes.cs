@@ -307,9 +307,11 @@ namespace OfficeIMO.Word.Html {
                             AddBookmarkIfPresent(element, paragraph);
                             // The semantic style id usually has no definition, so the indent shows the description.
                             // A class style, or a document definition of the semantic style, owns its own layout.
+                            // The description indent goes on top of the indent the paragraph has from its style.
+                            int descriptionIndent = doc.GetStyleIndentationBeforeTwips(paragraph.StyleId) + 720;
                             var currentIndent = checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0;
-                            if (!classStyled && !doc.StyleExists(HtmlSemanticStyleIds.DefinitionDescription) && currentIndent < 720) {
-                                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                            if (!classStyled && !doc.StyleExists(HtmlSemanticStyleIds.DefinitionDescription) && currentIndent < descriptionIndent) {
+                                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(descriptionIndent / 20D);
                             }
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
@@ -346,7 +348,7 @@ namespace OfficeIMO.Word.Html {
                                 bool classStyled = ApplyClassStyle(element, para, options);
                                 string? classStyleId = classStyled ? para.StyleId : null;
                                 if (para.BuiltInStyleId is not ("Quote" or "IntenseQuote")) {
-                                    int styleIndent = para.StyleId != null ? doc.GetStyleIndentationBeforeTwips(para.StyleId) : 0;
+                                    int styleIndent = doc.GetStyleIndentationBeforeTwips(para.StyleId);
                                     para.IndentationBefore = global::OfficeIMO.OfficeLength.Points((styleIndent + 720) / 20D);
                                 }
                                 HtmlSemanticMetadata.MarkBlockquote(para);

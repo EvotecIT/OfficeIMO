@@ -201,8 +201,10 @@ namespace OfficeIMO.Word.Markdown {
 
             private void ApplyCodeBlockParagraphFormatting(WordParagraph paragraph) {
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
-                if (_listLevel > 0)
-                    paragraph.IndentationBefore = (paragraph.IndentationBefore ?? OfficeLength.Zero) + OfficeLength.Points(_listLevel * IndentTwipsPerLevel / 20D);
+                if (_listLevel > 0) {
+                    int baseIndent = _document.GetEffectiveIndentationBeforeTwips(paragraph);
+                    paragraph.IndentationBefore = OfficeLength.Points((baseIndent + _listLevel * IndentTwipsPerLevel) / 20D);
+                }
             }
 
             protected override void VisitTableBlock(Omd.TableBlock block) =>
