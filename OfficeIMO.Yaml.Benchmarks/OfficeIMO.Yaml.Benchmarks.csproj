@@ -27,4 +27,8 @@
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
+  </ItemGroup>
+
 </Project>

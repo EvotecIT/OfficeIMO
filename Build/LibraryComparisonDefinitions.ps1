@@ -508,6 +508,9 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
                     foreach ($engine in @('YamlDotNet', 'SharpYaml', 'OneYaml', 'OfficeIMOYaml')) {
+                        # SharpYaml writes %TAG directives before each later document without the "..." end marker
+                        # YAML requires there, so its multi-document output does not parse in another reader.
+                        if ($engine -eq 'SharpYaml' -and $workload -in @('KubernetesStream', 'DeepNesting', 'ManySmallFiles')) { continue }
                         "$engine|Workload=$workload"
                     }
                 }
@@ -527,6 +530,9 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
                     foreach ($engine in @('YamlDotNet', 'SharpYaml', 'OneYaml', 'OfficeIMOYaml')) {
+                        # SharpYaml writes %TAG directives before each later document without the "..." end marker
+                        # YAML requires there, so its multi-document output does not parse in another reader.
+                        if ($engine -eq 'SharpYaml' -and $workload -in @('KubernetesStream', 'DeepNesting', 'ManySmallFiles')) { continue }
                         "$engine|Workload=$workload"
                     }
                 }
@@ -546,6 +552,9 @@ function Get-LibraryComparisonDefinitions {
             ExpectedCases = @(
                 foreach ($workload in @('SmallConfig', 'KubernetesStream', 'DeepNesting', 'BlockScalars', 'FlowHeavy', 'AnchorHeavy', 'ManySmallFiles')) {
                     foreach ($engine in @('YamlDotNet', 'SharpYaml', 'OfficeIMOYaml')) {
+                        # SharpYaml writes %TAG directives before each later document without the "..." end marker
+                        # YAML requires there, so its multi-document output does not parse in another reader.
+                        if ($engine -eq 'SharpYaml' -and $workload -in @('KubernetesStream', 'DeepNesting', 'ManySmallFiles')) { continue }
                         "$engine|Workload=$workload"
                     }
                 }
