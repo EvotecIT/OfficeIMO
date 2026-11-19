@@ -22,14 +22,20 @@ public class MhtmlReadBenchmarks {
         using MimeMessage message = MhtmlComparisonCorpus.CreateMimeMessage(scale);
         _input = MhtmlComparisonCorpus.WriteMimeKit(message);
         MhtmlComparisonValidation.Validate(Scale);
+        // Both lanes read the exact measured archive: subject, root Content-ID and location, root HTML and its element
+        // count, and every decoded resource's type, ids, name, length and SHA-256 must match the corpus.
+        MhtmlComparisonValidation.RecordRead("OfficeIMO", scale, _input);
+        MhtmlComparisonValidation.RecordRead("MimeKit", scale, _input);
     }
 
     /// <summary>Loads the archive through OfficeIMO.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public MhtmlDocument OfficeIMO() => MhtmlComparisonValidation.LoadOffice(_input);
 
     /// <summary>Loads MIME through MimeKit, parses HTML through AngleSharp, and retains decoded resources.</summary>
     [Benchmark(Description = "MimeKit + AngleSharp")]
+    [BenchmarkCategory("library:MimeKit", "case:Default")]
     public object MimeKit() => MhtmlComparisonValidation.LoadMimeKit(_input);
 }
 
@@ -53,14 +59,20 @@ public class MhtmlWriteBenchmarks {
         _officeDocument = MhtmlComparisonCorpus.CreateOfficeDocument(scale);
         _mimeMessage = MhtmlComparisonCorpus.CreateMimeMessage(scale);
         MhtmlComparisonValidation.Validate(Scale);
+        // Each lane's archive from the prepared model is read back through OfficeIMO and through MimeKit and must
+        // match the corpus semantically (subject, root ids, root HTML, decoded resource bytes).
+        MhtmlComparisonValidation.RecordWrite("OfficeIMO", scale, OfficeIMO());
+        MhtmlComparisonValidation.RecordWrite("MimeKit", scale, MimeKit());
     }
 
     /// <summary>Serializes the prepared OfficeIMO archive.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => _officeDocument.ToBytes();
 
     /// <summary>Serializes the equivalent prepared MimeKit archive.</summary>
     [Benchmark(Description = "MimeKit")]
+    [BenchmarkCategory("library:MimeKit", "case:Default")]
     public byte[] MimeKit() => MhtmlComparisonCorpus.WriteMimeKit(_mimeMessage);
 
     /// <summary>Releases the prepared MimeKit model.</summary>

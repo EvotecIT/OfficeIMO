@@ -58,7 +58,7 @@ Every class runs these workloads:
 | `AnchorHeavy` | the corpus Airflow Compose file with anchors, aliases and merge keys |
 | `ManySmallFiles` | 1,000 small corpus files processed one by one |
 
-Generated inputs are built at run time and never committed. Setup validates each operation before timing, with the conformance adapters as an independent view: parsed events agree with the other library, loaded values agree with the other library, saved output loads to the same values, and emitted output parses back to the same events. A validation failure stops that benchmark instead of measuring broken work. `--validate-workloads` runs the same checks without timing.
+Generated inputs are built at run time and never committed. Setup validates each operation before timing, with the conformance adapters as an independent view: parsed events agree with the other library, loaded values agree with the other library, and saved, edited and emitted output is read back by the other library (YamlDotNet, or SharpYaml for YamlDotNet's own output), loading to the input's values or parsing to its events. SharpYaml writes `%TAG` directives before every later document without the `...` end marker YAML requires there, so its multi-document output (`KubernetesStream`, `DeepNesting`, `ManySmallFiles`) fails that check in its load-and-save, edit-and-save and emit lanes and is not timed. In the load class only `OfficeIMOYamlWithValues` counts as OfficeIMO.Yaml's validated result, because `OfficeIMOYaml` reads scalar values on demand. A validation failure stops that benchmark instead of measuring broken work. `--validate-workloads` runs the same checks without timing.
 
 Compare rows within one class and workload. Ratios use YamlDotNet as the baseline; allocation columns come from the memory diagnoser. Runs depend on the host, so keep them as opt-in evidence rather than pull-request gates.
 
@@ -80,9 +80,10 @@ Setup checks every lane before timing:
 
 - each library's output reads back with OfficeIMO.Yaml into the workload's objects;
 - each library reads OfficeIMO.Yaml's output into the same objects;
-- objects are compared through OfficeIMO.Yaml's deterministic output.
+- objects are compared through OfficeIMO.Yaml's deterministic output;
+- each measured lane is also checked on its own against the source objects, compared as System.Text.Json writes them: serializer output is read back by another library (YamlDotNet for OfficeIMO.Yaml's output, OfficeIMO.Yaml for the others), and each deserializer's result is compared directly.
 
-`--validate-workloads` runs the same checks.
+`--validate-workloads` runs the first three checks.
 
 On a busy machine, separate BenchmarkDotNet processes see different load. As a cross-check, `--serializer-timings` times every lane in one process:
 

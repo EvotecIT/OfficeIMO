@@ -40,8 +40,12 @@ public abstract class CsvWriteBenchmarkBase {
         PrepareCompetitors();
         _stream = new MemoryStream();
         byte[] reference = Capture(nameof(OfficeIMO_DataReaderUtf8), OfficeIMO_DataReaderUtf8);
-        CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO_DataReaderUtf8), Utf8NoBom.GetString(reference),
-            Source.Headers, Source.Rows.Length, expectedTextRows: null, expectedObjectRows: Source.Rows);
+        string referenceDetail = $"Shape={Shape}; OfficeIMO.CSV and Sylvan.Data.Csv read back all {Source.Rows.Length} rows x {Source.Headers.Length} values";
+        CsvBenchmarkOutputValidator.Record(nameof(OfficeIMO_DataReaderUtf8), referenceDetail, () => {
+            CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO_DataReaderUtf8), Utf8NoBom.GetString(reference),
+                Source.Headers, Source.Rows.Length, expectedTextRows: null, expectedObjectRows: Source.Rows);
+            return true;
+        });
         _stream = new MemoryStream(reference.Length);
         _textCapacity = Utf8NoBom.GetCharCount(reference);
         IEnumerable<(string Name, Func<int> Write)> office = [
@@ -54,8 +58,12 @@ public abstract class CsvWriteBenchmarkBase {
                 int index = output.AsSpan().CommonPrefixLength(reference);
                 string Around(byte[] bytes) => Utf8NoBom.GetString(bytes, Math.Max(0, index - 40), Math.Min(80, bytes.Length - Math.Max(0, index - 40)))
                     .Replace("\r", "\\r").Replace("\n", "\\n");
-                throw new InvalidOperationException($"{name} ({Shape}) differs from the reference at byte {index}: '{Around(output)}' vs '{Around(reference)}'.");
+                string message = $"{name} ({Shape}) differs from the reference at byte {index}: '{Around(output)}' vs '{Around(reference)}'.";
+                CsvBenchmarkOutputValidator.RecordFailed(name, message);
+                throw new InvalidOperationException(message);
             }
+
+            CsvBenchmarkOutputValidator.RecordPassed(name, $"Shape={Shape}; {output.Length} bytes identical to the validated OfficeIMO_DataReaderUtf8 output");
         }
     }
 
@@ -66,6 +74,7 @@ public abstract class CsvWriteBenchmarkBase {
     protected abstract IEnumerable<(string Name, Func<int> Write)> CompetitorLanes();
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ObjectsUtf8")]
     public int OfficeIMO_ObjectsUtf8() {
         using (CsvRowWriter csv = CsvRowWriter.CreateStream(ResetStream(), OfficeOptions, leaveOpen: true)) {
             foreach (ICsvWriteRecord record in Source.Records) csv.WriteObject(record);
@@ -74,6 +83,7 @@ public abstract class CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ObjectsText")]
     public int OfficeIMO_ObjectsText() {
         StringWriter writer = NewTextWriter();
         using (var csv = new CsvRowWriter(writer, OfficeOptions, leaveOpen: true)) {
@@ -84,12 +94,14 @@ public abstract class CsvWriteBenchmarkBase {
 
     /// <summary>OfficeIMO takes the table itself; the other libraries read it through its data reader, which is how they accept a table.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:DataTableUtf8")]
     public int OfficeIMO_DataTableUtf8() {
         CsvDocument.WriteDataTable(ResetStream(), Source.Table, OfficeOptions, leaveOpen: true);
         return CompleteUtf8();
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:DataTableText")]
     public int OfficeIMO_DataTableText() {
         StringWriter writer = NewTextWriter();
         CsvDocument.WriteDataTable(writer, Source.Table, OfficeOptions);
@@ -97,6 +109,7 @@ public abstract class CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:DataReaderUtf8")]
     public int OfficeIMO_DataReaderUtf8() {
         using BenchmarkArrayDataReader reader = NewDataReader();
         CsvDocument.WriteDataReader(ResetStream(), reader, OfficeOptions, leaveOpen: true);
@@ -104,6 +117,7 @@ public abstract class CsvWriteBenchmarkBase {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:DataReaderText")]
     public int OfficeIMO_DataReaderText() {
         StringWriter writer = NewTextWriter();
         using BenchmarkArrayDataReader reader = NewDataReader();

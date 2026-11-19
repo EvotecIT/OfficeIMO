@@ -690,3 +690,61 @@ static OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.ForProfile(OfficeIMO.
 *REMOVED*OfficeIMO.PowerPoint.PowerPointDocument.SignatureMutationPolicy.set -> void
 OfficeIMO.PowerPoint.PowerPointSaveOptions.SignatureMutationPolicy.get -> OfficeIMO.OfficeSignatureMutationPolicy
 OfficeIMO.PowerPoint.PowerPointSaveOptions.SignatureMutationPolicy.set -> void
+OfficeIMO.PowerPoint.PowerPointImageReference
+OfficeIMO.PowerPoint.PowerPointImageReference.ContentType.get -> string?
+OfficeIMO.PowerPoint.PowerPointImageReference.ExternalUri.get -> System.Uri?
+OfficeIMO.PowerPoint.PowerPointImageReference.PartUri.get -> System.Uri?
+OfficeIMO.PowerPoint.PowerPointImageReference.RelationshipId.get -> string!
+OfficeIMO.PowerPoint.PowerPointInlineContent
+OfficeIMO.PowerPoint.PowerPointInlineContent.Hyperlink.get -> System.Uri?
+OfficeIMO.PowerPoint.PowerPointInlineContent.Kind.get -> OfficeIMO.PowerPoint.PowerPointParagraphInlineKind
+OfficeIMO.PowerPoint.PowerPointInlineContent.Text.get -> string!
+OfficeIMO.PowerPoint.PowerPointParagraphContent
+OfficeIMO.PowerPoint.PowerPointParagraphContent.BulletCharacter.get -> string?
+OfficeIMO.PowerPoint.PowerPointParagraphContent.Inlines.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointInlineContent!>!
+OfficeIMO.PowerPoint.PowerPointParagraphContent.IsNumbered.get -> bool
+OfficeIMO.PowerPoint.PowerPointParagraphContent.Level.get -> int?
+OfficeIMO.PowerPoint.PowerPointParagraphContent.NumberingScheme.get -> OfficeIMO.PowerPoint.PowerPointNumberingScheme?
+OfficeIMO.PowerPoint.PowerPointParagraphContent.NumberingStartAt.get -> int?
+OfficeIMO.PowerPoint.PowerPointParagraphContent.Text.get -> string!
+OfficeIMO.PowerPoint.PowerPointShapeContent
+OfficeIMO.PowerPoint.PowerPointShapeContent.AltText.get -> string?
+OfficeIMO.PowerPoint.PowerPointShapeContent.Depth.get -> int
+OfficeIMO.PowerPoint.PowerPointShapeContent.Hidden.get -> bool
+OfficeIMO.PowerPoint.PowerPointShapeContent.Id.get -> uint?
+OfficeIMO.PowerPoint.PowerPointShapeContent.Image.get -> OfficeIMO.PowerPoint.PowerPointImageReference?
+OfficeIMO.PowerPoint.PowerPointShapeContent.IsTitle.get -> bool
+OfficeIMO.PowerPoint.PowerPointShapeContent.IsVisible.get -> bool
+OfficeIMO.PowerPoint.PowerPointShapeContent.Kind.get -> OfficeIMO.PowerPoint.PowerPointShapeContentType
+OfficeIMO.PowerPoint.PowerPointShapeContent.Name.get -> string?
+OfficeIMO.PowerPoint.PowerPointShapeContent.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraphContent!>!
+OfficeIMO.PowerPoint.PowerPointShapeContent.PlaceholderType.get -> OfficeIMO.PowerPoint.PowerPointPlaceholderType?
+OfficeIMO.PowerPoint.PowerPointShapeContent.Table.get -> OfficeIMO.PowerPoint.PowerPointTableContent?
+OfficeIMO.PowerPoint.PowerPointShapeContent.Text.get -> string!
+OfficeIMO.PowerPoint.PowerPointSlideContent
+OfficeIMO.PowerPoint.PowerPointSlideContent.Hidden.get -> bool
+OfficeIMO.PowerPoint.PowerPointSlideContent.Images.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointImageReference!>!
+OfficeIMO.PowerPoint.PowerPointSlideContent.Notes.get -> string?
+OfficeIMO.PowerPoint.PowerPointSlideContent.Number.get -> int
+OfficeIMO.PowerPoint.PowerPointSlideContent.Shapes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointShapeContent!>!
+OfficeIMO.PowerPoint.PowerPointSlideContent.Tables.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointTableContent!>!
+OfficeIMO.PowerPoint.PowerPointSlideContent.Title.get -> string?
+OfficeIMO.PowerPoint.PowerPointSlideReader
+OfficeIMO.PowerPoint.PowerPointSlideReader.Dispose() -> void
+OfficeIMO.PowerPoint.PowerPointSlideReader.ReadSlides(bool includeNotes = true, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointSlideContent!>!
+OfficeIMO.PowerPoint.PowerPointSlideReader.SlideCount.get -> int
+OfficeIMO.PowerPoint.PowerPointTableCellContent
+OfficeIMO.PowerPoint.PowerPointTableCellContent.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraphContent!>!
+OfficeIMO.PowerPoint.PowerPointTableCellContent.Text.get -> string!
+OfficeIMO.PowerPoint.PowerPointTableContent
+OfficeIMO.PowerPoint.PowerPointTableContent.ColumnCount.get -> int
+OfficeIMO.PowerPoint.PowerPointTableContent.HeaderRow.get -> bool
+OfficeIMO.PowerPoint.PowerPointTableContent.Name.get -> string?
+OfficeIMO.PowerPoint.PowerPointTableContent.Rows.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTableRowContent!>!
+OfficeIMO.PowerPoint.PowerPointTableRowContent
+OfficeIMO.PowerPoint.PowerPointTableRowContent.Cells.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTableCellContent!>!
+static OfficeIMO.PowerPoint.PowerPointSlideReader.Open(System.IO.Stream! stream) -> OfficeIMO.PowerPoint.PowerPointSlideReader!
+static OfficeIMO.PowerPoint.PowerPointSlideReader.Open(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointLoadOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.PowerPoint.PowerPointSlideReader!
+static OfficeIMO.PowerPoint.PowerPointSlideReader.Open(string! path) -> OfficeIMO.PowerPoint.PowerPointSlideReader!
+static OfficeIMO.PowerPoint.PowerPointSlideReader.Open(string! path, OfficeIMO.PowerPoint.PowerPointLoadOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.PowerPoint.PowerPointSlideReader!
+OfficeIMO.PowerPoint.PowerPointSlideReader.ExtractMarkdownChunks(OfficeIMO.PowerPoint.PowerPointExtractionExtensions.PowerPointExtractOptions? extract = null, OfficeIMO.PowerPoint.PowerPointExtractChunkingOptions? chunking = null, string? sourcePath = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointExtractChunk!>!

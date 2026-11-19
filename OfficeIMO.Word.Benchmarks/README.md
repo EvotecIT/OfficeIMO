@@ -156,11 +156,10 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- eviden
 
 The isolated runner records source commit and dirty-tree state together with
 elapsed time, allocation, retained heap, sampled managed peak, absolute process
-peak, input bytes, and output bytes. The current Windows result is documented
-in [`Docs/benchmarks/officeimo.word-openxml-2026-08-24.md`](../Docs/benchmarks/officeimo.word-openxml-2026-08-24.md).
-The [2026-09-22 structured-report cell-writing run](../Docs/benchmarks/officeimo.word-table-report-2026-09-22.md)
+peak, input bytes, and output bytes.
+The 2026-09-22 structured-report cell-writing run
 records a three-platform allocation reduction and its remaining timing limits.
-The [100-item format-depth budgets](../Docs/benchmarks/officeimo.word-format-depth-budgets-2026-09-22.md)
+The 100-item format-depth budgets
 set absolute elapsed, allocation, managed-peak, process-peak, and DOCX-size
 limits for paragraph creation, structured reports, and rich replacement. Run
 `evidence --repeat 3 --budget .\OfficeIMO.Word.Benchmarks\word-format-depth-budgets.json`

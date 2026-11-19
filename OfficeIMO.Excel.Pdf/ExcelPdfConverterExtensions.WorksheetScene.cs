@@ -500,13 +500,18 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
+                // Rotation and flips go to the canvas placement; the style carries only the source crop.
+                PdfCore.PdfImageStyle style = CreateConverterImageStyle();
+                style.SourceCrop = image.SourceCrop;
                 canvas.Image(
                     image.Bytes,
                     global::OfficeIMO.OfficeLength.Points(sceneX + imageX * scale),
                     global::OfficeIMO.OfficeLength.Points(sceneY + (y + image.OffsetYPoints) * scale),
                     global::OfficeIMO.OfficeLength.Points(image.WidthPoints * scale),
                     global::OfficeIMO.OfficeLength.Points(image.HeightPoints * scale),
-                    CreateConverterImageStyle(),
+                    style,
+                    linkUri: image.LinkUri,
+                    linkContents: image.LinkUri != null ? image.AlternativeText : null,
                     alternativeText: image.AlternativeText,
                     rotationAngle: -image.RotationDegrees,
                     horizontalFlip: image.HorizontalFlip,

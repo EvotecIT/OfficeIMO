@@ -198,7 +198,7 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filte
 
 On Windows, add `--affinityMasks` with masks derived from the current machine's
 cache topology. Keep each domain separate and retain outliers when background
-work can interrupt a run. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-text-2026-09-07.md)
+work can interrupt a run. The 2026-09-07 measurement
 records the long-note improvement and the limits of short-row timing on a busy PC.
 
 ## Write sources, shapes and sinks
@@ -259,7 +259,7 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filte
 To run only the larger mixed-field file workload, use
 `--filter "*CsvFileWriteBenchmarks.*MixedJson25K*"` with the same command.
 
-The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
+The 2026-09-08 measurement
 records the file workloads, repeated comparisons, and reader allocation analysis.
 
 ## Published comparison results

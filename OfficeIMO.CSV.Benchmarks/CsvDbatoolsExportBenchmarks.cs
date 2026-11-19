@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
 using CsvHelperWriter = CsvHelper.CsvWriter;
 using DataplatCsvDataReader = Dataplat.Dbatools.Csv.Reader.CsvDataReader;
@@ -94,6 +95,7 @@ public class CsvDbatoolsExportBenchmarks {
 
     /// <summary>OfficeIMO.CSV row writer streaming the typed reader, as Export-OfficeCsv configures it.</summary>
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:DataReader")]
     public long OfficeIMO_DataReader() {
         using (var writer = CsvRowWriter.CreateFile(_writePath, CreateOfficeOptions(), append: false, bufferSize: WriteBufferSize)) {
             writer.WriteDataReader(new ExportShapeDataReader(RowCount));
@@ -104,6 +106,7 @@ public class CsvDbatoolsExportBenchmarks {
 
     /// <summary>The same export with the default round-trip date text instead of the explicit format.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:DataReaderDefaultFormat")]
     public long OfficeIMO_DataReaderDefaultFormat() {
         CsvSaveOptions options = CreateOfficeOptions();
         options.DateTimeFormat = null;
@@ -116,6 +119,7 @@ public class CsvDbatoolsExportBenchmarks {
 
     /// <summary>The same export through a plain <see cref="IDataReader"/> wrapper, as PSWriteOffice passes it.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:PassThroughDataReader")]
     public long OfficeIMO_PassThroughDataReader() {
         using (var writer = CsvRowWriter.CreateFile(_writePath, CreateOfficeOptions(), append: false, bufferSize: WriteBufferSize)) {
             writer.WriteDataReader(new PassThroughDataReader(new ExportShapeDataReader(RowCount)));
@@ -126,6 +130,7 @@ public class CsvDbatoolsExportBenchmarks {
 
     /// <summary>Dataplat.Dbatools.Csv writer, the one dbatools' Export-DbaCsv uses.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:DataReader")]
     public long Dataplat_WriteFromReader() {
         var options = new DataplatCsvWriterOptions {
             WriteHeader = false,
@@ -143,6 +148,7 @@ public class CsvDbatoolsExportBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:DataReader")]
     public long Sylvan_DataReader() {
         var options = new SylvanCsvDataWriterOptions {
             WriteHeaders = false,
@@ -159,6 +165,7 @@ public class CsvDbatoolsExportBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:DataReader")]
     public long CsvHelper_DataReader() {
         var configuration = new CsvHelperConfiguration(CultureInfo.InvariantCulture) {
             HasHeaderRecord = false,
@@ -182,6 +189,7 @@ public class CsvDbatoolsExportBenchmarks {
 
 #if NET9_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:DataReader")]
     public long Sep_DataReader() {
         using (var csv = SepLib.New(',').Writer(options => options with { WriteHeader = false, Escape = true }).ToFile(_writePath)) {
             csv.Header.Add(Columns);
@@ -203,6 +211,7 @@ public class CsvDbatoolsExportBenchmarks {
 
     /// <summary>Typed import of the exported shape (with a header), consumed through GetValues as bulk copy does.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:TypedRead")]
     public long OfficeIMO_TypedRead() {
         using var reader = CsvDocument.OpenReader(_readPath, new CsvReaderOptions {
             Schema = _officeSchema,
@@ -213,6 +222,7 @@ public class CsvDbatoolsExportBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:TypedRead")]
     public long Dataplat_TypedRead() {
         using var reader = new DataplatCsvDataReader(_readPath, new DataplatCsvReaderOptions {
             HasHeaderRow = true,
@@ -258,7 +268,22 @@ public class CsvDbatoolsExportBenchmarks {
     private void SetupWrite(string lane, Func<long> write, string expectedDate = ExpectedDate) {
         Initialize();
         write();
-        ValidateExport(lane, _writePath, RowCount, expectedDate);
+        int separator = lane.IndexOf('_');
+        string library = lane.Substring(0, separator) switch {
+            "Dataplat" => "Dataplat.Dbatools.Csv",
+            "Sylvan" => "Sylvan.Data.Csv",
+            string name => name
+        };
+        // Dataplat's writer method has its own name; it performs the same data-reader export as the other lanes.
+        string caseName = lane == nameof(Dataplat_WriteFromReader) ? "DataReader" : lane.Substring(separator + 1);
+        string detail = $"{lane}: RowCount={RowCount}; every exported row parsed and compared (Id, DisplayName, Score, CreatedUtc)";
+        try {
+            ValidateExport(lane, _writePath, RowCount, expectedDate);
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, caseName);
+            throw;
+        }
+        BenchmarkOutputValidationLog.Passed(library, detail, caseName);
     }
 
     /// <summary>Applies the DbaClientX export benchmark's file check to every row.</summary>

@@ -45,8 +45,9 @@ public class ExcelOrderedParallelComparisonBenchmarks {
                 ExcelReaderGeneratedBenchmarks.CreateRecord(index, EscapedNames));
         _validate = true;
         try {
-            OfficeIMO_Ordered();
-            ExcelReaderNet_Ordered().GetAwaiter().GetResult();
+            string detail = $"Format={Format}; RequestedDop={RequestedDop}; EscapedNames={EscapedNames}; InferSchema={InferSchema}; every row checked in order";
+            ExcelOutputValidation.Check("OfficeIMO", "Ordered", detail, () => OfficeIMO_Ordered());
+            ExcelOutputValidation.Check("ExcelReader.NET", "Ordered", detail, () => ExcelReaderNet_Ordered().GetAwaiter().GetResult());
         } catch { Cleanup(); throw; }
         finally { _validate = false; }
     }
@@ -55,6 +56,7 @@ public class ExcelOrderedParallelComparisonBenchmarks {
     public void Cleanup() => _fixture?.Cleanup();
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Ordered")]
     public long OfficeIMO_Ordered() {
         using var reader = ExcelDocument.OpenReader(_path, new ExcelReaderOptions { InferSchema = InferSchema });
         long checksum = 0;
@@ -67,6 +69,7 @@ public class ExcelOrderedParallelComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Ordered")]
     public async Task<long> ExcelReaderNet_Ordered() {
         using IExcelWorkbook workbook = Format switch {
             ExcelFileFormat.Xlsx => ExcelReaderApi.FromXlsxFile(_path),

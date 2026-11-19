@@ -13,7 +13,7 @@ public partial class ExcelDataReaderWriteBenchmarks {
 
     /// <summary>Streams the same reader through OneDocument's forward-only XLSX writer.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Spreadsheets", "case:Default")]
     public int OneDocument()
         => ExcelLibraryComparisonRunner.OneDocumentWriteDataReaderPlainBytes(_table).Length;
 }

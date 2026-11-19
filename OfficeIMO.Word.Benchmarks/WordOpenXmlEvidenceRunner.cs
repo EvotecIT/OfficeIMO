@@ -169,16 +169,18 @@ internal static class WordOpenXmlEvidenceRunner {
         switch (workload) {
             case "CreateParagraph": {
                 var benchmark = new WordCreateParagraphComparisonBenchmarks { ItemCount = itemCount };
+                WordOpenXmlEvidencePackage? package = office ? null : WordOpenXmlEvidencePackage.Capture(benchmark.OfficeIMO());
                 return new(
-                    () => office ? benchmark.OfficeIMO() : WordOpenXmlEvidenceWorkloads.CreateParagraphs(itemCount),
+                    () => office ? benchmark.OfficeIMO() : WordOpenXmlEvidenceWorkloads.CreateParagraphs(itemCount, package!),
                     result => WordBenchmarkCorpus.ValidateParagraphDocument((byte[])result, itemCount),
                     _ => ((byte[])_).Length,
                     0);
             }
             case "CreateReport": {
                 var benchmark = new WordCreateReportComparisonBenchmarks { RowCount = itemCount };
+                WordOpenXmlEvidencePackage? package = office ? null : WordOpenXmlEvidencePackage.Capture(benchmark.OfficeIMO());
                 return new(
-                    () => office ? benchmark.OfficeIMO() : WordOpenXmlEvidenceWorkloads.CreateReport(itemCount),
+                    () => office ? benchmark.OfficeIMO() : WordOpenXmlEvidenceWorkloads.CreateReport(itemCount, package!),
                     result => WordBenchmarkCorpus.ValidateReportDocument(
                         (byte[])result, itemCount, requireOfficeCompatibleDefaults: true),
                     result => ((byte[])result).Length,

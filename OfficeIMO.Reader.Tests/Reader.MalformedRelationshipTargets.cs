@@ -27,6 +27,12 @@ public sealed class ReaderMalformedRelationshipTargetTests {
             new ReaderOptions { Projection = projection });
 
         Assert.Contains("Contact desk", result.GetText(), StringComparison.Ordinal);
+        if (extension == "pptx" && projection == ReaderProjection.Text) {
+            // The slide reader opens packages without the repair step, so a target the runtime cannot parse sends
+            // the read to the presentation model, which repairs it.
+            bool parses = Uri.TryCreate(MalformedTarget, UriKind.RelativeOrAbsolute, out _);
+            Assert.Equal(parses, result.CapabilitiesUsed.Contains("officeimo.reader.powerpoint.streamed-text"));
+        }
         if (projection == ReaderProjection.Full) {
             Assert.Equal(MalformedTarget, Assert.Single(result.Links).Uri);
         }

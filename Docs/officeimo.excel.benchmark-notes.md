@@ -7,7 +7,7 @@ The benchmark harness is intended to measure representative Excel workloads acro
 Use `comparison-suite` for the broad proof run:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 20 --iterations 9
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\artifacts\benchmarks\comparison-current --row-set 2500,25000 --warmup 20 --iterations 9
 ```
 
 The release-style runner uses twenty warmups because isolated ARM64 reruns

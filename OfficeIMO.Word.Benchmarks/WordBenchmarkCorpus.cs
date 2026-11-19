@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Word.Benchmarks;
 
@@ -21,6 +22,20 @@ internal static class WordBenchmarkCorpus {
     internal static string ParagraphText(int index) =>
         "Paragraph " + index.ToString("D6", System.Globalization.CultureInfo.InvariantCulture) +
         " contains deterministic benchmark text.";
+
+    /// <summary>
+    /// Runs one lane's output check and records <paramref name="library"/>'s declared id and case as passed for the
+    /// benchmark evidence catalog, or as failed before rethrowing the mismatch.
+    /// </summary>
+    internal static void Check(string library, string caseName, string detail, Action validate) {
+        try {
+            validate();
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, caseName);
+            throw;
+        }
+        BenchmarkOutputValidationLog.Passed(library, detail, caseName);
+    }
 
     internal static string RecordId(int index) =>
         "Record " + index.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
@@ -107,7 +122,7 @@ internal static class WordBenchmarkCorpus {
         EnsureEqual("report summary", ReportSummary, ReadText(reportElements[1]));
 
         XElement table = reportElements[2];
-        if (requireOfficeCompatibleDefaults) ValidateOfficeCompatibleTableDefaults(table);
+        if (requireOfficeCompatibleDefaults) ValidateOfficeCompatibleTableDefaults(table, SectionTextWidthTwips(body));
         EnsureEqual("report table count", 1, body.Elements(WordNamespace + "tbl").Count());
         XElement[] rows = table.Elements(WordNamespace + "tr").ToArray();
         EnsureEqual("report table row count", rowCount + 1, rows.Length);
@@ -139,7 +154,30 @@ internal static class WordBenchmarkCorpus {
         if (requireOpenXmlSdkConformance) EnsureOpenXmlSdkConformance(payload);
     }
 
-    private static void ValidateOfficeCompatibleTableDefaults(XElement table) {
+    /// <summary>Text width of a section: page width less the left, right and gutter margins, in twips.</summary>
+    internal static int SectionTextWidthTwips(DocumentFormat.OpenXml.Wordprocessing.SectionProperties section) {
+        var size = section.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()
+            ?? throw new InvalidDataException("The section has no page size.");
+        var margin = section.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageMargin>()
+            ?? throw new InvalidDataException("The section has no page margins.");
+        return checked((int)(size.Width!.Value - margin.Left!.Value - margin.Right!.Value - (margin.Gutter?.Value ?? 0U)));
+    }
+
+    // The body's final section, as Word lays out a table added at the end of the document.
+    private static int SectionTextWidthTwips(XElement body) {
+        XElement section = body.Element(WordNamespace + "sectPr")
+            ?? throw new InvalidDataException("The document body has no final section.");
+        int Twips(XElement? element, string attribute) =>
+            int.Parse((string?)element?.Attribute(WordNamespace + attribute) ?? "0", System.Globalization.CultureInfo.InvariantCulture);
+        XElement? size = section.Element(WordNamespace + "pgSz");
+        XElement? margin = section.Element(WordNamespace + "pgMar");
+        if (size == null || margin == null) throw new InvalidDataException("The final section has no page size or margins.");
+        return Twips(size, "w") - Twips(margin, "left") - Twips(margin, "right") - Twips(margin, "gutter");
+    }
+
+    // A table created without explicit widths fills the section's text width with equal columns, as Word does.
+    private static void ValidateOfficeCompatibleTableDefaults(XElement table, int textWidthTwips) {
+        string columnWidth = (textWidthTwips / 2).ToString(System.Globalization.CultureInfo.InvariantCulture);
         XElement properties = table.Element(WordNamespace + "tblPr")
             ?? throw new InvalidDataException("The report table has no properties.");
         EnsureEqual(
@@ -160,14 +198,14 @@ internal static class WordBenchmarkCorpus {
             .ToArray() ?? [];
         EnsureEqual("report table grid column count", 2, gridColumns.Length);
         foreach (XElement column in gridColumns) {
-            EnsureEqual("report table grid column width", "2400", (string?)column.Attribute(WordNamespace + "w") ?? string.Empty);
+            EnsureEqual("report table grid column width", columnWidth, (string?)column.Attribute(WordNamespace + "w") ?? string.Empty);
         }
 
         foreach (XElement cell in table.Elements(WordNamespace + "tr").SelectMany(row => row.Elements(WordNamespace + "tc"))) {
             XElement cellWidth = cell.Element(WordNamespace + "tcPr")?.Element(WordNamespace + "tcW")
                 ?? throw new InvalidDataException("A report table cell has no preferred width.");
             EnsureEqual("report cell width type", "dxa", (string?)cellWidth.Attribute(WordNamespace + "type") ?? string.Empty);
-            EnsureEqual("report cell width", "2400", (string?)cellWidth.Attribute(WordNamespace + "w") ?? string.Empty);
+            EnsureEqual("report cell width", columnWidth, (string?)cellWidth.Attribute(WordNamespace + "w") ?? string.Empty);
             if (cell.Element(WordNamespace + "p")?.Element(WordNamespace + "pPr") == null) {
                 throw new InvalidDataException("A report table cell has no editable paragraph properties.");
             }

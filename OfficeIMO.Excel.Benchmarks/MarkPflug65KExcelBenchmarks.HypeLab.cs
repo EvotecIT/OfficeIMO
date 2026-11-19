@@ -7,6 +7,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 public partial class MarkPflug65KXlsxBenchmarks {
     /// <summary>Reads a fresh sheet and consumes all fourteen typed sales columns.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:HypeLab.IO.Excel", "case:Default")]
     public ExcelReadObservation HypeLab() {
         var sheet = global::HypeLab.IO.Excel.ExcelReader.ExtractSheetData(MarkPflug65KFixture.XlsxPath);
         if (!sheet.Headers.SequenceEqual(Headers))

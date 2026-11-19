@@ -15,7 +15,7 @@ const int MeasuredIterations = 5;
 const string LibraryName = "EPPlus 4.5.3.3";
 
 string outputPath = ParseOutputPath(args)
-    ?? Path.Combine("Docs", "benchmarks", "officeimo.excel.legacy-epplus-comparison.json");
+    ?? Path.Combine("artifacts", "benchmarks", "officeimo.excel.legacy-epplus-comparison.json");
 int rowCount = ParseRowCount(args);
 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? WarmupIterations;

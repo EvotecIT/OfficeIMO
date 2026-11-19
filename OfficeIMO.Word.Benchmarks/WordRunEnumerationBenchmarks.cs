@@ -27,13 +27,17 @@ public class WordRunEnumerationBenchmarks {
 
         // Document.Paragraphs lists one entry per run, and each entry enumerates its paragraph's
         // runs, so two text runs per paragraph give at least four.
-        int runs = EnumerateRuns();
-        if (runs < ParagraphCount * 4) {
-            throw new InvalidOperationException("Enumerating found " + runs + " runs; expected at least " + ParagraphCount * 4 + ".");
-        }
+        WordBenchmarkCorpus.Check("OfficeIMO", string.Empty,
+            $"ParagraphCount={ParagraphCount}; at least {ParagraphCount * 4} runs enumerated", () => {
+                int runs = EnumerateRuns();
+                if (runs < ParagraphCount * 4) {
+                    throw new InvalidOperationException("Enumerating found " + runs + " runs; expected at least " + ParagraphCount * 4 + ".");
+                }
+            });
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:EnumerateRuns")]
     public int EnumerateRuns() {
         using var stream = new MemoryStream(_document, writable: false);
         using WordDocument document = WordDocument.Load(stream);

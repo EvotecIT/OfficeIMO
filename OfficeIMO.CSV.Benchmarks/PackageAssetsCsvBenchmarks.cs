@@ -29,10 +29,15 @@ public class PackageAssetsCsvBenchmarks {
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         _input = PackageAssetsCsvFixture.CreateInput(Shape);
         _expected = PackageAssetsCsvObservation.Expected(Shape);
-        OfficeIMO(); Sep(); Sylvan(); CsvHelper();
+        string detail = $"Shape={Shape}; observation of every decoded value matches the generated rows";
+        CsvBenchmarkOutputValidator.Record(nameof(OfficeIMO), detail, OfficeIMO);
+        CsvBenchmarkOutputValidator.Record(nameof(Sep), detail, Sep);
+        CsvBenchmarkOutputValidator.Record(nameof(Sylvan), detail, Sylvan);
+        CsvBenchmarkOutputValidator.Record(nameof(CsvHelper), detail, CsvHelper);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public CsvReadObservation OfficeIMO() {
         using DbDataReader reader = CsvDocument.OpenReader(new MemoryStream(_input, writable: false),
             new CsvReaderOptions { DetectDelimiter = false, HasHeaderRow = false });
@@ -40,6 +45,7 @@ public class PackageAssetsCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Default")]
     public CsvReadObservation Sep() {
         using var reader = SepLib.Reader(options => options with { HasHeader = false, Unescape = true })
             .From(new MemoryStream(_input, writable: false));
@@ -54,6 +60,7 @@ public class PackageAssetsCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:Default")]
     public CsvReadObservation Sylvan() {
         using var text = new StreamReader(new MemoryStream(_input, writable: false));
         using SylvanCsvDataReader reader = SylvanCsvDataReader.Create(text, new Sylvan.Data.Csv.CsvDataReaderOptions { HasHeaders = false });
@@ -61,6 +68,7 @@ public class PackageAssetsCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Default")]
     public CsvReadObservation CsvHelper() {
         using var text = new StreamReader(new MemoryStream(_input, writable: false));
         using var reader = new CsvHelperReader(text, new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = false });
@@ -86,10 +94,14 @@ public class PackageAssetsSpacesQuotesCsvBenchmarks {
         if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);
         _input = PackageAssetsCsvFixture.CreateInput(PackageAssetsCsvShape.SpacesQuotes);
         _expected = PackageAssetsCsvObservation.Expected(PackageAssetsCsvShape.SpacesQuotes);
-        OfficeIMO(); Sep(); CsvHelper();
+        const string detail = "SpacesQuotes; observation of every trimmed, unquoted value matches the generated rows";
+        CsvBenchmarkOutputValidator.Record(nameof(OfficeIMO), detail, OfficeIMO);
+        CsvBenchmarkOutputValidator.Record(nameof(Sep), detail, Sep);
+        CsvBenchmarkOutputValidator.Record(nameof(CsvHelper), detail, CsvHelper);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public CsvReadObservation OfficeIMO() {
         using DbDataReader reader = CsvDocument.OpenReader(new MemoryStream(_input, writable: false),
             new CsvReaderOptions { DetectDelimiter = false, HasHeaderRow = false, TrimWhitespace = true });
@@ -97,6 +109,7 @@ public class PackageAssetsSpacesQuotesCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Default")]
     public CsvReadObservation Sep() {
         using var reader = SepLib.Reader(options => options with { HasHeader = false, Trim = SepTrim.Outer, Unescape = true })
             .From(new MemoryStream(_input, writable: false));
@@ -111,6 +124,7 @@ public class PackageAssetsSpacesQuotesCsvBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Default")]
     public CsvReadObservation CsvHelper() {
         using var text = new StreamReader(new MemoryStream(_input, writable: false));
         using var reader = new CsvHelperReader(text, new CsvConfiguration(CultureInfo.InvariantCulture) {

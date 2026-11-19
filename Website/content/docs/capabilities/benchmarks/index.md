@@ -39,8 +39,6 @@ Inside PowerShell, `-Workload csv,xlsx` selects both in one run.
 dotnet run -c Release --project OfficeIMO.Reader.Benchmarks -- evidence --help
 ```
 
-[Inspect the committed Reader evidence](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/officeimo.reader.foundation-2026-07-10.md) before comparing it with a local run.
-
 ## Performance guardrails
 
 PDF and RTF expose explicit budget-verification modes:

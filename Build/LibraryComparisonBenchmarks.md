@@ -8,7 +8,7 @@ in the README result blocks from that catalog only. The catalog follows the
 
 | File | Role |
 | --- | --- |
-| `Build/LibraryComparisonDefinitions.ps1` | Workloads: project, filter, libraries and the cases each workload runs. |
+| `Build/LibraryComparisonDefinitions.ps1` | Workloads: project, filter, libraries and the cases each workload runs. Further workloads are declared per area in `Build/LibraryComparisonDefinitions/<area>.ps1`. |
 | `Build/benchmark-libraries.json` | Library policy: package, pinned version, licence and restriction class of every compared library. |
 | `Build/benchmark-declarations.json` | Generated declarations the catalog checks every result against. Never edit it. |
 | `Build/Run-LibraryComparisonBenchmarks.ps1` | Runs workloads and records each comparison in a catalog as soon as it is measured. |
@@ -26,7 +26,7 @@ declares:
 - its cases and axes, taken from the workload's expected cases. A method name
   starts with its library (`MagickNETEncode` is Magick.NET's `Encode` case;
   `Sylvan` is Sylvan's default case). Methods that do not follow that pattern
-  are listed in `Build/BenchmarkDeclarations.ps1`. A method that names no
+  are listed in the workload's `MethodIdentity` or in `Build/BenchmarkDeclarations.ps1`. A method that names no
   declared library fails, so no result is ever attributed by guessing;
 - its frameworks: only those on which every library runs its declared version
   with the same cases. Comparisons that include ExcelReader.NET are declared for
@@ -78,12 +78,24 @@ version and hash of every competitor package before measuring.
 
 Benchmarks record their output validation by appending one JSON object per
 library and case (`{ "library": "ClosedXML", "case": "Default", "status": "passed", "detail": "rows=65000" }`)
-to the file named by `OFFICEIMO_BENCHMARK_VALIDATION_PATH`. A cell without a
-passed validation is recorded but not published.
+to the file named by `OFFICEIMO_BENCHMARK_VALIDATION_PATH`, through
+`Benchmarks/BenchmarkOutputValidationLog.cs`. Each lane's output is checked
+before timing by reading it back and comparing its content with the expected
+data; a cell without a passed validation is recorded but not published.
+
+Benchmark methods name their library and case with
+`[BenchmarkCategory("library:<id>", "case:<name>")]`, using the declared library
+id. The importer takes a row's identity from these categories first, so
+`./Build/Test-BenchmarkCategories.ps1` (run by the runner contract test) fails
+when a category disagrees with what the declarations derive. A `library:`
+category of a restricted library also keeps its cases out of runs that do not
+enable it.
 
 Results that drift from the declarations (a case, library or axis value that is
-not declared, or a declared one that did not run) are recorded unpublished and
-the runner reports the drift. A crashed or failed case is recorded as a failed
+not declared, a declared combination that did not run, or a combination outside
+the comparison's declared cells) are recorded unpublished and the runner reports
+the drift. When not every library defines every case and axis value, the
+generated declaration lists the comparison's cells explicitly. A crashed or failed case is recorded as a failed
 cell; the rest of the comparison is still published when it meets the policy.
 
 ## First run
@@ -116,7 +128,7 @@ the comparisons declared for it. `-Platform` is a planning override only.
 
 ## Select a subset
 
-`-Workload` takes workload ids, `all`, and the groups `word` and `powerpoint`:
+`-Workload` takes workload ids, `all`, and area names such as `word`, `powerpoint` or `excel` (a workload id wins over an area of the same name, as with `csv`):
 
 ```powershell
 ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -Profile full -PlanOnly |

@@ -13,8 +13,8 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Toml.Benchmarks -- --filt
 
 ## Operations
 
-- `TomlParseBenchmarks`: one pass over the text without a model. OfficeIMO's `TomlReader` against Tomlyn's incremental `TomlParser`; both lanes read every key and string value as a string. Tomlet has no pull parser.
-- `TomlLoadBenchmarks`: load the document model. Tomlyn deserializes into its `TomlTable` model, Tomlet parses its `TomlDocument`, and CsToml parses its `TomlDocument` from UTF-8 bytes, its native input, encoded once during setup. OfficeIMO decodes values on first read, so `OfficeIMOToml` leaves them undecoded and `OfficeIMOTomlWithValues` also decodes every value, as the reference loaders do while loading.
+- `TomlParseBenchmarks`: one pass over the text without a model. OfficeIMO's `TomlReader` against Tomlyn's incremental `TomlParser`; both lanes read every key and string value as a string and decode every other value. Setup checks that both report the same values under the same keys in document order, and that those values are the ones Tomlet's model holds. Tomlet has no pull parser.
+- `TomlLoadBenchmarks`: load the document model. Tomlyn deserializes into its `TomlTable` model, Tomlet parses its `TomlDocument`, and CsToml parses its `TomlDocument` from UTF-8 bytes, its native input, encoded once during setup. OfficeIMO decodes values on first read, so `OfficeIMOToml` leaves them undecoded and `OfficeIMOTomlWithValues` also decodes every value, as the reference loaders do while loading. Setup checks that every model holds the same leaf values at the same paths; only the `OfficeIMOTomlWithValues` lane is validated as the comparison's OfficeIMO result.
 - `TomlLoadAndSaveBenchmarks`: load and save without edits. OfficeIMO and Tomlyn's full-fidelity syntax tree return the input, which setup checks. Tomlet and CsToml only re-serialize their models, which is not the same work, so they have no lane here.
 - `TomlDeserializeBenchmarks` and `TomlSerializeBenchmarks`: map a corpus file to and from its model (`PyProject`, `CargoWorkspaceManifest`, `UvLock`) with each library's serializer, through reflection and through generated metadata (`OfficeIMOBenchmarkContext`, `TomlynBenchmarkContext`). Both libraries use a kebab-case naming policy and skip undeclared keys. Setup checks that every lane reads the same members and values, that Tomlyn reads OfficeIMO's output and OfficeIMO reads Tomlyn's to the same model, so no lane wins by reading or writing less. Each library writes the model it read, because untyped members hold its own model types. These lanes compare OfficeIMO with Tomlyn only.
 
@@ -25,7 +25,7 @@ dotnet run -c Release -f net10.0 --project ./OfficeIMO.Toml.Benchmarks -- --filt
 | `SmallConfig` | PyPA's commented sample `pyproject.toml` (7 KB) |
 | `CargoWorkspace` | uv's workspace `Cargo.toml`, hundreds of inline-table dependencies (25 KB) |
 | `LockFile` | uv's `uv.lock`, thousands of `[[package]]` tables and inline tables (350 KB) |
-| `Corpus` | every file of the [real-world corpus](../OfficeIMO.TestAssets/Toml/Corpus/manifest.json) except uv's `ruff.toml`, whose TOML 1.1 multi-line inline table Tomlet cannot read |
+| `Corpus` | every file of the [real-world corpus](../OfficeIMO.TestAssets/Toml/Corpus/manifest.json) except three Tomlet cannot read correctly: uv's `ruff.toml`, whose TOML 1.1 multi-line inline table Tomlet rejects, and Cargo's and ripgrep's `Cargo.toml`, whose table headers with double quotes inside literal keys Tomlet splits into the wrong tables |
 
 ## Large real-world corpus
 

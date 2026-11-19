@@ -62,16 +62,6 @@ $isPlanning = $PlanOnly -or $DryRun
 if ($PSBoundParameters.ContainsKey('Platform') -and -not $isPlanning) {
     throw '-Platform is a planning override only; actual collection uses the host platform.'
 }
-$usesHtmlTinkerX = 'pdfhtml' -in $Workload -or 'all' -in $Workload
-if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
-    $resolvedHtmlTinkerX = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HtmlTinkerXRoot)
-    $htmlTinkerXProjectPath = if ($resolvedHtmlTinkerX.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
-        $resolvedHtmlTinkerX
-    } else {
-        Join-Path $resolvedHtmlTinkerX 'Sources\HtmlTinkerX\HtmlTinkerX.csproj'
-    }
-}
-
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputRoot)
 $hostPlatform = if ($IsWindows) { 'windows' } elseif ($IsLinux) { 'linux' } elseif ($IsMacOS) { 'macos' } else {
     throw 'Unsupported benchmark platform.'
@@ -120,14 +110,26 @@ $includeAll = 'all' -in $Workload
 $explicitWorkloads = @(
     foreach ($requested in $Workload) {
         if ($requested -eq 'all') { continue }
-        if ($requested -eq 'word') { 'wordcreate'; 'wordreport'; 'wordread'; 'wordreplace' }
-        elseif ($requested -eq 'powerpoint') { 'pptxcreate'; 'pptxedit' }
-        elseif ($definitions.Contains($requested)) { $requested }
-        else { throw "Unknown workload '$requested'. Choose all, word, powerpoint, or: $($definitions.Keys -join ', ')." }
+        if ($definitions.Contains($requested)) { $requested; continue }
+        # An area name selects every workload of that area.
+        $areaWorkloads = @($definitions.Keys | Where-Object { $definitions[$_].Area -eq $requested })
+        if ($areaWorkloads.Count -gt 0) { $areaWorkloads; continue }
+        $areas = @($definitions.Values | ForEach-Object { $_.Area } | Sort-Object -Unique)
+        throw "Unknown workload '$requested'. Choose all, an area ($($areas -join ', ')), or: $($definitions.Keys -join ', ')."
     }
 )
 $selected = @(@(if ($includeAll) { $definitions.Keys }; $explicitWorkloads) | Select-Object -Unique)
 if ($selected.Count -eq 0) { throw 'Select at least one workload.' }
+# Decided after area names and 'all' are expanded, so -Workload pdf picks up the HtmlTinkerX source too.
+$usesHtmlTinkerX = @($selected | Where-Object { $_ -in @('pdfhtml', 'pdfhtmlpayload') }).Count -gt 0
+if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
+    $resolvedHtmlTinkerX = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HtmlTinkerXRoot)
+    $htmlTinkerXProjectPath = if ($resolvedHtmlTinkerX.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
+        $resolvedHtmlTinkerX
+    } else {
+        Join-Path $resolvedHtmlTinkerX 'Sources\HtmlTinkerX\HtmlTinkerX.csproj'
+    }
+}
 $containsQuestPdfWorkload = @($selected | Where-Object { $_ -in $questPdfWorkloads }).Count -gt 0
 $alternateQuestPdf = -not [string]::IsNullOrWhiteSpace($QuestPdfPackageVersion) -and $QuestPdfPackageVersion -ne $questPdfBenchmarkVersion
 $effectiveQuestPdfVersion = if ($alternateQuestPdf) { $QuestPdfPackageVersion } else { $questPdfBenchmarkVersion }
@@ -300,7 +302,6 @@ $executionPlan = @(
                 OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = @($librarySelection.Enabled) -join ','
             }
             LeftOutVariables = $leftOutVariables
-            AllowedExtraCaseLibraries = $enabledLibraries
             # Enabled restricted libraries may add cases beyond ExpectedCases; the plan names them.
             OptionalCaseLibraries = @($enabledLibraries.id)
             ArtifactsPath = $artifactsPath
@@ -708,31 +709,10 @@ foreach ($name in $selected) {
     $normalizedPath = Join-Path $OutputRoot ('{0}-normalized-result.json' -f (Split-Path -Leaf $artifactsPath))
     Write-BenchmarkEvidenceResult -Path $normalizedPath -InputObject $result
 
-    # Drift between the declarations and what ran blocks publication; the lane is still recorded.
+    # Drift between the declarations and what ran blocks publication; the lane is still recorded. PowerForge also
+    # reports every declared case, library and axis-value combination (or declared cell) that did not run, and every
+    # combination that ran outside the declared cells.
     $drift = @(Test-BenchmarkDeclaration -Path $declarationPath -InputObject $result -ComparisonId $definition.ComparisonId -PassThru)
-    # PowerForge compares cases, libraries and axis values separately, so a missing method and parameter
-    # combination (one library at one size) would pass as a partial lane. Every expected combination must have a
-    # row; a row that ran and failed counts, because a failed case is a result.
-    $measuredCombinations = @(
-        $result.Summary | ForEach-Object {
-            Get-BenchmarkMethodCombination -Row $_ -VariableName $definition.IdentityVariables
-        } | Sort-Object -Unique
-    )
-    $missingCombinations = @($workloadPlan.ExpectedCases | Where-Object { $_ -notin $measuredCombinations })
-    $unexpectedCombinations = @(
-        $measuredCombinations |
-            Where-Object { $_ -notin $workloadPlan.ExpectedCases } |
-            Where-Object {
-                $combination = $_
-                @($workloadPlan.AllowedExtraCaseLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $combination }).Count -eq 0
-            }
-    )
-    foreach ($combination in $missingCombinations) {
-        $drift += [pscustomobject]@{ Code = 'missing-combination'; Message = "Expected case '$combination' did not run." }
-    }
-    foreach ($combination in $unexpectedCombinations) {
-        $drift += [pscustomobject]@{ Code = 'unexpected-combination'; Message = "Case '$combination' ran but is not expected." }
-    }
     $publishLane = $workloadPlan.Publish
     if ($drift.Count -gt 0) {
         $failures.Add("${name}: the results drifted from Build/benchmark-declarations.json ($(@($drift | ForEach-Object { $_.Message }) -join ' ')). Regenerate the declarations or fix the benchmark.")

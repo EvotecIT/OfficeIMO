@@ -42,5 +42,9 @@ if (args.Length > 0 && string.Equals(args[0], "validate-workflows", StringCompar
     return;
 }
 
-// DocX cases carry a Library: category and run only when the caller enabled that restricted library.
-BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, ManualConfig.Create(DefaultConfig.Instance).AddRestrictedLibraryFilter());
+// DocX cases carry a library: category and run only when the caller enabled that restricted library. BenchmarkDotNet
+// rebuilds this project and all its comparison libraries for each run, which can exceed its two-minute default on a
+// busy machine.
+BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(
+    args,
+    ManualConfig.Create(DefaultConfig.Instance).AddRestrictedLibraryFilter().WithBuildTimeout(TimeSpan.FromMinutes(10)));

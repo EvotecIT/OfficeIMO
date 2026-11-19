@@ -81,10 +81,17 @@ public class CsvFileWriteBenchmarks {
             byte[] office = File.ReadAllBytes(_officePath);
             byte[] peer = File.ReadAllBytes(_peerPath);
             if (!office.AsSpan().SequenceEqual(peer)) throw new InvalidOperationException("File writers produced different UTF-8 bytes.");
-            CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), Utf8.GetString(office), _headers, _rows.Length,
-                expectedTextRows: null, expectedObjectRows: _rows, delimiter: _delimiter);
-            CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), Utf8.GetString(peer), _headers, _rows.Length,
-                expectedTextRows: null, expectedObjectRows: _rows, delimiter: _delimiter);
+            string detail = $"Shape={Shape}; QuoteMode={QuoteMode}; {_rows.Length} rows read back value by value; {office.Length} identical UTF-8 bytes from both writers";
+            CsvBenchmarkOutputValidator.Record(nameof(OfficeIMO), detail, () => {
+                CsvBenchmarkOutputValidator.Validate(nameof(OfficeIMO), Utf8.GetString(office), _headers, _rows.Length,
+                    expectedTextRows: null, expectedObjectRows: _rows, delimiter: _delimiter);
+                return true;
+            });
+            CsvBenchmarkOutputValidator.Record(nameof(CsvHelper), detail, () => {
+                CsvBenchmarkOutputValidator.Validate(nameof(CsvHelper), Utf8.GetString(peer), _headers, _rows.Length,
+                    expectedTextRows: null, expectedObjectRows: _rows, delimiter: _delimiter);
+                return true;
+            });
             Console.WriteLine($"Validated CSV file {Shape}/{QuoteMode}: {_rows.Length} rows, {office.Length} identical UTF-8 bytes.");
         } catch {
             Cleanup();
@@ -93,6 +100,7 @@ public class CsvFileWriteBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public int OfficeIMO() {
         using var stream = new FileStream(_officePath, FileMode.Create, FileAccess.Write, FileShare.None, 65536);
         using (var writer = new StreamWriter(stream, Utf8, 65536, leaveOpen: true)) {
@@ -105,6 +113,7 @@ public class CsvFileWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Default")]
     public int CsvHelper() {
         using var stream = new FileStream(_peerPath, FileMode.Create, FileAccess.Write, FileShare.None, 65536);
         using (var writer = new StreamWriter(stream, Utf8, 65536, leaveOpen: true)) {

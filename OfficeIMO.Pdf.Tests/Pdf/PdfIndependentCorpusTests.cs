@@ -18,7 +18,7 @@ public sealed class PdfIndependentCorpusTests {
     // Large scanned pages are rendered downscaled rather than skipped.
     private const int MaximumRenderDimension = 1600;
 
-    // Current defects from Docs/benchmarks/pdf-independent-corpus-2026-11-10.md. Each entry must still fail at
+    // Current defects found by the independent corpus run. Each entry must still fail at
     // every listed stage and nowhere else; the test fails once a defect is fixed so the entry gets removed.
     private static readonly Dictionary<string, KnownFailure> KnownFailures = new(StringComparer.Ordinal) {
         ["qpdf-inline-images"] = new(

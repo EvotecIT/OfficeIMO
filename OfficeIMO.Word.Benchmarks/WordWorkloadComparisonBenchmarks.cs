@@ -23,16 +23,31 @@ public class WordCreateImageComparisonBenchmarks {
 
     [GlobalSetup]
     public void Validate() {
-        WordWorkloadCorpus.ValidateImageDocument(OfficeIMO(), ImageCount);
-        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateImageDocument(DocX(), ImageCount, requireOpenXmlSdkConformance: false);
-        WordWorkloadCorpus.ValidateImageDocument(NPOI(), ImageCount);
-        WordWorkloadCorpus.ValidateImageDocument(OpenXmlSdk(), ImageCount);
+        // Each output is reopened as a ZIP/XML package: one caption per image with the expected text and one inline
+        // picture per image whose embedded part carries exactly its source PNG bytes; every lane except DocX must
+        // also pass the Open XML SDK validator.
+        string content = $"ImageCount={ImageCount}; {ImageCount} captions and {ImageCount} inline pictures with their exact source PNG bytes";
+        string conformant = content + "; passes the Open XML SDK validator";
+        byte[] officeImo = OfficeIMO();
+        WordBenchmarkCorpus.Check("OfficeIMO", "Default", conformant,
+            () => WordWorkloadCorpus.ValidateImageDocument(officeImo, ImageCount));
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.Check("DocX", "Default", content,
+            () => WordWorkloadCorpus.ValidateImageDocument(DocX(), ImageCount, requireOpenXmlSdkConformance: false));
+        byte[] npoi = NPOI();
+        WordBenchmarkCorpus.Check("NPOI", "Default", conformant,
+            () => WordWorkloadCorpus.ValidateImageDocument(npoi, ImageCount));
+        byte[] openXmlSdk = OpenXmlSdk();
+        WordBenchmarkCorpus.Check("Open XML SDK", "Minimal", conformant + "; document and image parts only",
+            () => WordWorkloadCorpus.ValidateImageDocument(openXmlSdk, ImageCount));
 #if NET10_0_OR_GREATER
-        WordWorkloadCorpus.ValidateImageDocument(OneDocument(), ImageCount);
+        byte[] oneDocument = OneDocument();
+        WordBenchmarkCorpus.Check("OneDocument.Documents", "Default", conformant,
+            () => WordWorkloadCorpus.ValidateImageDocument(oneDocument, ImageCount));
 #endif
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() {
         using WordDocument document = WordDocument.Create();
         for (int index = 0; index < ImageCount; index++) {
@@ -46,7 +61,7 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX", "case:Default")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -63,6 +78,7 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:NPOI", "case:Default")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         for (int index = 0; index < ImageCount; index++) {
@@ -81,6 +97,7 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Minimal")]
     public byte[] OpenXmlSdk() {
         using var stream = new MemoryStream();
         using (WordprocessingDocument document = WordprocessingDocument.Create(
@@ -102,7 +119,7 @@ public class WordCreateImageComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Documents", "case:Default")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.CreateImages(ImageCount);
 #endif
 
@@ -141,16 +158,30 @@ public class WordTemplateFillComparisonBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _fixture = WordWorkloadCorpus.CreateTemplateFixture(ItemCount);
-        WordWorkloadCorpus.ValidateFilledDocument(OfficeIMO(), ItemCount);
-        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateFilledDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
-        WordWorkloadCorpus.ValidateFilledDocument(NPOI(), ItemCount);
-        WordWorkloadCorpus.ValidateFilledDocument(OpenXmlSdk(), ItemCount);
+        // Each saved output is reopened as a ZIP/XML package and every paragraph must carry its template with all ten
+        // fields filled; every lane except DocX must also pass the Open XML SDK validator.
+        string content = $"ItemCount={ItemCount}; {ItemCount} paragraphs with every field filled";
+        string conformant = content + "; passes the Open XML SDK validator";
+        byte[] officeImo = OfficeIMO();
+        WordBenchmarkCorpus.Check("OfficeIMO", "Default", conformant,
+            () => WordWorkloadCorpus.ValidateFilledDocument(officeImo, ItemCount));
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.Check("DocX", "Default", content,
+            () => WordWorkloadCorpus.ValidateFilledDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false));
+        byte[] npoi = NPOI();
+        WordBenchmarkCorpus.Check("NPOI", "Default", conformant,
+            () => WordWorkloadCorpus.ValidateFilledDocument(npoi, ItemCount));
+        byte[] openXmlSdk = OpenXmlSdk();
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", conformant,
+            () => WordWorkloadCorpus.ValidateFilledDocument(openXmlSdk, ItemCount));
 #if NET10_0_OR_GREATER
-        WordWorkloadCorpus.ValidateFilledDocument(OneDocument(), ItemCount);
+        byte[] oneDocument = OneDocument();
+        WordBenchmarkCorpus.Check("OneDocument.Documents", "Default", conformant,
+            () => WordWorkloadCorpus.ValidateFilledDocument(oneDocument, ItemCount));
 #endif
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() {
         using var input = new MemoryStream(_fixture, writable: false);
         using WordDocument document = WordDocument.Load(input);
@@ -162,7 +193,7 @@ public class WordTemplateFillComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX", "case:Default")]
     public byte[] DocX() {
         using var input = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(input);
@@ -180,6 +211,7 @@ public class WordTemplateFillComparisonBenchmarks {
 
     /// <summary>NPOI has no document-level replace; this is the usual single pass over runs.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:NPOI", "case:Default")]
     public byte[] NPOI() {
         using var input = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(input);
@@ -196,6 +228,7 @@ public class WordTemplateFillComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdk() {
         using MemoryStream stream = WordBenchmarkCorpus.CreateEditableStream(_fixture);
         using (WordprocessingDocument document = WordprocessingDocument.Open(stream, isEditable: true)) {
@@ -211,7 +244,7 @@ public class WordTemplateFillComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Documents", "case:Default")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.FillTemplate(_fixture);
 #endif
 
@@ -239,16 +272,17 @@ public class WordReadTableComparisonBenchmarks {
     public void Setup() {
         _fixture = WordWorkloadCorpus.CreateReportFixture(RowCount);
         _expected = WordWorkloadCorpus.ExpectedReportCells(RowCount);
-        Ensure(nameof(OfficeIMO), OfficeIMO());
-        if (BenchmarkLibrarySelection.IsEnabled("docx")) Ensure(nameof(DocX), DocX());
-        Ensure(nameof(NPOI), NPOI());
-        Ensure(nameof(OpenXmlSdk), OpenXmlSdk());
+        Ensure("OfficeIMO", nameof(OfficeIMO), OfficeIMO());
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) Ensure("DocX", nameof(DocX), DocX());
+        Ensure("NPOI", nameof(NPOI), NPOI());
+        Ensure("Open XML SDK", nameof(OpenXmlSdk), OpenXmlSdk());
 #if NET10_0_OR_GREATER
-        Ensure(nameof(OneDocument), OneDocument());
+        Ensure("OneDocument.Documents", nameof(OneDocument), OneDocument());
 #endif
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public WordReadObservation OfficeIMO() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using WordDocument document = WordDocument.Load(stream);
@@ -264,7 +298,7 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX", "case:Default")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);
@@ -280,6 +314,7 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:NPOI", "case:Default")]
     public WordReadObservation NPOI() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(stream);
@@ -295,6 +330,7 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public WordReadObservation OpenXmlSdk() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, isEditable: false);
@@ -311,9 +347,15 @@ public class WordReadTableComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Documents", "case:Default")]
     public WordReadObservation OneDocument() => WordOneDocumentWorkloads.ReadTables(_fixture);
 #endif
+
+    /// <summary>Requires every cell, in order, with the report text (count, characters and checksum).</summary>
+    private void Ensure(string library, string implementation, WordReadObservation actual) =>
+        WordBenchmarkCorpus.Check(library, "Default",
+            $"RowCount={RowCount}; {_expected.ParagraphCount} cells, {_expected.CharacterCount} characters, checksum {_expected.Checksum:X16} as written",
+            () => Ensure(implementation, actual));
 
     private void Ensure(string implementation, WordReadObservation actual) {
         if (actual != _expected) {

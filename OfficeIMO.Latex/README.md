@@ -71,7 +71,7 @@ Parsing retains compact internal token records. `LatexDocument.Tokens` and
 `LatexTokenizer.Tokenize` expose the same read-only public token contract, with
 stable object identity when a token is read repeatedly or concurrently. Inspecting
 every token materializes the public token objects and has a different allocation
-cost from parsing or sparse inspection. See the [model memory evidence](../Docs/benchmarks/officeimo.latex-model-memory-2026-10-03.md)
+cost from parsing or sparse inspection. See the model memory evidence
 for measured workloads and platform limits.
 
 ## Dependency footprint

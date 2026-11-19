@@ -98,6 +98,26 @@ internal static class EmailMimeComparisonCorpus {
     internal static byte[] WriteOneMail(OneMailComposition.OutgoingMessage message) => message.ToEntity().ToArray();
 
 #endif
+    /// <summary>
+    /// Builds the content every reader must recover for <paramref name="scale"/>, straight from the corpus data rather
+    /// than from either library's output.
+    /// </summary>
+    internal static EmailMimeObservation CreateExpectedObservation(EmailMimeBenchmarkScale scale) =>
+        new(
+            "OfficeIMO MIME comparison " + scale.Name,
+            "sender@example.test",
+            ["reader@example.test"],
+            ["archive@example.test"],
+            EmailMimeComparisonValidation.NormalizeBody(CreateText(scale.TextCharacters)),
+            EmailMimeComparisonValidation.NormalizeBody(CreateHtml(scale.HtmlCharacters)),
+            Enumerable.Range(0, scale.AttachmentCount).Select(index => {
+                byte[] content = CreateAttachment(index, scale.AttachmentBytes);
+                return new EmailMimeAttachmentObservation(
+                    $"payload-{index + 1:D2}.bin",
+                    content.Length,
+                    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(content)));
+            }).ToArray());
+
     internal static byte[] WriteMimeKit(MimeMessage message) {
         using var output = new MemoryStream();
         message.WriteTo(output);

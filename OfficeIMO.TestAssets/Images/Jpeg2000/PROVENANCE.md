@@ -11,5 +11,4 @@ Every lossless RGBA file therefore shares one expected hash. Irreversible files 
 decode of the same source; OpenJPEG's own decodes of them differ from it by at most 3.
 
 The ISO/IEC 15444-4 conformance codestreams and the PDF corpus files used for wider validation are not committed;
-their copyright terms limit use to conformance testing. See the JPX section of
-`Docs/benchmarks/pdf-jpx-jbig2-decoding-2026-11-10.md` for those runs.
+their copyright terms limit use to conformance testing.

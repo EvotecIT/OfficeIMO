@@ -8,22 +8,22 @@
     {
       "id": "excel",
       "title": "Excel",
-      "summary": "Typed reads of XLSX, XLSB and XLS files, and workbook writes from a data reader."
+      "summary": "Typed, shared-string, multi-sheet and parallel reads of XLSX, XLSB and XLS files; workbook writes from data readers, objects and text; round trips, CSV conversion and report workbooks."
     },
     {
       "id": "csv",
       "title": "CSV",
-      "summary": "Decoded reads of a 65,000-record file, writes from a data reader, and asynchronous reads."
+      "summary": "Decoded and typed reads, wide and dialect files, asynchronous and parallel reads, and writes from data readers, records and text."
     },
     {
       "id": "word",
       "title": "Word",
-      "summary": "DOCX creation, report building, reading and find-and-replace."
+      "summary": "DOCX creation, reports, images, template filling, reading paragraphs and tables, find-and-replace, HTML and Markdown import."
     },
     {
       "id": "powerpoint",
       "title": "PowerPoint",
-      "summary": "PPTX creation and editing."
+      "summary": "PPTX creation, reading, editing and slide copying."
     },
     {
       "id": "markdown",
@@ -51,6 +51,11 @@
       "summary": "MIME message reading and writing."
     },
     {
+      "id": "mhtml",
+      "title": "MHTML",
+      "summary": "MHTML web archive reading and writing."
+    },
+    {
       "id": "epub",
       "title": "EPUB",
       "summary": "EPUB opening and reading."
@@ -74,6 +79,11 @@
       "id": "toml",
       "title": "TOML",
       "summary": "Parsing, loading, lossless saving and object serialization."
+    },
+    {
+      "id": "invoicing",
+      "title": "Invoicing",
+      "summary": "Electronic invoice XML writing and reading, and invoice PDF generation."
     }
   ]
 }

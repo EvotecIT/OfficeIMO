@@ -36,14 +36,16 @@ public class CsvProjectedParallelBenchmarks {
         CsvDocument.WriteObjects(writer, _expected,
             new CsvSaveOptions { NewLine = "\n", DateTimeFormat = "O" });
         _text = writer.ToString();
-        Validate(OfficeIMO());
-        Validate(Sep());
-        Validate(RecordParser());
+        string detail = $"DegreeOfParallelism={DegreeOfParallelism}; all {RowCount} projected rows (Id, Score, TicketCount) match the source in order";
+        CsvBenchmarkOutputValidator.Record(nameof(OfficeIMO), detail, () => { Validate(OfficeIMO()); return true; });
+        CsvBenchmarkOutputValidator.Record(nameof(Sep), detail, () => { Validate(Sep()); return true; });
+        CsvBenchmarkOutputValidator.Record(nameof(RecordParser), detail, () => { Validate(RecordParser()); return true; });
         Console.WriteLine("PROJECTED100K10_INPUT_UTF8_SHA256=" +
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(_text))));
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public ProjectedRow[] OfficeIMO() => _last = CsvDocument.ReadTextRowsAsParallel<ProjectedRow>(
         _text,
         header => {
@@ -61,6 +63,7 @@ public class CsvProjectedParallelBenchmarks {
         parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = DegreeOfParallelism }).ToArray();
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Default")]
     public ProjectedRow[] Sep() {
         using var reader = SepLib.New(',').Reader(options => options with { Unescape = true }).FromText(_text);
         if (!reader.Header.ColNames.SequenceEqual(CsvBenchmarkData.Headers))
@@ -74,6 +77,7 @@ public class CsvProjectedParallelBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:RecordParser", "case:Default")]
     public ProjectedRow[] RecordParser() {
         using var reader = new StringReader(_text);
         if (reader.ReadLine() != string.Join(",", CsvBenchmarkData.Headers))

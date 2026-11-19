@@ -15,12 +15,15 @@ public class TomlParseBenchmarks {
     public void Setup() {
         _inputs = TomlWorkloads.Get(Workload);
         TomlWorkloadCheck.Validate(Workload);
+        TomlWorkloadCheck.RecordParse(Workload);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:Tomlyn", "case:Default")]
     public long Tomlyn() => Sum(TomlLibraries.ParseTomlyn);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOToml() => Sum(TomlLibraries.ParseOfficeIMO);
 
     private long Sum(Func<string, long> parse) {
@@ -44,9 +47,11 @@ public class TomlLoadBenchmarks {
         _inputs = TomlWorkloads.Get(Workload);
         _utf8Inputs = _inputs.Select(Encoding.UTF8.GetBytes).ToArray();
         TomlWorkloadCheck.Validate(Workload);
+        TomlWorkloadCheck.RecordLoad(Workload);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:Tomlyn", "case:Default")]
     public int Tomlyn() {
         int total = 0;
         foreach (string input in _inputs) total += TomlLibraries.LoadTomlyn(input).Count;
@@ -54,6 +59,7 @@ public class TomlLoadBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Tomlet", "case:Default")]
     public int Tomlet() {
         int total = 0;
         foreach (string input in _inputs) total += TomlLibraries.LoadTomlet(input).Entries.Count;
@@ -62,6 +68,7 @@ public class TomlLoadBenchmarks {
 
     /// <summary>CsToml reads UTF-8 bytes, its native input, encoded once during setup.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:CsToml", "case:Default")]
     public int CsToml() {
         int total = 0;
         foreach (byte[] input in _utf8Inputs) total += TomlLibraries.LoadCsToml(input).RootNode.HasValue ? 1 : 0;
@@ -70,6 +77,7 @@ public class TomlLoadBenchmarks {
 
     /// <summary>OfficeIMO decodes values on first read; this lane leaves them undecoded.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public int OfficeIMOToml() {
         int total = 0;
         foreach (string input in _inputs) total += TomlLibraries.LoadOfficeIMO(input).Root.Count;
@@ -78,6 +86,7 @@ public class TomlLoadBenchmarks {
 
     /// <summary>Also decodes every value, which the reference loaders do while loading.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WithValues")]
     public long OfficeIMOTomlWithValues() {
         long total = 0;
         foreach (string input in _inputs) total += TomlLibraries.CountOfficeIMO(TomlLibraries.LoadOfficeIMO(input).Root);
@@ -100,12 +109,15 @@ public class TomlLoadAndSaveBenchmarks {
     public void Setup() {
         _inputs = TomlWorkloads.Get(Workload);
         TomlWorkloadCheck.Validate(Workload);
+        TomlWorkloadCheck.RecordLoadAndSave(Workload);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:Tomlyn", "case:Default")]
     public long TomlynSyntax() => Sum(TomlLibraries.SaveTomlyn);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOToml() => Sum(TomlLibraries.SaveOfficeIMO);
 
     private long Sum(Func<string, string> save) {

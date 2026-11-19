@@ -24,21 +24,10 @@ public class ImageResizeBenchmarks {
         _skiaImage = ImageComparisonAdapters.CreateSkiaBitmap(rgba, _officeImage.Width, _officeImage.Height);
         _magickImage = ImageComparisonAdapters.CreateMagickImage(rgba, _officeImage.Width, _officeImage.Height);
 
-        byte[] office = OfficeRasterResampler.Resize(_officeImage, TargetWidth, TargetHeight).GetPixels();
-        ImageComparisonValidation.AssertSimilarPixels(
-            "SkiaSharp resize",
-            office,
-            ImageComparisonAdapters.ResizeSkiaRgba(_skiaImage, TargetWidth, TargetHeight),
-            maximumMeanAbsoluteError: 3D);
-        ImageComparisonValidation.AssertSimilarPixels(
-            "Magick.NET resize",
-            office,
-            ImageComparisonAdapters.ResizeMagickRgba(_magickImage, TargetWidth, TargetHeight),
-            maximumMeanAbsoluteError: 3D);
+        ImageComparisonValidation.ValidateResize(_officeImage, _skiaImage, _magickImage, TargetWidth, TargetHeight);
 #if NET10_0_OR_GREATER
         _oneImageSource = rgba;
         _oneImageResizer = new global::OneImage.PixelResizer();
-        ImageComparisonValidation.ValidateOneImageResize(_officeImage, office, TargetWidth, TargetHeight);
 #endif
     }
 
@@ -52,17 +41,20 @@ public class ImageResizeBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public int OfficeIMO() => ImageComparisonAdapters.ResizeOfficeImo(_officeImage, TargetWidth, TargetHeight);
 
     [Benchmark]
+    [BenchmarkCategory("library:SkiaSharp", "case:Default")]
     public int SkiaSharp() => ImageComparisonAdapters.ResizeSkia(_skiaImage, TargetWidth, TargetHeight);
 
     [Benchmark]
+    [BenchmarkCategory("library:Magick.NET", "case:Default")]
     public int MagickNET() => ImageComparisonAdapters.ResizeMagick(_magickImage, TargetWidth, TargetHeight);
 #if NET10_0_OR_GREATER
 
     [Benchmark]
-    [BenchmarkCategory("library:oneimage")]
+    [BenchmarkCategory("library:OneImage", "case:Default")]
     public int OneImage() => OneImageComparisonAdapters.ResizeRgba(
         _oneImageResizer, _oneImageSource, _officeImage.Width, _officeImage.Height, TargetWidth, TargetHeight).Length / 4;
 #endif

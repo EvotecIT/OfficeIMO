@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace OfficeIMO.Reader.PowerPoint;
 
-internal static class PowerPointRichMapping {
+internal static partial class PowerPointRichMapping {
     internal static OfficeDocumentReadResult Apply(
         PowerPointDocument presentation,
         ReaderOptions readerOptions,
@@ -156,16 +156,28 @@ internal static class PowerPointRichMapping {
         List<OfficeDocumentBlock> blocks,
         List<OfficeDocumentLink> links,
         ref int linkIndex) {
-        IReadOnlyList<PowerPointParagraph> paragraphs = textBox.Paragraphs;
+        IReadOnlyList<PowerPointParagraphContent> paragraphs = PowerPointSlideContentProjection.ProjectParagraphs(textBox);
+        bool isTitle = textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title || textBox.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle;
+        ProjectPowerPointParagraphs(paragraphs, isTitle, shapeLocation, region, blocks, links, ref linkIndex);
+    }
+
+    // Projects text-box paragraphs as heading, list-item and paragraph blocks; links are optional.
+    private static void ProjectPowerPointParagraphs(
+        IReadOnlyList<PowerPointParagraphContent> paragraphs,
+        bool isTitle,
+        ReaderLocation shapeLocation,
+        OfficeDocumentRegion? region,
+        List<OfficeDocumentBlock> blocks,
+        List<OfficeDocumentLink>? links,
+        ref int linkIndex) {
         if (paragraphs.Count == 0) {
-            blocks.Add(new OfficeDocumentBlock { Id = shapeLocation.BlockAnchor!, Kind = "text-box", Text = textBox.Text, Location = shapeLocation, Region = region });
+            blocks.Add(new OfficeDocumentBlock { Id = shapeLocation.BlockAnchor!, Kind = "text-box", Text = string.Empty, Location = shapeLocation, Region = region });
             return;
         }
 
-        bool isTitle = textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title || textBox.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle;
         var numberingState = new Dictionary<int, int>();
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
-            PowerPointParagraph paragraph = paragraphs[paragraphIndex];
+            PowerPointParagraphContent paragraph = paragraphs[paragraphIndex];
             bool isList = paragraph.BulletCharacter != null || paragraph.IsNumbered;
             int level = paragraph.Level ?? 0;
             string? marker = paragraph.BulletCharacter;
@@ -208,7 +220,28 @@ internal static class PowerPointRichMapping {
                 Location = location,
                 Region = region
             });
-            AddPowerPointRunLinks(paragraph.Runs, location, region, links, ref linkIndex);
+            if (links != null) AddPowerPointInlineLinks(paragraph.Inlines, location, region!, links, ref linkIndex);
+        }
+    }
+
+    private static void AddPowerPointInlineLinks(
+        IReadOnlyList<PowerPointInlineContent> inlines,
+        ReaderLocation location,
+        OfficeDocumentRegion region,
+        List<OfficeDocumentLink> links,
+        ref int linkIndex) {
+        int runIndex = -1;
+        foreach (PowerPointInlineContent inline in inlines) {
+            if (inline.Kind != PowerPointParagraphInlineKind.Run) continue;
+            runIndex++;
+            if (inline.Hyperlink == null) continue;
+            links.Add(BuildPowerPointLink(
+                "powerpoint-link-" + linkIndex.ToString("D4", CultureInfo.InvariantCulture),
+                inline.Hyperlink.ToString(),
+                inline.Text,
+                BuildPowerPointLocation(location.Path, location.Slide!.Value, location.SourceBlockIndex, "hyperlink", location.BlockAnchor + "-link-" + runIndex.ToString("D4", CultureInfo.InvariantCulture)),
+                region));
+            linkIndex++;
         }
     }
 
@@ -250,9 +283,16 @@ internal static class PowerPointRichMapping {
     }
 
     private static ReaderTable MapPowerPointTable(PowerPointTable table, ReaderLocation location, int tableIndex, int maxRows) {
-        IReadOnlyList<PowerPointTableRow> sourceRows = table.Rows;
-        int columnCount = Math.Max(table.ColumnCount, sourceRows.Count == 0 ? 0 : sourceRows.Max(static row => row.Cells.Count));
-        bool hasHeaderRow = table.HeaderRow && sourceRows.Count > 0;
+        IReadOnlyList<IReadOnlyList<string>> cellTexts = table.Rows
+            .Select(row => (IReadOnlyList<string>)row.Cells.Select(static cell => cell.Text).ToArray())
+            .ToArray();
+        return MapPowerPointTable(table.Name, table.ColumnCount, table.HeaderRow, cellTexts, location, tableIndex, maxRows);
+    }
+
+    private static ReaderTable MapPowerPointTable(string? name, int gridColumnCount, bool headerRow,
+        IReadOnlyList<IReadOnlyList<string>> sourceRows, ReaderLocation location, int tableIndex, int maxRows) {
+        int columnCount = Math.Max(gridColumnCount, sourceRows.Count == 0 ? 0 : sourceRows.Max(static row => row.Count));
+        bool hasHeaderRow = headerRow && sourceRows.Count > 0;
         IReadOnlyList<string> columns = hasHeaderRow
             ? Enumerable.Range(0, columnCount).Select(index => GetPowerPointCellText(sourceRows[0], index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture))).ToArray()
             : DocumentReaderEngine.BuildFallbackColumns(columnCount);
@@ -265,7 +305,7 @@ internal static class PowerPointRichMapping {
         ReaderLocation tableLocation = BuildPowerPointLocation(location.Path, location.Slide!.Value, location.SourceBlockIndex, "table", location.BlockAnchor ?? "powerpoint-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture));
         tableLocation.TableIndex = tableIndex;
         return new ReaderTable {
-            Title = table.Name ?? "PowerPoint table " + (tableIndex + 1).ToString(CultureInfo.InvariantCulture),
+            Title = name ?? "PowerPoint table " + (tableIndex + 1).ToString(CultureInfo.InvariantCulture),
             Kind = "powerpoint-table",
             Location = tableLocation,
             Columns = columns,
@@ -276,9 +316,9 @@ internal static class PowerPointRichMapping {
         };
     }
 
-    private static string GetPowerPointCellText(PowerPointTableRow row, int index, string fallback) {
-        if (index >= row.Cells.Count || string.IsNullOrWhiteSpace(row.Cells[index].Text)) return fallback;
-        return row.Cells[index].Text;
+    private static string GetPowerPointCellText(IReadOnlyList<string> row, int index, string fallback) {
+        if (index >= row.Count || string.IsNullOrWhiteSpace(row[index])) return fallback;
+        return row[index];
     }
 
     private static string BuildPowerPointChartPayload(OfficeChartSnapshot snapshot) {

@@ -89,6 +89,7 @@ namespace OfficeIMO.Examples {
             PowerPoint.DirectEditingPowerPoint.Example(folderPath, false);
             PowerPoint.ShapesPowerPoint.Example_PowerPointShapes(folderPath, false);
             PowerPoint.MastersLayoutsConnectorsPowerPoint.Example_MastersLayoutsConnectors(folderPath, false);
+            PowerPoint.StreamingSlideReaderPowerPoint.Example_StreamingSlideReader(folderPath, false);
             PowerPoint.SlidesManagementPowerPoint.Example_SlidesManagement(folderPath, false);
             PowerPoint.SectionsWithoutRepairPowerPoint.Example_PowerPointSectionsWithoutRepair(folderPath, false);
             PowerPoint.TablesPowerPoint.Example_PowerPointTables(folderPath, false);
@@ -221,6 +222,11 @@ namespace OfficeIMO.Examples {
 
             if (HasArgument(args, "--powerpoint-layout-strategy")) {
                 PowerPoint.LayoutStrategyComparisonPowerPoint.Example_LayoutStrategyComparisonPowerPoint(folderPath, false);
+                return;
+            }
+
+            if (HasArgument(args, "--powerpoint-streaming")) {
+                PowerPoint.StreamingSlideReaderPowerPoint.Example_StreamingSlideReader(folderPath, false);
                 return;
             }
 

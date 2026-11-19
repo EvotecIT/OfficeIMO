@@ -32,6 +32,18 @@ pages no longer walks every row and cell again for each printed page. The
 cached value is the same `Math.Max` over the same children, so page breaks and
 saved geometry are unchanged.
 
+A container with 32 or more children is also indexed once by the vertical
+extent of each child. Each printed page then examines only the children that
+can overlap it, plus children much taller than a row and collapsed rules that
+start at the page top. The slice applies its original tests to those children
+in source order. Pages with page floats still examine every child.
+
+Forced-break cursors charge the layout operation budget for the break entries
+they examine, not for every break in the container. A document of many
+sections with `break-after: page` costs a constant number of operations per
+page, so the default `MaxLayoutOperations` admits long documents while still
+stopping runaway layouts.
+
 Table-internal math uses the canonical parsed-length resolver with the current
 font and numeric context. A bounded TrueType coverage record reuses only prior
 successful printable-ASCII scalar diagnostics for the same immutable font
@@ -199,6 +211,39 @@ is unchanged apart from one reference per visual.
 
 All eight compared reports, including the 42- and 417-page purchase reports,
 produce byte-identical PDFs and identical diagnostics on Windows and macOS.
-The 1,000-page legal-document benchmark stops at the layout operation limit on
-both revisions, so it has no timing here.
+The 1,000-page legal-document benchmark stopped at the layout operation limit on
+both revisions; the long-document measurements below cover it.
+
+## Paged row index and long-document budget: 19 November 2026
+
+Baseline: `5e57ad7215` (master). Candidate: the same source plus the per-page
+child index and the forced-break cursor charge. Both run on an Apple M5 Max
+with .NET 10, `DOTNET_PROCESSOR_COUNT=3`, six warmup and twelve measured
+iterations and no outlier removal. The host had other work running, so the
+purchase-table rows were measured in two baseline/candidate rounds.
+
+| Workload | Baseline means | Candidate means | Baseline allocation | Candidate allocation |
+| --- | ---: | ---: | ---: | ---: |
+| 250 rows, prepared layout | 40.29 / 43.57 ms | 50.46 / 45.46 ms | 42.98 MB | 43.21 MB |
+| 250 rows, PDF export | 74.90 / 73.10 ms | 88.83 / 72.94 ms | 75.36 MB | 75.60 MB |
+| 2,500 rows, prepared layout | 474.70 / 457.20 ms | 430.66 / 404.60 ms | 414.77 MB | 417.25 MB |
+| 2,500 rows, PDF export | 859.33 / 878.73 ms | 817.20 / 810.22 ms | 741.32 MB | 743.77 MB |
+| 100-page legal document, layout | 26.57 ms | 24.61 ms | 30.66 MB | 30.72 MB |
+| 1,000-page legal document, layout | operation limit | 299.55 ms | — | 302.72 MB |
+| 1,000-page legal document, PDF export | operation limit | 565.48 ms | — | 491.92 MB |
+
+The 250-row cases overlap within their errors. A 7,000-row purchase table
+(about 1,170 pages, with `MaxTableRows` and `MaxPageCount` raised) took
+3,265 ms before and 2,863 ms after for the full conversion, averaged over two
+warm rounds; from 2,500 to 7,000 rows the candidate grows in proportion to the
+rows.
+
+The smallest `MaxLayoutOperations` that admits the legal-document benchmark
+grew from 579 operations per page at 100 pages to 1,495 per page at 1,000
+pages before the change, so the 1,000-page document needed 1,494,600
+operations against the default 1,000,000. After the change it needs 482 and
+501 operations per page, 500,613 in total.
+
+All nine compared reports, including the 7,000-row table, produce
+byte-identical PDFs and identical diagnostics on Windows and macOS.
 

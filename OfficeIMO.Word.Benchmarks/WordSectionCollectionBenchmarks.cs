@@ -40,34 +40,46 @@ public class WordSectionCollectionBenchmarks {
         }
 
         _document = WordDocument.Load(new MemoryStream(bytes, writable: false));
-        EnsureEqual("Sections", SectionCount, _document.Sections.Count);
-        EnsureEqual("Section paragraphs", _document.Sections.Sum(section => section.Paragraphs.Count), _document.Paragraphs.Count);
-        EnsureEqual("Tables", SectionCount * TablesPerSection, _document.Tables.Count);
-        EnsureEqual("Hyperlink paragraphs", SectionCount, _document.ParagraphsHyperLinks.Count);
-        EnsureEqual("Elements", _document.Sections.Sum(section => section.Elements.Count), _document.Elements.Count);
-        EnsureEqual("Fields", SectionCount, _document.Fields.Count);
-        EnsureEqual("Hyperlinks", SectionCount, _document.HyperLinks.Count);
-        EnsureEqual("Check boxes", SectionCount, _document.CheckBoxes.Count);
-        EnsureEqual("Footnotes", SectionCount, _document.FootNotes.Count);
-        EnsureEqual("Nested tables included", SectionCount * TablesPerSection, _document.TablesIncludingNestedTables.Count);
+        WordBenchmarkCorpus.Check("OfficeIMO", string.Empty,
+            $"SectionCount={SectionCount}; every document-wide list matches the sum of its sections and the written content",
+            ValidateCollections);
+    }
+
+    private void ValidateCollections() {
+        WordDocument document = _document ?? throw new InvalidOperationException("The benchmark document was not loaded.");
+        EnsureEqual("Sections", SectionCount, document.Sections.Count);
+        EnsureEqual("Section paragraphs", document.Sections.Sum(section => section.Paragraphs.Count), document.Paragraphs.Count);
+        EnsureEqual("Tables", SectionCount * TablesPerSection, document.Tables.Count);
+        EnsureEqual("Hyperlink paragraphs", SectionCount, document.ParagraphsHyperLinks.Count);
+        EnsureEqual("Elements", document.Sections.Sum(section => section.Elements.Count), document.Elements.Count);
+        EnsureEqual("Fields", SectionCount, document.Fields.Count);
+        EnsureEqual("Hyperlinks", SectionCount, document.HyperLinks.Count);
+        EnsureEqual("Check boxes", SectionCount, document.CheckBoxes.Count);
+        EnsureEqual("Footnotes", SectionCount, document.FootNotes.Count);
+        EnsureEqual("Nested tables included", SectionCount * TablesPerSection, document.TablesIncludingNestedTables.Count);
     }
 
     [GlobalCleanup]
     public void Cleanup() => _document?.Dispose();
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ParagraphsAndTables")]
     public int ParagraphsAndTables() => _document!.Paragraphs.Count + _document.Tables.Count;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:HyperlinkParagraphs")]
     public int HyperlinkParagraphs() => _document!.ParagraphsHyperLinks.Count;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Elements")]
     public int Elements() => _document!.Elements.Count;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:FieldsHyperlinksAndBookmarks")]
     public int FieldsHyperlinksAndBookmarks() => _document!.Fields.Count + _document.HyperLinks.Count + _document.Bookmarks.Count;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ControlsNotesAndNestedTables")]
     public int ControlsNotesAndNestedTables() =>
         _document!.CheckBoxes.Count + _document.StructuredDocumentTags.Count + _document.FootNotes.Count + _document.TablesIncludingNestedTables.Count;
 

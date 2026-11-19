@@ -27,27 +27,42 @@ public class WordCreateParagraphComparisonBenchmarks {
 
     [GlobalSetup]
     public void Validate() {
+        // Each output is reopened as a ZIP/XML package and its body paragraphs are compared with the corpus text;
+        // every lane except DocX must also pass the Open XML SDK validator.
+        string content = $"ItemCount={ItemCount}; {ItemCount} body paragraphs with the expected text";
+        string conformant = content + "; passes the Open XML SDK validator";
         byte[] officeImo = OfficeIMO();
-        WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount);
+        WordBenchmarkCorpus.Check("OfficeIMO", "Default", conformant,
+            () => WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount));
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
-        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
-        WordBenchmarkCorpus.ValidateParagraphDocument(NPOI(), ItemCount);
-        WordBenchmarkCorpus.ValidateParagraphDocument(OpenXmlSdkMinimal(), ItemCount);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.Check("DocX", "Default", content,
+            () => WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false));
+        byte[] npoi = NPOI();
+        WordBenchmarkCorpus.Check("NPOI", "Default", conformant,
+            () => WordBenchmarkCorpus.ValidateParagraphDocument(npoi, ItemCount));
+        byte[] minimal = OpenXmlSdkMinimal();
+        WordBenchmarkCorpus.Check("Open XML SDK", "Minimal", conformant + "; main document part only",
+            () => WordBenchmarkCorpus.ValidateParagraphDocument(minimal, ItemCount));
         byte[] equivalent = OpenXmlSdkEquivalent();
-        WordBenchmarkCorpus.ValidateParagraphDocument(equivalent, ItemCount);
-        WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", conformant + "; same package part set as OfficeIMO", () => {
+            WordBenchmarkCorpus.ValidateParagraphDocument(equivalent, ItemCount);
+            WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
+        });
 #if NET10_0_OR_GREATER
-        WordBenchmarkCorpus.ValidateParagraphDocument(OneDocument(), ItemCount);
+        byte[] oneDocument = OneDocument();
+        WordBenchmarkCorpus.Check("OneDocument.Documents", "Default", conformant,
+            () => WordBenchmarkCorpus.ValidateParagraphDocument(oneDocument, ItemCount));
 #endif
     }
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Documents", "case:Default")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.CreateParagraphs(ItemCount);
 #endif
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() {
         using WordDocument document = WordDocument.Create();
         for (int index = 0; index < ItemCount; index++) {
@@ -57,7 +72,7 @@ public class WordCreateParagraphComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX", "case:Default")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -70,6 +85,7 @@ public class WordCreateParagraphComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:NPOI", "case:Default")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         for (int index = 0; index < ItemCount; index++) {
@@ -82,10 +98,12 @@ public class WordCreateParagraphComparisonBenchmarks {
 
     /// <summary>The main document part only: no styles, settings, theme, fonts, notes or properties.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Minimal")]
     public byte[] OpenXmlSdkMinimal() => CreateOpenXmlSdkParagraphs(supportingParts: null);
 
     /// <summary>The same package parts as the OfficeIMO lane writes.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdkEquivalent() => CreateOpenXmlSdkParagraphs(_equivalentParts);
 
     private byte[] CreateOpenXmlSdkParagraphs(WordEquivalentPackageParts? supportingParts) {
@@ -117,27 +135,43 @@ public class WordCreateReportComparisonBenchmarks {
 
     [GlobalSetup]
     public void Validate() {
+        // Each output is reopened as a ZIP/XML package: bold 18 pt title, summary, a table of RowCount + 1 rows with
+        // bold headers and the expected cell text, and header and footer parts with their text; every lane except
+        // DocX must also pass the Open XML SDK validator.
+        string content = $"RowCount={RowCount}; title, summary, {RowCount + 1}-row table, header and footer with the expected text";
+        string conformant = content + "; passes the Open XML SDK validator";
         byte[] officeImo = OfficeIMO();
-        WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount);
+        WordBenchmarkCorpus.Check("OfficeIMO", "Default", conformant,
+            () => WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount));
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
-        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
-        WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
-        WordBenchmarkCorpus.ValidateReportDocument(OpenXmlSdkMinimal(), RowCount);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.Check("DocX", "Default", content,
+            () => WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false));
+        byte[] npoi = NPOI();
+        WordBenchmarkCorpus.Check("NPOI", "Default", conformant,
+            () => WordBenchmarkCorpus.ValidateReportDocument(npoi, RowCount));
+        byte[] minimal = OpenXmlSdkMinimal();
+        WordBenchmarkCorpus.Check("Open XML SDK", "Minimal", conformant + "; document, header and footer parts only",
+            () => WordBenchmarkCorpus.ValidateReportDocument(minimal, RowCount));
         byte[] equivalent = OpenXmlSdkEquivalent();
-        WordBenchmarkCorpus.ValidateReportDocument(equivalent, RowCount);
-        WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", conformant + "; same package part set as OfficeIMO", () => {
+            WordBenchmarkCorpus.ValidateReportDocument(equivalent, RowCount);
+            WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
+        });
 #if NET10_0_OR_GREATER
-        WordBenchmarkCorpus.ValidateReportDocument(OneDocument(), RowCount);
+        byte[] oneDocument = OneDocument();
+        WordBenchmarkCorpus.Check("OneDocument.Documents", "Default", conformant,
+            () => WordBenchmarkCorpus.ValidateReportDocument(oneDocument, RowCount));
 #endif
     }
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Documents", "case:Default")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.CreateReport(RowCount);
 #endif
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() {
         using WordDocument document = WordDocument.Create();
         document.PageSetup.Header.AddParagraph(WordBenchmarkCorpus.ReportHeader);
@@ -155,7 +189,7 @@ public class WordCreateReportComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX", "case:Default")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -179,6 +213,7 @@ public class WordCreateReportComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:NPOI", "case:Default")]
     public byte[] NPOI() {
         using var document = new NpoiDocument();
         var header = document.CreateHeader(NpoiHeaderFooterType.DEFAULT);
@@ -207,10 +242,12 @@ public class WordCreateReportComparisonBenchmarks {
 
     /// <summary>The main document and its header and footer only: no styles, settings, theme, fonts, notes or properties.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Minimal")]
     public byte[] OpenXmlSdkMinimal() => CreateOpenXmlSdkReport(supportingParts: null);
 
     /// <summary>The same package parts as the OfficeIMO lane writes, including its TableGrid style.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdkEquivalent() => CreateOpenXmlSdkReport(_equivalentParts);
 
     private byte[] CreateOpenXmlSdkReport(WordEquivalentPackageParts? supportingParts) {
@@ -249,34 +286,36 @@ public class WordCreateReportComparisonBenchmarks {
             new OpenXmlRun(runProperties, new Text(text)));
     }
 
-    internal static OpenXmlTable CreateTable(int rowCount) {
+    internal static OpenXmlTable CreateTable(int rowCount, int columnWidthTwips = 2400) {
+        string columnWidth = columnWidthTwips.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var table = new OpenXmlTable(
             new TableProperties(
                 new TableStyle { Val = "TableGrid" },
                 new TableWidth { Width = "0", Type = TableWidthUnitValues.Auto },
                 new DocumentFormat.OpenXml.Wordprocessing.TableLook { Val = "04A0" }),
             new TableGrid(
-                new GridColumn { Width = "2400" },
-                new GridColumn { Width = "2400" }));
-        table.Append(CreateRow("Record", "Owner", bold: true));
+                new GridColumn { Width = columnWidth },
+                new GridColumn { Width = columnWidth }));
+        table.Append(CreateRow("Record", "Owner", bold: true, columnWidth));
         for (int index = 0; index < rowCount; index++) {
             table.Append(CreateRow(
                 WordBenchmarkCorpus.RecordId(index),
                 WordBenchmarkCorpus.RecordOwner(index),
-                bold: false));
+                bold: false,
+                columnWidth));
         }
         return table;
     }
 
-    private static TableRow CreateRow(string first, string second, bool bold) =>
+    private static TableRow CreateRow(string first, string second, bool bold, string columnWidth) =>
         new(
-            CreateCell(first, bold),
-            CreateCell(second, bold));
+            CreateCell(first, bold, columnWidth),
+            CreateCell(second, bold, columnWidth));
 
-    private static TableCell CreateCell(string text, bool bold) =>
+    private static TableCell CreateCell(string text, bool bold, string columnWidth) =>
         new(
             new TableCellProperties(
-                new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2400" }),
+                new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = columnWidth }),
             CreateParagraph(text, bold));
 
     private static void SetNpoiCell(NPOI.XWPF.UserModel.XWPFTableCell cell, string text, bool bold) {

@@ -32,6 +32,7 @@
     <Compile Include="..\Benchmarks\CsvWriteComparisonData.cs" Link="Shared\CsvWriteComparisonData.cs" />
     <Compile Include="..\OfficeIMO.CSV.Benchmarks\BenchmarkArrayDataReader.cs" Link="Shared\BenchmarkArrayDataReader.cs" />
     <Compile Include="..\OfficeIMO.CSV.Benchmarks\CsvBenchmarkOutputValidator.cs" Link="Shared\CsvBenchmarkOutputValidator.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
     <Compile Include="..\Benchmarks\SalesMappingFixture.cs" Link="Shared\SalesMappingFixture.cs" />
   </ItemGroup>
   <Target Name="RemoveIncompatibleExcelReaderGenerator" BeforeTargets="CoreCompile">

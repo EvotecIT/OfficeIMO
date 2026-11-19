@@ -57,7 +57,7 @@ foreach ($diagnostic in $pdfXDiagnostics) {
     }
 }
 
-$artifactEvidencePath = Join-Path $PSScriptRoot '../Docs/benchmarks/html-pdf-artifact-evidence/html-pdf-artifact-evidence-net10.0-windows-high.json'
+$artifactEvidencePath = Join-Path $PSScriptRoot 'HtmlPdfArtifactEvidence/html-pdf-artifact-evidence-net10.0-windows-high.json'
 $artifactEvidence = Get-Content -LiteralPath $artifactEvidencePath -Raw | ConvertFrom-Json
 $expectedHtmlTinkerXCommit = [string] $artifactEvidence.report.provenance.htmlTinkerX.commit
 if ($expectedHtmlTinkerXCommit -notmatch '^[0-9a-f]{40}$') {

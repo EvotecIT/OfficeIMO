@@ -52,13 +52,17 @@ public class ExcelProducerRoundTripBenchmarks {
         };
         _lastRow = LastRowIndex(_input);
         _rowCount = RowCount(_input);
-        Validate(OfficeIMO_Open_Edit_Save());
+        string detail = $"Producer={Producer}; Open XML SDK reread the edited cell and the row count";
+        ExcelOutputValidation.Check("OfficeIMO", "Open_Edit_Save", detail, () => Validate(OfficeIMO_Open_Edit_Save()));
         // A competitor that cannot open the file, or whose output fails the same check, reports that error
         // instead of an unvalidated time.
-        try { Validate(ClosedXML_Open_Edit_Save()); } catch (Exception exception) { _closedXmlProblem = exception.GetType().Name + ": " + exception.Message; }
+        try {
+            ExcelOutputValidation.Check("ClosedXML", "Open_Edit_Save", detail, () => Validate(ClosedXML_Open_Edit_Save()));
+        } catch (Exception exception) { _closedXmlProblem = exception.GetType().Name + ": " + exception.Message; }
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Open_Edit_Save")]
     public byte[] OfficeIMO_Open_Edit_Save() {
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Load(new MemoryStream(_input, writable: false))) {
@@ -69,6 +73,7 @@ public class ExcelProducerRoundTripBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Open_Edit_Save")]
     public byte[] ClosedXML_Open_Edit_Save() {
         if (_closedXmlProblem != null) throw new InvalidDataException("ClosedXML failed this workbook in setup: " + _closedXmlProblem);
         using var output = new MemoryStream();

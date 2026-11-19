@@ -10,7 +10,8 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
 /// Complete in-memory XLSX workbooks of many equally sized sheets (name, id, date, amount), each library on
-/// its default options. Setup reopens every output with ExcelDataReader and checks the sheet and row counts.
+/// its default options. Setup reopens every output with ExcelDataReader and checks the sheet and row counts, the
+/// headers and every row's name, id, date and amount.
 /// </summary>
 [MemoryDiagnoser]
 public class ExcelMultiSheetWriteBenchmarks {
@@ -30,16 +31,18 @@ public class ExcelMultiSheetWriteBenchmarks {
     public void Setup() {
         _rows = new GeneratedRecord[RowsPerSheet];
         for (int index = 0; index < _rows.Length; index++) _rows[index] = ExcelReaderGeneratedBenchmarks.CreateRecord(index);
-        Validate(nameof(OfficeIMO_Typed), OfficeIMO_Typed());
-        Validate(nameof(OfficeIMO_TypedNoTable), OfficeIMO_TypedNoTable());
-        Validate(nameof(OfficeIMO_Editable), OfficeIMO_Editable());
-        Validate(nameof(SpreadCheetah), SpreadCheetah());
-        Validate(nameof(ExcelReaderNet), ExcelReaderNet());
-        Validate(nameof(MiniExcel), MiniExcel());
-        Validate(nameof(LargeXlsx), LargeXlsx());
+        string detail = $"SheetCount={SheetCount}; RowsPerSheet={RowsPerSheet}; ExcelDataReader reread every sheet's headers and every row's name, id, date and amount";
+        ExcelOutputValidation.Check("OfficeIMO", "Typed", detail, () => Validate(nameof(OfficeIMO_Typed), OfficeIMO_Typed()));
+        ExcelOutputValidation.Check("OfficeIMO", "TypedNoTable", detail, () => Validate(nameof(OfficeIMO_TypedNoTable), OfficeIMO_TypedNoTable()));
+        ExcelOutputValidation.Check("OfficeIMO", "Editable", detail, () => Validate(nameof(OfficeIMO_Editable), OfficeIMO_Editable()));
+        ExcelOutputValidation.Check("SpreadCheetah", "Default", detail, () => Validate(nameof(SpreadCheetah), SpreadCheetah()));
+        ExcelOutputValidation.Check("ExcelReader.NET", "Default", detail, () => Validate(nameof(ExcelReaderNet), ExcelReaderNet()));
+        ExcelOutputValidation.Check("MiniExcel", "Default", detail, () => Validate(nameof(MiniExcel), MiniExcel()));
+        ExcelOutputValidation.Check("LargeXlsx", "Default", detail, () => Validate(nameof(LargeXlsx), LargeXlsx()));
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Typed")]
     public byte[] OfficeIMO_Typed() {
         using var output = new MemoryStream();
         using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsx, output, leaveOpen: true)) {
@@ -53,6 +56,7 @@ public class ExcelMultiSheetWriteBenchmarks {
 
     /// <summary>The row writer without its default native table, the same parts the other writers produce.</summary>
     [Benchmark]
+    [BenchmarkCategory("case:TypedNoTable")]
     public byte[] OfficeIMO_TypedNoTable() {
         using var output = new MemoryStream();
         using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsx, output, NoTable, leaveOpen: true)) {
@@ -65,6 +69,7 @@ public class ExcelMultiSheetWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Editable")]
     public byte[] OfficeIMO_Editable() {
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Create()) {
@@ -78,6 +83,7 @@ public class ExcelMultiSheetWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] SpreadCheetah() => SpreadCheetahAsync().GetAwaiter().GetResult();
 
     private async Task<byte[]> SpreadCheetahAsync() {
@@ -102,6 +108,7 @@ public class ExcelMultiSheetWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] ExcelReaderNet() {
         using var output = new MemoryStream();
         using (var workbook = XlsxWorkbookWriter.Create(output, leaveOpen: true)) {
@@ -122,6 +129,7 @@ public class ExcelMultiSheetWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] MiniExcel() {
         using var output = new MemoryStream();
         var sheets = new Dictionary<string, object>(SheetCount);
@@ -131,6 +139,7 @@ public class ExcelMultiSheetWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] LargeXlsx() {
         using var output = new MemoryStream();
         using (var writer = new XlsxWriter(output)) {
@@ -155,12 +164,34 @@ public class ExcelMultiSheetWriteBenchmarks {
         using var reader = global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
         int sheets = 0;
         do {
+            if (!reader.Read() || reader.FieldCount != Headers.Length) throw new InvalidDataException($"{lane}: sheet {sheets + 1} has no header row.");
+            for (int column = 0; column < Headers.Length; column++) {
+                if (!Equals(reader.GetValue(column), Headers[column])) throw new InvalidDataException($"{lane}: sheet {sheets + 1} header {column + 1} is '{reader.GetValue(column)}'.");
+            }
             int rows = 0;
-            while (reader.Read()) rows++;
-            if (rows != RowsPerSheet + 1) throw new InvalidDataException($"{lane}: sheet {sheets + 1} has {rows} rows, expected {RowsPerSheet + 1}.");
+            while (reader.Read()) {
+                if (rows >= _rows.Length) throw new InvalidDataException($"{lane}: sheet {sheets + 1} has more than {_rows.Length} data rows.");
+                CheckRow(lane, sheets, rows, _rows[rows], reader);
+                rows++;
+            }
+            if (rows != RowsPerSheet) throw new InvalidDataException($"{lane}: sheet {sheets + 1} has {rows} data rows, expected {RowsPerSheet}.");
             sheets++;
         } while (reader.NextResult());
         if (sheets != SheetCount) throw new InvalidDataException($"{lane}: {sheets} sheets, expected {SheetCount}.");
+    }
+
+    // Writers store the date as a styled serial number; ExcelDataReader returns it as a DateTime or, unstyled, as the serial.
+    private static void CheckRow(string lane, int sheet, int row, GeneratedRecord expected, System.Data.IDataRecord reader) {
+        object name = reader.GetValue(0), id = reader.GetValue(1), date = reader.GetValue(2), amount = reader.GetValue(3);
+        bool dateMatches = date switch {
+            DateTime value => value == expected.CreatedOn,
+            double serial => serial == expected.CreatedOn.ToOADate(),
+            _ => false
+        };
+        if (!Equals(name, expected.Name) || id is not double idValue || idValue != expected.Id || !dateMatches
+            || amount is not double amountValue || amountValue != expected.Amount) {
+            throw new InvalidDataException($"{lane}: sheet {sheet + 1} data row {row + 1} holds {name}/{id}/{date}/{amount}.");
+        }
     }
 }
 #endif

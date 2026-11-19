@@ -28,24 +28,33 @@ public class PdfGenerationBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => OfficeImoPdfGenerator.Generate(_scenario);
 
     [Benchmark]
+    [BenchmarkCategory("library:QuestPDF", "case:Default")]
     public byte[] QuestPDF() => QuestPdfGenerator.Generate(_scenario);
 
     [Benchmark]
+    [BenchmarkCategory("library:MigraDoc", "case:Default")]
     public byte[] MigraDoc() => MigraDocPdfGenerator.Generate(_scenario);
 
     [Benchmark]
+    [BenchmarkCategory("library:iText", "case:Default")]
     public byte[] IText() => ITextPdfGenerator.Generate(_scenario);
 
 #if NET10_0_OR_GREATER
     /// <summary>OnePDF.Layout writes a tagged PDF by default; the other lanes write untagged or lightly tagged output.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:onepdf")]
+    [BenchmarkCategory("library:OnePDF", "case:Layout")]
     public byte[] OnePdfLayout() => OnePdfComparisonEngines.Generate(_scenario);
 
 #endif
+    // Reopens the PDF with PdfPig: page count, report markers and every page's title, narrative and table rows.
     private void Validate(string engine, byte[] bytes) =>
-        PdfBenchmarkValidation.ValidateGenerated(bytes, _scenario, engine);
+        PdfBenchmarkValidation.Record(
+            PdfBenchmarkValidation.LibraryId(engine),
+            PdfBenchmarkValidation.CaseId(engine),
+            $"Scale={Scale}; reopened with PdfPig, {_scenario.PageCount} pages with every title, narrative and table row",
+            () => PdfBenchmarkValidation.ValidateGenerated(bytes, _scenario, engine));
 }

@@ -44,7 +44,11 @@ internal static class PdfSvgImageReader {
             }
         }
 
-        var options = new OfficeSvgDrawingReaderOptions { CancellationToken = cancellationToken };
+        // Office SVG pictures, such as dense QR codes, stay vector within the budget their stored raster fallback was made with.
+        var options = new OfficeSvgDrawingReaderOptions {
+            CancellationToken = cancellationToken,
+            MaximumGeometryCommands = OfficeIMO.Core.Internal.OfficeSvgPictureFallback.MaximumGeometryCommands
+        };
         if (!OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? vector, out int unsupported) ||
             vector == null || unsupported != 0) {
             throw new NotSupportedException("OfficeIMO.Pdf cannot import this SVG image completely. Supply an image produced by a renderer supporting its SVG features.");

@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.Yaml.Tests.Conformance;
 
 namespace OfficeIMO.Yaml.Benchmarks.Workloads;
@@ -37,27 +38,32 @@ internal static class YamlWorkloadValidation {
         }
     }
 
-    /// <summary>Saving keeps every loaded value, and a library that claims lossless saving returns the input unchanged.</summary>
+    /// <summary>
+    /// Saving keeps every loaded value, read back by another library, and a library that claims lossless saving
+    /// returns the input unchanged.
+    /// </summary>
     public static void ValidateLoadAndSave(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs) {
         bool lossless = (library.Conformance.Features & YamlEngineFeatures.Lossless) != 0;
+        IYamlReferenceLibrary reader = Other(library);
         foreach (string input in Distinct(inputs)) {
             string saved = library.LoadAndSave(input);
             Require(!lossless || string.Equals(saved, input, StringComparison.Ordinal), library, workload, "saved output differs from the input");
-            string? difference = YamlJsonEquivalence.FindDifference(library.Conformance.Load(Utf8.GetBytes(input)), library.Conformance.Load(Utf8.GetBytes(saved)));
+            string? difference = YamlJsonEquivalence.FindDifference(reader.Conformance.Load(Utf8.GetBytes(input)), reader.Conformance.Load(Utf8.GetBytes(saved)));
             Require(difference == null, library, workload, "saved output loads differently: " + difference);
         }
     }
 
     /// <summary>
-    /// The edited output loads to the input's structure and values, except scalars that now read <c>edited</c>: the
-    /// edited value and, when it sits under an anchor, its copies seen through aliases.
+    /// The edited output, read back by another library, loads to the input's structure and values, except scalars that
+    /// now read <c>edited</c>: the edited value and, when it sits under an anchor, its copies seen through aliases.
     /// </summary>
     public static void ValidateEditAndSave(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs) {
         int edited = 0;
+        IYamlReferenceLibrary reader = Other(library);
         foreach (string input in Distinct(inputs)) {
             string saved = library.EditAndSave(input);
-            IReadOnlyList<YamlConformanceNode> before = library.Conformance.Load(Utf8.GetBytes(input));
-            IReadOnlyList<YamlConformanceNode> after = library.Conformance.Load(Utf8.GetBytes(saved));
+            IReadOnlyList<YamlConformanceNode> before = reader.Conformance.Load(Utf8.GetBytes(input));
+            IReadOnlyList<YamlConformanceNode> after = reader.Conformance.Load(Utf8.GetBytes(saved));
             Require(before.Count == after.Count, library, workload, "the edited output has " + after.Count + " documents instead of " + before.Count);
             for (int i = 0; i < before.Count; i++) {
                 string? difference = CompareEdited(before[i], after[i], "$[" + i + "]", ref edited);
@@ -92,14 +98,31 @@ internal static class YamlWorkloadValidation {
         return path + ": " + before + " became " + after;
     }
 
-    /// <summary>Emitted output parses back to the same content, anchors and aliases included.</summary>
+    /// <summary>Emitted output, parsed by another library, has the input's event content, anchors and aliases included.</summary>
     public static void ValidateEmit(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs, object[] captured) {
         string[] distinct = Distinct(inputs).ToArray();
+        IYamlReferenceLibrary reader = Other(library);
         for (int i = 0; i < distinct.Length; i++) {
             string emitted = library.Emit(captured[Array.IndexOf(inputs, distinct[i])]);
-            int difference = YamlTestEventText.FindContentDifference(library.Conformance.Parse(Utf8.GetBytes(distinct[i])), library.Conformance.Parse(Utf8.GetBytes(emitted)));
+            int difference = YamlTestEventText.FindContentDifference(reader.Conformance.Parse(Utf8.GetBytes(distinct[i])), reader.Conformance.Parse(Utf8.GetBytes(emitted)));
             Require(difference < 0, library, workload, "emitted output differs at event " + difference);
         }
+    }
+
+    /// <summary>
+    /// Runs one setup check and records its result under the library's id in the benchmark declarations; the check
+    /// throws, after the failure is recorded, when the output is wrong.
+    /// </summary>
+    public static void Record(IYamlReferenceLibrary library, YamlWorkload workload, string check, Action validate, string caseName = "") {
+        string id = library.Name == YamlReferenceLibraries.OfficeIMOYaml.Name ? "OfficeIMO" : library.Name;
+        string detail = "Workload=" + workload + "; " + check.Replace("{other}", Other(library).Name);
+        try {
+            validate();
+        } catch (InvalidOperationException exception) {
+            BenchmarkOutputValidationLog.Failed(id, detail + "; " + exception.Message, caseName);
+            throw;
+        }
+        BenchmarkOutputValidationLog.Passed(id, detail, caseName);
     }
 
     private static IYamlReferenceLibrary Other(IYamlReferenceLibrary library) =>
