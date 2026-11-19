@@ -489,7 +489,7 @@ public static partial class HtmlComputedStyleEngine {
             case "pointer-events":
                 return IsKnownKeyword(normalized, "auto", "none");
             case "text-transform":
-                return IsKnownKeyword(normalized, "none", "uppercase", "lowercase", "capitalize", "full-width", "full-size-kana", "math-auto");
+                return IsKnownKeyword(normalized, "none", "math-auto") || IsTextTransformList(normalized);
             case "text-decoration-line":
                 return IsTextDecorationLineSyntax(HtmlRenderCssValues.SplitWhitespace(normalized));
             case "text-decoration-color":
@@ -514,9 +514,9 @@ public static partial class HtmlComputedStyleEngine {
                     && stretch >= 50D
                     && stretch <= 200D;
             case "font-weight":
-                int weight;
                 return IsKnownKeyword(normalized, "normal", "bold", "bolder", "lighter")
-                    || (int.TryParse(normalized, out weight) && weight >= 1 && weight <= 1000);
+                    || double.TryParse(normalized, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double weight)
+                    && weight >= 1D && weight <= 1000D;
             case "text-align":
                 return IsKnownKeyword(normalized, "left", "right", "center", "justify", "justify-all", "start", "end", "match-parent",
                     "-webkit-left", "-webkit-right", "-webkit-center", "-moz-left", "-moz-right", "-moz-center");
@@ -529,7 +529,15 @@ public static partial class HtmlComputedStyleEngine {
             case "unicode-bidi":
                 return IsKnownKeyword(normalized, "normal", "embed", "isolate", "bidi-override", "isolate-override", "plaintext");
             case "white-space":
-                return IsKnownKeyword(normalized, "normal", "nowrap", "pre", "pre-wrap", "pre-line", "break-spaces");
+                return TryExpandWhiteSpace(normalized, out _, out _);
+            case "white-space-collapse":
+                return IsKnownKeyword(normalized, "collapse", "preserve", "preserve-breaks", "preserve-spaces", "break-spaces");
+            case "text-wrap-mode":
+                return IsKnownKeyword(normalized, "wrap", "nowrap");
+            case "text-wrap-style":
+                return IsKnownKeyword(normalized, "auto", "balance", "stable", "pretty");
+            case "text-wrap":
+                return TryExpandTextWrap(normalized, out _, out _);
             case "hyphens":
                 return IsKnownKeyword(normalized, "none", "manual", "auto");
             case "hyphenate-character":
@@ -565,7 +573,8 @@ public static partial class HtmlComputedStyleEngine {
             case "letter-spacing":
             case "word-spacing":
                 return normalized == "normal"
-                    || HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: false, allowUnitlessZero: true)
+                    // CSS Text 4: percentages refer to the font size.
+                    || HtmlRenderCssValues.HasExplicitLengthSyntax(normalized, allowPercentage: true, allowUnitlessZero: true)
                     && TryValidateCssLength(normalized, out _);
             case "image-orientation":
                 return HtmlCssReplacedElementParser.IsSupportedImageOrientationSyntax(normalized);
@@ -599,6 +608,28 @@ public static partial class HtmlComputedStyleEngine {
         HtmlRenderCssValues.HasExplicitLengthSyntax(value, allowPercentage: true, allowUnitlessZero: true)
         && TryValidateCssLength(value, out double length)
         && length >= 0D;
+
+    // [ capitalize | uppercase | lowercase ] || full-width || full-size-kana
+    private static bool IsTextTransformList(string value) {
+        bool textCase = false, fullWidth = false, fullSizeKana = false;
+        IReadOnlyList<string> keywords = HtmlRenderCssValues.SplitWhitespace(value);
+        if (keywords.Count == 0) return false;
+        foreach (string keyword in keywords) {
+            if (keyword is "capitalize" or "uppercase" or "lowercase") {
+                if (textCase) return false;
+                textCase = true;
+            } else if (keyword == "full-width") {
+                if (fullWidth) return false;
+                fullWidth = true;
+            } else if (keyword == "full-size-kana") {
+                if (fullSizeKana) return false;
+                fullSizeKana = true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private static bool IsKnownKeyword(string value, params string[] keywords) {
         foreach (string keyword in keywords) {

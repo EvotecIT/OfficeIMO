@@ -164,12 +164,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && left.OverflowWrap == "normal" && right.OverflowWrap == "normal"
         && !HasArabicJoiningInsets(left) && !HasArabicJoiningInsets(right);
 
-    private void ReportUnretainedProviderPaint(HtmlInlineRun run, string text) {
+    private void ReportUnretainedProviderPaint(HtmlInlineRun run, string text, string detail = "directional-glyph-context-not-retained") {
         if (!run.PreserveContextualFallback
             && (_options.TextShapingProvider != null || !run.Style.TextFeatureSettings.IsDefault
                 || RequiresConfiguredTextShaping(text, run.Style.TextFeatureSettings))
             && TryMeasureWithConfiguredProvider(text, run.Style, out _))
-            ReportProviderContextLoss(run, "directional-glyph-context-not-retained");
+            ReportProviderContextLoss(run, detail);
     }
 
     private void ReportProviderContextLoss(HtmlInlineRun run, string detail) {

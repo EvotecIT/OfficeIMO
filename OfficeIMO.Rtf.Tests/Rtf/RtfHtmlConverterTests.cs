@@ -94,6 +94,17 @@ public partial class RtfHtmlConverterTests {
         Assert.Equal(expected, Assert.Single(document.Paragraphs).Alignment);
     }
 
+    [Theory]
+    [InlineData("<p style=\"text-align:start\">Aligned</p>", RtfTextAlignment.Left)]
+    [InlineData("<p dir=\"rtl\" style=\"text-align:start\">Aligned</p>", RtfTextAlignment.Right)]
+    [InlineData("<div dir=\"rtl\"><p style=\"text-align:end\">Aligned</p></div>", RtfTextAlignment.Left)]
+    [InlineData("<p dir=\"rtl\" style=\"text-align:left\">Aligned</p>", RtfTextAlignment.Left)]
+    public void Html_ToRtfDocument_Resolves_Logical_Paragraph_Alignment(string html, RtfTextAlignment expected) {
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
+
+        Assert.Equal(expected, Assert.Single(document.Paragraphs, paragraph => paragraph.Runs.Any(run => run.Text == "Aligned")).Alignment);
+    }
+
     [Fact]
     public void Html_ToRtfDocument_Parses_Inline_Css_Formatting_And_Alignment() {
         const string html = "<p style=\"text-align:center !important\">Vitals <span style=\"font-weight:700 !important; font-style: italic; text-decoration: underline line-through; vertical-align: super\">critical</span><span style=\"vertical-align: sub\">low</span></p>";

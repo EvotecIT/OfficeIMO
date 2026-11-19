@@ -37,6 +37,9 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfTextAlignment? TextAlignment { get; set; }
 
+    // start or end: TextAlignment holds the left-to-right side and flips for right-to-left text.
+    internal bool TextAlignmentIsLogical { get; set; }
+
     internal RtfColor? ForegroundColor { get; set; }
 
     internal RtfColor? BackgroundColor { get; set; }

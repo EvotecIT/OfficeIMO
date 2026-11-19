@@ -4,23 +4,26 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private void ApplyFirstLineStyle(
+    // Returns whether a ::first-line style applies. lineWidth is the first line's length when it is
+    // narrower than the block, as with text-wrap: balance; percentages still resolve against width.
+    private bool ApplyFirstLineStyle(
         IElement? formattingContainer,
         double width,
         HtmlRenderBoxStyle parentStyle,
-        List<HtmlInlineRun> targetRuns) {
+        List<HtmlInlineRun> targetRuns,
+        double? lineWidth = null) {
         if (formattingContainer == null
             || !_styleResolver.TryResolvePseudo(
                 formattingContainer,
                 HtmlPseudoElementKind.FirstLine,
                 width,
                 parentStyle,
-                out HtmlRenderBoxStyle firstLineStyle)) return;
+                out HtmlRenderBoxStyle firstLineStyle)) return false;
 
         IReadOnlyList<HtmlInlineRun> runs = PrepareArabicJoiningRuns(targetRuns);
         runs = PrepareConfiguredJoiningRuns(runs, parentStyle,
             run => CreateFirstLineRunStyle(run, firstLineStyle), reportLoss: false);
-        width = Math.Max(0.01D, width - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
+        width = Math.Max(0.01D, (lineWidth ?? width) - (parentStyle.TextIndent?.Resolve(width) ?? 0D));
         var styledRuns = new List<HtmlInlineRun>(runs.Count);
         PrepareInlineEdgeScopes(runs);
         InlineWordFitting wordFitting = CreateInlineWordFitting(
@@ -137,6 +140,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         targetRuns.Clear();
         targetRuns.AddRange(styledRuns);
+        return true;
     }
 
     private static HtmlRenderBoxStyle CreateFirstLineRunStyle(HtmlInlineRun run, HtmlRenderBoxStyle firstLineStyle) {
@@ -151,6 +155,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.PreventTextWrapping = run.Style.PreventTextWrapping;
         style.TabSize = run.Style.TabSize;
         style.TabSizeIsLength = run.Style.TabSizeIsLength;
+        // text-justify does not apply to ::first-line, so the run keeps its own.
+        style.TextJustifyMode = run.Style.TextJustifyMode;
+        style.TextJustifyNone = run.Style.TextJustifyNone;
         return style;
     }
 

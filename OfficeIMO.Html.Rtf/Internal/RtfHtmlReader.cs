@@ -417,7 +417,7 @@ internal static partial class RtfHtmlReader {
 
         private void ApplyParagraphStyle(HtmlStyleDeclaration style) {
             if (_paragraph != null && style.TextAlignment.HasValue) {
-                _paragraph.Alignment = style.TextAlignment.Value;
+                _paragraph.Alignment = ResolveTextAlignment(style);
             }
 
             if (_paragraph != null && style.Direction.HasValue) {

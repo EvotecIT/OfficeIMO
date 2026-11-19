@@ -237,9 +237,12 @@ public static partial class HtmlComputedStyleEngine {
                     && !string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)
                 ? CssKeywordResolution.ForInheritedValue(string.Empty)
                 // justify-all sets the parent's last-line alignment without a text-align-last value.
+                // white-space and text-wrap inherit the parent's resolved longhands, which a later
+                // inherit must still override this element's own longhands with.
                 : (string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(name, "text-transform", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(name, "text-align-last", StringComparison.OrdinalIgnoreCase))
+                    || string.Equals(name, "text-align-last", StringComparison.OrdinalIgnoreCase)
+                    || IsWhiteSpaceOrTextWrapProperty(name))
                 ? CssKeywordResolution.ForInheritedValue("inherit")
                 : CssKeywordResolution.Clear;
         }
@@ -263,6 +266,13 @@ public static partial class HtmlComputedStyleEngine {
 
         return CssKeywordResolution.ForValue(value);
     }
+
+    private static bool IsWhiteSpaceOrTextWrapProperty(string name) =>
+        name.Equals("white-space", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("white-space-collapse", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("text-wrap", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("text-wrap-mode", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("text-wrap-style", StringComparison.OrdinalIgnoreCase);
 
     private static bool ShouldReplace(CascadedProperty existing, bool isImportant, Specificity specificity, int order, CascadeLayerOrder? layerOrder, int declarationOrder = 0) {
         // Inheritance happens after the cascade. A value copied from the parent is therefore
