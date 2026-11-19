@@ -130,6 +130,23 @@ public sealed class ExcelXlsbTableTests {
     }
 
     [Fact]
+    public void Defined_names_with_structured_references_survive_native_xlsb_save() {
+        byte[] xlsx = CreateXlsx(document => {
+            BuildShape(document.AddSheet("Data"), "HeaderAndFilter");
+            DefinedNames names = document.WorkbookRoot.DefinedNames ??= new DefinedNames();
+            names.Append(new DefinedName { Name = "SalesAmounts", Text = "Sales[Amount]" });
+            names.Append(new DefinedName { Name = "SalesTotal", Text = "SUM(Sales[Amount])" });
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx)));
+
+        // Names are decoded after the table parts, so their structured references resolve.
+        DefinedName[] loaded = reloaded.WorkbookRoot.DefinedNames!.Elements<DefinedName>().ToArray();
+        Assert.Equal("Sales[Amount]", Assert.Single(loaded, name => name.Name?.Value == "SalesAmounts").Text);
+        Assert.Equal("SUM(Sales[Amount])", Assert.Single(loaded, name => name.Name?.Value == "SalesTotal").Text);
+    }
+
+    [Fact]
     public void Structured_references_keep_spaces_inside_column_names() {
         byte[] xlsx = CreateXlsx(document => {
             ExcelSheet sheet = document.AddSheet("Data");

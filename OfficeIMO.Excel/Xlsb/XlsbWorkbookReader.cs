@@ -149,6 +149,8 @@ namespace OfficeIMO.Excel.Xlsb {
                 ReadTables(parts, worksheet, sheetIndex, resolved, workbook, recordBudget, pendingTableFormulas);
             }
             XlsbTablePartReader.ResolveFormulas(pendingTableFormulas, workbook);
+            // Defined-name formulas can use structured references, so they are decoded after the tables.
+            ResolveDefinedNames(resolved, workbook, workbookPartName!);
             foreach (XlsbTable table in workbook.Tables.Values.Where(table => table.HasUnsupportedContent)) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-table-partial", XlsbImportDiagnosticSeverity.Warning,
                     $"Projected table '{table.DisplayName}' while keeping records outside the supported table subset in its native part.", table.PartName));
@@ -308,8 +310,7 @@ namespace OfficeIMO.Excel.Xlsb {
                         break;
                 }
             }
-
-            ResolveDefinedNames(options, workbook, partName);
+            // Defined names are decoded once every table is known (see Load), so names such as Sales[Amount] resolve.
         }
 
         private static XlsbDefinedName ParseDefinedName(XlsbRecord record, XlsbImportOptions options) {
