@@ -97,6 +97,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ListParagraph", detail.StyleId);
             Assert.Null(detail.IndentationBefore);
             Assert.Equal("HtmlDefinitionTerm", document.Paragraphs.Single(paragraph => paragraph.Text == "Plain").StyleId);
+            string html = document.ToHtml();
+            Assert.Contains("<dt>Term</dt>", html, StringComparison.Ordinal);
+            Assert.Contains("<dd>Detail</dd>", html, StringComparison.Ordinal);
             Assert.Equal(720, checked((int?)document.Paragraphs.Single(paragraph => paragraph.Text == "Plain detail").IndentationBefore?.ToTwips()));
         }
 
@@ -113,6 +116,21 @@ namespace OfficeIMO.Tests {
             WordParagraph quoted = document.Paragraphs.Single(paragraph => paragraph.Text == "Quoted");
             Assert.Null(quoted.StyleId);
             Assert.Equal(720, checked((int?)quoted.IndentationBefore?.ToTwips()));
+        }
+
+        [Fact]
+        public void AddHtml_ClassNamesSelectDocumentStylesExactlyAcrossHtmlWhitespace() {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.AddParagraphStyle("Body", "Upper body");
+            document.Styles.AddParagraphStyle("body", "Lower body");
+            document.Styles.AddParagraphStyle("Note", "Margin note");
+
+            document.AddHtml("<p class=\"Body\">Upper</p><p class=\"body\">Lower</p><p class=\"aux\tNote\">Noted</p>",
+                new HtmlWordExportOptions { PreferDocumentStyles = true });
+
+            Assert.Equal("Body", document.Paragraphs.Single(paragraph => paragraph.Text == "Upper").StyleId);
+            Assert.Equal("body", document.Paragraphs.Single(paragraph => paragraph.Text == "Lower").StyleId);
+            Assert.Equal("Note", document.Paragraphs.Single(paragraph => paragraph.Text == "Noted").StyleId);
         }
 
         [Fact]

@@ -74,9 +74,7 @@ public partial class WordDocument {
     /// Returns the left indentation, in twips, a paragraph style gives through its <c>w:basedOn</c> chain, or 0.
     /// </summary>
     internal int GetStyleIndentationBeforeTwips(string styleId) {
-        Styles? styles = _wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        if (styles == null) return 0;
-        foreach (Style style in WordRunFormatting.EnumerateStyleChain(styles, styleId, StyleValues.Paragraph)) {
+        foreach (Style style in WordStyleCatalog.For(this).EnumerateChain(styleId, StyleValues.Paragraph)) {
             Indentation? indentation = style.StyleParagraphProperties?.Indentation;
             string? left = indentation?.Left?.Value ?? indentation?.Start?.Value;
             if (left != null && int.TryParse(left, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int twips)) {
@@ -95,8 +93,11 @@ public partial class WordDocument {
     /// </summary>
     internal void LocalizeBuiltInStyleReferences(DocumentFormat.OpenXml.OpenXmlElement root) {
         if (GetUnparsedDefaultPackageStyles() != null) return;
+        BuiltInStyleIndex index = GetBuiltInStyleIndex();
         foreach (ParagraphStyleId reference in root.Descendants<ParagraphStyleId>()) {
+            // A reference to an identifier the document defines, such as an English Quote, is kept as written.
             if (reference.Val?.Value is { } styleId && WordBuiltInStyleNames.IsBuiltInId(styleId) &&
+                !index.Definitions.ContainsKey(styleId) &&
                 FindBuiltInStyleId(styleId) is { } localized && !string.Equals(localized, styleId, StringComparison.Ordinal)) {
                 reference.Val = localized;
             }

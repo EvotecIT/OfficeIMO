@@ -209,7 +209,8 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            foreach (var cls in (classAttr ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+            // HTML separates class names with any ASCII whitespace.
+            foreach (var cls in (classAttr ?? string.Empty).Split(new[] { ' ', '\t', '\n', '\r', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
                 // Stylesheet mappings are inferred from CSS formatting, which IgnoreCssFormatting leaves to the document.
                 if (options.ClassStyles.TryGetValue(cls, out var style) ||
                     !options.IgnoreCssFormatting && _cssClassStyles.TryGetValue(cls, out style)) {

@@ -116,6 +116,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BuiltInParagraphStylesIgnoreTableStylesWithTheBuiltInName() {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.Remove("Heading1");
+            document.Styles.AddTableStyle("HeadingTable", "heading 1");
+
+            WordParagraph heading = document.AddParagraph("Overview");
+            heading.Style = WordParagraphStyles.Heading1;
+
+            Assert.Equal("Heading1", heading.StyleId);
+            Assert.Equal(WordStyleType.Paragraph, document.Styles["Heading1"].Type);
+        }
+
+        [Fact]
+        public void TableOfContentsRefreshKeepsAnEnglishStyleTheDocumentDefines() {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.AddParagraphStyle("Citation", "Quote");
+            document.Styles.AddParagraphStyle("Quote", "Pull quote");
+            WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 1);
+            document.AddParagraph("Overview").Style = WordParagraphStyles.Heading1;
+            toc.RefreshEntries();
+            ParagraphStyleId title = toc.SdtBlock.Descendants<ParagraphStyleId>().First();
+            title.Val = "Quote";
+
+            toc.RefreshEntries();
+
+            Assert.Contains(toc.SdtBlock.Descendants<ParagraphStyleId>(), style => style.Val == "Quote");
+            Assert.DoesNotContain(toc.SdtBlock.Descendants<ParagraphStyleId>(), style => style.Val == "Citation");
+        }
+
+        [Fact]
         public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create(stream)) {

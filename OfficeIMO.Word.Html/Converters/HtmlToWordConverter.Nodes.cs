@@ -274,7 +274,9 @@ namespace OfficeIMO.Word.Html {
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
-                            if (!ApplyClassStyle(element, paragraph, options)) {
+                            if (ApplyClassStyle(element, paragraph, options)) {
+                                HtmlSemanticMetadata.MarkDefinitionListItem(paragraph, description: false);
+                            } else {
                                 paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionTerm);
                             }
                             ApplyBidiIfPresent(element, paragraph);
@@ -296,7 +298,9 @@ namespace OfficeIMO.Word.Html {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
                             bool classStyled = ApplyClassStyle(element, paragraph, options);
-                            if (!classStyled) {
+                            if (classStyled) {
+                                HtmlSemanticMetadata.MarkDefinitionListItem(paragraph, description: true);
+                            } else {
                                 paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionDescription);
                             }
                             ApplyBidiIfPresent(element, paragraph);

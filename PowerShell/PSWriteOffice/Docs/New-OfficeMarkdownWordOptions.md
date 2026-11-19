@@ -141,7 +141,7 @@ Accept wildcard characters: False
 ```
 
 ### -DefaultParagraphStyle
-Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style.
+Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style. With -PreferDocumentStyles, quoted paragraphs take the template's quote style instead when it has one.
 
 ```yaml
 Type: String
@@ -333,7 +333,7 @@ Accept wildcard characters: False
 ```
 
 ### -PreferDocumentStyles
-Format block quotes with the template's quote style instead of a direct indent.
+Format block quotes with the template's quote style instead of a direct indent; nested levels add an indent to the style's own. Without a quote style in the template, block quotes keep the direct indent.
 
 ```yaml
 Type: SwitchParameter

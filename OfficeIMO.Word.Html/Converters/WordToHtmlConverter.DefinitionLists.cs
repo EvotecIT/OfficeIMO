@@ -15,12 +15,15 @@ namespace OfficeIMO.Word.Html {
                 .Any(run => !string.IsNullOrEmpty(run.Text) || run.Image != null);
         }
 
+        // A class-styled term or description imported in this session keeps its role through an annotation.
         private static bool IsDefinitionTerm(WordParagraph paragraph) {
-            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionTerm, StringComparison.Ordinal);
+            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionTerm, StringComparison.Ordinal) ||
+                HtmlSemanticMetadata.GetDefinitionListItemRole(paragraph) == false;
         }
 
         private static bool IsDefinitionDescription(WordParagraph paragraph) {
-            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionDescription, StringComparison.Ordinal);
+            return string.Equals(paragraph.StyleId, HtmlSemanticStyleIds.DefinitionDescription, StringComparison.Ordinal) ||
+                HtmlSemanticMetadata.GetDefinitionListItemRole(paragraph) == true;
         }
     }
 }

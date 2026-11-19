@@ -84,10 +84,10 @@ public sealed class NewOfficeMarkdownWordOptionsCommand : OfficeCmdlet {
     /// <summary>MaxImageWidthPercentOfContent override; omission preserves the native default.</summary>
     [Parameter(ParameterSetName = "Default")]
     public double? MaxImageWidthPercentOfContent { get; set; }
-    /// <summary>Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style.</summary>
+    /// <summary>Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style. With -PreferDocumentStyles, quoted paragraphs take the template's quote style instead when it has one.</summary>
     [Parameter(ParameterSetName = "Default"), ValidateNotNullOrEmpty]
     public string? DefaultParagraphStyle { get; set; }
-    /// <summary>Format block quotes with the template's quote style instead of a direct indent.</summary>
+    /// <summary>Format block quotes with the template's quote style instead of a direct indent; nested levels add an indent to the style's own. Without a quote style in the template, block quotes keep the direct indent.</summary>
     [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PreferDocumentStyles { get; set; }
     /// <inheritdoc />

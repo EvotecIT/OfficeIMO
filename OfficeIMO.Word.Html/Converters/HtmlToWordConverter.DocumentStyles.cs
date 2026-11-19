@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Html {
             "width", "height", "min-width", "max-width", "min-height", "max-height"
         };
 
-        private readonly Dictionary<string, string?> _documentParagraphStyleIds = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string?> _documentParagraphStyleIds = new(StringComparer.Ordinal);
         private string? _defaultParagraphStyleId;
 
         /// <summary>Resolves the document styles the options name, before the conversion changes the document.</summary>

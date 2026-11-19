@@ -21,6 +21,17 @@ namespace OfficeIMO.Word.Html {
             paragraph._paragraph.AddAnnotation(new HtmlBlockquoteAnnotation());
         }
 
+        /// <summary>Records that a class-styled paragraph came from a <c>dt</c> or <c>dd</c> element.</summary>
+        internal static void MarkDefinitionListItem(WordParagraph paragraph, bool description) {
+            if (paragraph._paragraph == null) return;
+            paragraph._paragraph.RemoveAnnotations<HtmlDefinitionListItemAnnotation>();
+            paragraph._paragraph.AddAnnotation(new HtmlDefinitionListItemAnnotation(description));
+        }
+
+        /// <summary>The definition-list role a class-styled paragraph was imported with, or null.</summary>
+        internal static bool? GetDefinitionListItemRole(WordParagraph paragraph) =>
+            paragraph._paragraph?.Annotation<HtmlDefinitionListItemAnnotation>()?.IsDescription;
+
         internal static bool IsMarkedBlockquote(WordParagraph paragraph) =>
             paragraph._paragraph?.Annotation<HtmlBlockquoteAnnotation>() != null;
 
@@ -110,6 +121,11 @@ namespace OfficeIMO.Word.Html {
         }
 
         private sealed class HtmlBlockquoteAnnotation {
+        }
+
+        private sealed class HtmlDefinitionListItemAnnotation {
+            internal HtmlDefinitionListItemAnnotation(bool isDescription) => IsDescription = isDescription;
+            internal bool IsDescription { get; }
         }
 
         private sealed class HtmlBlockquoteCiteAnnotation {
