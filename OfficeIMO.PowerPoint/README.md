@@ -133,6 +133,32 @@ deck.Save("Review-annual.pptx");
 
 For files from outside your organization, load with `PowerPointLoadOptions.UntrustedDefaults`, which rejects macros, embedded objects, ActiveX and external relationships before parsing.
 
+## Read large decks slide by slide
+
+`PowerPointSlideReader` reads one slide at a time without loading the presentation model, so memory stays near the size of one slide and the first slide is ready before the rest of the deck is read. Each slide comes with its title, shapes in drawing order with their paragraphs, tables, image references and speaker notes.
+
+```csharp
+using OfficeIMO.PowerPoint;
+
+using var reader = PowerPointSlideReader.Open("Review.pptx");
+foreach (PowerPointSlideContent slide in reader.ReadSlides()) {
+    Console.WriteLine($"{slide.Number}: {slide.Title}");
+    foreach (PowerPointTableContent table in slide.Tables) {
+        Console.WriteLine($"  Table with {table.Rows.Count} rows");
+    }
+    foreach (PowerPointImageReference image in slide.Images) {
+        Console.WriteLine($"  Image {image.PartUri} ({image.ContentType})");
+    }
+    if (slide.Notes != null) Console.WriteLine($"  Notes: {slide.Notes}");
+}
+
+foreach (PowerPointExtractChunk chunk in reader.ExtractMarkdownChunks(sourcePath: "Review.pptx")) {
+    Console.WriteLine(chunk.Markdown);
+}
+```
+
+`ExtractMarkdownChunks` on the reader returns the same chunks as on a loaded `PowerPointDocument`. Text is read as written on each slide: empty placeholders don't take prompt text from their layout, list markers come from the paragraph itself, and text inside SmartArt and charts isn't read. Pass `PowerPointLoadOptions` to `Open` to apply the same input size, package security and part size limits as a load. Encrypted presentations and binary `.ppt` files need `PowerPointDocument.Load`.
+
 ## Save as PDF or images
 
 ```csharp
