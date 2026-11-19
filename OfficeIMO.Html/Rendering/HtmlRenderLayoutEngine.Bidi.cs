@@ -327,6 +327,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (firstGroups[sourceIndex] is not InlineSegment first || lastGroups[sourceIndex] is not InlineSegment last) continue;
             first.LeadingAdvance += sources[sourceIndex].LeadingAdvance;
             last.TrailingAdvance += sources[sourceIndex].TrailingAdvance;
+            last.JustificationAdvance += sources[sourceIndex].JustificationAdvance;
         }
         return result.AsReadOnly();
     }

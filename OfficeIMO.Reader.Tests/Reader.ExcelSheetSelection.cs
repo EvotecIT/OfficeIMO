@@ -80,4 +80,31 @@ public sealed class ReaderExcelSheetSelectionTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ReadDocument("source.xlsx", formatOptions: format));
         Assert.Equal(2, format.SheetNumber);
     }
+
+    [Theory]
+    [InlineData("name")]
+    [InlineData("number")]
+    public void ASelectedSheetKeepsItsLinksFormulasAndCommentsWithoutTheOtherSheets(string selection) {
+        using var document = ExcelDocument.Create();
+        foreach (string name in new[] { "Other", "Evidence" }) {
+            ExcelSheet sheet = document.AddSheet(name);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetFormula("A1*2");
+            sheet.SetHyperlink(3, 1, "https://example.test/" + name, display: name);
+            sheet.SetComment(4, 1, name + " note");
+        }
+        var format = selection == "name" ? new ReaderExcelOptions { SheetName = "Evidence" } : new ReaderExcelOptions { SheetNumber = 2 };
+        var reader = new OfficeDocumentReaderBuilder().AddExcelHandler(format).Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(document.ToBytes(), "source.xlsx",
+            new ReaderOptions { Inspection = new ReaderInspectionOptions() });
+
+        Assert.Equal("https://example.test/Evidence", Assert.Single(result.Links).Uri);
+        Assert.Equal("1", Assert.Single(result.Metadata, item => item.Name == "FormulaCount").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, item => item.Name == "CommentCount").Value);
+        var evidence = result.Metadata.Where(item => item.Category == OfficeDocumentInspectionCategories.Formula
+            || item.Category == OfficeDocumentInspectionCategories.Comment).ToArray();
+        Assert.Equal(2, evidence.Length);
+        Assert.All(evidence, item => Assert.Equal("Evidence", item.Location!.Sheet));
+    }
 }

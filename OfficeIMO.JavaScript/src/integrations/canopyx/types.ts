@@ -122,7 +122,8 @@ export interface CanopyCapture {
     readonly presentation: "text" | "semantic";
     readonly timeZone: "utc" | "local";
     readonly revision: string;
-    readonly scope?: "filtered" | "selected" | "all";
+    /** `visible` is the rows a tree shows, with collapsed branches left out. */
+    readonly scope?: "filtered" | "visible" | "selected" | "all";
     readonly total?: number | null;
     readonly matched?: number | null;
     readonly selection?: readonly string[];

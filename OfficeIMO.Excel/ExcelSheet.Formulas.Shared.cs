@@ -115,11 +115,17 @@ namespace OfficeIMO.Excel {
         }
 
         internal IReadOnlyDictionary<string, string> BuildResolvedFormulaTextMap() {
+            var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            List<Cell> formulaCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList();
+            // The coordinate map covers every cell of the sheet, so a sheet without formulas skips building it.
+            if (formulaCells.Count == 0) {
+                return formulas;
+            }
+
             IReadOnlyDictionary<Cell, (int Row, int Column)> effectiveCoordinates = BuildEffectiveCellCoordinates();
             IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions =
                 BuildSharedFormulaDefinitions(effectiveCoordinates);
-            var formulas = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (Cell cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot)) {
+            foreach (Cell cell in formulaCells) {
                 if (effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     formulas[BuildCellReference(coordinate.Row, coordinate.Column)] =
                         ResolveCellFormulaText(cell, sharedFormulaDefinitions, effectiveCoordinates);

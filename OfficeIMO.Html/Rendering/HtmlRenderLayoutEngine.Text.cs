@@ -568,6 +568,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
+    // Before a forced break only collapsible spaces go; preserved spaces of a preformatted inline stay.
+    private static void TrimCollapsibleTrailingWhitespace(InlineLine line) {
+        for (int index = line.Segments.Count - 1; index >= 0; index--) {
+            InlineSegment segment = line.Segments[index];
+            if (segment.Run.RunningStringElement != null || segment.Run.RunningElementAssignment != null) continue;
+            if (!IsWhitespaceToken(segment.Text) || segment.Run.Style.PreserveWhitespace) break;
+            line.RemoveAt(index);
+        }
+    }
+
     private static void TrimTrailingWhitespace(InlineLine line) {
         for (int index = line.Segments.Count - 1; index >= 0; index--) {
             InlineSegment segment = line.Segments[index];
@@ -685,7 +695,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal double Width { get; private set; }
         internal double LeadingAdvance { get; set; }
         internal double TrailingAdvance { get; set; }
-        internal double Advance => LeadingAdvance + Width + TrailingAdvance;
+        // Space added after a word separator on a justified line. It belongs to the
+        // separator, so it is painted with it and moves the following content.
+        internal double JustificationAdvance { get; set; }
+        internal double Advance => LeadingAdvance + Width + JustificationAdvance + TrailingAdvance;
         internal HtmlInlineRun Run { get; }
         internal bool BidiResolved { get; }
         internal OfficeTextDirection? ResolvedDirection { get; }

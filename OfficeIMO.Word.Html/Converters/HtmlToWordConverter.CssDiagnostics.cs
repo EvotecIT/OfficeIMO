@@ -287,10 +287,13 @@ namespace OfficeIMO.Word.Html {
                     }
                     return false;
                 case "text-align":
-                    if (lower is "left" or "right" or "center" or "justify" or "start" or "end") {
+                    if (lower is "left" or "right" or "center" or "justify" or "start" or "end"
+                        or "-webkit-left" or "-webkit-right" or "-webkit-center" or "-moz-left" or "-moz-right" or "-moz-center") {
                         return false;
                     }
-                    reason = $"Unsupported text-align value '{value}'.";
+                    reason = lower == "justify-all"
+                        ? "text-align 'justify-all' was mapped to justified alignment; Word keeps the last line of the paragraph at start."
+                        : $"Unsupported text-align value '{value}'.";
                     return true;
                 case "text-decoration":
                     if (TryGetUnsupportedTextDecorationReason(value, "text-decoration", out reason)) {

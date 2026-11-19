@@ -7,7 +7,7 @@ import { cleanXml } from "../../xml/index.js";
 export function canopyAbout(request: CanopyCapture["request"], options: Pick<XlsxOptions, "oversizedText" | "invalidCharacterPolicy">): readonly (readonly [string, string | number])[] {
   const result: [string, string | number][] = [["revision", request.revision], ["recordCount", request.recordCount === null ? "unknown" : request.recordCount]];
   if (request.scope !== undefined) {
-    if (!["filtered", "selected", "all"].includes(request.scope)) throw new TypeError("Invalid Canopy export scope.");
+    if (!["filtered", "visible", "selected", "all"].includes(request.scope)) throw new TypeError("Invalid Canopy export scope.");
     result.push(["scope", request.scope]);
   }
   for (const key of ["total", "matched"] as const) if (request[key] !== undefined) {

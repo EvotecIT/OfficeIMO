@@ -45,6 +45,18 @@ internal sealed class HtmlRenderBoxStyle {
     internal OfficeColor DecorationColor = OfficeColor.Black;
     internal OfficeColor Color = OfficeColor.Black;
     internal OfficeTextAlignment Alignment;
+    // text-align: justify keeps the start alignment above for lines that are not
+    // justified. TextAlignLast is null for auto (justified lines end at start).
+    internal bool JustifyText;
+    // The computed text-align is justify or justify-all, before text-justify applies.
+    internal bool TextAlignJustify;
+    // text-justify: none on this element; its word separators are not stretched.
+    internal bool TextJustifyNone;
+    // text-justify: inter-character or distribute, which line layout approximates between words.
+    internal bool TextJustifyInterCharacter;
+    // text-align-last as computed, before text-justify: none turns a justified last line off.
+    internal OfficeTextAlignment? ComputedTextAlignLast;
+    internal OfficeTextAlignment? TextAlignLast;
     internal double LineHeight;
     internal bool UsesNaturalLineHeight;
     // Keep the used alignment height separate from ordinary text paint and the
@@ -68,6 +80,8 @@ internal sealed class HtmlRenderBoxStyle {
         || PageMarginIntrinsicMinHeight || PageMarginIntrinsicMaxHeight;
     internal bool BorderBox;
     internal bool PreserveWhitespace;
+    // white-space: pre-line keeps segment breaks while other white space collapses.
+    internal bool PreserveLineBreaks;
     internal bool PreventTextWrapping;
     internal string Language = string.Empty;
     // Resolved box applicability survives positioning/float clones that reset

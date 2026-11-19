@@ -432,6 +432,7 @@ namespace OfficeIMO.Word.Html {
                             List<WordTable> generatedTables = GetGeneratedTables(section, cell, headerFooter, scopeMark);
                             ApplyContainerFrameFromCss(element, generatedParagraphs, generatedTables);
                             ApplyContainerPageBreaksFromCss(element, generatedParagraphs, generatedTables);
+                            ApplyContainerAlignment(element, generatedParagraphs);
                             break;
                         }
                     case "br": {
