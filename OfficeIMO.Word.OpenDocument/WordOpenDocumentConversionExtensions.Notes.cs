@@ -30,18 +30,16 @@ public static partial class WordOpenDocumentConversionExtensions {
 
         internal NoteMappingStats(WordDocument? source = null) {
             WordSource = source;
-            W.Styles? styles = source?.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-            if (styles != null) {
-                foreach (W.Style style in styles.Elements<W.Style>()) {
-                    string? id = style.StyleId?.Value;
+            if (source != null) {
+                foreach (WordStyleDefinitionsReader.StyleDefinition style in WordStyleCatalog.For(source).Definitions) {
+                    string? id = style.StyleId;
                     if (id != null && id.Length > 0 && !WordStylesById.ContainsKey(id))
                         WordStylesById.Add(id, style);
-                    if (DefaultWordParagraphStyleId == null &&
-                        style.Type?.Value == W.StyleValues.Paragraph && style.Default?.Value == true)
+                    if (DefaultWordParagraphStyleId == null && style.IsParagraphStyle && style.IsDefault)
                         DefaultWordParagraphStyleId = id;
                 }
             }
-            W.Body? body = source?.OpenXmlDocument.MainDocumentPart?.Document?.Body;
+            W.Body? body = source?._wordprocessingDocument.MainDocumentPart?.Document?.Body;
             if (body != null) {
                 foreach (W.Run run in body.Descendants<W.Run>()) {
                     // A run may carry more than one reference of the same kind. The
@@ -70,7 +68,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
             if (source != null) {
                 var seenFootnoteDefinitions = new SortedSet<long>();
-                foreach (W.Footnote note in source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
+                foreach (W.Footnote note in source._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?
                     .Elements<W.Footnote>() ?? Enumerable.Empty<W.Footnote>()) {
                     if ((note.Type == null || note.Type.Value == W.FootnoteEndnoteValues.Normal) &&
                         (note.Id == null || !FootnoteAnchors.ContainsKey(note.Id.Value) ||
@@ -79,7 +77,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                     if (note.Id != null && !FootnoteBodies.ContainsKey(note.Id.Value)) FootnoteBodies.Add(note.Id.Value, note);
                 }
                 var seenEndnoteDefinitions = new SortedSet<long>();
-                foreach (W.Endnote note in source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
+                foreach (W.Endnote note in source._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?
                     .Elements<W.Endnote>() ?? Enumerable.Empty<W.Endnote>()) {
                     if ((note.Type == null || note.Type.Value == W.FootnoteEndnoteValues.Normal) &&
                         (note.Id == null || !EndnoteAnchors.ContainsKey(note.Id.Value) ||
@@ -135,7 +133,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         internal int CurrentSectionIndex;
         internal WordDocument? WordSource;
         internal ImageCopyBudget Images = new();
-        internal readonly Dictionary<string, W.Style> WordStylesById = new(StringComparer.OrdinalIgnoreCase);
+        /// <summary>The source's styles by identifier, ignoring case; a style's properties are parsed when first read.</summary>
+        internal readonly Dictionary<string, WordStyleDefinitionsReader.StyleDefinition> WordStylesById = new(StringComparer.OrdinalIgnoreCase);
         internal readonly Dictionary<string, bool> InheritedAnchorStyleFormatting = new(StringComparer.OrdinalIgnoreCase);
         internal string? DefaultWordParagraphStyleId;
         internal readonly Dictionary<int, int> FootnotesBySection = new Dictionary<int, int>();
@@ -191,7 +190,8 @@ public static partial class WordOpenDocumentConversionExtensions {
         bool hasFormatting = false;
         while (id != null && visited.Add(id)) {
             if (notes.InheritedAnchorStyleFormatting.TryGetValue(id, out hasFormatting)) break;
-            if (!notes.WordStylesById.TryGetValue(id, out W.Style? style)) break;
+            if (!notes.WordStylesById.TryGetValue(id, out WordStyleDefinitionsReader.StyleDefinition? definition)) break;
+            W.Style style = definition.Element;
             if (style.StyleRunProperties?.HasChildren == true) {
                 hasFormatting = true;
                 break;
@@ -362,10 +362,10 @@ public static partial class WordOpenDocumentConversionExtensions {
         notes.ApproximatedNumberingAndPlacement = hasUnreferencedConfiguration
             ? Math.Max(1, affectedNotes) : affectedNotes;
         notes.ApproximatedSeparators += CountCustomizedWordSeparators(
-            source.OpenXmlDocument.MainDocumentPart?.FootnotesPart?.Footnotes?.Elements<W.Footnote>()) +
+            source._wordprocessingDocument.MainDocumentPart?.FootnotesPart?.Footnotes?.Elements<W.Footnote>()) +
             CountCustomizedWordSeparatorReferences(source, OdtNoteKind.Footnote);
         notes.ApproximatedSeparators += CountCustomizedWordSeparators(
-            source.OpenXmlDocument.MainDocumentPart?.EndnotesPart?.Endnotes?.Elements<W.Endnote>()) +
+            source._wordprocessingDocument.MainDocumentPart?.EndnotesPart?.Endnotes?.Elements<W.Endnote>()) +
             CountCustomizedWordSeparatorReferences(source, OdtNoteKind.Endnote);
         if (notes.ConvertedFootnotes > 0 && HasCustomizedDefaultWordNoteStyle(source, "FootnoteText"))
             notes.ApproximatedBodies += notes.ConvertedFootnotes;
@@ -382,7 +382,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static bool HasAuthoredWordDocumentDefaults(WordDocument source) {
-        W.DocDefaults? defaults = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults;
+        W.DocDefaults? defaults = WordStyleCatalog.For(source).DocumentDefaults;
         W.ParagraphPropertiesBaseStyle? paragraph = defaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle;
         if (HasAuthoredWordDocumentRunDefaults(source) ||
             paragraph?.ChildElements.Any(child => child is not W.SpacingBetweenLines) == true)
@@ -393,8 +393,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static bool HasAuthoredWordDocumentRunDefaults(WordDocument source) {
-        W.RunPropertiesBaseStyle? run = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?
-            .Styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+        W.RunPropertiesBaseStyle? run = WordStyleCatalog.For(source).DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
         if (run?.ChildElements.Any(child => child is not W.RunFonts and not W.FontSize and
             not W.FontSizeComplexScript and not W.Languages) == true) return true;
         W.RunFonts? fonts = run?.GetFirstChild<W.RunFonts>();
@@ -439,11 +438,11 @@ public static partial class WordOpenDocumentConversionExtensions {
         }) ?? 0;
 
     private static int CountCustomizedWordSeparatorReferences(WordDocument source, OdtNoteKind kind) {
-        W.Settings? settings = source.OpenXmlDocument.MainDocumentPart?.DocumentSettingsPart?.Settings;
+        W.Settings? settings = source._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings;
         IEnumerable<DocumentFormat.OpenXml.OpenXmlElement> properties = kind == OdtNoteKind.Footnote
             ? settings?.Elements<W.FootnoteDocumentWideProperties>() ?? Enumerable.Empty<DocumentFormat.OpenXml.OpenXmlElement>()
             : settings?.Elements<W.EndnoteDocumentWideProperties>() ?? Enumerable.Empty<DocumentFormat.OpenXml.OpenXmlElement>();
-        properties = properties.Concat(source.OpenXmlDocument.MainDocumentPart?.Document?.Body?
+        properties = properties.Concat(source._wordprocessingDocument.MainDocumentPart?.Document?.Body?
             .Descendants<W.SectionProperties>().SelectMany(section => kind == OdtNoteKind.Footnote
                 ? section.Elements<W.FootnoteProperties>().Cast<DocumentFormat.OpenXml.OpenXmlElement>()
                 : section.Elements<W.EndnoteProperties>().Cast<DocumentFormat.OpenXml.OpenXmlElement>())
@@ -477,14 +476,11 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static bool HasCustomizedDefaultWordNoteStyle(WordDocument source, string styleId) {
-        W.Styles? styles = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        W.Style? style = styles?
-            .Elements<W.Style>().FirstOrDefault(candidate => string.Equals(candidate.StyleId?.Value,
-                styleId, StringComparison.OrdinalIgnoreCase));
+        IReadOnlyList<WordStyleDefinitionsReader.StyleDefinition> styles = WordStyleCatalog.For(source).Definitions;
+        W.Style? style = FindWordStyleIgnoringCase(styles, styleId);
         if (style == null) return false;
-        W.Style? normal = styles?.Elements<W.Style>().FirstOrDefault(candidate =>
-            string.Equals(candidate.StyleId?.Value, "Normal", StringComparison.OrdinalIgnoreCase));
-        if (normal != null && HasInheritedNoteStyleFormatting(styles!, normal)) return true;
+        W.Style? normal = FindWordStyleIgnoringCase(styles, "Normal");
+        if (normal != null && HasInheritedNoteStyleFormatting(styles, normal)) return true;
         if (style.CustomStyle?.Value == true || style.BasedOn?.Val?.Value != "Normal") return true;
         W.StyleParagraphProperties? paragraph = style.StyleParagraphProperties;
         if (paragraph?.ChildElements.Count != 1 || paragraph.FirstChild is not W.SpacingBetweenLines spacing ||
@@ -496,10 +492,14 @@ public static partial class WordOpenDocumentConversionExtensions {
             run.GetFirstChild<W.FontSizeComplexScript>()?.Val?.Value != "20";
     }
 
-    private static bool HasInheritedNoteStyleFormatting(W.Styles styles, W.Style normal) {
-        var stylesById = new Dictionary<string, W.Style>(StringComparer.OrdinalIgnoreCase);
-        foreach (W.Style style in styles.Elements<W.Style>()) {
-            string? id = style.StyleId?.Value;
+    // The first style whose identifier matches, ignoring case, as the loaded DOM's element order finds it.
+    private static W.Style? FindWordStyleIgnoringCase(IReadOnlyList<WordStyleDefinitionsReader.StyleDefinition> styles, string styleId) =>
+        styles.FirstOrDefault(candidate => string.Equals(candidate.StyleId, styleId, StringComparison.OrdinalIgnoreCase))?.Element;
+
+    private static bool HasInheritedNoteStyleFormatting(IReadOnlyList<WordStyleDefinitionsReader.StyleDefinition> styles, W.Style normal) {
+        var stylesById = new Dictionary<string, WordStyleDefinitionsReader.StyleDefinition>(StringComparer.OrdinalIgnoreCase);
+        foreach (WordStyleDefinitionsReader.StyleDefinition style in styles) {
+            string? id = style.StyleId;
             if (id != null && id.Length > 0 && !stylesById.ContainsKey(id)) stylesById.Add(id, style);
         }
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -510,21 +510,18 @@ public static partial class WordOpenDocumentConversionExtensions {
             string? baseId = current.BasedOn?.Val?.Value;
             if (baseId == null || baseId.Length == 0) return false;
             if (!visited.Add(baseId)) return true;
-            stylesById.TryGetValue(baseId, out current);
+            current = stylesById.TryGetValue(baseId, out WordStyleDefinitionsReader.StyleDefinition? baseStyle) ? baseStyle.Element : null;
             if (current == null) return true;
         }
         return false;
     }
 
     private static bool HasCustomizedDefaultWordNoteReferenceStyle(WordDocument source, string styleId) {
-        W.Styles? styles = source.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
-        W.Style? style = styles?
-            .Elements<W.Style>().FirstOrDefault(candidate => string.Equals(candidate.StyleId?.Value,
-                styleId, StringComparison.OrdinalIgnoreCase));
+        IReadOnlyList<WordStyleDefinitionsReader.StyleDefinition> styles = WordStyleCatalog.For(source).Definitions;
+        W.Style? style = FindWordStyleIgnoringCase(styles, styleId);
         if (style == null) return false;
         if (style.CustomStyle?.Value == true || style.BasedOn?.Val?.Value != "DefaultParagraphFont") return true;
-        W.Style? baseStyle = styles?.Elements<W.Style>().FirstOrDefault(candidate =>
-            string.Equals(candidate.StyleId?.Value, "DefaultParagraphFont", StringComparison.OrdinalIgnoreCase));
+        W.Style? baseStyle = FindWordStyleIgnoringCase(styles, "DefaultParagraphFont");
         if (baseStyle?.StyleRunProperties?.HasChildren == true || baseStyle?.BasedOn != null) return true;
         W.StyleRunProperties? properties = style.StyleRunProperties;
         return properties?.ChildElements.Count != 1 ||
@@ -532,7 +529,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static bool HasDocumentNoteSettings<T>(WordDocument source) where T : DocumentFormat.OpenXml.OpenXmlElement =>
-        source.OpenXmlDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?
+        source._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings?
             .GetFirstChild<T>()?.ChildElements.Any(child => child is W.NumberingFormat or W.NumberingStart or
                 W.NumberingRestart or W.FootnotePosition or W.EndnotePosition) == true;
 

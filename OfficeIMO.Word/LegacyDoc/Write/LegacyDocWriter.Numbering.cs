@@ -35,8 +35,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 mainPart.EndnotesPart?.Endnotes, mainPart.WordprocessingCommentsPart?.Comments };
             roots.AddRange(mainPart.HeaderParts.Select(part => part.Header));
             roots.AddRange(mainPart.FooterParts.Select(part => part.Footer));
-            roots.AddRange(mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>()
-                .Where(style => style.StyleId?.Value is string id && styles.ContainsKey(id)) ?? Enumerable.Empty<Style>());
+            roots.AddRange(WordStyleCatalog.For(mainPart).Definitions
+                .Where(style => style.StyleId is string id && styles.ContainsKey(id)).Select(style => style.Element));
             foreach (NumberingProperties properties in roots.Where(root => root != null).SelectMany(root => root!.Descendants<NumberingProperties>())) {
                 int? id = properties.NumberingId?.Val?.Value;
                 if (!id.HasValue || id == 0) continue;

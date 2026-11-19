@@ -9,9 +9,9 @@ namespace OfficeIMO.Word.Pdf {
         private static readonly ConditionalWeakTable<WordDocument, NativeStyleLookupCache> NativeStyleLookupCaches = new();
 
         private sealed class NativeStyleLookupCache {
-            internal Dictionary<string, W.Style> ParagraphStyles { get; } = new(StringComparer.Ordinal);
-            internal Dictionary<string, W.Style> CharacterStyles { get; } = new(StringComparer.Ordinal);
-            internal Dictionary<string, W.Style> TableStyles { get; } = new(StringComparer.Ordinal);
+            internal NativeStyleIndex ParagraphStyles { get; } = new();
+            internal NativeStyleIndex CharacterStyles { get; } = new();
+            internal NativeStyleIndex TableStyles { get; } = new();
             internal Dictionary<string, IReadOnlyList<W.Style>> ParagraphChains { get; } = new(StringComparer.Ordinal);
             internal Dictionary<string, IReadOnlyList<W.Style>> CharacterChains { get; } = new(StringComparer.Ordinal);
             internal Dictionary<string, IReadOnlyList<W.Style>> TableChains { get; } = new(StringComparer.Ordinal);
@@ -22,34 +22,30 @@ namespace OfficeIMO.Word.Pdf {
             private int _indexedStyleCount;
             private int _cachedStyleReferenceCount;
 
-            internal NativeStyleLookupCache(W.Styles? styles) {
-                if (styles == null) {
-                    return;
-                }
-
+            internal NativeStyleLookupCache(WordStyleCatalog styles) {
                 string? defaultParagraphStyleId = null;
                 string? defaultTableStyleId = null;
-                foreach (W.Style style in styles.Elements<W.Style>()) {
-                    string? styleId = style.StyleId?.Value;
+                foreach (WordStyleDefinitionsReader.StyleDefinition style in styles.Definitions) {
+                    string? styleId = style.StyleId;
                     if (string.IsNullOrEmpty(styleId)) {
                         continue;
                     }
 
-                    if (IsNativeParagraphStyle(style)) {
+                    if (IsNativeStyleType(style, "paragraph")) {
                         if (!ParagraphStyles.ContainsKey(styleId!)) {
                             RecordIndexedStyle();
                             ParagraphStyles.Add(styleId!, style);
-                            if (defaultParagraphStyleId == null && style.Default?.Value == true) {
+                            if (defaultParagraphStyleId == null && style.IsDefault) {
                                 defaultParagraphStyleId = styleId;
                             }
                         }
-                    } else if (IsNativeCharacterStyle(style) && !CharacterStyles.ContainsKey(styleId!)) {
+                    } else if (IsNativeStyleType(style, "character") && !CharacterStyles.ContainsKey(styleId!)) {
                         RecordIndexedStyle();
                         CharacterStyles.Add(styleId!, style);
-                    } else if (style.Type?.Value == W.StyleValues.Table && !TableStyles.ContainsKey(styleId!)) {
+                    } else if (string.Equals(style.Type, "table", StringComparison.Ordinal) && !TableStyles.ContainsKey(styleId!)) {
                         RecordIndexedStyle();
                         TableStyles.Add(styleId!, style);
-                        if (defaultTableStyleId == null && style.Default?.Value == true) {
+                        if (defaultTableStyleId == null && style.IsDefault) {
                             defaultTableStyleId = styleId;
                         }
                     }
@@ -93,10 +89,32 @@ namespace OfficeIMO.Word.Pdf {
 
             return NativeStyleLookupCaches.GetValue(
                 document,
-                current => new NativeStyleLookupCache(current._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles));
+                current => new NativeStyleLookupCache(WordStyleCatalog.For(current)));
         }
 
         private static void ResetNativeStyleLookupCache(WordDocument document) =>
             NativeStyleLookupCaches.Remove(document);
+
+        // Matches the style type text case-insensitively, as the loaded-DOM type checks read it.
+        private static bool IsNativeStyleType(WordStyleDefinitionsReader.StyleDefinition style, string type) =>
+            string.Equals(style.Type, type, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Styles of one type by identifier; a style's properties are parsed only when a lookup returns it.</summary>
+        private sealed class NativeStyleIndex {
+            private readonly Dictionary<string, WordStyleDefinitionsReader.StyleDefinition> _styles = new(StringComparer.Ordinal);
+
+            internal bool ContainsKey(string styleId) => _styles.ContainsKey(styleId);
+
+            internal void Add(string styleId, WordStyleDefinitionsReader.StyleDefinition style) => _styles.Add(styleId, style);
+
+            internal bool TryGetValue(string styleId, out W.Style style) {
+                if (_styles.TryGetValue(styleId, out WordStyleDefinitionsReader.StyleDefinition? definition)) {
+                    style = definition.Element;
+                    return true;
+                }
+                style = null!;
+                return false;
+            }
+        }
     }
 }

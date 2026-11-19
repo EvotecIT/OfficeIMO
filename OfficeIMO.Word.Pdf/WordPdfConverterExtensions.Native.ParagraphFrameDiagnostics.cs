@@ -15,7 +15,7 @@ public static partial class WordPdfConverterExtensions {
         paragraph._paragraph.ParagraphProperties?.GetFirstChild<W.FrameProperties>() != null ||
             GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId)
                 .Any(style => style.StyleParagraphProperties?.GetFirstChild<W.FrameProperties>() != null) ||
-            paragraph._document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults?
+            WordStyleCatalog.For(paragraph._document).DocumentDefaults?
                 .GetFirstChild<W.ParagraphPropertiesDefault>()?.GetFirstChild<W.ParagraphPropertiesBaseStyle>()?
                 .GetFirstChild<W.FrameProperties>() != null;
 }

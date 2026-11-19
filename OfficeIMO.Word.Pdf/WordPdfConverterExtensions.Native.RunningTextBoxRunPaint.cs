@@ -6,8 +6,8 @@ public static partial class WordPdfConverterExtensions {
     /// <summary>Rejects unsupported effects on visible runs; inherited toggle combinations are conservatively approximated.</summary>
     private static bool HasNativeUnsupportedRunningTextBoxRunPaint(WordParagraph paragraph, IReadOnlyList<WordParagraph> runs) {
         IReadOnlyList<W.Style> paragraphStyles = GetNativeParagraphStyleChain(paragraph._document, paragraph.StyleId);
-        W.RunPropertiesBaseStyle? documentProperties = paragraph._document._wordprocessingDocument.MainDocumentPart?
-            .StyleDefinitionsPart?.Styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+        W.RunPropertiesBaseStyle? documentProperties = WordStyleCatalog.For(paragraph._document)
+            .DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
         foreach (WordParagraph run in runs) {
             if (IsNativeHiddenTextRun(run, paragraph) || !run.EnumerateEffectiveRunContent().OfType<W.Text>()
                 .Any(text => !string.IsNullOrWhiteSpace(text.Text))) continue;

@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Word.LegacyDoc.Model;
 
@@ -29,6 +30,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedLegacyDocImportState(document, options);
 
+            MainDocumentPart? previousMainPart = t_writingMainPart;
+            t_writingMainPart = document._wordprocessingDocument?.MainDocumentPart;
+            try {
+                return WriteDocumentBody(document, options, isTemplate);
+            } finally {
+                t_writingMainPart = previousMainPart;
+            }
+        }
+
+        private static byte[] WriteDocumentBody(WordDocument document, WordSaveOptions? options, bool isTemplate) {
             LegacyDocWritableBody body = BuildBody(document);
             byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));
             byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));

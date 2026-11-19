@@ -17,7 +17,7 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
     }
 
     /// <summary>Gets the number of styles the document defines.</summary>
-    public int Count => Definitions.Count();
+    public int Count => WordStyleCatalog.For(_document).Count;
 
     /// <summary>Gets a style by identifier.</summary>
     /// <exception cref="KeyNotFoundException">The document defines no style with this identifier.</exception>
@@ -32,7 +32,7 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
     }
 
     /// <summary>Returns whether the document defines a style with this identifier.</summary>
-    public bool Contains(string styleId) => FindById(styleId) != null;
+    public bool Contains(string styleId) => WordStyleCatalog.For(_document).Contains(styleId);
 
     /// <summary>Adds a paragraph style, based on the document's default paragraph style.</summary>
     /// <param name="styleId">The identifier paragraphs store to use the style.</param>
@@ -105,19 +105,31 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
+    // Listing every style reads every definition, which the loaded part does at the same cost as parsing them one by one.
     private IEnumerable<Style> Definitions =>
         _document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?.Elements<Style>()
         ?? Enumerable.Empty<Style>();
 
+    /// <summary>
+    /// The streamed catalog of a read-only document, whose styles can never change, so finding one style does not
+    /// load the styles part. An editable document's styles stay bound to its loaded definitions.
+    /// </summary>
+    private WordStyleCatalog? ReadOnlyCatalog =>
+        _document.FileOpenAccess == FileAccess.Read && WordStyleCatalog.For(_document) is { IsStreamed: true } catalog ? catalog : null;
+
     internal WordStyle? FindById(string styleId) {
-        Style? style = Definitions.FirstOrDefault(definition => string.Equals(definition.StyleId?.Value, styleId, StringComparison.Ordinal));
+        Style? style = ReadOnlyCatalog is { } catalog
+            ? catalog.FindById(styleId)
+            : Definitions.FirstOrDefault(definition => string.Equals(definition.StyleId?.Value, styleId, StringComparison.Ordinal));
         return style == null ? null : new WordStyle(_document, style);
     }
 
     internal WordStyle? FindByName(string name) {
         string trimmed = name.Trim();
-        Style? style = Definitions.FirstOrDefault(definition =>
-            string.Equals(definition.StyleName?.Val?.Value?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+        Style? style = ReadOnlyCatalog is { } catalog
+            ? catalog.FindDefinitionByName(trimmed)?.Element
+            : Definitions.FirstOrDefault(definition =>
+                string.Equals(definition.StyleName?.Val?.Value?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
         return style == null ? null : new WordStyle(_document, style);
     }
 

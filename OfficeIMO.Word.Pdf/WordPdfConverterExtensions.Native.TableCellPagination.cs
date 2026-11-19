@@ -22,8 +22,8 @@ namespace OfficeIMO.Word.Pdf {
                 return new(false, false, false);
             }
 
-            W.ParagraphPropertiesBaseStyle? defaults = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?
-                .Styles?.DocDefaults?.GetFirstChild<W.ParagraphPropertiesDefault>()?.GetFirstChild<W.ParagraphPropertiesBaseStyle>();
+            W.ParagraphPropertiesBaseStyle? defaults = WordStyleCatalog.For(document).DocumentDefaults?
+                .GetFirstChild<W.ParagraphPropertiesDefault>()?.GetFirstChild<W.ParagraphPropertiesBaseStyle>();
             var inherited = new NativeParagraphPaginationDefaults(false, false, documentDefaults.ParagraphWidowControl).Merge(defaults);
             var resolved = new NativeParagraphPaginationDefaults(paragraphDefaults.KeepTogether, paragraphDefaults.KeepWithNext, paragraphDefaults.WidowControl)
                 .Inherit(tableDefaults.ParagraphPagination).Inherit(inherited);

@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using StyleDefinition = OfficeIMO.Word.WordStyleDefinitionsReader.StyleDefinition;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
@@ -35,13 +36,13 @@ namespace OfficeIMO.Word {
                 new(StringComparer.Ordinal);
 
             private ParagraphNumberingStyleCatalog(
-                ILookup<string, Style> stylesById,
+                ILookup<string, StyleDefinition> stylesById,
                 IReadOnlyList<string> defaultParagraphStyleIds) {
                 StylesById = stylesById;
                 DefaultParagraphStyleIds = defaultParagraphStyleIds;
             }
 
-            internal ILookup<string, Style> StylesById { get; }
+            internal ILookup<string, StyleDefinition> StylesById { get; }
             internal IReadOnlyList<string> DefaultParagraphStyleIds { get; }
 
             internal NumberingProperties? ResolveNumbering(string? styleId) {
@@ -112,14 +113,14 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    Style style = frame.Styles[frame.NextStyleIndex++];
-                    NumberingProperties? direct = style.StyleParagraphProperties?.NumberingProperties;
+                    StyleDefinition style = frame.Styles[frame.NextStyleIndex++];
+                    NumberingProperties? direct = style.Element.StyleParagraphProperties?.NumberingProperties;
                     if (direct != null) {
                         CompleteStyleResolution(frames, visiting, frame.StyleId, direct);
                         continue;
                     }
 
-                    string? baseStyleId = style.BasedOn?.Val?.Value;
+                    string? baseStyleId = style.BasedOn;
                     if (string.IsNullOrWhiteSpace(baseStyleId) || visiting.Contains(baseStyleId!)) continue;
                     if (_resolvedNumbering.TryGetValue(baseStyleId!, out NumberingProperties? inherited)) {
                         if (inherited != null) {
@@ -173,36 +174,33 @@ namespace OfficeIMO.Word {
             }
 
             private sealed class StyleNumberingResolutionFrame {
-                internal StyleNumberingResolutionFrame(string styleId, IReadOnlyList<Style> styles) {
+                internal StyleNumberingResolutionFrame(string styleId, IReadOnlyList<StyleDefinition> styles) {
                     StyleId = styleId;
                     Styles = styles;
                 }
 
                 internal string StyleId { get; }
-                internal IReadOnlyList<Style> Styles { get; }
+                internal IReadOnlyList<StyleDefinition> Styles { get; }
                 internal int NextStyleIndex { get; set; }
             }
 
             internal static ParagraphNumberingStyleCatalog? Create(
                 MainDocumentPart mainPart,
                 ComparisonWorkBudget? comparisonWorkBudget) {
-                var styles = new List<Style>();
-                IEnumerable<Style> candidates =
-                    (mainPart.StyleDefinitionsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                    .Concat(mainPart.StylesWithEffectsPart?.Styles?.Elements<Style>() ?? Enumerable.Empty<Style>());
-                foreach (Style style in candidates) {
+                var styles = new List<StyleDefinition>();
+                foreach (StyleDefinition style in EnumerateComparisonStyleDefinitions(mainPart)) {
                     if (comparisonWorkBudget != null && !comparisonWorkBudget.TryConsume(1)) return null;
                     styles.Add(style);
                 }
-                ILookup<string, Style> stylesById = styles
-                    .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                    .ToLookup(style => style.StyleId!.Value!, StringComparer.Ordinal);
+                ILookup<string, StyleDefinition> stylesById = styles
+                    .Where(style => !string.IsNullOrWhiteSpace(style.StyleId))
+                    .ToLookup(style => style.StyleId!, StringComparer.Ordinal);
                 string[] defaultParagraphStyleIds = styles
                     .Where(style =>
-                        style.Type?.Value == StyleValues.Paragraph &&
-                        style.Default?.Value == true &&
-                        !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                    .Select(style => style.StyleId!.Value!)
+                        style.IsParagraphStyle &&
+                        style.IsDefault &&
+                        !string.IsNullOrWhiteSpace(style.StyleId))
+                    .Select(style => style.StyleId!)
                     .ToArray();
                 return new ParagraphNumberingStyleCatalog(stylesById, defaultParagraphStyleIds);
             }

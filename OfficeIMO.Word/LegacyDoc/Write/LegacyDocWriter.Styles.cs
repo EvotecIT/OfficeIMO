@@ -53,20 +53,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             builtInStyleIndexes.Add(0);
 
-            Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
-            if (styles == null && customStyleIds.Length > 0) {
+            WordStyleCatalog styles = WordStyleCatalog.For(mainPart);
+            if (mainPart.StyleDefinitionsPart == null && customStyleIds.Length > 0) {
                 throw new NotSupportedException("Native DOC saving cannot write custom paragraph styles because the document has no style definitions part.");
             }
 
-            Dictionary<string, Style> paragraphStyles = (styles?.Elements<Style>() ?? Enumerable.Empty<Style>())
-                .Where(style => style.Type?.Value == StyleValues.Paragraph)
-                .Where(style => !string.IsNullOrWhiteSpace(style.StyleId?.Value))
-                .GroupBy(style => style.StyleId!.Value!, StringComparer.Ordinal)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-            paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, styles);
+            Dictionary<string, Style> paragraphStyles = styles.Definitions
+                .Where(style => style.IsParagraphStyle)
+                .Where(style => !string.IsNullOrWhiteSpace(style.StyleId))
+                .GroupBy(style => style.StyleId!, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.First().Element, StringComparer.Ordinal);
+            DocDefaults? documentDefaults = styles.DocumentDefaults;
+            paragraphStyles["Normal"] = CreateDefaultParagraphStyle(mainPart, paragraphStyles, documentDefaults);
             MaterializeParagraphStyleThemeFonts(paragraphStyles, mainPart);
-            MaterializeDocumentDefaultSpacing(paragraphStyles, styles);
-            MaterializeDocumentDefaultCharacterScale(paragraphStyles, styles);
+            MaterializeDocumentDefaultSpacing(paragraphStyles, documentDefaults);
+            MaterializeDocumentDefaultCharacterScale(paragraphStyles, documentDefaults);
 
             var orderedStyleIds = new List<string>();
             var visited = new HashSet<string>(StringComparer.Ordinal);
