@@ -1,3 +1,42 @@
+# The method and identity parameters of an imported row, in the runner's expected-case form
+# ("Method|Name=Value&Name=Value", names sorted). A row whose case was renamed keeps its method in the Method variable.
+function Get-BenchmarkMethodCombination {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [object] $Row,
+        [AllowEmptyCollection()]
+        [string[]] $VariableName = @()
+    )
+
+    $method = [string] $Row.Scenario
+    $parts = [System.Collections.Generic.List[object]]::new()
+    if ($null -ne $Row.Variables) {
+        foreach ($variable in $Row.Variables.GetEnumerator()) {
+            $key = [string] $variable.Key
+            if ($key -ieq 'Method') {
+                if (-not [string]::IsNullOrWhiteSpace([string] $variable.Value)) { $method = [string] $variable.Value }
+                continue
+            }
+            # BenchmarkDotNet can report several parameters in one value ("A=1&B=2").
+            foreach ($part in [regex]::Split(('{0}={1}' -f $key, [string] $variable.Value), '&(?=[^=&]+=)')) {
+                $equalsIndex = $part.IndexOf('=')
+                if ($equalsIndex -lt 1) { continue }
+                $name = $part.Substring(0, $equalsIndex)
+                if ($name.ToLowerInvariant() -in @($VariableName | ForEach-Object { $_.ToLowerInvariant() })) {
+                    $parts.Add([pscustomobject]@{ Key = $name; Value = $part.Substring($equalsIndex + 1) })
+                }
+            }
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($method)) {
+        throw 'Benchmark rows need a method identity.'
+    }
+    $variables = @($parts | Sort-Object { [string] $_.Key } | ForEach-Object { '{0}={1}' -f $_.Key, $_.Value })
+    if ($variables.Count -eq 0) { return $method }
+    '{0}|{1}' -f $method, ($variables -join '&')
+}
+
 function Write-BenchmarkEvidenceResult {
     [CmdletBinding()]
     param(

@@ -209,7 +209,7 @@ pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -HtmlTinkerXRoot (Join-Path $repoRoot 'HtmlTinkerX')
 ```
 
-Use `-Profile full` for publication-quality BenchmarkDotNet statistics. `-Publish` is valid only with a full run and updates the shared benchmark evidence catalog. Raw BenchmarkDotNet artifacts stay under the ignored output root.
+Use `-Profile standard` or `-Profile full` for results that can be published. `-Publish` is rejected for a diagnostic run and updates the shared benchmark evidence catalog. Raw BenchmarkDotNet artifacts stay under the ignored output root.
 
 The real-world invoice lane is deliberately local-only and is not written to the
 shared evidence catalog. Its normal build uses QuestPDF 2026.5.0 under that release's

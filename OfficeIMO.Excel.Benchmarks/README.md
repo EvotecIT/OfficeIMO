@@ -1090,8 +1090,9 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 
 ## Published comparison results
 
-This block shows the published Windows .NET 10 run of the Excel library
-comparisons from the [benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
+This block shows the published runs of the Excel library comparisons for the
+platform and framework named in each entry, from the
+[benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
 The [Excel benchmark page](https://officeimo.com/benchmarks/excel/) shows every
 platform and framework. A comparison without a published run says so instead of
 showing numbers.

@@ -264,8 +264,9 @@ records the file workloads, repeated comparisons, and reader allocation analysis
 
 ## Published comparison results
 
-This block shows the published Windows .NET 10 run of the CSV library
-comparisons from the [benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
+This block shows the published runs of the CSV library comparisons for the
+platform and framework named in each entry, from the
+[benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
 The [CSV benchmark page](https://officeimo.com/benchmarks/csv/) shows every
 platform and framework. A comparison without a published run says so instead of
 showing numbers.

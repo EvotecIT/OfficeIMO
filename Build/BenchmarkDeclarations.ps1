@@ -53,8 +53,8 @@ function Get-BenchmarkDeclaredLibraries {
                         default { throw "Benchmark library '$($library.id)' lists no package; declare the package it is measured from." }
                     }
                     [pscustomobject]@{ Id = [string] $library.name; Package = [string] $library.name; Version = $version; Frameworks = @() }
-                } elseif ($versions.Count -gt 1) {
-                    throw "Benchmark library '$($library.id)' lists several package versions; add 'declare' with the one the comparisons measure."
+                } elseif ($packages.Count -gt 1) {
+                    throw "Benchmark library '$($library.id)' lists several packages; add 'declare' with the package and version the comparisons measure."
                 } elseif ($versions[0] -notmatch '^[^\[\(\*, ]+$') {
                     # Not a pinned version, such as "2026.6.0 or later"; such a library cannot be declared.
                     continue

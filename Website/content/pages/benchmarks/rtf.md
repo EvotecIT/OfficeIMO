@@ -1,6 +1,6 @@
 ---
 title: "RTF benchmarks"
-description: "RTF performance compared with other .NET libraries, measured separately on Windows, Linux and macOS: RTF to HTML conversion."
+description: "RTF benchmarks comparing OfficeIMO with other .NET libraries: RTF to HTML conversion. Windows, Linux and macOS are separate runs, shown once they are published."
 meta.seo_title: "RTF benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

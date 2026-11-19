@@ -1,6 +1,6 @@
 ---
 title: "EPUB benchmarks"
-description: "EPUB performance compared with other .NET libraries, measured separately on Windows, Linux and macOS: EPUB opening and reading."
+description: "EPUB benchmarks comparing OfficeIMO with other .NET libraries: EPUB opening and reading. Windows, Linux and macOS are separate runs, shown once they are published."
 meta.seo_title: "EPUB benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

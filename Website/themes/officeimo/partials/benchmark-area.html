@@ -15,7 +15,7 @@
 {{~ end ~}}
 <div class="imo-bench-area-page" data-benchmark-area="{{ area.id }}">
   <nav class="imo-bench-crumbs" aria-label="Breadcrumb"><a href="/benchmarks/">Benchmarks</a> <span aria-hidden="true">/</span> <span>{{ area.title }}</span></nav>
-  <p class="imo-bench-lead">Each comparison runs OfficeIMO and the other .NET libraries on the same validated work, one machine and one operating system at a time. Lower is better.</p>
+  <p class="imo-bench-lead">A comparison runs OfficeIMO and other .NET libraries on the same validated work, one machine and one operating system at a time; a suite that measures OfficeIMO alone is listed without being published. Lower is better.</p>
   <p class="imo-bench-status" data-benchmark-area-status>{{ published }} of {{ comparisons.size }} {{ if comparisons.size == 1 }}comparison has{{ else }}comparisons have{{ end }} a published run{{ if measured > published }}; {{ measured - published }} measured without a published run{{ end }}.</p>
   {{~ if comparisons.size > 1 ~}}
   <nav class="imo-bench-toc" aria-label="Comparisons on this page">

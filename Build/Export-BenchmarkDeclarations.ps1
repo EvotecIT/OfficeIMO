@@ -21,6 +21,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+# .NET file APIs resolve relative paths against the process directory, not the PowerShell location.
+$Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
 . (Join-Path $PSScriptRoot 'BenchmarkDeclarations.ps1')
 
 $document = New-BenchmarkDeclarationDocument

@@ -11,7 +11,7 @@ Those categories answer different questions. A regression result is not presente
 
 ## Published comparisons
 
-The [benchmark page](/benchmarks/) shows every declared comparison by area, such as Excel, CSV, PDF or Word, and opens each area's results on its own page. A comparison measures OfficeIMO and other .NET libraries doing the same work on the same input, and every library's output is validated before it is timed.
+The [benchmark page](/benchmarks/) shows every declared comparison by area, such as Excel, CSV, PDF or Word, and opens each area's results on its own page. A comparison measures OfficeIMO and other .NET libraries doing the same work on the same input. A result is published only when each library's output was validated before it was timed; a few suites measure OfficeIMO alone and are shown without being published.
 
 A run is published only when it meets the publishing rules: at least 3 warmups and 10 measured samples per case, a 95% confidence interval for the median, passed output validation, a clean source commit, the recorded operating system, CPU, runtime and SDK, and the exact version and hash of every compared package. Libraries whose licence does not allow publishing results run only locally and are shown as not published. Windows, Linux and macOS, and each target framework, are separate runs; they are never averaged together. When two confidence intervals overlap, the libraries are shown as even.
 
@@ -22,9 +22,12 @@ A comparison that has not been measured yet, or whose runs do not meet the rules
 `Build/Run-LibraryComparisonBenchmarks.ps1` runs the declared comparisons, records the results and checks them against the declarations. Use the `diagnostic` profile to check that a comparison runs, and `standard` or `full` for results that can be published:
 
 ```shell
-pwsh ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csv,xlsx -Profile diagnostic
+pwsh ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csv -Profile diagnostic
+pwsh ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload xlsx -Profile diagnostic
 pwsh ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -Profile standard -Publish -EvidenceRoot ./artifacts/benchmark-bundles/windows
 ```
+
+Inside PowerShell, `-Workload csv,xlsx` selects both in one run.
 
 `-Workload all -Profile full -PlanOnly` lists every workload with its libraries, frameworks and anything that blocks it. The [library comparison guide](https://github.com/EvotecIT/OfficeIMO/blob/master/Build/LibraryComparisonBenchmarks.md) covers licences, merging results from several machines, and how the declarations are generated.
 

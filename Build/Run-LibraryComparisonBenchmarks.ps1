@@ -473,9 +473,19 @@ foreach ($name in $selected) {
         $restoreArguments += @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath))
     }
     $restoreArguments += @(@($workloadPlan.Commands | Where-Object Kind -eq 'measure')[0].Arguments | Where-Object { $_ -like '-p:*' })
-    & dotnet @restoreArguments | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        $failures.Add("${name}: restoring $($definition.Project) failed with exit code $LASTEXITCODE.")
+    # The PDF comparisons build HtmlTinkerX from source or from its package depending on HTMLTINKERX_PROJECT_PATH;
+    # restore with the same choice as the measurement, so the recorded packages are the ones that are timed.
+    $isPdfComparison = $definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+    $previousRestoreHtmlTinkerX = $env:HTMLTINKERX_PROJECT_PATH
+    try {
+        if ($isPdfComparison) { $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath }
+        & dotnet @restoreArguments | Out-Host
+        $restoreExitCode = $LASTEXITCODE
+    } finally {
+        $env:HTMLTINKERX_PROJECT_PATH = $previousRestoreHtmlTinkerX
+    }
+    if ($restoreExitCode -ne 0) {
+        $failures.Add("${name}: restoring $($definition.Project) failed with exit code $restoreExitCode.")
         continue
     }
     $projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
@@ -484,8 +494,10 @@ foreach ($name in $selected) {
     } else {
         Join-Path ([System.IO.Path]::GetFullPath($BuildArtifactsPath)) "obj/$projectName/project.assets.json"
     }
+    # Competitors and the packages their timed workflows depend on (such as HtmlAgilityPack for VersOne.Epub).
+    $dependencyLibraries = @(@($definition.Dependencies | Where-Object { $_ }) | ForEach-Object { Resolve-BenchmarkDeclaredLibrary -Libraries $declaredLibraries -Name $_ })
     $packageMetadata = Get-BenchmarkPackageProvenance -AssetsPath $assetsPath -Framework $Framework `
-        -Libraries @($comparisonLibraries | Where-Object Id -ne $subjectLibrary)
+        -Libraries @(@($comparisonLibraries | Where-Object Id -ne $subjectLibrary) + $dependencyLibraries)
 
     $provenanceMetadata = [ordered]@{
         'benchmark.workload.id' = $workloadPlan.ProvenanceWorkloadId
@@ -590,7 +602,6 @@ foreach ($name in $selected) {
     }
 
     $arguments = @($workloadPlan.Commands | Where-Object Kind -eq 'measure')[0].Arguments
-    $isPdfComparison = $definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
 
     Push-Location -LiteralPath $repositoryRoot
     $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
@@ -699,6 +710,29 @@ foreach ($name in $selected) {
 
     # Drift between the declarations and what ran blocks publication; the lane is still recorded.
     $drift = @(Test-BenchmarkDeclaration -Path $declarationPath -InputObject $result -ComparisonId $definition.ComparisonId -PassThru)
+    # PowerForge compares cases, libraries and axis values separately, so a missing method and parameter
+    # combination (one library at one size) would pass as a partial lane. Every expected combination must have a
+    # row; a row that ran and failed counts, because a failed case is a result.
+    $measuredCombinations = @(
+        $result.Summary | ForEach-Object {
+            Get-BenchmarkMethodCombination -Row $_ -VariableName $definition.IdentityVariables
+        } | Sort-Object -Unique
+    )
+    $missingCombinations = @($workloadPlan.ExpectedCases | Where-Object { $_ -notin $measuredCombinations })
+    $unexpectedCombinations = @(
+        $measuredCombinations |
+            Where-Object { $_ -notin $workloadPlan.ExpectedCases } |
+            Where-Object {
+                $combination = $_
+                @($workloadPlan.AllowedExtraCaseLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $combination }).Count -eq 0
+            }
+    )
+    foreach ($combination in $missingCombinations) {
+        $drift += [pscustomobject]@{ Code = 'missing-combination'; Message = "Expected case '$combination' did not run." }
+    }
+    foreach ($combination in $unexpectedCombinations) {
+        $drift += [pscustomobject]@{ Code = 'unexpected-combination'; Message = "Case '$combination' ran but is not expected." }
+    }
     $publishLane = $workloadPlan.Publish
     if ($drift.Count -gt 0) {
         $failures.Add("${name}: the results drifted from Build/benchmark-declarations.json ($(@($drift | ForEach-Object { $_.Message }) -join ' ')). Regenerate the declarations or fix the benchmark.")

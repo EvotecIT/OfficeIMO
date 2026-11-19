@@ -1,6 +1,6 @@
 ---
 title: "HTML benchmarks"
-description: "HTML performance compared with other .NET libraries, measured separately on Windows, Linux and macOS: HTML to Markdown conversion."
+description: "HTML benchmarks comparing OfficeIMO with other .NET libraries: HTML to Markdown conversion. Windows, Linux and macOS are separate runs, shown once they are published."
 meta.seo_title: "HTML benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

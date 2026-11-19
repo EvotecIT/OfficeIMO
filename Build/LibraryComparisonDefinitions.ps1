@@ -425,7 +425,9 @@ function Get-LibraryComparisonDefinitions {
         epubread = [pscustomobject]@{
             Area = 'epub'
             Title = 'EPUB opening and reading'
-            Libraries = @('OfficeIMO', 'VersOne.Epub', 'HtmlAgilityPack')
+            Libraries = @('OfficeIMO', 'VersOne.Epub')
+            # VersOne.Epub's timed workflow uses HtmlAgilityPack; its package is recorded with the run, not measured on its own.
+            Dependencies = @('HtmlAgilityPack')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true

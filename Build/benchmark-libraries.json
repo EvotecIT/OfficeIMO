@@ -79,6 +79,7 @@
       "id": "exceldatareader",
       "name": "ExcelDataReader",
       "packages": [ { "id": "ExcelDataReader", "version": "3.9.0" }, { "id": "ExcelDataReader.DataSet", "version": "3.9.0" } ],
+      "declare": [ { "id": "ExcelDataReader", "package": "ExcelDataReader", "version": "3.9.0" } ],
       "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
       "licenseSource": "package",
       "restriction": "open",
