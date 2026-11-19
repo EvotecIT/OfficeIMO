@@ -74,6 +74,7 @@ jobs:
         with:
           name: ci-selection
           path: ci-selection.json
+          retention-days: 7
 
   platform-image-codecs:
     needs: changes
