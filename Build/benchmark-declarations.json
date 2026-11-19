@@ -12679,7 +12679,7 @@
     {
       "comparisonId": "word-docx-evidence-paragraphs",
       "area": "word",
-      "title": "DOCX paragraph creation (Open XML SDK on an OfficeIMO package shell)",
+      "title": "DOCX paragraph creation with OfficeIMO's package parts",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
@@ -12705,16 +12705,12 @@
       "frameworks": [
         "net8.0",
         "net10.0"
-      ],
-      "eligibility": {
-        "publishable": false,
-        "reason": "The Open XML SDK lane appends paragraphs to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-paragraphs is the published creation comparison."
-      }
+      ]
     },
     {
       "comparisonId": "word-docx-evidence-report",
       "area": "word",
-      "title": "DOCX report creation (Open XML SDK on an OfficeIMO package shell)",
+      "title": "DOCX report creation with Word table defaults",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
@@ -12740,11 +12736,7 @@
       "frameworks": [
         "net8.0",
         "net10.0"
-      ],
-      "eligibility": {
-        "publishable": false,
-        "reason": "The Open XML SDK lane adds the report to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-report is the published report comparison."
-      }
+      ]
     },
     {
       "comparisonId": "word-docx-evidence-read",

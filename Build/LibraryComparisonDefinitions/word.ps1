@@ -61,11 +61,11 @@ function New-WordExpectedCases {
     }
     wordevidenceparagraphs = [pscustomobject]@{
         Area = 'word'
-        Title = 'DOCX paragraph creation (Open XML SDK on an OfficeIMO package shell)'
+        Title = 'DOCX paragraph creation with OfficeIMO''s package parts'
         Libraries = @('OfficeIMO', 'Open XML SDK')
         ExpectedPlatforms = $platforms
-        PublishRestriction = 'The Open XML SDK lane appends paragraphs to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-paragraphs is the published creation comparison.'
-        CatalogEligible = $false
+        PublishRestriction = 'None'
+        CatalogEligible = $true
         Project = $project
         Filter = '*WordParagraphOpenXmlEvidenceBenchmarks*'
         ComparisonId = 'word-docx-evidence-paragraphs'
@@ -74,11 +74,11 @@ function New-WordExpectedCases {
     }
     wordevidencereport = [pscustomobject]@{
         Area = 'word'
-        Title = 'DOCX report creation (Open XML SDK on an OfficeIMO package shell)'
+        Title = 'DOCX report creation with Word table defaults'
         Libraries = @('OfficeIMO', 'Open XML SDK')
         ExpectedPlatforms = $platforms
-        PublishRestriction = 'The Open XML SDK lane adds the report to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-report is the published report comparison.'
-        CatalogEligible = $false
+        PublishRestriction = 'None'
+        CatalogEligible = $true
         Project = $project
         Filter = '*WordReportOpenXmlEvidenceBenchmarks*'
         ComparisonId = 'word-docx-evidence-report'

@@ -12158,7 +12158,7 @@
       "comparisonId": "word-docx-evidence-paragraphs",
       "area": "word",
       "group": "",
-      "title": "DOCX paragraph creation (Open XML SDK on an OfficeIMO package shell)",
+      "title": "DOCX paragraph creation with OfficeIMO\u0027s package parts",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
@@ -12187,8 +12187,8 @@
         "net8.0"
       ],
       "eligibility": {
-        "publishable": false,
-        "reason": "The Open XML SDK lane appends paragraphs to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-paragraphs is the published creation comparison."
+        "publishable": true,
+        "reason": ""
       }
     },
     {
@@ -12232,7 +12232,7 @@
       "comparisonId": "word-docx-evidence-report",
       "area": "word",
       "group": "",
-      "title": "DOCX report creation (Open XML SDK on an OfficeIMO package shell)",
+      "title": "DOCX report creation with Word table defaults",
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
@@ -12261,8 +12261,8 @@
         "net8.0"
       ],
       "eligibility": {
-        "publishable": false,
-        "reason": "The Open XML SDK lane adds the report to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-report is the published report comparison."
+        "publishable": true,
+        "reason": ""
       }
     },
     {
@@ -14543,8 +14543,8 @@
     },
     {
       "comparisonId": "word-docx-evidence-paragraphs",
-      "publishable": false,
-      "reason": "The Open XML SDK lane appends paragraphs to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-paragraphs is the published creation comparison."
+      "publishable": true,
+      "reason": ""
     },
     {
       "comparisonId": "word-docx-evidence-read",
@@ -14553,8 +14553,8 @@
     },
     {
       "comparisonId": "word-docx-evidence-report",
-      "publishable": false,
-      "reason": "The Open XML SDK lane adds the report to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-report is the published report comparison."
+      "publishable": true,
+      "reason": ""
     },
     {
       "comparisonId": "word-docx-read-paragraphs",

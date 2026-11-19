@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.Benchmarks;
 [BenchmarkCategory("Word", "PublicEvidence", "Create")]
 public class WordParagraphOpenXmlEvidenceBenchmarks {
     private WordCreateParagraphComparisonBenchmarks _workload = null!;
+    private WordOpenXmlEvidencePackage _package = null!;
 
     [Params(100, 1000)]
     public int ItemCount { get; set; }
@@ -18,9 +19,12 @@ public class WordParagraphOpenXmlEvidenceBenchmarks {
         byte[] officeImo = _workload.OfficeIMO();
         WordBenchmarkCorpus.Check("OfficeIMO", "Default", detail,
             () => WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount));
+        _package = WordOpenXmlEvidencePackage.Capture(officeImo);
         byte[] openXmlSdk = OpenXmlSdk();
-        WordBenchmarkCorpus.Check("Open XML SDK", "Default", detail,
-            () => WordBenchmarkCorpus.ValidateParagraphDocument(openXmlSdk, ItemCount));
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", detail + "; created from scratch with the same package part set as OfficeIMO", () => {
+            WordBenchmarkCorpus.ValidateParagraphDocument(openXmlSdk, ItemCount);
+            WordEquivalentPackageParts.EnsureSamePartSet("Open XML SDK paragraphs", officeImo, openXmlSdk);
+        });
     }
 
     [Benchmark(Baseline = true)]
@@ -29,7 +33,7 @@ public class WordParagraphOpenXmlEvidenceBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("library:Open XML SDK", "case:Default")]
-    public byte[] OpenXmlSdk() => WordOpenXmlEvidenceWorkloads.CreateParagraphs(ItemCount);
+    public byte[] OpenXmlSdk() => WordOpenXmlEvidenceWorkloads.CreateParagraphs(ItemCount, _package);
 }
 
 /// <summary>Publishable structured-report comparison against the MIT-licensed Open XML SDK.</summary>
@@ -37,6 +41,7 @@ public class WordParagraphOpenXmlEvidenceBenchmarks {
 [BenchmarkCategory("Word", "PublicEvidence", "StructuredReport")]
 public class WordReportOpenXmlEvidenceBenchmarks {
     private WordCreateReportComparisonBenchmarks _workload = null!;
+    private WordOpenXmlEvidencePackage _package = null!;
 
     [Params(100, 1000)]
     public int RowCount { get; set; }
@@ -48,9 +53,12 @@ public class WordReportOpenXmlEvidenceBenchmarks {
         byte[] officeImo = _workload.OfficeIMO();
         WordBenchmarkCorpus.Check("OfficeIMO", "Default", detail,
             () => WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount, requireOfficeCompatibleDefaults: true));
+        _package = WordOpenXmlEvidencePackage.Capture(officeImo);
         byte[] openXmlSdk = OpenXmlSdk();
-        WordBenchmarkCorpus.Check("Open XML SDK", "Default", detail,
-            () => WordBenchmarkCorpus.ValidateReportDocument(openXmlSdk, RowCount, requireOfficeCompatibleDefaults: true));
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", detail + "; created from scratch with the same package part set as OfficeIMO", () => {
+            WordBenchmarkCorpus.ValidateReportDocument(openXmlSdk, RowCount, requireOfficeCompatibleDefaults: true);
+            WordEquivalentPackageParts.EnsureSamePartSet("Open XML SDK report", officeImo, openXmlSdk);
+        });
     }
 
     [Benchmark(Baseline = true)]
@@ -59,7 +67,7 @@ public class WordReportOpenXmlEvidenceBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("library:Open XML SDK", "case:Default")]
-    public byte[] OpenXmlSdk() => WordOpenXmlEvidenceWorkloads.CreateReport(RowCount);
+    public byte[] OpenXmlSdk() => WordOpenXmlEvidenceWorkloads.CreateReport(RowCount, _package);
 }
 
 /// <summary>Publishable full-read comparison against the MIT-licensed Open XML SDK.</summary>
