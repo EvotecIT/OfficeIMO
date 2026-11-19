@@ -27,6 +27,19 @@ namespace OfficeIMO.Word {
         public bool UpdateTablesOfContents { get; set; }
 
         /// <summary>
+        /// When true, every table of contents is regenerated as with <see cref="UpdateTablesOfContents"/>, and only the
+        /// fields inside the regenerated tables, their <c>PAGEREF</c> page numbers, are refreshed. Every other field
+        /// keeps its result.
+        /// </summary>
+        /// <remarks>
+        /// Use it after <see cref="WordDocument.AppendDocument(WordDocument, WordDocumentMergeOptions?)"/>. A full refresh
+        /// evaluates fields such as <c>DOCPROPERTY</c>, <c>TITLE</c> and <c>AUTHOR</c> in the appended content against the
+        /// destination's properties, so they would show the destination's values instead of their source's.
+        /// Cannot be combined with <see cref="DateTimeFieldsOnly"/>.
+        /// </remarks>
+        public bool TablesOfContentsOnly { get; set; }
+
+        /// <summary>
         /// When true, <c>PAGEREF</c> (including table-of-contents page numbers) and <c>NUMPAGES</c> fields use page
         /// numbers from OfficeIMO's own page layout, the engine behind PDF conversion, instead of counting explicit
         /// page and section breaks. This lays out a copy of the document, so it costs about as much as a PDF conversion.
