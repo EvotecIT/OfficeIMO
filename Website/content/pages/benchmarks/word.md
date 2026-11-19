@@ -1,6 +1,6 @@
 ---
 title: "Word benchmarks"
-description: "Word performance compared with other .NET libraries on Windows, Linux and macOS: dOCX creation, editing and reading against other .NET Word libraries."
+description: "Word benchmarks comparing OfficeIMO with other .NET libraries: DOCX creation, reports, reading and replacing text, with separate Windows, Linux and macOS runs."
 meta.seo_title: "Word benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

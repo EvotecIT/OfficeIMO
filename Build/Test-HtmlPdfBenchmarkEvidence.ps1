@@ -1,5 +1,5 @@
 param(
-    [string] $EvidenceRoot = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/library-comparisons')
+    [string] $EvidenceRoot = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/evidence')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -9,23 +9,30 @@ $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Pat
 $resolvedEvidenceRoot = (Resolve-Path -LiteralPath $EvidenceRoot).Path
 $indexPath = Join-Path $resolvedEvidenceRoot 'index.json'
 $index = Get-Content -LiteralPath $indexPath -Raw | ConvertFrom-Json
-$comparisonId = 'pdf-html-generation-net10.0'
-$expectedScenarios = @('Chromium', 'ITextPdfHtml', 'OfficeIMO', 'PeachPDF', 'PdfPecker')
+$comparisonId = 'pdf-html-generation'
+$declaration = @($index.comparisons | Where-Object comparisonId -eq $comparisonId)
+if ($declaration.Count -ne 1) {
+    throw "The benchmark catalog does not declare '$comparisonId'."
+}
+$expectedLibraries = @($declaration[0].libraries)
 $expectedScales = @('Easy', 'Medium', 'High')
+$pdfPeckerVersion = [string] @($index.libraries | Where-Object id -eq 'PdfPecker')[0].version
 $sourceCommit = $null
 $browserCommit = $null
 $pdfPeckerPackageSha512 = $null
 
 foreach ($platform in @('windows', 'linux')) {
-    $fileName = "$comparisonId-$platform-full.json"
+    $label = "$comparisonId on $platform"
     $entry = @($index.entries | Where-Object {
             $_.comparisonId -eq $comparisonId -and
             $_.platform -eq $platform -and
-            $_.runMode -eq 'full'
+            $_.framework -eq 'net10.0' -and
+            $_.profile -eq 'full' -and
+            @($_.parameters.PSObject.Properties).Count -eq 0
         })
 
     if ($entry.Count -ne 1 -or $entry[0].publish -ne $true -or $entry[0].comparable -ne $true) {
-        throw "HTML/PDF benchmark evidence must contain one publishable, comparable $platform full-run catalog entry."
+        throw "HTML/PDF benchmark evidence must contain one published, comparable net10.0 full run of $label."
     }
 
     # Follow the immutable artifact selected by the catalog after a bundle refresh.
@@ -33,21 +40,20 @@ foreach ($platform in @('windows', 'linux')) {
     $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
     $actualHash = (Get-FileHash -LiteralPath $resultPath -Algorithm SHA256).Hash.ToLowerInvariant()
     if (-not [string]::Equals($actualHash, [string] $entry[0].resultSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "HTML/PDF benchmark evidence hash does not match the catalog for $fileName."
+        throw "HTML/PDF benchmark evidence hash does not match the catalog for $label."
     }
 
     if ([string] $result.suite -ne 'OfficeIMO.Pdf.HtmlGeneration' -or
         [string] $result.environment.osFamily -ne (Get-Culture).TextInfo.ToTitleCase($platform) -or
         [string] $result.environment.runner -ne 'BenchmarkDotNet' -or
         [string] $result.metadata.'benchmark.workload.framework' -ne 'net10.0' -or
-        [string] $result.metadata.'benchmark.package.pdfpecker.version' -cne '1.16.0' -or
+        [string] $result.metadata.'benchmark.package.pdfpecker' -cne $pdfPeckerVersion -or
         [string] $result.metadata.'benchmark.dependency.pdfpecker.sourceCommit' -notmatch '^[0-9a-f]{40}$' -or
         [string] $result.metadata.'benchmark.dependency.pdfpecker.licenseSha256' -notmatch '^[0-9a-f]{64}$' -or
         [string] $result.metadata.'benchmark.dependency.pdfpecker.thirdPartyNoticesSha256' -notmatch '^[0-9a-f]{64}$' -or
         [string] $result.metadata.'benchmark.dependency.pdfpecker.packageSha512' -notmatch '^[A-Za-z0-9+/]{86}==$' -or
-        [string] $result.metadata.runMode -ne 'full' -or
         [string] $result.metadata.gitWorktreeClean -ne 'true') {
-        throw "HTML/PDF benchmark evidence has invalid environment or provenance metadata for $fileName."
+        throw "HTML/PDF benchmark evidence has invalid environment or provenance metadata for $label."
     }
 
     $currentPackageSha512 = [string] $result.metadata.'benchmark.dependency.pdfpecker.packageSha512'
@@ -63,7 +69,7 @@ foreach ($platform in @('windows', 'linux')) {
     if ($currentSourceCommit -notmatch '^[0-9a-f]{40}$' -or
         $currentBrowserCommit -notmatch '^[0-9a-f]{40}$' -or
         -not [string]::Equals($currentSourceCommit, [string] $result.metadata.gitSha, [System.StringComparison]::OrdinalIgnoreCase)) {
-        throw "HTML/PDF benchmark evidence is not bound to exact OfficeIMO and HtmlTinkerX source commits for $fileName."
+        throw "HTML/PDF benchmark evidence is not bound to exact OfficeIMO and HtmlTinkerX source commits for $label."
     }
 
     if ($null -eq $sourceCommit) {
@@ -74,23 +80,12 @@ foreach ($platform in @('windows', 'linux')) {
         throw 'Windows and Linux HTML/PDF benchmark evidence must measure the same OfficeIMO and HtmlTinkerX source commits.'
     }
 
-    $summary = @($result.summary)
-    if ($summary.Count -ne ($expectedScenarios.Count * $expectedScales.Count)) {
-        throw "HTML/PDF benchmark evidence must contain all 15 engine/scale cases for $fileName."
-    }
-
-    foreach ($scenario in $expectedScenarios) {
+    # Every engine at every scale has a published cell: measured, validated and within the publish policy.
+    foreach ($library in $expectedLibraries) {
         foreach ($scale in $expectedScales) {
-            $cases = @($summary | Where-Object {
-                    $_.scenario -eq $scenario -and $_.variables.Scale -eq $scale
-                })
-            if ($cases.Count -ne 1 -or
-                [string] $cases[0].status -ne 'Succeeded' -or
-                [int] $cases[0].failureCount -ne 0 -or
-                [int] $cases[0].sampleCount -lt 1 -or
-                [double] $cases[0].meanMs -le 0 -or
-                [double] $cases[0].metrics.BytesAllocatedPerOperation -le 0) {
-                throw "HTML/PDF benchmark case $scenario/$scale is missing or unsuccessful for $fileName."
+            $cells = @($entry[0].cells | Where-Object { $_.library -eq $library -and $_.parameters.Scale -eq $scale })
+            if ($cells.Count -ne 1 -or [string] $cells[0].status -ne 'Succeeded' -or $cells[0].publishable -ne $true) {
+                throw "HTML/PDF benchmark cell $library/$scale is missing or not published for $label."
             }
         }
     }
@@ -119,6 +114,7 @@ $measuredPaths = @(
     'OfficeIMO.Pdf.Benchmarks.Comparisons',
     'Build/LibraryComparisonRunner',
     'Build/Run-LibraryComparisonBenchmarks.ps1',
+    'Build/benchmark-declarations.json',
     'Build/Test-LibraryComparisonRunnerContract.ps1'
 )
 & git -C $repositoryRoot diff --quiet $sourceCommit HEAD -- @measuredPaths

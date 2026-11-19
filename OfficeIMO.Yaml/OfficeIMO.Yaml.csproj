@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>A dependency-free YAML 1.2 engine for OfficeIMO: a lossless document model that saves unchanged input byte for byte, a low-allocation pull reader with schema-aware scalar resolution, and an object serializer with a NativeAOT source generator.</Description>
 
-    <VersionPrefix>3.6.0</VersionPrefix>
+    <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0;net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>

@@ -1,168 +1,164 @@
 # Library comparison evidence
 
-Run the comparison runner once on each machine, copy its portable bundle, then
-merge the bundle indexes. PowerForge validates result artifacts and keeps each
-platform, run mode, source revision and measurement profile separate. A subset
-merge retains the other lanes already in the destination catalog.
+OfficeIMO measures its libraries against other .NET libraries with one runner,
+records the results in one evidence catalog, and shows them on the website and
+in the README result blocks from that catalog only. The catalog follows the
+[PowerForge benchmark standard](https://github.com/EvotecIT/PSPublishModule/blob/main/Docs/PowerForge.BenchmarkStandard.md)
+(catalog schema 5).
+
+| File | Role |
+| --- | --- |
+| `Build/LibraryComparisonDefinitions.ps1` | Workloads: project, filter, libraries and the cases each workload runs. |
+| `Build/benchmark-libraries.json` | Library policy: package, pinned version, licence and restriction class of every compared library. |
+| `Build/benchmark-declarations.json` | Generated declarations the catalog checks every result against. Never edit it. |
+| `Build/Run-LibraryComparisonBenchmarks.ps1` | Runs workloads and records each comparison in a catalog as soon as it is measured. |
+| `Build/Merge-LibraryComparisonBenchmarks.ps1` | Merges catalogs from several machines into the website catalog. |
+| `Website/static/data/benchmarks/evidence/index.json` | The website catalog. Its results are published beside it. |
+
+## Declarations
+
+`./Build/Export-BenchmarkDeclarations.ps1` writes `Build/benchmark-declarations.json`
+from the workload definitions and the library policy; `-Check` fails when the
+file is out of date, and the runner contract test runs it. Each comparison
+declares:
+
+- its libraries, with OfficeIMO as the subject;
+- its cases and axes, taken from the workload's expected cases. A method name
+  starts with its library (`MagickNETEncode` is Magick.NET's `Encode` case;
+  `Sylvan` is Sylvan's default case). Methods that do not follow that pattern
+  are listed in `Build/BenchmarkDeclarations.ps1`. A method that names no
+  declared library fails, so no result is ever attributed by guessing;
+- its frameworks: only those on which every library runs its declared version
+  with the same cases. Comparisons that include ExcelReader.NET are declared for
+  net10.0 only, because the net8.0 build uses an older ExcelReader.NET;
+- its eligibility. Workloads not meant as public comparisons, and comparisons
+  of OfficeIMO alone, are recorded but never published.
+
+Library ids are the library names readers see, such as `ClosedXML` or
+`Open XML SDK`. When a policy library lists several packages or versions,
+its `declare` entry names the package and pinned version the comparisons
+measure.
+
+## Licences
+
+Every library has a restriction class in `Build/benchmark-libraries.json`:
+
+| Class | Runs | Published |
+| --- | --- | --- |
+| `open` | Yes | Yes |
+| `publish-restricted` | Locally, after `-IncludeLibrary <id>` | No |
+| `acceptance-required` | Locally, after `-AcceptLibraryLicense <id>` and the library's own setting, such as `EPPlusLicense` | No |
+| `excluded` | Never | Never |
+
+NPOI, the Recursive AI One libraries, EPPlus 4.5.3.3 (LGPL) and QuestPDF
+2026.5.0 are open. Later QuestPDF releases are publish-restricted. DocX and
+EPPlus 8 need an explicit licence acceptance and are never published. The
+runner never accepts a licence for you, and enabling any restricted library
+keeps the whole run local, so `-Publish` rejects it. A published comparison
+leaves out restricted libraries' cells and publishes the rest; the website shows
+them as "not published (licence)". `-ExcludeLibrary <id>` skips comparisons that
+need that library.
+
+## Profiles and publishing
+
+`-Profile` selects how much each workload measures:
+
+| Profile | BenchmarkDotNet job | Published |
+| --- | --- | --- |
+| `diagnostic` | One dry pass | Never |
+| `standard` | 1 launch, 5 warmups, 15 measured iterations, outliers kept | When the run meets the publish policy |
+| `full` | The workload's own job | When the run meets the publish policy |
+
+The catalog carries the standard publish policy: at least 3 warmups and 10
+measured samples per cell, a 95% confidence interval of the median, passed
+output validation, a clean source commit, the operating system, CPU, runtime and
+SDK, no machine or user name, and the version and SHA-256 of every compared
+package. The runner restores each project first and records the restored
+version and hash of every competitor package before measuring.
+
+Benchmarks record their output validation by appending one JSON object per
+library and case (`{ "library": "ClosedXML", "case": "Default", "status": "passed", "detail": "rows=65000" }`)
+to the file named by `OFFICEIMO_BENCHMARK_VALIDATION_PATH`. A cell without a
+passed validation is recorded but not published.
+
+Results that drift from the declarations (a case, library or axis value that is
+not declared, or a declared one that did not run) are recorded unpublished and
+the runner reports the drift. A crashed or failed case is recorded as a failed
+cell; the rest of the comparison is still published when it meets the policy.
 
 ## First run
 
 - Use PowerShell 7.4 or later, Git, the repository's .NET 10 SDK, and the .NET 8
-  SDK/runtime used by the pinned PowerForge module. Package restore and the first
-  PowerForge source checkout need network access. The initializer reads
-  `Build/benchmark-powerforge.json`, caches source under `EVOTEC_SCRATCH_ROOT` when configured (otherwise local application data), builds the unsigned net8.0 module, and imports
-  it. Builds reuse the ordinary machine NuGet cache. `-PowerForgeRoot` selects an existing clean checkout at that exact commit;
-  it does not change the pin or update a shared checkout.
-- Clear `OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS` before collecting the fixed seven-corpus CommonMark matrix.
-- Use a clean OfficeIMO checkout for cataloged measurements. If selecting a
-  local HtmlTinkerX source through `-HtmlTinkerXRoot`, keep it clean too. Record
-  the actual source, dependencies and environment; copying a bundle does not
-  turn one machine's results into another platform's evidence.
-- Run collection when the machine is available for measurements.
-  Keep equivalent engines on the same processor domain and settings. Leave
-  `-AffinityMask 0` on macOS. A nonzero mask on Windows or Linux identifies a
-  separate comparison profile; select it from the host's actual topology.
-- Every compared library is declared in `Build/benchmark-libraries.json` with
-  its packages, licence and restriction class. `open` libraries run and may be
-  published. `publish-restricted` libraries (QuestPDF releases after the
-  pinned 2026.5.0) run only locally after `-IncludeLibrary <id>`.
-  `acceptance-required` libraries (EPPlus 8, DocX) run only locally after
-  `-AcceptLibraryLicense <id>`, and still read their own key or setting from
-  you, such as `EPPlusLicense`. `excluded` libraries never run. The runner never
-  declares a licence for you; review each licence before enabling it.
-- A published comparison leaves out restricted libraries' cases and publishes
-  the rest; Word, for example, publishes OfficeIMO, NPOI and Open XML SDK
-  without DocX. Enabling any restricted library makes the whole run local, so
-  `-Publish` rejects it.
-  `-ExcludeLibrary <id>` skips comparisons that need that library. `all -Publish`
-  reports restricted optional lanes as skipped and leaves their declarations
-  visible.
-- Prepare the independent PDF corpus and pass `-PdfCorpusRoot` to include
-  `pdfcorpusread`. Without it, `all` reports that lane as skipped. An explicit
-  selection with a missing prerequisite fails. Review `BlockedReasons` in the
-  plan before a first full run.
+  SDK used by the pinned PowerForge module. The runner reads
+  `Build/benchmark-powerforge.json`, caches the PowerForge source under
+  `EVOTEC_SCRATCH_ROOT` when it is set (otherwise local application data),
+  builds the module and imports it. `-PowerForgeRoot` selects an existing clean
+  checkout at that exact commit.
+- Use a clean OfficeIMO checkout. A dirty tree is rejected for cataloged runs.
+- Clear `OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS` before collecting the CommonMark
+  matrix, and pass `-PdfCorpusRoot` to include `pdfcorpusread`.
+- Keep equivalent engines on the same processor domain. Leave `-AffinityMask 0`
+  on macOS. A nonzero mask on Windows or Linux records a separate lane of the
+  same comparison with the mask as a lane parameter.
 
-Run these commands from the repository root. They perform full
-measurements; add `-DryRun` to inspect the plan without setup, restore, builds,
-measurement, catalog writes or output-directory creation. `-PlanOnly` also
-returns the plan, including declarations for restricted workloads.
+Run these commands from the repository root. Add `-PlanOnly` or `-DryRun` to
+inspect the plan without restoring, building or measuring.
 
-| Machine | Full public-eligible collection command |
+| Machine | Publishable collection |
 | --- | --- |
-| Windows | `pwsh -NoLogo -NoProfile -File ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -RunMode full -Publish -EvidenceRoot ./artifacts/benchmark-bundles/windows` |
-| Linux | `pwsh -NoLogo -NoProfile -File ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -RunMode full -Publish -EvidenceRoot ./artifacts/benchmark-bundles/linux` |
-| macOS | `pwsh -NoLogo -NoProfile -File ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -RunMode full -Publish -EvidenceRoot ./artifacts/benchmark-bundles/macos` |
+| Windows | `pwsh -NoLogo -NoProfile -File ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -Profile standard -Publish -EvidenceRoot ./artifacts/benchmark-bundles/windows` |
+| Linux | `pwsh -NoLogo -NoProfile -File ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -Profile standard -Publish -EvidenceRoot ./artifacts/benchmark-bundles/linux` |
+| macOS | `pwsh -NoLogo -NoProfile -File ./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -Profile standard -Publish -EvidenceRoot ./artifacts/benchmark-bundles/macos` |
 
-These commands use the actual host platform and default to `net10.0`.
-`-Framework net8.0` collects a separate cohort for comparisons supporting that framework. `-Platform windows`,
-`linux` or `macos` is a planning override only, used with `-PlanOnly` or
-`-DryRun`; it cannot relabel a real collection.
+Use `-Profile full` for complete BenchmarkDotNet runs. The runner uses the host
+platform and `net10.0` by default; `-Framework net8.0` records separate lanes for
+the comparisons declared for it. `-Platform` is a planning override only.
 
 ## Select a subset
 
-Run subset and merge examples below inside PowerShell so comma-separated values
-bind as arrays. `-Workload` accepts one or more workload IDs, `all`, and the grouped selectors
-`word` and `powerpoint`. The plan is the source of supported IDs, areas, titles,
-libraries, prerequisites and publication restrictions:
+`-Workload` takes workload ids, `all`, and the groups `word` and `powerpoint`:
 
 ```powershell
-./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -RunMode full -PlanOnly |
-    Select-Object Workload, Area, ComparisonId, Libraries, CanRun, BlockedReasons
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload all -Profile full -PlanOnly |
+    Select-Object Workload, Area, ComparisonId, Libraries, DeclaredFrameworks, CanRun, BlockedReasons
 
-./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csv,xlsx,pptxcreate -RunMode full -Publish -EvidenceRoot ./artifacts/benchmark-bundles/subset -DryRun
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csv,xlsx,pptxcreate -Profile standard -Publish -EvidenceRoot ./artifacts/benchmark-bundles/subset -DryRun
 ```
 
-Remove `-DryRun` when ready to collect. `quick` runs are diagnostics and cannot
-be marked publishable. `-MeasurementProfile WarmedV1` is limited to
-`-Workload pdfhtmlpayload -RunMode full` and produces its own comparison ID.
-Internal QuestPDF experiments require the runner's explicit authorization and
-version flags; their artifacts cannot enter public bundles or website catalogs.
+`-MeasurementProfile WarmedV1` is limited to `-Workload pdfhtmlpayload -Profile full`
+and records a separate lane (`measurement = warmedv1`) of the same comparison.
+Internal QuestPDF experiments use `Build/Run-InternalQuestPdfBenchmarks.ps1`;
+their results never enter a shared catalog.
 
-## Copy and merge bundles
+## Merge bundles
 
-Keep collection output under the ignored `artifacts/benchmark-bundles` directory
-or outside the checkout. An unignored bundle dirties the source between
-provenance captures. Copy each complete `EvidenceRoot`, including `index.json` and every referenced
-normalized JSON artifact. Keep relative directories intact. Do not copy an index
-alone or move the declaration array into a measured provenance record.
-
-After putting the bundles under `./artifacts/benchmark-bundles` on the publishing checkout:
+Keep collection output under the ignored `artifacts/benchmark-bundles` folder or
+outside the checkout. Copy each complete evidence root, including `index.json`
+and every result beside it, to the publishing checkout and merge:
 
 ```powershell
-./Build/Merge-LibraryComparisonBenchmarks.ps1 -SourcePath ./artifacts/benchmark-bundles/windows/index.json,./artifacts/benchmark-bundles/linux/index.json,./artifacts/benchmark-bundles/macos/index.json
+./Build/Merge-LibraryComparisonBenchmarks.ps1 -SourcePath ./artifacts/benchmark-bundles/windows/index.json,./artifacts/benchmark-bundles/macos/index.json
 ```
 
-Add `-DryRun` to inspect inputs, declarations, output paths and the PowerForge pin
-without writes or setup. Merge runs no measurements. The destination defaults to
-`Website/static/data/benchmarks/library-comparisons/index.json` and is always
-included as an input when it exists. For a later subset, supply only that bundle's
-index: other destination lanes remain. PowerForge selects lanes and verifies
-hashes, provenance and compatibility; it does not average unlike environments.
-The wrapper sets `-ResultPathPrefix /data/benchmarks/library-comparisons`, so
-portable bundle filenames become website result links without changing payloads.
+The destination is always an input, so a later subset keeps the other lanes. A
+newer run of a lane replaces it and the earlier run stays in the catalog's
+superseded history with its date and hash; result files are content-addressed,
+so none is overwritten. PowerForge verifies every result against its hash and
+re-evaluates every lane against the declarations and the publish policy. With
+no sources and no catalog, the merge writes a catalog of declarations only.
+Catalogs from earlier schemas are rejected; record fresh runs instead.
 
-The wrapper obtains declarations from `all -RunMode full -PlanOnly` for both
-`net8.0` and `net10.0`, omitting unsupported framework combinations. It maps historical affinity and warmed variants to their
-explicit base declarations, preserving separate IDs. An unknown comparison ID
-fails rather than guessing an area. With no sources and no destination it creates
-a declared-only catalog, so never-run comparisons still have platform coverage.
-Repeated merges of the same inputs produce the same catalog and template data.
+After merging, refresh the CSV and Excel README blocks from the catalog with
+`./Build/Benchmarks/Update-BenchmarkReadmes.ps1`.
 
-## Generated website output
+## Website
 
-The merge writes the static index and result artifacts, then copies the resulting
-catalog to `Website/data/benchmarks_index.json`. This copy is byte-identical to
-the published static index and retains full and `publish=false` quick entries.
-The benchmark and area pages render from that data at build time.
-
-Refresh the template data without merging with
-`./Build/Generate-LibraryComparisonWebsiteData.ps1`. Use `-CatalogPath` and
-`-WebsiteIndexPath` for an isolated copy, or `-DryRun` to validate and show the
-output plan. Copying the published bytes preserves timestamp and numeric formats
-across locales.
-
-The archive's `benchmarks-overview.html` is generated separately by
-`./Build/Generate-BenchmarkWebsiteOverview.ps1` from the dated Excel and CSV
-snapshots in `Docs/benchmarks/readme-current/`. It contains the focused report,
-read and write pipelines rather than the library comparison catalog. Edit its
-source snapshots or generator, never the generated partial. The legacy Excel matrix and
-`Website/data/benchmarks-excel*.json` are separate archived evidence and are not
-rewritten by this pipeline.
-
-Full published evidence, diagnostic evidence, incompatible full lanes, not-run
-platforms and platforms outside a declaration's target set remain distinguishable.
-Missing historical environment values stay missing rather than being replaced
-with the publishing host's environment.
-
-## Catalog contract and checks
-
-`Build/library-comparisons.schema.json` uses JSON Schema draft 7, supported by
-PowerShell's `Test-Json`. The exact v4 top-level fields are `schemaVersion`,
-`expectedPlatforms`, `areas` (string IDs), `comparisons`, `entries` and
-`availability`. Each comparison declares `comparisonId`, `area`, `title`,
-`libraries` (strings) and `expectedPlatforms` (strings). Each evidence entry keeps
-the v3 lane, artifact, hash, environment and compatibility fields and adds `area`.
-Area values are only the IDs `pdf`, `excel`, `csv`, `word`, `powerpoint`,
-`markdown`, `html`, `rtf`, `image`, `email`, `epub`, `opendocument`, `zip`, `yaml` and `toml`.
-Area titles and descriptions come from `Website/data/benchmark_areas.json`;
-comparison titles and library names remain in `comparisons`. Both index copies
-retain quick results without changing their publication flags; templates choose
-which results to display.
-Availability retains `comparisonId`, `runMode`, `platform`, `available`, `runModes`
-and nullable `latestUtc`. Additional artifact fields are allowed.
-
-```powershell
-Get-Content ./Website/static/data/benchmarks/library-comparisons/index.json -Raw |
-    Test-Json -SchemaFile ./Build/library-comparisons.schema.json
-```
-
-Run `./Build/Test-LibraryComparisonWebsiteData.ps1` to verify byte identity,
-overwriting the v3 placeholder, preserving quick entries, and write-free dry runs
-against the committed results.
-
-The generator validates v4 before writing. PowerForge accepts existing v3 input
-bundles for migration and emits v4 through the merge. Schema validation checks
-types and required fields; PowerForge owns artifact integrity, lane selection
-and compatibility. Plans and existing-artifact merges verify automation without
-executing benchmarks. They do not establish new performance results or complete
-the first real cross-platform collection.
+`Website/site.json` reads the catalog through PowerForge.Web's `BenchmarkEvidence`
+entry. The build writes one JSON file per area under `/data/benchmarks/` and one
+rendered results fragment per area, and the pages use the PowerForge benchmark
+components: `/benchmarks/` lists every area and loads an area's results on
+demand, and `/benchmarks/<area>/` shows every comparison of that area. Only
+published runs are shown; a comparison without one says it has not been
+measured or published yet. Area titles and descriptions come from
+`Website/data/benchmark_areas.json`. `Website/scripts/Test-BenchmarkPage.ps1`
+checks the built pages against the catalog and runs the browser checks.

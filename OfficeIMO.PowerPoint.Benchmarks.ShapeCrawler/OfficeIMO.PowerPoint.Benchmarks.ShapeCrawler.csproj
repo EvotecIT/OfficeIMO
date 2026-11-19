@@ -16,9 +16,12 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
     <PackageReference Include="ShapeCrawler" Version="0.82.0" />
+    <PackageReference Include="RecursiveAI.OneDocument.Presentations" Version="1.0.0" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <None Include="..\OfficeIMO.TestAssets\Images\EvotecLogo.png" Link="benchmark-logo.png" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.PowerPoint.Benchmarks\PowerPointBenchmarkSemanticValidator.cs"
              Link="PowerPointBenchmarkSemanticValidator.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkLibrarySelection.cs" Link="Shared\BenchmarkLibrarySelection.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkLibraryFilter.cs" Link="Shared\BenchmarkLibraryFilter.cs" />
   </ItemGroup>
 </Project>

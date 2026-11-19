@@ -1,6 +1,6 @@
 ---
 title: "Markdown benchmarks"
-description: "Markdown performance compared with other .NET libraries on Windows, Linux and macOS: commonMark parsing and rendering, with raw results and source commits."
+description: "Markdown benchmarks comparing OfficeIMO with other .NET libraries on CommonMark parsing and HTML rendering, with separate Windows, Linux and macOS runs."
 meta.seo_title: "Markdown benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

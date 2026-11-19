@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>TOML configuration provider for Microsoft.Extensions.Configuration, built on the OfficeIMO.Toml engine: AddTomlFile and AddTomlStream with TOML 1.1 tables, arrays of tables, ISO 8601 date-times and positioned errors.</Description>
 
-    <VersionPrefix>3.6.0</VersionPrefix>
+    <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0;net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>

@@ -12,6 +12,10 @@ public class ImageResizeBenchmarks {
     private OfficeRasterImage _officeImage = null!;
     private SKBitmap _skiaImage = null!;
     private MagickImage _magickImage = null!;
+#if NET10_0_OR_GREATER
+    private byte[] _oneImageSource = null!;
+    private global::OneImage.PixelResizer _oneImageResizer = null!;
+#endif
 
     [GlobalSetup]
     public void Setup() {
@@ -31,12 +35,20 @@ public class ImageResizeBenchmarks {
             office,
             ImageComparisonAdapters.ResizeMagickRgba(_magickImage, TargetWidth, TargetHeight),
             maximumMeanAbsoluteError: 3D);
+#if NET10_0_OR_GREATER
+        _oneImageSource = rgba;
+        _oneImageResizer = new global::OneImage.PixelResizer();
+        ImageComparisonValidation.ValidateOneImageResize(_officeImage, office, TargetWidth, TargetHeight);
+#endif
     }
 
     [GlobalCleanup]
     public void Cleanup() {
         _skiaImage.Dispose();
         _magickImage.Dispose();
+#if NET10_0_OR_GREATER
+        _oneImageResizer.Dispose();
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -47,4 +59,11 @@ public class ImageResizeBenchmarks {
 
     [Benchmark]
     public int MagickNET() => ImageComparisonAdapters.ResizeMagick(_magickImage, TargetWidth, TargetHeight);
+#if NET10_0_OR_GREATER
+
+    [Benchmark]
+    [BenchmarkCategory("library:oneimage")]
+    public int OneImage() => OneImageComparisonAdapters.ResizeRgba(
+        _oneImageResizer, _oneImageSource, _officeImage.Width, _officeImage.Height, TargetWidth, TargetHeight).Length / 4;
+#endif
 }

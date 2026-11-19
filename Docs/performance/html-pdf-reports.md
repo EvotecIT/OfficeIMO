@@ -41,7 +41,7 @@ preserve.
 Use the maintained BenchmarkDotNet projects and PowerForge comparison entrypoint:
 
 ```powershell
-./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode full -Framework net10.0 -OutputRoot <task-output> -BuildArtifactsPath <task-build>
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -Profile full -Framework net10.0 -OutputRoot <task-output> -BuildArtifactsPath <task-build>
 ```
 
 The HTML benchmark project's `HtmlPagedPurchaseTableBenchmarks` separates prepared

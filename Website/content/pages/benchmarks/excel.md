@@ -1,6 +1,6 @@
 ---
 title: "Excel benchmarks"
-description: "Excel performance compared with other .NET libraries: typed reads of XLSX, XLSB and XLS files, and fast workbook writes from a data reader."
+description: "Excel benchmarks comparing OfficeIMO with other .NET libraries: typed XLSX, XLSB and XLS reads and writes, with separate Windows, Linux and macOS runs."
 meta.seo_title: "Excel benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

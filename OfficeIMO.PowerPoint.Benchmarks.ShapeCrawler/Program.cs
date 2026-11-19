@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.PowerPoint.Benchmarks;
 using ShapeCrawler;
 
@@ -15,7 +16,7 @@ if (args.Length > 0 && string.Equals(args[0], "validate", StringComparison.Ordin
 if (args.Length > 0 && string.Equals(args[0], "bench", StringComparison.OrdinalIgnoreCase)) {
     BenchmarkDotNet.Running.BenchmarkSwitcher
         .FromAssembly(typeof(OfficeIMO.PowerPoint.Benchmarks.Comparison.PowerPointComparisonCorpus).Assembly)
-        .Run(args.Skip(1).ToArray());
+        .Run(args.Skip(1).ToArray(), BenchmarkDotNet.Configs.ManualConfig.Create(BenchmarkDotNet.Configs.DefaultConfig.Instance).AddRestrictedLibraryFilter());
     return 0;
 }
 return ShapeCrawlerBaselineRunner.Run(args);

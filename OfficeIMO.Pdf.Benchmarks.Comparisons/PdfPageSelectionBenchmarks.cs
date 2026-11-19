@@ -34,6 +34,9 @@ public class PdfPageSelectionBenchmarks {
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(IText), IText());
         Validate(nameof(PdfSharp), PdfSharp());
+#if NET10_0_OR_GREATER
+        Validate(nameof(OnePdf), OnePdf());
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -44,6 +47,12 @@ public class PdfPageSelectionBenchmarks {
 
     [Benchmark]
     public byte[] PdfSharp() => PdfManipulationEngines.SelectWithPdfSharp(_source, _pageNumbers);
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
+    public byte[] OnePdf() => PdfManipulationEngines.SelectWithOnePdf(_source, _pageNumbers);
+#endif
 
     private void Validate(string engine, byte[] output) =>
         PdfManipulationValidation.Validate(new[] { output }, _expectedPages, engine + " selecting pages from " + Producer);

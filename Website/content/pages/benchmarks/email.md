@@ -1,6 +1,6 @@
 ---
 title: "Email benchmarks"
-description: "Email performance compared with other .NET libraries on Windows, Linux and macOS: mIME message parsing, with raw results and source commits."
+description: "Email benchmarks comparing OfficeIMO with MimeKit and other .NET libraries on MIME message reading and writing, with separate Windows, Linux and macOS runs."
 meta.seo_title: "Email benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

@@ -85,6 +85,7 @@ public class WordReplaceComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.Replace(_fixture);
 
 #endif

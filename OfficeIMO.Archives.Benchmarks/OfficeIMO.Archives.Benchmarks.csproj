@@ -12,6 +12,11 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
 
+  <!-- OneArchive ships net10.0 only, so its comparison lanes compile only for that target. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OneArchive" Version="1.2.0" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Archives\OfficeIMO.Archives.csproj" />
   </ItemGroup>
