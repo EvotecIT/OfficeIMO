@@ -14,14 +14,21 @@ public class WordParagraphOpenXmlEvidenceBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _workload = new WordCreateParagraphComparisonBenchmarks { ItemCount = ItemCount };
-        WordBenchmarkCorpus.ValidateParagraphDocument(_workload.OfficeIMO(), ItemCount);
-        WordBenchmarkCorpus.ValidateParagraphDocument(OpenXmlSdk(), ItemCount);
+        string detail = $"ItemCount={ItemCount}; {ItemCount} body paragraphs with the expected text; passes the Open XML SDK validator";
+        byte[] officeImo = _workload.OfficeIMO();
+        WordBenchmarkCorpus.Check("OfficeIMO", "Default", detail,
+            () => WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount));
+        byte[] openXmlSdk = OpenXmlSdk();
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", detail,
+            () => WordBenchmarkCorpus.ValidateParagraphDocument(openXmlSdk, ItemCount));
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => _workload.OfficeIMO();
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdk() => WordOpenXmlEvidenceWorkloads.CreateParagraphs(ItemCount);
 }
 
@@ -37,16 +44,21 @@ public class WordReportOpenXmlEvidenceBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _workload = new WordCreateReportComparisonBenchmarks { RowCount = RowCount };
-        WordBenchmarkCorpus.ValidateReportDocument(
-            _workload.OfficeIMO(), RowCount, requireOfficeCompatibleDefaults: true);
-        WordBenchmarkCorpus.ValidateReportDocument(
-            OpenXmlSdk(), RowCount, requireOfficeCompatibleDefaults: true);
+        string detail = $"RowCount={RowCount}; title, summary, {RowCount + 1}-row table with Office-compatible defaults, header and footer with the expected text; passes the Open XML SDK validator";
+        byte[] officeImo = _workload.OfficeIMO();
+        WordBenchmarkCorpus.Check("OfficeIMO", "Default", detail,
+            () => WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount, requireOfficeCompatibleDefaults: true));
+        byte[] openXmlSdk = OpenXmlSdk();
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", detail,
+            () => WordBenchmarkCorpus.ValidateReportDocument(openXmlSdk, RowCount, requireOfficeCompatibleDefaults: true));
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => _workload.OfficeIMO();
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdk() => WordOpenXmlEvidenceWorkloads.CreateReport(RowCount);
 }
 
@@ -66,9 +78,11 @@ public class WordReadOpenXmlEvidenceBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public WordReadObservation OfficeIMO() => _workload.OfficeIMO();
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public WordReadObservation OpenXmlSdk() => _workload.OpenXmlSdk();
 }
 
@@ -85,20 +99,26 @@ public class WordReplaceOpenXmlEvidenceBenchmarks {
     public void Setup() {
         _workload = new WordRichReplaceEvidenceWorkload(ItemCount);
         int expectedStyles = WordBenchmarkCorpus.CountStyleDefinitions(_workload.Fixture);
+        string detail = $"ItemCount={ItemCount}; {ItemCount} paragraphs with the placeholder replaced, {expectedStyles} style definitions kept; passes the Open XML SDK validator";
         byte[] office = _workload.OfficeIMO();
+        WordBenchmarkCorpus.Check("OfficeIMO", "Default", detail, () => ValidateReplaced(office, expectedStyles));
         byte[] sdk = _workload.OpenXmlSdk();
-        WordBenchmarkCorpus.ValidateReplacedDocument(office, ItemCount);
-        WordBenchmarkCorpus.ValidateReplacedDocument(sdk, ItemCount);
-        if (WordBenchmarkCorpus.CountStyleDefinitions(office) != expectedStyles ||
-            WordBenchmarkCorpus.CountStyleDefinitions(sdk) != expectedStyles) {
-            throw new InvalidDataException("A replacement implementation changed the rich input style catalog.");
+        WordBenchmarkCorpus.Check("Open XML SDK", "Default", detail, () => ValidateReplaced(sdk, expectedStyles));
+    }
+
+    private void ValidateReplaced(byte[] payload, int expectedStyles) {
+        WordBenchmarkCorpus.ValidateReplacedDocument(payload, ItemCount);
+        if (WordBenchmarkCorpus.CountStyleDefinitions(payload) != expectedStyles) {
+            throw new InvalidDataException("The replacement changed the rich input style catalog.");
         }
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => _workload.OfficeIMO();
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdk() => _workload.OpenXmlSdk();
 }
 

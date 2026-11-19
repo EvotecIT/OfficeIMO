@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Word.Benchmarks;
 
@@ -21,6 +22,20 @@ internal static class WordBenchmarkCorpus {
     internal static string ParagraphText(int index) =>
         "Paragraph " + index.ToString("D6", System.Globalization.CultureInfo.InvariantCulture) +
         " contains deterministic benchmark text.";
+
+    /// <summary>
+    /// Runs one lane's output check and records <paramref name="library"/>'s declared id and case as passed for the
+    /// benchmark evidence catalog, or as failed before rethrowing the mismatch.
+    /// </summary>
+    internal static void Check(string library, string caseName, string detail, Action validate) {
+        try {
+            validate();
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, caseName);
+            throw;
+        }
+        BenchmarkOutputValidationLog.Passed(library, detail, caseName);
+    }
 
     internal static string RecordId(int index) =>
         "Record " + index.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);

@@ -1100,7 +1100,8 @@ function Get-LibraryComparisonDefinitions {
             Suite = 'OfficeIMO.Word.ReadParagraphs'
             ExpectedCases = @(
                 foreach ($itemCount in @(100, 1000, 10000)) {
-                    foreach ($engine in @('OfficeIMO', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
+                    # OfficeIMOReader* are OfficeIMO.Reader's text projections of the same paragraphs.
+                    foreach ($engine in @('OfficeIMO', 'OfficeIMOReaderText', 'OfficeIMOReaderStreamedText', 'DocX', 'NPOI', 'OpenXmlSdk'; if ($one) { 'OneDocument'; 'OneDocumentExtractText' })) {
                         "$engine|ItemCount=$itemCount"
                     }
                 }
