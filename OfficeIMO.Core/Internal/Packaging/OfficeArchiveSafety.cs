@@ -11,6 +11,8 @@ internal static partial class OfficeArchiveSafety {
     private const uint EndOfCentralDirectorySignature = 0x06054b50U;
     private const uint Zip64EndOfCentralDirectorySignature = 0x06064b50U;
     private const uint Zip64EndOfCentralDirectoryLocatorSignature = 0x07064b50U;
+    // General-purpose bit 0 marks an encrypted member and bit 6 strong encryption.
+    private const ushort ZipEncryptionFlags = 0x0041;
 
     /// <summary>Normalizes an archive entry name to forward-slash notation.</summary>
     internal static string NormalizeEntryName(string? fullName) {
@@ -297,6 +299,7 @@ internal static partial class OfficeArchiveSafety {
                 return ZipCentralDirectoryScanResult.Invalid("The ZIP central directory must precede its end record.");
             long actualEntries = 0;
             bool foundDigitalSignature = false;
+            bool hasEncryptedEntries = false;
             var header = new byte[46];
             while (cursor < end) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -337,6 +340,7 @@ internal static partial class OfficeArchiveSafety {
                     if (actualEntries > entryLimit) {
                         return ZipCentralDirectoryScanResult.Exceeded(actualEntries);
                     }
+                    hasEncryptedEntries |= (ReadZipUInt16(header, 8) & ZipEncryptionFlags) != 0;
                     if (records != null) {
                         var name = new byte[ReadZipUInt16(header, 28)];
                         ReadExactlyAt(source, originalPosition + cursor + 46, name, name.Length);
@@ -381,7 +385,7 @@ internal static partial class OfficeArchiveSafety {
                         "ZIP central-directory file headers continue beyond the declared directory size.");
                 }
             }
-            return ZipCentralDirectoryScanResult.Valid(actualEntries);
+            return ZipCentralDirectoryScanResult.Valid(actualEntries, hasEncryptedEntries);
         } finally {
 #if NET8_0_OR_GREATER
             if (tail != null) System.Buffers.ArrayPool<byte>.Shared.Return(tail, clearArray: true);
@@ -561,20 +565,23 @@ internal static partial class OfficeArchiveSafety {
 
     internal readonly struct ZipCentralDirectoryScanResult {
         private ZipCentralDirectoryScanResult(bool isValid,
-            bool limitExceeded, long entryCount, string? error) {
+            bool limitExceeded, long entryCount, string? error, bool hasEncryptedEntries = false) {
             IsValid = isValid;
             LimitExceeded = limitExceeded;
             EntryCount = entryCount;
             Error = error;
+            HasEncryptedEntries = hasEncryptedEntries;
         }
 
         internal bool IsValid { get; }
         internal bool LimitExceeded { get; }
         internal long EntryCount { get; }
         internal string? Error { get; }
+        /// <summary>At least one file header sets the traditional or strong ZIP encryption flag.</summary>
+        internal bool HasEncryptedEntries { get; }
 
         internal static ZipCentralDirectoryScanResult Valid(
-            long entryCount) => new(true, false, entryCount, null);
+            long entryCount, bool hasEncryptedEntries = false) => new(true, false, entryCount, null, hasEncryptedEntries);
 
         internal static ZipCentralDirectoryScanResult Exceeded(
             long entryCount) => new(true, true, entryCount, null);
