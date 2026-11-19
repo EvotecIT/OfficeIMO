@@ -259,6 +259,17 @@ if (-not $diagnosticPublishBlocked) {
     throw 'A diagnostic run must never be publishable.'
 }
 
+# An area name selects its workloads before workload-dependent settings are decided: the HtmlTinkerX source
+# reaches the HTML-to-PDF workloads when they are selected through their area.
+$htmlTinkerXRoot = Join-Path ([System.IO.Path]::GetTempPath()) 'officeimo-contract-htmltinkerx'
+$areaPlan = @(& $runner -Workload pdf -Profile diagnostic -HtmlTinkerXRoot $htmlTinkerXRoot -PlanOnly)
+$expectedHtmlTinkerXProject = Join-Path $htmlTinkerXRoot 'Sources\HtmlTinkerX\HtmlTinkerX.csproj'
+foreach ($name in @('pdfhtml', 'pdfhtmlpayload')) {
+    $item = @($areaPlan | Where-Object Workload -eq $name)
+    if ($item.Count -ne 1 -or $item[0].Environment.HTMLTINKERX_PROJECT_PATH -ne $expectedHtmlTinkerXProject) {
+        throw "-Workload pdf must plan $name with the HtmlTinkerX project from -HtmlTinkerXRoot."
+    }
+}
 $odsPlan = @(& $runner -Workload odscreate -Profile full -PlanOnly)
 if ('OpenStandardLibrary|Scale=Normal' -notin @($odsPlan[0].ExpectedCases)) {
     throw 'The plan must list every expected method and parameter combination.'

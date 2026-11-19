@@ -62,16 +62,6 @@ $isPlanning = $PlanOnly -or $DryRun
 if ($PSBoundParameters.ContainsKey('Platform') -and -not $isPlanning) {
     throw '-Platform is a planning override only; actual collection uses the host platform.'
 }
-$usesHtmlTinkerX = 'pdfhtml' -in $Workload -or 'all' -in $Workload
-if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
-    $resolvedHtmlTinkerX = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HtmlTinkerXRoot)
-    $htmlTinkerXProjectPath = if ($resolvedHtmlTinkerX.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
-        $resolvedHtmlTinkerX
-    } else {
-        Join-Path $resolvedHtmlTinkerX 'Sources\HtmlTinkerX\HtmlTinkerX.csproj'
-    }
-}
-
 $OutputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputRoot)
 $hostPlatform = if ($IsWindows) { 'windows' } elseif ($IsLinux) { 'linux' } elseif ($IsMacOS) { 'macos' } else {
     throw 'Unsupported benchmark platform.'
@@ -130,6 +120,16 @@ $explicitWorkloads = @(
 )
 $selected = @(@(if ($includeAll) { $definitions.Keys }; $explicitWorkloads) | Select-Object -Unique)
 if ($selected.Count -eq 0) { throw 'Select at least one workload.' }
+# Decided after area names and 'all' are expanded, so -Workload pdf picks up the HtmlTinkerX source too.
+$usesHtmlTinkerX = @($selected | Where-Object { $_ -in @('pdfhtml', 'pdfhtmlpayload') }).Count -gt 0
+if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
+    $resolvedHtmlTinkerX = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($HtmlTinkerXRoot)
+    $htmlTinkerXProjectPath = if ($resolvedHtmlTinkerX.EndsWith('.csproj', [StringComparison]::OrdinalIgnoreCase)) {
+        $resolvedHtmlTinkerX
+    } else {
+        Join-Path $resolvedHtmlTinkerX 'Sources\HtmlTinkerX\HtmlTinkerX.csproj'
+    }
+}
 $containsQuestPdfWorkload = @($selected | Where-Object { $_ -in $questPdfWorkloads }).Count -gt 0
 $alternateQuestPdf = -not [string]::IsNullOrWhiteSpace($QuestPdfPackageVersion) -and $QuestPdfPackageVersion -ne $questPdfBenchmarkVersion
 $effectiveQuestPdfVersion = if ($alternateQuestPdf) { $QuestPdfPackageVersion } else { $questPdfBenchmarkVersion }
