@@ -152,8 +152,8 @@ if ($pdfHtml.Count -ne 1 -or
 }
 
 $pdfHtmlPayload = @(& $runner -Workload pdfhtmlpayload -Profile diagnostic -PlanOnly)
-if ($pdfHtmlPayload.Count -ne 1 -or $pdfHtmlPayload[0].ExpectedCaseCount -ne 9) {
-    throw 'The exact 21 KiB HTML comparison plan does not require all three engines and payloads.'
+if ($pdfHtmlPayload.Count -ne 1 -or $pdfHtmlPayload[0].ExpectedCaseCount -ne 12) {
+    throw 'The exact 21 KiB HTML comparison plan does not require all four engines and payloads.'
 }
 
 $unrelated = @(
@@ -298,8 +298,8 @@ foreach ($framework in @('net8.0', 'net10.0')) {
         }
     }
 }
-# A published Word lane drops the acceptance-required DocX cases and publishes OfficeIMO, NPOI and Open XML SDK.
-$wordPlan = @(& $runner -Workload wordcreate -Profile full -Framework net8.0 -Publish -PlanOnly)
+# A published Word lane drops the acceptance-required DocX cases and publishes OfficeIMO, NPOI, Open XML SDK and OneDocument.
+$wordPlan = @(& $runner -Workload wordcreate -Profile full -Framework net10.0 -Publish -PlanOnly)
 if (-not $wordPlan[0].Publish -or 'DocX' -in @($wordPlan[0].Libraries) -or
     @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^DocX\|' }).Count -gt 0 -or
     @($wordPlan[0].ExpectedCases | Where-Object { $_ -match '^NPOI\|' }).Count -eq 0) {
@@ -371,6 +371,62 @@ foreach ($tag in @(
     if ((Get-Content -LiteralPath (Join-Path $repositoryRoot $tag.Path) -Raw) -notmatch $tag.Pattern) {
         throw "$($tag.Path) no longer marks its restricted library cases ($($tag.Pattern))."
     }
+}
+# Every library category in benchmark code must name a library the policy declares; an undeclared one would be
+# treated as restricted and silently left out of the run.
+$libraryCategoryPattern = 'BenchmarkCategory\(\s*(?:"[Ll]ibrary:(?<id>[^"]+)"|BenchmarkLibrarySelection\.CategoryPrefix\s*\+\s*"(?<id>[^"]+)")\s*\)'
+$taggedLibraries = @(Get-ChildItem -LiteralPath $repositoryRoot -Recurse -File -Filter '*.cs' |
+        Where-Object { $_.FullName -notmatch '[\\/](bin|obj|\.git)[\\/]' -and $_.Directory.FullName -match 'Benchmark' } |
+        Select-String -Pattern $libraryCategoryPattern -AllMatches |
+        ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups['id'].Value } | Sort-Object -Unique)
+foreach ($taggedLibrary in $taggedLibraries) {
+    if (@($policy.libraries | Where-Object { $_.id -eq $taggedLibrary }).Count -ne 1) {
+        throw "Benchmark category 'library:$taggedLibrary' names a library id that Build/benchmark-libraries.json does not declare."
+    }
+}
+# Benchmark code reads the policy itself: open libraries run by default, restricted ones only when listed, and a
+# missing or unreadable policy leaves nothing open while still honouring an explicit list. Each probe runs in its own
+# process because the helper loads the policy once per process.
+$selectionSource = Join-Path $repositoryRoot 'Benchmarks\BenchmarkLibrarySelection.cs'
+$selectionProbe = {
+    param([string] $PolicyPath, [string] $Enabled)
+    $probe = @"
+`$source = "#nullable enable``n" + (Get-Content -LiteralPath `$env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE -Raw)
+`$type = Add-Type -TypeDefinition `$source -PassThru | Where-Object Name -eq 'BenchmarkLibrarySelection'
+`$isEnabled = `$type.GetMethod('IsEnabled', [Reflection.BindingFlags]'Static,NonPublic')
+'onepdf=' + `$isEnabled.Invoke(`$null, @('onepdf')) + ';docx=' + `$isEnabled.Invoke(`$null, @('docx'))
+"@
+    $previous = @($env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY, $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES, $env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE)
+    try {
+        $env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY = $PolicyPath
+        $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $Enabled
+        # The child reads the source path from the environment, so quotes in the checkout path cannot break the probe.
+        $env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE = $selectionSource
+        $output = @(& pwsh -NoProfile -NonInteractive -Command $probe 2>&1 | ForEach-Object { [string] $_ })
+    } finally {
+        $env:OFFICEIMO_BENCHMARK_LIBRARY_POLICY = $previous[0]
+        $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $previous[1]
+        $env:OFFICEIMO_BENCHMARK_SELECTION_SOURCE = $previous[2]
+    }
+    [pscustomobject]@{ Result = ($output | Where-Object { $_ -like 'onepdf=*' } | Select-Object -Last 1); Output = $output -join "`n" }
+}
+$policyFile = Join-Path $PSScriptRoot 'benchmark-libraries.json'
+$brokenPolicy = Join-Path ([System.IO.Path]::GetTempPath()) "officeimo-broken-policy-$PID.json"
+Set-Content -LiteralPath $brokenPolicy -Value '{"libraries":' -Encoding utf8
+try {
+    foreach ($case in @(
+            @{ Policy = $policyFile; Enabled = ''; Expected = 'onepdf=True;docx=False'; Warns = $false },
+            @{ Policy = $policyFile; Enabled = 'docx'; Expected = 'onepdf=True;docx=True'; Warns = $false },
+            @{ Policy = $brokenPolicy; Enabled = 'docx'; Expected = 'onepdf=False;docx=True'; Warns = $true },
+            @{ Policy = $PSScriptRoot; Enabled = ''; Expected = 'onepdf=False;docx=False'; Warns = $true })) {
+        $probeResult = & $selectionProbe -PolicyPath $case.Policy -Enabled $case.Enabled
+        $warned = $probeResult.Output -match 'Benchmark library policy unavailable'
+        if ($probeResult.Result -ne $case.Expected -or $warned -ne $case.Warns) {
+            throw "Benchmark library selection with policy '$($case.Policy)' and enabled '$($case.Enabled)' returned '$($probeResult.Result)' (expected '$($case.Expected)', warning expected: $($case.Warns)).`n$($probeResult.Output)"
+        }
+    }
+} finally {
+    Remove-Item -LiteralPath $brokenPolicy -ErrorAction SilentlyContinue
 }
 # The measured process must start only after restricted-library settings are applied: the enabled list is set and
 # values belonging to libraries left out of the run are cleared, in the same try block, before dotnet launches.

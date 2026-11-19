@@ -240,21 +240,30 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("SpreadCheetah", "Stream the same DataTable-backed IDataReader as typed worksheet rows and save.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlain(salesDataTable)),
-            new LibraryComparisonCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlain(salesDataTable))
+            new LibraryComparisonCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlain(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new LibraryComparisonCase("OneDocument", "Stream the same DataTable-backed IDataReader through its forward-only XLSX writer and save.", () => OneDocumentWriteDataReaderPlain(salesDataTable))
+#endif
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-direct-package", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write the prepared DataTable-backed IDataReader through the package-native OfficeIMO API.", () => OfficeImoWriteDataReaderDirectPackage(salesDataTable)),
             new LibraryComparisonCase("SpreadCheetah", "Stream the same prepared DataTable-backed reader as typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same prepared DataTable-backed reader through ExcelDataWriter.", () => SylvanWriteDataReaderPlain(salesDataTable)),
-            new LibraryComparisonCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlain(salesDataTable))
+            new LibraryComparisonCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlain(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new LibraryComparisonCase("OneDocument", "Stream the same prepared DataTable-backed reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlain(salesDataTable))
+#endif
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-compact-package", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write a compact contiguous package through the package-native OfficeIMO DataReader API.", () => OfficeImoWriteDataReaderCompactPackage(salesDataTable)),
             new LibraryComparisonCase("SpreadCheetah", "Stream the same reader as compact forward-only typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same reader using implicit contiguous cell positions.", () => SylvanWriteDataReaderPlain(salesDataTable)),
-            new LibraryComparisonCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainCompact(salesDataTable))
+            new LibraryComparisonCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainCompact(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new LibraryComparisonCase("OneDocument", "Stream the same reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlain(salesDataTable))
+#endif
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", warmupIterations, measuredIterations, [
@@ -820,21 +829,30 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("SpreadCheetah", "Stream the same DataTable-backed IDataReader as typed worksheet rows and save.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
-            new PackageProfileCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable))
+            new PackageProfileCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new PackageProfileCase("OneDocument", "Stream the same DataTable-backed IDataReader through its forward-only XLSX writer and save.", () => OneDocumentWriteDataReaderPlainBytes(salesDataTable))
+#endif
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-direct-package", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write the prepared DataTable-backed IDataReader through the package-native OfficeIMO API.", () => OfficeImoWriteDataReaderDirectPackageBytes(salesDataTable)),
             new PackageProfileCase("SpreadCheetah", "Stream the same prepared DataTable-backed reader as typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same prepared DataTable-backed reader through ExcelDataWriter.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
-            new PackageProfileCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable))
+            new PackageProfileCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable)),
+#if NET10_0_OR_GREATER
+            new PackageProfileCase("OneDocument", "Stream the same prepared DataTable-backed reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlainBytes(salesDataTable))
+#endif
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-compact-package", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write a compact contiguous package through the package-native OfficeIMO DataReader API.", () => OfficeImoWriteDataReaderCompactPackageBytes(salesDataTable)),
             new PackageProfileCase("SpreadCheetah", "Stream the same reader as compact forward-only typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same reader using implicit contiguous cell positions.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
-            new PackageProfileCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable, requireCellReferences: false))
+            new PackageProfileCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable, requireCellReferences: false)),
+#if NET10_0_OR_GREATER
+            new PackageProfileCase("OneDocument", "Stream the same reader through its forward-only XLSX writer.", () => OneDocumentWriteDataReaderPlainBytes(salesDataTable))
+#endif
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-cellvalues-rectangle-direct", warmupIterations, measuredIterations, [

@@ -11,6 +11,9 @@ public class ImagePngDecodeBenchmarks {
     public void Setup() {
         _encoded = ImageBenchmarkCorpus.Logo.ReadBytes();
         ImageComparisonValidation.ValidatePngDecode(_encoded);
+#if NET10_0_OR_GREATER
+        ImageComparisonValidation.ValidateOneImagePngDecode(_encoded);
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -24,4 +27,10 @@ public class ImagePngDecodeBenchmarks {
 
     [Benchmark]
     public byte[] StbImageSharp() => ImageComparisonAdapters.DecodeStbRgba(_encoded);
+#if NET10_0_OR_GREATER
+
+    [Benchmark]
+    [BenchmarkCategory("library:oneimage")]
+    public byte[] OneImage() => OneImageComparisonAdapters.DecodeRgba(_encoded);
+#endif
 }

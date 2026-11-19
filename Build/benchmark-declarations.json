@@ -179,6 +179,70 @@
       "restriction": "open"
     },
     {
+      "id": "OneArchive",
+      "package": "RecursiveAI.OneArchive",
+      "version": "1.2.0",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OneDocument.Documents",
+      "package": "RecursiveAI.OneDocument.Documents",
+      "version": "1.0.0",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OneDocument.Presentations",
+      "package": "RecursiveAI.OneDocument.Presentations",
+      "version": "1.0.0",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OneDocument.Spreadsheets",
+      "package": "RecursiveAI.OneDocument.Spreadsheets",
+      "version": "1.0.0",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OneImage",
+      "package": "RecursiveAI.OneImage",
+      "version": "1.11.1",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OneMail",
+      "package": "RecursiveAI.OneMail",
+      "version": "1.0.1",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OnePDF",
+      "package": "RecursiveAI.OnePdf",
+      "version": "1.23.0",
+      "license": "(MIT OR Apache-2.0) AND OFL-1.1",
+      "licenseUrl": "https://licenses.nuget.org/(MIT%20OR%20Apache-2.0)%20AND%20OFL-1.1",
+      "restriction": "open"
+    },
+    {
+      "id": "OneRender",
+      "package": "RecursiveAI.OneRender.Pdf",
+      "version": "1.4.0",
+      "license": "(MIT OR Apache-2.0) AND OFL-1.1",
+      "licenseUrl": "https://licenses.nuget.org/(MIT%20OR%20Apache-2.0)%20AND%20OFL-1.1",
+      "restriction": "open"
+    },
+    {
       "id": "OneYaml",
       "package": "OneYaml",
       "version": "1.2.1",
@@ -668,7 +732,8 @@
         "OfficeIMO",
         "ExcelReader.NET",
         "Sylvan.Data.Excel",
-        "ExcelDataReader"
+        "ExcelDataReader",
+        "OneDocument.Spreadsheets"
       ],
       "axes": [],
       "cases": [
@@ -698,7 +763,8 @@
         "MiniExcel",
         "Excel-PRIME",
         "HypeLab.IO.Excel",
-        "XLibur"
+        "XLibur",
+        "OneDocument.Spreadsheets"
       ],
       "axes": [],
       "cases": [
@@ -775,7 +841,8 @@
         "OfficeIMO",
         "SpreadCheetah",
         "Sylvan.Data.Excel",
-        "LargeXlsx"
+        "LargeXlsx",
+        "OneDocument.Spreadsheets"
       ],
       "axes": [
         {
@@ -794,7 +861,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -808,7 +874,8 @@
         "ExcelReader.NET",
         "Sylvan.Data.Excel",
         "ExcelDataReader",
-        "Excel-PRIME"
+        "Excel-PRIME",
+        "OneDocument.Spreadsheets"
       ],
       "axes": [],
       "cases": [
@@ -1049,7 +1116,8 @@
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
-        "MimeKit"
+        "MimeKit",
+        "OneMail"
       ],
       "axes": [
         {
@@ -1069,7 +1137,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -1080,7 +1147,8 @@
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
-        "MimeKit"
+        "MimeKit",
+        "OneMail"
       ],
       "axes": [
         {
@@ -1100,7 +1168,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -1142,7 +1209,8 @@
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
-        "System.IO.Compression"
+        "System.IO.Compression",
+        "OneArchive"
       ],
       "axes": [
         {
@@ -1163,7 +1231,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ],
       "eligibility": {
@@ -2165,7 +2232,8 @@
         "OfficeIMO",
         "SkiaSharp",
         "Magick.NET",
-        "StbImageSharp"
+        "StbImageSharp",
+        "OneImage"
       ],
       "axes": [],
       "cases": [
@@ -2177,7 +2245,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2190,7 +2257,8 @@
         "OfficeIMO",
         "SkiaSharp",
         "Magick.NET",
-        "StbImageSharp"
+        "StbImageSharp",
+        "OneImage"
       ],
       "axes": [],
       "cases": [
@@ -2202,7 +2270,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2214,7 +2281,8 @@
       "libraries": [
         "OfficeIMO",
         "SkiaSharp",
-        "Magick.NET"
+        "Magick.NET",
+        "OneImage"
       ],
       "axes": [],
       "cases": [
@@ -2226,7 +2294,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2237,7 +2304,8 @@
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
-        "Magick.NET"
+        "Magick.NET",
+        "OneImage"
       ],
       "axes": [],
       "cases": [
@@ -2250,7 +2318,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2261,7 +2328,8 @@
       "subject": "OfficeIMO",
       "libraries": [
         "OfficeIMO",
-        "Magick.NET"
+        "Magick.NET",
+        "OneImage"
       ],
       "axes": [],
       "cases": [
@@ -2274,7 +2342,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2286,7 +2353,8 @@
       "libraries": [
         "OfficeIMO",
         "SkiaSharp",
-        "Magick.NET"
+        "Magick.NET",
+        "OneImage"
       ],
       "axes": [],
       "cases": [
@@ -2298,7 +2366,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2311,7 +2378,8 @@
         "OfficeIMO",
         "QuestPDF",
         "MigraDoc",
-        "iText"
+        "iText",
+        "OnePDF"
       ],
       "axes": [
         {
@@ -2324,7 +2392,8 @@
         }
       ],
       "cases": [
-        "Default"
+        "Default",
+        "Layout"
       ],
       "expectedPlatforms": [
         "windows",
@@ -2332,7 +2401,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2344,11 +2412,13 @@
       "libraries": [
         "OfficeIMO",
         "QuestPDF",
-        "iText"
+        "iText",
+        "OnePDF"
       ],
       "axes": [],
       "cases": [
-        "Default"
+        "Default",
+        "Layout"
       ],
       "expectedPlatforms": [
         "windows",
@@ -2356,7 +2426,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ],
       "eligibility": {
@@ -2433,7 +2502,8 @@
       "libraries": [
         "OfficeIMO",
         "PeachPDF",
-        "PdfPecker"
+        "PdfPecker",
+        "OneRender"
       ],
       "axes": [
         {
@@ -2454,7 +2524,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2512,7 +2581,8 @@
       "libraries": [
         "OfficeIMO",
         "PdfPig",
-        "iText"
+        "iText",
+        "OnePDF"
       ],
       "axes": [
         {
@@ -2535,7 +2605,8 @@
         }
       ],
       "cases": [
-        "Default"
+        "Default",
+        "Parallel"
       ],
       "expectedPlatforms": [
         "windows",
@@ -2543,7 +2614,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2639,7 +2709,8 @@
       "libraries": [
         "OfficeIMO",
         "PdfPig",
-        "iText"
+        "iText",
+        "OnePDF"
       ],
       "axes": [
         {
@@ -2653,7 +2724,8 @@
         }
       ],
       "cases": [
-        "Default"
+        "Default",
+        "Parallel"
       ],
       "expectedPlatforms": [
         "windows",
@@ -2661,7 +2733,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2673,7 +2744,8 @@
       "libraries": [
         "OfficeIMO",
         "iText",
-        "PDFsharp"
+        "PDFsharp",
+        "OnePDF"
       ],
       "axes": [
         {
@@ -2716,7 +2788,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2728,7 +2799,8 @@
       "libraries": [
         "OfficeIMO",
         "iText",
-        "PDFsharp"
+        "PDFsharp",
+        "OnePDF"
       ],
       "axes": [
         {
@@ -2764,7 +2836,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2776,7 +2847,8 @@
       "libraries": [
         "OfficeIMO",
         "iText",
-        "PDFsharp"
+        "PDFsharp",
+        "OnePDF"
       ],
       "axes": [
         {
@@ -2812,7 +2884,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2825,7 +2896,8 @@
         "OfficeIMO",
         "DocX",
         "NPOI",
-        "Open XML SDK"
+        "Open XML SDK",
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -2888,7 +2960,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2901,7 +2972,8 @@
         "OfficeIMO",
         "DocX",
         "NPOI",
-        "Open XML SDK"
+        "Open XML SDK",
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -2950,7 +3022,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2963,7 +3034,8 @@
         "OfficeIMO",
         "DocX",
         "NPOI",
-        "Open XML SDK"
+        "Open XML SDK",
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -2976,7 +3048,8 @@
         }
       ],
       "cases": [
-        "Default"
+        "Default",
+        "ExtractText"
       ],
       "expectedPlatforms": [
         "windows",
@@ -2984,7 +3057,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -2997,7 +3069,8 @@
         "OfficeIMO",
         "DocX",
         "NPOI",
-        "Open XML SDK"
+        "Open XML SDK",
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -3017,7 +3090,6 @@
         "macos"
       ],
       "frameworks": [
-        "net8.0",
         "net10.0"
       ]
     },
@@ -3029,7 +3101,8 @@
       "libraries": [
         "OfficeIMO",
         "ShapeCrawler",
-        "Open XML SDK"
+        "Open XML SDK",
+        "OneDocument.Presentations"
       ],
       "axes": [
         {
@@ -3060,7 +3133,8 @@
       "libraries": [
         "OfficeIMO",
         "ShapeCrawler",
-        "Open XML SDK"
+        "Open XML SDK",
+        "OneDocument.Presentations"
       ],
       "axes": [
         {

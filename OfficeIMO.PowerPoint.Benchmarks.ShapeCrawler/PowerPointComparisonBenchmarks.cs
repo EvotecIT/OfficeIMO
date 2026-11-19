@@ -18,6 +18,7 @@ public class PowerPointCreateComparisonBenchmarks {
         PowerPointComparisonCorpus.Validate(nameof(OfficeIMO), OfficeIMO(), expected);
         PowerPointComparisonCorpus.Validate(nameof(ShapeCrawler), ShapeCrawler(), expected);
         PowerPointComparisonCorpus.Validate(nameof(OpenXmlSdk), OpenXmlSdk(), expected);
+        PowerPointComparisonCorpus.Validate(nameof(OneDocument), OneDocument(), expected);
     }
 
     [Benchmark(Baseline = true)]
@@ -90,6 +91,10 @@ public class PowerPointCreateComparisonBenchmarks {
 
     [Benchmark]
     public byte[] OpenXmlSdk() => PowerPointOpenXmlSdkLane.Create(SlideCount);
+
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public byte[] OneDocument() => PowerPointOneDocumentLane.Create(SlideCount);
 }
 
 /// <summary>Base for workloads that start from the same Open XML SDK-authored deck.</summary>
@@ -118,6 +123,7 @@ public class PowerPointReadComparisonBenchmarks : PowerPointFixtureBenchmarks {
         Ensure(nameof(OfficeIMO), OfficeIMO());
         Ensure(nameof(ShapeCrawler), ShapeCrawler());
         Ensure(nameof(OpenXmlSdk), OpenXmlSdk());
+        Ensure(nameof(OneDocument), OneDocument());
     }
 
     [Benchmark(Baseline = true)]
@@ -164,6 +170,10 @@ public class PowerPointReadComparisonBenchmarks : PowerPointFixtureBenchmarks {
     [Benchmark]
     public PowerPointTextObservation OpenXmlSdk() => PowerPointOpenXmlSdkLane.Read(Fixture);
 
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public PowerPointTextObservation OneDocument() => PowerPointOneDocumentLane.Read(Fixture);
+
     private void Ensure(string lane, PowerPointTextObservation actual) {
         if (actual != _expected) throw new InvalidDataException(lane + " observed " + actual + "; expected " + _expected + ".");
     }
@@ -180,6 +190,7 @@ public class PowerPointEditComparisonBenchmarks : PowerPointFixtureBenchmarks {
         PowerPointComparisonCorpus.Validate(nameof(OfficeIMO), OfficeIMO(), expected);
         PowerPointComparisonCorpus.Validate(nameof(ShapeCrawler), ShapeCrawler(), expected);
         PowerPointComparisonCorpus.Validate(nameof(OpenXmlSdk), OpenXmlSdk(), expected);
+        PowerPointComparisonCorpus.Validate(nameof(OneDocument), OneDocument(), expected);
     }
 
     [Benchmark(Baseline = true)]
@@ -211,6 +222,10 @@ public class PowerPointEditComparisonBenchmarks : PowerPointFixtureBenchmarks {
 
     [Benchmark]
     public byte[] OpenXmlSdk() => PowerPointOpenXmlSdkLane.Edit(Fixture);
+
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public byte[] OneDocument() => PowerPointOneDocumentLane.Edit(Fixture);
 }
 
 /// <summary>Compares loading a deck, appending a copy of every slide, and saving.</summary>
@@ -224,6 +239,7 @@ public class PowerPointCopySlidesComparisonBenchmarks : PowerPointFixtureBenchma
         PowerPointComparisonCorpus.Validate(nameof(OfficeIMO), OfficeIMO(), expected);
         PowerPointComparisonCorpus.Validate(nameof(ShapeCrawler), ShapeCrawler(), expected);
         PowerPointComparisonCorpus.Validate(nameof(OpenXmlSdk), OpenXmlSdk(), expected);
+        PowerPointComparisonCorpus.Validate(nameof(OneDocument), OneDocument(), expected);
     }
 
     [Benchmark(Baseline = true)]
@@ -248,4 +264,8 @@ public class PowerPointCopySlidesComparisonBenchmarks : PowerPointFixtureBenchma
 
     [Benchmark]
     public byte[] OpenXmlSdk() => PowerPointOpenXmlSdkLane.CopySlides(Fixture);
+
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public byte[] OneDocument() => PowerPointOneDocumentLane.CopySlides(Fixture);
 }

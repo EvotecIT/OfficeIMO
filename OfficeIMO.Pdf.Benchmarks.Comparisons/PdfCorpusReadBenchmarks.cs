@@ -70,6 +70,10 @@ public class PdfCorpusReadBenchmarks {
         }
         ValidatePayload("OfficeIMO", ReadOfficeImo(), oracle, entry.MinimumTokenRecall);
         ValidatePayload("iText", ReadIText(), oracle, entry.MinimumTokenRecall);
+#if NET10_0_OR_GREATER
+        ValidatePayload("OnePDF", ReadOnePdf(parallel: false), oracle, entry.MinimumTokenRecall);
+        ValidatePayload("OnePDF parallel", ReadOnePdf(parallel: true), oracle, entry.MinimumTokenRecall);
+#endif
     }
 
     private static PdfCorpusEntry LoadManifestEntry(string corpusId) {
@@ -105,6 +109,20 @@ public class PdfCorpusReadBenchmarks {
 
     [Benchmark]
     public PdfReadObservation IText() => ReadIText().Observation;
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
+    public PdfReadObservation OnePdf() => ReadOnePdf(parallel: false).Observation;
+
+    /// <summary>OnePDF's default whole-document extraction, which reads up to four pages at once.</summary>
+    [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
+    public PdfReadObservation OnePdfParallel() => ReadOnePdf(parallel: true).Observation;
+
+    private PdfCorpusReadPayload ReadOnePdf(bool parallel) =>
+        PdfCorpusReadPayload.Create(OnePdfComparisonEngines.ExtractPages(_pdf, parallel));
+#endif
 
     private PdfCorpusReadPayload ReadOfficeImo() {
         var options = new global::OfficeIMO.Pdf.PdfLoadOptions { IncludeArtifactText = true };

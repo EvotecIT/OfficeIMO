@@ -29,4 +29,11 @@ public class ZipTraversalComparisonBenchmarks {
     /// <summary>Traverses the same safe archive through raw platform metadata projection.</summary>
     [Benchmark(Description = "System.IO.Compression")]
     public IReadOnlyList<ZipProjectionDescriptor> Platform() => ZipComparisonWorkflows.TraversePlatform(_input);
+#if NET10_0_OR_GREATER
+
+    /// <summary>Lists the same archive through OneArchive with its default reading limits.</summary>
+    [Benchmark(Description = "OneArchive")]
+    [BenchmarkCategory("library:onearchive")]
+    public IReadOnlyList<ZipProjectionDescriptor> OneArchive() => ZipComparisonWorkflows.TraverseOneArchive(_input);
+#endif
 }

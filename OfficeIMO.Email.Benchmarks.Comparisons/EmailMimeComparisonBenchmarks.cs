@@ -31,6 +31,13 @@ public class EmailMimeReadBenchmarks {
     /// <summary>Reads the same EML through MimeKit and consumes all decoded payloads.</summary>
     [Benchmark(Description = "MimeKit")]
     public int MimeKit() => EmailMimeComparisonValidation.ConsumeMimeKit(_input);
+#if NET10_0_OR_GREATER
+
+    /// <summary>Reads the same EML through OneMail's message view and consumes all decoded payloads.</summary>
+    [Benchmark(Description = "OneMail")]
+    [BenchmarkCategory("library:onemail")]
+    public int OneMail() => EmailMimeComparisonValidation.ConsumeOneMail(_input);
+#endif
 }
 
 /// <summary>Compares complete in-memory EML serialization from equivalent prepared models.</summary>
@@ -38,6 +45,9 @@ public class EmailMimeReadBenchmarks {
 public class EmailMimeWriteBenchmarks {
     private EmailDocument _officeDocument = null!;
     private MimeMessage _mimeMessage = null!;
+#if NET10_0_OR_GREATER
+    private RecursiveAI.OneMail.Composition.OutgoingMessage _oneMailMessage = null!;
+#endif
 
     /// <summary>Gets or sets the deterministic MIME corpus scale.</summary>
     [ParamsSource(nameof(Scales))]
@@ -52,6 +62,9 @@ public class EmailMimeWriteBenchmarks {
         EmailMimeBenchmarkScale scale = EmailMimeComparisonCorpus.Get(Scale);
         _officeDocument = EmailMimeComparisonCorpus.CreateOfficeDocument(scale);
         _mimeMessage = EmailMimeComparisonCorpus.CreateMimeMessage(scale);
+#if NET10_0_OR_GREATER
+        _oneMailMessage = EmailMimeComparisonCorpus.CreateOneMailMessage(scale);
+#endif
         EmailMimeComparisonValidation.Validate(Scale);
     }
 
@@ -62,6 +75,13 @@ public class EmailMimeWriteBenchmarks {
     /// <summary>Serializes the equivalent prepared model through MimeKit.</summary>
     [Benchmark(Description = "MimeKit")]
     public byte[] MimeKit() => EmailMimeComparisonCorpus.WriteMimeKit(_mimeMessage);
+#if NET10_0_OR_GREATER
+
+    /// <summary>Builds the MIME tree from the equivalent prepared OneMail message and serializes it.</summary>
+    [Benchmark(Description = "OneMail")]
+    [BenchmarkCategory("library:onemail")]
+    public byte[] OneMail() => EmailMimeComparisonCorpus.WriteOneMail(_oneMailMessage);
+#endif
 
     /// <summary>Releases the prepared MimeKit model.</summary>
     [GlobalCleanup]

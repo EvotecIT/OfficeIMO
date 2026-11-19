@@ -1,6 +1,9 @@
 using BenchmarkDotNet.Attributes;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+#if NET10_0_OR_GREATER
+using OneRender.Text;
+#endif
 using System.Globalization;
 using System.Text;
 
@@ -18,6 +21,9 @@ public class PdfHtmlPayloadBenchmarks {
     private byte[]? _officeImoResult;
     private byte[]? _peachPdfResult;
     private byte[]? _pdfPeckerResult;
+#if NET10_0_OR_GREATER
+    private byte[]? _oneRenderResult;
+#endif
 
     [Params(PdfHtmlPayloadKind.PlainText, PdfHtmlPayloadKind.Table, PdfHtmlPayloadKind.Multilingual)]
     public PdfHtmlPayloadKind Payload { get; set; }
@@ -42,6 +48,16 @@ public class PdfHtmlPayloadBenchmarks {
     [Benchmark]
     public byte[] PdfPecker() =>
         _pdfPeckerResult = PdfPeckerGenerator.Generate(_scenario.Html, _sharedFont);
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onerender")]
+    public byte[] OneRender() =>
+        _oneRenderResult = OneRenderHtmlGenerator.Generate(_scenario.Html, OneRenderHtmlGenerator.CreateFontProvider(_sharedFont));
+
+    [GlobalCleanup(Target = nameof(OneRender))]
+    public void ValidateOneRender() => Validate(nameof(OneRender), _oneRenderResult);
+#endif
 
     [GlobalCleanup(Target = nameof(PdfPecker))]
     public void ValidatePdfPecker() => Validate(nameof(PdfPecker), _pdfPeckerResult);

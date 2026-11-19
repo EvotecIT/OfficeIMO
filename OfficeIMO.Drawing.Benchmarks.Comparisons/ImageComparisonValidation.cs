@@ -2,7 +2,7 @@ using StbImageSharp;
 
 namespace OfficeIMO.Drawing.Benchmarks.Comparisons;
 
-internal static class ImageComparisonValidation {
+internal static partial class ImageComparisonValidation {
     internal static void Validate(TextWriter writer) {
         byte[] logo = ImageBenchmarkCorpus.Logo.ReadBytes();
         ValidatePngDecode(logo);
@@ -58,6 +58,9 @@ internal static class ImageComparisonValidation {
         byte[] magickWebp = ImageComparisonAdapters.EncodeMagickWebpLossless(codecMagick);
         ValidateLosslessInterchange("lossless WebP", codecSource, officeWebp, magickWebp, OfficeImageFormat.Webp);
         writer.WriteLine($"Lossless WebP: OfficeIMO and Magick.NET encoded mutually decodable exact RGBA output; OfficeIMO {officeWebp.Length:N0}, Magick.NET {magickWebp.Length:N0} bytes.");
+#if NET10_0_OR_GREATER
+        ValidateOneImage(writer);
+#endif
     }
 
     internal static void ValidatePngDecode(byte[] encoded) {

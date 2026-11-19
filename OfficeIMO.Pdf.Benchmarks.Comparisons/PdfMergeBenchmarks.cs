@@ -37,6 +37,9 @@ public class PdfMergeBenchmarks {
         Validate(nameof(OfficeIMO), OfficeIMO());
         Validate(nameof(IText), IText());
         Validate(nameof(PdfSharp), PdfSharp());
+#if NET10_0_OR_GREATER
+        Validate(nameof(OnePdf), OnePdf());
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -47,6 +50,12 @@ public class PdfMergeBenchmarks {
 
     [Benchmark]
     public byte[] PdfSharp() => PdfManipulationEngines.MergeWithPdfSharp(_sources);
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
+    public byte[] OnePdf() => PdfManipulationEngines.MergeWithOnePdf(_sources);
+#endif
 
     private void Validate(string engine, byte[] output) =>
         PdfManipulationValidation.Validate(new[] { output }, _expectedPages, engine + " merging " + Producer);

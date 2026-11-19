@@ -19,6 +19,7 @@ $script:BenchmarkMethodIdentityOverrides = @{
     'wordcreate|OpenXmlSdkMinimal' = 'Open XML SDK|Minimal'
     'wordreport|OpenXmlSdkEquivalent' = 'Open XML SDK|Default'
     'wordreport|OpenXmlSdkMinimal' = 'Open XML SDK|Minimal'
+    'wordread|OneDocumentExtractText' = 'OneDocument.Documents|ExtractText'
 }
 
 function Get-BenchmarkDeclaredLibraries {
