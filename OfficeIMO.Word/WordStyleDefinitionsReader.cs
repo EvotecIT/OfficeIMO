@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
 using DocumentFormat.OpenXml;
@@ -272,6 +273,26 @@ internal static class WordStyleDefinitionsReader {
         }
     }
 
+    private static readonly ConditionalWeakTable<OpenXmlPackage, object> HandedOutPackages = new();
+
+    /// <summary>
+    /// Stops streaming every part of <paramref name="package"/>, including parts added or replaced later. Once the
+    /// raw package has been handed out, its parts can be rewritten without OfficeIMO noticing, so they are read
+    /// from their DOM.
+    /// </summary>
+    internal static void StopStreaming(OpenXmlPackage? package) {
+        if (package != null) HandedOutPackages.GetValue(package, _ => new object());
+    }
+
+    /// <summary>
+    /// Whether <paramref name="part"/> can be read from its stream with the same meaning as its DOM: it is not
+    /// loaded, its package does not process markup compatibility, and the raw package was not handed out.
+    /// </summary>
+    internal static bool CanStream(OpenXmlPart part) =>
+        !part.IsRootElementLoaded &&
+        part.OpenXmlPackage.MarkupCompatibilityProcessSettings.ProcessMode == MarkupCompatibilityProcessMode.NoProcess &&
+        !HandedOutPackages.TryGetValue(part.OpenXmlPackage, out _);
+
     /// <summary>
     /// Reader settings that match how the package loads <paramref name="part"/>, or null when a streaming read
     /// cannot: the part is already loaded (its DOM may carry unsaved edits), or the package was opened with
@@ -280,8 +301,7 @@ internal static class WordStyleDefinitionsReader {
     /// which reports it.
     /// </summary>
     internal static XmlReaderSettings? CreateStreamingSettings(OpenXmlPart part) {
-        if (part.IsRootElementLoaded) return null;
-        if (part.OpenXmlPackage.MarkupCompatibilityProcessSettings.ProcessMode != MarkupCompatibilityProcessMode.NoProcess) return null;
+        if (!CanStream(part)) return null;
         var settings = new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,

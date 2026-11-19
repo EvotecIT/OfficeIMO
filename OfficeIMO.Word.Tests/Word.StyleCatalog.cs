@@ -168,6 +168,33 @@ public partial class Word {
         }
     }
 
+    [Fact]
+    public void StylesPartAddedAfterRawPackageAccessIsReadFromItsDom() {
+        using var stream = new MemoryStream();
+        using (WordDocument source = WordDocument.Create(stream)) {
+            source.AddParagraph("Text");
+            source.Save();
+        }
+        stream.Position = 0;
+        using WordDocument document = WordDocument.Load(stream);
+        Assert.True(WordStyleCatalog.For(document).IsStreamed);
+
+        MainDocumentPart main = document.OpenXmlDocument.MainDocumentPart!;
+        main.DeletePart(main.StyleDefinitionsPart!);
+        StyleDefinitionsPart replacement = main.AddNewPart<StyleDefinitionsPart>();
+        using (var styles = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+                   "<w:styles xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">" +
+                   "<w:style w:type=\"paragraph\" w:styleId=\"Replaced\"><w:name w:val=\"Replaced\"/></w:style></w:styles>"))) {
+            replacement.FeedData(styles);
+        }
+
+        // The raw package can rewrite this part at any time, so it is read from its DOM rather than streamed and cached.
+        // Readers that reach styles through the package, such as the comparer and the DOC writer, see the same.
+        Assert.False(WordStyleCatalog.For(main).IsStreamed);
+        Assert.True(document.Styles.Contains("Replaced"));
+        Assert.True(replacement.IsRootElementLoaded);
+    }
+
     private sealed record StyleCatalogConversion(string Inspection, string Markdown, string Html, IReadOnlyList<byte[]> Pages, bool StylesLoaded);
 
     private static StyleCatalogConversion ConvertWithStyleCatalog(byte[] package, bool loadStylesFirst) {

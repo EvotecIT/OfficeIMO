@@ -181,20 +181,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal Document _document = null!;
 
-        // Styles parts of an escaped package can be rewritten without OfficeIMO noticing, so they are read from their DOM.
-        private static void StopStreamingStyles(WordprocessingDocument? package) {
-            MainDocumentPart? mainPart = package?.MainDocumentPart;
-            WordStyleCatalog.UseLoadedDefinitions(mainPart?.StyleDefinitionsPart);
-            WordStyleCatalog.UseLoadedDefinitions(mainPart?.StylesWithEffectsPart);
-        }
-
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
         public WordprocessingDocument OpenXmlDocument {
             get {
                 // Once the mutable package escapes, Open XML edits cannot be observed reliably.
                 // Resolve against current parts instead of reusing a derived numbering catalog.
                 _openXmlDocumentAccessed = true;
-                StopStreamingStyles(_wordprocessingDocument);
+                WordStyleDefinitionsReader.StopStreaming(_wordprocessingDocument);
                 return _wordprocessingDocument;
             }
         }
