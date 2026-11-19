@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.OpenDocument.Benchmarks.Comparisons;
 
@@ -24,6 +25,8 @@ public class OdsReadComparisonBenchmarks {
                 $"ODS read validation failed for {Scale}: expected {expected}; " +
                 $"OfficeIMO {officeIMO}; OpenStandardLibrary {openStandardLibrary}.");
         }
+        BenchmarkOutputValidationLog.Passed("OfficeIMO", $"Scale={Scale}; characters={officeIMO}");
+        BenchmarkOutputValidationLog.Passed("OpenStandardLibrary", $"Scale={Scale}; characters={openStandardLibrary}");
     }
 
     /// <summary>Opens and enumerates every populated cell through OfficeIMO.</summary>
