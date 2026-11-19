@@ -20,9 +20,18 @@ internal static class OnePdfComparisonEngines {
     /// <summary>Whole-document extraction with the library's default page parallelism (min(4, cores)).</summary>
     internal static PdfReadObservation ReadParallel(byte[] pdf) => Read(pdf, DefaultText);
 
-    internal static IReadOnlyList<string> ExtractPages(byte[] pdf) {
+    internal static IReadOnlyList<string> ExtractPages(byte[] pdf) => ExtractPages(pdf, parallel: false);
+
+    /// <summary>Per-page text, on one thread or with the library's default page parallelism.</summary>
+    internal static IReadOnlyList<string> ExtractPages(byte[] pdf, bool parallel) {
         using OnePdfDocument document = OnePdfDocument.Open(pdf);
-        return document.ExtractText(SequentialText).Select(static page => page.Text).ToArray();
+        IReadOnlyList<PdfPageText> pages = document.ExtractText(parallel ? DefaultText : SequentialText);
+        var text = new string[pages.Count];
+        for (int index = 0; index < text.Length; index++) {
+            text[index] = pages[index].Text;
+        }
+
+        return text;
     }
 
     private static PdfReadObservation Read(byte[] pdf, PdfTextOptions options) {

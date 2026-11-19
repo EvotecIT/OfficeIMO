@@ -35,6 +35,13 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? ThemePartName { get; set; }
 
+        /// <summary>Package-level core, extended and custom property XML, kept as read for projection.</summary>
+        internal byte[]? CorePropertiesXml { get; set; }
+
+        internal byte[]? ExtendedPropertiesXml { get; set; }
+
+        internal byte[]? CustomPropertiesXml { get; set; }
+
         internal IReadOnlyList<XlsbDefinedName> DefinedNames => _definedNames;
 
         internal IReadOnlyList<XlsbExternalSheetReference> ExternalSheetReferences => _externalSheetReferences;
@@ -48,6 +55,12 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal int SharedStringCount { get; set; }
 
         internal bool Uses1904DateSystem { get; set; }
+
+        /// <summary>The first workbook view's active tab (itabCur), when the source has a workbook view.</summary>
+        internal uint? ActiveTab { get; set; }
+
+        /// <summary>The first workbook view's first visible tab (itabFirst), when the source has a workbook view.</summary>
+        internal uint? FirstSheet { get; set; }
 
         internal XlsbCalculationProperties? CalculationProperties { get; set; }
 

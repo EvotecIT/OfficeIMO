@@ -585,7 +585,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
                 XlsbTabularValueKind.Number => cell.Number.ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => cell.Boolean.ToString(),
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(cell.Number, cell.Kind == XlsbTabularValueKind.Date).ToString(_options.Culture),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(cell.Number, cell.Kind == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom => Convert.ToString(cell.CustomValue, _options.Culture),
                 _ => null
             };
@@ -638,6 +638,15 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
                 : cell;
         }
+
+        /// <summary>Returns the date, or the serial number when no date represents it (Excel shows ####).</summary>
+        private object ConvertDateOrSerial(double serial, bool calendarStyle) =>
+            LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle) ? value : serial;
+
+        private string FormatDateOrSerial(double serial, bool calendarStyle) =>
+            LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle)
+                ? value.ToString(_options.Culture)
+                : serial.ToString("R", _options.Culture);
 
         private DateTime ConvertDate(double serial, bool calendarStyle) {
             if (LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle)) {
@@ -826,7 +835,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         ? typeof(decimal)
                         : typeof(double),
                 XlsbTabularValueKind.Boolean => typeof(bool),
-                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => typeof(DateTime),
+                // A serial without a calendar date reads as its number, so it is sampled as one.
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => LegacyXlsDateSerialConverter.CanConvert(
+                    _numbers[ordinal], _uses1904DateSystem, _kinds[ordinal] == XlsbTabularValueKind.Date)
+                        ? typeof(DateTime)
+                        : typeof(double),
                 XlsbTabularValueKind.Custom => IsMissingCustomValue(_customValues[ordinal])
                     ? typeof(object)
                     : _customValues[ordinal]!.GetType(),

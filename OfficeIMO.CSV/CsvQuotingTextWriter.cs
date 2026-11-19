@@ -42,14 +42,23 @@ internal sealed class CsvQuotingTextWriter : TextWriter
         _escape = options.EscapeCharacter ?? options.QuoteCharacter;
         _delimiter = CsvWriter.GetDelimiterText(options);
         _recordSeparator = options.NewLine;
-        ValidateDialect(options);
+        // The destination's own encoding decides what can be written; Encoding in the options applies to files and streams.
+        ValidateQuotingShape(options);
+        ValidateEncodableDialect(options, inner.Encoding);
     }
 
     /// <summary>
-    /// Rejects quote and escape characters that cannot be written unambiguously. Path writers call it before they
-    /// open the destination, so a rejected dialect never truncates an existing file.
+    /// Rejects quote and escape characters that cannot be written unambiguously, and separators the configured output
+    /// encoding cannot write. Path and stream writers call it before they open or write the destination, so a
+    /// rejected dialect never truncates an existing file.
     /// </summary>
     internal static void ValidateDialect(CsvSaveOptions options)
+    {
+        ValidateEncodableDialect(options, options.Encoding);
+        ValidateQuotingShape(options);
+    }
+
+    private static void ValidateQuotingShape(CsvSaveOptions options)
     {
         if (!options.UsesCustomQuoting)
         {
@@ -63,6 +72,45 @@ internal sealed class CsvQuotingTextWriter : TextWriter
             delimiter.IndexOf(quote) >= 0 || delimiter.IndexOf(escape) >= 0)
         {
             throw new ArgumentException("Quote and escape characters cannot be line breaks or part of the delimiter.");
+        }
+    }
+
+    /// <summary>
+    /// Rejects a delimiter, quote or escape character that the output encoding cannot write. An unpaired surrogate,
+    /// or a character outside a legacy code page, is replaced on output by the same substitute that replaces such
+    /// characters in field text, so a reader can no longer tell the separators from the data.
+    /// </summary>
+    /// <param name="options">Save options that define the dialect.</param>
+    /// <param name="encoding">Output encoding; null means the options' encoding or UTF-8.</param>
+    internal static void ValidateEncodableDialect(CsvSaveOptions options, Encoding? encoding)
+    {
+        encoding ??= options.Encoding ?? Encoding.UTF8;
+        ThrowIfNotEncodable(CsvWriter.GetDelimiterText(options), encoding, "delimiter");
+        // QuoteMode.Never writes no quote or escape characters, so only the delimiter reaches the output.
+        if (options.QuoteMode == CsvQuoteMode.Never)
+        {
+            return;
+        }
+
+        ThrowIfNotEncodable(options.QuoteCharacter.ToString(), encoding, "quote character");
+        if (options.EscapeCharacter is char escape)
+        {
+            ThrowIfNotEncodable(escape.ToString(), encoding, "escape character");
+        }
+    }
+
+    private static void ThrowIfNotEncodable(string text, Encoding encoding, string role)
+    {
+        var strict = (Encoding)encoding.Clone();
+        strict.EncoderFallback = EncoderFallback.ExceptionFallback;
+        try
+        {
+            strict.GetByteCount(text);
+        }
+        catch (EncoderFallbackException)
+        {
+            throw new ArgumentException(
+                $"The CSV {role} cannot be written in the {encoding.WebName} output encoding; it would be indistinguishable from replaced field text.");
         }
     }
 

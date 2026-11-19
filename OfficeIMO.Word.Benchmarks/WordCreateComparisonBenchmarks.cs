@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -29,13 +30,22 @@ public class WordCreateParagraphComparisonBenchmarks {
         byte[] officeImo = OfficeIMO();
         WordBenchmarkCorpus.ValidateParagraphDocument(officeImo, ItemCount);
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
-        WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateParagraphDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateParagraphDocument(NPOI(), ItemCount);
         WordBenchmarkCorpus.ValidateParagraphDocument(OpenXmlSdkMinimal(), ItemCount);
         byte[] equivalent = OpenXmlSdkEquivalent();
         WordBenchmarkCorpus.ValidateParagraphDocument(equivalent, ItemCount);
         WordEquivalentPackageParts.EnsureSamePartSet(nameof(OpenXmlSdkEquivalent), officeImo, equivalent);
+#if NET10_0_OR_GREATER
+        WordBenchmarkCorpus.ValidateParagraphDocument(OneDocument(), ItemCount);
+#endif
     }
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public byte[] OneDocument() => WordOneDocumentWorkloads.CreateParagraphs(ItemCount);
+#endif
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() {
@@ -47,6 +57,7 @@ public class WordCreateParagraphComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -109,7 +120,7 @@ public class WordCreateReportComparisonBenchmarks {
         byte[] officeImo = OfficeIMO();
         WordBenchmarkCorpus.ValidateReportDocument(officeImo, RowCount);
         _equivalentParts = WordEquivalentPackageParts.Capture(officeImo);
-        WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateReportDocument(DocX(), RowCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateReportDocument(NPOI(), RowCount);
         WordBenchmarkCorpus.ValidateReportDocument(OpenXmlSdkMinimal(), RowCount);
         byte[] equivalent = OpenXmlSdkEquivalent();
@@ -122,6 +133,7 @@ public class WordCreateReportComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.CreateReport(RowCount);
 #endif
 
@@ -143,6 +155,7 @@ public class WordCreateReportComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {

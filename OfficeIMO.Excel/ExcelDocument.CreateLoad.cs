@@ -461,6 +461,12 @@ namespace OfficeIMO.Excel {
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, effectiveOptions);
             ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook,
                 effectiveOptions.CancellationToken, effectiveOptions.MaxCells);
+            try {
+                XlsbDocumentPropertiesProjector.Apply(document, workbook);
+            } catch {
+                document.Dispose();
+                throw;
+            }
             if (readOnly) {
                 document = ReopenProjectedWorkbookReadOnly(document);
             }

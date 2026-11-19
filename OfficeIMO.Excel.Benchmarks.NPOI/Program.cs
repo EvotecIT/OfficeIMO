@@ -24,6 +24,7 @@ if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?"))
     return;
 }
 
+
 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(warmupIterations);

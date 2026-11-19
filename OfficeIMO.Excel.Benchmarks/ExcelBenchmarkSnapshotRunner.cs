@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using ClosedXML.Excel;
 using Sylvan.Data.Excel;
 using SylvanExcelDataReader = Sylvan.Data.Excel.ExcelDataReader;
@@ -12,7 +11,7 @@ internal static class ExcelBenchmarkSnapshotRunner {
     private const int WarmupIterations = 2;
     private const int MeasuredIterations = 5;
 
-    internal static string WriteSnapshot(string outputPath, int rowCount = DefaultRowCount, string? websiteBenchmarkDataPath = null) {
+    internal static string WriteSnapshot(string outputPath, int rowCount = DefaultRowCount) {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
@@ -57,53 +56,9 @@ internal static class ExcelBenchmarkSnapshotRunner {
 
         var options = new JsonSerializerOptions { WriteIndented = true };
         File.WriteAllText(outputPath, JsonSerializer.Serialize(snapshot, options));
-        if (!string.IsNullOrWhiteSpace(websiteBenchmarkDataPath)) {
-            WriteWebsiteBenchmarkData(websiteBenchmarkDataPath, snapshot, DateOnly.FromDateTime(DateTime.Now));
-        }
 
         return outputPath;
     }
-
-    private static void WriteWebsiteBenchmarkData(string path, ExcelBenchmarkSnapshot snapshot, DateOnly snapshotDate) {
-        if (!File.Exists(path)) {
-            throw new FileNotFoundException("Website benchmark data file was not found.", path);
-        }
-
-        JsonNode root = JsonNode.Parse(File.ReadAllText(path)) ?? throw new InvalidOperationException("Website benchmark data is empty.");
-        JsonArray scenarios = root["scenarios"]?.AsArray() ?? throw new InvalidOperationException("Website benchmark data does not contain a scenarios array.");
-        var snapshotScenarios = snapshot.Scenarios.ToDictionary(
-            scenario => BuildScenarioKey(scenario.Name, scenario.Library),
-            scenario => scenario,
-            StringComparer.Ordinal);
-        string dateText = snapshotDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-
-        foreach (JsonNode? scenarioNode in scenarios) {
-            if (scenarioNode is null) {
-                continue;
-            }
-
-            string? name = scenarioNode["name"]?.GetValue<string>();
-            string? library = scenarioNode["library"]?.GetValue<string>();
-            if (name is null || library is null || !snapshotScenarios.TryGetValue(BuildScenarioKey(name, library), out var snapshotScenario)) {
-                continue;
-            }
-
-            scenarioNode["result"] = snapshotScenario.Result;
-            scenarioNode["notes"] = string.Create(
-                CultureInfo.InvariantCulture,
-                $"5-sample snapshot dated {dateText}. Median {snapshotScenario.MedianMilliseconds:F1} ms. {snapshotScenario.Notes}");
-        }
-
-        string? directory = Path.GetDirectoryName(path);
-        if (!string.IsNullOrEmpty(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-
-        File.WriteAllText(path, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-    }
-
-    private static string BuildScenarioKey(string name, string library)
-        => string.Concat(name, "\u001f", library);
 
     private static ExcelBenchmarkSnapshotScenario Measure(string name, string library, string notes, Func<int> action) {
         var measurement = BenchmarkMeasurement.Measure(WarmupIterations, MeasuredIterations, action);

@@ -12,9 +12,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <!-- NPOI's build target warns, without a warning code, unless AcceptNPOIOSMFLicense is true. The property only
+         silences that warning; the project does not accept NPOI's OSMF binary terms for anyone. NPOI itself is
+         Apache-2.0 and open in Build/benchmark-libraries.json. The warning does not fail the build. -->
     <RunAnalyzers>false</RunAnalyzers>
     <ServerGarbageCollection>false</ServerGarbageCollection>
-    <AcceptNPOIOSMFLicense>true</AcceptNPOIOSMFLicense>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,5 +28,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../BenchmarkLibrarySelection.cs" Link="Shared/BenchmarkLibrarySelection.cs" />
   </ItemGroup>
 </Project>

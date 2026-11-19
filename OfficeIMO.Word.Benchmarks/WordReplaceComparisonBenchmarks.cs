@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using OfficeIMO.Benchmarks;
 using BenchmarkDotNet.Attributes;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -20,7 +21,7 @@ public class WordReplaceComparisonBenchmarks {
     [GlobalSetup]
     public void Setup() {
         SetupOfficeAndOpenXml();
-        WordBenchmarkCorpus.ValidateReplacedDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) WordBenchmarkCorpus.ValidateReplacedDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
         WordBenchmarkCorpus.ValidateReplacedDocument(NPOI(), ItemCount);
 #if NET10_0_OR_GREATER
         WordBenchmarkCorpus.ValidateReplacedDocument(OneDocument(), ItemCount);
@@ -47,6 +48,7 @@ public class WordReplaceComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("Library:docx")]
     public byte[] DocX() {
         using var input = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(input);
@@ -83,6 +85,7 @@ public class WordReplaceComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
     public byte[] OneDocument() => WordOneDocumentWorkloads.Replace(_fixture);
 
 #endif

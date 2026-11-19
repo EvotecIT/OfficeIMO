@@ -121,7 +121,7 @@ public partial class Excel {
             Assert.Equal(2.5f, reader.GetFloat(4));
             Assert.Equal(2.5m, Assert.IsType<decimal>(reader.GetValue(4)));
             Assert.Equal(1E100, reader.GetDouble(5));
-            Assert.ThrowsAny<ArgumentException>(() => reader.GetDateTime(5));
+            Assert.Throws<InvalidCastException>(() => reader.GetDateTime(5));
             Assert.Equal(1E100, reader.GetDouble(5));
 
             Assert.True(reader.Read());

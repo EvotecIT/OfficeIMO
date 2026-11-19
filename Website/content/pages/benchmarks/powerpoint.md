@@ -1,6 +1,6 @@
 ---
 title: "PowerPoint benchmarks"
-description: "PowerPoint performance compared with other .NET libraries on Windows, Linux and macOS: pPTX creation and editing against other .NET presentation libraries."
+description: "PowerPoint benchmarks comparing OfficeIMO with other .NET libraries on PPTX presentation creation and editing, with separate Windows, Linux and macOS runs."
 meta.seo_title: "PowerPoint benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

@@ -92,6 +92,7 @@ internal static class ExcelCompatibilityCatalog {
             XlsbNative("Security.Protection", "Security", "Workbook and worksheet classic protection metadata."),
             XlsbNative("Names.DefinedNames", "Names", "Supported workbook defined names and self-sheet references."),
             XlsbNative("Calculation.Settings", "Calculation", "Workbook calculation mode, iteration, and related supported properties."),
+            XlsbNative("Metadata.Properties", "Metadata", "Core, extended, and custom document properties.", editableRoundTrip: true),
             XlsbVisualFallback("Drawing.ImagesShapes", "Drawing", "Images, shapes, controls, and drawing relationships.",
                 "Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."),
             XlsbVisualFallback("Drawing.Charts", "Drawing", "Charts and chart-sheet relationships.",

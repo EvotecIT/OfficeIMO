@@ -199,7 +199,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidCastException($"Column '{GetName(ordinal)}' contains DBNull.");
                 }
 
-                return value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
+                return value is ExcelDataReaderDateSerial dateSerial ? dateSerial.MaterializeValue() : value;
             }
 
             private bool TryGetPrimitiveDouble(int ordinal, out double value) {
@@ -238,7 +238,7 @@ namespace OfficeIMO.Excel {
                 && (_currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.CalendarDateSerial
                     || _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.ElapsedDateSerial);
 
-            private DateTime MaterializeDateSerial(int ordinal) => _owner.FromExcelSerialDate(
+            private DateTime MaterializeDateSerial(int ordinal) => _owner.DateOrInvalidCast(
                 _currentDoubleValues[ordinal], _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.CalendarDateSerial);
 
             private object? MaterializeCurrentValue(int ordinal) {
@@ -249,7 +249,8 @@ namespace OfficeIMO.Excel {
                 object value = _currentValues[ordinal] ?? (_currentPrimitiveKinds[ordinal] switch {
                     XmlDataReaderPrimitiveKind.Double => _currentDoubleValues[ordinal],
                     XmlDataReaderPrimitiveKind.Decimal => _currentDecimalValues[ordinal],
-                    XmlDataReaderPrimitiveKind.CalendarDateSerial or XmlDataReaderPrimitiveKind.ElapsedDateSerial => MaterializeDateSerial(ordinal),
+                    XmlDataReaderPrimitiveKind.CalendarDateSerial or XmlDataReaderPrimitiveKind.ElapsedDateSerial => _owner.DateOrSerial(
+                        _currentDoubleValues[ordinal], _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.CalendarDateSerial),
                     XmlDataReaderPrimitiveKind.DateTime => _currentDateTimeValues[ordinal],
                     XmlDataReaderPrimitiveKind.Boolean => BoxBoolean(_currentBooleanValues[ordinal]),
                     _ => _currentRow![ordinal]!

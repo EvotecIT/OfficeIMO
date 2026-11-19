@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Xlsb.Biff12;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Projection;
@@ -52,6 +53,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 structure.PreparePackage(document, workbookPart, archive.Entries.Select(entry => entry.FullName).ToArray(),
                     ReadPart(workbookPart), ReadPart(XlsbSheetStructure.RelationshipPartName(workbookPart)), ReadPart("[Content_Types].xml"), replacements, deletions, maximumBytes);
                 CopyRenamedRelatedParts(document, sourceWorkbook, replacements);
+                XlsbDocumentPropertyParts.ApplyToRewrite(document, document.XlsbDocumentPropertiesSnapshot, ReadPart,
+                    archive.Entries.Select(entry => entry.FullName).ToArray(), replacements, deletions);
                 foreach (var sheet in sheets) {
                     var binding = structure.Bindings.Single(item => ReferenceEquals(item.Part, sheet.WorksheetPart));
                     if (binding.Original == null) {
@@ -97,6 +100,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks, maximumBytes);
                     rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
+                    rewrittenPart = ApplyTabSelection(rewrittenPart, TabSelectionFor(sheet), maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
@@ -133,16 +137,51 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return rewritten;
         }
 
+        /// <summary>
+        /// The tab selection the document model holds for the primary window: the imported value, or what activation,
+        /// hiding or the caller set since. Null when the sheet has no primary view, which leaves the record unchanged.
+        /// </summary>
+        private static bool? TabSelectionFor(ExcelSheet sheet) {
+            SheetView? view = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetViews>()?.Elements<SheetView>()
+                .FirstOrDefault(candidate => (candidate.WorkbookViewId?.Value ?? 0U) == 0U);
+            return view == null ? null : view.TabSelected?.Value == true;
+        }
+
+        /// <summary>Sets or clears fSelected (0x40 in the first flags byte) on the primary window's BrtBeginWsView.</summary>
+        private static byte[] ApplyTabSelection(byte[] part, bool? selected, long maximumBytes) {
+            if (!selected.HasValue) return part;
+            const int BrtBeginWsView = 137;
+            using var input = new MemoryStream(part, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            bool changed = false;
+            using var output = new OfficeIMO.Core.Internal.OfficeBoundedMemoryStream(maximumBytes);
+            foreach (XlsbRecord record in records) {
+                byte[] payload = record.Data;
+                // iWbkView, the owning workbook window, follows 22 bytes of view settings.
+                if (record.Type == BrtBeginWsView && payload.Length >= 26 && BitConverter.ToUInt32(payload, 22) == 0U
+                    && ((payload[0] & 0x40) != 0) != selected.Value) {
+                    payload = (byte[])payload.Clone();
+                    payload[0] = (byte)(selected.Value ? payload[0] | 0x40 : payload[0] & ~0x40);
+                    changed = true;
+                }
+                XlsbRecordWriter.Write(output, record.Type, payload);
+            }
+
+            return changed ? output.ToArray() : part;
+        }
+
+        /// <summary>A single workbook view that sets only the active and first tab, which the rewrite carries over.</summary>
+        private static bool HasOnlyActiveTabChanges(BookViews views) => views.GetAttributes().Count == 0
+            && views.ChildElements.Count == 1 && views.FirstChild is WorkbookView view && !view.HasChildren
+            && view.GetAttributes().All(attribute => attribute.LocalName is "activeTab" or "firstSheet");
+
         private static void ThrowIfUnsupportedWorkbookMutation(
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
             byte[] sourcePackageBytes, XlsbSheetStructure structure) {
-            if (document.HasPackagePropertiesDirty) {
-                throw new NotSupportedException("Native XLSB rewriting currently accepts cell-value edits only. Document-property changes must be saved as .xlsx.");
-            }
-
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
-                .FirstOrDefault(element => !(element is BookViews views && ExcelDocument.IsNeutralWorkbookViews(views))
+                .FirstOrDefault(element => !(element is BookViews views
+                        && (ExcelDocument.IsNeutralWorkbookViews(views) || HasOnlyActiveTabChanges(views)))
                     && element is not Sheets
                     && element is not WorkbookProperties
                     && element is not WorkbookProtection
@@ -318,7 +357,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return directory + "_rels/" + fileName + ".rels";
         }
 
-        private static string NormalizePartName(string partName) {
+        internal static string NormalizePartName(string partName) {
             ArgumentException.ThrowIfNullOrWhiteSpace(partName);
             string normalized = partName.Replace('\\', '/').TrimStart('/');
             if (normalized.EndsWith("/", StringComparison.Ordinal)

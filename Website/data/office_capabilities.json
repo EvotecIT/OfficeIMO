@@ -14,9 +14,9 @@
   "summary": {
     "familyCount": 3,
     "formatCount": 28,
-    "capabilityCount": 137,
+    "capabilityCount": 138,
     "packageCount": 84,
-    "operationCount": 1550
+    "operationCount": 1556
   },
   "fidelityStates": [
     {
@@ -706,7 +706,7 @@
         }
       ],
       "contract": {
-        "capabilityCount": 48,
+        "capabilityCount": 49,
         "categoryCount": 17,
         "hasUnimplementedCoverage": false,
         "operations": [
@@ -724,7 +724,7 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 31
+                "count": 32
               },
               {
                 "state": "Opaque",
@@ -742,7 +742,7 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 31
+                "count": 32
               },
               {
                 "state": "PreservedOpaque",
@@ -772,7 +772,7 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 18
+                "count": 19
               },
               {
                 "state": "NotApplicable",
@@ -790,7 +790,7 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 9
+                "count": 10
               },
               {
                 "state": "PreservedOpaque",
@@ -826,7 +826,7 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 18
+                "count": 19
               },
               {
                 "state": "Rasterized",
@@ -862,7 +862,7 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 31
+                "count": 32
               }
             ]
           }
@@ -1049,8 +1049,8 @@
           "formats": [
             ".xlsb"
           ],
-          "capabilityCount": 20,
-          "categoryCount": 15,
+          "capabilityCount": 21,
+          "categoryCount": 16,
           "hasUnimplementedCoverage": false,
           "operations": [
             {
@@ -1067,7 +1067,7 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 12
+                  "count": 13
                 },
                 {
                   "state": "Opaque",
@@ -1085,7 +1085,7 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 12
+                  "count": 13
                 },
                 {
                   "state": "PreservedOpaque",
@@ -1115,7 +1115,7 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 9
+                  "count": 10
                 },
                 {
                   "state": "NotApplicable",
@@ -1133,7 +1133,7 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 1
+                  "count": 2
                 },
                 {
                   "state": "PreservedOpaque",
@@ -1169,7 +1169,7 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 9
+                  "count": 10
                 },
                 {
                   "state": "Rasterized",
@@ -1199,7 +1199,7 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 12
+                  "count": 13
                 }
               ]
             }
@@ -2891,7 +2891,7 @@
     {
       "id": "OfficeIMO.Excel",
       "slug": "excel",
-      "capabilityCount": 328,
+      "capabilityCount": 334,
       "formats": [
         "DBF/xBase",
         "DOCM/XLSM/XLSB/PPTM families",
@@ -2928,7 +2928,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 49
+              "count": 51
             },
             {
               "id": "Partial",
@@ -2951,7 +2951,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 22
+              "count": 23
             },
             {
               "id": "Partial",
@@ -2986,7 +2986,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 11
+              "count": 12
             },
             {
               "id": "Preserved",
@@ -3037,7 +3037,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 10
+              "count": 11
             },
             {
               "id": "Preserved",
@@ -3054,7 +3054,7 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 34
+              "count": 35
             },
             {
               "id": "Preserved",

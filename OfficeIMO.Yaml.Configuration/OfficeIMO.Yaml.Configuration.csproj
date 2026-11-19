@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>YAML configuration provider for Microsoft.Extensions.Configuration, built on the OfficeIMO.Yaml engine: AddYamlFile and AddYamlStream with merge keys, aliases and positioned errors.</Description>
 
-    <VersionPrefix>3.6.0</VersionPrefix>
+    <VersionPrefix>3.6.2</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0;net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Company>Evotec</Company>

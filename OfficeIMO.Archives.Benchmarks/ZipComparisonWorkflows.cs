@@ -1,6 +1,9 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
+#if NET10_0_OR_GREATER
+using OneArchiveApi = RecursiveAI.OneArchive;
+#endif
 
 namespace OfficeIMO.Archives.Benchmarks;
 
@@ -28,6 +31,58 @@ internal static class ZipComparisonWorkflows {
         }
         return descriptors;
     }
+
+#if NET10_0_OR_GREATER
+    /// <summary>
+    /// Lists the archive through OneArchive's format-neutral reader. OneArchive applies its default
+    /// <see cref="OneArchiveApi.ArchiveLimits"/> (entry count, declared total size, path length and depth)
+    /// and central-directory consistency checks while reading; path-traversal rules are applied only on extraction.
+    /// </summary>
+    internal static IReadOnlyList<ZipProjectionDescriptor> TraverseOneArchive(byte[] input) {
+        using var stream = new MemoryStream(input, writable: false);
+        using OneArchiveApi.Archive archive = OneArchiveApi.Archive.Open(stream, OneArchiveOptions);
+        var descriptors = new List<ZipProjectionDescriptor>();
+        foreach (OneArchiveApi.ArchiveEntry entry in archive.EnumerateEntries()) {
+            if (entry.Kind != OneArchiveApi.ArchiveEntryKind.File) continue;
+            string fullName = entry.Name;
+            int separator = fullName.LastIndexOf('/');
+            descriptors.Add(new ZipProjectionDescriptor(
+                fullName,
+                separator < 0 ? fullName : fullName.Substring(separator + 1),
+                false,
+                ComputeDepth(fullName),
+                entry.Size,
+                ProjectOneArchiveTime(entry)));
+        }
+        descriptors.Sort((left, right) => string.CompareOrdinal(left.FullName, right.FullName));
+        return descriptors;
+    }
+
+    // ZIP's DOS date and time carry no time zone. OneArchive documents that it reads them as UTC, while
+    // System.IO.Compression and OfficeIMO read them as local time. When the instant comes from the DOS
+    // fields alone (no extended or NTFS timestamp record), the stored value is read as local time here so
+    // every lane projects the same stored field the same way.
+    private static DateTime ProjectOneArchiveTime(OneArchiveApi.ArchiveEntry entry) {
+        if (entry.ModifiedTime is not DateTimeOffset modified) return DateTime.MinValue;
+        if (entry is OneArchiveApi.Zip.ZipEntry zipEntry && !HasZonedTimestamp(zipEntry)) {
+            return new DateTimeOffset(DateTime.SpecifyKind(modified.UtcDateTime, DateTimeKind.Unspecified)).UtcDateTime;
+        }
+        return modified.UtcDateTime;
+    }
+
+    private static bool HasZonedTimestamp(OneArchiveApi.Zip.ZipEntry entry) {
+        foreach (OneArchiveApi.Zip.ZipExtraField field in entry.ExtraFields) {
+            if (field.Id is 0x5455 or 0x000A) return true;
+        }
+        return false;
+    }
+
+    // The corpus is known to be ZIP, as it is for the other lanes, so detection is skipped.
+    // Limits stay at OneArchive's defaults.
+    private static readonly OneArchiveApi.ArchiveOpenOptions OneArchiveOptions = new() {
+        Format = OneArchiveApi.ArchiveFormat.Zip
+    };
+#endif
 
     internal static ZipComparisonObservation Observe(IReadOnlyList<ArchiveEntryDescriptor> entries) => Observe(
         entries.Select(entry => new ZipProjectionDescriptor(

@@ -1,6 +1,6 @@
 ---
 title: "ZIP benchmarks"
-description: "ZIP performance compared with other .NET libraries on Windows, Linux and macOS: archive reading and writing, with raw results and source commits."
+description: "ZIP benchmarks comparing OfficeIMO with other .NET libraries on archive traversal with path and size safety checks, with separate Windows, Linux and macOS runs."
 meta.seo_title: "ZIP benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

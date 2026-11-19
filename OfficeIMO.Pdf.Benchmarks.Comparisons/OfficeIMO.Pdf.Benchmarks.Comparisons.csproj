@@ -35,7 +35,7 @@
   <Target Name="ValidateQuestPdfBenchmarkLicenseBoundary" BeforeTargets="CollectPackageReferences;ResolvePackageAssets">
     <Error
       Condition="'$(QuestPdfBenchmarkVersion)' != '2026.5.0' and '$(QuestPdfInternalAuthorization)' != 'true'"
-      Text="QuestPDF $(QuestPdfBenchmarkVersion) is not allowed in the public benchmark lane. Use the guarded internal runner after confirming authorization." />
+      Text="QuestPDF $(QuestPdfBenchmarkVersion) is not allowed in the public benchmark lane. Run it locally with -AcceptLibraryLicense questpdf-latest after reviewing its licence." />
   </Target>
 
   <PropertyGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
@@ -65,8 +65,17 @@
     The vendor releases often; keep both packages pinned to the same reviewed version.
   -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="RecursiveAI.OnePdf" Version="1.22.0" />
-    <PackageReference Include="RecursiveAI.OnePdf.Layout" Version="1.22.0" />
+    <PackageReference Include="RecursiveAI.OnePdf" Version="1.23.0" />
+    <PackageReference Include="RecursiveAI.OnePdf.Layout" Version="1.23.0" />
+  </ItemGroup>
+
+  <!--
+    OneRender ships net10.0 only, so its HTML-to-PDF lanes compile only for that target.
+    Keep the layout engine and its PDF writer pinned to the same reviewed version.
+  -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="RecursiveAI.OneRender" Version="1.4.0" />
+    <PackageReference Include="RecursiveAI.OneRender.Pdf" Version="1.4.0" />
   </ItemGroup>
 
   <!--

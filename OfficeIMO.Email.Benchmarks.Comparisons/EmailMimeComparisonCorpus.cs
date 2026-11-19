@@ -1,4 +1,7 @@
 using MimeKit;
+#if NET10_0_OR_GREATER
+using OneMailComposition = RecursiveAI.OneMail.Composition;
+#endif
 
 namespace OfficeIMO.Email.Benchmarks.Comparisons;
 
@@ -69,6 +72,32 @@ internal static class EmailMimeComparisonCorpus {
         return message;
     }
 
+#if NET10_0_OR_GREATER
+    internal static OneMailComposition.OutgoingMessage CreateOneMailMessage(EmailMimeBenchmarkScale scale) {
+        var attachments = new List<OneMailComposition.OutgoingAttachment>(scale.AttachmentCount);
+        for (int index = 0; index < scale.AttachmentCount; index++) {
+            attachments.Add(new OneMailComposition.OutgoingAttachment(
+                $"payload-{index + 1:D2}.bin",
+                CreateAttachment(index, scale.AttachmentBytes),
+                "application/octet-stream"));
+        }
+        return new OneMailComposition.OutgoingMessage {
+            From = "Benchmark Sender <sender@example.test>",
+            To = ["Benchmark Reader <reader@example.test>"],
+            Cc = ["Benchmark Archive <archive@example.test>"],
+            Subject = "OfficeIMO MIME comparison " + scale.Name,
+            MessageId = "officeimo-mime-" + scale.Name.ToLowerInvariant() + "@example.test",
+            Date = new DateTimeOffset(2026, 8, 24, 9, 30, 0, TimeSpan.Zero),
+            Text = CreateText(scale.TextCharacters),
+            Html = CreateHtml(scale.HtmlCharacters),
+            Attachments = attachments
+        };
+    }
+
+    /// <summary>Builds the MIME tree from the prepared message and serializes it, as the other lanes do from their models.</summary>
+    internal static byte[] WriteOneMail(OneMailComposition.OutgoingMessage message) => message.ToEntity().ToArray();
+
+#endif
     internal static byte[] WriteMimeKit(MimeMessage message) {
         using var output = new MemoryStream();
         message.WriteTo(output);

@@ -72,13 +72,14 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.
 
 The committed compact result is
 [`readme-current/officeimo.csv.comparison.json`](readme-current/officeimo.csv.comparison.json).
-To rerun its selected workload with the same processor placement and iteration
+To rerun its selected workloads with the same processor placement and iteration
 policy, use:
 
 ```powershell
-.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run Csv -CsvAffinityMasks 0xFFFF -CsvPriority AboveNormal -CsvWarmupCount 4 -CsvIterationCount 8
+$env:OFFICEIMO_CSV_WIDE_ROW_COUNT = '25000'
+dotnet run -c Release -f net8.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -- --filter '*CsvWideBenchmarks.OfficeIMO_ReadTextFieldSpanVisitorSkipHeader*' '*CsvWideBenchmarks.Sep_ReadFieldSpans*' '*CsvWideBenchmarks.Sylvan_ReadFieldSpans*' '*CsvWideBenchmarks.OfficeIMO_WriteProjectedRows' '*CsvWideBenchmarks.OfficeIMO_WriteDataReader*' '*CsvWideBenchmarks.OfficeIMO_WriteValidatedTextRows*' '*CsvWideBenchmarks.CsvHelper_WriteProjectedRows*' '*CsvWideBenchmarks.CsvHelper_WriteTextRows*' '*CsvWideBenchmarks.Sep_WriteTextRows*' '*CsvWideBenchmarks.Sylvan_WriteProjectedRows*' '*CsvWideBenchmarks.Sylvan_WriteTextRows*' '*CsvWideBenchmarks.Dataplat_WriteProjectedRows*' '*CsvWideBenchmarks.Dataplat_WriteFromReader*' '*CsvWideBenchmarks.Dataplat_WriteTextRows*' --affinityMasks 0xFFFF --priority AboveNormal --warmupCount 4 --iterationCount 8 --outliers DontRemove
 ```
 
-That command regenerates the compact result and CSV benchmark README from a
-fresh run. Raw BenchmarkDotNet artifacts remain local and are not required for
-the checked-in snapshot.
+Raw BenchmarkDotNet artifacts remain local. The CSV benchmark README no longer
+shows this snapshot; its result block comes from published runs in the
+[benchmark evidence catalog](../../Website/static/data/benchmarks/evidence/index.json).

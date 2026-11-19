@@ -128,6 +128,7 @@ internal static partial class CsvFile
         int bufferSize = 256 * 1024)
     {
         ArgumentNullException.ThrowIfNull(destination);
+        CsvQuotingTextWriter.ValidateDialect(options);
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         var compressionType = options.CompressionType == CsvCompressionType.Auto
             ? CsvCompressionType.None

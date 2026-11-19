@@ -78,6 +78,11 @@ namespace OfficeIMO.Excel {
             CustomProperties.ReplaceWith(loadedProperties);
         }
 
+        internal bool HasCustomDocumentPropertiesDirty => _customDocumentPropertiesDirty;
+
+        /// <summary>Keeps committed custom-property edits marked as unsaved until a native package write succeeds.</summary>
+        internal void MarkCustomDocumentPropertiesPending() => _customDocumentPropertiesDirty = true;
+
         internal void SaveCustomDocumentProperties() {
             CustomFilePropertiesPart? customPart = _spreadSheetDocument.CustomFilePropertiesPart;
             if (CustomProperties.Count == 0 && !_customDocumentPropertiesDirty) {

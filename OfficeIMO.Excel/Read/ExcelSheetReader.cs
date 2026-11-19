@@ -109,6 +109,15 @@ namespace OfficeIMO.Excel {
 
         private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
         private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
+        private bool TryFromExcelSerialDate(double serial, bool calendarStyle, out DateTime value) =>
+            ExcelDateSystemConverter.TryFromSerial(serial, _dateSystem, calendarStyle, out value);
+        /// <summary>Typed date access: a serial without a DateTime is an invalid cast, as for any other non-date value.</summary>
+        private DateTime DateOrInvalidCast(double serial, bool calendarStyle) =>
+            TryFromExcelSerialDate(serial, calendarStyle, out DateTime value)
+                ? value
+                : throw new InvalidCastException($"The date-formatted value {serial.ToString("R", CultureInfo.InvariantCulture)} has no DateTime representation.");
+        private object DateOrSerial(double serial, bool calendarStyle) => ExcelDateSystemConverter.FromSerialOrNumber(serial, _dateSystem, calendarStyle);
+        private object DateOrSerial(double serial, uint? styleIndex) => DateOrSerial(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
 
         private StylesCache Styles => _stylesCache ??= _styles.GetValue(_opt.CancellationToken);
 
@@ -652,7 +661,7 @@ namespace OfficeIMO.Excel {
             if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                 if (TryParseInvariantDouble(rawText, out var oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    value = FromExcelSerialDate(oa, styleIndex);
+                    value = DateOrSerial(oa, styleIndex);
                 } else {
                     value = rawText;
                 }
@@ -743,7 +752,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDouble(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return FromExcelSerialDate(oa, styleIndex);
+                        return DateOrSerial(oa, styleIndex);
                 }
                 if (_opt.NumericAsDecimal) {
                     if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec))
@@ -774,7 +783,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDouble(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return FromExcelSerialDate(oa, styleIndex);
+                        return DateOrSerial(oa, styleIndex);
                     return rawText;
                 }
 

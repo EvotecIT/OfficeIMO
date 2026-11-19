@@ -12,6 +12,18 @@ platform API provides equivalent protections. This workload remains an opt-in
 policy-overhead diagnostic and is excluded from the published library-comparison
 catalog.
 
+On `net10.0` a OneArchive 1.2.0 lane (the package ships `net10.0` only) lists
+the same archive through `Archive.Open` with `Format = ArchiveFormat.Zip` and
+`EnumerateEntries()`, keeping regular files and sorting them ordinally. It runs
+with OneArchive's default `ArchiveLimits` (entry count, declared total size,
+path length and depth) and central-directory consistency checks, which apply
+while reading. OneArchive's path-traversal rules apply only when extracting,
+so this lane does not filter unsafe names the way OfficeIMO does. ZIP's DOS
+timestamps carry no time zone: OneArchive reads them as UTC, while OfficeIMO and
+`System.IO.Compression` read them as local time. The OneArchive lane reads the
+stored DOS value as local time when the entry has no extended or NTFS
+timestamp record, so all lanes compare the same stored field.
+
 Before timing, validation requires exact agreement on ordered paths, names,
 directory flags, depth, uncompressed lengths, UTC timestamps, total bytes, and a
 SHA-256 structural fingerprint. The corpus contains 24, 512, and 4,000 files in

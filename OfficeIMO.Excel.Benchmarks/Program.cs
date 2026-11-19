@@ -3,6 +3,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Benchmarks;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters.Json;
+
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using System.Globalization;
@@ -343,16 +344,11 @@ if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?"))
 if (IsCommand(args, "--snapshot", "snapshot")) {
     bool hasOutputPath = HasOutputPath(args);
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
-    string? websiteDataPath = ParseOptionValue(args, "--website-data", "--website-benchmarks");
     string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelBenchmarkSnapshotRunner.WriteSnapshot(
         outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.snapshot", rowCount),
-        rowCount,
-        websiteDataPath);
+        rowCount);
     Console.WriteLine($"Excel benchmark snapshot written to '{outputPath}'.");
-    if (!string.IsNullOrWhiteSpace(websiteDataPath)) {
-        Console.WriteLine($"Website benchmark data updated at '{websiteDataPath}'.");
-    }
     return;
 }
 
@@ -417,7 +413,7 @@ if (IsCommand(args, "--profile-realworld", "profile-realworld", "realworld-profi
 if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
     bool hasOutputPath = HasOutputPath(args);
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
-    bool includeLegacyEpPlus = !HasSwitch(args, "--skip-legacy-epplus");
+    bool includeLegacyEpPlus = HasSwitch(args, "--include-legacy-epplus");
     string[] scenarioFilters = ParseOptionValues(args, "--scenario", "--scenarios");
     string[] libraryFilters = ParseOptionValues(args, "--library", "--libraries");
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
@@ -461,7 +457,7 @@ if (IsCommand(args, "--anti-cheat-suite", "anti-cheat-suite", "robustness-suite"
     string outputDirectory = ParseOptionValue(args, "--out-dir", "--output-dir", "--directory")
         ?? (hasOutputPath ? args[1] : Path.Combine("Docs", "benchmarks", "anti-cheat-current"));
     int[] rowCounts = ParseRowCountsOrDefault(args, startIndex: hasOutputPath ? 2 : 1, [100, 2500, 25000]);
-    bool includeLegacyEpPlus = !HasSwitch(args, "--skip-legacy-epplus");
+    bool includeLegacyEpPlus = HasSwitch(args, "--include-legacy-epplus");
     bool includePackageProfile = !HasSwitch(args, "--skip-package-profile");
     string[] requestedScenarios = NormalizeScenarioFilters(ParseOptionValues(args, "--scenario", "--scenarios"));
     string[] scenarioFilters = requestedScenarios.Length == 0 ? GetAntiCheatScenarios() : requestedScenarios;
@@ -535,7 +531,7 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
     string outputDirectory = ParseOptionValue(args, "--out-dir", "--output-dir", "--directory")
         ?? (hasOutputPath ? args[1] : Path.Combine("Docs", "benchmarks"));
     int[] rowCounts = ParseRowCounts(args, startIndex: hasOutputPath ? 2 : 1);
-    bool includeLegacyEpPlus = !HasSwitch(args, "--skip-legacy-epplus");
+    bool includeLegacyEpPlus = HasSwitch(args, "--include-legacy-epplus");
     bool includePackageProfile = !HasSwitch(args, "--skip-package-profile");
     bool includeDenseHelloWorld = !HasSwitch(args, "--skip-dense-helloworld") && !HasSwitch(args, "--skip-miniexcel-helloworld");
     string[] scenarioFilters = NormalizeScenarioFilters(ParseOptionValues(args, "--scenario", "--scenarios"));
@@ -638,6 +634,7 @@ var (benchmarkArgs, affinityMasks) = ExtractAffinityMasks(priorityArgs);
 var benchmarkConfig = ManualConfig
     .Create(DefaultConfig.Instance)
     .AddExporter(JsonExporter.Full);
+benchmarkConfig.AddRestrictedLibraryFilter();
 for (int index = 0; index < affinityMasks.Length; index++) {
     IntPtr affinity = affinityMasks[index];
     Job job = Job.Default
@@ -654,11 +651,11 @@ static void WriteUsage() {
     Console.WriteLine("OfficeIMO.Excel benchmark helpers");
     Console.WriteLine();
     Console.WriteLine("Commands:");
-    Console.WriteLine("  snapshot [output] [--rows N] [--website-data path]");
+    Console.WriteLine("  snapshot [output] [--rows N]");
     Console.WriteLine("  write-profile [output] [--rows N]");
     Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N] [--affinity mask]");
     Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
-    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N] [--affinity mask] [--priority High]");
+    Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--include-legacy-epplus] [--warmup N] [--iterations N] [--affinity mask] [--priority High]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
     Console.WriteLine("  --profile-datareader-write-officeimo [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-native-generated-write [xlsb|xls] [iterations] (.NET 10)");
@@ -671,11 +668,11 @@ static void WriteUsage() {
     Console.WriteLine("  --compare-datatable-execution-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-markpflug65k-xls-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-markpflug65k-xlsb-paired [iterations] [affinity-mask] [priority]");
-    Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
-    Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N] [--affinity mask] [--priority Normal]");
+    Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--include-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
+    Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--include-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N] [--affinity mask] [--priority Normal]");
     Console.WriteLine();
     Console.WriteLine("Example:");
-    Console.WriteLine("  compare .tmp\\officeimo.excel.library-comparison.json --rows 25000 --scenario write-dataset-tables --skip-legacy-epplus");
+    Console.WriteLine("  compare .tmp\\officeimo.excel.library-comparison.json --rows 25000 --scenario write-dataset-tables");
 }
 
 static bool IsCommand(string[] args, params string[] names)
@@ -919,8 +916,6 @@ static bool OptionConsumesValue(string option)
        || string.Equals(option, "--out-dir", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--output-dir", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--directory", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(option, "--website-data", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(option, "--website-benchmarks", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--scenario", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--scenarios", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--library", StringComparison.OrdinalIgnoreCase)

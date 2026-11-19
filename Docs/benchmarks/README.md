@@ -537,7 +537,7 @@ set and the output contract each library must satisfy.
 
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.Word.Benchmarks -- validate
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0 -AcceptNPOIOSMFLicense
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0
 ```
 
 The public repository keeps the benchmark code, inputs, validators, workload
@@ -563,9 +563,8 @@ benchmark publication and is not the reason results stay local.
 - `officeimo.excel.datareader-table-2026-08-10.md`: dual-CPU evidence for package-native streaming `IDataReader` table writes, including the equivalent-contract validation policy.
 - `comparison-current\officeimo.excel.comparison-suite-manifest.json`: release-style suite manifest.
 - `comparison-current\officeimo.excel.comparison-summary.md|csv|json`: one-table decision summary with speed, allocation, and package-size ratios.
-- `readme-current\officeimo.csv.comparison.json|officeimo.excel.comparison.json`: compact, PSPublishModule-compatible selections that generate the benchmark README tables.
+- `readme-current\officeimo.csv.comparison.json|officeimo.excel.comparison.json`: compact selections from the 2026-09-28 runs that the dated CSV and Excel reports reference.
 - `officeimo.excel.comparison-report.md`: generated website/blog-oriented report distilled from comparison data.
-- `Website\data\benchmarks-excel.json|benchmarks-excel-summary.json|benchmarks-excel-index.json`: generated website-facing benchmark data.
 
 ## Generate artifacts
 
@@ -573,27 +572,18 @@ benchmark publication and is not the reason results stay local.
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --snapshot .\Docs\benchmarks\officeimo.excel.snapshot-YYYY-MM-DD.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-write .\Docs\benchmarks\officeimo.excel.write-profile-YYYY-MM-DD.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --profile-read .\Docs\benchmarks\officeimo.excel.read-profile-YYYY-MM-DD.json
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --skip-legacy-epplus --warmup 20 --iterations 9
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 20 --iterations 9
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --rows 2500 --warmup 1 --iterations 3 --out .\Docs\benchmarks\officeimo.excel.npoi-comparison-current.json
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks.NPOI\OfficeIMO.Excel.Benchmarks.NPOI.csproj -- --paired-xls-write --rows 25000 --warmup 12 --iterations 40 --affinity 0xFFFF --priority High
 ```
 
-After a suite run, generate the website/blog data layer:
+These artifacts are local engineering evidence and are not shown on the website.
+The website and the README result blocks show only published runs from the
+[benchmark evidence catalog](../../Website/static/data/benchmarks/evidence/index.json),
+measured with `Build/Run-LibraryComparisonBenchmarks.ps1` (see
+[library comparison evidence](../../Build/LibraryComparisonBenchmarks.md)). Refresh
+the CSV and Excel README blocks from the catalog with:
 
 ```powershell
-.\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -SummaryPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-summary.json -ManifestPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-suite-manifest.json -RunMode quick
+.\Build\Benchmarks\Update-BenchmarkReadmes.ps1
 ```
-
-Refresh the marker-delimited CSV and Excel benchmark README tables through
-PSPublishModule:
-
-```powershell
-.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run All
-```
-
-Use `-Run Csv` or `-Run Excel` when only one snapshot needs refreshing. With no
-`-Run` value, the script simply regenerates the tables from the committed
-compact JSON. The focused benchmarks run locally and are not scheduled in CI.
-PSPublishModule owns generic Markdown replacement;
-the repository script owns only benchmark invocation and OfficeIMO-specific row
-selection. Generated comparison JSON is committed while raw output is ignored.

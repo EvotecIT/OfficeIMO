@@ -142,7 +142,7 @@ namespace OfficeIMO.Excel {
                 "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"/>";
         }
 
-        private static string CreateCorePropertiesXml(SpreadsheetDocument document) {
+        internal static string CreateCorePropertiesXml(SpreadsheetDocument document) {
             var properties = document.PackageProperties;
             var builder = new System.Text.StringBuilder(512);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");

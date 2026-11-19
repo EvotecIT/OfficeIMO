@@ -21,6 +21,12 @@ internal static class Program {
 
         string library = args[0];
         string lane = args[1];
+        // EPPlus is a restricted library in Build/benchmark-libraries.json; it runs only when enabled, so a disabled
+        // lane is skipped before its workbook is read.
+        if (library == "epplus" && !OfficeIMO.Benchmarks.BenchmarkLibrarySelection.IsEnabled(library)) {
+            Console.WriteLine($"{library} {lane}: {OfficeIMO.Benchmarks.BenchmarkLibrarySelection.SkippedMessage(library)}");
+            return 0;
+        }
         byte[]? input = args.Length > 3 ? File.ReadAllBytes(args[3]) : null;
         if ((lane is "preserve" or "recalc") && input == null) {
             Console.Error.WriteLine(lane + " needs a workbook path.");

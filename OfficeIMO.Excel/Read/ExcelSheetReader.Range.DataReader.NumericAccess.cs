@@ -258,8 +258,8 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                value = _owner.FromExcelSerialDate(number, (encodedKind & CalendarStyleCellKindFlag) != 0);
-                return true;
+                // A serial without a DateTime (Excel shows ####) is not a date value.
+                return _owner.TryFromExcelSerialDate(number, (encodedKind & CalendarStyleCellKindFlag) != 0, out value);
             }
 
             /// <summary>

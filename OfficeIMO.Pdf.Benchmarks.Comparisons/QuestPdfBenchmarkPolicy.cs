@@ -34,8 +34,15 @@ internal static class QuestPdfBenchmarkPolicy {
     internal static string ConfiguredLicenseUrl =>
         $"https://github.com/QuestPDF/QuestPDF/blob/{ConfiguredPackageVersion}/LICENSE.md";
 
+    // The pinned release keeps its reviewed Community default. Any other release runs only with the licence type
+    // the caller supplies; the benchmark never chooses one on their behalf.
     internal static string ConfiguredLicenseType =>
-        Environment.GetEnvironmentVariable("OFFICEIMO_QUESTPDF_LICENSE_TYPE") ?? nameof(LicenseType.Community);
+        Environment.GetEnvironmentVariable("OFFICEIMO_QUESTPDF_LICENSE_TYPE") is { Length: > 0 } configured
+            ? configured
+            : string.Equals(ConfiguredPackageVersion, PackageVersion, StringComparison.Ordinal)
+                ? nameof(LicenseType.Community)
+                : throw new InvalidOperationException(
+                    $"QuestPDF {ConfiguredPackageVersion} needs your licence type in OFFICEIMO_QUESTPDF_LICENSE_TYPE.");
 
     internal static void ConfigureLicense() {
         string configuredVersion = ConfiguredPackageVersion;

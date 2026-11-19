@@ -50,10 +50,12 @@ public class PdfReadBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
     public PdfReadObservation OnePdf() => OnePdfComparisonEngines.Read(_pdf);
 
     /// <summary>OnePDF's default whole-document extraction, which reads up to four pages at once.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
     public PdfReadObservation OnePdfParallel() => OnePdfComparisonEngines.ReadParallel(_pdf);
 
 #endif

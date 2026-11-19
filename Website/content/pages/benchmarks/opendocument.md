@@ -1,6 +1,6 @@
 ---
 title: "OpenDocument benchmarks"
-description: "OpenDocument performance compared with other .NET libraries on Windows, Linux and macOS: oDS spreadsheet reading and writing."
+description: "OpenDocument benchmarks comparing OfficeIMO with other .NET libraries on ODS spreadsheet creation and reading, with separate Windows, Linux and macOS runs."
 meta.seo_title: "OpenDocument benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true
