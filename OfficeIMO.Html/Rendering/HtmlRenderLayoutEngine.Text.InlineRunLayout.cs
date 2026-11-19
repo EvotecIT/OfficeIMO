@@ -46,7 +46,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ICollection<InlineLine> lineAdmission = maximumLines.HasValue
             ? new InlineLineCollection(lines, maximumLines.Value, retainPreparedTokenClusters) : lines;
         var line = new InlineLine();
-        if (skipLogicalCharacters == 0) line.Indent(paragraphStyle.TextIndent?.Resolve(width) ?? 0D, paragraphStyle.Direction == "rtl");
+        // Balancing admits lines at a narrower candidate width, but the block keeps its own width:
+        // percentages, leaders and overflow resolve against it, as paint does.
+        double boxWidth = renderWidth ?? width;
+        if (skipLogicalCharacters == 0) line.Indent(paragraphStyle.TextIndent?.Resolve(boxWidth) ?? 0D, paragraphStyle.Direction == "rtl");
         bool previousWasCollapsibleSpace = false;
         int noWrapRangeStart = -1;
         int noWrapStrutStart = 0;
@@ -310,7 +313,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             admittedLines(lines.Count);
             return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
         }
-        ExpandLeaderSegments(lines, width);
+        ExpandLeaderSegments(lines, boxWidth);
         int completeLogicalProgress = lines
             .SelectMany(candidate => candidate.Segments)
             .Select(segment => segment.LogicalEndProgress)
@@ -318,21 +321,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .Max();
         if (paragraphStyle.LineClamp.HasValue && lines.Count > paragraphStyle.LineClamp.Value) {
             lines.RemoveRange(paragraphStyle.LineClamp.Value, lines.Count - paragraphStyle.LineClamp.Value);
-            ApplyEndEllipsis(lines[lines.Count - 1], width, completeLogicalProgress);
+            ApplyEndEllipsis(lines[lines.Count - 1], boxWidth, completeLogicalProgress);
         } else if (paragraphStyle.TextOverflow == "ellipsis"
             && paragraphStyle.OverflowX != "visible") {
             foreach (InlineLine overflowingLine in lines.Where(candidate =>
-                         candidate.Width > candidate.ResolveAvailableWidth(width) + 0.0001D)) {
+                         candidate.Width > candidate.ResolveAvailableWidth(boxWidth) + 0.0001D)) {
                 int lineLogicalProgress = overflowingLine.Segments
                     .Select(segment => segment.LogicalEndProgress)
                     .DefaultIfEmpty(completeLogicalProgress)
                     .Max();
-                ApplyEndEllipsis(overflowingLine, width, lineLogicalProgress);
+                ApplyEndEllipsis(overflowingLine, boxWidth, lineLogicalProgress);
             }
         }
         return RenderInlineLines(
             lines,
-            renderWidth ?? width,
+            boxWidth,
             paragraphStyle,
             formattingContainer,
             supportsContinuationReflow: supportsContinuationReflow,

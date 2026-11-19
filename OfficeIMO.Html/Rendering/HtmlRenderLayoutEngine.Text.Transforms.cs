@@ -42,7 +42,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             IReadOnlyList<string> transformed = ApplyTextTransformSegments(
-                textRuns.Select(static run => run.Text).ToArray(), first.Style, applySmallCaps: false);
+                textRuns.Select(static run => run.Text).ToArray(), first.Style, applySmallCaps: false,
+                segmentStyles: textRuns.Select(static run => run.Style).ToArray());
             for (int index = 0; index < textRuns.Count; index++) {
                 textRuns[index].CompleteTextTransform(transformed[index]);
             }
@@ -216,7 +217,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static IReadOnlyList<string> ApplyTextTransformSegments(
         IReadOnlyList<string> segments,
         HtmlRenderBoxStyle style,
-        bool applySmallCaps = true) {
+        bool applySmallCaps = true,
+        IReadOnlyList<HtmlRenderBoxStyle>? segmentStyles = null) {
         CultureInfo culture = ResolveTextTransformCulture(style.Language);
         // text-transform combines one case keyword with full-width and full-size-kana.
         OfficeTextCase textCase = OfficeTextCase.None;
@@ -236,9 +238,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (fullWidth || fullSizeKana) {
             // Layout collapses, trims and breaks lines at ASCII spaces after this transform, so a
             // space becomes an ideographic space only where it does none of that: white space
-            // that is preserved and does not wrap.
-            bool fullWidthSpaces = style.PreserveWhitespace && !style.BreakSpaces && style.PreventTextWrapping;
-            transformed = transformed.Select(segment => HtmlTextWidthTransform.Apply(segment, fullWidth, fullSizeKana, fullWidthSpaces)).ToArray();
+            // that is preserved and does not wrap. Casing context spans the runs; white space is each run's own.
+            transformed = transformed.Select((segment, index) => {
+                HtmlRenderBoxStyle owner = segmentStyles != null && index < segmentStyles.Count ? segmentStyles[index] : style;
+                bool fullWidthSpaces = owner.PreserveWhitespace && !owner.BreakSpaces && owner.PreventTextWrapping;
+                return HtmlTextWidthTransform.Apply(segment, fullWidth, fullSizeKana, fullWidthSpaces);
+            }).ToArray();
         }
         return applySmallCaps && style.ApproximateSmallCaps
             ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)

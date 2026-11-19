@@ -16,7 +16,7 @@ internal static class OfficeFontFaceCssParser {
         }
         // CSS weights are numbers from 1 to 1000; faces are matched on whole weights.
         if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
-            || number < 1D || number > 1000D) return false;
+            || !(number >= 1D && number <= 1000D)) return false; // also rejects NaN
         weight = (int)Math.Round(number, MidpointRounding.AwayFromZero);
         return true;
     }
@@ -55,7 +55,8 @@ internal static class OfficeFontFaceCssParser {
         if (parts.Length == 0 || parts[0] != "oblique" || parts.Length > 2) return false;
         slant = OfficeFontSlant.Oblique; angle = 14D;
         if (parts.Length == 1) return true;
-        return TryAngleDegrees(parts[1], out angle) && angle >= -90D && angle <= 90D;
+        // A right-angle skew has no finite shear, so the bounds are exclusive; this also rejects NaN.
+        return TryAngleDegrees(parts[1], out angle) && angle > -90D && angle < 90D;
     }
 
     // CSS <angle> in deg, grad, rad or turn, in degrees.

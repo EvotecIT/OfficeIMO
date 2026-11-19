@@ -8,17 +8,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// against the line edges and extend the line away from that edge when they are taller.
     /// </summary>
     private sealed class AlignedInlineLine {
-        internal AlignedInlineLine(double height, double baseline, bool normalMetrics, Dictionary<HtmlInlineRun, double> atomicTops) {
+        internal AlignedInlineLine(double height, double baseline, bool normalMetrics, Dictionary<HtmlInlineRun, double> atomicTops,
+            Dictionary<object, (double Ascent, double Descent)> lineRelativeGroups) {
             Height = height;
             Baseline = baseline;
             NormalMetrics = normalMetrics;
             AtomicTops = atomicTops;
+            LineRelativeGroups = lineRelativeGroups;
         }
 
         internal double Height { get; }
         internal double Baseline { get; }
         internal bool NormalMetrics { get; }
         internal Dictionary<HtmlInlineRun, double> AtomicTops { get; }
+        // Ascent and descent of each top- or bottom-aligned subtree around its own baseline.
+        internal Dictionary<object, (double Ascent, double Descent)> LineRelativeGroups { get; }
     }
 
     private AlignedInlineLine? ResolveAlignedInlineLine(InlineLine line, HtmlRenderBoxStyle paragraphStyle) {
@@ -28,11 +32,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double ascent = strut.Baseline;
         double descent = strut.Height - strut.Baseline;
         double topHeight = 0D, bottomHeight = 0D;
+        var groups = new Dictionary<object, (double Ascent, double Descent)>();
+        var topGroups = new HashSet<object>();
         var atomicTops = new Dictionary<HtmlInlineRun, double>();
         var lineRelativeAtomics = new List<HtmlInlineRun>();
 
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
+            foreach (HtmlRenderBoxStyle strutStyle in run.InlineStrutStyles) AddInlineBox(string.Empty, strutStyle);
             if (!InlineLine.ContributesFlowContent(run)) continue;
             HtmlRenderFlowBlock? atomic = run.AtomicBlock;
             if (atomic != null) {
@@ -52,19 +59,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (segment.Text.Length == 0) continue;
-            HtmlRenderBoxStyle style = run.Style;
-            InlineTextLineMetrics metrics = ResolveInlineSharedTextMetrics(segment.Text, style, true, normalMetrics);
-            if (style.LineRelativeAlign == "top") {
-                topHeight = Math.Max(topHeight, metrics.Height);
-            } else if (style.LineRelativeAlign == "bottom") {
-                bottomHeight = Math.Max(bottomHeight, metrics.Height);
-            } else {
-                double shift = style.BaselineOffset - paragraphStyle.BaselineOffset;
-                ascent = Math.Max(ascent, metrics.Baseline - shift);
-                descent = Math.Max(descent, metrics.Height - metrics.Baseline + shift);
-            }
+            AddInlineBox(segment.Text, run.Style);
         }
+        // Empty inline elements still contribute their line-height, as CSS 2.1 section 10.8 requires.
+        foreach (HtmlRenderBoxStyle strutStyle in line.EmptyInlineStrutStyles) AddInlineBox(string.Empty, strutStyle);
 
+        foreach (KeyValuePair<object, (double Ascent, double Descent)> group in groups) {
+            double groupHeight = group.Value.Ascent + group.Value.Descent;
+            if (IsTopGroup(group.Key)) topHeight = Math.Max(topHeight, groupHeight);
+            else bottomHeight = Math.Max(bottomHeight, groupHeight);
+        }
         if (topHeight > ascent + descent) descent = topHeight - ascent;
         if (bottomHeight > ascent + descent) ascent = bottomHeight - descent;
         double height = Math.Max(0.01D, ascent + descent);
@@ -74,7 +78,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ? -ascent
                 : descent - run.AtomicBlock!.Height;
         }
-        return new AlignedInlineLine(height, ascent, normalMetrics, atomicTops);
+        return new AlignedInlineLine(height, ascent, normalMetrics, atomicTops, groups);
+
+        bool IsTopGroup(object key) => topGroups.Contains(key);
+
+        void AddInlineBox(string text, HtmlRenderBoxStyle style) {
+            InlineTextLineMetrics metrics = ResolveInlineSharedTextMetrics(text, style, true, normalMetrics);
+            if (style.LineRelativeAlign.Length > 0) {
+                // The subtree keeps its baselines: each box extends the group around the group's baseline.
+                object key = LineRelativeGroupKey(style);
+                double relative = style.BaselineOffset - LineRelativeGroupOffset(style);
+                if (style.LineRelativeAlign == "top") topGroups.Add(key);
+                groups.TryGetValue(key, out (double Ascent, double Descent) extent);
+                groups[key] = (Math.Max(extent.Ascent, metrics.Baseline - relative),
+                    Math.Max(extent.Descent, metrics.Height - metrics.Baseline + relative));
+            } else {
+                double shift = style.BaselineOffset - paragraphStyle.BaselineOffset;
+                ascent = Math.Max(ascent, metrics.Baseline - shift);
+                descent = Math.Max(descent, metrics.Height - metrics.Baseline + shift);
+            }
+        }
     }
 
     private static bool RequiresAlignedInlineLine(InlineLine line) {
@@ -97,7 +120,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height, double atomicBaseline) {
         HtmlRenderBoxStyle style = run.Style;
         double inherited = style.BaselineOffset - style.VerticalAlignShift - paragraphStyle.BaselineOffset;
-        double parentFontSize = style.VerticalAlignParentFontSize > 0D ? style.VerticalAlignParentFontSize : paragraphStyle.Font.Size;
+        double parentFontSize = double.IsNaN(style.VerticalAlignParentFontSize) ? paragraphStyle.Font.Size : style.VerticalAlignParentFontSize;
         return style.TableVerticalAlignment switch {
             "middle" => inherited + atomicBaseline - height / 2D - parentFontSize * 0.25D,
             "text-top" => inherited + atomicBaseline - parentFontSize * 0.8D,
@@ -110,11 +133,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double ResolveAlignedTextBaseline(AlignedInlineLine aligned, InlineSegment segment) {
         HtmlRenderBoxStyle style = segment.Run.Style;
         if (style.LineRelativeAlign.Length == 0) return aligned.Baseline;
-        InlineTextLineMetrics metrics = ResolveInlineSharedTextMetrics(segment.Text, style, true, aligned.NormalMetrics);
-        double baseline = style.LineRelativeAlign == "top"
-            ? metrics.Baseline
-            : aligned.Height - (metrics.Height - metrics.Baseline);
-        // Line-relative boxes ignore inherited baseline shifts, which paint would add back.
-        return baseline - style.BaselineOffset;
+        if (!aligned.LineRelativeGroups.TryGetValue(LineRelativeGroupKey(style), out (double Ascent, double Descent) group)) {
+            InlineTextLineMetrics metrics = ResolveInlineSharedTextMetrics(segment.Text, style, true, aligned.NormalMetrics);
+            group = (metrics.Baseline, metrics.Height - metrics.Baseline);
+        }
+        double groupBaseline = style.LineRelativeAlign == "top" ? group.Ascent : aligned.Height - group.Descent;
+        // Paint adds the segment's own BaselineOffset back, which places it relative to the group's baseline.
+        return groupBaseline - LineRelativeGroupOffset(style);
     }
+
+    // Styles without a recorded group, such as synthetic ones, form a group of their own.
+    private static object LineRelativeGroupKey(HtmlRenderBoxStyle style) => style.LineRelativeAlignRoot ?? style;
+
+    private static double LineRelativeGroupOffset(HtmlRenderBoxStyle style) =>
+        style.LineRelativeAlignRoot != null ? style.LineRelativeAlignOffset : style.BaselineOffset;
 }

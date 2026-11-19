@@ -41,12 +41,28 @@ internal static class HtmlTextWidthTransform {
             case '⦅': return '｟';
             case '⦆': return '｠';
         }
-        if (value >= '｡' && value <= 'ￜ' || value >= '￨' && value <= '￮') {
-            string normalized = value.ToString().Normalize(NormalizationForm.FormKC);
-            if (normalized.Length == 1) return normalized[0];
-        }
+        // The <narrow> mappings themselves: compatibility normalization would continue past them,
+        // turning compatibility jamo such as U+3131 into conjoining jamo.
+        if (value >= '\uFF61' && value <= '\uFF9F') return HalfwidthKatakana[value - 0xFF61];
+        if (value == '\uFFA0') return '\u3164';
+        if (value >= '\uFFA1' && value <= '\uFFBE') return (char)(value - 0xFFA1 + 0x3131);
+        if (value >= '\uFFC2' && value <= '\uFFC7') return (char)(value - 0xFFC2 + 0x314F);
+        if (value >= '\uFFCA' && value <= '\uFFCF') return (char)(value - 0xFFCA + 0x3155);
+        if (value >= '\uFFD2' && value <= '\uFFD7') return (char)(value - 0xFFD2 + 0x315B);
+        if (value >= '\uFFDA' && value <= '\uFFDC') return (char)(value - 0xFFDA + 0x3161);
+        if (value >= '\uFFE8' && value <= '\uFFEE') return HalfwidthSymbols[value - 0xFFE8];
         return value;
     }
+
+    // U+FF61 to U+FF9F: halfwidth CJK punctuation, katakana and sound marks.
+    private const string HalfwidthKatakana =
+        "\u3002\u300C\u300D\u3001\u30FB\u30F2\u30A1\u30A3\u30A5\u30A7\u30A9\u30E3\u30E5\u30E7\u30C3\u30FC"
+        + "\u30A2\u30A4\u30A6\u30A8\u30AA\u30AB\u30AD\u30AF\u30B1\u30B3\u30B5\u30B7\u30B9\u30BB\u30BD\u30BF"
+        + "\u30C1\u30C4\u30C6\u30C8\u30CA\u30CB\u30CC\u30CD\u30CE\u30CF\u30D2\u30D5\u30D8\u30DB\u30DE\u30DF"
+        + "\u30E0\u30E1\u30E2\u30E4\u30E6\u30E8\u30E9\u30EA\u30EB\u30EC\u30ED\u30EF\u30F3\u3099\u309A";
+
+    // U+FFE8 to U+FFEE: halfwidth forms light vertical, arrows, black square and white circle.
+    private const string HalfwidthSymbols = "\u2502\u2190\u2191\u2192\u2193\u25A0\u25CB";
 
     // Small kana and their full-size counterparts in the Basic Multilingual Plane.
     private static char ToFullSizeKana(char value) => value switch {

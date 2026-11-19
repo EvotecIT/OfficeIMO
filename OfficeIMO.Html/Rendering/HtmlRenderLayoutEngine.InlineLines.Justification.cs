@@ -38,8 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var opportunities = new List<JustificationUnit>();
             for (int index = 0; index < units.Count - 1; index++) {
                 if (IsJustificationOpportunity(units[index], units[index + 1],
-                    // text-justify applies to text, so each run's own value decides its gaps.
-                    line.Segments[units[index].SegmentIndex].Run.Style.TextJustifyMode)) opportunities.Add(units[index]);
+                    ResolveGapTextJustifyMode(line, units[index], units[index + 1], paragraphStyle))) opportunities.Add(units[index]);
             }
             if (opportunities.Count == 0) continue;
 
@@ -59,6 +58,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private enum JustificationLimit {
         None = 0,
         RightToLeftWithInlineBoxes = 1
+    }
+
+    // text-justify applies to text: a gap inside one element's text uses its value, and a gap between
+    // two elements' text uses the value of their nearest common ancestor.
+    private static string ResolveGapTextJustifyMode(InlineLine line, JustificationUnit unit, JustificationUnit next,
+        HtmlRenderBoxStyle paragraphStyle) {
+        HtmlInlineRun run = line.Segments[unit.SegmentIndex].Run;
+        HtmlInlineRun nextRun = line.Segments[next.SegmentIndex].Run;
+        if (ReferenceEquals(run, nextRun) || ReferenceEquals(run.OwnerElement, nextRun.OwnerElement)) return run.Style.TextJustifyMode;
+        AngleSharp.Dom.IElement? ancestor = NearestCommonAncestor(run.OwnerElement, nextRun.OwnerElement);
+        if (ancestor == null) return paragraphStyle.TextJustifyMode;
+        if (ReferenceEquals(ancestor, run.OwnerElement)) return run.Style.TextJustifyMode;
+        if (ReferenceEquals(ancestor, nextRun.OwnerElement)) return nextRun.Style.TextJustifyMode;
+        foreach (InlineSegment segment in line.Segments) {
+            if (ReferenceEquals(segment.Run.OwnerElement, ancestor)) return segment.Run.Style.TextJustifyMode;
+        }
+        return paragraphStyle.TextJustifyMode;
+    }
+
+    private static AngleSharp.Dom.IElement? NearestCommonAncestor(AngleSharp.Dom.IElement? left, AngleSharp.Dom.IElement? right) {
+        if (left == null || right == null) return null;
+        var ancestors = new HashSet<AngleSharp.Dom.IElement>();
+        for (AngleSharp.Dom.IElement? current = left; current != null; current = current.ParentElement) ancestors.Add(current);
+        for (AngleSharp.Dom.IElement? current = right; current != null; current = current.ParentElement) {
+            if (ancestors.Contains(current)) return current;
+        }
+        return null;
     }
 
     // text-justify applies to the text it is set on, so text with none is not justified and loses nothing.

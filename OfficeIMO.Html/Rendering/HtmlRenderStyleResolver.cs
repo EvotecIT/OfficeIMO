@@ -286,8 +286,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             : 0D;
         string lineRelativeAlign = !inlineLevel ? string.Empty
             : verticalAlign is "top" or "bottom" ? verticalAlign
-            : verticalAlign == "baseline" && display == "inline" ? parent?.LineRelativeAlign ?? string.Empty
+            : display == "inline" ? parent?.LineRelativeAlign ?? string.Empty
             : string.Empty;
+        // A top or bottom box starts a group; inline descendants stay in it.
+        bool startsLineRelativeGroup = inlineLevel && verticalAlign is "top" or "bottom";
         OfficeColor color = defaultLink && !HasAuthoredValue(computed, "color")
             ? OfficeColor.FromRgb(0, 0, 238)
             : computed.IsImplicitlyInheritedValue("color") && parent != null
@@ -344,6 +346,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             VerticalAlignShift = keywordShift,
             VerticalAlignParentFontSize = parent?.Font.Size ?? fontSize,
             LineRelativeAlign = lineRelativeAlign,
+            LineRelativeAlignRoot = lineRelativeAlign.Length == 0 ? null : startsLineRelativeGroup ? element : parent?.LineRelativeAlignRoot,
+            LineRelativeAlignOffset = startsLineRelativeGroup ? baselineOffset + keywordShift : parent?.LineRelativeAlignOffset ?? 0D,
             Color = color,
             DecorationColor = propagatedUnderline && !ownsUnderline
                 ? parent!.DecorationColor
@@ -361,8 +365,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             LineHeight = lineHeight,
             UsesNaturalLineHeight = usesNaturalLineHeight,
             InlineAlignmentLineHeight = alignmentLineHeight,
-            LetterSpacing = computed.IsInheritedValue("letter-spacing") && parent != null ? parent.LetterSpacing : ResolveTextSpacing(computed.GetValue("letter-spacing"), fontSize, parent?.LetterSpacing ?? 0D),
-            WordSpacing = computed.IsInheritedValue("word-spacing") && parent != null ? parent.WordSpacing : ResolveTextSpacing(computed.GetValue("word-spacing"), fontSize, parent?.WordSpacing ?? 0D),
+            LetterSpacing = ResolveInheritableTextSpacing(computed, "letter-spacing", fontSize, parent?.LetterSpacing),
+            WordSpacing = ResolveInheritableTextSpacing(computed, "word-spacing", fontSize, parent?.WordSpacing),
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = whiteSpaceCollapse is "preserve" or "break-spaces" or "preserve-spaces",
             PreserveLineBreaks = whiteSpaceCollapse == "preserve-breaks",
@@ -635,6 +639,21 @@ internal sealed partial class HtmlRenderStyleResolver {
         }
         size = 8D;
         isLength = false;
+    }
+
+    // A percentage inherits as a percentage and resolves against each element's own font size;
+    // other lengths inherit as the parent's resolved value.
+    private double ResolveInheritableTextSpacing(HtmlComputedStyle computed, string property, double fontSize, double? parentValue) {
+        string value = computed.GetValue(property);
+        if (parentValue.HasValue && computed.IsInheritedValue(property) && !IsTextSpacingPercentage(value)) return parentValue.Value;
+        return ResolveTextSpacing(value, fontSize, parentValue ?? 0D);
+    }
+
+    private static bool IsTextSpacingPercentage(string value) {
+        string trimmed = value.Trim();
+        return trimmed.Length > 1 && trimmed[trimmed.Length - 1] == '%'
+            && double.TryParse(trimmed.Substring(0, trimmed.Length - 1), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out _);
     }
 
     private double ResolveTextSpacing(string value, double fontSize, double inherited) {
@@ -1084,13 +1103,21 @@ internal sealed partial class HtmlRenderStyleResolver {
         out string collapse, out string wrapMode, out string wrapStyle) {
         string whiteSpace = computed.GetValue("white-space").Trim().ToLowerInvariant();
         string? shorthandCollapse = null, shorthandMode = null;
-        if (whiteSpace.Length > 0 && HtmlComputedStyleEngine.TryExpandWhiteSpace(whiteSpace, out string expandedCollapse, out string expandedMode)) {
+        string parentMode = parent == null ? "wrap" : parent.PreventTextWrapping ? "nowrap" : "wrap";
+        if (IsExplicitInheritance(computed, "white-space", whiteSpace)) {
+            // An explicit inherit sets every longhand it covers to the parent's resolved value.
+            shorthandCollapse = parent?.WhiteSpaceCollapse ?? "collapse";
+            shorthandMode = parentMode;
+        } else if (whiteSpace.Length > 0 && HtmlComputedStyleEngine.TryExpandWhiteSpace(whiteSpace, out string expandedCollapse, out string expandedMode)) {
             shorthandCollapse = expandedCollapse;
             shorthandMode = expandedMode;
         }
         string textWrap = computed.GetValue("text-wrap").Trim().ToLowerInvariant();
         string? textWrapMode = null, textWrapStyle = null;
-        if (textWrap.Length > 0 && HtmlComputedStyleEngine.TryExpandTextWrap(textWrap, out string expandedWrapMode, out string expandedWrapStyle)) {
+        if (IsExplicitInheritance(computed, "text-wrap", textWrap)) {
+            textWrapMode = parentMode;
+            textWrapStyle = parent?.TextWrapStyle ?? "auto";
+        } else if (textWrap.Length > 0 && HtmlComputedStyleEngine.TryExpandTextWrap(textWrap, out string expandedWrapMode, out string expandedWrapStyle)) {
             textWrapMode = expandedWrapMode;
             textWrapStyle = expandedWrapStyle;
         }
@@ -1101,6 +1128,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         wrapStyle = PickCascadeWinner(computed, parent?.TextWrapStyle, "auto",
             ("text-wrap", textWrapStyle), ("text-wrap-style", computed.GetValue("text-wrap-style")));
     }
+
+    private static bool IsExplicitInheritance(HtmlComputedStyle computed, string property, string value) =>
+        value is "inherit" or "unset"
+        || computed.IsInheritedValue(property) && !computed.IsImplicitlyInheritedValue(property);
 
     private static bool IsBlockFlowContainer(string display) =>
         display is "block" or "flow-root" or "list-item" or "inline-block" or "table-cell" or "table-caption";
@@ -1115,6 +1146,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             // initial resets every longhand the declaration sets to its initial value.
             if (normalized.Length == 0 && computed.IsResetValue(property)) normalized = fallback;
             if (normalized.Length == 0) continue;
+            if (normalized is "inherit" or "unset") normalized = parentValue ?? fallback;
             bool inherited = computed.IsImplicitlyInheritedValue(property);
             // With a parent, an inherited value is the parent's resolved part rather than its raw
             // declaration, which may have lost to a competing shorthand or longhand there.
@@ -1127,7 +1159,7 @@ internal sealed partial class HtmlRenderStyleResolver {
                 ? found : null;
             bool wins = winner == null
                 || inherited != winnerInherited ? !inherited || winner == null
-                : priority.HasValue && winnerPriority.HasValue ? priority.Value.OutranksOrEquals(winnerPriority.Value)
+                : priority.HasValue && winnerPriority.HasValue ? priority.Value.OutranksOrEqualsAsDeclaration(winnerPriority.Value)
                 : true;
             if (!wins) continue;
             winner = normalized;

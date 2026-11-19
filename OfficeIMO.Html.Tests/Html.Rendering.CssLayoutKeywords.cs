@@ -55,6 +55,26 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_AlignsAgainstAZeroSizedParentFont() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='margin:0;font-size:16px'>Ab <span style='font-size:0'><span style='display:inline-block;width:20px;height:10px;"
+            + "font-size:16px;background:#ff0000;vertical-align:middle'></span></span></p>", CssLayoutOptions);
+
+        // middle centres the box on the baseline plus half the parent's x-height, which is zero here.
+        Assert.Equal(-5D, VerticalAlignBox(rendered).Y - TextBaseline(rendered, "Ab"), 1);
+    }
+
+    [Fact]
+    public void HtmlRenderer_KeepsBaselinesInsideTopAlignedInlines() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='margin:0;font-size:16px'>x <span style='vertical-align:top;font-size:32px'>A<span style='font-size:8px'>B</span></span>"
+            + " <span style='vertical-align:bottom;font-size:32px'>C<span style='font-size:8px'>D</span></span></p>", CssLayoutOptions);
+
+        Assert.Equal(TextBaseline(rendered, "A"), TextBaseline(rendered, "B"), 1);
+        Assert.Equal(TextBaseline(rendered, "C"), TextBaseline(rendered, "D"), 1);
+    }
+
+    [Fact]
     public void HtmlRenderer_ShiftsInlineTextByVerticalAlignKeywords() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<p style='margin:0;font-size:16px'>Ab <span style='font-size:8px;vertical-align:middle'>mid</span>"
@@ -84,11 +104,14 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.CssPropertyUnsupported);
     }
 
-    [Fact]
-    public void HtmlRenderer_JustifiesLetterSpacedTextBetweenEveryCharacter() {
+    [Theory]
+    [InlineData("")]
+    // Right-to-left text elsewhere in the paragraph sends every segment through bidi resolution.
+    [InlineData(" \u05E9\u05DC\u05D5\u05DD")]
+    public void HtmlRenderer_JustifiesLetterSpacedTextBetweenEveryCharacter(string suffix) {
         double[] FirstWord(string align) {
             HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-                "<p style='" + align + "letter-spacing:1px;width:300px;margin:0'>" + JustifiedText + "</p>", CssLayoutOptions);
+                "<p style='" + align + "letter-spacing:1px;width:300px;margin:0'>" + JustifiedText + suffix + "</p>", CssLayoutOptions);
             return JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
                 .GroupBy(text => Math.Round(text.LayoutY, 1)).OrderBy(group => group.Key).First()
                 .OrderBy(text => text.X).Take(5).Select(text => text.X).ToArray();
@@ -117,6 +140,11 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("full-width;white-space:pre", "ab  12", "ａｂ　　１２")]
     [InlineData("uppercase full-width", "ab", "ＡＢ")]
     [InlineData("full-width", "ｶﾞ", "ガ")]
+    // Each run's own white space decides whether its spaces become ideographic.
+    [InlineData("full-width", "<span style='white-space:pre'>a b</span><span> c   d </span>", "ａ　ｂ ｃ ｄ")]
+    [InlineData("full-width", "<span> c   d </span><span style='white-space:pre'>a b</span>", "ｃ ｄ ａ　ｂ")]
+    // Halfwidth forms map to their direct wide counterparts, here the compatibility jamo.
+    [InlineData("full-width", "\uFFA1\uFFC2", "\u3131\u314F")]
     [InlineData("full-size-kana", "ァィゥッ ｧ", "アイウツ ｱ")]
     public void HtmlRenderer_AppliesWidthAndKanaTextTransforms(string transform, string source, string expected) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
@@ -163,6 +191,8 @@ public sealed partial class HtmlRenderingTests {
     // Children inherit the resolved longhands, not the declaration that lost.
     [InlineData("text-wrap-mode:nowrap;white-space:normal;width:80px", "<span>aaa bbb ccc ddd</span>", new[] { "aaa bbb", "ccc ddd" })]
     [InlineData("white-space-collapse:preserve;white-space:normal", "<span>a   b</span>", new[] { "a b" })]
+    // An explicit inherit of a shorthand takes the parent's longhands and outranks earlier ones.
+    [InlineData("white-space-collapse:preserve", "<span style='white-space-collapse:collapse;white-space:inherit'>a   b</span>", new[] { "a   b" })]
     public void HtmlRenderer_AppliesWhiteSpaceAndTextWrapLonghands(string declarations, string text, string[] expected) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<div style='" + declarations + "'>" + text + "</div>", CssLayoutOptions);
@@ -207,6 +237,112 @@ public sealed partial class HtmlRenderingTests {
             .OfType<HtmlRenderShape>(), shape => shape.Shape.FillColor is OfficeIMO.OfficeColor { R: 0xFF, G: 0, B: 0 });
 
         Assert.Equal(expectedX, box.X, 1);
+    }
+
+    [Fact]
+    public void HtmlRenderer_JustifiesGapsBetweenElementsByTheirCommonAncestor() {
+        const string words = " lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor</p>";
+        HtmlRenderText[] FirstLine(string align) =>
+            JustificationVisuals(HtmlRenderTestDriver.Render("<p style='" + align + "width:200px;margin:0;font-size:16px'>"
+                    + "<span style='text-justify:inter-character'>aa</span><span>aa</span>" + words, CssLayoutOptions)
+                .Pages[0].Visuals).OfType<HtmlRenderText>()
+                .GroupBy(text => Math.Round(text.LayoutY, 1)).OrderBy(group => group.Key).First()
+                .OrderBy(text => text.X).ToArray();
+        HtmlRenderText[] start = FirstLine(string.Empty);
+        HtmlRenderText[] justified = FirstLine("text-align:justify;text-justify:inter-word;");
+        double glyph = (start[1].X - start[0].X) / 2D;
+
+        // The first span widens the gap inside it; the paragraph's inter-word keeps the gap after it.
+        Assert.Equal(new[] { "a", "a", "aa" }, justified.Take(3).Select(text => text.Text));
+        Assert.True(justified[1].X - justified[0].X > glyph + 0.01D, "inner gap " + (justified[1].X - justified[0].X));
+        Assert.Equal(glyph, justified[2].X - justified[1].X, 2);
+    }
+
+    [Fact]
+    public void HtmlRenderer_JustifiesCharactersOfTextAProviderWouldShape() {
+        // keep-all keeps each CJK word in one segment, which a configured provider would shape as one glyph run.
+        const string text = "漢字の文章 単語の間に 空白がない 文字の間で 両端揃えに する必要が あります";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p style=\"font-family:'OfficeIMO Shaping Test';text-align:justify;text-justify:inter-character;word-break:keep-all;width:205px;margin:0\">"
+            + text + "</p>");
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D),
+            TextShapingProvider = new OfficeIMO.TestAssets.ManagedTextShapingTestAssets.RecordingProvider()
+        };
+        options.Fonts.Add(OfficeIMO.TestAssets.ManagedTextShapingTestAssets.FamilyName,
+            OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont(text.Distinct().Select(character => (int)character).ToArray()));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+        HtmlRenderText[] firstLine = JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(item => !string.IsNullOrWhiteSpace(item.Text))
+            .GroupBy(item => Math.Round(item.LayoutY, 1)).OrderBy(group => group.Key).First()
+            .OrderBy(item => item.X).ToArray();
+
+        // Each character is placed with its share up to the right edge, and the dropped provider glyph run is reported.
+        Assert.All(firstLine, item => Assert.Equal(1, item.Text.Length));
+        Assert.Equal(205D, firstLine.Max(item => item.X + (item.TextAdvanceWidth ?? item.Width)), 1);
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
+            && item.Detail == "justified-provider-glyph-context-not-retained");
+    }
+
+    [Fact]
+    public void HtmlRenderer_EmptyInlineLineHeightRaisesLinesWithTopAlignedBoxes() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='margin:0;font-size:16px;line-height:20px'>Ab <span style='line-height:60px'></span>"
+            + "<span style='display:inline-block;width:10px;height:10px;vertical-align:top'></span></p>"
+            + "<div style='height:5px;background:#ff0000'></div>", CssLayoutOptions);
+
+        Assert.True(VerticalAlignBox(rendered).Y >= 59.9D, "line bottom " + VerticalAlignBox(rendered).Y);
+    }
+
+    [Fact]
+    public void HtmlRenderer_BalancedBlocksResolvePercentagesAndLeadersAgainstTheirWidth() {
+        HtmlRenderText[] Visuals(string html) => JustificationVisuals(HtmlRenderTestDriver.Render(html, CssLayoutOptions)
+            .Pages[0].Visuals).OfType<HtmlRenderText>().ToArray();
+
+        HtmlRenderText first = Visuals("<p style='width:200px;text-wrap:balance;text-indent:20%;margin:0'>A<br>B</p>")
+            .Single(text => text.Text == "A");
+        HtmlRenderText label = Visuals("<style>p::after{content:leader('.') 'Z'}</style>"
+            + "<p style='width:200px;text-wrap:balance;margin:0'>A<br>B</p>").Single(text => text.Text == "Z");
+        HtmlRenderText[] clipped = Visuals("<p style='width:200px;text-wrap:balance;overflow:hidden;text-overflow:ellipsis;"
+            + "margin:0;font-size:16px'>A<br>WWWWWWWW</p>");
+
+        Assert.Equal(40D, first.X, 1);
+        Assert.Equal(200D, label.X + (label.TextAdvanceWidth ?? label.Width), 1);
+        Assert.DoesNotContain(clipped, text => text.Text.Contains('…'));
+    }
+
+    [Fact]
+    public void HtmlRenderer_PreserveSpacesTurnsTabsIntoSpaces() {
+        double BoxWidth(string text) => Assert.Single(JustificationVisuals(HtmlRenderTestDriver.Render(
+                "<p style='margin:0;white-space-collapse:preserve-spaces;tab-size:8'><span style='display:inline-block;background:#ff0000'>"
+                + text + "</span></p>", CssLayoutOptions).Pages[0].Visuals).OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillColor is OfficeIMO.OfficeColor { R: 0xFF, G: 0, B: 0 }).Width;
+
+        Assert.Equal(BoxWidth("A B"), BoxWidth("A\tB"), 2);
+    }
+
+    [Theory]
+    [InlineData("letter-spacing")]
+    [InlineData("word-spacing")]
+    public void HtmlRenderer_InheritedPercentageSpacingFollowsTheChildFont(string property) {
+        double[] Positions(string parent, string child) =>
+            JustificationVisuals(HtmlRenderTestDriver.Render("<p style='margin:0;font-size:20px;" + parent + "'><span style='font-size:40px;"
+                    + child + "'>ab cd</span></p>", CssLayoutOptions)
+                .Pages[0].Visuals).OfType<HtmlRenderText>().Select(text => Math.Round(text.X, 3)).ToArray();
+
+        Assert.Equal(Positions(string.Empty, property + ":4px"), Positions(property + ":10%", string.Empty));
+    }
+
+    [Fact]
+    public void HtmlRenderer_GeneratedSegmentBreaksBecomeSpacesBeforeTextTransform() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>p::before{content:'A\\A B'}</style>"
+            + "<p style='margin:0;white-space-collapse:preserve-spaces;text-wrap-mode:nowrap;text-transform:full-width'></p>", CssLayoutOptions);
+
+        Assert.Equal("Ａ　Ｂ", string.Concat(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>().Select(text => text.Text)));
     }
 
     private static HtmlRenderShape VerticalAlignBox(HtmlRenderDocument rendered) =>

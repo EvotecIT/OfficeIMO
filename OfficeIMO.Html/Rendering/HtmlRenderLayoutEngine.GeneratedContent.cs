@@ -227,13 +227,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : source + ":content-" + fragment.Kind.ToString().ToLowerInvariant()
                     + "[" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
             if (fragment.Kind == HtmlGeneratedContentFragmentKind.Text) {
-                string text = ApplyTextTransform(fragment.Value, style);
+                // Segment breaks become spaces before text-transform, as source text does.
+                string text = ApplyTextTransform(style.CollapseSegmentBreaks ? ReplaceSegmentBreaks(fragment.Value) : fragment.Value, style);
                 if (text.Length > 0) {
                     HtmlInlineRun TextRun(string value) => new(value, style, link, fragmentSource, paintOffsetX, paintOffsetY, runOwner) {
                         IsTextTransformContextOnly = contextOnly,
                         SemanticSourceOrder = sourceOrder
                     };
-                    if (style.CollapseSegmentBreaks) text = ReplaceSegmentBreaks(text);
                     if (style.PreserveLineBreaks && !style.PreserveWhitespace && !contextOnly && text.IndexOfAny(SegmentBreakCharacters) >= 0) {
                         // Generated line feeds (content: "A\A B") break pre-line text like source line feeds.
                         AddPreservedLineBreakRuns(text, value => runs.Add(TextRun(value)), () => runs.Add(TextRun("\u2028")));

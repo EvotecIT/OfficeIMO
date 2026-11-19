@@ -193,6 +193,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal double VerticalAlignParentFontSize { get => _text.VerticalAlignParentFontSize; set { if (!(SameValue(_text.VerticalAlignParentFontSize, value))) MutableText().VerticalAlignParentFontSize = value; } }
     // top or bottom from the box's own vertical-align or an inline ancestor's; empty otherwise.
     internal string LineRelativeAlign { get => _text.LineRelativeAlign; set { if (!(string.Equals(_text.LineRelativeAlign, value, StringComparison.Ordinal))) MutableText().LineRelativeAlign = value; } }
+    // The top- or bottom-aligned inline whose subtree is placed against the line edge as one
+    // group, and that box's own BaselineOffset; descendants keep their baselines relative to it.
+    internal object? LineRelativeAlignRoot { get => _text.LineRelativeAlignRoot; set { if (!ReferenceEquals(_text.LineRelativeAlignRoot, value)) MutableText().LineRelativeAlignRoot = value; } }
+    internal double LineRelativeAlignOffset { get => _text.LineRelativeAlignOffset; set { if (!(SameValue(_text.LineRelativeAlignOffset, value))) MutableText().LineRelativeAlignOffset = value; } }
     internal double BaselineOffset { get => _text.BaselineOffset; set { if (!(SameValue(_text.BaselineOffset, value))) MutableText().BaselineOffset = value; } }
     internal HtmlRenderTextIndent? TextIndent { get => _text.TextIndent; set { if (!(ReferenceEquals(_text.TextIndent, value))) MutableText().TextIndent = value; } }
     internal double CharacterAdvance { get => _text.CharacterAdvance; set { if (!(SameValue(_text.CharacterAdvance, value))) MutableText().CharacterAdvance = value; } }
@@ -470,8 +474,11 @@ internal sealed class HtmlRenderBoxStyle {
         internal double BaselineScale = 1D;
         internal double BaselineOffset;
         internal double VerticalAlignShift;
-        internal double VerticalAlignParentFontSize;
+        // NaN for synthetic styles that record no parent; zero is a real font size.
+        internal double VerticalAlignParentFontSize = double.NaN;
         internal string LineRelativeAlign = string.Empty;
+        internal object? LineRelativeAlignRoot;
+        internal double LineRelativeAlignOffset;
         internal HtmlRenderTextIndent? TextIndent;
         internal double CharacterAdvance = double.NaN;
         internal double LetterSpacing;
