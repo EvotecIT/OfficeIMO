@@ -147,6 +147,47 @@ public sealed class ExcelXlsbTableTests {
     }
 
     [Fact]
+    public void Names_and_formulas_for_tables_kept_native_stay_native() {
+        byte[] generated = SaveAsXlsb(CreateXlsx(document => {
+            BuildShape(document.AddSheet("Data"), "TwoTablesOnOneSheet");
+            document.AddSheet("Report").Cell(1, 1).SetFormula("SUM(Sales[Amount])");
+            DefinedNames names = document.WorkbookRoot.DefinedNames ??= new DefinedNames();
+            names.Append(new DefinedName { Name = "SalesTotal", Text = "SUM(Sales[Amount])" });
+        }));
+        // Make the sibling table part unreadable: the worksheet then keeps both of its tables native.
+        byte[] source = ReplaceEntry(generated, "xl/tables/table2.bin", new byte[] { 0xAB, 0x02, 0x03, 0x00 });
+
+        byte[] saved;
+        using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source))) {
+            Assert.Empty(loaded["Data"].GetTables());
+            // A projected name or formula would point at a Sales table the model does not contain.
+            Assert.DoesNotContain(loaded.WorkbookRoot.DefinedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>(),
+                name => name.Name?.Value == "SalesTotal");
+            Assert.True(string.IsNullOrEmpty(loaded["Report"].GetFormulaText(1, 1)));
+            loaded["Report"].Cell(2, 1).SetValue("edited");
+            saved = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+        }
+
+        // The native name and both table parts survive the save unchanged.
+        Assert.Contains(OfficeIMO.Excel.Xlsb.XlsbWorkbookReader.Load(saved).DefinedNames, name => name.Name == "SalesTotal");
+        Assert.Equal(ReadEntry(source, "xl/tables/table1.bin"), ReadEntry(saved, "xl/tables/table1.bin"));
+        Assert.Equal(ReadEntry(source, "xl/tables/table2.bin"), ReadEntry(saved, "xl/tables/table2.bin"));
+    }
+
+    private static byte[] ReplaceEntry(byte[] package, string name, byte[] content) {
+        using var output = new MemoryStream();
+        using (var source = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read))
+        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in source.Entries) {
+                byte[] bytes = entry.FullName == name ? content : ReadEntry(package, entry.FullName);
+                using Stream written = target.CreateEntry(entry.FullName).Open();
+                written.Write(bytes, 0, bytes.Length);
+            }
+        }
+        return output.ToArray();
+    }
+
+    [Fact]
     public void Structured_references_keep_spaces_inside_column_names() {
         byte[] xlsx = CreateXlsx(document => {
             ExcelSheet sheet = document.AddSheet("Data");

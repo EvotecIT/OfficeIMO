@@ -20,14 +20,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         };
 
         // True when the formula calls an _xlfn. function: the prefix starts an identifier outside string literals, quoted
-        // sheet names and brackets, and the identifier is followed by "(", optionally after whitespace. '_xlfn.Data'!A1 names a sheet, not a function.
+        // sheet names and brackets, and the identifier is followed by "(", optionally after whitespace.
+        // '_xlfn.Data'!A1 names a sheet, not a function.
         private static bool ContainsFutureFunction(string formulaText) {
             string scan = MaskQuotedText(formulaText);
-            for (int index = 0; index < scan.Length; index++) {
-                if (scan[index] != '_' || (index > 0 && IsIdentifierCharacter(scan[index - 1]))
-                    || string.Compare(scan, index, FutureFunctionPrefix, 0, FutureFunctionPrefix.Length, StringComparison.OrdinalIgnoreCase) != 0) {
-                    continue;
-                }
+            foreach (int index in IdentifierPrefixPositions(scan, FutureFunctionPrefix)) {
                 int end = index + FutureFunctionPrefix.Length;
                 while (end < scan.Length && IsIdentifierCharacter(scan[end])) end++;
                 // The formula parser accepts whitespace between a function name and its "(".
@@ -48,7 +45,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             string text = formulaText.Trim();
             if (text.StartsWith("=", StringComparison.Ordinal)) text = text.Substring(1).Trim();
-            if (text.IndexOf("_xlpm.", StringComparison.OrdinalIgnoreCase) >= 0) {
+            if (ContainsIdentifierPrefix(text, LambdaParameterPrefix)) {
                 reason = "LAMBDA parameter names are not supported by native XLSB formula generation.";
                 return false;
             }

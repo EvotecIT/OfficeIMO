@@ -55,5 +55,25 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static bool IsIdentifierCharacter(char character) =>
             char.IsLetterOrDigit(character) || character is '_' or '.' or '\\';
+
+        private const string LambdaParameterPrefix = "_xlpm.";
+
+        /// <summary>
+        /// Positions in a masked formula where <paramref name="prefix"/> (such as _xlfn. or _xlpm.) starts an identifier.
+        /// Text inside string literals, quoted sheet names and brackets is already masked, and a prefix inside a longer
+        /// identifier does not count.
+        /// </summary>
+        private static IEnumerable<int> IdentifierPrefixPositions(string scan, string prefix) {
+            for (int index = 0; index <= scan.Length - prefix.Length; index++) {
+                if ((index == 0 || !IsIdentifierCharacter(scan[index - 1]))
+                    && string.Compare(scan, index, prefix, 0, prefix.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                    yield return index;
+                }
+            }
+        }
+
+        /// <summary>True when <paramref name="prefix"/> starts an identifier outside quoted text in <paramref name="formulaText"/>.</summary>
+        private static bool ContainsIdentifierPrefix(string formulaText, string prefix) =>
+            IdentifierPrefixPositions(MaskQuotedText(formulaText), prefix).Any();
     }
 }

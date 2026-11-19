@@ -171,7 +171,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int columns = flags & 0x03;
             byte rowType = (byte)((flags >> 2) & 0x1F);
             bool invalid = (flags & 0x1000) != 0, nonResident = (flags & 0x2000) != 0;
-            if (invalid || nonResident || workbook == null || !workbook.Tables.TryGetValue(listIndex, out XlsbTable? table)) return false;
+            if (invalid || nonResident || workbook == null || !workbook.Tables.TryGetValue(listIndex, out XlsbTable? table) || !table.IsProjected) return false;
             if (columns == 3 || (columns != 0 && (first > last || last >= table.Columns.Count)) || (columns == 1 && first != last)) return false;
 
             string? rows = rowType switch {

@@ -197,6 +197,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
         private static void ReadTables(XlsbPackagePartReader parts, XlsbSheet worksheet, int sheetIndex, XlsbImportOptions options,
             XlsbWorkbook workbook, XlsbRecordReadBudget recordBudget, List<XlsbTablePartReader.PendingFormula> pending) {
+            bool unreadable = false;
             foreach (XlsbPackageRelationship relationship in worksheet.Relationships.Values) {
                 if (!XlsbTablePartReader.IsTableRelationship(relationship)) continue;
                 string partName = XlsbPackagePartReader.ResolveTarget(worksheet.PartName!, relationship.Target);
@@ -213,10 +214,16 @@ namespace OfficeIMO.Excel.Xlsb {
                     // An unreadable table stays in its native part; the worksheet then keeps all of its tables unprojected.
                     workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-table-partial", XlsbImportDiagnosticSeverity.Warning,
                         $"Kept table part '{partName}' native because it could not be decoded: {exception.Message}", partName));
+                    unreadable = true;
                     continue;
                 }
                 workbook.Tables.Add(table.Id, table);
                 worksheet.Tables.Add(relationship.Id, table);
+            }
+            // The worksheet projects its tables only when every table part is readable (XlsbWorksheetTableReader). Decide it
+            // here, before any name or cell formula is decoded, so formulas never name a table the model will not contain.
+            if (unreadable) {
+                foreach (XlsbTable table in worksheet.Tables.Values) table.IsProjected = false;
             }
         }
 

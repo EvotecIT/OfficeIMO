@@ -41,5 +41,11 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         /// <summary>True when the part holds records the projection does not represent (sort state, XML maps, extensions).</summary>
         internal bool HasUnsupportedContent { get; set; }
+
+        /// <summary>
+        /// False when the worksheet keeps its tables native because another of its table parts is unreadable. Formulas that
+        /// name such a table are not decoded either, so no projected name or cell refers to a table missing from the model.
+        /// </summary>
+        internal bool IsProjected { get; set; } = true;
     }
 }

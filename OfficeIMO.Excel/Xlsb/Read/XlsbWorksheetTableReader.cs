@@ -51,6 +51,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     // OfficeIMO states the derived count when it adds tables; project it the same way.
                     _current.Count = actual;
                     if (_unresolved) {
+                        foreach (Model.XlsbTable table in _owner.Sheet.Tables.Values) table.IsProjected = false;
                         _owner.Workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-table-partial", XlsbImportDiagnosticSeverity.Warning,
                             $"Kept the tables of worksheet '{_owner.Sheet.Name}' native because a listed part is not a readable table.", _owner.PartName));
                     } else if (actual != 0) {

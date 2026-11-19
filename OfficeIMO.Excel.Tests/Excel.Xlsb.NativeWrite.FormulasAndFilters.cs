@@ -76,6 +76,7 @@ public sealed class ExcelXlsbFormulasAndFiltersTests {
     [InlineData("'Notes _xlfn.Data'!A1*2")]
     [InlineData("IF(A1>0,\"a,b)\",\"_xlfn.X(\")")]
     [InlineData("_xlfn.IFNA(MATCH(\"x,(y\",'Notes _xlfn.Data'!A1:A3,0),-1)")]
+    [InlineData("_xlfn.CONCAT(\"_xlpm.x\",'Notes _xlfn.Data'!A1)")]
     public void Quoted_text_does_not_change_how_native_xlsb_formulas_are_split(string formula) {
         byte[] xlsx = CreateXlsx(document => {
             ExcelSheet sheet = AddNumbers(document);
