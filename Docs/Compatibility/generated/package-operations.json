@@ -4984,7 +4984,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.Charts::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback."
+      "limitation":"Worksheet charts with their styles and colors project and are written natively for new workbooks; a loaded XLSB keeps them unchanged and updates their sheet references on rename. ChartEx charts, chart edits in a loaded XLSB, and generated chart sheets still block or use the cell-raster fallback; imported chart sheets are preserved."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.ImagesShapes:modern-to-legacy",
@@ -4998,7 +4998,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.ImagesShapes::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
+      "limitation":"Worksheet drawings project into the editable model, and new workbooks write their DrawingML drawing, image, and shape parts natively. A loaded XLSB keeps its drawings unchanged; adding, removing, or editing them, SmartArt, and controls still block or use the palette-quantized cell-raster fallback."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Embedded.OleActiveX:modern-to-legacy",
@@ -7359,12 +7359,12 @@
       "targetFormatId":"",
       "capabilityId":"Excel.Xlsb.Drawing.Charts",
       "operation":"Create",
-      "state":"Rejected",
+      "state":"Partial",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.Charts::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback."
+      "limitation":"Worksheet charts with their styles and colors project and are written natively for new workbooks; a loaded XLSB keeps them unchanged and updates their sheet references on rename. ChartEx charts, chart edits in a loaded XLSB, and generated chart sheets still block or use the cell-raster fallback; imported chart sheets are preserved."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.ImagesShapes:new-legacy-write",
@@ -7373,12 +7373,12 @@
       "targetFormatId":"",
       "capabilityId":"Excel.Xlsb.Drawing.ImagesShapes",
       "operation":"Create",
-      "state":"Rejected",
+      "state":"Partial",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.ImagesShapes::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
+      "limitation":"Worksheet drawings project into the editable model, and new workbooks write their DrawingML drawing, image, and shape parts natively. A loaded XLSB keeps its drawings unchanged; adding, removing, or editing them, SmartArt, and controls still block or use the palette-quantized cell-raster fallback."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Embedded.OleActiveX:new-legacy-write",
@@ -7653,12 +7653,12 @@
       "targetFormatId":"",
       "capabilityId":"Excel.Xlsb.Drawing.Charts",
       "operation":"Read",
-      "state":"Preserved",
+      "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.Charts::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback."
+      "limitation":"Worksheet charts with their styles and colors project and are written natively for new workbooks; a loaded XLSB keeps them unchanged and updates their sheet references on rename. ChartEx charts, chart edits in a loaded XLSB, and generated chart sheets still block or use the cell-raster fallback; imported chart sheets are preserved."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.ImagesShapes:legacy-import",
@@ -7667,12 +7667,12 @@
       "targetFormatId":"",
       "capabilityId":"Excel.Xlsb.Drawing.ImagesShapes",
       "operation":"Read",
-      "state":"Preserved",
+      "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.ImagesShapes::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
+      "limitation":"Worksheet drawings project into the editable model, and new workbooks write their DrawingML drawing, image, and shape parts natively. A loaded XLSB keeps its drawings unchanged; adding, removing, or editing them, SmartArt, and controls still block or use the palette-quantized cell-raster fallback."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Embedded.OleActiveX:legacy-import",
@@ -7952,7 +7952,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.Charts::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback."
+      "limitation":"Worksheet charts with their styles and colors project and are written natively for new workbooks; a loaded XLSB keeps them unchanged and updates their sheet references on rename. ChartEx charts, chart edits in a loaded XLSB, and generated chart sheets still block or use the cell-raster fallback; imported chart sheets are preserved."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.ImagesShapes:legacy-round-trip-edit",
@@ -7966,7 +7966,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.ImagesShapes::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
+      "limitation":"Worksheet drawings project into the editable model, and new workbooks write their DrawingML drawing, image, and shape parts natively. A loaded XLSB keeps its drawings unchanged; adding, removing, or editing them, SmartArt, and controls still block or use the palette-quantized cell-raster fallback."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Embedded.OleActiveX:legacy-round-trip-edit",
@@ -8246,7 +8246,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.Charts::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback."
+      "limitation":"Worksheet charts with their styles and colors project and are written natively for new workbooks; a loaded XLSB keeps them unchanged and updates their sheet references on rename. ChartEx charts, chart edits in a loaded XLSB, and generated chart sheets still block or use the cell-raster fallback; imported chart sheets are preserved."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.ImagesShapes:legacy-round-trip-preserve",
@@ -8260,7 +8260,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.ImagesShapes::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
+      "limitation":"Worksheet drawings project into the editable model, and new workbooks write their DrawingML drawing, image, and shape parts natively. A loaded XLSB keeps its drawings unchanged; adding, removing, or editing them, SmartArt, and controls still block or use the palette-quantized cell-raster fallback."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Embedded.OleActiveX:legacy-round-trip-preserve",
@@ -8535,12 +8535,12 @@
       "targetFormatId":"Excel",
       "capabilityId":"Excel.Xlsb.Drawing.Charts",
       "operation":"Convert",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.Charts::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback."
+      "limitation":"Worksheet charts with their styles and colors project and are written natively for new workbooks; a loaded XLSB keeps them unchanged and updates their sheet references on rename. ChartEx charts, chart edits in a loaded XLSB, and generated chart sheets still block or use the cell-raster fallback; imported chart sheets are preserved."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.ImagesShapes:legacy-to-modern",
@@ -8549,12 +8549,12 @@
       "targetFormatId":"Excel",
       "capabilityId":"Excel.Xlsb.Drawing.ImagesShapes",
       "operation":"Convert",
-      "state":"Partial",
+      "state":"Supported",
       "publicApi":"ExcelCompatibilityCatalog.Xlsb",
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Drawing.ImagesShapes::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
+      "limitation":"Worksheet drawings project into the editable model, and new workbooks write their DrawingML drawing, image, and shape parts natively. A loaded XLSB keeps its drawings unchanged; adding, removing, or editing them, SmartArt, and controls still block or use the palette-quantized cell-raster fallback."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Embedded.OleActiveX:legacy-to-modern",

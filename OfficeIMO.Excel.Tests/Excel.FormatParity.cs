@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             ExcelFormatCapabilityEntry modernCharts = Assert.IsType<ExcelFormatCapabilityEntry>(report.Find("Histogram, Pareto, funnel, and waterfall recipes"));
             Assert.Equal(ExcelFormatCapabilityStatus.CompatibleRecipe, modernCharts.Xlsx);
             Assert.Equal(ExcelFormatCapabilityStatus.Unsupported, modernCharts.Xls);
-            Assert.Equal(ExcelFormatCapabilityStatus.Unsupported, modernCharts.Xlsb);
+            Assert.Equal(ExcelFormatCapabilityStatus.CompatibleRecipe, modernCharts.Xlsb);
 
             ExcelFormatCapabilityEntry chartEx = Assert.IsType<ExcelFormatCapabilityEntry>(report.Find("Native ChartEx authoring and mutation"));
             Assert.Equal(ExcelFormatCapabilityStatus.NativeSubset, chartEx.Xlsx);

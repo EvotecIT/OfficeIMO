@@ -204,14 +204,14 @@
       "family":"Excel",
       "category":"Drawing",
       "description":"Images, shapes, controls, and drawing relationships.",
-      "representability":"Approximation",
-      "legacyImport":"PreservedOpaque",
-      "newLegacyWrite":"Blocked",
+      "representability":"Native",
+      "legacyImport":"Native",
+      "newLegacyWrite":"Approximated",
       "legacyRoundTrip":"PreservedOpaque",
-      "modernToLegacy":"Rasterized",
-      "legacyToModern":"EmbeddedSource",
-      "affectedFidelity":"Visual, Editability, Carrier",
-      "note":"Related package parts survive exact copy. Unsupported generated output either blocks or is rendered into a palette-quantized cell raster; PreservationOnly can also retain the source carrier."
+      "modernToLegacy":"Approximated",
+      "legacyToModern":"Native",
+      "affectedFidelity":"Editability, Carrier",
+      "note":"Worksheet drawings project into the editable model, and new workbooks write their DrawingML drawing, image, and shape parts natively. A loaded XLSB keeps its drawings unchanged; adding, removing, or editing them, SmartArt, and controls still block or use the palette-quantized cell-raster fallback."
     },
     {
       "id":"Excel.Xlsb.Drawing.Charts",
@@ -219,14 +219,14 @@
       "family":"Excel",
       "category":"Drawing",
       "description":"Charts and chart-sheet relationships.",
-      "representability":"Approximation",
-      "legacyImport":"PreservedOpaque",
-      "newLegacyWrite":"Blocked",
+      "representability":"Native",
+      "legacyImport":"Native",
+      "newLegacyWrite":"Approximated",
       "legacyRoundTrip":"PreservedOpaque",
-      "modernToLegacy":"Rasterized",
-      "legacyToModern":"EmbeddedSource",
-      "affectedFidelity":"Visual, Editability, Carrier",
-      "note":"Chart package parts survive exact copy. Unsupported cross-format output either blocks or uses the omission-gated worksheet cell-raster fallback."
+      "modernToLegacy":"Approximated",
+      "legacyToModern":"Native",
+      "affectedFidelity":"Editability, Carrier",
+      "note":"Worksheet charts with their styles and colors project and are written natively for new workbooks; a loaded XLSB keeps them unchanged and updates their sheet references on rename. ChartEx charts, chart edits in a loaded XLSB, and generated chart sheets still block or use the cell-raster fallback; imported chart sheets are preserved."
     },
     {
       "id":"Excel.Xlsb.Analytics.Pivots",

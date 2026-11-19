@@ -28,7 +28,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var worksheetParts = new byte[sheets.Length][];
             var hyperlinkPlans = new XlsbWorksheetHyperlinkPlan[sheets.Length];
             var packageParts = new XlsbWorksheetPackageParts[sheets.Length];
-            var partNames = new XlsbPartNameAllocator();
+            // Related parts copied from the workbook (drawings, charts, media) must not take the names of fixed parts.
+            var partNames = new XlsbPartNameAllocator(Enumerable.Range(0, sheets.Length).Select(WorksheetPartName)
+                .Concat(new[] { "xl/workbook.bin", "xl/styles.bin", "xl/sharedStrings.bin", "xl/theme/theme1.xml" }));
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
             var formulas = new XlsbNewWorkbookFormulaContext(document, sheets, document.WorkbookRoot.GetFirstChild<DefinedNames>());
             for (int index = 0; index < sheets.Length; index++) {

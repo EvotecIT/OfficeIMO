@@ -29,6 +29,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// <summary>The worksheet's legacy comments, or null when it has no Comments part.</summary>
         internal XlsbComments? Comments { get; set; }
 
+        /// <summary>The package path of the drawing part a worksheet's BrtDrawing links, once its relationship is resolved.</summary>
+        internal string? DrawingPartName { get; set; }
+
         internal string Name { get; }
 
         internal string RelationshipId { get; }

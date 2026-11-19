@@ -734,7 +734,7 @@ A workbook loaded from XLSX or XLS and saved as XLSB must keep everything the sh
 - [ ] Write data validation (`BrtBeginDVals`, `BrtDVal`) using the bounded formula encoder for list, whole-number, decimal, date, time, text-length and custom rules, and project it when reading XLSB.
 - [ ] Write differential formats (`BrtBeginDxfs`, `BrtDXF`) and conditional formatting (`BrtBeginConditionalFormatting`, `BrtBeginCFRule`), including the Office 2010 extension rules the model carries, and project both when reading XLSB.
 - [ ] Write tables as BIFF12 list parts (`BrtBeginList` and its columns, style and AutoFilter) and project them when reading XLSB.
-- [ ] Write image and chart drawings by carrying the DrawingML drawing, chart and media parts with `BrtDrawing`, and write chart sheets. Worksheet and chart-sheet drawings are refused today.
+- [ ] Write chart sheets (the BIFF12 chart-sheet part with `BrtCsProp`, chart-sheet views and `BrtDrawing`, interleaved with worksheets in the workbook bundle, defined-name and formula sheet indexes), ChartEx and SmartArt drawing parts, and drawings added to, removed from or edited in a loaded XLSB. These are refused today.
 - [ ] Write manual page breaks (`BrtBeginRwBrk`, `BrtBeginColBrk`, `BrtBrk`) and ignored-error ranges (`BrtBeginCellIgnoreECs`, `BrtCellIgnoreEC`), and project both when reading XLSB.
 - [ ] Encode array constants inside expressions, such as `SUM(A1:A3*{1;2;3})`, and future-function defined names such as `_xlfn.AVERAGEIF`, in the native formula and name encoders.
 - [ ] Write AutoFilter criteria beyond equality lists: custom, top-10, dynamic, color and icon filters.

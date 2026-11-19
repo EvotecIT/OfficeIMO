@@ -105,6 +105,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return ApplyArrayFormulaGroups(sheet, result, formulas).AsReadOnly();
         }
 
+        // Worksheet parts that a feature writer encodes or that the rewrite validates separately: the DrawingML
+        // drawing graph (XlsbWorksheetDrawingWriter, XlsbWorksheetDrawingPlan).
         private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {
             string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet.WorksheetPart);
             if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {

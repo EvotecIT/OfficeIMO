@@ -80,6 +80,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         ?? throw new InvalidDataException($"The source XLSB worksheet part '{partName}' is missing.");
                     byte[] originalPart = ReadEntry(sourceEntry, (int)Math.Min(maximumBytes, MaxWorksheetPartBytes));
                     byte[] reboundPart = XlsbFormulaRecordRebinder.RebindPart(originalPart, structure.NameIndexes, maximumBytes);
+                    XlsbWorksheetDrawingWriter.ValidateUnchanged(sheet, sourceSheet, sourceWorkbook);
                     IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.Extract(
                         document,
                         sheet,

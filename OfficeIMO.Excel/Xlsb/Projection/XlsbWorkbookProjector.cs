@@ -75,6 +75,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     XlsbWorksheetFeatureProjector.Apply(targetSheet, sourceSheet);
                     XlsbWorksheetCommentProjector.Apply(targetSheet, sourceSheet, workbook.Stylesheet, relatedParts);
                     XlsbWorksheetTableProjector.Apply(targetSheet, sourceSheet);
+                    relatedParts.ProjectWorksheetDrawing(targetSheet, sourceSheet);
                     targetSheet.EnsureWorksheetElementOrder();
                     targetSheet.WorksheetPart.Worksheet?.Save();
 

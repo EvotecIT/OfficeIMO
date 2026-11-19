@@ -35,6 +35,20 @@ internal static partial class XlsbWorkbookReader {
         ReadRelatedGraph(parts, XlsbPackagePartReader.ResolveTarget(partName, drawing.Target), options, workbook, 0);
     }
 
+    // A worksheet's BrtDrawing names a relationship to an ordinary DrawingML drawing part; its graph is read like a chart sheet's.
+    private static void ReadWorksheetDrawingGraph(XlsbPackagePartReader parts, string partName, XlsbSheet sheet,
+        XlsbImportOptions options, XlsbWorkbook workbook) {
+        if (sheet.DrawingRelationshipId == null) return;
+        if (!sheet.Relationships.TryGetValue(sheet.DrawingRelationshipId, out var drawing)
+            || drawing.IsExternal || drawing.Type != "http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing")
+            throw new InvalidDataException($"Worksheet '{sheet.Name}' refers to a missing or invalid drawing relationship.");
+        string drawingPartName = XlsbPackagePartReader.ResolveTarget(partName, drawing.Target);
+        if (parts.GetContentType(drawingPartName) != "application/vnd.openxmlformats-officedocument.drawing+xml")
+            throw new InvalidDataException($"Worksheet '{sheet.Name}' links a drawing part with an invalid content type.");
+        sheet.DrawingPartName = drawingPartName;
+        ReadRelatedGraph(parts, drawingPartName, options, workbook, 0);
+    }
+
     private static void ReadVbaProjectGraph(XlsbPackagePartReader parts, string workbookPartName,
         IReadOnlyDictionary<string, XlsbPackageRelationship> relationships, XlsbImportOptions options, XlsbWorkbook workbook) {
         var matches = relationships.Values.Where(item => item.Type == "http://schemas.microsoft.com/office/2006/relationships/vbaProject").ToArray();

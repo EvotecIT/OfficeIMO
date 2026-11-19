@@ -87,6 +87,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbWorksheetPageBreakWriter.Append(records, context);
             XlsbWorksheetIgnoredErrorWriter.Append(records, context);
             XlsbWorksheetDataValidationWriter.Append(records, context);
+            // BrtDrawing precedes the comments' BrtLegacyDrawing in the WORKSHEET grammar.
+            XlsbWorksheetDrawingWriter.Append(records, context);
             XlsbWorksheetCommentWriter.Append(records, context);
             XlsbWorksheetTableWriter.Append(records, context);
             return records;

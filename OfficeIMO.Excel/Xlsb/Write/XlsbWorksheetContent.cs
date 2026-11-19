@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             typeof(IgnoredErrors),
             typeof(LegacyDrawing),
             typeof(TableParts),
+            typeof(DocumentFormat.OpenXml.Spreadsheet.Drawing),
         };
 
         // CT_Worksheet allows these children more than once; every other supported child occurs at most once.
@@ -43,7 +44,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         /// <summary>
         /// Returns a message naming the first worksheet-related part the native writers cannot carry, or null. Comments with
-        /// the VML drawing that LegacyDrawing names, and table definitions, are the related parts accepted.
+        /// the VML drawing that LegacyDrawing names, table definitions and drawings are the related parts accepted.
         /// </summary>
         internal static string? FindUnsupportedPart(WorksheetPart worksheetPart) {
             string? legacyId = worksheetPart.Worksheet?.GetFirstChild<LegacyDrawing>()?.Id?.Value;
@@ -51,6 +52,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 switch (pair.OpenXmlPart) {
                     case WorksheetCommentsPart:
                     case TableDefinitionPart:
+                    case DrawingsPart:
                         continue;
                     case VmlDrawingPart when legacyId != null && pair.RelationshipId == legacyId
                         && worksheetPart.WorksheetCommentsPart != null:
