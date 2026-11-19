@@ -318,6 +318,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var formatIds = new HashSet<uint>();
             var payloads = new List<byte[]>(items.Length);
             foreach (CellStyle style in items) {
+                if (style.HasChildren) {
+                    throw new NotSupportedException($"Native XLSB generation does not yet encode extensions on cell style '{style.Name?.Value}'.");
+                }
                 uint formatId = style.FormatId?.Value ?? 0U;
                 if (formatId >= styleFormatCount) {
                     throw new NotSupportedException("Native XLSB generation found an out-of-range cell style format reference.");

@@ -146,6 +146,108 @@ public sealed class ExcelXlsbModelFidelityTests {
         Assert.Equal(OfficeLength.Points(14), actual[2].FontSize);
     }
 
+    [Fact]
+    public void Rich_text_runs_without_a_typeface_or_size_keep_the_cell_font() {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Bold") { Bold = true }, new ExcelRichTextRun(" plain"));
+            sheet.Cell(1, 1).SetFontFamily("Arial");
+            sheet.Cell(1, 1).SetFontSize(OfficeLength.Points(20));
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx, out _, out _)));
+
+        ExcelRichTextRun bold = reloaded["Data"].Cell(1, 1).GetRichText()[0];
+        Assert.True(bold.Bold);
+        Assert.Equal("Arial", bold.FontFamily);
+        Assert.Equal(OfficeLength.Points(20), bold.FontSize);
+    }
+
+    [Fact]
+    public void A_shared_string_index_with_surrounding_spaces_keeps_its_runs() {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Bold") { Bold = true }, new ExcelRichTextRun(" plain"));
+            MoveInlineTextToSharedStrings(document, sheet);
+            Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
+            cell.CellValue = new CellValue(" " + cell.CellValue!.Text + " ");
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx, out _, out _)));
+
+        IReadOnlyList<ExcelRichTextRun> runs = reloaded["Data"].Cell(1, 1).GetRichText();
+        Assert.Equal(new[] { "Bold", " plain" }, runs.Select(run => run.Text));
+        Assert.True(runs[0].Bold);
+    }
+
+    [Fact]
+    public void A_text_literal_that_looks_like_an_external_reference_does_not_block_native_save() {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other").Cell(1, 1).SetValue(2);
+            sheet.Cell(1, 1).SetFormula("\"'[Book.xlsx]Sheet1'!A1\"&Other!A1");
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx, out _, out _)));
+
+        Assert.Equal("\"'[Book.xlsx]Sheet1'!A1\"&'Other'!A1", reloaded["Data"].GetFormulaText(1, 1));
+    }
+
+    [Fact]
+    public void A_cell_style_with_extensions_is_refused() {
+        byte[] xlsx = CreateXlsx(document => {
+            document.AddSheet("Data").Cell(1, 1).SetValue(1);
+            CellStyle normal = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.CellStyles!.Elements<CellStyle>().First();
+            normal.Append(new ExtensionList(new Extension { Uri = "{00000000-0000-0000-0000-000000000001}" }));
+        });
+
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(xlsx));
+        NotSupportedException refused = Assert.Throws<NotSupportedException>(() =>
+            loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+        Assert.Contains("extensions on cell style", refused.Message);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Run_edits_with_unchanged_text_in_a_loaded_xlsb_are_refused(bool sourceHasRuns) {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            if (sourceHasRuns) sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Bold") { Bold = true }, new ExcelRichTextRun(" plain"));
+            else sheet.Cell(1, 1).SetValue("Bold plain");
+            sheet.Cell(2, 1).SetRichText(new ExcelRichTextRun("Kept") { Italic = true }, new ExcelRichTextRun(" runs"));
+        });
+        byte[] xlsb = SaveAsXlsb(xlsx, out _, out _);
+
+        using (ExcelDocument unchanged = ExcelDocument.Load(new MemoryStream(xlsb))) {
+            unchanged["Data"].Cell(3, 1).SetValue("edit elsewhere");
+            using ExcelDocument resaved = ExcelDocument.Load(new MemoryStream(unchanged.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
+            Assert.True(resaved["Data"].Cell(2, 1).GetRichText()[0].Italic);
+        }
+
+        using ExcelDocument edited = ExcelDocument.Load(new MemoryStream(xlsb));
+        edited["Data"].Cell(1, 1).SetRichText(new ExcelRichTextRun("Bold") { Italic = true }, new ExcelRichTextRun(" plain"));
+        NotSupportedException refused = Assert.Throws<NotSupportedException>(() =>
+            edited.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+        Assert.Contains("rich text runs", refused.Message);
+    }
+
+    [Fact]
+    public void Projected_rich_text_runs_count_against_the_cell_limit() {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            for (int row = 1; row <= 4; row++) {
+                sheet.Cell(row, 1).SetRichText(new ExcelRichTextRun("A") { Bold = true }, new ExcelRichTextRun("B"), new ExcelRichTextRun("C") { Italic = true });
+            }
+        });
+        byte[] xlsb = SaveAsXlsb(xlsx, out _, out _);
+
+        using (ExcelDocument.Load(new MemoryStream(xlsb), new ExcelLoadOptions { MaxCells = 16 })) { }
+        InvalidDataException rejected = Assert.Throws<InvalidDataException>(() =>
+            ExcelDocument.Load(new MemoryStream(xlsb), new ExcelLoadOptions { MaxCells = 15 }));
+        Assert.Contains("text runs", rejected.Message);
+    }
+
     private static byte[] CreateXlsx(Action<ExcelDocument> build) {
         using ExcelDocument document = ExcelDocument.Create();
         build(document);

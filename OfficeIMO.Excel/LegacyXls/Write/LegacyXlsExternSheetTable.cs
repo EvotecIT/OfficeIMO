@@ -477,11 +477,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 yield break;
             }
 
-            for (int i = 0; i < formulaText.Length; i++) {
-                if (formulaText[i] != '!') {
-                    continue;
-                }
-
+            foreach (int i in EnumerateReferenceBangs(formulaText)) {
                 string sheetToken = ReadSheetTokenBeforeBang(formulaText, i);
                 if (sheetToken.Length == 0) {
                     continue;
@@ -594,16 +590,38 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
+        // A '!' inside a text literal is not a reference, and a double quote inside a quoted sheet name is not a literal.
+        private static IEnumerable<int> EnumerateReferenceBangs(string formulaText) {
+            bool inStringLiteral = false;
+            bool inQuotedSheet = false;
+            for (int i = 0; i < formulaText.Length; i++) {
+                char ch = formulaText[i];
+                if (ch == '"' && !inQuotedSheet) {
+                    if (inStringLiteral && i + 1 < formulaText.Length && formulaText[i + 1] == '"') {
+                        i++;
+                        continue;
+                    }
+
+                    inStringLiteral = !inStringLiteral;
+                } else if (ch == '\'' && !inStringLiteral) {
+                    if (inQuotedSheet && i + 1 < formulaText.Length && formulaText[i + 1] == '\'') {
+                        i++;
+                        continue;
+                    }
+
+                    inQuotedSheet = !inQuotedSheet;
+                } else if (ch == '!' && !inStringLiteral && !inQuotedSheet) {
+                    yield return i;
+                }
+            }
+        }
+
         private static IEnumerable<string> EnumerateExternalSheetNames(string formulaText) {
             if (formulaText.IndexOf('!') < 0 || formulaText.IndexOf('[') < 0) {
                 yield break;
             }
 
-            for (int i = 0; i < formulaText.Length; i++) {
-                if (formulaText[i] != '!') {
-                    continue;
-                }
-
+            foreach (int i in EnumerateReferenceBangs(formulaText)) {
                 string sheetToken = ReadSheetTokenBeforeBang(formulaText, i);
                 if (sheetToken.Length == 0 || sheetToken.IndexOf('[') < 0 || sheetToken.IndexOf(']') < 0) {
                     continue;

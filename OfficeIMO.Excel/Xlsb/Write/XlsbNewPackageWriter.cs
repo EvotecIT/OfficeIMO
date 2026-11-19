@@ -22,7 +22,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ValidateWorkbook(document, sheets);
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet ?? ExcelDocument.CreateDefaultStylesheet();
             byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out int cellFormatCount, maximumBytes);
-            var richText = new XlsbRichTextFontTable(stylesheet, document.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable);
+            var richText = new XlsbRichTextFontTable(stylesheet,
+                new XlsbCellTextRuns(document.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable));
             long remainingBytes = maximumBytes - stylesPart.Length;
             var worksheetParts = new byte[sheets.Length][];
             var hyperlinkPlans = new XlsbWorksheetHyperlinkPlan[sheets.Length];

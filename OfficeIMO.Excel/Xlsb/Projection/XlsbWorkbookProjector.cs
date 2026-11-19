@@ -102,20 +102,26 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         private static void ApplyRichText(ExcelSheet targetSheet, XlsbSheet sourceSheet, XlsbStylesheet? stylesheet,
             System.Threading.CancellationToken cancellationToken) {
             foreach (XlsbCell cell in sourceSheet.Cells) {
-                if (cell.TextRuns == null || cell.FormulaBytes != null || cell.Value is not string text) continue;
                 cancellationToken.ThrowIfCancellationRequested();
-                var inline = new DocumentFormat.OpenXml.Spreadsheet.InlineString();
-                if (cell.TextRuns[0].Start > 0) inline.Append(CreateRun(text.Substring(0, cell.TextRuns[0].Start), null));
-                for (int index = 0; index < cell.TextRuns.Length; index++) {
-                    int start = cell.TextRuns[index].Start;
-                    int end = index + 1 < cell.TextRuns.Length ? cell.TextRuns[index + 1].Start : text.Length;
-                    ushort font = cell.TextRuns[index].Font;
-                    XlsbFont? source = stylesheet != null && font < stylesheet.Fonts.Count ? stylesheet.Fonts[font] : null;
-                    inline.Append(CreateRun(text.Substring(start, end - start),
-                        source == null ? null : XlsbStylesheetProjector.CreateRunProperties(source)));
-                }
-                targetSheet.SetImportedRichText(cell.Row, cell.Column, inline);
+                DocumentFormat.OpenXml.Spreadsheet.InlineString? inline = CreateRichText(cell, stylesheet);
+                if (inline != null) targetSheet.SetImportedRichText(cell.Row, cell.Column, inline);
             }
+        }
+
+        /// <summary>Builds the inline rich text projected for a cell with formatting runs, or null for other cells.</summary>
+        internal static DocumentFormat.OpenXml.Spreadsheet.InlineString? CreateRichText(XlsbCell cell, XlsbStylesheet? stylesheet) {
+            if (cell.TextRuns == null || cell.FormulaBytes != null || cell.Value is not string text) return null;
+            var inline = new DocumentFormat.OpenXml.Spreadsheet.InlineString();
+            if (cell.TextRuns[0].Start > 0) inline.Append(CreateRun(text.Substring(0, cell.TextRuns[0].Start), null));
+            for (int index = 0; index < cell.TextRuns.Length; index++) {
+                int start = cell.TextRuns[index].Start;
+                int end = index + 1 < cell.TextRuns.Length ? cell.TextRuns[index + 1].Start : text.Length;
+                ushort font = cell.TextRuns[index].Font;
+                XlsbFont? source = stylesheet != null && font < stylesheet.Fonts.Count ? stylesheet.Fonts[font] : null;
+                inline.Append(CreateRun(text.Substring(start, end - start),
+                    source == null ? null : XlsbStylesheetProjector.CreateRunProperties(source)));
+            }
+            return inline;
         }
 
         private static DocumentFormat.OpenXml.Spreadsheet.Run CreateRun(string text, DocumentFormat.OpenXml.Spreadsheet.RunProperties? properties) {
@@ -131,6 +137,18 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             System.Threading.CancellationToken cancellationToken) {
             long projectedCells = workbook.Sheets.Sum(sheet => (long)sheet.Cells.Count);
             if (projectedCells > maxCells) throw new InvalidDataException($"The XLSB workbook exceeds the configured limit of {maxCells} cells.");
+            // Each referencing cell gets its own copy of a shared string's runs, so runs count against the same
+            // projection budget as cells.
+            foreach (XlsbSheet sheet in workbook.Sheets) {
+                cancellationToken.ThrowIfCancellationRequested();
+                foreach (XlsbCell cell in sheet.Cells) {
+                    if (cell.TextRuns == null || cell.FormulaBytes != null) continue;
+                    projectedCells += cell.TextRuns.Length;
+                    if (projectedCells > maxCells) {
+                        throw new InvalidDataException($"The XLSB rich text exceeds the configured limit of {maxCells} projected cells and text runs.");
+                    }
+                }
+            }
             foreach (XlsbSheet sheet in workbook.Sheets) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (sheet.IsChartSheet || !sheet.FormulaGroups.Any(group => group.Type == 426)) continue;

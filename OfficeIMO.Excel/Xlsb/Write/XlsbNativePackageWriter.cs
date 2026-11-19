@@ -55,10 +55,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 CopyRenamedRelatedParts(document, sourceWorkbook, replacements);
                 XlsbDocumentPropertyParts.ApplyToRewrite(document, document.XlsbDocumentPropertiesSnapshot, ReadPart,
                     archive.Entries.Select(entry => entry.FullName).ToArray(), replacements, deletions);
+                var textRuns = new XlsbCellTextRuns(document.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable, sourceWorkbook.Stylesheet);
                 foreach (var sheet in sheets) {
                     var binding = structure.Bindings.Single(item => ReferenceEquals(item.Part, sheet.WorksheetPart));
                     if (binding.Original == null) {
-                        var newCells = XlsbWorksheetCellExtractor.ExtractNew(document, sheet, formulas);
+                        var newCells = XlsbWorksheetCellExtractor.ExtractNew(document, sheet, formulas, textRuns: textRuns);
                         var hyperlinks = XlsbWorksheetHyperlinkPlan.Create(sheet, pruneOrphanedRelationships: true);
                         if (hyperlinks.Relationships.Count > 0) replacements[XlsbSheetStructure.RelationshipPartName(structure.PartNames[binding.Part.Uri.OriginalString])] = hyperlinks.CreateRelationshipPart();
                         structure.NewCodeNames.TryGetValue(binding.Name, out string? codeName);
@@ -78,7 +79,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         document,
                         sheet,
                         sourceSheet,
-                        stylesheetPlan.CellFormatCount, formulas);
+                        stylesheetPlan.CellFormatCount, formulas, textRuns);
                     XlsbWorksheetAutoFilterPlan autoFilterPlan =
                         XlsbWorksheetAutoFilterPlan.Create(sheet, sourceSheet);
                     bool rewriteHyperlinks = !XlsbWorksheetHyperlinkProjector.Matches(sheet, sourceSheet);
