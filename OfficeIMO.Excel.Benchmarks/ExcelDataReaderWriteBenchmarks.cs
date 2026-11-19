@@ -95,6 +95,7 @@ public partial class ExcelDataReaderWriteBenchmarks {
             nameof(SpreadCheetah) => "SpreadCheetah",
             nameof(Sylvan) => "Sylvan.Data.Excel",
             nameof(LargeXlsx) => "LargeXlsx",
+            "OneDocument" => "OneDocument.Spreadsheets",
             _ => throw new ArgumentOutOfRangeException(nameof(method), method, "Unknown write lane.")
         };
         try {

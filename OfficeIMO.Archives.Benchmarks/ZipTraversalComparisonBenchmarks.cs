@@ -26,14 +26,20 @@ public class ZipTraversalComparisonBenchmarks {
         } catch (InvalidOperationException exception) {
             BenchmarkOutputValidationLog.Failed("OfficeIMO", $"Scale={Scale}; {exception.Message}");
             BenchmarkOutputValidationLog.Failed("System.IO.Compression", $"Scale={Scale}; {exception.Message}");
+#if NET10_0_OR_GREATER
+            BenchmarkOutputValidationLog.Failed("OneArchive", $"Scale={Scale}; {exception.Message}");
+#endif
             throw;
         }
 
-        // Both projections carry the expected file count and uncompressed bytes and the same names, depths, sizes and
+        // Every projection carries the expected file count and uncompressed bytes and the same names, depths, sizes and
         // timestamps (one structural fingerprint).
         string detail = $"Scale={Scale}; {report.EntryCount} files, {report.TotalUncompressedBytes} uncompressed bytes, fingerprint {report.StructuralFingerprint}";
         BenchmarkOutputValidationLog.Passed("OfficeIMO", detail);
         BenchmarkOutputValidationLog.Passed("System.IO.Compression", detail);
+#if NET10_0_OR_GREATER
+        BenchmarkOutputValidationLog.Passed("OneArchive", detail);
+#endif
     }
 
     /// <summary>Traverses metadata with OfficeIMO path and expansion-safety policy.</summary>
@@ -49,7 +55,7 @@ public class ZipTraversalComparisonBenchmarks {
 
     /// <summary>Lists the same archive through OneArchive with its default reading limits.</summary>
     [Benchmark(Description = "OneArchive")]
-    [BenchmarkCategory("library:onearchive")]
+    [BenchmarkCategory("library:OneArchive", "case:Default")]
     public IReadOnlyList<ZipProjectionDescriptor> OneArchive() => ZipComparisonWorkflows.TraverseOneArchive(_input);
 #endif
 }

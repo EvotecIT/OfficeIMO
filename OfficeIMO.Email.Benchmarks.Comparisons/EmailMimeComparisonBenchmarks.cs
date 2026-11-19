@@ -27,6 +27,9 @@ public class EmailMimeReadBenchmarks {
         EmailMimeObservation expected = EmailMimeComparisonCorpus.CreateExpectedObservation(scale);
         EmailMimeComparisonValidation.RecordLane("OfficeIMO", Scale, expected, ("OfficeIMO", EmailMimeComparisonValidation.ObserveOffice(_input)));
         EmailMimeComparisonValidation.RecordLane("MimeKit", Scale, expected, ("MimeKit", EmailMimeComparisonValidation.ObserveMimeKit(_input)));
+#if NET10_0_OR_GREATER
+        EmailMimeComparisonValidation.RecordLane("OneMail", Scale, expected, ("OneMail", EmailMimeComparisonValidation.ObserveOneMail(_input)));
+#endif
     }
 
     /// <summary>Reads the complete EML through OfficeIMO and consumes all decoded payloads.</summary>
@@ -42,7 +45,7 @@ public class EmailMimeReadBenchmarks {
 
     /// <summary>Reads the same EML through OneMail's message view and consumes all decoded payloads.</summary>
     [Benchmark(Description = "OneMail")]
-    [BenchmarkCategory("library:onemail")]
+    [BenchmarkCategory("library:OneMail", "case:Default")]
     public int OneMail() => EmailMimeComparisonValidation.ConsumeOneMail(_input);
 #endif
 }
@@ -63,7 +66,7 @@ public class EmailMimeWriteBenchmarks {
     /// <summary>Returns the corpus scales shared by both implementations.</summary>
     public IEnumerable<string> Scales() => EmailMimeComparisonCorpus.ScaleNames;
 
-    /// <summary>Creates equivalent prepared models and validates both outputs before measurement.</summary>
+    /// <summary>Creates equivalent prepared models and validates every lane's output before measurement.</summary>
     [GlobalSetup]
     public void Setup() {
         EmailMimeBenchmarkScale scale = EmailMimeComparisonCorpus.Get(Scale);
@@ -90,6 +93,15 @@ public class EmailMimeWriteBenchmarks {
             expected,
             ("MimeKit", EmailMimeComparisonValidation.ObserveMimeKit(mimeKitOutput)),
             ("OfficeIMO", EmailMimeComparisonValidation.ObserveOffice(mimeKitOutput)));
+#if NET10_0_OR_GREATER
+        byte[] oneMailOutput = OneMail();
+        EmailMimeComparisonValidation.RecordLane(
+            "OneMail",
+            Scale,
+            expected,
+            ("MimeKit", EmailMimeComparisonValidation.ObserveMimeKit(oneMailOutput)),
+            ("OfficeIMO", EmailMimeComparisonValidation.ObserveOffice(oneMailOutput)));
+#endif
     }
 
     /// <summary>Serializes the prepared model through OfficeIMO.</summary>
@@ -105,7 +117,7 @@ public class EmailMimeWriteBenchmarks {
 
     /// <summary>Builds the MIME tree from the equivalent prepared OneMail message and serializes it.</summary>
     [Benchmark(Description = "OneMail")]
-    [BenchmarkCategory("library:onemail")]
+    [BenchmarkCategory("library:OneMail", "case:Default")]
     public byte[] OneMail() => EmailMimeComparisonCorpus.WriteOneMail(_oneMailMessage);
 #endif
 
