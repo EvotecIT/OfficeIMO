@@ -237,5 +237,20 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(tableRange, Assert.Single(document.GetTables()).Range);
         }
+
+        [Fact]
+        public void Test_RangeMutations_UnlimitedDiagnosticsMaximumIsACapNotAnAllocation() {
+            using var document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            // A boolean cell sends the post-edit check through full package validation.
+            sheet.Cell(1, 1).SetValue(true);
+            sheet.Cell(2, 1).SetValue("text");
+
+            ExcelMutationResult result = sheet.InsertCells("A1", ExcelCellShiftDirection.Down,
+                new ExcelMutationPlanOptions { MaximumDiagnostics = int.MaxValue });
+
+            Assert.Empty(result.Diagnostics);
+            Assert.True(sheet.Cell(2, 1).GetValue<bool>());
+        }
     }
 }
