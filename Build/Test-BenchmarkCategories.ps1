@@ -27,8 +27,19 @@ function Get-BenchmarkSourceMethods {
 
     if ($sourceCache.ContainsKey($ProjectDirectory)) { return $sourceCache[$ProjectDirectory] }
     $methods = [System.Collections.Generic.List[object]]::new()
-    foreach ($file in Get-ChildItem -LiteralPath $ProjectDirectory -Filter '*.cs' -File -Recurse |
-            Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }) {
+    $baseClasses = @{}
+    # Sources shared through <Compile Include> links (such as a benchmark base class) belong to the project too.
+    $linkedFiles = @(
+        foreach ($projectFile in Get-ChildItem -LiteralPath $ProjectDirectory -Filter '*.csproj' -File) {
+            foreach ($match in [regex]::Matches((Get-Content -LiteralPath $projectFile.FullName -Raw), '<Compile\s+Include="([^"*]+\.cs)"')) {
+                $path = Join-Path $ProjectDirectory ($match.Groups[1].Value -replace '\\', '/')
+                if (Test-Path -LiteralPath $path -PathType Leaf) { Get-Item -LiteralPath $path }
+            }
+        }
+    )
+    $files = @(Get-ChildItem -LiteralPath $ProjectDirectory -Filter '*.cs' -File -Recurse |
+            Where-Object { $_.FullName -notmatch '[\\/](bin|obj)[\\/]' }) + $linkedFiles
+    foreach ($file in @($files | Sort-Object FullName -Unique)) {
         $text = Get-Content -LiteralPath $file.FullName -Raw
         $namespace = if ($text -match '(?m)^\s*namespace\s+([\w\.]+)') { $Matches[1] } else { '' }
         $class = $null
@@ -38,8 +49,10 @@ function Get-BenchmarkSourceMethods {
             $trimmed = $line.Trim()
             if ($trimmed.StartsWith('[')) { $pending.Add($trimmed); continue }
             if ($trimmed.StartsWith('//') -or $trimmed.Length -eq 0) { continue }
-            if ($trimmed -match '\b(?:class|record)\s+(\w+)') {
+            # A type declaration, not a local such as "foreach (var record in rows)".
+            if ($trimmed -match '^(?:(?:public|internal|private|protected|sealed|abstract|static|partial|readonly|file)\s+)*(?:class|record)\s+(\w+)(?:<[^>]*>)?(?:\s*:\s*([\w\.]+))?') {
                 $class = $Matches[1]
+                if ($Matches[2]) { $baseClasses["$namespace|$class"] = ($Matches[2] -split '\.')[-1] }
                 $classCategories = @($pending | ForEach-Object { [regex]::Matches($_, 'BenchmarkCategory\(([^)]*)\)') } | ForEach-Object {
                         [regex]::Matches($_.Groups[1].Value, '"([^"]*)"') | ForEach-Object { $_.Groups[1].Value } })
                 $pending.Clear()
@@ -51,12 +64,26 @@ function Get-BenchmarkSourceMethods {
                         [regex]::Matches($_.Groups[1].Value, '"([^"]*)"') | ForEach-Object { $_.Groups[1].Value } })
                 $methods.Add([pscustomobject]@{
                         FullName = (@($namespace, $class, $Matches[1]) | Where-Object { $_ }) -join '.'
+                        Class = $class
                         Method = $Matches[1]
                         Categories = @($classCategories + $categories)
                         File = $file.FullName
                     })
             }
             $pending.Clear()
+        }
+    }
+    # BenchmarkDotNet reports inherited benchmark methods under the derived class.
+    foreach ($entry in $baseClasses.GetEnumerator()) {
+        $namespace, $class = $entry.Key -split '\|', 2
+        foreach ($inherited in @($methods | Where-Object Class -ceq $entry.Value)) {
+            $methods.Add([pscustomobject]@{
+                    FullName = (@($namespace, $class, $inherited.Method) | Where-Object { $_ }) -join '.'
+                    Class = $class
+                    Method = $inherited.Method
+                    Categories = $inherited.Categories
+                    File = $inherited.File
+                })
         }
     }
     $sourceCache[$ProjectDirectory] = $methods
