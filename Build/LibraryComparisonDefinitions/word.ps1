@@ -77,7 +77,7 @@ function New-WordExpectedCases {
         Title = 'DOCX report creation (Open XML SDK on an OfficeIMO package shell)'
         Libraries = @('OfficeIMO', 'Open XML SDK')
         ExpectedPlatforms = $platforms
-        PublishRestriction = 'The Open XML SDK lane adds the report to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-report is the published report comparison. Its setup also fails today: OfficeIMO writes 4680-twip table grid columns where the Office-compatible-defaults check expects 2400.'
+        PublishRestriction = 'The Open XML SDK lane adds the report to a package shell OfficeIMO wrote instead of creating the package, so the lanes do not do the same creation work; word-docx-create-report is the published report comparison.'
         CatalogEligible = $false
         Project = $project
         Filter = '*WordReportOpenXmlEvidenceBenchmarks*'

@@ -286,34 +286,36 @@ public class WordCreateReportComparisonBenchmarks {
             new OpenXmlRun(runProperties, new Text(text)));
     }
 
-    internal static OpenXmlTable CreateTable(int rowCount) {
+    internal static OpenXmlTable CreateTable(int rowCount, int columnWidthTwips = 2400) {
+        string columnWidth = columnWidthTwips.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var table = new OpenXmlTable(
             new TableProperties(
                 new TableStyle { Val = "TableGrid" },
                 new TableWidth { Width = "0", Type = TableWidthUnitValues.Auto },
                 new DocumentFormat.OpenXml.Wordprocessing.TableLook { Val = "04A0" }),
             new TableGrid(
-                new GridColumn { Width = "2400" },
-                new GridColumn { Width = "2400" }));
-        table.Append(CreateRow("Record", "Owner", bold: true));
+                new GridColumn { Width = columnWidth },
+                new GridColumn { Width = columnWidth }));
+        table.Append(CreateRow("Record", "Owner", bold: true, columnWidth));
         for (int index = 0; index < rowCount; index++) {
             table.Append(CreateRow(
                 WordBenchmarkCorpus.RecordId(index),
                 WordBenchmarkCorpus.RecordOwner(index),
-                bold: false));
+                bold: false,
+                columnWidth));
         }
         return table;
     }
 
-    private static TableRow CreateRow(string first, string second, bool bold) =>
+    private static TableRow CreateRow(string first, string second, bool bold, string columnWidth) =>
         new(
-            CreateCell(first, bold),
-            CreateCell(second, bold));
+            CreateCell(first, bold, columnWidth),
+            CreateCell(second, bold, columnWidth));
 
-    private static TableCell CreateCell(string text, bool bold) =>
+    private static TableCell CreateCell(string text, bool bold, string columnWidth) =>
         new(
             new TableCellProperties(
-                new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = "2400" }),
+                new TableCellWidth { Type = TableWidthUnitValues.Dxa, Width = columnWidth }),
             CreateParagraph(text, bold));
 
     private static void SetNpoiCell(NPOI.XWPF.UserModel.XWPFTableCell cell, string text, bool bold) {

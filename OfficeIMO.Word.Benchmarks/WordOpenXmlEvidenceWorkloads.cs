@@ -57,7 +57,10 @@ internal static class WordOpenXmlEvidenceWorkloads {
             body.InsertBefore(
                 WordCreateReportComparisonBenchmarks.CreateParagraph(WordBenchmarkCorpus.ReportSummary),
                 section);
-            body.InsertBefore(WordCreateReportComparisonBenchmarks.CreateTable(rowCount), section);
+            // Word sizes a new table without explicit widths to fill the section's text width, column by column.
+            body.InsertBefore(
+                WordCreateReportComparisonBenchmarks.CreateTable(rowCount, WordBenchmarkCorpus.SectionTextWidthTwips(section) / 2),
+                section);
         }
         return stream.ToArray();
     }
