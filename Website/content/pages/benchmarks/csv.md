@@ -1,6 +1,6 @@
 ---
 title: "CSV benchmarks"
-description: "CSV performance compared with other .NET libraries on Windows, Linux and macOS: decoded reads of a 65,000-record file and writes from a data reader."
+description: "CSV performance compared with other .NET libraries, measured separately on Windows, Linux and macOS: decoded reads of a 65,000-record file, writes from a data reader, and asynchronous reads."
 meta.seo_title: "CSV benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

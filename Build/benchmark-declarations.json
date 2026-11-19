@@ -1,0 +1,2367 @@
+{
+  "$schema": "https://raw.githubusercontent.com/EvotecIT/PSPublishModule/main/Schemas/powerforge.benchmark-declarations.schema.json",
+  "schemaVersion": 5,
+  "libraries": [
+    {
+      "id": "Chromium",
+      "package": "HtmlTinkerX",
+      "version": "3.0.5",
+      "license": "BSD-3-Clause",
+      "licenseUrl": "https://chromium.googlesource.com/chromium/src/+/main/LICENSE",
+      "restriction": "open"
+    },
+    {
+      "id": "ClosedXML",
+      "package": "ClosedXML",
+      "version": "0.105.1",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "CsToml",
+      "package": "CsToml",
+      "version": "1.8.6",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "CsvHelper",
+      "package": "CsvHelper",
+      "version": "33.1.0",
+      "license": "MS-PL OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MS-PL%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "Dataplat.Dbatools.Csv",
+      "package": "Dataplat.Dbatools.Csv",
+      "version": "1.1.15",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "DocX",
+      "package": "DocX",
+      "version": "5.2.0",
+      "licenseUrl": "https://github.com/xceedsoftware/DocX/blob/master/LICENSE",
+      "restriction": "acceptance-required",
+      "reason": "The Xceed Community License Agreement is a legal agreement the user must enter, grants use only for non-commercial purposes, does not allow deployment in any commercial environment, and does not allow publishing benchmark or performance comparison results without Xceed's advance permission."
+    },
+    {
+      "id": "EPPlus",
+      "package": "EPPlus",
+      "version": "8.7.2",
+      "licenseUrl": "https://www.epplussoftware.com/en/LicenseOverview",
+      "restriction": "acceptance-required",
+      "reason": "EPPlus 5 and later are free only for non-commercial use; commercial use needs a paid licence. EPPlus refuses to run without a licence declaration, which the caller must make for themselves."
+    },
+    {
+      "id": "Excel-PRIME",
+      "package": "Excel-PRIME",
+      "version": "5.2610.18",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "ExcelDataReader",
+      "package": "ExcelDataReader",
+      "version": "3.9.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "ExcelReader.NET",
+      "package": "ExcelReader.NET",
+      "version": "7.5.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "HtmlAgilityPack",
+      "package": "HtmlAgilityPack",
+      "version": "1.12.4",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "HypeLab.IO.Excel",
+      "package": "HypeLab.IO.Excel",
+      "version": "1.0.7",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "iText",
+      "package": "itext",
+      "version": "9.7.0",
+      "license": "AGPL-3.0-only",
+      "licenseUrl": "https://www.gnu.org/licenses/agpl.html",
+      "restriction": "open"
+    },
+    {
+      "id": "iText pdfHTML",
+      "package": "itext.pdfhtml",
+      "version": "6.3.3",
+      "license": "AGPL-3.0-only",
+      "licenseUrl": "https://www.gnu.org/licenses/agpl.html",
+      "restriction": "open"
+    },
+    {
+      "id": "LargeXlsx",
+      "package": "LargeXlsx",
+      "version": "2.0.2",
+      "license": "BSD-2-Clause",
+      "licenseUrl": "https://github.com/salvois/LargeXlsx/blob/master/LICENSE.txt",
+      "restriction": "open"
+    },
+    {
+      "id": "LumenWorks",
+      "package": "LumenWorksCsvReader2",
+      "version": "4.4.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "Magick.NET",
+      "package": "Magick.NET-Q8-AnyCPU",
+      "version": "14.16.0",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "Markdig",
+      "package": "Markdig",
+      "version": "1.3.2",
+      "license": "BSD-2-Clause",
+      "licenseUrl": "https://licenses.nuget.org/BSD-2-Clause",
+      "restriction": "open"
+    },
+    {
+      "id": "MigraDoc",
+      "package": "PDFsharp-MigraDoc",
+      "version": "6.2.4",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "MimeKit",
+      "package": "MimeKit",
+      "version": "5.0.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "MiniExcel",
+      "package": "MiniExcel",
+      "version": "1.46.0",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "NPOI",
+      "package": "NPOI",
+      "version": "2.8.1",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://github.com/nissl-lab/npoi/blob/master/LICENSE",
+      "restriction": "open"
+    },
+    {
+      "id": "OfficeIMO",
+      "package": "OfficeIMO",
+      "version": "source",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE",
+      "restriction": "open"
+    },
+    {
+      "id": "OneYaml",
+      "package": "OneYaml",
+      "version": "1.2.1",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "Open XML SDK",
+      "package": "DocumentFormat.OpenXml",
+      "version": "3.5.1",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "OpenStandardLibrary",
+      "package": "OpenStandardLibrary",
+      "version": "1.0.2",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "PdfPecker",
+      "package": "PdfPecker",
+      "version": "1.22.0",
+      "license": "MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c",
+      "licenseUrl": "https://www.nuget.org/packages/PdfPecker/1.22.0/License",
+      "restriction": "open"
+    },
+    {
+      "id": "PdfPig",
+      "package": "PdfPig",
+      "version": "0.1.15",
+      "license": "Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "PDFsharp",
+      "package": "PDFsharp-MigraDoc",
+      "version": "6.2.4",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "PeachPDF",
+      "package": "PeachPDF",
+      "version": "0.9.25",
+      "license": "BSD-3-Clause",
+      "licenseUrl": "https://licenses.nuget.org/BSD-3-Clause",
+      "restriction": "open"
+    },
+    {
+      "id": "QuestPDF",
+      "package": "QuestPDF",
+      "version": "2026.5.0",
+      "licenseUrl": "https://github.com/QuestPDF/QuestPDF/blob/2026.5.0/LICENSE.md",
+      "restriction": "open"
+    },
+    {
+      "id": "ReverseMarkdown",
+      "package": "ReverseMarkdown",
+      "version": "6.1.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "RtfPipe",
+      "package": "RtfPipe",
+      "version": "2.0.7677.4303",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/erdomke/RtfPipe",
+      "restriction": "open"
+    },
+    {
+      "id": "Sep",
+      "package": "Sep",
+      "version": "0.17.1",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "ShapeCrawler",
+      "package": "ShapeCrawler",
+      "version": "0.82.0",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/ShapeCrawler/ShapeCrawler",
+      "restriction": "open"
+    },
+    {
+      "id": "SharpYaml",
+      "package": "SharpYaml",
+      "version": "3.17.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "SkiaSharp",
+      "package": "SkiaSharp",
+      "version": "4.151.1",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "SpreadCheetah",
+      "package": "SpreadCheetah",
+      "version": "1.28.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "StbImageSharp",
+      "package": "StbImageSharp",
+      "version": "2.30.16",
+      "license": "Unlicense OR MIT",
+      "licenseUrl": "https://licenses.nuget.org/Unlicense%20OR%20MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "Sylvan.Data.Csv",
+      "package": "Sylvan.Data.Csv",
+      "version": "1.4.4",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/MarkPflug/Sylvan/blob/main/license.txt",
+      "restriction": "open"
+    },
+    {
+      "id": "Sylvan.Data.Excel",
+      "package": "Sylvan.Data.Excel",
+      "version": "0.5.8",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/MarkPflug/Sylvan/blob/main/license.txt",
+      "restriction": "open"
+    },
+    {
+      "id": "System.IO.Compression",
+      "package": "System.IO.Compression",
+      "version": "runtime",
+      "license": "MIT",
+      "licenseUrl": "https://github.com/dotnet/runtime/blob/main/LICENSE.TXT",
+      "restriction": "open"
+    },
+    {
+      "id": "Tomlet",
+      "package": "Samboy063.Tomlet",
+      "version": "6.2.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "Tomlyn",
+      "package": "Tomlyn",
+      "version": "2.11.1",
+      "license": "BSD-2-Clause",
+      "licenseUrl": "https://licenses.nuget.org/BSD-2-Clause",
+      "restriction": "open"
+    },
+    {
+      "id": "VersOne.Epub",
+      "package": "VersOne.Epub",
+      "version": "3.3.6",
+      "license": "Unlicense",
+      "licenseUrl": "https://licenses.nuget.org/Unlicense",
+      "restriction": "open"
+    },
+    {
+      "id": "VYaml",
+      "package": "VYaml",
+      "version": "1.6.1",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "XLibur",
+      "package": "XLibur.Bundle",
+      "version": "0.800.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    },
+    {
+      "id": "YamlDotNet",
+      "package": "YamlDotNet",
+      "version": "18.1.0",
+      "license": "MIT",
+      "licenseUrl": "https://licenses.nuget.org/MIT",
+      "restriction": "open"
+    }
+  ],
+  "comparisons": [
+    {
+      "comparisonId": "csv-million-first-row",
+      "area": "csv",
+      "title": "CSV million-row first-row access",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [
+        {
+          "name": "Shape",
+          "values": [
+            "Plain",
+            "Multiline"
+          ]
+        }
+      ],
+      "cases": [
+        "OfficeIMO_Snapshot",
+        "OfficeIMO_Incremental"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "OfficeIMO-only snapshot/incremental profile; excluded from public library comparisons."
+      }
+    },
+    {
+      "comparisonId": "csv-async-read",
+      "area": "csv",
+      "title": "CSV asynchronous reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [
+        {
+          "name": "Operation",
+          "values": [
+            "FirstRow",
+            "AllRows"
+          ]
+        },
+        {
+          "name": "RowCount",
+          "values": [
+            "1000",
+            "100000"
+          ]
+        },
+        {
+          "name": "Shape",
+          "values": [
+            "Plain",
+            "Multiline"
+          ]
+        }
+      ],
+      "cases": [
+        "OfficeIMO_Snapshot",
+        "OfficeIMO_Incremental"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "OfficeIMO-only snapshot/incremental profile; excluded from public library comparisons."
+      }
+    },
+    {
+      "comparisonId": "csv-wide-async-read",
+      "area": "csv",
+      "title": "Wide CSV asynchronous reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [
+        {
+          "name": "Operation",
+          "values": [
+            "FirstRow",
+            "AllRows"
+          ]
+        },
+        {
+          "name": "RowCount",
+          "values": [
+            "5000",
+            "25000"
+          ]
+        }
+      ],
+      "cases": [
+        "OfficeIMO_Snapshot",
+        "OfficeIMO_Incremental"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "OfficeIMO-only snapshot/incremental profile; excluded from public library comparisons."
+      }
+    },
+    {
+      "comparisonId": "pdf-native-100-pages",
+      "area": "pdf",
+      "title": "PDF native operations",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [
+        {
+          "name": "Operation",
+          "values": [
+            "ReadText",
+            "ReadStructured",
+            "Select",
+            "Merge",
+            "Split",
+            "SplitSelections"
+          ]
+        },
+        {
+          "name": "Producer",
+          "values": [
+            "IText",
+            "MigraDoc"
+          ]
+        }
+      ],
+      "cases": [
+        "Execute"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-csv-decoded",
+      "area": "csv",
+      "title": "CSV 65K typed reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sep",
+        "Sylvan.Data.Csv",
+        "CsvHelper",
+        "Dataplat.Dbatools.Csv",
+        "LumenWorks"
+      ],
+      "axes": [],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "csv-25k-datareader-write",
+      "area": "csv",
+      "title": "CSV data-reader writing",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Sylvan.Data.Csv"
+      ],
+      "axes": [
+        {
+          "name": "RowCount",
+          "values": [
+            "25000"
+          ]
+        },
+        {
+          "name": "Shape",
+          "values": [
+            "Mixed",
+            "Quoted",
+            "Multiline"
+          ]
+        }
+      ],
+      "cases": [
+        "WriteDataReader",
+        "WriteDataReaderParallel"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xls-typed",
+      "area": "excel",
+      "title": "XLS 65K typed reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan.Data.Excel",
+        "ExcelDataReader"
+      ],
+      "axes": [],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsx-typed",
+      "area": "excel",
+      "title": "XLSX 65K typed reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan.Data.Excel",
+        "ExcelDataReader",
+        "ClosedXML",
+        "EPPlus",
+        "MiniExcel",
+        "Excel-PRIME",
+        "HypeLab.IO.Excel",
+        "XLibur"
+      ],
+      "axes": [],
+      "cases": [
+        "Default",
+        "Prefetch",
+        "DefaultNumbers",
+        "DefaultNumbers_Prefetch",
+        "Loaded",
+        "SinglePass",
+        "Memory",
+        "InternStrings",
+        "TypedStyles"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "xlsx-25k-datareader-write",
+      "area": "excel",
+      "title": "XLSX data-reader writing",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "SpreadCheetah",
+        "Sylvan.Data.Excel",
+        "LargeXlsx"
+      ],
+      "axes": [
+        {
+          "name": "RowCount",
+          "values": [
+            "25000"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "markpflug-65k-xlsb-typed",
+      "area": "excel",
+      "title": "XLSB 65K typed reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ExcelReader.NET",
+        "Sylvan.Data.Excel",
+        "ExcelDataReader",
+        "Excel-PRIME"
+      ],
+      "axes": [],
+      "cases": [
+        "Default",
+        "SinglePass",
+        "TypedStyles",
+        "Prefetch"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "markdown-commonmark-parse",
+      "area": "markdown",
+      "title": "CommonMark semantic parsing",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Markdig"
+      ],
+      "axes": [
+        {
+          "name": "CorpusName",
+          "values": [
+            "PortableReadme",
+            "Transcript",
+            "TechnicalDoc",
+            "RichAst",
+            "LongNestedList",
+            "LargeTable",
+            "NormalizationStress"
+          ]
+        }
+      ],
+      "cases": [
+        "ParseSemantic_CommonMark"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "markdown-commonmark-html",
+      "area": "markdown",
+      "title": "CommonMark to HTML",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Markdig"
+      ],
+      "axes": [
+        {
+          "name": "CorpusName",
+          "values": [
+            "PortableReadme",
+            "Transcript",
+            "TechnicalDoc",
+            "RichAst",
+            "LongNestedList",
+            "LargeTable",
+            "NormalizationStress"
+          ]
+        }
+      ],
+      "cases": [
+        "ToHtml_CommonMark"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "html-to-markdown",
+      "area": "html",
+      "title": "HTML to Markdown",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ReverseMarkdown"
+      ],
+      "axes": [
+        {
+          "name": "CorpusName",
+          "values": [
+            "Article",
+            "LargeArticle",
+            "Table"
+          ]
+        }
+      ],
+      "cases": [
+        "Default_Profile"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "rtf-to-html",
+      "area": "rtf",
+      "title": "RTF to HTML",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "RtfPipe"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Small",
+            "Medium",
+            "Large",
+            "Producer"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "opendocument-ods-create",
+      "area": "opendocument",
+      "title": "ODS creation",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "OpenStandardLibrary"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Small",
+            "Normal"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "opendocument-ods-read",
+      "area": "opendocument",
+      "title": "ODS reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "OpenStandardLibrary"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Small",
+            "Normal"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "email-mime-read",
+      "area": "email",
+      "title": "MIME email reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "MimeKit"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Small",
+            "Normal"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "email-mime-write",
+      "area": "email",
+      "title": "MIME email writing",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "MimeKit"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Small",
+            "Normal"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "epub-open-read",
+      "area": "epub",
+      "title": "EPUB opening and reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "VersOne.Epub",
+        "HtmlAgilityPack"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Small",
+            "Normal"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "zip-safe-traversal",
+      "area": "zip",
+      "title": "ZIP guarded metadata traversal",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "System.IO.Compression"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Small",
+            "Normal",
+            "Large"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "OfficeIMO enforces path and expansion safety; the platform lane projects raw metadata without equivalent safety policy. Not a public like-for-like safety comparison."
+      }
+    },
+    {
+      "comparisonId": "yaml-parse-events",
+      "area": "yaml",
+      "title": "YAML parse to events",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "KubernetesStream",
+            "DeepNesting",
+            "BlockScalars",
+            "FlowHeavy",
+            "AnchorHeavy",
+            "ManySmallFiles"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "yaml-load",
+      "area": "yaml",
+      "title": "YAML load to model",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "KubernetesStream",
+            "DeepNesting",
+            "BlockScalars",
+            "FlowHeavy",
+            "AnchorHeavy",
+            "ManySmallFiles"
+          ]
+        }
+      ],
+      "cases": [
+        "Default",
+        "WithValues"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "yaml-load-save",
+      "area": "yaml",
+      "title": "YAML unchanged load and save",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "OneYaml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "KubernetesStream",
+            "DeepNesting",
+            "BlockScalars",
+            "FlowHeavy",
+            "AnchorHeavy",
+            "ManySmallFiles"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "yaml-edit-save",
+      "area": "yaml",
+      "title": "YAML single-value edit and save",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "OneYaml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "KubernetesStream",
+            "DeepNesting",
+            "BlockScalars",
+            "FlowHeavy",
+            "AnchorHeavy",
+            "ManySmallFiles"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "yaml-emit",
+      "area": "yaml",
+      "title": "YAML emit from events",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "KubernetesStream",
+            "DeepNesting",
+            "BlockScalars",
+            "FlowHeavy",
+            "AnchorHeavy",
+            "ManySmallFiles"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "yaml-serialize",
+      "area": "yaml",
+      "title": "YAML object serialization",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "LargeRecords",
+            "KubernetesNested"
+          ]
+        }
+      ],
+      "cases": [
+        "Reflection",
+        "Generated",
+        "GeneratedUtf8",
+        "GeneratedUtf8Bytes"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "yaml-deserialize",
+      "area": "yaml",
+      "title": "YAML object deserialization",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "YamlDotNet",
+        "SharpYaml",
+        "VYaml",
+        "OneYaml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "LargeRecords",
+            "KubernetesNested"
+          ]
+        }
+      ],
+      "cases": [
+        "Reflection",
+        "Generated",
+        "GeneratedUtf8"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "toml-parse",
+      "area": "toml",
+      "title": "TOML parse without a model",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "CargoWorkspace",
+            "LockFile",
+            "Corpus"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "toml-load",
+      "area": "toml",
+      "title": "TOML load to model",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn",
+        "Tomlet",
+        "CsToml"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "CargoWorkspace",
+            "LockFile",
+            "Corpus"
+          ]
+        }
+      ],
+      "cases": [
+        "Default",
+        "WithValues"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "toml-load-save",
+      "area": "toml",
+      "title": "TOML unchanged load and save",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "CargoWorkspace",
+            "LockFile",
+            "Corpus"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "toml-deserialize",
+      "area": "toml",
+      "title": "TOML model deserialization",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "CargoWorkspace",
+            "LockFile"
+          ]
+        }
+      ],
+      "cases": [
+        "Default",
+        "Generated"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "toml-serialize",
+      "area": "toml",
+      "title": "TOML model serialization",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Tomlyn"
+      ],
+      "axes": [
+        {
+          "name": "Workload",
+          "values": [
+            "SmallConfig",
+            "CargoWorkspace",
+            "LockFile"
+          ]
+        }
+      ],
+      "cases": [
+        "Default",
+        "Generated"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "image-png-decode",
+      "area": "image",
+      "title": "PNG decoding",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET",
+        "StbImageSharp"
+      ],
+      "axes": [],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "image-jpeg-decode",
+      "area": "image",
+      "title": "JPEG decoding",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET",
+        "StbImageSharp"
+      ],
+      "axes": [],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "image-png-encode",
+      "area": "image",
+      "title": "PNG encoding",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET"
+      ],
+      "axes": [],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "image-tiff-lzw",
+      "area": "image",
+      "title": "TIFF LZW round trip",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Magick.NET"
+      ],
+      "axes": [],
+      "cases": [
+        "Encode",
+        "DecodeExternal"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "image-webp-lossless",
+      "area": "image",
+      "title": "Lossless WebP encoding and decoding",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "Magick.NET"
+      ],
+      "axes": [],
+      "cases": [
+        "Encode",
+        "DecodeExternal"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "image-resize",
+      "area": "image",
+      "title": "Image resizing",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "SkiaSharp",
+        "Magick.NET"
+      ],
+      "axes": [],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-structured-generation",
+      "area": "pdf",
+      "title": "Structured PDF generation",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "MigraDoc",
+        "iText"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-real-world-invoice",
+      "area": "pdf",
+      "title": "PDF invoice generation",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "QuestPDF",
+        "iText"
+      ],
+      "axes": [],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Existing invoice comparison is not qualified for the public catalog; retain the reviewed exclusion."
+      }
+    },
+    {
+      "comparisonId": "pdf-typed-invoice-workflow",
+      "area": "pdf",
+      "title": "Typed invoice PDF workflow",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [],
+      "cases": [
+        "TypedElectronicInvoicePdf"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "OfficeIMO-only workflow; excluded from public library comparisons."
+      }
+    },
+    {
+      "comparisonId": "pdf-html-generation",
+      "area": "pdf",
+      "title": "HTML to PDF",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "PeachPDF",
+        "PdfPecker",
+        "iText pdfHTML",
+        "Chromium"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-html-21k-payload",
+      "area": "pdf",
+      "title": "HTML 21 KiB payload to PDF",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "PeachPDF",
+        "PdfPecker"
+      ],
+      "axes": [
+        {
+          "name": "Payload",
+          "values": [
+            "PlainText",
+            "Table",
+            "Multilingual"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "officeimo-pdf-format-route-health",
+      "area": "pdf",
+      "title": "PDF format route health",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [
+        {
+          "name": "Format",
+          "values": [
+            "Docx",
+            "Xlsx",
+            "Pptx",
+            "Html",
+            "Markdown",
+            "Rtf",
+            "AsciiDoc",
+            "Latex",
+            "Mhtml",
+            "OneNote",
+            "Odt",
+            "Ods",
+            "Odp",
+            "Visio"
+          ]
+        }
+      ],
+      "cases": [
+        "ConvertToPdfBytes"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "OfficeIMO-only format route health; excluded from public library comparisons."
+      }
+    },
+    {
+      "comparisonId": "pdf-text-extraction",
+      "area": "pdf",
+      "title": "PDF text extraction",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "axes": [
+        {
+          "name": "Producer",
+          "values": [
+            "OfficeIMO",
+            "QuestPDF",
+            "PeachPDF",
+            "MigraDoc",
+            "IText"
+          ]
+        },
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "officeimo-pdf-read-profile-route-health",
+      "area": "pdf",
+      "title": "PDF read profile route health",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High"
+          ]
+        }
+      ],
+      "cases": [
+        "FastLoadAndRead",
+        "StructuredLoadAndRead"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "OfficeIMO-only read profile route health; excluded from public library comparisons."
+      }
+    },
+    {
+      "comparisonId": "pdf-reverse-conversion",
+      "area": "pdf",
+      "title": "PDF reverse conversion",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO"
+      ],
+      "axes": [
+        {
+          "name": "Producer",
+          "values": [
+            "OfficeIMO",
+            "QuestPDF",
+            "PeachPDF",
+            "MigraDoc",
+            "IText"
+          ]
+        },
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High"
+          ]
+        }
+      ],
+      "cases": [
+        "PdfToDocx",
+        "PdfToHtml",
+        "PdfToXlsx",
+        "PdfToPptx",
+        "PdfToOdt",
+        "PdfToOds",
+        "PdfToOdp",
+        "PdfToPng"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-corpus-text-extraction",
+      "area": "pdf",
+      "title": "Independent PDF corpus text extraction",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "PdfPig",
+        "iText"
+      ],
+      "axes": [
+        {
+          "name": "Document",
+          "values": [
+            "OfficeIMO-500p",
+            "NIST-492p",
+            "Type3-85p",
+            "PDFA-258p-12MB"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-split",
+      "area": "pdf",
+      "title": "PDF splitting",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "axes": [
+        {
+          "name": "Density",
+          "values": [
+            "Standard",
+            "Dense"
+          ]
+        },
+        {
+          "name": "Producer",
+          "values": [
+            "OfficeIMO",
+            "IText"
+          ]
+        },
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High",
+            "VeryHigh"
+          ]
+        },
+        {
+          "name": "Workflow",
+          "values": [
+            "EveryPage",
+            "Bundles"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-merge",
+      "area": "pdf",
+      "title": "PDF merging",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "axes": [
+        {
+          "name": "Density",
+          "values": [
+            "Standard",
+            "Dense"
+          ]
+        },
+        {
+          "name": "Producer",
+          "values": [
+            "OfficeIMO",
+            "IText"
+          ]
+        },
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High",
+            "VeryHigh"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pdf-page-selection",
+      "area": "pdf",
+      "title": "PDF page selection",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "iText",
+        "PDFsharp"
+      ],
+      "axes": [
+        {
+          "name": "Density",
+          "values": [
+            "Standard",
+            "Dense"
+          ]
+        },
+        {
+          "name": "Producer",
+          "values": [
+            "OfficeIMO",
+            "IText"
+          ]
+        },
+        {
+          "name": "Scale",
+          "values": [
+            "Easy",
+            "Medium",
+            "High",
+            "VeryHigh"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-create-paragraphs",
+      "area": "word",
+      "title": "DOCX paragraph creation",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "axes": [
+        {
+          "name": "ItemCount",
+          "values": [
+            "100",
+            "1000",
+            "10000"
+          ]
+        }
+      ],
+      "cases": [
+        "Default",
+        "Minimal"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-create-report",
+      "area": "word",
+      "title": "DOCX report creation",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "axes": [
+        {
+          "name": "RowCount",
+          "values": [
+            "100",
+            "1000"
+          ]
+        }
+      ],
+      "cases": [
+        "Default",
+        "Minimal"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-read-paragraphs",
+      "area": "word",
+      "title": "DOCX paragraph reading",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "axes": [
+        {
+          "name": "ItemCount",
+          "values": [
+            "100",
+            "1000",
+            "10000"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "word-docx-replace-and-save",
+      "area": "word",
+      "title": "DOCX text replacement and save",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "DocX",
+        "NPOI",
+        "Open XML SDK"
+      ],
+      "axes": [
+        {
+          "name": "ItemCount",
+          "values": [
+            "100",
+            "1000"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net8.0",
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pptx-create",
+      "area": "powerpoint",
+      "title": "PPTX create and save",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ShapeCrawler",
+        "Open XML SDK"
+      ],
+      "axes": [
+        {
+          "name": "SlideCount",
+          "values": [
+            "20",
+            "200"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net10.0"
+      ]
+    },
+    {
+      "comparisonId": "pptx-edit",
+      "area": "powerpoint",
+      "title": "PPTX open, edit, and save",
+      "subject": "OfficeIMO",
+      "libraries": [
+        "OfficeIMO",
+        "ShapeCrawler",
+        "Open XML SDK"
+      ],
+      "axes": [
+        {
+          "name": "SlideCount",
+          "values": [
+            "20",
+            "200"
+          ]
+        }
+      ],
+      "cases": [
+        "Default"
+      ],
+      "expectedPlatforms": [
+        "windows",
+        "linux",
+        "macos"
+      ],
+      "frameworks": [
+        "net10.0"
+      ]
+    }
+  ]
+}

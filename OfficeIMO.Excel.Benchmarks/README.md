@@ -1061,16 +1061,14 @@ dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\
 The twenty warmups let tiered compilation settle before the custom rotated
 runner starts measuring; fifteen warmups still produced visibly bimodal
 isolated read results on ARM64.
-The suite writes JSON, CSV, Markdown, and a manifest. Run the focused README
-comparison and refresh its generated table locally with:
+The suite writes JSON, CSV, Markdown, and a manifest. Its results are local
+engineering evidence; the published-results block below comes only from the
+cataloged comparisons measured with `Build/Run-LibraryComparisonBenchmarks.ps1`.
+Refresh that block from the catalog with:
 
 ```powershell
-.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run Excel
+.\Build\Benchmarks\Update-BenchmarkReadmes.ps1
 ```
-
-The script selects documented equivalent workloads, emits PSPublishModule's
-comparison schema, and calls `Update-BenchmarkDocument` for the
-marker-delimited block. Benchmark execution is local and is not scheduled in CI.
 
 Focus the package-copy workbook merge scenario:
 
@@ -1090,23 +1088,30 @@ Compare the fastest package-native write paths:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-write-25000.json --rows 25000 --scenario write-datareader-compact-package,write-typed-rows-compact-package --warmup 20 --iterations 31
 ```
 
-## Historical generated workstation snapshot
+## Published comparison results
 
-This PSPublishModule-managed snapshot is retained for reproducibility, not as
-the current cross-platform product ranking. The rows combine raw data paths
-with feature-bearing workbook work and only compare libraries that expose a
-directly comparable public API. Lower is
-faster within a row only; do not combine rows into one library ranking. Results
-vary by machine, runtime, package version, workload, warm-up, and options.
-Treat differences below 5% as ties. Use the hash-pinned CSV/XLSX/XLSB website
-matrix for current platform-separated evidence.
+This block shows the published Windows .NET 10 run of the Excel library
+comparisons from the [benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
+The [Excel benchmark page](https://officeimo.com/benchmarks/excel/) shows every
+platform and framework. A comparison without a published run says so instead of
+showing numbers.
 
 <!-- officeimo-excel-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Compact DataReader to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (27ms) | n/a | 1.29x (34ms) | 1.08x (29ms) | 1.32x (35ms) | Fastest: OfficeIMO.Excel |
-| Styled DataReader table to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (28ms) | 17.76x (506ms) | n/a | n/a | n/a | Fastest: OfficeIMO.Excel |
-| Typed objects streamed from XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Read | 1.00x (33ms) | 14.36x (471ms) | n/a | n/a | 1.88x (62ms) | Fastest: OfficeIMO.Excel |
+#### XLS 65K typed reading
+
+_No published windows net10.0 run yet._
+
+#### XLSB 65K typed reading
+
+_No published windows net10.0 run yet._
+
+#### XLSX 65K typed reading
+
+_No published windows net10.0 run yet._
+
+#### XLSX data-reader writing
+
+_No published windows net10.0 run yet._
 <!-- officeimo-excel-benchmark-table:end -->
 
 EPPlus 8 is licensed under PolyForm Noncommercial unless you buy a commercial
@@ -1120,12 +1125,4 @@ its AutoFit path needs `libgdiplus` on macOS:
 
 ```powershell
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare --rows 25000 --scenario write-bulk-report --include-legacy-epplus --warmup 1 --iterations 3
-```
-
-## Website data
-
-After a comparison-suite run, refresh website/blog benchmark data with:
-
-```powershell
-.\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -SummaryPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-summary.json -ManifestPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-suite-manifest.json -RunMode quick
 ```

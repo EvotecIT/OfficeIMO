@@ -1,6 +1,6 @@
 ---
 title: "Benchmarks"
-description: "Measured OfficeIMO performance across PDF, Excel, CSV and other formats, compared with other .NET libraries on Windows, Linux and macOS."
+description: "OfficeIMO performance compared with other .NET libraries across PDF, Excel, CSV, Word and other formats, measured separately on Windows, Linux and macOS."
 meta.seo_title: "OfficeIMO benchmarks for .NET document workflows"
 layout: page
 meta.raw_html: true
@@ -8,13 +8,9 @@ meta.content_engine: scriban
 ---
 
 <div class="imo-benchmark-hub imo-bench-overview">
-  <p class="imo-bench-lead">Every result compares libraries doing the same validated work, on one machine and one operating system, with the source commit and raw data attached. Pick an area to see each workload, including the ones where another library is faster.</p>
+  <p class="imo-bench-lead">Every comparison runs OfficeIMO and other .NET libraries on the same validated work, on one machine and one operating system at a time. A result appears here only when its run meets the publishing rules below; until then a comparison shows that it has not been measured or published yet. Open an area to see every comparison, including the ones where another library is faster.</p>
 
-  {{ include "benchmark-overview" }}
+  {{ include "powerforge/benchmarks/index" data.benchmarks }}
 
-  <section class="imo-benchmark-method" aria-labelledby="benchmark-method-title">
-    <h2 id="benchmark-method-title">Reproduce before you decide.</h2>
-    <p>Hardware, runtime, data shape, enabled features and output validation all affect results. Use these results to choose a suite, then run it on infrastructure close to your own.</p>
-    <p><a class="imo-action-link" href="/docs/capabilities/benchmarks/">Benchmark reproduction guide <span aria-hidden="true">→</span></a> · <a class="imo-action-link" href="/benchmarks/archive/">Earlier Excel and CSV measurements <span aria-hidden="true">→</span></a></p>
-  </section>
+  {{ include "benchmark-method" }}
 </div>

@@ -1,6 +1,6 @@
 ---
 title: "Images benchmarks"
-description: "Images performance compared with other .NET libraries on Windows, Linux and macOS: tIFF and WebP encoding and decoding, with raw results and source commits."
+description: "Images performance compared with other .NET libraries, measured separately on Windows, Linux and macOS: PNG and JPEG decoding, PNG encoding, resizing, TIFF LZW and lossless WebP."
 meta.seo_title: "Images benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

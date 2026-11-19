@@ -163,10 +163,10 @@ The shared repository runner adds provenance capture and PowerForge-normalized
 JSON/CSV/Markdown evidence. `word` expands to the four comparison workloads:
 
 ```powershell
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload word -Profile full -Framework net8.0
 ```
 
-Use `-RunMode quick` only for a clean-source smoke run. The isolated benchmark
+Use `-Profile diagnostic` only for a clean-source smoke run. The isolated benchmark
 project is nonpackable and outside the normal solution. The interoperability CI job
 restores and builds this project to run the deterministic `validate-workflows`
 checks; comparison measurements remain opt-in. NPOI is Apache-2.0 and open in

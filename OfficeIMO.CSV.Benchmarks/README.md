@@ -87,7 +87,7 @@ cache after setup, so this lane does not measure cold-disk throughput.
 Run the local evidence lane with:
 
 ```powershell
-./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csvasyncread -RunMode quick -Framework net10.0 -OutputRoot ./Ignore/Benchmarks/AsyncCsv
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csvasyncread -Profile diagnostic -Framework net10.0 -OutputRoot ./Ignore/Benchmarks/AsyncCsv
 ```
 
 Use `-PlanOnly` to inspect the 16-case matrix without executing it. The lane
@@ -95,7 +95,7 @@ does not update the website evidence catalog or generated comparison tables.
 Raw reports stay in the captured artifact folder. The derived normalized JSON
 is written beside that folder so re-importing the raw reports can still verify
 the complete captured file set and hashes.
-`-RunMode full` uses six warmup and twelve measured iterations per case and
+`-Profile full` uses six warmup and twelve measured iterations per case and
 retains outliers. Setup checks the worker's affinity against the runner's
 declaration and records its actual affinity and priority in the log. Repeat
 the complete matrix on each discovered processor domain before interpreting
@@ -262,26 +262,22 @@ To run only the larger mixed-field file workload, use
 The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
 records the file workloads, repeated comparisons, and reader allocation analysis.
 
-## Local workstation benchmark snapshot
+## Published comparison results
 
-This single-workstation table records a focused local run. It is not the current
-cross-platform product ranking.
-Lower is faster within a row only; the rows use different contracts and cannot
-be combined into one library ranking. Treat differences below 5% as ties. The
-run's settings and source revision are recorded in the dated benchmark evidence;
-each method validates its input or output contract before timing.
-
-Use the hash-pinned library-comparison suite and website matrix below for
-current evidence. They keep CSV, XLSX, and XLSB workloads separate and expose
-Windows, Linux, and macOS results independently.
+This block shows the published Windows .NET 10 run of the CSV library
+comparisons from the [benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
+The [CSV benchmark page](https://officeimo.com/benchmarks/csv/) shows every
+platform and framework. A comparison without a published run says so instead of
+showing numbers.
 
 <!-- officeimo-csv-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (46ms) | n/a | 1.21x (56ms) | n/a | 0.78x (36ms) | Fastest: Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.22x (3ms) | 1.56x (4ms) | Fastest: OfficeIMO.CSV |
-| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (44ms) | 2.71x (119ms) | 1.12x (49ms) | n/a | n/a | Fastest: OfficeIMO.CSV |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Validate and write rows | MeanMs | 1.00x (13ms) | 2.84x (36ms) | 1.84x (23ms) | 2.42x (30ms) | 1.29x (16ms) | Fastest: OfficeIMO.CSV |
+#### CSV data-reader writing
+
+_No published windows net10.0 run yet._
+
+#### CSV 65K typed reading
+
+_No published windows net10.0 run yet._
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Dated four-reader CSV snapshot (2026-08-31)
@@ -325,15 +321,13 @@ for `OfficeIMO.CSV.dll`.
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter *Csv*Benchmarks*
 ```
 
-Refresh the compact benchmark comparison with one command:
+Measure the cataloged comparisons with `Build/Run-LibraryComparisonBenchmarks.ps1`
+(see [library comparison evidence](../Build/LibraryComparisonBenchmarks.md)), then
+refresh the published-results block from the catalog:
 
 ```powershell
-.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run Csv
+.\Build\Benchmarks\Update-BenchmarkReadmes.ps1
 ```
-
-The script runs only the focused equivalent lanes, calls PSPublishModule's
-`Import-BenchmarkResult` and `Update-BenchmarkDocument`, and replaces the
-marker-delimited table. Benchmark execution is local and is not scheduled in CI.
 
 For a write-focused competitor pass:
 

@@ -46,5 +46,5 @@ the semantic/size preflight and stores `validated-size-evidence.json` under the
 same provenance capture:
 
 ```powershell
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload rtfhtml -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload rtfhtml -Profile full -Framework net8.0
 ```

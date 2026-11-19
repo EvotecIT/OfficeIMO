@@ -135,18 +135,18 @@ The release gate requires matching Windows and Linux summaries from the same cle
 Run one quick correctness/performance smoke through the shared PowerForge evidence path:
 
 ```powershell
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfgenerate -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoice -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoiceworkflow -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtml -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfformats -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfstructuredread -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfnative -RunMode full -Framework net8.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfsplit -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -RunMode quick -Framework net10.0
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -RunMode quick -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfgenerate -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoice -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfinvoiceworkflow -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtml -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfformats -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfstructuredread -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfnative -Profile full -Framework net8.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfsplit -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -Profile diagnostic -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -Profile diagnostic -Framework net10.0
 ```
 
 For a reader run whose generated PDFs must have the same byte hashes in every
@@ -161,7 +161,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 $env:OFFICEIMO_PDF_READ_INPUT_ROOT = (Resolve-Path Ignore/Benchmarks/PdfComparisons/read-inputs).Path
 $env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256 = (Get-FileHash "$env:OFFICEIMO_PDF_READ_INPUT_ROOT/pdf-read-inputs.json" -Algorithm SHA256).Hash
 try {
-    pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0
+    pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -Profile full -Framework net10.0
 } finally {
     Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_ROOT
     Remove-Item Env:OFFICEIMO_PDF_READ_INPUT_MANIFEST_SHA256
@@ -175,22 +175,13 @@ BenchmarkDotNet output. Compare this explicit prepared-input cohort separately
 from historical runs that generated PDFs independently in each worker and did
 not retain their byte hashes.
 
-The [paired reader record](../Website/static/data/benchmarks/library-comparisons/support/reader-pair-7a-e835.json)
-accompanies the full Windows reader results in the
-[benchmark catalog](../Website/static/data/benchmarks/library-comparisons/index.json).
-It compares reader sources `7a6e8831` and `e835d297` across 19 inputs and 57 engine
-cases; the generated input bytes come from producer source `63fb9e81`.
-
-The record preserves BenchmarkDotNet's original statistics, original values,
-outlier arrays and raw measurements from both runs, including OfficeIMO losses
-and movement in the unchanged PdfPig and iText implementations. Ratios are
-candidate/baseline: values below one describe lower elapsed time or allocation
-for that metric. Peer movement and load snapshots help interpret variation
-without establishing its cause.
-
-This is one Windows BenchmarkDotNet 0.15.8 `DefaultJob` pair with fixed CPU
-affinity. Other catalog lanes retain their own source and input identities;
-HTML results and the opt-in `WarmedV1` profile are separate cohorts.
+A paired Windows reader record compared reader sources `7a6e8831` and `e835d297`
+across 19 inputs and 57 engine cases with BenchmarkDotNet's raw measurements from both
+runs. It belonged to the earlier benchmark catalog, which was retired without importing
+its results; the record stays in Git history at
+`5e5a2dda74:Website/static/data/benchmarks/library-comparisons/support/reader-pair-7a-e835.json`.
+Current reader results come only from fresh runs recorded in the
+[benchmark evidence catalog](../Website/static/data/benchmarks/evidence/index.json).
 
 Pass `-KeepBenchmarkFiles` when worker binaries and child build binlogs are
 needed for identity verification and diagnostics. It forwards BenchmarkDotNet's
@@ -198,7 +189,7 @@ needed for identity verification and diagnostics. It forwards BenchmarkDotNet's
 For example, keep build and result files in owned paths:
 
 ```powershell
-pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode full -Framework net10.0 -BuildArtifactsPath Ignore/Benchmarks/PdfComparisons/retained-build -OutputRoot Ignore/Benchmarks/PdfComparisons/retained-run -KeepBenchmarkFiles
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -Profile full -Framework net10.0 -BuildArtifactsPath Ignore/Benchmarks/PdfComparisons/retained-build -OutputRoot Ignore/Benchmarks/PdfComparisons/retained-run -KeepBenchmarkFiles
 ```
 
 Capture the generated worker, dependency/runtime configuration, product binaries,
@@ -213,12 +204,12 @@ To validate a specific HtmlTinkerX source checkout, pass either its repository r
 $repoRoot = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -Workload pdfhtml `
-    -RunMode quick `
+    -Profile diagnostic `
     -Framework net10.0 `
     -HtmlTinkerXRoot (Join-Path $repoRoot 'HtmlTinkerX')
 ```
 
-Use `-RunMode full` for publication-quality BenchmarkDotNet statistics. `-Publish` is valid only with a full run and updates the shared benchmark evidence catalog. Raw BenchmarkDotNet artifacts stay under the ignored output root.
+Use `-Profile full` for publication-quality BenchmarkDotNet statistics. `-Publish` is valid only with a full run and updates the shared benchmark evidence catalog. Raw BenchmarkDotNet artifacts stay under the ignored output root.
 
 The real-world invoice lane is deliberately local-only and is not written to the
 shared evidence catalog. Its normal build uses QuestPDF 2026.5.0 under that release's
@@ -241,7 +232,7 @@ $env:OFFICEIMO_QUESTPDF_LICENSE_TYPE = '<your licence type>'
 pwsh Build/Run-InternalQuestPdfBenchmarks.ps1 `
     -QuestPdfPackageVersion 2026.9.0 `
     -Workload pdfgenerate `
-    -RunMode quick `
+    -Profile diagnostic `
     -AcceptLibraryLicense questpdf-latest
 ```
 
@@ -253,7 +244,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 The command uses the benchmark's own rendering and artifact checks, saves each input and PDF, and records any rejection in `html-payload-evidence.json`.
 
-For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode full -Framework net10.0 -MeasurementProfile WarmedV1`. This opt-in profile uses a one-second pilot target, 64–128 warmup iterations and 30–60 measured iterations, retains outliers, and records its exact job arguments under a separate comparison identity. Inspect the chronological raw measurements for continuing drift before describing the results as stable warm throughput.
+For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -Profile full -Framework net10.0 -MeasurementProfile WarmedV1`. This opt-in profile uses a one-second pilot target, 64–128 warmup iterations and 30–60 measured iterations, retains outliers, and records its exact job arguments under a separate comparison identity. Inspect the chronological raw measurements for continuing drift before describing the results as stable warm throughput.
 
 ### HTML head-to-head corpus
 
@@ -332,7 +323,7 @@ separately:
 ```powershell
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -Workload pdfstructuredread `
-    -RunMode full `
+    -Profile full `
     -Framework net10.0
 
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
@@ -358,7 +349,7 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
     -Workload pdfcorpusread `
-    -RunMode quick `
+    -Profile diagnostic `
     -Framework net10.0 `
     -PdfCorpusRoot Ignore/Benchmarks/PdfComparisons/corpus/files
 ```

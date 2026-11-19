@@ -13,7 +13,7 @@
   "ThemesRoot": "themes",
   "DataRoot": "data",
   "BenchmarkEvidence": [
-    { "Name": "benchmarks", "Catalog": "static/data/benchmarks/library-comparisons/index.json" }
+    { "Name": "benchmarks", "Catalog": "static/data/benchmarks/evidence/index.json", "Output": "data/benchmarks", "AreaFragments": true }
   ],
   "Templates": { "LoopLimit": 100000 },
   "TemplateExports": [
@@ -34,7 +34,6 @@
     { "Source": "data/office_capabilities.json", "Destination": "data/capabilities.json" },
     { "Source": "data/pswriteoffice_command_catalog.json", "Destination": "data/powershell/commands.json" },
     { "Source": "data/cli/commands.json", "Destination": "data/cli/commands.json" },
-    { "Source": "data/benchmarks_index.json", "Destination": "data/benchmarks/index.json" },
     { "Source": "data/pdf_corpus_publication.json", "Destination": "data/corpus/pdf-quality-windows.provenance.json" },
     { "Source": "Apps/OfficeIMO.Web.Converter/wwwroot/samples/business-summary.docx", "Destination": "downloads/samples/business-summary.docx" },
     { "Source": "../OfficeIMO.Examples/Showcase/BrowserBusinessSample.cs", "Destination": "downloads/samples/BrowserBusinessSample.cs.txt" },
@@ -448,18 +447,6 @@
         "Name": "benchmarks",
         "Css": [
           "/css/benchmarks.css"
-        ],
-        "Js": [
-          "/js/benchmarks.js"
-        ]
-      },
-      {
-        "Name": "benchmark-area",
-        "Css": [
-          "/css/benchmarks.css"
-        ],
-        "Js": [
-          "/js/benchmark-area.js"
         ]
       },
       {
@@ -617,15 +604,6 @@
         "Match": "/benchmarks/",
         "Bundles": [
           "global",
-          "benchmark-area",
-          "product",
-          "experience"
-        ]
-      },
-      {
-        "Match": "/benchmarks/archive/",
-        "Bundles": [
-          "global",
           "benchmarks",
           "product",
           "experience"
@@ -635,7 +613,7 @@
         "Match": "/benchmarks/**",
         "Bundles": [
           "global",
-          "benchmark-area",
+          "benchmarks",
           "product",
           "experience"
         ]
@@ -1069,6 +1047,13 @@
     "IncludeExternal": false
   },
   "Redirects": [
+    {
+      "From": "/benchmarks/archive/",
+      "To": "/benchmarks/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
     {
       "From": "/tool/",
       "To": "/cli/",

@@ -3,8 +3,9 @@ param(
     [string] $QuestPdfPackageVersion,
     [ValidateSet('pdfgenerate', 'pdfinvoice', 'pdfread', 'pdfreverse')]
     [string] $Workload = 'pdfgenerate',
-    [ValidateSet('quick', 'full')]
-    [string] $RunMode = 'quick',
+    [ValidateSet('diagnostic', 'standard', 'full')]
+    [Alias('Profile', 'RunMode')]
+    [string] $BenchmarkProfile = 'diagnostic',
     [ValidateSet('net8.0', 'net10.0')]
     [string] $Framework = 'net10.0',
     [UInt64] $AffinityMask = 0,
@@ -29,7 +30,7 @@ Write-Host "QuestPDF $QuestPdfPackageVersion local comparison; results will not 
 try {
     & (Join-Path $PSScriptRoot 'Run-LibraryComparisonBenchmarks.ps1') `
         -Workload $Workload `
-        -RunMode $RunMode `
+        -BenchmarkProfile $BenchmarkProfile `
         -Framework $Framework `
         -AffinityMask $AffinityMask `
         -OutputRoot $outputRoot `

@@ -1,6 +1,6 @@
 ---
 title: "RTF benchmarks"
-description: "RTF performance compared with other .NET libraries on Windows, Linux and macOS: rTF to HTML conversion, with raw results and source commits."
+description: "RTF performance compared with other .NET libraries, measured separately on Windows, Linux and macOS: RTF to HTML conversion."
 meta.seo_title: "RTF benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true
