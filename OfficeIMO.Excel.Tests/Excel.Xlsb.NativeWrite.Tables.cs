@@ -130,6 +130,44 @@ public sealed class ExcelXlsbTableTests {
     }
 
     [Fact]
+    public void Structured_references_keep_spaces_inside_column_names() {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            WriteRows(sheet, 1, 1, new[] { "Amount", " Amount " }, new object[] { 1, 10 }, new object[] { 2, 20 });
+            sheet.AddTable("A1:B3", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2, includeAutoFilter: false);
+            sheet.Cell(5, 1).SetFormula("SUM(Sales[[ Amount ]])");
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx)));
+
+        // " Amount " is its own column; trimming it would sum the first column instead.
+        Assert.Equal("SUM(Sales[[ Amount ]])", reloaded["Data"].Cell(5, 1).GetValue().Formula);
+    }
+
+    [Fact]
+    public void A_new_workbook_saved_as_xlsb_with_a_table_and_a_comment_saves_again_after_an_edit() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsb");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddSheet("Data");
+                BuildShape(sheet, "HeaderAndFilter");
+                // The table takes the first relationship id; the comment parts are added after it.
+                sheet.SetComment("E1", "Checked", "Alice");
+                document.Save(path);
+                sheet.Cell(2, 1).SetValue("West");
+                document.Save();
+            }
+
+            using ExcelDocument reloaded = ExcelDocument.Load(path);
+            Assert.Equal("West", reloaded["Data"].Cell(2, 1).GetValue<string>());
+            Assert.Equal("Sales", Assert.Single(reloaded["Data"].GetTables()).Name);
+            Assert.Equal("Checked", Assert.Single(reloaded["Data"].GetComments()).Text);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Editing_cells_of_a_loaded_xlsb_keeps_its_native_table_parts() {
         byte[] source = SaveAsXlsb(CreateXlsx(document => BuildShape(document.AddSheet("Data"), "TwoTablesOnOneSheet")));
 

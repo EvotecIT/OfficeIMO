@@ -73,6 +73,23 @@ public sealed class ExcelXlsbFormulasAndFiltersTests {
     }
 
     [Theory]
+    [InlineData("'Notes _xlfn.Data'!A1*2")]
+    [InlineData("IF(A1>0,\"a,b)\",\"_xlfn.X(\")")]
+    [InlineData("_xlfn.IFNA(MATCH(\"x,(y\",'Notes _xlfn.Data'!A1:A3,0),-1)")]
+    public void Quoted_text_does_not_change_how_native_xlsb_formulas_are_split(string formula) {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = AddNumbers(document);
+            // A quoted sheet name that contains the future-function prefix.
+            document.AddSheet("Notes _xlfn.Data").Cell(1, 1).SetValue(5);
+            sheet.Cell(1, 2).SetFormula(formula);
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx)));
+
+        Assert.Equal(formula, reloaded["Data"].GetFormulaText(1, 2));
+    }
+
+    [Theory]
     [InlineData("STDEV.S(A1:A3)", "_xlfn.STDEV.S(A1:A3)", "1")]
     [InlineData("1+CONCAT(\"a\",A2)", "1+_xlfn.CONCAT(\"a\",A2)", null)]
     [InlineData("IFNA(MATCH(9,A1:A3,0),-1)*2", "_xlfn.IFNA(MATCH(9,A1:A3,0),-1)*2", "-2")]

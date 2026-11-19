@@ -90,15 +90,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             // Encode every table before adding parts so a refusal leaves the package plan unchanged.
             var encoded = tables.Select(item => CreateTablePart(context, item.Table)).ToArray();
+            string[] sourceIds = references.Select(reference => reference.Id!.Value!).ToArray();
             XlsbWorksheetPackageParts parts = context.Parts
                 ?? throw new NotSupportedException($"Native XLSB rewriting cannot add table parts to worksheet '{sheetName}'; save as .xlsx to retain the tables.");
             var result = new List<XlsbGeneratedRecord>(encoded.Length + 2) {
                 new XlsbGeneratedRecord(BrtBeginListParts, UInt32Payload(checked((uint)encoded.Length)))
             };
-            foreach (byte[] content in encoded) {
+            for (int index = 0; index < encoded.Length; index++) {
+                byte[] content = encoded[index];
                 string partName = parts.Names.Next("xl/tables/table", ".bin");
                 parts.AddPart(new XlsbGeneratedPart(partName, ContentType, content));
-                string relationshipId = parts.AddRelationship(RelationshipType, partName);
+                string relationshipId = parts.AddRelationship(RelationshipType, partName, sourceIds[index]);
                 using var payload = new MemoryStream(4 + relationshipId.Length * 2);
                 XlsbPayloadWriter.WriteNullableWideString(payload, relationshipId);
                 result.Add(new XlsbGeneratedRecord(BrtListPart, payload.ToArray()));

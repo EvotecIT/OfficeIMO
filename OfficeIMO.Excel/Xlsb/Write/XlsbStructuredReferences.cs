@@ -244,12 +244,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 reason = $"Structured reference '{table.Name}{selector}' is malformed.";
                 return false;
             }
-            string inner = selector.Substring(1, selector.Length - 2).Trim();
+            // Whitespace is skipped only between bracketed items; a column name keeps its own leading and trailing
+            // spaces, because "Amount" and " Amount " are different headers.
+            string inner = selector.Substring(1, selector.Length - 2);
             bool current = false;
-            if (inner.StartsWith("@", StringComparison.Ordinal)) {
+            if (inner.TrimStart().StartsWith("@", StringComparison.Ordinal)) {
                 current = true;
-                inner = inner.Substring(1).Trim();
+                inner = inner.TrimStart().Substring(1);
             }
+            if (inner.TrimStart().StartsWith("[", StringComparison.Ordinal) || inner.Trim().Length == 0) inner = inner.Trim();
             var items = new List<string>();
             var ranges = new List<(string First, string Last)>();
             if (inner.Length == 0) {
@@ -350,7 +353,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static bool TryFindColumn(XlsbTableReferenceIndex.Entry table, string raw, out ushort index) {
-            string name = ExcelFormulaSyntaxTree.DecodeStructuredColumnName(raw.Trim());
+            string name = ExcelFormulaSyntaxTree.DecodeStructuredColumnName(raw);
             for (int column = 0; column < table.Columns.Count; column++) {
                 if (string.Equals(table.Columns[column], name, StringComparison.OrdinalIgnoreCase)) {
                     index = (ushort)column;

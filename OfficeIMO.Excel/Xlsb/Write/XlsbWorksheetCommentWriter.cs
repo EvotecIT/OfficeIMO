@@ -139,10 +139,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             byte[] comments = CreatePart(model.Comments, context.RichText, native: null, nativeStyles: null, context.Sheet.Name);
             string commentsPartName = context.Parts.Names.Next("xl/comments", ".bin");
             context.Parts.AddPart(new XlsbGeneratedPart(commentsPartName, XlsbCommentRelationships.CommentsContentType, comments));
-            context.Parts.AddRelationship(XlsbCommentRelationships.Comments, commentsPartName);
+            // Keep the relationship ids of the editable model so the adopted package and the model still agree.
+            context.Parts.AddRelationship(XlsbCommentRelationships.Comments, commentsPartName, context.Sheet.WorksheetPart.GetIdOfPart(model.CommentsPart));
             string vmlPartName = context.Parts.Names.Next("xl/drawings/vmlDrawing", ".vml");
             context.Parts.AddPart(new XlsbGeneratedPart(vmlPartName, XlsbCommentRelationships.VmlDrawingContentType, model.ReadVml()));
-            string vmlId = context.Parts.AddRelationship(XlsbCommentRelationships.VmlDrawing, vmlPartName);
+            string vmlId = context.Parts.AddRelationship(XlsbCommentRelationships.VmlDrawing, vmlPartName, context.Sheet.WorksheetPart.GetIdOfPart(model.VmlPart));
             using var payload = new MemoryStream();
             XlsbPayloadWriter.WriteWideString(payload, vmlId);
             records.Drawings.Add(new XlsbGeneratedRecord(BrtLegacyDrawing, payload.ToArray()));

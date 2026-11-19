@@ -136,8 +136,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             string normalized = formulaText.Trim();
             if (normalized.StartsWith("=", StringComparison.Ordinal)) normalized = normalized.Substring(1).Trim();
 
-            int open = normalized.IndexOf('(');
-            if (open <= 0 || !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
+            // The whole expression must be one call: IF(A1,1,2)+IF(B1,1,2) ends with ")" but is an addition.
+            int open = MaskQuotedText(normalized).IndexOf('(');
+            if (open <= 0 || FindClosingParenthesis(normalized, open) != normalized.Length - 1) return false;
             string name = normalized.Substring(0, open).Trim();
             ushort functionId;
             int minimumArguments;
@@ -196,58 +197,31 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static bool TrySplitArguments(string text, out IReadOnlyList<string>? arguments) {
             arguments = null;
+            // Commas inside literals, quoted sheet names and brackets (Sales[[#Totals],[Amount]]) are masked out.
+            string scan = MaskQuotedText(text);
             var result = new List<string>();
-            var current = new StringBuilder(text.Length);
-            bool inString = false;
-            bool inQuotedSheet = false;
+            int start = 0;
             int parenthesisDepth = 0;
             int arrayDepth = 0;
-            for (int index = 0; index < text.Length; index++) {
-                char character = text[index];
-                if (inString) {
-                    current.Append(character);
-                    if (character == '"') {
-                        if (index + 1 < text.Length && text[index + 1] == '"') {
-                            current.Append(text[++index]);
-                        } else {
-                            inString = false;
-                        }
-                    }
-                    continue;
+            int bracketDepth = 0;
+            for (int index = 0; index < scan.Length; index++) {
+                switch (scan[index]) {
+                    case '(': parenthesisDepth++; break;
+                    case ')': if (--parenthesisDepth < 0) return false; break;
+                    case '{': arrayDepth++; break;
+                    case '}': if (--arrayDepth < 0) return false; break;
+                    case '[': bracketDepth++; break;
+                    case ']': if (--bracketDepth < 0) return false; break;
+                    case ',' when parenthesisDepth == 0 && arrayDepth == 0 && bracketDepth == 0:
+                        result.Add(text.Substring(start, index - start).Trim());
+                        start = index + 1;
+                        break;
                 }
-
-                if (inQuotedSheet) {
-                    current.Append(character);
-                    if (character == '\'' && index + 1 < text.Length && text[index + 1] == '\'') {
-                        current.Append(text[++index]);
-                    } else if (character == '\'') {
-                        inQuotedSheet = false;
-                    }
-                    continue;
-                }
-
-                if (character == '"') {
-                    inString = true;
-                } else if (character == '\'') {
-                    inQuotedSheet = true;
-                } else if (character == '(') {
-                    parenthesisDepth++;
-                } else if (character == ')') {
-                    if (--parenthesisDepth < 0) return false;
-                } else if (character == '{') {
-                    arrayDepth++;
-                } else if (character == '}') {
-                    if (--arrayDepth < 0) return false;
-                } else if (character == ',' && parenthesisDepth == 0 && arrayDepth == 0) {
-                    result.Add(current.ToString().Trim());
-                    current.Clear();
-                    continue;
-                }
-                current.Append(character);
             }
 
-            if (inString || inQuotedSheet || parenthesisDepth != 0 || arrayDepth != 0) return false;
-            result.Add(current.ToString().Trim());
+            // An unterminated literal or sheet name is left to the formula parser, which rejects it.
+            if (parenthesisDepth != 0 || arrayDepth != 0 || bracketDepth != 0) return false;
+            result.Add(text.Substring(start).Trim());
             arguments = result;
             return true;
         }
@@ -430,14 +404,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return new string(characters);
         }
 
-        private static bool ContainsArrayConstant(string formulaText) {
-            bool quoted = false;
-            foreach (char character in formulaText) {
-                if (character == '"') quoted = !quoted;
-                else if (character == '{' && !quoted) return true;
-            }
-            return false;
-        }
+        private static bool ContainsArrayConstant(string formulaText) => MaskQuotedText(formulaText).IndexOf('{') >= 0;
 
         private static bool TryConvertString(byte[] source, ref int offset, Stream output) {
             if (offset > source.Length - 2) return false;

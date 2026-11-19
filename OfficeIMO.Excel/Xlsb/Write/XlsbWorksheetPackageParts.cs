@@ -71,9 +71,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal void AddPart(XlsbGeneratedPart part) => _parts.Add(part ?? throw new ArgumentNullException(nameof(part)));
 
-        /// <summary>Adds a worksheet relationship to <paramref name="targetPartName"/> and returns its new id.</summary>
-        internal string AddRelationship(string type, string targetPartName) {
-            string id = AllocateRelationshipId(_relationshipIds);
+        /// <summary>
+        /// Adds a worksheet relationship to <paramref name="targetPartName"/> and returns its id: <paramref name="preferredId"/>,
+        /// the id the editable model already uses, when it is still free, otherwise the next unused rIdN.
+        /// </summary>
+        internal string AddRelationship(string type, string targetPartName, string? preferredId = null) {
+            string id = !string.IsNullOrEmpty(preferredId) && _relationshipIds.Add(preferredId!) ? preferredId! : AllocateRelationshipId(_relationshipIds);
             _relationships.Add(new XlsbPackageRelationship(id, type, RelativeTarget(WorksheetPartName, targetPartName), isExternal: false));
             return id;
         }

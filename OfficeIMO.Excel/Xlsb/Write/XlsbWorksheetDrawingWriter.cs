@@ -39,7 +39,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new NotSupportedException($"Native XLSB rewriting cannot add a drawing to worksheet '{context.Sheet.Name}'; save as .xlsx to keep its images and charts.");
             }
             string drawingPartName = CopyGraph(context, part, new Dictionary<OpenXmlPart, string>());
-            string relationshipId = context.Parts.AddRelationship(DrawingRelationshipType, drawingPartName);
+            // Keep the relationship id of the editable model so the adopted package and the model still agree.
+            string relationshipId = context.Parts.AddRelationship(DrawingRelationshipType, drawingPartName, context.Sheet.WorksheetPart.GetIdOfPart(part));
             records.Drawings.Add(Create(relationshipId));
         }
 

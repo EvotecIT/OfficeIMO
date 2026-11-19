@@ -19,15 +19,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             new[] { ("^", (byte)0x07) }
         };
 
+        // True when the formula calls an _xlfn. function: the prefix starts an identifier outside string literals, quoted
+        // sheet names and brackets, and the identifier is followed by "(". '_xlfn.Data'!A1 names a sheet, not a function.
         private static bool ContainsFutureFunction(string formulaText) {
-            bool quoted = false;
-            for (int index = 0; index < formulaText.Length; index++) {
-                char character = formulaText[index];
-                if (character == '"') quoted = !quoted;
-                else if (!quoted && character == '_'
-                    && string.Compare(formulaText, index, FutureFunctionPrefix, 0, FutureFunctionPrefix.Length, StringComparison.OrdinalIgnoreCase) == 0) {
-                    return true;
+            string scan = MaskQuotedText(formulaText);
+            for (int index = 0; index < scan.Length; index++) {
+                if (scan[index] != '_' || (index > 0 && IsIdentifierCharacter(scan[index - 1]))
+                    || string.Compare(scan, index, FutureFunctionPrefix, 0, FutureFunctionPrefix.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+                    continue;
                 }
+                int end = index + FutureFunctionPrefix.Length;
+                while (end < scan.Length && IsIdentifierCharacter(scan[end])) end++;
+                if (end < scan.Length && scan[end] == '(') return true;
             }
             return false;
         }
@@ -87,7 +90,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static bool TryEncodeFunctionCall(string text, int depth, EncodeScope scope, Stream output, Stream extraOutput, out string? reason) {
             reason = null;
-            int open = text.IndexOf('(');
+            int open = MaskQuotedText(text).IndexOf('(');
             if (open <= 0 || FindClosingParenthesis(text, open) != text.Length - 1) return false;
             string name = text.Substring(0, open).Trim();
             if (!TrySplitArguments(text.Substring(open + 1, text.Length - open - 2), out IReadOnlyList<string>? arguments)) return false;
@@ -144,6 +147,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         /// <summary>Finds the operator to evaluate last: the rightmost top-level binary operator of the lowest level.</summary>
         private static bool TryFindBinarySplit(string text, out int split, out int length, out byte token) {
+            // Operators inside literals, quoted sheet names and brackets are masked out.
+            text = MaskQuotedText(text);
             foreach ((string Text, byte Token)[] level in BinaryOperatorLevels) {
                 split = -1;
                 length = 0;
@@ -209,6 +214,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static int FindClosingParenthesis(string text, int open) {
+            text = MaskQuotedText(text);
             int depth = 0;
             bool quoted = false;
             bool sheetQuoted = false;
