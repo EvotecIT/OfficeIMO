@@ -1,6 +1,6 @@
 ---
 title: "Images benchmarks"
-description: "Images benchmarks comparing OfficeIMO with other .NET libraries: PNG and JPEG decoding, PNG encoding, resizing, TIFF LZW and lossless WebP. Windows, Linux and macOS are separate runs, shown once they are published."
+description: "Image benchmarks comparing OfficeIMO with other .NET libraries: PNG, JPEG, TIFF and WebP coding and resizing, with separate Windows, Linux and macOS runs."
 meta.seo_title: "Images benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

@@ -1,6 +1,6 @@
 ---
 title: "Benchmarks"
-description: "Benchmarks comparing OfficeIMO with other .NET libraries across PDF, Excel, CSV, Word and other formats. Windows, Linux and macOS are separate runs, shown once they are published."
+description: "Benchmarks comparing OfficeIMO with other .NET libraries for PDF, Excel, CSV, Word and more document formats, with separate Windows, Linux and macOS runs."
 meta.seo_title: "OfficeIMO benchmarks for .NET document workflows"
 layout: page
 meta.raw_html: true

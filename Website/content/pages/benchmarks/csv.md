@@ -1,6 +1,6 @@
 ---
 title: "CSV benchmarks"
-description: "CSV benchmarks comparing OfficeIMO with other .NET libraries: decoded reads of a 65,000-record file, writes from a data reader, and asynchronous reads. Windows, Linux and macOS are separate runs, shown once they are published."
+description: "CSV benchmarks comparing OfficeIMO with other .NET libraries: 65K-record reads, data-reader writes and async reads, with separate Windows, Linux and macOS runs."
 meta.seo_title: "CSV benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

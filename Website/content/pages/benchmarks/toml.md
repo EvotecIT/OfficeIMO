@@ -1,6 +1,6 @@
 ---
 title: "TOML benchmarks"
-description: "TOML benchmarks comparing OfficeIMO with other .NET libraries: parsing, loading, lossless saving and object serialization. Windows, Linux and macOS are separate runs, shown once they are published."
+description: "TOML benchmarks comparing OfficeIMO with other .NET libraries on parsing, loading, saving and serialization, with separate Windows, Linux and macOS runs."
 meta.seo_title: "TOML benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true

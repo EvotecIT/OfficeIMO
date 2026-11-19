@@ -1,6 +1,6 @@
 ---
 title: "YAML benchmarks"
-description: "YAML benchmarks comparing OfficeIMO with other .NET libraries: parsing, loading, lossless saving and editing, emitting and object serialization. Windows, Linux and macOS are separate runs, shown once they are published."
+description: "YAML benchmarks comparing OfficeIMO with other .NET libraries: parsing, loading, editing and serialization, with separate Windows, Linux and macOS runs."
 meta.seo_title: "YAML benchmarks for .NET libraries"
 layout: page
 meta.raw_html: true
