@@ -56,6 +56,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public ExcelReadObservation OfficeIMO() {
         using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsxPath,
@@ -67,6 +68,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Prefetch")]
     public ExcelReadObservation OfficeIMO_Prefetch() {
         using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsxPath,
@@ -79,6 +81,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Default")]
     public ExcelReadObservation ExcelReaderNet() {
 #if NET10_0_OR_GREATER
         using XlsxReader reader = ExcelReaderApi.FromXlsxFile(MarkPflug65KFixture.XlsxPath);
@@ -89,6 +92,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Prefetch")]
     public ExcelReadObservation ExcelReaderNet_Prefetch() {
         ExcelReader.Core.Reader.ExcelReaderOptions options = ExcelReader.Core.Reader.ExcelReaderOptions.Default with { PrefetchDecompression = true };
 #if NET10_0_OR_GREATER
@@ -100,6 +104,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Excel", "case:Default")]
     public ExcelReadObservation Sylvan() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsxPath);
         using SylvanExcelDataReader reader = SylvanExcelDataReader.Create(
@@ -110,6 +115,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelDataReader", "case:Default")]
     public ExcelReadObservation ExcelDataReader() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsxPath);
         using global::ExcelDataReader.IExcelDataReader reader =
@@ -127,6 +133,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ClosedXML", "case:Default")]
     public ExcelReadObservation ClosedXML() {
         using var workbook = new XLWorkbook(MarkPflug65KFixture.XlsxPath);
         IXLWorksheet worksheet = workbook.Worksheet(1);
@@ -140,7 +147,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory(BenchmarkLibrarySelection.CategoryPrefix + "epplus")]
+    [BenchmarkCategory(BenchmarkLibrarySelection.CategoryPrefix + "epplus", "case:Default")]
     public ExcelReadObservation EPPlus() {
         using var package = new ExcelPackage(new FileInfo(MarkPflug65KFixture.XlsxPath));
         ExcelWorksheet worksheet = package.Workbook.Worksheets[0];
@@ -154,6 +161,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:MiniExcel", "case:Default")]
     public ExcelReadObservation MiniExcel() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsxPath);
         IEnumerable<object> rows = MiniExcelApi.Query(
@@ -408,6 +416,7 @@ public partial class MarkPflug65KXlsbBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public ExcelReadObservation OfficeIMO() {
         using DbDataReader reader = ExcelDocument.OpenReader(
             MarkPflug65KFixture.XlsbPath,
@@ -416,12 +425,14 @@ public partial class MarkPflug65KXlsbBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Default")]
     public ExcelReadObservation ExcelReaderNet() {
         using XlsbReader reader = ExcelReaderApi.FromXlsbFile(MarkPflug65KFixture.XlsbPath);
         return Validate(nameof(ExcelReaderNet), MarkPflug65KXlsxBenchmarks.ObserveExcelReader(reader));
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Excel", "case:Default")]
     public ExcelReadObservation Sylvan() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsbPath);
         using SylvanExcelDataReader reader = SylvanExcelDataReader.Create(
@@ -432,6 +443,7 @@ public partial class MarkPflug65KXlsbBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelDataReader", "case:Default")]
     public ExcelReadObservation ExcelDataReader() {
         using var stream = File.OpenRead(MarkPflug65KFixture.XlsbPath);
         using global::ExcelDataReader.IExcelDataReader reader =
