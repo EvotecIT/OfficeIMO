@@ -95,9 +95,7 @@ internal static partial class LegacyXlsWriter {
             OfficeCompoundFileWriter.Write(destination, layout, rootClassId: null);
         }
 
-        // BIFF8 sheet positions and the version 3 compound stream that holds them are limited to 2 GiB.
-        private static void ThrowWorkbookStreamTooLarge() =>
-            throw new NotSupportedException("The native XLS workbook stream exceeds the 2 GiB BIFF8 limit.");
+        private static void ThrowWorkbookStreamTooLarge() => throw CreateWorkbookTooLargeException();
 
         /// <summary>Disposes sheet buffers and releases the shared-string lease once.</summary>
         public void Dispose() {

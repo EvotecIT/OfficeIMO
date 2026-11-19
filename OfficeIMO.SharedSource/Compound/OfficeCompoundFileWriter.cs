@@ -12,14 +12,21 @@ namespace OfficeIMO.Core.Internal {
         private const uint EndOfChain = 0xfffffffe;
         private const uint FatSect = 0xfffffffd;
         private const uint DifSect = 0xfffffffc;
-        // Version 3 (512-byte sector) files cap each stream, including the mini stream, at 0x80000000 bytes.
+        // This writer emits only version 3 files (512-byte sectors), including rewrites of version 4 sources. Version 3
+        // caps each stream, including the mini stream, at 0x80000000 bytes; only version 4 (4096-byte sectors) allows
+        // larger streams, so every stream written here is held to the version 3 limit.
         internal const long MaximumVersion3StreamLength = 0x80000000L;
 
         internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams, Guid? rootClassId = null) {
             ArgumentNullException.ThrowIfNull(streams);
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
-            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            return Write(OfficeCompoundWriterLayout.Create(streams), rootClassId);
+        }
+
+        /// <summary>Writes a prepared layout into one byte array.</summary>
+        internal static byte[] Write(OfficeCompoundWriterLayout layout, Guid? rootClassId = null) {
+            ArgumentNullException.ThrowIfNull(layout);
             using (var output = CreateExactOutput(layout)) {
                 Write(output, layout, rootClassId);
                 return GetExactOutputBuffer(output);

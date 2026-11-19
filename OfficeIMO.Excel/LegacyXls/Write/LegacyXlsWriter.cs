@@ -72,6 +72,28 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             document.Execution.ReportTiming(operation, elapsed);
         }
 
+        /// <summary>
+        /// The workbook is too large for BIFF8: sheet positions are 32-bit and the version 3 compound stream that holds
+        /// them is limited to 2 GiB. A workbook built in memory is also limited to the largest byte array.
+        /// </summary>
+        internal static NotSupportedException CreateWorkbookTooLargeException(Exception? innerException = null) =>
+            new("The native XLS workbook stream exceeds the 2 GiB BIFF8 limit.", innerException);
+
+        /// <summary>Writes a new compound file into one byte array, rejecting a workbook too large for it before writing.</summary>
+        internal static byte[] WriteInMemoryCompoundFile(IReadOnlyList<OfficeCompoundStream> streams) {
+            OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
+            if (OfficeCompoundFileWriter.GetSerializedLength(layout) > int.MaxValue) throw CreateWorkbookTooLargeException();
+            return OfficeCompoundFileWriter.Write(layout);
+        }
+
+        /// <summary>Buffers a workbook stream; reaching the in-memory size limit is reported as the BIFF8 limit.</summary>
+        internal sealed class WorkbookStreamBuffer : OfficeBoundedMemoryStream {
+            internal WorkbookStreamBuffer(long maximumBytes) : base(maximumBytes) { }
+
+            protected override Exception CreateLimitException(long maximumBytes) =>
+                maximumBytes >= int.MaxValue ? CreateWorkbookTooLargeException() : base.CreateLimitException(maximumBytes);
+        }
+
         private static byte[] BuildCompoundFile(ExcelDocument document, byte[] workbookStream, long maximumBytes = int.MaxValue, Func<byte[], byte[]>? encryptAuxiliary = null) {
             return BuildCompoundFile(
                 document,
@@ -107,7 +129,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             streams.AddRange(propertyStreams);
             OfficeCompoundFile? sourceCompoundFile = document.LegacyXlsSourceCompoundFile;
             if (sourceCompoundFile == null) {
-                if (maximumBytes == int.MaxValue) return OfficeCompoundFileWriter.Write(streams);
+                if (maximumBytes >= int.MaxValue) return WriteInMemoryCompoundFile(streams);
                 using var bounded = new OfficeBoundedMemoryStream(maximumBytes);
                 OfficeCompoundFileWriter.Write(bounded, streams);
                 return bounded.ToArray();
@@ -115,7 +137,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             var replacements = streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase);
             if (encryptAuxiliary != null) LegacyXlsCompoundEncryption.AddEncryptedAuxiliaryStreams(sourceCompoundFile, replacements, encryptAuxiliary);
-            return OfficeCompoundFileWriter.Rewrite(sourceCompoundFile, replacements, maxOutputBytes: maximumBytes);
+            try {
+                return OfficeCompoundFileWriter.Rewrite(sourceCompoundFile, replacements, maxOutputBytes: maximumBytes);
+            } catch (InvalidDataException exception) when (maximumBytes >= int.MaxValue && OfficeOutputLimit.Is(exception)) {
+                throw CreateWorkbookTooLargeException(exception);
+            }
         }
 
         private static string GetWorkbookStreamName(OfficeCompoundFile? sourceCompoundFile) {
@@ -146,7 +172,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             LegacyXlsSharedStringTable sharedStrings = LegacyXlsSharedStringTable.Create(worksheetCells);
 
-            using var stream = new OfficeBoundedMemoryStream(maximumBytes);
+            using var stream = new WorkbookStreamBuffer(maximumBytes);
             WriteRecord(stream, 0x0809, WorkbookGlobalsBof);
             if (filePass != null) WriteRecord(stream, 0x002f, filePass);
             WriteRecord(stream, 0x00e1, BuildUInt16Payload(1200));

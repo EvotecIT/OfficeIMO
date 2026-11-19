@@ -118,7 +118,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     throw new ArgumentOutOfRangeException(offset < 0 ? nameof(offset) : nameof(count));
                 }
 
-                int end = checked(_position + count);
+                int end = GetWriteEnd(count);
                 EnsureCapacity(end);
                 System.Buffer.BlockCopy(buffer, offset, Buffer, _position, count);
                 _position = end;
@@ -127,12 +127,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             public override void WriteByte(byte value) {
-                int end = checked(_position + 1);
+                int end = GetWriteEnd(1);
                 EnsureCapacity(end);
                 Buffer[_position] = value;
                 _position = end;
                 if (end > _length) _length = end;
                 if (end > _clearLength) _clearLength = end;
+            }
+
+            // The stream is one byte array, so a workbook that outgrows it has passed the in-memory BIFF8 limit.
+            private int GetWriteEnd(int count) {
+                long end = (long)_position + count;
+                if (end > int.MaxValue) throw CreateWorkbookTooLargeException();
+                return (int)end;
             }
 
             protected override void Dispose(bool disposing) {

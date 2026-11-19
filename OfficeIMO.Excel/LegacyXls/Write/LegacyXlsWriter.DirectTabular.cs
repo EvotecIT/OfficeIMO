@@ -149,9 +149,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 + ((long)(plan.NonEmptyCellCount + 2) * 18L)
                 + ((long)rowBlockCount * 8L));
             long requiredCapacity = checked(stream.Position + cellTableUpperBound + 128L);
-            if (requiredCapacity > int.MaxValue) {
-                throw new NotSupportedException("The direct XLS cell table exceeds the maximum in-memory workbook size.");
-            }
+            if (requiredCapacity > int.MaxValue) throw CreateWorkbookTooLargeException();
             stream.EnsureCapacity(checked((int)requiredCapacity));
             stream.RegisterDirectWriteUpperBound(checked((int)requiredCapacity));
 
