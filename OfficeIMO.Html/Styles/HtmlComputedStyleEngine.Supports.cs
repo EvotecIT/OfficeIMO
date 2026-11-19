@@ -324,6 +324,12 @@ public static partial class HtmlComputedStyleEngine {
         if (string.Equals(propertyName, "box-decoration-break", StringComparison.OrdinalIgnoreCase)) {
             return normalized == "slice" || normalized == "clone";
         }
+        if (string.Equals(propertyName, "text-justify", StringComparison.OrdinalIgnoreCase)
+            && normalized is "inter-character" or "distribute") {
+            // The declaration is accepted and approximated between words, so @supports
+            // does not claim inter-character justification.
+            return false;
+        }
         if (string.Equals(propertyName, "outline-width", StringComparison.OrdinalIgnoreCase)) {
             return HtmlCssBoxStrokeParser.IsSupportedSideWidthSyntax(normalized);
         }
@@ -413,6 +419,7 @@ public static partial class HtmlComputedStyleEngine {
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
             case "overflow-wrap":
+            case "word-wrap":
                 return IsKnownKeyword(normalized, "normal", "break-word", "anywhere");
             case "word-break":
                 return IsKnownKeyword(normalized, "normal", "break-all", "keep-all", "break-word");
@@ -511,7 +518,12 @@ public static partial class HtmlComputedStyleEngine {
                 return IsKnownKeyword(normalized, "normal", "bold", "bolder", "lighter")
                     || (int.TryParse(normalized, out weight) && weight >= 1 && weight <= 1000);
             case "text-align":
-                return IsKnownKeyword(normalized, "left", "right", "center", "justify", "start", "end", "match-parent");
+                return IsKnownKeyword(normalized, "left", "right", "center", "justify", "justify-all", "start", "end", "match-parent",
+                    "-webkit-left", "-webkit-right", "-webkit-center", "-moz-left", "-moz-right", "-moz-center");
+            case "text-align-last":
+                return IsKnownKeyword(normalized, "auto", "left", "right", "center", "justify", "start", "end", "match-parent");
+            case "text-justify":
+                return IsKnownKeyword(normalized, "auto", "none", "inter-word", "inter-character", "distribute");
             case "direction":
                 return IsKnownKeyword(normalized, "ltr", "rtl");
             case "unicode-bidi":

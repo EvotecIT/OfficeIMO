@@ -13,7 +13,12 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
     private readonly HtmlDiagnosticReport _diagnosticReport;
     private readonly IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? _bookmarks;
 
-    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null, int? sourceImagesMissingNames = null) {
+    internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks = null, int? sourceImagesMissingNames = null)
+        : this(mode, pages, diagnostics, fonts, metadata, bookmarks, sourceImagesMissingNames, headings: null) {
+    }
+
+    // A copy over the same pages keeps their headings instead of walking the visuals again.
+    private HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts, HtmlRenderMetadata? metadata, IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks, int? sourceImagesMissingNames, ReadOnlyCollection<HtmlRenderHeading>? headings) {
         Mode = mode;
         _pages = new List<HtmlRenderPage>(pages ?? throw new ArgumentNullException(nameof(pages))).AsReadOnly();
         if (_pages.Count == 0) {
@@ -39,7 +44,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         _bookmarks = bookmarks;
         SourceImagesMissingNames = sourceImagesMissingNames;
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
-        _headings = BuildHeadings(_pages, bookmarks).AsReadOnly();
+        _headings = headings ?? BuildHeadings(_pages, bookmarks).AsReadOnly();
     }
 
     /// <summary>Layout mode used to produce the result.</summary>
@@ -73,7 +78,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
     internal int? SourceImagesMissingNames { get; }
 
     internal HtmlRenderDocument WithSourceAccessibilityEvidence(int imagesMissingNames) =>
-        new(Mode, _pages, _diagnosticReport, _fonts, Metadata, _bookmarks, imagesMissingNames);
+        new(Mode, _pages, _diagnosticReport, _fonts, Metadata, _bookmarks, imagesMissingNames, _headings);
 
     /// <summary>Independent snapshot of scoped font faces retained for image and PDF backends.</summary>
     public OfficeFontFaceCollection Fonts => _fonts.Clone();
@@ -94,7 +99,7 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         ArgumentNullException.ThrowIfNull(diagnostics);
         HtmlDiagnosticReport report = _diagnosticReport.Clone();
         report.AddRange(diagnostics);
-        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks, SourceImagesMissingNames);
+        return new HtmlRenderDocument(Mode, _pages, report, _fonts, Metadata, _bookmarks, SourceImagesMissingNames, _headings);
     }
 
     private static IEnumerable<string> EnumerateLogicalText(IEnumerable<HtmlRenderVisual> visuals) {
@@ -311,22 +316,41 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
         return headings;
     }
 
-    // Collected into one list rather than nested iterators: every page visual is visited.
+    // Collected into one list rather than nested iterators: every page visual is visited. The walk
+    // keeps its own stack, so it does not depend on the caller's thread stack for deep documents.
     private static void CollectBookmarkAnchors(
         IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform,
         List<(HtmlRenderBookmarkAnchor Anchor, OfficePoint Point)> anchors) {
-        for (int index = 0; index < visuals.Count; index++) {
-            HtmlRenderVisual visual = visuals[index];
+        var pending = new Stack<VisualWalkFrame>();
+        pending.Push(new VisualWalkFrame(visuals, transform));
+        while (pending.Count > 0) {
+            VisualWalkFrame frame = pending.Pop();
+            if (frame.Index >= frame.Visuals.Count) continue;
+            HtmlRenderVisual visual = frame.Visuals[frame.Index];
+            pending.Push(frame.Next());
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
             if (visual is HtmlRenderBookmarkAnchor anchor) {
-                anchors.Add((anchor, transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y))));
+                anchors.Add((anchor, frame.Transform.TransformPoint(new OfficePoint(anchor.X, anchor.Y))));
             }
             IReadOnlyList<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
-            OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
-                ? effect.Transform.Then(transform) : transform;
-            CollectBookmarkAnchors(children, childTransform, anchors);
+            pending.Push(new VisualWalkFrame(children, visual is HtmlRenderEffectGroup effect
+                ? effect.Transform.Then(frame.Transform) : frame.Transform));
         }
+    }
+
+    private readonly struct VisualWalkFrame {
+        internal VisualWalkFrame(IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform, int index = 0) {
+            Visuals = visuals;
+            Transform = transform;
+            Index = index;
+        }
+
+        internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
+        internal OfficeTransform Transform { get; }
+        internal int Index { get; }
+
+        internal VisualWalkFrame Next() => new(Visuals, Transform, Index + 1);
     }
 
     // Only fragments that can name a heading are kept: an automatic heading role or a bookmark definition.
@@ -338,9 +362,14 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
     private static void CollectTextFragments(
         IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform, List<HtmlRenderTextFragment> fragments,
         IReadOnlyDictionary<int, HtmlRenderBookmarkDefinition>? bookmarks) {
-        IReadOnlyList<HtmlRenderVisual> ordered = InPaintOrder(visuals);
-        for (int index = 0; index < ordered.Count; index++) {
-            HtmlRenderVisual visual = ordered[index];
+        var pending = new Stack<VisualWalkFrame>();
+        pending.Push(new VisualWalkFrame(InPaintOrder(visuals), transform));
+        while (pending.Count > 0) {
+            VisualWalkFrame frame = pending.Pop();
+            if (frame.Index >= frame.Visuals.Count) continue;
+            HtmlRenderVisual visual = frame.Visuals[frame.Index];
+            pending.Push(frame.Next());
+            transform = frame.Transform;
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) {
                 continue;
             }
@@ -368,9 +397,8 @@ public sealed class HtmlRenderDocument : OfficeConversionReport {
 
             IReadOnlyList<HtmlRenderVisual>? children = ChildVisuals(visual);
             if (children == null) continue;
-            OfficeTransform childTransform = visual is HtmlRenderEffectGroup effect
-                ? effect.Transform.Then(transform) : transform;
-            CollectTextFragments(children, childTransform, fragments, bookmarks);
+            pending.Push(new VisualWalkFrame(InPaintOrder(children), visual is HtmlRenderEffectGroup effect
+                ? effect.Transform.Then(transform) : transform));
         }
     }
 

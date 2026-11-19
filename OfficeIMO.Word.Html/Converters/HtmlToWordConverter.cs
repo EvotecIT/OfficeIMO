@@ -238,6 +238,7 @@ namespace OfficeIMO.Word.Html {
             _unscaledImageSizes.Clear();
             _computedFontSizePixels.Clear();
             _injectedInheritedCssProperties.Clear();
+            _ownAlignmentParagraphs.Clear();
             _materializedRoleTableElements.Clear();
             _computedBoxStyles.Clear();
             _inlineStyles.Clear();

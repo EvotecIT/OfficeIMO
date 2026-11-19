@@ -379,6 +379,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // shaping scope for neighbouring independently measured words.
                 && !HasProviderMeasurementContext(segment)
                 && !HasProviderMeasurementContext(merged[merged.Count - 1])
+                // A justified separator keeps its own paint position.
+                && segment.JustificationAdvance == 0D
+                && merged[merged.Count - 1].JustificationAdvance == 0D
                 && ReferenceEquals(merged[merged.Count - 1].Run, segment.Run)) {
                 InlineSegment previous = merged[merged.Count - 1];
                 merged[merged.Count - 1] = new InlineSegment(
@@ -405,7 +408,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (run.AtomicBlock != null || run.PreparedShaping != null || !run.Style.TextFeatureSettings.IsDefault) return null;
         bool extendedBmp = false;
         foreach (InlineSegment segment in segments) {
-            if (!ReferenceEquals(segment.Run, run) || segment.PreparedShaping != null || segment.Text.Length == 0) return null;
+            if (!ReferenceEquals(segment.Run, run) || segment.PreparedShaping != null || segment.Text.Length == 0
+                || segment.JustificationAdvance != 0D) return null;
             // Keep surrogate boundaries on the existing prefix-sensitive path.
             foreach (char value in segment.Text) {
                 if (value > '\u00FF') {
