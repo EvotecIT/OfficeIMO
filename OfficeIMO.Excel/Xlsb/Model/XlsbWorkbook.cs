@@ -23,6 +23,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal IReadOnlyList<XlsbSheet> Sheets => _worksheets;
 
+        /// <summary>Formatting runs of rich shared strings, keyed by shared-string index.</summary>
+        internal Dictionary<int, XlsbTextRun[]> SharedStringRuns { get; } = new();
+
         internal IReadOnlyList<XlsbSheet> Worksheets => _worksheets.Where(sheet => !sheet.IsChartSheet).ToArray();
 
         internal string? CodeName { get; set; }

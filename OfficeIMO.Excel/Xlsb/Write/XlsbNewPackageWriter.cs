@@ -20,15 +20,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             ExcelSheet[] sheets = document.Sheets.ToArray();
             ValidateWorkbook(document, sheets);
-            Stylesheet? stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
+            Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet ?? ExcelDocument.CreateDefaultStylesheet();
             byte[] stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out int cellFormatCount, maximumBytes);
+            var richText = new XlsbRichTextFontTable(stylesheet, document.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable);
             long remainingBytes = maximumBytes - stylesPart.Length;
             var worksheetParts = new byte[sheets.Length][];
             var hyperlinkPlans = new XlsbWorksheetHyperlinkPlan[sheets.Length];
             XlsbSharedStringTable? sharedStrings = useSharedStrings ? new XlsbSharedStringTable() : null;
+            var formulas = new XlsbNewWorkbookFormulaContext(document, sheets, document.WorkbookRoot.GetFirstChild<DefinedNames>());
             for (int index = 0; index < sheets.Length; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.ExtractNew(document, sheets[index]);
+                IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.ExtractNew(document, sheets[index], formulas, richText);
                 hyperlinkPlans[index] = XlsbWorksheetHyperlinkPlan.Create(sheets[index]);
                 XlsbWriteCell? invalidStyle = cells.FirstOrDefault(cell => cell.StyleIndex >= cellFormatCount);
                 if (invalidStyle != null) {
@@ -44,8 +46,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (remainingBytes < 0) throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native XLSB intermediate parts exceed the in-memory save limit.");
             }
 
+            if (richText.AddedFonts.Count != 0) {
+                // Rich runs reference fonts appended after the workbook's own collection.
+                remainingBytes += stylesPart.Length;
+                stylesPart = XlsbStylesheetPartWriter.CreateForNewWorkbook(stylesheet, out _, Math.Max(1, remainingBytes), richText.AddedFonts);
+                remainingBytes -= stylesPart.Length;
+            }
             ArraySegment<byte>? sharedStringsPart = sharedStrings?.CreatePart(cancellationToken, Math.Max(1, remainingBytes));
-            WritePackage(document, destination, sheets, stylesPart, worksheetParts, hyperlinkPlans, sharedStringsPart);
+            WritePackage(document, destination, sheets, stylesPart, worksheetParts, hyperlinkPlans, sharedStringsPart, formulas);
         }
 
         internal static bool TryWriteDirectTabular(
@@ -200,7 +208,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             byte[]? stylesPart,
             IReadOnlyList<byte[]> worksheetParts,
             IReadOnlyList<XlsbWorksheetHyperlinkPlan> hyperlinkPlans,
-            ArraySegment<byte>? sharedStringsPart) {
+            ArraySegment<byte>? sharedStringsPart,
+            XlsbNewWorkbookFormulaContext formulas) {
             ThemePart? theme = document.WorkbookPartRoot.ThemePart;
             XlsbDocumentPropertyParts documentProperties = XlsbDocumentPropertyParts.Capture(document);
             using var positionReportingDestination = destination.CanSeek
@@ -217,7 +226,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     document.WorkbookRoot.GetFirstChild<BookViews>(),
                     document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
                     document.WorkbookRoot.GetFirstChild<DefinedNames>(),
-                    document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
+                    document.WorkbookRoot.GetFirstChild<CalculationProperties>(),
+                    formulas));
                 WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Count, stylesPart != null, sharedStringsPart.HasValue, theme != null));
                 WriteTheme(archive, theme, CompressionLevel.Optimal);
                 for (int index = 0; index < worksheetParts.Count; index++) {

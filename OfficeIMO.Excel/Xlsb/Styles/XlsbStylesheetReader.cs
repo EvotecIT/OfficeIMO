@@ -23,6 +23,9 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
         private const int BrtFill = 45;
         private const int BrtBorder = 46;
         private const int BrtXf = 47;
+        private const int BrtStyle = 48;
+        private const int BrtBeginStyles = 619;
+        private const int BrtEndStyles = 620;
         private const int MaxStyleItems = 65_536;
         private const int MaxFonts = 0xFFD3;
         private const int MaxCellFormats = 0xFF96;
@@ -53,6 +56,8 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             CollectionKind active = CollectionKind.None;
             int expectedCount = 0;
             int actualCount = 0;
+            var styleRecords = new List<XlsbRecord>();
+            bool inStyles = false;
             foreach (XlsbRecord record in records) {
                 switch (record.Type) {
                     case BrtBeginStyleSheet:
@@ -138,6 +143,14 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
                         stylesheet.AddCellFormat(ReadCellFormat(record));
                         actualCount++;
                         break;
+                    case BrtBeginStyles when active == CollectionKind.None && !inStyles:
+                    case BrtEndStyles when inStyles:
+                        inStyles = record.Type == BrtBeginStyles;
+                        styleRecords.Add(record);
+                        break;
+                    case BrtStyle when inStyles:
+                        styleRecords.Add(record);
+                        break;
                     default:
                         PreserveRecord(options, workbook, partName, record);
                         break;
@@ -149,7 +162,41 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             }
 
             ValidateReferences(stylesheet, partName);
+            ProjectCellStyles(stylesheet, styleRecords, options);
+            if (stylesheet.CellStyles.Count == 0) {
+                foreach (XlsbRecord record in styleRecords) PreserveRecord(options, workbook, partName, record);
+            }
             return stylesheet;
+        }
+
+        // Projects BrtStyle (MS-XLSB 2.4.811). A collection that cannot be represented as Open XML cell styles
+        // stays preserved as native records instead of failing the load.
+        private static void ProjectCellStyles(XlsbStylesheet stylesheet, IReadOnlyList<XlsbRecord> records, XlsbImportOptions options) {
+            if (records.Count < 2 || records[0].Type != BrtBeginStyles || records[records.Count - 1].Type != BrtEndStyles
+                || records[0].Data.Length != 4) return;
+            uint declared = new XlsbBinaryCursor(records[0].Data).ReadUInt32();
+            if (declared != records.Count - 2) return;
+            var styles = new List<XlsbCellStyle>(records.Count - 2);
+            var formatIds = new HashSet<uint>();
+            for (int index = 1; index < records.Count - 1; index++) {
+                var cursor = new XlsbBinaryCursor(records[index].Data);
+                if (cursor.Remaining < 12) return;
+                uint formatId = cursor.ReadUInt32();
+                ushort flags = cursor.ReadUInt16();
+                byte builtInId = cursor.ReadByte();
+                byte level = cursor.ReadByte();
+                string name;
+                try {
+                    name = cursor.ReadWideString(Math.Min(options.MaxStringCharacters, 255));
+                } catch (Exception exception) when (exception is InvalidDataException or EndOfStreamException) {
+                    return;
+                }
+                bool builtIn = (flags & 0x0001) != 0;
+                if (cursor.Remaining != 0 || name.Length == 0 || formatId >= stylesheet.CellStyleFormats.Count
+                    || !formatIds.Add(formatId) || (!builtIn && (builtInId != 0 || (flags & 0x0004) != 0))) return;
+                styles.Add(new XlsbCellStyle(formatId, builtIn, (flags & 0x0002) != 0, (flags & 0x0004) != 0, builtInId, level, name));
+            }
+            stylesheet.CellStyles = styles;
         }
 
         private static void BeginCollection(

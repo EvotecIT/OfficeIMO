@@ -5,7 +5,7 @@ using OfficeIMO.Excel.Xlsb.Model;
 namespace OfficeIMO.Excel.Xlsb.Write;
 
 /// <summary>Appends self-reference slots for edited formulas without changing the indexes used by retained native formulas.</summary>
-internal sealed class XlsbFormulaWriteContext {
+internal sealed class XlsbFormulaWriteContext : IXlsbFormulaEncodingContext {
     private readonly ExcelDocument _document;
     private readonly XlsbWorkbook _source;
     private readonly XlsbSheetStructure _structure;
@@ -19,7 +19,7 @@ internal sealed class XlsbFormulaWriteContext {
         _document = document; _source = source; _structure = structure;
     }
 
-    internal bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false) {
+    public bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false) {
         var sheets = _document.Sheets.ToArray();
         _links ??= LegacyXlsExternSheetTable.Create(_document, sheets);
         if (_links.SupportingLinkRecords.Count > 1) throw new NotSupportedException("New external-workbook XLSB formulas require an external-link writer.");
@@ -44,13 +44,13 @@ internal sealed class XlsbFormulaWriteContext {
         return result;
     }
 
-    internal XlsbWriteCell RebindSourceCell(XlsbWriteCell cell) {
+    public XlsbWriteCell RebindSourceCell(XlsbWriteCell cell) {
         if (cell.SourceRecordType == null || cell.SourceRecordData == null || !_structure.NameIndexes.Any(item => item.Value != item.Key)) return cell;
         byte[] data = XlsbFormulaRecordRebinder.Rebind(cell.SourceRecordType.Value, cell.SourceRecordData, _structure.NameIndexes);
         return new XlsbWriteCell(cell.Row, cell.Column, cell.StyleIndex, cell.Kind, cell.Value, cell.FormulaPayload, cell.SourceRecordType, data);
     }
 
-    internal byte[] RebindSourceFormula(byte[] payload) => _structure.NameIndexes.Any(item => item.Value != item.Key)
+    public byte[] RebindSourceFormula(byte[] payload) => _structure.NameIndexes.Any(item => item.Value != item.Key)
         ? XlsbFormulaRecordRebinder.RebindCellFormulaPayload(payload, _structure.NameIndexes) : payload;
 
     private ushort MapReference(ushort generated) {

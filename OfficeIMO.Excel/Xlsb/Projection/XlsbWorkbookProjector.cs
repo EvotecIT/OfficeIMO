@@ -51,6 +51,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         }
                     });
 
+                    ApplyRichText(targetSheet, sourceSheet, workbook.Stylesheet, cancellationToken);
+
                     var arrays = sourceSheet.FormulaGroups.Where(group => group.Type == 426).ToArray();
                     var sourceCells = arrays.Length == 0 ? new Dictionary<(int Row, int Column), XlsbCell>()
                         : sourceSheet.Cells.Where(cell => !string.IsNullOrWhiteSpace(cell.FormulaText)).ToDictionary(cell => (cell.Row, cell.Column));
@@ -94,6 +96,35 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 document.Dispose();
                 throw;
             }
+        }
+
+        // A StrRun covers its text up to the next run; text before the first run uses the cell's own font.
+        private static void ApplyRichText(ExcelSheet targetSheet, XlsbSheet sourceSheet, XlsbStylesheet? stylesheet,
+            System.Threading.CancellationToken cancellationToken) {
+            foreach (XlsbCell cell in sourceSheet.Cells) {
+                if (cell.TextRuns == null || cell.FormulaBytes != null || cell.Value is not string text) continue;
+                cancellationToken.ThrowIfCancellationRequested();
+                var inline = new DocumentFormat.OpenXml.Spreadsheet.InlineString();
+                if (cell.TextRuns[0].Start > 0) inline.Append(CreateRun(text.Substring(0, cell.TextRuns[0].Start), null));
+                for (int index = 0; index < cell.TextRuns.Length; index++) {
+                    int start = cell.TextRuns[index].Start;
+                    int end = index + 1 < cell.TextRuns.Length ? cell.TextRuns[index + 1].Start : text.Length;
+                    ushort font = cell.TextRuns[index].Font;
+                    XlsbFont? source = stylesheet != null && font < stylesheet.Fonts.Count ? stylesheet.Fonts[font] : null;
+                    inline.Append(CreateRun(text.Substring(start, end - start),
+                        source == null ? null : XlsbStylesheetProjector.CreateRunProperties(source)));
+                }
+                targetSheet.SetImportedRichText(cell.Row, cell.Column, inline);
+            }
+        }
+
+        private static DocumentFormat.OpenXml.Spreadsheet.Run CreateRun(string text, DocumentFormat.OpenXml.Spreadsheet.RunProperties? properties) {
+            var run = new DocumentFormat.OpenXml.Spreadsheet.Run();
+            if (properties != null) run.Append(properties);
+            run.Append(new DocumentFormat.OpenXml.Spreadsheet.Text(Utilities.ExcelSanitizer.EncodeXString(text)) {
+                Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve
+            });
+            return run;
         }
 
         private static void EnsureArrayProjectionBudget(XlsbWorkbook workbook, int maxCells,

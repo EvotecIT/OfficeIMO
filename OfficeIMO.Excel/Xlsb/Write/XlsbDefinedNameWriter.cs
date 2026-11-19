@@ -16,14 +16,17 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             CreatePlan(definedNames, sheets);
         }
 
-        internal static void Write(Stream output, DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
+        internal static void Write(Stream output, DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets,
+            XlsbNewWorkbookFormulaContext? formulas = null) {
             ArgumentNullException.ThrowIfNull(output);
             XlsbDefinedNamePlan plan = CreatePlan(definedNames, sheets);
-            if (plan.Records.Count == 0) return;
+            bool cellReferences = formulas?.UsesExternalSheets == true;
+            if (plan.Records.Count == 0 && !cellReferences) return;
 
             XlsbRecordWriter.Write(output, BrtBeginExternals);
             XlsbRecordWriter.Write(output, BrtSupSelf);
-            XlsbRecordWriter.Write(output, BrtExternSheet, CreateExternalSheetPayload(sheets.Count));
+            XlsbRecordWriter.Write(output, BrtExternSheet, CreateExternalSheetPayload(sheets.Count,
+                formulas?.SheetRanges ?? Array.Empty<(int First, int Last)>()));
             XlsbRecordWriter.Write(output, BrtEndExternals);
             foreach (XlsbDefinedNameRecord record in plan.Records) {
                 XlsbRecordWriter.Write(output, BrtName, CreateNamePayload(record));
@@ -314,21 +317,27 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return output.ToArray();
         }
 
-        private static byte[] CreateExternalSheetPayload(int sheetCount) {
-            using var output = new MemoryStream(28 + sheetCount * 12);
-            WriteUInt32(output, checked((uint)sheetCount + 2U));
+        private static byte[] CreateExternalSheetPayload(int sheetCount, IReadOnlyList<(int First, int Last)> sheetRanges) {
+            using var output = new MemoryStream(28 + (sheetCount + sheetRanges.Count) * 12);
+            WriteUInt32(output, checked((uint)(sheetCount + sheetRanges.Count) + 2U));
             WriteExternalSheetReference(output, -2); // workbook-level reference
             WriteExternalSheetReference(output, -1); // #REF! reference
             for (int sheetIndex = 0; sheetIndex < sheetCount; sheetIndex++) {
                 WriteExternalSheetReference(output, sheetIndex);
             }
+            foreach ((int first, int last) in sheetRanges) {
+                WriteExternalSheetReference(output, first, last);
+            }
             return output.ToArray();
         }
 
-        private static void WriteExternalSheetReference(Stream output, int sheetIndex) {
+        private static void WriteExternalSheetReference(Stream output, int sheetIndex) =>
+            WriteExternalSheetReference(output, sheetIndex, sheetIndex);
+
+        private static void WriteExternalSheetReference(Stream output, int firstSheetIndex, int lastSheetIndex) {
             WriteUInt32(output, 0); // first and only supporting link is BrtSupSelf
-            WriteUInt32(output, unchecked((uint)sheetIndex));
-            WriteUInt32(output, unchecked((uint)sheetIndex));
+            WriteUInt32(output, unchecked((uint)firstSheetIndex));
+            WriteUInt32(output, unchecked((uint)lastSheetIndex));
         }
 
         private static bool TryMapBuiltInName(string openXmlName, out string recordName) {

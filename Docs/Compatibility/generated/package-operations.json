@@ -5040,7 +5040,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:modern-to-legacy",
@@ -5054,7 +5054,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder, including other-sheet, multi-sheet, and defined-name references."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:modern-to-legacy",
@@ -7420,7 +7420,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:new-legacy-write",
@@ -7434,7 +7434,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder, including other-sheet, multi-sheet, and defined-name references."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:new-legacy-write",
@@ -7714,7 +7714,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-import",
@@ -7728,7 +7728,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder, including other-sheet, multi-sheet, and defined-name references."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-import",
@@ -8008,7 +8008,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-round-trip-edit",
@@ -8022,7 +8022,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder, including other-sheet, multi-sheet, and defined-name references."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-round-trip-edit",
@@ -8302,7 +8302,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-round-trip-preserve",
@@ -8316,7 +8316,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder, including other-sheet, multi-sheet, and defined-name references."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-round-trip-preserve",
@@ -8596,7 +8596,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-to-modern",
@@ -8610,7 +8610,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formulas.Tokens::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
+      "limitation":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder, including other-sheet, multi-sheet, and defined-name references."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Lifecycle.File:legacy-to-modern",
