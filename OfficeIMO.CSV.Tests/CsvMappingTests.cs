@@ -792,4 +792,14 @@ public class CsvMappingTests
         Assert.Throws<ArgumentOutOfRangeException>(() => reader.RowsAsParallel<Person>(
             new ParallelRowMappingOptions { MaxDegreeOfParallelism = 0 }).ToArray());
     }
+
+    [Fact]
+    public void Parallel_Mapping_Does_Not_Reserve_An_Unbounded_Batch_Size()
+    {
+        CsvDocument document = CsvDocument.Parse("Id,Name,Age,City\n1,Ada,36,London\n2,Grace,37,Arlington\n");
+        var options = new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = int.MaxValue };
+
+        Assert.Equal(new[] { "Ada", "Grace" }, document.RowsAsParallel<Person>(options).Select(person => person.Name).ToArray());
+        Assert.Equal(new[] { 1, 2 }, document.RowsAsParallel(record => record.GetInt32(0), options).ToArray());
+    }
 }
