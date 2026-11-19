@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (typeHint == CellValues.Date && rawText != null) {
-                if (DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)
+                if (ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)
                     && ReturnBindingConversion(TryConvertDateTimeForBinding(dt, binding, out converted), binding, converted)) {
                     return true;
                 }
@@ -215,7 +215,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
-                if (DateTime.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
+                if (ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
                     return TryConvertDateTimeForBinding(dt, binding, out converted);
                 }
 
@@ -354,7 +354,7 @@ namespace OfficeIMO.Excel {
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
                 if (binding.SetDateTime != null
-                    && DateTime.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
+                    && ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
                     binding.SetDateTime(target, dateValue);
                     return true;
                 }

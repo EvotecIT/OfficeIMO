@@ -423,7 +423,7 @@ namespace OfficeIMO.Excel {
                         string dateText = DecodeString(start, length);
                         objectValue = targetKind == XmlDataReaderTargetKind.String
                             ? dateText
-                            : DateTime.TryParse(dateText, _options.Culture, DateTimeStyles.AssumeLocal, out DateTime parsedDate)
+                            : ExcelIsoDateText.TryParse(dateText, _options.Culture, DateTimeStyles.AssumeLocal, out DateTime parsedDate)
                             ? parsedDate
                             : dateText;
                         return;

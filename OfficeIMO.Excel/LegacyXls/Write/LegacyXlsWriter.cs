@@ -869,8 +869,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             if (dataType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date) {
-                if (TryParseOpenXmlDate(rawValue, out DateTime date)) {
-                    return LegacyXlsCell.Number(row, column, styleIndex, ExcelDateSystemConverter.ToSerial(date, dateSystem));
+                if (TryParseOpenXmlDateSerial(rawValue, dateSystem, out double serial)) {
+                    return LegacyXlsCell.Number(row, column, styleIndex, serial);
                 }
 
                 throw new NotSupportedException($"Native XLS saving does not support date value '{rawValue}' at {ToA1Address(row, column)}.");
@@ -1012,13 +1012,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
         }
 
-        private static bool TryParseOpenXmlDate(string text, out DateTime value) {
-            return DateTime.TryParse(
-                text,
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind,
-                out value);
-        }
+        private static bool TryParseOpenXmlDateSerial(string text, ExcelDateSystem dateSystem, out double serial) =>
+            ExcelIsoDateText.TryGetSerial(text, dateSystem, DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind, out serial);
 
         private static string ToA1Address(ushort zeroBasedRow, ushort zeroBasedColumn) {
             int column = zeroBasedColumn + 1;

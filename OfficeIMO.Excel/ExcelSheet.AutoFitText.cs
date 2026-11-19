@@ -93,12 +93,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (dataType == XCellValues.Date
-                && DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
+                && ExcelIsoDateText.TryParseForDisplay(raw, dateSystem, out DateTime date, out double serial)) {
                 uint numberFormatId = GetCellNumberFormatId(styleIndex, context);
                 string? formatCode = GetNumberFormatCode(numberFormatId, context);
                 if (!string.IsNullOrWhiteSpace(formatCode) && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)) {
-                    return ExcelNumberFormatDisplay.FormatDateTimeText(date, numberFormatId, formatCode!,
-                        ExcelDateSystemConverter.ToSerialForDisplay(date, dateSystem)) ?? raw;
+                    return ExcelNumberFormatDisplay.FormatDateTimeText(date, numberFormatId, formatCode!, serial) ?? raw;
                 }
             }
 

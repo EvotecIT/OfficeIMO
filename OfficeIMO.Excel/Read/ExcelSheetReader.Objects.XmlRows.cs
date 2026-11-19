@@ -392,7 +392,7 @@ namespace OfficeIMO.Excel {
 
                 case XmlCellKind.Date:
                     if (binding.SetDateTime != null
-                        && DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
+                        && ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
                         binding.SetDateTime(target, dateValue);
                         return true;
                     }

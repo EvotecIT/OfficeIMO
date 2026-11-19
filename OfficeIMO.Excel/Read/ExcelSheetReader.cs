@@ -651,7 +651,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (type == CellValues.Date && rawText != null) {
-                if (DateTime.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
+                if (ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
                     value = dt;
                 } else {
                     value = rawText;
@@ -774,7 +774,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (type == CellValues.Date && rawText != null) {
-                if (System.DateTime.TryParse(rawText, _opt.Culture, System.Globalization.DateTimeStyles.AssumeLocal, out var dt))
+                if (ExcelIsoDateText.TryParse(rawText, _opt.Culture, System.Globalization.DateTimeStyles.AssumeLocal, out var dt))
                     return dt;
                 return rawText;
             }
