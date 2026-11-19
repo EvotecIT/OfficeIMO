@@ -14,11 +14,16 @@ public class ExcelRoundTripBenchmarks {
     public void Setup() {
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(RowCount);
         _workbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);
-        ExcelSalesOutputValidator.ValidateWorkbook(OfficeIMO_Load_Edit_Save(), rows, reviewed: true);
-        ExcelSalesOutputValidator.ValidateWorkbook(ClosedXML_Load_Edit_Save(), rows, reviewed: true);
+        // ExcelDataReader reopens each output: every original value, the new header and the 100 edited cells.
+        string detail = $"RowCount={RowCount}; ExcelDataReader reread every value and the edited column";
+        ExcelOutputValidation.Check("OfficeIMO", "Load_Edit_Save", detail,
+            () => ExcelSalesOutputValidator.ValidateWorkbook(OfficeIMO_Load_Edit_Save(), rows, reviewed: true));
+        ExcelOutputValidation.Check("ClosedXML", "Load_Edit_Save", detail,
+            () => ExcelSalesOutputValidator.ValidateWorkbook(ClosedXML_Load_Edit_Save(), rows, reviewed: true));
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Load_Edit_Save")]
     public byte[] OfficeIMO_Load_Edit_Save() {
         using var input = new MemoryStream(_workbookBytes, writable: false);
         using var output = new MemoryStream();
@@ -39,6 +44,7 @@ public class ExcelRoundTripBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Load_Edit_Save")]
     public byte[] ClosedXML_Load_Edit_Save() {
         using var input = new MemoryStream(_workbookBytes, writable: false);
         using var output = new MemoryStream();

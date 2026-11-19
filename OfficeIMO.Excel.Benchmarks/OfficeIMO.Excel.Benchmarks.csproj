@@ -75,6 +75,10 @@
     <Compile Include="..\Benchmarks\SalesMappingFixture.cs" Link="Shared\SalesMappingFixture.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <EmbeddedResource Include="XlBenchShapes\sales_template.xlsx" LogicalName="XlBenchShapes.sales_template.xlsx" />
   </ItemGroup>

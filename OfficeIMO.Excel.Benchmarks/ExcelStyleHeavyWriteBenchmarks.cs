@@ -22,11 +22,13 @@ public class ExcelStyleHeavyWriteBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        Validate(OfficeIMO_Write_Styled());
-        Validate(ClosedXML_Write_Styled());
+        string detail = $"RowCount={RowCount}; Open XML SDK reread every cell value, its style and the 240 cell formats";
+        ExcelOutputValidation.Check("OfficeIMO", "Write_Styled", detail, () => Validate(OfficeIMO_Write_Styled()));
+        ExcelOutputValidation.Check("ClosedXML", "Write_Styled", detail, () => Validate(ClosedXML_Write_Styled()));
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Write_Styled")]
     public byte[] OfficeIMO_Write_Styled() {
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Create(output)) {
@@ -44,6 +46,7 @@ public class ExcelStyleHeavyWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Write_Styled")]
     public byte[] ClosedXML_Write_Styled() {
         using var output = new MemoryStream();
         using (var workbook = new XLWorkbook()) {
@@ -73,7 +76,17 @@ public class ExcelStyleHeavyWriteBenchmarks {
     private void Validate(byte[] package) {
         using var document = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
         WorkbookPart workbook = document.WorkbookPart!;
-        int cells = workbook.WorksheetParts.Single().Worksheet!.Descendants<Cell>().Count(cell => cell.StyleIndex != null);
+        int cells = 0;
+        foreach (Cell cell in workbook.WorksheetParts.Single().Worksheet!.Descendants<Cell>()) {
+            int row = cells / Columns + 1, column = cells % Columns + 1;
+            if (cell.StyleIndex == null) throw new InvalidDataException($"Cell R{row}C{column} has no style.");
+            if (cell.DataType != null && cell.DataType.Value != CellValues.Number
+                || !double.TryParse(cell.CellValue?.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)
+                || value != row * column + 0.25) {
+                throw new InvalidDataException($"Cell R{row}C{column} holds '{cell.CellValue?.Text}'; expected {row * column + 0.25}.");
+            }
+            cells++;
+        }
         if (cells != RowCount * Columns) throw new InvalidDataException($"Expected {RowCount * Columns} styled cells, found {cells}.");
         int formats = workbook.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>().Count();
         if (formats < 240) throw new InvalidDataException($"Expected at least 240 cell formats, found {formats}.");

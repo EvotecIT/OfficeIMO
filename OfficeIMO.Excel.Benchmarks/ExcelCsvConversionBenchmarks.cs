@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
 /// A CSV file (name, id, ISO date, amount) converted to a complete in-memory XLSX workbook. Setup reopens every
-/// output with ExcelDataReader and checks the row count and the last row's name and id.
+/// output with ExcelDataReader and checks the headers, the row count and every row's name, id and amount.
 /// </summary>
 [MemoryDiagnoser]
 public class CsvToXlsxConversionBenchmarks {
@@ -22,14 +22,20 @@ public class CsvToXlsxConversionBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _csv = ExcelCsvConversionData.CreateCsv(Rows);
-        ExcelCsvConversionData.ValidateWorkbook(nameof(OfficeIMO_ImportCsv), OfficeIMO_ImportCsv(), Rows);
-        ExcelCsvConversionData.ValidateWorkbook(nameof(OfficeIMO_StreamingText), OfficeIMO_StreamingText(), Rows);
-        ExcelCsvConversionData.ValidateWorkbook(nameof(MiniExcel), MiniExcel(), Rows);
-        ExcelCsvConversionData.ValidateWorkbook(nameof(Sylvan), Sylvan(), Rows);
+        string detail = $"Rows={Rows}; ExcelDataReader reread the headers and every row's name, id and amount";
+        ExcelOutputValidation.Check("OfficeIMO", "ImportCsv", detail,
+            () => ExcelCsvConversionData.ValidateWorkbook(nameof(OfficeIMO_ImportCsv), OfficeIMO_ImportCsv(), Rows));
+        ExcelOutputValidation.Check("OfficeIMO", "StreamingText", detail,
+            () => ExcelCsvConversionData.ValidateWorkbook(nameof(OfficeIMO_StreamingText), OfficeIMO_StreamingText(), Rows));
+        ExcelOutputValidation.Check("MiniExcel", "Default", detail,
+            () => ExcelCsvConversionData.ValidateWorkbook(nameof(MiniExcel), MiniExcel(), Rows));
+        ExcelOutputValidation.Check("Sylvan.Data.Excel", "Default", detail,
+            () => ExcelCsvConversionData.ValidateWorkbook(nameof(Sylvan), Sylvan(), Rows));
     }
 
     /// <summary>The editable import on its defaults: inferred column types and a native table.</summary>
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:ImportCsv")]
     public byte[] OfficeIMO_ImportCsv() {
         using var input = new MemoryStream(_csv, writable: false);
         using var output = new MemoryStream();
@@ -42,6 +48,7 @@ public class CsvToXlsxConversionBenchmarks {
 
     /// <summary>The CSV reader streamed into the row writer as text, the same work as the other lanes.</summary>
     [Benchmark]
+    [BenchmarkCategory("case:StreamingText")]
     public byte[] OfficeIMO_StreamingText() {
         using var input = new MemoryStream(_csv, writable: false);
         using var output = new MemoryStream();
@@ -53,6 +60,7 @@ public class CsvToXlsxConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] MiniExcel() {
         using var input = new MemoryStream(_csv, writable: false);
         using var output = new MemoryStream();
@@ -61,6 +69,7 @@ public class CsvToXlsxConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] Sylvan() {
         using var text = new StreamReader(new MemoryStream(_csv, writable: false), Encoding.UTF8);
         using var output = new MemoryStream();
@@ -73,8 +82,8 @@ public class CsvToXlsxConversionBenchmarks {
 }
 
 /// <summary>
-/// A one-sheet XLSX workbook (name, id, date, amount) converted to in-memory CSV. Setup checks the line count and
-/// the last line's name and id in every output.
+/// A one-sheet XLSX workbook (name, id, date, amount) converted to in-memory CSV. Setup checks the header, the line
+/// count and every line's name and id in every output.
 /// </summary>
 [MemoryDiagnoser]
 public class XlsxToCsvConversionBenchmarks {
@@ -86,14 +95,20 @@ public class XlsxToCsvConversionBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _xlsx = ExcelCsvConversionData.CreateWorkbook(Rows);
-        ExcelCsvConversionData.ValidateCsv(nameof(OfficeIMO_SaveAsCsv), OfficeIMO_SaveAsCsv(), Rows);
-        ExcelCsvConversionData.ValidateCsv(nameof(OfficeIMO_Reader), OfficeIMO_Reader(), Rows);
-        ExcelCsvConversionData.ValidateCsv(nameof(MiniExcel), MiniExcel(), Rows);
-        ExcelCsvConversionData.ValidateCsv(nameof(Sylvan), Sylvan(), Rows);
+        string detail = $"Rows={Rows}; the header, the line count and every line's name and id checked";
+        ExcelOutputValidation.Check("OfficeIMO", "SaveAsCsv", detail,
+            () => ExcelCsvConversionData.ValidateCsv(nameof(OfficeIMO_SaveAsCsv), OfficeIMO_SaveAsCsv(), Rows));
+        ExcelOutputValidation.Check("OfficeIMO", "Reader", detail,
+            () => ExcelCsvConversionData.ValidateCsv(nameof(OfficeIMO_Reader), OfficeIMO_Reader(), Rows));
+        ExcelOutputValidation.Check("MiniExcel", "Default", detail,
+            () => ExcelCsvConversionData.ValidateCsv(nameof(MiniExcel), MiniExcel(), Rows));
+        ExcelOutputValidation.Check("Sylvan.Data.Excel", "Default", detail,
+            () => ExcelCsvConversionData.ValidateCsv(nameof(Sylvan), Sylvan(), Rows));
     }
 
     /// <summary>The editable route: load the workbook and save its sheet as CSV.</summary>
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:SaveAsCsv")]
     public byte[] OfficeIMO_SaveAsCsv() {
         using var input = new MemoryStream(_xlsx, writable: false);
         using var output = new MemoryStream();
@@ -105,6 +120,7 @@ public class XlsxToCsvConversionBenchmarks {
 
     /// <summary>The streaming route: the workbook reader written straight to the CSV writer.</summary>
     [Benchmark]
+    [BenchmarkCategory("case:Reader")]
     public byte[] OfficeIMO_Reader() {
         using var input = new MemoryStream(_xlsx, writable: false);
         using var output = new MemoryStream();
@@ -115,6 +131,7 @@ public class XlsxToCsvConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] MiniExcel() {
         using var input = new MemoryStream(_xlsx, writable: false);
         using var output = new MemoryStream();
@@ -123,6 +140,7 @@ public class XlsxToCsvConversionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public byte[] Sylvan() {
         using var input = new MemoryStream(_xlsx, writable: false);
         using var output = new MemoryStream();
@@ -166,29 +184,42 @@ internal static class ExcelCsvConversionData {
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
         using var stream = new MemoryStream(workbook);
         using var reader = global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
+        if (!reader.Read() || reader.FieldCount != Headers.Length) throw new InvalidDataException($"{lane}: missing header row.");
+        for (int column = 0; column < Headers.Length; column++) {
+            if (!string.Equals(Convert.ToString(reader.GetValue(column), CultureInfo.InvariantCulture), Headers[column], StringComparison.Ordinal))
+                throw new InvalidDataException($"{lane}: header {column + 1} is '{reader.GetValue(column)}'.");
+        }
         int count = 0;
-        object? name = null, id = null;
         while (reader.Read()) {
+            if (count >= rows) throw new InvalidDataException($"{lane}: more than {rows} data rows.");
+            var expected = ExcelReaderGeneratedBenchmarks.CreateRecord(count);
+            object? name = reader.GetValue(0), id = reader.GetValue(1), amount = reader.GetValue(3);
+            // Text and inferred-number cells are both accepted; the value must match.
+            if (!string.Equals(Convert.ToString(name, CultureInfo.InvariantCulture), expected.Name, StringComparison.Ordinal)
+                || !string.Equals(Convert.ToString(id, CultureInfo.InvariantCulture), expected.Id.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
+                || !double.TryParse(Convert.ToString(amount, CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+                || parsed != expected.Amount) {
+                throw new InvalidDataException($"{lane}: data row {count + 1} is {name}/{id}/{amount}.");
+            }
             count++;
-            name = reader.GetValue(0);
-            id = reader.GetValue(1);
         }
-        var last = ExcelReaderGeneratedBenchmarks.CreateRecord(rows - 1);
-        if (count != rows + 1
-            || !string.Equals(Convert.ToString(name, CultureInfo.InvariantCulture), last.Name, StringComparison.Ordinal)
-            || !string.Equals(Convert.ToString(id, CultureInfo.InvariantCulture), last.Id.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)) {
-            throw new InvalidDataException($"{lane}: {count} rows, last row {name}/{id}.");
-        }
+        if (count != rows) throw new InvalidDataException($"{lane}: {count} data rows, expected {rows}.");
     }
 
     internal static void ValidateCsv(string lane, byte[] csv, int rows) {
         string[] lines = Encoding.UTF8.GetString(csv).TrimEnd('\r', '\n').Split('\n');
-        var last = ExcelReaderGeneratedBenchmarks.CreateRecord(rows - 1);
-        string expected = last.Name + "," + last.Id.ToString(CultureInfo.InvariantCulture) + ",";
-        string lastLine = lines[^1].TrimStart('﻿').Replace("\"", string.Empty);
-        if (lines.Length != rows + 1 || !lastLine.StartsWith(expected, StringComparison.Ordinal)) {
-            throw new InvalidDataException($"{lane}: {lines.Length} lines, last line {lines[^1]}.");
+        if (lines.Length != rows + 1) throw new InvalidDataException($"{lane}: {lines.Length} lines, expected {rows + 1}.");
+        if (!Normalize(lines[0]).StartsWith(string.Join(",", Headers), StringComparison.Ordinal))
+            throw new InvalidDataException($"{lane}: header line {lines[0]}.");
+        for (int index = 0; index < rows; index++) {
+            var record = ExcelReaderGeneratedBenchmarks.CreateRecord(index);
+            string expected = record.Name + "," + record.Id.ToString(CultureInfo.InvariantCulture) + ",";
+            if (!Normalize(lines[index + 1]).StartsWith(expected, StringComparison.Ordinal)) {
+                throw new InvalidDataException($"{lane}: line {index + 2} is {lines[index + 1]}.");
+            }
         }
+
+        static string Normalize(string line) => line.TrimStart('﻿').TrimEnd('\r').Replace("\"", string.Empty);
     }
 }
 #endif

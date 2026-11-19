@@ -49,7 +49,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                         $"OfficeIMO reported {result.RowCount} rows instead of {RowCount} during write preflight.");
                 }
             }
-            ValidateWorkbook(nameof(WriteRowsGenerated), officePath, RowCount);
+            Record("OfficeIMO", nameof(WriteRowsGenerated), () => ValidateWorkbook(nameof(WriteRowsGenerated), officePath, RowCount));
 
             using (var excelReaderStream = new FileStream(
                 excelReaderPath,
@@ -66,7 +66,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                         $"ExcelReader.NET reported {excelReaderRows} rows instead of {RowCount} during write preflight.");
                 }
             }
-            ValidateWorkbook(nameof(ExcelReaderNetWriteRowsGenerated), excelReaderPath, RowCount);
+            Record("ExcelReader.NET", nameof(WriteRowsGenerated), () => ValidateWorkbook(nameof(ExcelReaderNetWriteRowsGenerated), excelReaderPath, RowCount));
 
             using (var officeAsyncStream = new FileStream(
                 officeAsyncPath,
@@ -95,7 +95,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                         $"OfficeIMO async reported {result.RowCount} rows instead of {RowCount} during write preflight.");
                 }
             }
-            ValidateWorkbook(nameof(WriteRowsAsyncGenerated), officeAsyncPath, RowCount);
+            Record("OfficeIMO", nameof(WriteRowsAsyncGenerated), () => ValidateWorkbook(nameof(WriteRowsAsyncGenerated), officeAsyncPath, RowCount));
 
             using (var excelReaderAsyncStream = new FileStream(
                 excelReaderAsyncPath,
@@ -112,7 +112,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
                         $"ExcelReader.NET async reported {excelReaderRows} rows instead of {RowCount} during write preflight.");
                 }
             }
-            ValidateWorkbook(nameof(ExcelReaderNetWriteRowsAsyncGenerated), excelReaderAsyncPath, RowCount);
+            Record("ExcelReader.NET", nameof(WriteRowsAsyncGenerated), () => ValidateWorkbook(nameof(ExcelReaderNetWriteRowsAsyncGenerated), excelReaderAsyncPath, RowCount));
         }
         finally {
             File.Delete(officePath);
@@ -125,7 +125,13 @@ public class ExcelGeneratedRowStreamingBenchmarks {
     [Params(1_000_000)]
     public int RowCount { get; set; }
 
+    // The preflight writes the same rows the timed lanes write to Stream.Null, to a file that two readers recheck.
+    private void Record(string library, string caseName, Action validate) =>
+        ExcelOutputValidation.Check(library, caseName,
+            $"RowCount={RowCount}; OfficeIMO and ExcelDataReader reread every row's id, amount, date and flag", validate);
+
     [Benchmark]
+    [BenchmarkCategory("case:WriteRowsGenerated")]
     public int WriteRowsGenerated() {
         ExcelDataSetImportResult result;
 
@@ -146,10 +152,12 @@ public class ExcelGeneratedRowStreamingBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:WriteRowsGenerated")]
     public int ExcelReaderNetWriteRowsGenerated() =>
         WriteExcelReaderRows(Stream.Null, GenerateRows(RowCount));
 
     [Benchmark]
+    [BenchmarkCategory("case:WriteRowsAsyncGenerated")]
     public async Task<int> WriteRowsAsyncGenerated() {
         ExcelDataSetImportResult result;
 
@@ -170,6 +178,7 @@ public class ExcelGeneratedRowStreamingBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:WriteRowsAsyncGenerated")]
     public Task<int> ExcelReaderNetWriteRowsAsyncGenerated() =>
         WriteExcelReaderRowsAsync(Stream.Null, GenerateRowsAsync(RowCount));
 
@@ -280,6 +289,49 @@ public class ExcelGeneratedRowStreamingBenchmarks {
 
         if (index != expectedRowCount || reader.NextResult()) {
             throw new InvalidDataException($"{method} did not round-trip the exact single-sheet row set.");
+        }
+
+        ValidateIndependently(method, workbookPath, expectedRowCount);
+    }
+
+    // ExcelDataReader returns numbers as doubles, styled dates as DateTime and booleans as bool; a writer that stores
+    // the flag as a number or the date without a style is still accepted when the stored value is the same.
+    private static void ValidateIndependently(string method, string workbookPath, int expectedRowCount) {
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        using FileStream stream = File.OpenRead(workbookPath);
+        using var reader = global::ExcelDataReader.ExcelReaderFactory.CreateReader(stream);
+        if (!reader.Read() || reader.FieldCount != Headers.Length) {
+            throw new InvalidDataException($"{method} has no header row for ExcelDataReader.");
+        }
+        for (int column = 0; column < Headers.Length; column++) {
+            if (!Equals(reader.GetValue(column), Headers[column])) {
+                throw new InvalidDataException($"{method} header {column + 1} reads as '{reader.GetValue(column)}' in ExcelDataReader.");
+            }
+        }
+        int index = 0;
+        while (reader.Read()) {
+            if (index >= expectedRowCount) throw new InvalidDataException($"{method} emitted extra rows for ExcelDataReader.");
+            GeneratedRow expected = CreateRow(index);
+            object id = reader.GetValue(0), amount = reader.GetValue(1), date = reader.GetValue(2), active = reader.GetValue(3);
+            bool dateMatches = date switch {
+                DateTime value => value == expected.CreatedOn,
+                double serial => serial == expected.CreatedOn.ToOADate(),
+                _ => false
+            };
+            bool activeMatches = active switch {
+                bool value => value == expected.Active,
+                double number => number == (expected.Active ? 1 : 0),
+                _ => false
+            };
+            if (id is not double idValue || idValue != expected.Id
+                || amount is not double amountValue || amountValue != (double)expected.Amount
+                || !dateMatches || !activeMatches) {
+                throw new InvalidDataException($"{method} row {index + 2} reads as {id}/{amount}/{date}/{active} in ExcelDataReader.");
+            }
+            index++;
+        }
+        if (index != expectedRowCount) {
+            throw new InvalidDataException($"{method} has {index} data rows in ExcelDataReader, expected {expectedRowCount}.");
         }
     }
 

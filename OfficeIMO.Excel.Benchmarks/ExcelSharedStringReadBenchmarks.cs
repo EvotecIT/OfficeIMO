@@ -69,10 +69,16 @@ public class ExcelSharedStringReadBenchmarks {
             writer.Write("</sst>");
         }
         _workbook = stream.ToArray();
-        using (DbDataReader reader = OpenOfficeIMO()) Validate(reader);
-        using var peerStream = new MemoryStream(_workbook, writable: false);
-        using DbDataReader peer = OpenSylvan(peerStream);
-        Validate(peer);
+        string detail = $"RowCount={RowCount}; PrefixedWorksheet={PrefixedWorksheet}; Shape={Shape}; every string and the row count checked";
+        ExcelOutputValidation.Check("OfficeIMO", "Default", detail, () => {
+            using DbDataReader reader = OpenOfficeIMO();
+            Validate(reader);
+        });
+        ExcelOutputValidation.Check("Sylvan.Data.Excel", "Default", detail, () => {
+            using var peerStream = new MemoryStream(_workbook, writable: false);
+            using DbDataReader peer = OpenSylvan(peerStream);
+            Validate(peer);
+        });
     }
 
     private void WriteWorksheet(WorksheetPart part) {
@@ -100,12 +106,14 @@ public class ExcelSharedStringReadBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Default")]
     public long OfficeIMO() {
         using DbDataReader reader = OpenOfficeIMO();
         return Observe(reader);
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public long Sylvan() {
         using var stream = new MemoryStream(_workbook, writable: false);
         using DbDataReader reader = OpenSylvan(stream);
