@@ -22,4 +22,8 @@
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
+  </ItemGroup>
+
 </Project>

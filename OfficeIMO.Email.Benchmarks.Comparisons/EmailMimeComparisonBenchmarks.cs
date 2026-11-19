@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using MimeKit;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Email.Benchmarks.Comparisons;
 
@@ -22,14 +23,20 @@ public class EmailMimeReadBenchmarks {
         using MimeMessage message = EmailMimeComparisonCorpus.CreateMimeMessage(scale);
         _input = EmailMimeComparisonCorpus.WriteMimeKit(message);
         EmailMimeComparisonValidation.Validate(Scale);
+
+        EmailMimeObservation expected = EmailMimeComparisonCorpus.CreateExpectedObservation(scale);
+        EmailMimeComparisonValidation.RecordLane("OfficeIMO", Scale, expected, ("OfficeIMO", EmailMimeComparisonValidation.ObserveOffice(_input)));
+        EmailMimeComparisonValidation.RecordLane("MimeKit", Scale, expected, ("MimeKit", EmailMimeComparisonValidation.ObserveMimeKit(_input)));
     }
 
     /// <summary>Reads the complete EML through OfficeIMO and consumes all decoded payloads.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public int OfficeIMO() => EmailMimeComparisonValidation.ConsumeOffice(_input);
 
     /// <summary>Reads the same EML through MimeKit and consumes all decoded payloads.</summary>
     [Benchmark(Description = "MimeKit")]
+    [BenchmarkCategory("library:MimeKit", "case:Default")]
     public int MimeKit() => EmailMimeComparisonValidation.ConsumeMimeKit(_input);
 #if NET10_0_OR_GREATER
 
@@ -66,14 +73,33 @@ public class EmailMimeWriteBenchmarks {
         _oneMailMessage = EmailMimeComparisonCorpus.CreateOneMailMessage(scale);
 #endif
         EmailMimeComparisonValidation.Validate(Scale);
+
+        // Each lane's own output, read back by both parsers.
+        EmailMimeObservation expected = EmailMimeComparisonCorpus.CreateExpectedObservation(scale);
+        byte[] officeOutput = OfficeIMO();
+        byte[] mimeKitOutput = MimeKit();
+        EmailMimeComparisonValidation.RecordLane(
+            "OfficeIMO",
+            Scale,
+            expected,
+            ("OfficeIMO", EmailMimeComparisonValidation.ObserveOffice(officeOutput)),
+            ("MimeKit", EmailMimeComparisonValidation.ObserveMimeKit(officeOutput)));
+        EmailMimeComparisonValidation.RecordLane(
+            "MimeKit",
+            Scale,
+            expected,
+            ("MimeKit", EmailMimeComparisonValidation.ObserveMimeKit(mimeKitOutput)),
+            ("OfficeIMO", EmailMimeComparisonValidation.ObserveOffice(mimeKitOutput)));
     }
 
     /// <summary>Serializes the prepared model through OfficeIMO.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => _officeDocument.ToBytes(EmailFileFormat.Eml);
 
     /// <summary>Serializes the equivalent prepared model through MimeKit.</summary>
     [Benchmark(Description = "MimeKit")]
+    [BenchmarkCategory("library:MimeKit", "case:Default")]
     public byte[] MimeKit() => EmailMimeComparisonCorpus.WriteMimeKit(_mimeMessage);
 #if NET10_0_OR_GREATER
 
