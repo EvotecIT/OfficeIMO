@@ -670,34 +670,44 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // Scene owners already expose indexed lists; avoid boxing an enumerator
         // for every nested group on every printed fragment.
         for (int index = 0; index < visuals.Count; index++) {
-            HtmlRenderVisual visual = visuals[index];
-            bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup;
-            double bottom = paintOnlyBounds ? 0D : visual.Y + visual.Height;
-            if (visual is HtmlRenderSemanticGroup pendingGroup
-                && TryMaximumPendingScrollBottom(pendingGroup, out double pendingBottom)) {
-                maximum = Math.Max(maximum, Math.Max(bottom, pendingBottom));
-                continue;
-            }
-            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
-                HtmlRenderClipGroup clip when !clip.ClipVertical => clip.Visuals,
-                HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
-                HtmlRenderEffectGroup effect => effect.Visuals,
-                HtmlRenderSemanticGroup semantic => semantic.Visuals,
-                HtmlRenderLogicalTextGroup logical => logical.Visuals,
-                HtmlRenderLayoutRegion region => region.Visuals,
-                HtmlRenderFormField form => form.Visuals,
-                _ => null
-            };
-            if (children != null) {
-                double childBottom = MaximumScrollBottom(children);
-                if (visual is HtmlRenderEffectGroup effect && TryGetVerticalPaintTranslation(effect.Transform, out double translation)) {
-                    childBottom += translation;
-                }
-                bottom = Math.Max(bottom, childBottom);
-            }
-            maximum = Math.Max(maximum, bottom);
+            maximum = Math.Max(maximum, ScrollBottom(visuals[index]));
         }
         return maximum;
+    }
+
+    private static double ScrollBottom(HtmlRenderVisual visual) {
+        bool paintOnlyBounds = visual is HtmlRenderPathClipGroup || visual is HtmlRenderEffectGroup;
+        double bottom = paintOnlyBounds ? 0D : visual.Y + visual.Height;
+        if (visual is HtmlRenderClipGroup { ClipVertical: true }) return bottom;
+        if (ChildScrollBottom(visual) is not double childBottom) return bottom;
+        if (visual is HtmlRenderEffectGroup effect && TryGetVerticalPaintTranslation(effect.Transform, out double translation)) {
+            childBottom += translation;
+        }
+        return Math.Max(bottom, childBottom);
+    }
+
+    /// <summary>
+    /// <see cref="MaximumScrollBottom"/> of a container's children, or null for a leaf. A container's subtree is
+    /// immutable, so every printed fragment that asks reuses the first walk instead of revisiting the subtree.
+    /// </summary>
+    private static double? ChildScrollBottom(HtmlRenderVisual visual) {
+        IReadOnlyList<HtmlRenderVisual>? children = visual switch {
+            HtmlRenderClipGroup clip => clip.Visuals,
+            HtmlRenderPathClipGroup pathClip => pathClip.Visuals,
+            HtmlRenderEffectGroup effect => effect.Visuals,
+            HtmlRenderSemanticGroup => null,
+            HtmlRenderLogicalTextGroup logical => logical.Visuals,
+            HtmlRenderLayoutRegion region => region.Visuals,
+            HtmlRenderFormField form => form.Visuals,
+            _ => null
+        };
+        if (children == null && visual is not HtmlRenderSemanticGroup) return null;
+        if (visual.CachedChildScrollBottom is double cached) return cached;
+        double childBottom = visual is HtmlRenderSemanticGroup semantic
+            ? TryMaximumPendingScrollBottom(semantic, out double pendingBottom) ? pendingBottom : MaximumScrollBottom(semantic.Visuals)
+            : MaximumScrollBottom(children!);
+        visual.CachedChildScrollBottom = childBottom;
+        return childBottom;
     }
 
     /// <summary>
