@@ -15,11 +15,16 @@ namespace OfficeIMO.Word.Html {
         };
 
         private readonly Dictionary<string, string?> _documentParagraphStyleIds = new(StringComparer.Ordinal);
+        // Paragraphs that carry the default paragraph style rather than a style of their own.
+        private readonly HashSet<Paragraph> _defaultStyledParagraphs = new();
         private string? _defaultParagraphStyleId;
+        private TableCell? _insertionCell;
 
         /// <summary>Resolves the document styles the options name, before the conversion changes the document.</summary>
         private void PrepareDocumentStyles(WordDocument doc, HtmlWordExportOptions options) {
             _documentParagraphStyleIds.Clear();
+            _defaultStyledParagraphs.Clear();
+            _insertionCell = null;
             _defaultParagraphStyleId = null;
             if (string.IsNullOrWhiteSpace(options.DefaultParagraphStyleId)) return;
 
@@ -29,7 +34,22 @@ namespace OfficeIMO.Word.Html {
                     "or an OfficeIMO built-in paragraph style. Add the style to the document or change DefaultParagraphStyleId.");
         }
 
-        /// <summary>Gives generated body paragraphs without a style of their own the configured default paragraph style.</summary>
+        /// <summary>
+        /// Gives a body paragraph the default paragraph style as soon as it is created, so class, semantic and heading
+        /// styles replace it and every indent calculated afterwards starts from the paragraph's final style. Paragraphs
+        /// of generated tables are left alone; the cell HTML is added to counts as body.
+        /// </summary>
+        private void ApplyDefaultParagraphStyle(WordParagraph paragraph, WordTableCell? cell) {
+            if (_defaultParagraphStyleId == null || cell != null && !ReferenceEquals(cell._tableCell, _insertionCell)) return;
+            paragraph.SetStyleId(_defaultParagraphStyleId);
+            _defaultStyledParagraphs.Add(paragraph._paragraph);
+        }
+
+        /// <summary>Whether a paragraph has a style of its own, not the default paragraph style.</summary>
+        private bool HasOwnStyle(WordParagraph paragraph) =>
+            paragraph.StyleId != null && !_defaultStyledParagraphs.Contains(paragraph._paragraph);
+
+        /// <summary>Gives generated body paragraphs the importer created some other way the default paragraph style.</summary>
         private void ApplyDefaultParagraphStyle(WordDocument doc, IEnumerable<OpenXmlElement> generatedBlocks) {
             if (_defaultParagraphStyleId == null) return;
             foreach (Paragraph paragraph in generatedBlocks.OfType<Paragraph>()) {

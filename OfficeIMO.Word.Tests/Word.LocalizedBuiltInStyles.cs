@@ -167,6 +167,28 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("> > ", markdown, StringComparison.Ordinal);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void HtmlQuoteIndentStartsFromTheDefaultParagraphStyle(bool preferDocumentStyles) {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.AddParagraphStyle("CorpsTexte", "Corps de texte").IndentationBefore = OfficeLength.Points(18);
+
+            document.AddHtml("<p>Body</p><blockquote><p>Quoted</p></blockquote>",
+                new HtmlWordExportOptions { PreferDocumentStyles = preferDocumentStyles, DefaultParagraphStyleId = "CorpsTexte" });
+
+            WordParagraph body = document.Paragraphs.Single(paragraph => paragraph.Text == "Body");
+            WordParagraph quoted = document.Paragraphs.Single(paragraph => paragraph.Text == "Quoted");
+            Assert.Equal("CorpsTexte", body.StyleId);
+            Assert.Null(body.IndentationBefore);
+            Assert.Equal("CorpsTexte", quoted.StyleId);
+            // The body style's 360 twips stay under the quotation's 720.
+            Assert.Equal(1080, checked((int?)quoted.IndentationBefore?.ToTwips()));
+            string markdown = document.ToMarkdown().ToMarkdown();
+            Assert.Contains("> Quoted", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("> Body", markdown, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
             using var stream = new MemoryStream();

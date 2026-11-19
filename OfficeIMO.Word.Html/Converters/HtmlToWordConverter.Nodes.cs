@@ -337,7 +337,7 @@ namespace OfficeIMO.Word.Html {
                             List<WordParagraph> generatedBlockquoteParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeMark);
                             string? quoteStyleId = doc.FindBuiltInStyleId("Quote");
                             foreach (var para in generatedBlockquoteParagraphs) {
-                                bool styled = options.PreferDocumentStyles && para.StyleId != null;
+                                bool styled = options.PreferDocumentStyles && HasOwnStyle(para);
                                 if (!styled && quoteStyleId != null) {
                                     para.SetStyleId(quoteStyleId);
                                     styled = true;

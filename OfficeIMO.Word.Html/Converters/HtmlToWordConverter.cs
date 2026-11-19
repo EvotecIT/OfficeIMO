@@ -196,6 +196,7 @@ namespace OfficeIMO.Word.Html {
                 : null;
             WordDocument doc = cell.Document;
             PrepareDocumentStyles(doc, options);
+            _insertionCell = cell._tableCell;
             ApplyDocumentMetadata(doc, document);
             WordSection section = doc.Sections.First();
             var listStack = new Stack<WordList>();
