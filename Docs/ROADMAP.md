@@ -739,7 +739,6 @@ A workbook loaded from XLSX or XLS and saved as XLSB must keep everything the sh
 - [ ] Encode array constants inside expressions, such as `SUM(A1:A3*{1;2;3})`, and future-function defined names such as `_xlfn.AVERAGEIF`, in the native formula and name encoders.
 - [ ] Write AutoFilter criteria beyond equality lists: custom, top-10, dynamic, color and icon filters.
 - [ ] Encode rich text runs, added cell styles and changed sheet views when rewriting a loaded XLSB package; that path refuses those edits and keeps unchanged native records.
-- [ ] Qualify generated XLSB with named cell styles, rich text, sheet view settings and other-sheet formulas by opening and saving it in native Excel.
 
 ## Microsoft Project document library
 
