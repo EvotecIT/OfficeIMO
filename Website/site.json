@@ -605,7 +605,6 @@
         "Bundles": [
           "global",
           "benchmarks",
-          "product",
           "experience"
         ]
       },
@@ -614,7 +613,6 @@
         "Bundles": [
           "global",
           "benchmarks",
-          "product",
           "experience"
         ]
       },
