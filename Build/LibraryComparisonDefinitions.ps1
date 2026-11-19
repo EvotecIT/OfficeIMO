@@ -152,7 +152,7 @@ function Get-LibraryComparisonDefinitions {
         xls = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLS 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader'; if ($one) { 'OneDocument.Spreadsheets' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -168,7 +168,7 @@ function Get-LibraryComparisonDefinitions {
             Title = 'XLSX 65K typed reading'
             # EPPlus is restricted by the library policy: published and default runs drop its case, and a run that
             # enables it requires the case to succeed.
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur'; if ($one) { 'OneDocument.Spreadsheets' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -207,7 +207,7 @@ function Get-LibraryComparisonDefinitions {
         xlsxwrite = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSX data-reader writing'
-            Libraries = @('OfficeIMO', 'SpreadCheetah', 'Sylvan.Data.Excel', 'LargeXlsx'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'SpreadCheetah', 'Sylvan.Data.Excel', 'LargeXlsx'; if ($one) { 'OneDocument.Spreadsheets' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -227,7 +227,7 @@ function Get-LibraryComparisonDefinitions {
         xlsb = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSB 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader', 'Excel-PRIME'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader', 'Excel-PRIME'; if ($one) { 'OneDocument.Spreadsheets' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1086,7 +1086,7 @@ function Get-LibraryComparisonDefinitions {
         wordcreate = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX paragraph creation'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument.Documents' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1106,7 +1106,7 @@ function Get-LibraryComparisonDefinitions {
         wordreport = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX report creation'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument.Documents' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1132,7 +1132,7 @@ function Get-LibraryComparisonDefinitions {
         wordread = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX paragraph reading'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument.Documents' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1152,7 +1152,7 @@ function Get-LibraryComparisonDefinitions {
         wordreplace = [pscustomobject]@{
             Area = 'word'
             Title = 'DOCX text replacement and save'
-            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'DocX', 'NPOI', 'Open XML SDK'; if ($one) { 'OneDocument.Documents' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1176,7 +1176,7 @@ function Get-LibraryComparisonDefinitions {
         pptxcreate = [pscustomobject]@{
             Area = 'powerpoint'
             Title = 'PPTX create and save'
-            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK', 'OneDocument')
+            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK', 'OneDocument.Presentations')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
@@ -1198,7 +1198,7 @@ function Get-LibraryComparisonDefinitions {
         pptxedit = [pscustomobject]@{
             Area = 'powerpoint'
             Title = 'PPTX open, edit, and save'
-            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK', 'OneDocument')
+            Libraries = @('OfficeIMO', 'ShapeCrawler', 'Open XML SDK', 'OneDocument.Presentations')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true

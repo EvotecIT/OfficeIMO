@@ -294,7 +294,7 @@
       "id": "onedocument",
       "name": "OneDocument",
       "packages": [ { "id": "RecursiveAI.OneDocument.Documents", "version": "1.0.0" }, { "id": "RecursiveAI.OneDocument.Spreadsheets", "version": "1.0.0" }, { "id": "RecursiveAI.OneDocument.Presentations", "version": "1.0.0" } ],
-      "declare": [ { "id": "OneDocument", "package": "RecursiveAI.OneDocument.Spreadsheets", "version": "1.0.0" } ],
+      "declare": [ { "id": "OneDocument.Documents", "package": "RecursiveAI.OneDocument.Documents", "version": "1.0.0" }, { "id": "OneDocument.Spreadsheets", "package": "RecursiveAI.OneDocument.Spreadsheets", "version": "1.0.0" }, { "id": "OneDocument.Presentations", "package": "RecursiveAI.OneDocument.Presentations", "version": "1.0.0" } ],
       "license": { "expression": "MIT OR Apache-2.0", "url": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0" },
       "licenseSource": "package",
       "restriction": "open",

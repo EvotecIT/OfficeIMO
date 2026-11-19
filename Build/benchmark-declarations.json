@@ -187,7 +187,23 @@
       "restriction": "open"
     },
     {
-      "id": "OneDocument",
+      "id": "OneDocument.Documents",
+      "package": "RecursiveAI.OneDocument.Documents",
+      "version": "1.0.0",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OneDocument.Presentations",
+      "package": "RecursiveAI.OneDocument.Presentations",
+      "version": "1.0.0",
+      "license": "MIT OR Apache-2.0",
+      "licenseUrl": "https://licenses.nuget.org/MIT%20OR%20Apache-2.0",
+      "restriction": "open"
+    },
+    {
+      "id": "OneDocument.Spreadsheets",
       "package": "RecursiveAI.OneDocument.Spreadsheets",
       "version": "1.0.0",
       "license": "MIT OR Apache-2.0",
@@ -670,7 +686,7 @@
         "ExcelReader.NET",
         "Sylvan.Data.Excel",
         "ExcelDataReader",
-        "OneDocument"
+        "OneDocument.Spreadsheets"
       ],
       "axes": [],
       "cases": [
@@ -701,7 +717,7 @@
         "Excel-PRIME",
         "HypeLab.IO.Excel",
         "XLibur",
-        "OneDocument"
+        "OneDocument.Spreadsheets"
       ],
       "axes": [],
       "cases": [
@@ -734,7 +750,7 @@
         "SpreadCheetah",
         "Sylvan.Data.Excel",
         "LargeXlsx",
-        "OneDocument"
+        "OneDocument.Spreadsheets"
       ],
       "axes": [
         {
@@ -767,7 +783,7 @@
         "Sylvan.Data.Excel",
         "ExcelDataReader",
         "Excel-PRIME",
-        "OneDocument"
+        "OneDocument.Spreadsheets"
       ],
       "axes": [],
       "cases": [
@@ -2221,7 +2237,7 @@
         "DocX",
         "NPOI",
         "Open XML SDK",
-        "OneDocument"
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -2256,7 +2272,7 @@
         "DocX",
         "NPOI",
         "Open XML SDK",
-        "OneDocument"
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -2290,7 +2306,7 @@
         "DocX",
         "NPOI",
         "Open XML SDK",
-        "OneDocument"
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -2325,7 +2341,7 @@
         "DocX",
         "NPOI",
         "Open XML SDK",
-        "OneDocument"
+        "OneDocument.Documents"
       ],
       "axes": [
         {
@@ -2357,7 +2373,7 @@
         "OfficeIMO",
         "ShapeCrawler",
         "Open XML SDK",
-        "OneDocument"
+        "OneDocument.Presentations"
       ],
       "axes": [
         {
@@ -2389,7 +2405,7 @@
         "OfficeIMO",
         "ShapeCrawler",
         "Open XML SDK",
-        "OneDocument"
+        "OneDocument.Presentations"
       ],
       "axes": [
         {
