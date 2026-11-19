@@ -358,6 +358,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static byte[] EncodeRuleFormula(XlsbWorksheetFeatureContext context, string formula, (int Row, int Column) anchor) {
             byte[] encoded = context.EncodeFormula(formula, "conditional formatting");
             byte[] tokens = Tokens(encoded);
+            if (HasArrayConstant(tokens)) {
+                throw Refuse(context.Sheet.Name, $"the formula '{formula}', because CFParsedFormula cannot hold array constants");
+            }
             if (Biff12.XlsbRelativeReferenceTokens.HasSheetReferences(tokens)) {
                 throw Refuse(context.Sheet.Name, $"the formula '{formula}', which refers to another sheet (an Office 2010 extension in XLSB)");
             }
@@ -370,10 +373,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static byte[] EncodeValueObjectFormula(XlsbWorksheetFeatureContext context, string formula) {
             byte[] encoded = context.EncodeFormula(formula, "conditional formatting value object");
             byte[] tokens = Tokens(encoded);
+            if (HasArrayConstant(tokens)) {
+                throw Refuse(context.Sheet.Name, $"the value object formula '{formula}', because CFVOParsedFormula cannot hold array constants");
+            }
             if (Biff12.XlsbRelativeReferenceTokens.HasRelativeReferences(tokens) || Biff12.XlsbRelativeReferenceTokens.HasSheetReferences(tokens)) {
                 throw Refuse(context.Sheet.Name, $"the value object formula '{formula}', which must use absolute references on the same sheet");
             }
             return encoded;
+        }
+
+        // PtgArray (MS-XLSB 2.5.98.23) is 0x20, 0x40 or 0x60; CFParsedFormula and CFVOParsedFormula prohibit it.
+        private static bool HasArrayConstant(byte[] tokens) {
+            bool found = false;
+            Biff12.XlsbFormulaTokenScanner.Visit(tokens, 0, tokens.Length, (offset, token, operand) => {
+                if (token is 0x20 or 0x40 or 0x60) found = true;
+            });
+            return found;
         }
 
         private static byte[] Tokens(byte[] encoded) {

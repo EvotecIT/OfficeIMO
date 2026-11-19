@@ -68,6 +68,68 @@ public sealed class ExcelXlsbTableTests {
     }
 
     [Fact]
+    public void Table_local_references_and_array_constants_in_table_formulas_survive_native_xlsb_save() {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            WriteRows(sheet, 1, 1, new[] { "Region", "Amount", "Double" },
+                new object[] { "North", 10 }, new object[] { "South", 20 }, new object[] { "East", 30 });
+            sheet.Cell(5, 1).SetValue("Total");
+            sheet.AddTable("A1:C5", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2, includeAutoFilter: false);
+            Table table = sheet.WorksheetPart.TableDefinitionParts.Single().Table!;
+            table.TotalsRowCount = 1U;
+            table.TotalsRowShown = true;
+            TableColumn[] columns = table.TableColumns!.Elements<TableColumn>().ToArray();
+            columns[0].TotalsRowLabel = "Total";
+            // Inside its own table definition a calculated column may leave the table name out.
+            columns[2].Append(new CalculatedColumnFormula("[@Amount]*2"));
+            columns[2].TotalsRowFunction = TotalsRowFunctionValues.Custom;
+            columns[2].Append(new TotalsRowFormula("SUM({1,2})"));
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx)));
+
+        TableColumn doubled = reloaded["Data"].WorksheetPart.TableDefinitionParts.Single().Table!.TableColumns!.Elements<TableColumn>().Last();
+        Assert.Equal("Sales[@Amount]*2", doubled.CalculatedColumnFormula?.Text);
+        Assert.Equal("SUM({1,2})", doubled.TotalsRowFormula?.Text);
+    }
+
+    [Fact]
+    public void Table_top_ten_filters_survive_native_xlsb_save_and_allow_table_edits() {
+        byte[] source = SaveAsXlsb(CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            BuildShape(sheet, "HeaderAndFilter");
+            AutoFilter filter = sheet.WorksheetPart.TableDefinitionParts.Single().Table!.AutoFilter!;
+            filter.Append(new FilterColumn(new Top10 { Top = true, Percent = false, Val = 2D }) { ColumnId = 2U });
+        }));
+
+        byte[] edited;
+        using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source))) {
+            Top10 top10 = Assert.IsType<Top10>(Assert.Single(loaded["Data"].WorksheetPart.TableDefinitionParts.Single().Table!
+                .AutoFilter!.Elements<FilterColumn>()).FirstChild);
+            Assert.Equal(2D, top10.Val?.Value);
+            loaded["Data"].SetTableStyle("Sales", ExcelTableStyle.TableStyleLight9);
+            edited = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+        }
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(edited));
+        Table table = reloaded["Data"].WorksheetPart.TableDefinitionParts.Single().Table!;
+        Assert.Equal("TableStyleLight9", table.TableStyleInfo?.Name?.Value);
+        Assert.IsType<Top10>(Assert.Single(table.AutoFilter!.Elements<FilterColumn>()).FirstChild);
+    }
+
+    [Fact]
+    public void Reordering_table_columns_of_a_loaded_xlsb_is_refused() {
+        byte[] source = SaveAsXlsb(CreateXlsx(document => BuildShape(document.AddSheet("Data"), "HeaderAndFilter")));
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source));
+        TableColumn[] columns = loaded["Data"].WorksheetPart.TableDefinitionParts.Single().Table!.TableColumns!.Elements<TableColumn>().ToArray();
+        // Retained formulas address table columns by position, so moving a column id would retarget them.
+        (columns[0].Id, columns[1].Id) = (columns[1].Id!.Value, columns[0].Id!.Value);
+
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+        Assert.Contains("reorder columns", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Editing_cells_of_a_loaded_xlsb_keeps_its_native_table_parts() {
         byte[] source = SaveAsXlsb(CreateXlsx(document => BuildShape(document.AddSheet("Data"), "TwoTablesOnOneSheet")));
 

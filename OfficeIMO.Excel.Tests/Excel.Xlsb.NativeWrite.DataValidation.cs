@@ -151,6 +151,49 @@ public sealed class ExcelXlsbDataValidationTests {
         Assert.Throws<NotSupportedException>(() => loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
     }
 
+    [Fact]
+    public void Changing_validations_beside_retained_office_2010_validations_is_refused() {
+        byte[] generated = SaveAsXlsb(CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.Range("A2:A4").Validation().List("a", "b");
+        }));
+        // Excel stores some validations in an FRT DVALS14 block (BrtFRTBegin, BrtBeginDVals14 ... BrtEndDVals14, BrtFRTEnd),
+        // which stays native and unprojected.
+        byte[] source = InsertBeforeEndSheet(generated, (35, new byte[4]), (1054, new byte[0]), (1154, new byte[0]), (36, new byte[0]));
+
+        using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source));
+        loaded["Data"].Range("C1").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 0);
+
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
+        Assert.Contains("Office 2010 validations", error.Message, StringComparison.Ordinal);
+    }
+
+    private static byte[] InsertBeforeEndSheet(byte[] xlsb, params (int Type, byte[] Payload)[] inserted) {
+        using var output = new MemoryStream();
+        using (var source = new ZipArchive(new MemoryStream(xlsb), ZipArchiveMode.Read))
+        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in source.Entries) {
+                using var content = new MemoryStream();
+                using (Stream input = entry.Open()) input.CopyTo(content);
+                byte[] bytes = content.ToArray();
+                if (entry.FullName == "xl/worksheets/sheet1.bin") {
+                    using var rewritten = new MemoryStream();
+                    content.Position = 0;
+                    foreach (XlsbRecord record in XlsbRecordReader.ReadAll(content)) {
+                        if (record.Type == 130) {
+                            foreach ((int type, byte[] payload) in inserted) XlsbRecordWriter.Write(rewritten, type, payload);
+                        }
+                        XlsbRecordWriter.Write(rewritten, record.Type, record.Data);
+                    }
+                    bytes = rewritten.ToArray();
+                }
+                using Stream written = target.CreateEntry(entry.FullName).Open();
+                written.Write(bytes, 0, bytes.Length);
+            }
+        }
+        return output.ToArray();
+    }
+
     private static byte[] CreateXlsx(Action<ExcelDocument> build) {
         using ExcelDocument document = ExcelDocument.Create();
         build(document);

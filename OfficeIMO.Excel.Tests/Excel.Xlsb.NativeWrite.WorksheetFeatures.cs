@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Write;
 using System.IO.Compression;
 using Xunit;
 
@@ -65,6 +66,55 @@ public sealed class ExcelXlsbWorksheetFeatureTests {
         Assert.Equal(new[] { 4 }, reloaded["Data"].GetManualColumnPageBreaks());
         // The unchanged ignored-error collection is copied record for record.
         Assert.Equal(ReadRecords(source, 648, 650), ReadRecords(edited, 648, 650));
+    }
+
+    [Fact]
+    public void Collections_added_to_a_loaded_xlsb_are_written_in_worksheet_grammar_order() {
+        byte[] source = SaveAsXlsb(CreateXlsx(document => document.AddSheet("Data").Cell(1, 1).SetValue(1)));
+
+        byte[] edited;
+        using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source))) {
+            loaded["Data"].AddManualRowPageBreak(10, save: false);
+            loaded["Data"].Range("B2:B5").Validation().WholeNumber(ExcelDataValidationOperator.GreaterThan, 1);
+            edited = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+        }
+
+        int[] types = ReadAllRecordTypes(edited);
+        // MS-XLSB WORKSHEET places DVALS (573) before RWBRK (392).
+        Assert.True(Array.IndexOf(types, 573) < Array.IndexOf(types, 392));
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(edited));
+        Assert.Equal(new[] { 10 }, reloaded["Data"].GetManualRowPageBreaks());
+        Assert.Single(reloaded["Data"].GetDataValidations());
+    }
+
+    [Fact]
+    public void Inserted_collections_keep_an_ACUID_prefix_with_the_record_it_belongs_to() {
+        // BrtEndSheetData, [ACUID] BrtHLink, BrtEndSheet: ACUID is BrtACBegin, BrtUid, BrtACEnd.
+        byte[] part = WriteRecords((146, new byte[0]), (37, new byte[] { 1 }), (3072, new byte[] { 2 }), (38, new byte[0]),
+            (494, new byte[] { 3 }), (130, new byte[0]));
+        var edits = new[] {
+            new XlsbRecordBlockEdit(392, 393, new[] { new XlsbGeneratedRecord(392, new byte[8]), new XlsbGeneratedRecord(393, new byte[0]) }),
+            new XlsbRecordBlockEdit(573, 574, new[] { new XlsbGeneratedRecord(573, new byte[18]), new XlsbGeneratedRecord(574, new byte[0]) }),
+        };
+
+        byte[] result = XlsbRecordBlockEdit.Apply(part, edits, int.MaxValue);
+
+        using var stream = new MemoryStream(result);
+        Assert.Equal(new[] { 146, 573, 574, 37, 3072, 38, 494, 392, 393, 130 }, XlsbRecordReader.ReadAll(stream).Select(record => record.Type));
+    }
+
+    private static byte[] WriteRecords(params (int Type, byte[] Payload)[] records) {
+        using var stream = new MemoryStream();
+        foreach ((int type, byte[] payload) in records) XlsbRecordWriter.Write(stream, type, payload);
+        return stream.ToArray();
+    }
+
+    private static int[] ReadAllRecordTypes(byte[] xlsb) {
+        using var archive = new ZipArchive(new MemoryStream(xlsb), ZipArchiveMode.Read);
+        using var part = new MemoryStream();
+        using (Stream entry = archive.GetEntry("xl/worksheets/sheet1.bin")!.Open()) entry.CopyTo(part);
+        part.Position = 0;
+        return XlsbRecordReader.ReadAll(part).Select(record => record.Type).ToArray();
     }
 
     private static byte[] CreateXlsx(Action<ExcelDocument> build) {

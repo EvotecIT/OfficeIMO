@@ -32,6 +32,24 @@ public sealed class ExcelXlsbCommentTests {
     }
 
     [Fact]
+    public void Plain_comment_text_without_runs_survives_native_xlsb_save() {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = document.AddSheet("Data");
+            sheet.SetComment("B2", "placeholder", "Alice");
+            // SpreadsheetML also allows comment text as a single <t> without formatting runs.
+            var text = sheet.WorksheetPart.WorksheetCommentsPart!.Comments!.CommentList!
+                .Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Single().CommentText!;
+            text.RemoveAllChildren();
+            text.Append(new DocumentFormat.OpenXml.Spreadsheet.Text("Plain note"));
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx)));
+
+        ExcelCommentInfo comment = Assert.Single(reloaded["Data"].GetComments());
+        Assert.Equal("B2|Alice|Plain note", comment.CellReference + "|" + comment.Author + "|" + comment.Text);
+    }
+
+    [Fact]
     public void Formatted_comment_runs_survive_native_xlsb_save() {
         byte[] xlsx = CreateXlsx(document => {
             ExcelSheet sheet = document.AddSheet("Data");

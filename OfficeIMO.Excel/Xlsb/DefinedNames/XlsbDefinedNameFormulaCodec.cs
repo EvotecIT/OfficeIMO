@@ -109,7 +109,8 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
                     string left = stack.Pop();
                     stack.Push(left + "," + right);
                 } else {
-                    reason = sawReference ? "mixed reference and expression tokens" : null;
+                    // Not a plain reference or reference union: the general formula reader decodes expressions.
+                    reason = null;
                     return false;
                 }
             }

@@ -259,6 +259,69 @@ public sealed class ExcelXlsbConditionalFormattingTests {
         Assert.Throws<NotSupportedException>(() => SaveAsXlsb(xlsx));
     }
 
+    [Theory]
+    [InlineData("rule")]
+    [InlineData("threshold")]
+    public void Array_constants_in_conditional_formatting_formulas_are_refused(string place) {
+        byte[] xlsx = CreateXlsx(document => {
+            ExcelSheet sheet = AddData(document);
+            ConditionalFormattingRule rule = place == "rule"
+                ? new ConditionalFormattingRule(new Formula("SUM({1,2,3})>A1")) { Type = ConditionalFormatValues.Expression, Priority = 1 }
+                : new ConditionalFormattingRule(new ColorScale(
+                    new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Formula, Val = "SUM({1,2})" },
+                    new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max },
+                    new Color { Rgb = "FFF8696B" }, new Color { Rgb = "FF63BE7B" })) { Type = ConditionalFormatValues.ColorScale, Priority = 1 };
+            sheet.WorksheetPart.Worksheet!.Append(new ConditionalFormatting(rule) {
+                SequenceOfReferences = new DocumentFormat.OpenXml.ListValue<DocumentFormat.OpenXml.StringValue> { InnerText = "A1:A10" }
+            });
+            sheet.EnsureWorksheetElementOrder();
+        });
+
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() => SaveAsXlsb(xlsx));
+        Assert.Contains("array constants", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Minimum_and_maximum_thresholds_ignore_their_formula_length_when_loading() {
+        byte[] source = SaveAsXlsb(CreateXlsx(document => AddData(document).Range("A1:A10").ConditionalFormat().DataBar(OfficeColor.Parse("#638EC6"))));
+        // MS-XLSB 2.4.334 says cbFmla is ignored for CFVOMIN and CFVOMAX; state a nonzero length with no formula after it.
+        byte[] patched = RewriteSheetRecords(source, record => record.Type == 471 && BitConverter.ToUInt32(record.Data, 0) is 2U or 3U
+            ? PatchUInt32(record.Data, 20, 9U)
+            : record.Data);
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(patched));
+
+        ExcelConditionalFormattingInfo rule = Assert.Single(reloaded["Data"].GetConditionalFormattingRules());
+        Assert.Equal("DataBar", rule.Type);
+    }
+
+    private static byte[] PatchUInt32(byte[] data, int offset, uint value) {
+        byte[] copy = (byte[])data.Clone();
+        BitConverter.GetBytes(value).CopyTo(copy, offset);
+        return copy;
+    }
+
+    private static byte[] RewriteSheetRecords(byte[] xlsb, Func<XlsbRecord, byte[]> payload) {
+        using var output = new MemoryStream();
+        using (var source = new ZipArchive(new MemoryStream(xlsb), ZipArchiveMode.Read))
+        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in source.Entries) {
+                using var content = new MemoryStream();
+                using (Stream input = entry.Open()) input.CopyTo(content);
+                byte[] bytes = content.ToArray();
+                if (entry.FullName == "xl/worksheets/sheet1.bin") {
+                    using var rewritten = new MemoryStream();
+                    content.Position = 0;
+                    foreach (XlsbRecord record in XlsbRecordReader.ReadAll(content)) XlsbRecordWriter.Write(rewritten, record.Type, payload(record));
+                    bytes = rewritten.ToArray();
+                }
+                using Stream written = target.CreateEntry(entry.FullName).Open();
+                written.Write(bytes, 0, bytes.Length);
+            }
+        }
+        return output.ToArray();
+    }
+
     private static ExcelSheet AddData(ExcelDocument document) {
         ExcelSheet sheet = document.AddSheet("Data");
         for (int row = 1; row <= 12; row++) {

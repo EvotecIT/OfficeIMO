@@ -35,6 +35,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (source.HasUndecodedDataValidations) {
                     throw new NotSupportedException($"Native XLSB rewrite cannot change the data validations of worksheet '{context.Sheet.Name}' because some of its existing validations could not be decoded.");
                 }
+                if (source.HasExtendedDataValidations) {
+                    throw new NotSupportedException($"Native XLSB rewrite cannot change the data validations of worksheet '{context.Sheet.Name}' because it also holds Office 2010 validations that are kept as native records.");
+                }
                 edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetDataValidationWriter.BrtBeginDVals,
                     XlsbWorksheetDataValidationWriter.BrtEndDVals, XlsbWorksheetDataValidationWriter.Create(context)));
             }

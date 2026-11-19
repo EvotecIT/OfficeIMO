@@ -28,14 +28,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         /// <summary>A table formula whose text is decoded once every table of the workbook is known.</summary>
         internal sealed class PendingFormula {
-            internal PendingFormula(XlsbTable table, TableColumn column, bool totals, bool array, byte[] tokens, int sheetIndex) {
-                Table = table; Column = column; Totals = totals; Array = array; Tokens = tokens; SheetIndex = sheetIndex;
+            internal PendingFormula(XlsbTable table, TableColumn column, bool totals, bool array, byte[] tokens, byte[] extra, int sheetIndex) {
+                Table = table; Column = column; Totals = totals; Array = array; Tokens = tokens; Extra = extra; SheetIndex = sheetIndex;
             }
             internal XlsbTable Table { get; }
             internal TableColumn Column { get; }
             internal bool Totals { get; }
             internal bool Array { get; }
             internal byte[] Tokens { get; }
+            /// <summary>The formula's rgcb, which holds PtgArray values.</summary>
+            internal byte[] Extra { get; }
             internal int SheetIndex { get; }
         }
 
@@ -63,7 +65,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             TableColumns? columns = null;
             TableColumn? column = null;
             var captions = new List<string>();
-            var columnFormulas = new List<(TableColumn Column, bool Totals, bool Array, byte[] Tokens)>();
+            var columnFormulas = new List<(TableColumn Column, bool Totals, bool Array, byte[] Tokens, byte[] Extra)>();
             XlsbAutoFilter? autoFilter = null;
             XlsbAutoFilterColumn? filterColumn = null;
             bool inFilters = false;
@@ -94,11 +96,25 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         case BrtEndFilters when inFilters:
                             inFilters = false;
                             break;
-                        case BrtEndFilterColumn when filterColumn != null && !inFilters:
+                        case BrtEndFilterColumn when filterColumn != null && !inFilters && !filterColumn.InCustomFilters:
+                            // A column the projection leaves out keeps the table partial, so an edit cannot drop it.
+                            if (filterColumn.HasUnsupportedContent) {
+                                autoFilter.HasUnsupportedContent = true;
+                                partial = true;
+                            }
                             filterColumn = null;
                             break;
+                        case XlsbAutoFilterCriteria.BrtIconFilter when filterColumn != null && !inFilters:
+                        case XlsbAutoFilterCriteria.BrtTop10Filter when filterColumn != null && !inFilters:
+                        case XlsbAutoFilterCriteria.BrtDynamicFilter when filterColumn != null && !inFilters:
+                        case XlsbAutoFilterCriteria.BrtBeginCustomFilters when filterColumn != null && !inFilters:
+                        case XlsbAutoFilterCriteria.BrtEndCustomFilters when filterColumn != null && !inFilters:
+                        case XlsbAutoFilterCriteria.BrtCustomFilter when filterColumn != null && !inFilters:
+                            // The criteria the worksheet AutoFilter projects; colour filters stay native below.
+                            XlsbWorksheetAutoFilterReader.ReadCriterion(record, filterColumn);
+                            break;
                         default:
-                            // Custom, top-ten, dynamic and colour criteria are kept natively.
+                            // Colour criteria and unknown records are kept natively.
                             if (filterColumn != null) filterColumn.HasUnsupportedContent = true;
                             autoFilter.HasUnsupportedContent = true;
                             partial = true;
@@ -189,7 +205,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         if (cce < 0 || cce > record.Data.Length - 9) throw Invalid("contains a truncated table formula");
                         byte[] tokens = new byte[cce];
                         Buffer.BlockCopy(record.Data, 5, tokens, 0, cce);
-                        columnFormulas.Add((column, record.Type == XlsbWorksheetTableWriter.BrtListTrFmla, array, tokens));
+                        int cb = checked((int)BitConverter.ToUInt32(record.Data, 5 + cce));
+                        if (cb < 0 || cb > record.Data.Length - 9 - cce) throw Invalid("contains a truncated table formula");
+                        byte[] extra = new byte[cb];
+                        Buffer.BlockCopy(record.Data, 9 + cce, extra, 0, cb);
+                        columnFormulas.Add((column, record.Type == XlsbWorksheetTableWriter.BrtListTrFmla, array, tokens, extra));
                         break;
                     }
                     case XlsbWorksheetTableWriter.BrtEndListCol when column != null:
@@ -232,7 +252,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
             var result = new XlsbTable(relationshipId, partName, table, id, displayName!, range, headerRows, totalsRows, captions, partial);
             foreach (var formula in columnFormulas) {
-                pending.Add(new PendingFormula(result, formula.Column, formula.Totals, formula.Array, formula.Tokens, sheetIndex));
+                pending.Add(new PendingFormula(result, formula.Column, formula.Totals, formula.Array, formula.Tokens, formula.Extra, sheetIndex));
             }
             return result;
         }
@@ -243,7 +263,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 string? text;
                 bool decoded;
                 try {
-                    decoded = XlsbFormulaTextReader.TryRead(formula.Tokens, out text, workbook, formula.SheetIndex);
+                    decoded = XlsbFormulaTextReader.TryRead(formula.Tokens, out text, workbook, formula.SheetIndex, formula.Extra);
                 } catch (NotSupportedException) {
                     decoded = false;
                     text = null;

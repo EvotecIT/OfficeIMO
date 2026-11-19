@@ -52,8 +52,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static readonly Dictionary<int, int> CollectionEnds = new Dictionary<int, int> {
             [500] = 501, [161] = 162, [530] = 531, [495] = 496, [422] = 425, [177] = 178, [461] = 462, [573] = 574,
             [479] = 480, [392] = 393, [394] = 395, [605] = 606, [648] = 650, [594] = 595, [638] = 640, [643] = 645,
-            [554] = 555, [660] = 662, [35] = 36,
+            [554] = 555, [660] = 662, [35] = 36, [BrtACBegin] = BrtACEnd,
         };
+
+        private const int BrtACBegin = 37;
+        private const int BrtACEnd = 38;
 
         /// <param name="beginType">The record that opens the collection, or the single record for a one-record element.</param>
         /// <param name="endType">The record that closes the collection; equal to <paramref name="beginType"/> for one record.</param>
@@ -91,16 +94,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var pending = new List<XlsbRecordBlockEdit>(edits);
             var written = new HashSet<XlsbRecordBlockEdit>();
             for (int index = tableEnd + 1; index < records.Count; index++) {
-                XlsbRecord record = records[index];
-                int end = FindCollectionEnd(records, index);
-                // Write edits whose collection belongs before this top-level record and was not present.
+                // An ACUID prefix (BrtACBegin .. BrtACEnd) belongs to the record after it, as in [ACUID] BrtHLink, so the
+                // prefix and that record form one unit and new collections are inserted before the prefix.
+                int keyIndex = index;
+                if (records[index].Type == BrtACBegin) keyIndex = FindCollectionEnd(records, index) + 1;
+                if (keyIndex >= records.Count) throw new InvalidDataException("The XLSB worksheet ends inside an ACUID prefix.");
+                XlsbRecord record = records[keyIndex];
+                int end = FindCollectionEnd(records, keyIndex);
+                // Write edits whose collection belongs before this top-level record and was not present, in grammar order.
                 int rank = Rank(record.Type);
                 if (rank >= 0 || record.Type == BrtEndSheet) {
-                    foreach (XlsbRecordBlockEdit edit in pending.ToArray()) {
-                        if (record.Type == BrtEndSheet || Rank(edit.BeginType) < rank) {
-                            if (written.Add(edit)) Append(output, edit.Replacement);
-                            pending.Remove(edit);
-                        }
+                    foreach (XlsbRecordBlockEdit edit in pending.Where(edit => record.Type == BrtEndSheet || Rank(edit.BeginType) < rank)
+                        .OrderBy(edit => Rank(edit.BeginType)).ToArray()) {
+                        if (written.Add(edit)) Append(output, edit.Replacement);
+                        pending.Remove(edit);
                     }
                 }
 

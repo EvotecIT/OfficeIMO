@@ -109,6 +109,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// </summary>
         internal bool HasUndecodedDataValidations { get; set; }
 
+        /// <summary>True when the worksheet keeps Office 2010 data validations (DVALS14) as native, unprojected records.</summary>
+        internal bool HasExtendedDataValidations { get; set; }
+
         /// <summary>
         /// True when the worksheet has conditional formatting that is kept as native records without a projection, such as
         /// Office 2010 rule extensions; replacing the projected collections would then lose or orphan that content.

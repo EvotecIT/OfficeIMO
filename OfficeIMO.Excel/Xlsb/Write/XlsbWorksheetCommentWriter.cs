@@ -204,7 +204,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             // BrtCommentText: RichStr with fRichStr = 1 and fExtStr = 0; dwSizeStrRun is 0 when no run has its own font.
             string value = XlsbWorksheetCommentModel.GetText(text);
-            XlsbTextRun[]? runs = fonts.CreateRuns(text.Elements<Run>().ToArray(), 0, value, $"the comment text on {sheetName}!{comment.Reference?.Value}");
+            // Plain text (a single <t> without runs) has no formatting runs to encode.
+            Run[] sourceRuns = text.Elements<Run>().ToArray();
+            XlsbTextRun[]? runs = sourceRuns.Length == 0
+                ? null
+                : fonts.CreateRuns(sourceRuns, 0, value, $"the comment text on {sheetName}!{comment.Reference?.Value}");
             using (var payload = new MemoryStream()) {
                 payload.WriteByte(0x01);
                 XlsbPayloadWriter.WriteWideString(payload, value);

@@ -57,6 +57,22 @@ public sealed class ExcelXlsbFormulasAndFiltersTests {
     }
 
     [Theory]
+    [InlineData("SUM('Data'!$A$1:$A$3)")]
+    [InlineData("'Data'!$A$1*2")]
+    [InlineData("ABS('Data'!$A$2)")]
+    public void Reference_led_defined_name_expressions_survive_native_xlsb_save(string text) {
+        byte[] xlsx = CreateXlsx(document => {
+            AddNumbers(document);
+            AddDefinedName(document, "Total", text);
+        });
+
+        using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(SaveAsXlsb(xlsx)));
+
+        DefinedName name = Assert.Single(reloaded.WorkbookRoot.DefinedNames!.Elements<DefinedName>(), item => item.Name?.Value == "Total");
+        Assert.Equal(text, name.Text);
+    }
+
+    [Theory]
     [InlineData("STDEV.S(A1:A3)", "_xlfn.STDEV.S(A1:A3)", "1")]
     [InlineData("1+CONCAT(\"a\",A2)", "1+_xlfn.CONCAT(\"a\",A2)", null)]
     [InlineData("IFNA(MATCH(9,A1:A3,0),-1)*2", "_xlfn.IFNA(MATCH(9,A1:A3,0),-1)*2", "-2")]
@@ -155,6 +171,46 @@ public sealed class ExcelXlsbFormulasAndFiltersTests {
         Assert.Equal(2D, top10.Val?.Value);
         Assert.True(reloaded["Data"].TryGetCellText(4, 2, out string edited));
         Assert.Equal("7", edited);
+    }
+
+    [Fact]
+    public void Number_like_text_criteria_stay_native_instead_of_turning_numeric() {
+        byte[] generated = SaveAsXlsb(CreateXlsx(document => AddFilteredTable(document, "contains")));
+        // Change the stored string comparison "*pe*" into the text "0012"; SpreadsheetML would re-encode it as a number.
+        byte[] source = RewriteSheetRecord(generated, 174, data => {
+            byte[] copy = (byte[])data.Clone();
+            System.Text.Encoding.Unicode.GetBytes("0012").CopyTo(copy, 14);
+            return copy;
+        });
+
+        byte[] saved;
+        using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(source))) {
+            AutoFilter filter = loaded["Data"].WorksheetPart.Worksheet!.GetFirstChild<AutoFilter>()!;
+            Assert.Empty(filter.Elements<FilterColumn>());
+            loaded["Data"].Cell(4, 2).SetValue(7);
+            saved = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+        }
+        Assert.Equal(ReadRecords(source, 161, 162), ReadRecords(saved, 161, 162));
+    }
+
+    private static byte[] RewriteSheetRecord(byte[] xlsb, int recordType, Func<byte[], byte[]> rewrite) {
+        using var output = new MemoryStream();
+        using (var source = new ZipArchive(new MemoryStream(xlsb), ZipArchiveMode.Read))
+        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in source.Entries) {
+                byte[] bytes = ReadPart(xlsb, entry.FullName);
+                if (entry.FullName == "xl/worksheets/sheet1.bin") {
+                    using var rewritten = new MemoryStream();
+                    foreach (XlsbRecord record in XlsbRecordReader.ReadAll(new MemoryStream(bytes))) {
+                        XlsbRecordWriter.Write(rewritten, record.Type, record.Type == recordType ? rewrite(record.Data) : record.Data);
+                    }
+                    bytes = rewritten.ToArray();
+                }
+                using Stream written = target.CreateEntry(entry.FullName).Open();
+                written.Write(bytes, 0, bytes.Length);
+            }
+        }
+        return output.ToArray();
     }
 
     [Fact]

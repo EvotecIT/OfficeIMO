@@ -126,6 +126,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (current.Id?.Value != table.Id) {
                     throw new NotSupportedException($"Native XLSB rewriting cannot change the id of table '{table.DisplayName}' on worksheet '{context.Sheet.Name}'; formulas refer to tables by id.");
                 }
+                // Retained PtgList tokens elsewhere address columns by position; keep every column id where it was.
+                uint?[] sourceColumns = table.Definition.GetFirstChild<TableColumns>()?.Elements<TableColumn>().Select(column => column.Id?.Value).ToArray() ?? Array.Empty<uint?>();
+                uint?[] currentColumns = current.GetFirstChild<TableColumns>()?.Elements<TableColumn>().Select(column => column.Id?.Value).ToArray() ?? Array.Empty<uint?>();
+                if (!sourceColumns.SequenceEqual(currentColumns)) {
+                    throw new NotSupportedException($"Native XLSB rewriting cannot add, remove or reorder columns of table '{table.DisplayName}' on worksheet '{context.Sheet.Name}'; formulas refer to table columns by position.");
+                }
                 replacements[table.PartName] = CreateTablePart(context, current);
                 generatedParts.Add(table.PartName);
             }
@@ -210,7 +216,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var ids = new HashSet<uint>();
             var captions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int index = 0; index < columns.Length; index++) {
-                records.AddRange(CreateColumn(context, columns[index], firstColumn + index, firstRow, lastRow, headerRows, totalsRows, ids, captions, Refuse));
+                records.AddRange(CreateColumn(context, displayName, columns[index], firstColumn + index, firstRow, lastRow, headerRows, totalsRows, ids, captions, Refuse));
             }
             records.Add(new XlsbGeneratedRecord(BrtEndListCols, Array.Empty<byte>()));
             records.Add(new XlsbGeneratedRecord(BrtTableStyleClient, CreateStyle(table.GetFirstChild<TableStyleInfo>(), Refuse)));
@@ -221,7 +227,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return output.ToArray();
         }
 
-        private static IEnumerable<XlsbGeneratedRecord> CreateColumn(XlsbWorksheetFeatureContext context, TableColumn column, int sheetColumn,
+        private static IEnumerable<XlsbGeneratedRecord> CreateColumn(XlsbWorksheetFeatureContext context, string tableName, TableColumn column, int sheetColumn,
             int firstRow, int lastRow, uint headerRows, uint totalsRows, HashSet<uint> ids, HashSet<string> captions,
             Func<string, NotSupportedException> refuse) {
             if (XlsbOpenXmlAttributeValidator.FindUnsupported(column, ColumnAttributes) is OpenXmlAttribute attribute) {
@@ -269,19 +275,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 records.Add(new XlsbGeneratedRecord(BrtBeginListCol, payload.ToArray()));
             }
             CalculatedColumnFormula? calculated = column.GetFirstChild<CalculatedColumnFormula>();
-            if (calculated != null) records.Add(CreateFormulaRecord(context, BrtListCCFmla, calculated, $"calculated column '{caption}'", refuse));
-            if (totalsFormula != null) records.Add(CreateFormulaRecord(context, BrtListTrFmla, totalsFormula, $"totals row of column '{caption}'", refuse));
+            if (calculated != null) records.Add(CreateFormulaRecord(context, tableName, BrtListCCFmla, calculated, $"calculated column '{caption}'", refuse));
+            if (totalsFormula != null) records.Add(CreateFormulaRecord(context, tableName, BrtListTrFmla, totalsFormula, $"totals row of column '{caption}'", refuse));
             records.Add(new XlsbGeneratedRecord(BrtEndListCol, Array.Empty<byte>()));
             return records;
         }
 
-        private static XlsbGeneratedRecord CreateFormulaRecord(XlsbWorksheetFeatureContext context, int type, TableFormulaType formula, string purpose,
+        private static XlsbGeneratedRecord CreateFormulaRecord(XlsbWorksheetFeatureContext context, string tableName, int type, TableFormulaType formula, string purpose,
             Func<string, NotSupportedException> refuse) {
             if (formula.HasChildren || XlsbOpenXmlAttributeValidator.FindUnsupported(formula, new[] { "array" }) is OpenXmlAttribute) {
                 throw refuse($"the {purpose} formula carries unsupported attributes");
             }
             bool array = formula.Array?.Value == true;
-            byte[] encoded = context.EncodeFormula(formula.Text ?? string.Empty, "table " + purpose,
+            // Inside a table definition an unqualified reference such as [@Amount] belongs to this table; PtgList names it.
+            string text = formula.Text ?? string.Empty;
+            if (text.IndexOf('[') >= 0) {
+                try {
+                    text = ExcelFormulaSyntaxTree.Parse(text).RewriteStructuredReferences((name, selector) => (name ?? tableName) + selector);
+                } catch (ArgumentException) {
+                    // The encoder reports formulas it cannot parse.
+                }
+            }
+            byte[] encoded = context.EncodeFormula(text, "table " + purpose,
                 array ? ExcelNativeFormulaOperandTypes.Array : ExcelNativeFormulaOperandTypes.Value);
             var payload = new byte[1 + encoded.Length];
             payload[0] = array ? (byte)0x02 : (byte)0x00; // fArray is bit 1

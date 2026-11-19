@@ -329,7 +329,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 bool greaterOrEqual = cursor.ReadUInt32() != 0;
                 uint formulaSize = cursor.ReadUInt32();
                 string? formula = null;
-                if (formulaSize != 0) {
+                // MS-XLSB 2.4.334: cbFmla and the formula are ignored for CFVOMIN and CFVOMAX thresholds.
+                if (formulaSize != 0 && type is not (2 or 3)) {
                     int offset = cursor.Position;
                     formula = _owner.ReadFormula(record.Data, ref offset);
                     if (formula == null) MarkUnprojected(record);

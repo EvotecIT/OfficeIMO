@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed class XlsbWorksheetDataValidationReader {
         private readonly XlsbWorksheetFeatureReader _owner;
         private DataValidations? _current;
+        private const int BrtBeginDVals14 = 1054;
         private bool _seen;
         private bool _undecoded;
         private int _alternateContentDepth;
@@ -83,6 +84,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     }
                     _current = null;
                     return true;
+                case BrtBeginDVals14:
+                    // Office 2010 validations (DVALS14) stay native and unprojected; the rewrite refuses validation edits
+                    // beside them rather than leave a retained rule overlapping a changed one.
+                    _owner.Sheet.HasExtendedDataValidations = true;
+                    return false;
                 default:
                     return false;
             }
