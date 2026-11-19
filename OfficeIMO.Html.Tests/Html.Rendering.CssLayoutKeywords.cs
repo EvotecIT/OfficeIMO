@@ -74,6 +74,32 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(TextBaseline(rendered, "C"), TextBaseline(rendered, "D"), 1);
     }
 
+    // An atomic box keeps its baseline relationship with the text of the top or bottom inline it sits in.
+    [Theory]
+    [InlineData("top", "display:inline-block;width:10px;height:10px")]
+    [InlineData("bottom", "display:inline-block;width:10px;height:10px")]
+    [InlineData("top", "display:inline-block;width:10px;height:10px;vertical-align:middle")]
+    public void HtmlRenderer_AtomicBoxesJoinTheirInlineAlignmentGroup(string edge, string box) {
+        string Html(string boxStyle) => "<p style='margin:0;font-size:16px'><span style='font-size:64px'>X</span>"
+            + "<span style='vertical-align:" + edge + "'>A<span style='" + boxStyle + ";background:#ff0000'></span></span></p>";
+        HtmlRenderDocument grouped = HtmlRenderTestDriver.Render(Html(box), CssLayoutOptions);
+        HtmlRenderDocument alone = HtmlRenderTestDriver.Render("<p style='margin:0;font-size:16px'>A<span style='" + box
+            + ";background:#ff0000'></span></p>", CssLayoutOptions);
+
+        // The box sits where it would against A alone, however far the group moved from the paragraph baseline.
+        Assert.Equal(VerticalAlignBox(alone).Y - TextBaseline(alone, "A"), VerticalAlignBox(grouped).Y - TextBaseline(grouped, "A"), 1);
+    }
+
+    [Fact]
+    public void HtmlRenderer_PercentageVerticalAlignRaisesAtomicBoxesByTheirLineHeight() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='margin:0;font-size:16px;line-height:20px'>Ab <span style='display:inline-block;width:10px;height:10px;"
+            + "background:#ff0000;vertical-align:50%'></span></p>", CssLayoutOptions);
+
+        // 50% of the 20px line-height lifts the box's bottom edge 10px above the baseline.
+        Assert.Equal(-20D, VerticalAlignBox(rendered).Y - TextBaseline(rendered, "Ab"), 1);
+    }
+
     [Fact]
     public void HtmlRenderer_AlignsBeforeAndAfterAsSeparateGroups() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
@@ -313,6 +339,38 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_SeparatorsFollowTheirOwnTextUnderAnAncestorNone() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align-last:justify;text-justify:none;width:200px;margin:0;font-size:16px'>"
+            + "<span style='text-justify:inter-word'>A </span><span style='text-justify:inter-word'>B</span></p>", CssLayoutOptions);
+
+        // The space belongs to the first span's inter-word text, so B is pushed to the right edge.
+        Assert.Equal(200D, Assert.Single(JustifiedLines(rendered)).Right, 1);
+    }
+
+    [Fact]
+    public void HtmlRenderer_DistributeJustifiesLikeInterCharacter() {
+        double[] Positions(string mode) => JustificationVisuals(HtmlRenderTestDriver.Render(
+                "<p style='text-align-last:justify;text-justify:" + mode + ";width:200px;margin:0'>abcdef</p>", CssLayoutOptions)
+            .Pages[0].Visuals).OfType<HtmlRenderText>().Select(text => Math.Round(text.X, 2)).ToArray();
+
+        Assert.Equal(Positions("inter-character"), Positions("distribute"));
+    }
+
+    [Fact]
+    public void HtmlRenderer_InterCharacterKeepsCursiveWordsWhole() {
+        const string arabic = "\u0645\u0631\u062D\u0628\u0627";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align-last:justify;text-justify:inter-character;width:300px;margin:0'>" + arabic + " " + arabic + "</p>",
+            CssLayoutOptions);
+
+        // Arabic letters join, so the space goes between the words and each word is painted whole.
+        Assert.DoesNotContain(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(),
+            text => text.Text.Length == 1 && arabic.Contains(text.Text));
+        Assert.Equal(300D, Assert.Single(JustifiedLines(rendered)).Right, 1);
+    }
+
+    [Fact]
     public void HtmlRenderer_NoJustificationAtGapsWhoseAncestorDisablesIt() {
         HtmlRenderText[] texts = JustificationVisuals(HtmlRenderTestDriver.Render(
                 "<p style='text-align:justify;text-align-last:justify;text-justify:none;width:200px;margin:0;font-size:16px'>"
@@ -321,6 +379,28 @@ public sealed partial class HtmlRenderingTests {
 
         // Neither span has a gap of its own, and the paragraph's none governs the one between them.
         Assert.True(texts[1].X < 40D, "second character at " + texts[1].X);
+    }
+
+    [Fact]
+    public void HtmlRenderer_BalanceKeepsTheLineCountWhenFirstLineStylingChangesWidths() {
+        string words = string.Join(" ", Enumerable.Repeat("aa", 12));
+        IReadOnlyList<JustifiedLine> Lines(string wrap) => JustifiedLines(HtmlRenderTestDriver.Render(
+            "<style>div::first-line{font-size:20px}</style><div style='width:300px;font-size:40px;" + wrap + "'>" + words + "</div>",
+            CssLayoutOptions));
+
+        Assert.Equal(Lines(string.Empty).Count, Lines("text-wrap:balance").Count);
+    }
+
+    [Fact]
+    public void HtmlRenderer_BalanceLeavesLongBlocksUnchanged() {
+        string text = JustifiedText + " " + JustifiedText + " " + JustifiedText;
+        IReadOnlyList<JustifiedLine> Lines(string wrap) => JustifiedLines(HtmlRenderTestDriver.Render(
+            "<p style='width:200px;margin:0;" + wrap + "'>" + text + "</p>", CssLayoutOptions));
+        IReadOnlyList<JustifiedLine> ordinary = Lines(string.Empty);
+
+        // Balancing is limited to short blocks, as browsers limit it.
+        Assert.True(ordinary.Count > 6, "lines " + ordinary.Count);
+        Assert.Equal(ordinary.Select(line => line.Text), Lines("text-wrap:balance").Select(line => line.Text));
     }
 
     [Fact]

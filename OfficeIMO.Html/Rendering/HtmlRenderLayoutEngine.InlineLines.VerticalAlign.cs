@@ -36,6 +36,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var topGroups = new HashSet<object>();
         var atomicTops = new Dictionary<HtmlInlineRun, double>();
         var lineRelativeAtomics = new List<HtmlInlineRun>();
+        var groupedAtomics = new List<(HtmlInlineRun Run, object Group, double Top)>();
 
         foreach (InlineSegment segment in line.Segments) {
             HtmlInlineRun run = segment.Run;
@@ -43,7 +44,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!InlineLine.ContributesFlowContent(run)) continue;
             HtmlRenderFlowBlock? atomic = run.AtomicBlock;
             if (atomic != null) {
-                if (atomicTops.ContainsKey(run) || lineRelativeAtomics.Contains(run)) continue;
+                if (atomicTops.ContainsKey(run) || lineRelativeAtomics.Contains(run) || groupedAtomics.Any(item => item.Run == run)) continue;
                 string alignment = run.Style.TableVerticalAlignment;
                 if (alignment is "top" or "bottom") {
                     lineRelativeAtomics.Add(run);
@@ -52,7 +53,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 double atomicBaseline = run.AtomicBaseline ?? atomic.Height;
-                double top = ResolveAtomicVerticalShift(run, paragraphStyle, atomic.Height, atomicBaseline) - atomicBaseline;
+                string groupAlign = AtomicGroupAlign(run.Style);
+                if (groupAlign.Length > 0) {
+                    // Inside a top or bottom inline the box keeps its place relative to that group's baseline.
+                    object key = LineRelativeGroupKey(run.Style);
+                    double groupTop = ResolveAtomicVerticalShift(run, paragraphStyle, LineRelativeGroupOffset(run.Style),
+                        atomic.Height, atomicBaseline) - atomicBaseline;
+                    if (groupAlign == "top") topGroups.Add(key);
+                    groups.TryGetValue(key, out (double Ascent, double Descent) extent);
+                    groups[key] = (Math.Max(extent.Ascent, -groupTop), Math.Max(extent.Descent, atomic.Height + groupTop));
+                    groupedAtomics.Add((run, key, groupTop));
+                    continue;
+                }
+                double top = ResolveAtomicVerticalShift(run, paragraphStyle, paragraphStyle.BaselineOffset, atomic.Height, atomicBaseline)
+                    - atomicBaseline;
                 atomicTops[run] = top;
                 ascent = Math.Max(ascent, -top);
                 descent = Math.Max(descent, atomic.Height + top);
@@ -77,6 +91,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             atomicTops[run] = run.Style.TableVerticalAlignment == "top"
                 ? -ascent
                 : descent - run.AtomicBlock!.Height;
+        }
+        foreach ((HtmlInlineRun run, object key, double groupTop) in groupedAtomics) {
+            double groupBaseline = topGroups.Contains(key) ? groups[key].Ascent : height - groups[key].Descent;
+            atomicTops[run] = groupBaseline - ascent + groupTop;
         }
         return new AlignedInlineLine(height, ascent, normalMetrics, atomicTops, groups);
 
@@ -105,7 +123,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlInlineRun run = segment.Run;
             if (!InlineLine.ContributesFlowContent(run)) continue;
             if (run.AtomicBlock != null) {
-                if (run.Style.TableVerticalAlignment != "baseline") return true;
+                if (run.Style.TableVerticalAlignment != "baseline" || AtomicGroupAlign(run.Style).Length > 0) return true;
             } else if (segment.Text.Length > 0 && run.Style.LineRelativeAlign.Length > 0) {
                 return true;
             }
@@ -116,18 +134,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     // Downward shift of an atomic inline box from baseline alignment. middle, text-top and
     // text-bottom use the box's own height against the parent's font; lengths, percentages,
     // sub and super were resolved into BaselineOffset with the element's style.
-    private static double ResolveAtomicVerticalShift(HtmlInlineRun run, HtmlRenderBoxStyle paragraphStyle,
+    // baseOffset is the BaselineOffset of the baseline the box is placed against: the paragraph's, or that of
+    // the top or bottom inline whose group it belongs to.
+    private static double ResolveAtomicVerticalShift(HtmlInlineRun run, HtmlRenderBoxStyle paragraphStyle, double baseOffset,
         double height, double atomicBaseline) {
         HtmlRenderBoxStyle style = run.Style;
-        double inherited = style.BaselineOffset - style.VerticalAlignShift - paragraphStyle.BaselineOffset;
+        double inherited = style.BaselineOffset - style.VerticalAlignShift - baseOffset;
         double parentFontSize = double.IsNaN(style.VerticalAlignParentFontSize) ? paragraphStyle.Font.Size : style.VerticalAlignParentFontSize;
         return style.TableVerticalAlignment switch {
             "middle" => inherited + atomicBaseline - height / 2D - parentFontSize * 0.25D,
             "text-top" => inherited + atomicBaseline - parentFontSize * 0.8D,
             "text-bottom" => inherited + parentFontSize * 0.2D - (height - atomicBaseline),
-            _ => style.BaselineOffset - paragraphStyle.BaselineOffset
+            _ => style.BaselineOffset - baseOffset
         };
     }
+
+    // Replaced inline boxes are display inline and inherit the group directly; inline-blocks record it separately.
+    private static string AtomicGroupAlign(HtmlRenderBoxStyle style) =>
+        style.TableVerticalAlignment is "top" or "bottom" ? string.Empty
+            : style.AtomicLineRelativeAlign.Length > 0 ? style.AtomicLineRelativeAlign : style.LineRelativeAlign;
 
     /// <summary>The paint baseline of a text segment on an aligned line, before its own BaselineOffset is applied.</summary>
     private double ResolveAlignedTextBaseline(AlignedInlineLine aligned, InlineSegment segment) {

@@ -195,6 +195,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal string LineRelativeAlign { get => _text.LineRelativeAlign; set { if (!(string.Equals(_text.LineRelativeAlign, value, StringComparison.Ordinal))) MutableText().LineRelativeAlign = value; } }
     // The top- or bottom-aligned inline whose subtree is placed against the line edge as one
     // group, and that box's own BaselineOffset; descendants keep their baselines relative to it.
+    // top or bottom when this atomic inline box sits in an ancestor's line-relative group; its contents do not inherit it.
+    internal string AtomicLineRelativeAlign { get => _text.AtomicLineRelativeAlign; set { if (!(string.Equals(_text.AtomicLineRelativeAlign, value, StringComparison.Ordinal))) MutableText().AtomicLineRelativeAlign = value; } }
     internal object? LineRelativeAlignRoot { get => _text.LineRelativeAlignRoot; set { if (!ReferenceEquals(_text.LineRelativeAlignRoot, value)) MutableText().LineRelativeAlignRoot = value; } }
     internal double LineRelativeAlignOffset { get => _text.LineRelativeAlignOffset; set { if (!(SameValue(_text.LineRelativeAlignOffset, value))) MutableText().LineRelativeAlignOffset = value; } }
     internal double BaselineOffset { get => _text.BaselineOffset; set { if (!(SameValue(_text.BaselineOffset, value))) MutableText().BaselineOffset = value; } }
@@ -480,6 +482,7 @@ internal sealed class HtmlRenderBoxStyle {
         internal double VerticalAlignParentFontSize = double.NaN;
         internal string LineRelativeAlign = string.Empty;
         internal object? LineRelativeAlignRoot;
+        internal string AtomicLineRelativeAlign = string.Empty;
         internal double LineRelativeAlignOffset;
         internal HtmlRenderTextIndent? TextIndent;
         internal double CharacterAdvance = double.NaN;

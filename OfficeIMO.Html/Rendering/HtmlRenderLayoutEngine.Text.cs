@@ -50,12 +50,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double layoutWidth = width;
         double? renderWidth = null;
         if (styledFirstLine && skipLogicalCharacters == 0
-            && TryResolveBalancedLineWidth(runs, width, parentStyle, formattingContainer, inheritedFloats, floatContext, out double balanced)) {
+            && TryResolveBalancedLineWidth(runs, width, parentStyle, formattingContainer, inheritedFloats, floatContext,
+                out double balanced, out int balancedLines)) {
             // Balancing moves words off the first line, so ::first-line is matched again at the chosen length.
-            runs = new List<HtmlInlineRun>(runsBeforeFirstLine);
-            ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs, balanced);
-            runs = ApplyScopedFontFallbacks(runs);
-            layoutWidth = balanced;
+            // Words that leave it change size, so the length is kept only if the line count still holds;
+            // otherwise the block keeps its unbalanced lines.
+            var rematched = new List<HtmlInlineRun>(runsBeforeFirstLine);
+            ApplyFirstLineStyle(formattingContainer, width, parentStyle, rematched, balanced);
+            rematched = ApplyScopedFontFallbacks(rematched);
+            bool keepsLineCount = CountAdmittedInlineLines(rematched, balanced, width, parentStyle, formattingContainer,
+                edgesPrepared: false) == balancedLines;
+            if (keepsLineCount) {
+                runs = rematched;
+                layoutWidth = balanced;
+            }
+            // An explicit render width also keeps LayoutInlineRuns from balancing the runs again.
             renderWidth = width;
         }
 

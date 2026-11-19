@@ -294,8 +294,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             : verticalAlign is "top" or "bottom" ? verticalAlign
             : display == "inline" ? parent?.LineRelativeAlign ?? string.Empty
             : string.Empty;
-        // A top or bottom box starts a group; inline descendants stay in it.
+        // A top or bottom box starts a group; inline descendants stay in it. An atomic inline box, such as an
+        // inline-block, joins its parent's group without passing the group to its own contents.
         bool startsLineRelativeGroup = inlineLevel && verticalAlign is "top" or "bottom";
+        string atomicLineRelativeAlign = inlineLevel && display != "inline" && !startsLineRelativeGroup
+            ? parent?.LineRelativeAlign ?? string.Empty
+            : string.Empty;
         OfficeColor color = defaultLink && !HasAuthoredValue(computed, "color")
             ? OfficeColor.FromRgb(0, 0, 238)
             : computed.IsImplicitlyInheritedValue("color") && parent != null
@@ -353,9 +357,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             VerticalAlignParentFontSize = parent?.Font.Size ?? fontSize,
             LineRelativeAlign = lineRelativeAlign,
             // ::before and ::after share their originating element but are separate boxes, so each has its own group.
-            LineRelativeAlignRoot = lineRelativeAlign.Length == 0 ? null
-                : startsLineRelativeGroup ? pseudoElement ? (element, pseudoSemanticRole) : element
-                : parent?.LineRelativeAlignRoot,
+            LineRelativeAlignRoot = startsLineRelativeGroup ? pseudoElement ? (element, pseudoSemanticRole) : element
+                : lineRelativeAlign.Length > 0 || atomicLineRelativeAlign.Length > 0 ? parent?.LineRelativeAlignRoot
+                : null,
+            AtomicLineRelativeAlign = atomicLineRelativeAlign,
             LineRelativeAlignOffset = startsLineRelativeGroup ? baselineOffset + keywordShift : parent?.LineRelativeAlignOffset ?? 0D,
             Color = color,
             DecorationColor = propagatedUnderline && !ownsUnderline

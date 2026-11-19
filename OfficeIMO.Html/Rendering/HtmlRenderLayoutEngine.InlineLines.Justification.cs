@@ -187,9 +187,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool IsJustificationOpportunity(JustificationUnit unit, JustificationUnit next, string mode) {
-        // none turns justification off for every gap it governs, separators included.
-        if (mode == "none") return false;
+        // A word separator belongs to its own text, which already made it fixed when that text has none.
         if (unit.Kind == JustificationUnitKind.Separator) return true;
+        // Between two characters, the governing element's none turns the gap off.
+        if (mode == "none") return false;
         // A following separator already owns the gap.
         if (next.Kind == JustificationUnitKind.Separator) return false;
         if (mode == "inter-word") return false;
