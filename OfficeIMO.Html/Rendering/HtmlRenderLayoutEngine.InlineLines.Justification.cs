@@ -291,8 +291,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // A piece of several characters is painted one character at a time; its letter
             // spacing is zero, or spacing would already have split it.
             double cursor = piece.X + shift;
+            double[] contextual = MeasureContextualAdvances(elements, style, font);
             for (int part = 0; part < elements.Count; part++) {
-                double glyphWidth = MeasureSpacedPaintText(elements[part], style, font);
+                double glyphWidth = contextual[part];
                 double advance = glyphWidth + (IsWordSpacingSeparator(elements[part]) ? style.WordSpacing : 0D) + spacing[element];
                 spaced.Add(new InlinePaintSegment(elements[part], cursor, Math.Max(0.01D, advance), advance,
                     element, piece.BidiResolved));

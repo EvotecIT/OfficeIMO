@@ -101,6 +101,23 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_ShiftedInlineBoxesBesideFloatsPushTheNextLineDown() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<div style='width:300px'><div style='float:left;width:50px;height:300px'></div>"
+            + "<p style='margin:0;font-size:16px;line-height:20px'>Ab <span style='display:inline-block;width:10px;height:10px;"
+            + "vertical-align:-100px;background:#ff0000'></span> one two three four five six seven eight nine ten eleven twelve</p></div>",
+            CssLayoutOptions);
+        HtmlRenderShape box = VerticalAlignBox(rendered);
+        HtmlRenderText first = Assert.Single(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>(), text => text.Text.Trim() == "Ab");
+        HtmlRenderText[] laterLines = JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => !string.IsNullOrWhiteSpace(text.Text) && text.LayoutY > first.LayoutY + 1D).ToArray();
+
+        // The box hangs 100px below the first baseline, so the first line is that deep and the next starts below it.
+        Assert.NotEmpty(laterLines);
+        Assert.All(laterLines, text => Assert.True(text.LayoutY >= box.Y + box.Height - 0.5D, text.Text + " at " + text.LayoutY));
+    }
+
+    [Fact]
     public void HtmlRenderer_AlignsBeforeAndAfterAsSeparateGroups() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<style>p::before{content:'A';vertical-align:top;line-height:10px}p::after{content:'Z';vertical-align:bottom;line-height:40px}</style>"
@@ -173,6 +190,28 @@ public sealed partial class HtmlRenderingTests {
             .GroupBy(text => Math.Round(text.LayoutY, 1)).OrderBy(group => group.Key).First().ToArray();
 
         Assert.Equal(300D, firstLine.Max(text => text.X + (text.TextAdvanceWidth ?? text.Width)), 1);
+    }
+
+    // A and V kern in this font, so painting each letter by its own width would overshoot the measured line.
+    [Theory]
+    [InlineData("text-align-last:justify;text-justify:inter-character")]
+    [InlineData("text-align:right;letter-spacing:2px")]
+    public void HtmlRenderer_PerCharacterPaintKeepsKerning(string declarations) {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        options.Fonts.Add(OfficeIMO.TestAssets.ManagedTextShapingTestAssets.FamilyName,
+            OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', -120, includeSpace: true));
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style=\"font-family:'" + OfficeIMO.TestAssets.ManagedTextShapingTestAssets.FamilyName + "';font-size:20px;width:300px;margin:0;"
+            + declarations + "\">AVAVAV AVAV</p>", options);
+        HtmlRenderText[] texts = JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => !string.IsNullOrWhiteSpace(text.Text)).OrderBy(text => text.X).ToArray();
+
+        Assert.Contains(texts, text => text.Text == "V");
+        Assert.Equal(300D, texts.Max(text => text.X + (text.TextAdvanceWidth ?? text.Width)), 1);
     }
 
     [Fact]

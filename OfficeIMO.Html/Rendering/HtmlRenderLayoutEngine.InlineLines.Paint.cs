@@ -90,7 +90,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double baseline = emptyAtomicBaseline ? resolvedEmptyBaseline : textLineMetrics ? resolvedTextBaseline : alignTextBaseline || current.HasReplacedImage
                 ? ResolveInlineSharedBaseline(current, paragraphStyle, ref lineHeight)
                 : current.ResolveBaseline(paragraphStyle);
-            AlignedInlineLine? aligned = ResolveAlignedInlineLine(current, paragraphStyle);
+            AlignedInlineLine? aligned = current.AlignedMetrics ?? ResolveAlignedInlineLine(current, paragraphStyle);
             if (aligned != null) {
                 lineHeight = aligned.Height;
                 baseline = aligned.Baseline;

@@ -25,6 +25,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal Dictionary<object, (double Ascent, double Descent)> LineRelativeGroups { get; }
     }
 
+    private sealed partial class InlineLine {
+        // Aligned metrics resolved when float layout placed the line, so paint uses the same height.
+        internal AlignedInlineLine? AlignedMetrics { get; set; }
+    }
+
     private AlignedInlineLine? ResolveAlignedInlineLine(InlineLine line, HtmlRenderBoxStyle paragraphStyle) {
         if (!RequiresAlignedInlineLine(line)) return null;
         bool normalMetrics = paragraphStyle.Font.Size > 0D && paragraphStyle.LineHeight >= paragraphStyle.Font.Size;

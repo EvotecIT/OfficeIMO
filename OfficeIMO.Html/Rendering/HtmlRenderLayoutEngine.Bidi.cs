@@ -115,6 +115,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? shaped
             : MeasureText(text, font, style.FontDescriptor);
 
+    // Advances of text elements in their context: each starts where the measured text puts it, so pair
+    // kerning and other contextual adjustments stay where line layout measured them, and they sum to
+    // the width of the whole text.
+    private double[] MeasureContextualAdvances(IReadOnlyList<string> elements, HtmlRenderBoxStyle style, OfficeFontInfo font) {
+        var advances = new double[elements.Count];
+        if (elements.Count == 0) return advances;
+        var starts = new double[elements.Count];
+        var prefix = new StringBuilder();
+        for (int index = 0; index < elements.Count; index++) {
+            prefix.Append(elements[index]);
+            if (index > 0) starts[index] = MeasureSpacedPaintText(prefix.ToString(), style, font) - MeasureSpacedPaintText(elements[index], style, font);
+        }
+        double total = MeasureSpacedPaintText(prefix.ToString(), style, font);
+        for (int index = 0; index < elements.Count; index++) {
+            advances[index] = (index + 1 < elements.Count ? starts[index + 1] : total) - starts[index];
+        }
+        return advances;
+    }
+
     private IReadOnlyList<InlinePaintSegment> ResolveSpacedPaintSegments(InlineSegment segment, double x,
         int? logicalOrder = null, bool bidiResolved = false) {
         var result = new List<InlinePaintSegment>();
@@ -124,9 +143,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<string> elements = OfficeTextElements.Split(segment.Text);
         OfficeFontInfo effectiveFont = GetEffectiveTextFont(segment.Run.Style);
         if (Math.Abs(segment.Run.Style.LetterSpacing) > 0.0001D) {
+            double[] contextual = MeasureContextualAdvances(elements, segment.Run.Style, effectiveFont);
             for (int index = 0; index < elements.Count; index++) {
                 string element = elements[index];
-                double glyphWidth = MeasureSpacedPaintText(element, segment.Run.Style, effectiveFont);
+                double glyphWidth = contextual[index];
                 double advance = glyphWidth
                     + segment.Run.Style.LetterSpacing
                     + (IsWordSpacingSeparator(element) ? segment.Run.Style.WordSpacing : 0D);
