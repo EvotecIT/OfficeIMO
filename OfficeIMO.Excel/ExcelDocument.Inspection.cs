@@ -1,3 +1,4 @@
+using System.Xml;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -31,9 +32,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Builds the workbook snapshot. Without cell presentation, cells omit their style and rich-text run snapshots,
-        /// which text extraction does not use.
+        /// which text extraction does not use. With <paramref name="selectedSheet"/>, only worksheets of that name
+        /// (ignoring case) are inspected; workbook-level facts still cover the whole workbook.
         /// </summary>
-        internal ExcelWorkbookInfo Inspect(ExcelReaderOptions? options, CancellationToken cancellationToken, bool includeCellPresentation) {
+        internal ExcelWorkbookInfo Inspect(ExcelReaderOptions? options, CancellationToken cancellationToken, bool includeCellPresentation, string? selectedSheet = null) {
+            string? selectedSheetName = string.IsNullOrWhiteSpace(selectedSheet) ? null : selectedSheet!.Trim();
             cancellationToken.ThrowIfCancellationRequested();
             var effectiveOptions = options ?? new ExcelReaderOptions {
                 UseCachedFormulaResult = true,
@@ -60,20 +63,16 @@ namespace OfficeIMO.Excel {
             using (var reader = CreateReader(effectiveOptions)) {
                 var workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
-                var styleContext = StyleInspectionContext.Create(workbookPart, workbookPart.WorkbookStylesPart?.Stylesheet);
+                // Style snapshots are part of cell presentation; without it the stylesheet DOM is not needed.
+                var styleContext = includeCellPresentation
+                    ? StyleInspectionContext.Create(workbookPart, workbookPart.WorkbookStylesPart?.Stylesheet)
+                    : null;
                 // Shared-string items are only needed for rich-text runs; loading them parses the whole table.
-                var sharedStringItems = !includeCellPresentation ? null : workbookPart.SharedStringTablePart?
-                    .SharedStringTable?
-                    .Elements<SharedStringItem>()
-                    .ToList();
-                snapshot.SlicerPartCount = CountPackageParts(workbookPart, IsNativeSlicerPackagePart);
-                snapshot.TimelinePartCount = CountPackageParts(workbookPart, IsNativeTimelinePackagePart);
-                snapshot.SlicerBindingMetadataPartCount = CountPackageParts(workbookPart, IsSlicerBindingMetadataPart);
-                snapshot.TimelineBindingMetadataPartCount = CountPackageParts(workbookPart, IsTimelineBindingMetadataPart);
-                snapshot.ConnectionPartCount = CountPackagePartsByContentType(workbookPart, "connections");
-                snapshot.QueryTablePartCount = CountPackagePartsByContentType(workbookPart, "queryTable");
-                snapshot.ChartPartCount = CountPackageParts(workbookPart, part => part is ChartPart || part is ExtendedChartPart);
-                snapshot.PivotTablePartCount = CountPackageParts(workbookPart, part => part is PivotTablePart);
+                var sharedStringTablePart = includeCellPresentation ? workbookPart.SharedStringTablePart : null;
+                var sharedStringItems = sharedStringTablePart != null && SharedStringTableMayHaveRuns(sharedStringTablePart)
+                    ? sharedStringTablePart.SharedStringTable?.Elements<SharedStringItem>().ToList()
+                    : null;
+                CountInspectedPackageParts(workbookPart, snapshot);
                 var sheetElements = workbook.Sheets?.Elements<Sheet>().ToList() ?? new List<Sheet>();
                 int? activeWorksheetIndex = GetActiveWorksheetIndex(workbook, sheetElements.Count);
                 if (activeWorksheetIndex.HasValue) {
@@ -90,12 +89,15 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     var sheetName = sheet.Name?.Value ?? $"Sheet{sheetIndex + 1}";
+                    if (selectedSheetName != null && !string.Equals(sheetName, selectedSheetName, StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     ExcelSheet sourceSheet = this[sheetName];
                     IReadOnlyDictionary<string, string> resolvedFormulaTexts = sourceSheet.BuildResolvedFormulaTextMap();
-                    var readerSheet = reader.GetSheet(sheetName);
-                    var typedValues = BuildTypedCellMap(readerSheet);
+                    var readerSheet = reader.GetSheet(sheetName, worksheetPart);
                     string usedRangeA1 = readerSheet.GetUsedRangeA1();
                     var hyperlinkMap = ExcelWorksheetHyperlinkResolver.BuildMap(worksheetPart, usedRangeA1);
                     var commentMap = ExcelWorksheetCommentResolver.BuildLegacyCommentMap(worksheetPart);
@@ -170,24 +172,29 @@ namespace OfficeIMO.Excel {
                                     continue;
                                 }
 
+                                // One walk over the cell's children; each SDK child property searches them again.
+                                ExcelSheetReader.GetCellChildren(cell, out CellFormula? cellFormula, out CellValue? cellValue, out InlineString? inlineString);
+                                string? storedFormula = cellFormula?.Text;
+                                uint? cellStyleIndex = cell.StyleIndex?.Value;
                                 worksheetSnapshot.AddCell(new ExcelCellInfo {
                                     Row = rowIndex,
                                     Column = columnIndex,
-                                    Value = GetTypedValue(typedValues, rowIndex, columnIndex),
+                                    // The worksheet DOM is already loaded, so values come from its cells instead of another read of the part.
+                                    Value = readerSheet.ConvertLoadedCell(cell),
                                     Formula = resolvedFormulaTexts.TryGetValue(cellReference, out string? formulaText)
                                         ? formulaText
-                                        : cell.CellFormula?.Text,
-                                    StoredFormula = cell.CellFormula?.Text,
-                                    FormulaKind = cell.CellFormula == null ? null : cell.CellFormula.FormulaType?.InnerText ?? "normal",
-                                    HasStoredValue = cell.CellValue != null,
-                                    StoredValue = cell.CellValue?.Text,
+                                        : storedFormula,
+                                    StoredFormula = storedFormula,
+                                    FormulaKind = cellFormula == null ? null : cellFormula.FormulaType?.InnerText ?? "normal",
+                                    HasStoredValue = cellValue != null,
+                                    StoredValue = cellValue?.Text,
                                     StoredValueType = cell.DataType?.InnerText ?? "n",
-                                    StyleIndex = cell.StyleIndex?.Value,
-                                    Style = includeCellPresentation ? BuildCellStyleSnapshot(styleContext, cell.StyleIndex?.Value) : null,
+                                    StyleIndex = cellStyleIndex,
+                                    Style = styleContext != null ? BuildCellStyleSnapshot(styleContext, cellStyleIndex) : null,
                                     Hyperlink = hyperlinkMap.TryGetValue(cellReference, out var hyperlink) ? hyperlink : null,
                                     Comment = commentMap.TryGetValue(cellReference, out var comment) ? comment : null,
                                     ThreadedComment = threadedCommentMap.TryGetValue(cellReference, out var threadedComments) ? threadedComments[0] : null,
-                                    RichTextRuns = includeCellPresentation ? BuildRichTextRuns(cell, sharedStringItems) : Array.Empty<ExcelRichTextRun>(),
+                                    RichTextRuns = includeCellPresentation ? BuildRichTextRuns(cell, cellValue, inlineString, sharedStringItems) : Array.Empty<ExcelRichTextRun>(),
                                 });
                             }
                         }
@@ -269,12 +276,14 @@ namespace OfficeIMO.Excel {
 
         private static IReadOnlyList<ExcelRichTextRun> BuildRichTextRuns(
             Cell cell,
+            CellValue? cellValue,
+            InlineString? inlineString,
             IReadOnlyList<SharedStringItem>? sharedStringItems) {
             IEnumerable<Run> runs;
-            if (cell.InlineString != null) {
-                runs = cell.InlineString.Elements<Run>();
+            if (inlineString != null) {
+                runs = inlineString.Elements<Run>();
             } else if (cell.DataType?.Value == CellValues.SharedString
-                && int.TryParse(cell.CellValue?.InnerText, out int sharedStringIndex)
+                && int.TryParse(cellValue?.InnerText, out int sharedStringIndex)
                 && sharedStringIndex >= 0
                 && sharedStringIndex < (sharedStringItems?.Count ?? 0)) {
                 runs = sharedStringItems![sharedStringIndex].Elements<Run>();
@@ -291,39 +300,91 @@ namespace OfficeIMO.Excel {
             return result;
         }
 
-        private static int CountPackagePartsByContentType(OpenXmlPartContainer container, string marker) {
-            if (string.IsNullOrWhiteSpace(marker)) return 0;
+        /// <summary>
+        /// Without runs in the table, no cell has shared-string rich text, so its DOM is not needed. A streamed scan
+        /// answers that for an unloaded part read as the package would read it; a loaded part, markup compatibility
+        /// processing, or XML the scan cannot read keeps the DOM, which also reports a part over the size limit.
+        /// </summary>
+        private static bool SharedStringTableMayHaveRuns(SharedStringTablePart part) {
+            if (part.IsRootElementLoaded
+                || part.OpenXmlPackage.MarkupCompatibilityProcessSettings.ProcessMode != MarkupCompatibilityProcessMode.NoProcess) {
+                return true;
+            }
 
-            return CountPackageParts(
-                container,
-                part => part.ContentType.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0);
+            var settings = new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                IgnoreComments = true,
+                IgnoreProcessingInstructions = true,
+                IgnoreWhitespace = true,
+                CloseInput = false
+            };
+            long maxCharacters = part.OpenXmlPackage.MaxCharactersInPart;
+            if (maxCharacters > 0) {
+                settings.MaxCharactersInDocument = maxCharacters;
+            }
+
+            try {
+                using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
+                using XmlReader reader = XmlReader.Create(stream, settings);
+                while (reader.Read()) {
+                    if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "r") {
+                        return true;
+                    }
+                }
+
+                return false;
+            } catch (XmlException) {
+                return true;
+            }
         }
 
-        private static int CountPackageParts(OpenXmlPartContainer container, Func<OpenXmlPart, bool> predicate) {
-            ArgumentNullException.ThrowIfNull(predicate);
-
-            return CountPackageParts(container, predicate, new HashSet<Uri>());
+        /// <summary>Counts the package parts the snapshot reports in one walk of the part graph.</summary>
+        private static void CountInspectedPackageParts(WorkbookPart workbookPart, ExcelWorkbookInfo snapshot) {
+            var counts = new InspectedPartCounts();
+            CountInspectedPackageParts(workbookPart, ref counts, new HashSet<Uri>());
+            snapshot.SlicerPartCount = counts.Slicer;
+            snapshot.TimelinePartCount = counts.Timeline;
+            snapshot.SlicerBindingMetadataPartCount = counts.SlicerBindingMetadata;
+            snapshot.TimelineBindingMetadataPartCount = counts.TimelineBindingMetadata;
+            snapshot.ConnectionPartCount = counts.Connection;
+            snapshot.QueryTablePartCount = counts.QueryTable;
+            snapshot.ChartPartCount = counts.Chart;
+            snapshot.PivotTablePartCount = counts.PivotTable;
         }
 
-        private static int CountPackageParts(
+        private static void CountInspectedPackageParts(
             OpenXmlPartContainer container,
-            Func<OpenXmlPart, bool> predicate,
+            ref InspectedPartCounts counts,
             HashSet<Uri> visitedParts) {
-            int count = 0;
             foreach (var relationship in container.Parts) {
                 var part = relationship.OpenXmlPart;
                 if (!visitedParts.Add(part.Uri)) {
                     continue;
                 }
 
-                if (predicate(part)) {
-                    count++;
-                }
+                if (IsNativeSlicerPackagePart(part)) counts.Slicer++;
+                if (IsNativeTimelinePackagePart(part)) counts.Timeline++;
+                if (IsSlicerBindingMetadataPart(part)) counts.SlicerBindingMetadata++;
+                if (IsTimelineBindingMetadataPart(part)) counts.TimelineBindingMetadata++;
+                if (part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) >= 0) counts.Connection++;
+                if (part.ContentType.IndexOf("queryTable", StringComparison.OrdinalIgnoreCase) >= 0) counts.QueryTable++;
+                if (part is ChartPart || part is ExtendedChartPart) counts.Chart++;
+                if (part is PivotTablePart) counts.PivotTable++;
 
-                count += CountPackageParts(part, predicate, visitedParts);
+                CountInspectedPackageParts(part, ref counts, visitedParts);
             }
+        }
 
-            return count;
+        private struct InspectedPartCounts {
+            internal int Slicer;
+            internal int Timeline;
+            internal int SlicerBindingMetadata;
+            internal int TimelineBindingMetadata;
+            internal int Connection;
+            internal int QueryTable;
+            internal int Chart;
+            internal int PivotTable;
         }
 
         private static bool IsNativeSlicerPackagePart(OpenXmlPart part) {
@@ -696,24 +757,6 @@ namespace OfficeIMO.Excel {
             }
 
             return checked((int)activeTab);
-        }
-
-        private static Dictionary<long, object?> BuildTypedCellMap(ExcelSheetReader readerSheet) {
-            var map = new Dictionary<long, object?>();
-            foreach (var cell in readerSheet.EnumerateCells()) {
-                map[GetCellKey(cell.Row, cell.Column)] = cell.Value;
-            }
-
-            return map;
-        }
-
-        private static object? GetTypedValue(Dictionary<long, object?> map, int row, int column) {
-            object? value;
-            return map.TryGetValue(GetCellKey(row, column), out value) ? value : null;
-        }
-
-        private static long GetCellKey(int row, int column) {
-            return ((long)row << 20) | (uint)column;
         }
 
         private static int ConvertToInt(DoubleValue? value) {

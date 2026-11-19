@@ -311,6 +311,15 @@ namespace OfficeIMO.Excel {
             return CreateSheetReader(sheet.Name!, wsPart!);
         }
 
+        /// <summary>
+        /// Gets a reader for a worksheet part the caller already resolved from the workbook, without looking the
+        /// sheet up by name in the workbook part again.
+        /// </summary>
+        internal ExcelSheetReader GetSheet(string name, WorksheetPart worksheetPart) {
+            ArgumentNullException.ThrowIfNull(worksheetPart);
+            return CreateSheetReader(name, worksheetPart);
+        }
+
         private bool TryGetWorksheetPart(Sheet sheet, out WorksheetPart? worksheetPart) {
             worksheetPart = null;
             if (sheet.Id?.Value == null) {
