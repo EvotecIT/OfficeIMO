@@ -893,7 +893,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-            Filter = '*PdfReadBenchmarks*'
+            Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfReadBenchmarks.*'
             ComparisonId = 'pdf-text-extraction'
             Suite = 'OfficeIMO.Pdf.TextExtraction'
             ExpectedCases = @(
@@ -980,7 +980,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-            Filter = '*PdfSplitBenchmarks*'
+            Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfSplitBenchmarks.*'
             ComparisonId = 'pdf-split'
             Suite = 'OfficeIMO.Pdf.Split'
             ExpectedCases = @(
@@ -1005,7 +1005,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-            Filter = '*PdfMergeBenchmarks*'
+            Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfMergeBenchmarks.*'
             ComparisonId = 'pdf-merge'
             Suite = 'OfficeIMO.Pdf.Merge'
             ExpectedCases = @(
@@ -1028,7 +1028,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-            Filter = '*PdfPageSelectionBenchmarks*'
+            Filter = 'OfficeIMO.Pdf.Benchmarks.Comparisons.PdfPageSelectionBenchmarks.*'
             ComparisonId = 'pdf-page-selection'
             Suite = 'OfficeIMO.Pdf.PageSelection'
             ExpectedCases = @(
