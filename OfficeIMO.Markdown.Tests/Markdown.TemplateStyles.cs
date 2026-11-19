@@ -4,7 +4,7 @@ using OfficeIMO.Word.Markdown;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class MarkdownTemplateStyles {
+    public class Markdown_TemplateStyles {
         [Fact]
         public void MarkdownIntoTemplate_WithDocumentStyles_UsesTemplateHeadingBodyAndQuoteStyles() {
             using var stream = new MemoryStream();
