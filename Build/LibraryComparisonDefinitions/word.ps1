@@ -64,8 +64,8 @@ function New-WordExpectedCases {
         Title = 'DOCX paragraph creation with OfficeIMO''s package parts'
         Libraries = @('OfficeIMO', 'Open XML SDK')
         ExpectedPlatforms = $platforms
-        PublishRestriction = 'None'
-        CatalogEligible = $true
+        PublishRestriction = 'Same workload as word-docx-create-paragraphs; kept as an evidence suite.'
+        CatalogEligible = $false
         Project = $project
         Filter = '*WordParagraphOpenXmlEvidenceBenchmarks*'
         ComparisonId = 'word-docx-evidence-paragraphs'
@@ -77,8 +77,8 @@ function New-WordExpectedCases {
         Title = 'DOCX report creation with Word table defaults'
         Libraries = @('OfficeIMO', 'Open XML SDK')
         ExpectedPlatforms = $platforms
-        PublishRestriction = 'None'
-        CatalogEligible = $true
+        PublishRestriction = 'Same workload as word-docx-create-report; kept as an evidence suite.'
+        CatalogEligible = $false
         Project = $project
         Filter = '*WordReportOpenXmlEvidenceBenchmarks*'
         ComparisonId = 'word-docx-evidence-report'

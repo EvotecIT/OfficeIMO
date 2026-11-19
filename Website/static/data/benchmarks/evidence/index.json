@@ -12187,8 +12187,8 @@
         "net8.0"
       ],
       "eligibility": {
-        "publishable": true,
-        "reason": ""
+        "publishable": false,
+        "reason": "Same workload as word-docx-create-paragraphs; kept as an evidence suite."
       }
     },
     {
@@ -12261,8 +12261,8 @@
         "net8.0"
       ],
       "eligibility": {
-        "publishable": true,
-        "reason": ""
+        "publishable": false,
+        "reason": "Same workload as word-docx-create-report; kept as an evidence suite."
       }
     },
     {
@@ -14543,8 +14543,8 @@
     },
     {
       "comparisonId": "word-docx-evidence-paragraphs",
-      "publishable": true,
-      "reason": ""
+      "publishable": false,
+      "reason": "Same workload as word-docx-create-paragraphs; kept as an evidence suite."
     },
     {
       "comparisonId": "word-docx-evidence-read",
@@ -14553,8 +14553,8 @@
     },
     {
       "comparisonId": "word-docx-evidence-report",
-      "publishable": true,
-      "reason": ""
+      "publishable": false,
+      "reason": "Same workload as word-docx-create-report; kept as an evidence suite."
     },
     {
       "comparisonId": "word-docx-read-paragraphs",

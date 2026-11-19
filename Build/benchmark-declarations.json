@@ -12705,7 +12705,11 @@
       "frameworks": [
         "net8.0",
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Same workload as word-docx-create-paragraphs; kept as an evidence suite."
+      }
     },
     {
       "comparisonId": "word-docx-evidence-report",
@@ -12736,7 +12740,11 @@
       "frameworks": [
         "net8.0",
         "net10.0"
-      ]
+      ],
+      "eligibility": {
+        "publishable": false,
+        "reason": "Same workload as word-docx-create-report; kept as an evidence suite."
+      }
     },
     {
       "comparisonId": "word-docx-evidence-read",
