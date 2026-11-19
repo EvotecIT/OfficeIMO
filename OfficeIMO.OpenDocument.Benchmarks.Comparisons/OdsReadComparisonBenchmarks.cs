@@ -31,9 +31,11 @@ public class OdsReadComparisonBenchmarks {
 
     /// <summary>Opens and enumerates every populated cell through OfficeIMO.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMO() => OdsComparisonWorkflows.ReadOfficeIMO(_package);
 
     /// <summary>Opens and enumerates every populated cell through OpenStandardLibrary.</summary>
     [Benchmark(Description = "OpenStandardLibrary")]
+    [BenchmarkCategory("library:OpenStandardLibrary", "case:Default")]
     public Task<long> OpenStandardLibrary() => OdsComparisonWorkflows.ReadOpenStandardLibrary(_package);
 }
