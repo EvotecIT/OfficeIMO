@@ -1,4 +1,5 @@
 using OfficeIMO.Yaml.Benchmarks;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 using OfficeIMO.Yaml.Benchmarks.Comparison;
 using OfficeIMO.Yaml.Benchmarks.LargeCorpus;
@@ -39,4 +40,5 @@ if (args.Length > 0 && string.Equals(args[0], "--validate-workloads", StringComp
     return;
 }
 
-BenchmarkSwitcher.FromAssembly(typeof(YamlConformanceComparison).Assembly).Run(args);
+BenchmarkSwitcher.FromAssembly(typeof(YamlConformanceComparison).Assembly)
+    .Run(args, DefaultConfig.Instance.AddFilter(YamlSaveLaneFilter.Instance));
