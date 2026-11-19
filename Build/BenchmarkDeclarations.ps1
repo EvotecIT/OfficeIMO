@@ -223,6 +223,62 @@ function Get-BenchmarkComparisonImportMaps {
     [pscustomobject]@{ LibraryMap = $libraryMap; CaseMap = $caseMap }
 }
 
+function Get-BenchmarkSparseCells {
+    <#
+    .SYNOPSIS
+    Lists a comparison's case x library x axis-value cells when the benchmark code does not define all of them.
+    .DESCRIPTION
+    Without cells, PowerForge expects every combination of the declared cases, libraries and axis values. When the
+    expected cases cover all of them, nothing is returned. Otherwise each defined cell is returned once; a cell that
+    every library of the comparison defines omits its library.
+    .OUTPUTS
+    Ordered dictionaries with case, an optional library and parameters, ready for the declaration document.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [AllowEmptyCollection()] [System.Collections.Generic.List[object]] $Cells,
+        [Parameter(Mandatory)] [string[]] $Libraries,
+        [Parameter(Mandatory)] [System.Collections.Generic.List[string]] $Cases,
+        [Parameter(Mandatory)] [System.Collections.Specialized.OrderedDictionary] $Axes
+    )
+
+    $groups = [ordered]@{}
+    foreach ($cell in $Cells) {
+        $parts = @(
+            foreach ($axis in $Axes.Keys) {
+                if (-not $cell.Parameters.Contains($axis)) {
+                    throw "Case '$($cell.Case)' of library '$($cell.Library)' gives no value for axis '$axis'; every case must set every axis."
+                }
+                '{0}={1}' -f $axis, $cell.Parameters[$axis]
+            }
+        )
+        $key = '{0}|{1}' -f $cell.Case, ($parts -join '&')
+        if (-not $groups.Contains($key)) {
+            $groups[$key] = [pscustomobject]@{ Case = $cell.Case; Parameters = $cell.Parameters; Libraries = [System.Collections.Generic.List[string]]::new() }
+        }
+        if (-not $groups[$key].Libraries.Contains($cell.Library)) { $groups[$key].Libraries.Add($cell.Library) }
+    }
+
+    $complete = $Cases.Count * $Libraries.Count
+    foreach ($values in $Axes.Values) { $complete *= $values.Count }
+    $defined = 0
+    foreach ($group in $groups.Values) { $defined += $group.Libraries.Count }
+    if ($defined -eq $complete) { return }
+
+    foreach ($group in $groups.Values) {
+        $parameters = [ordered]@{}
+        foreach ($axis in $Axes.Keys) { $parameters[$axis] = [string] $group.Parameters[$axis] }
+        $everyLibrary = @($Libraries | Where-Object { $_ -notin $group.Libraries }).Count -eq 0
+        $cellLibraries = if ($everyLibrary) { @('') } else { @($Libraries | Where-Object { $_ -in $group.Libraries }) }
+        foreach ($library in $cellLibraries) {
+            $cell = [ordered]@{ case = $group.Case }
+            if ($library) { $cell.library = $library }
+            if ($parameters.Count -gt 0) { $cell.parameters = $parameters }
+            $cell
+        }
+    }
+}
+
 function New-BenchmarkDeclarationDocument {
     <#
     .SYNOPSIS
@@ -251,6 +307,7 @@ function New-BenchmarkDeclarationDocument {
 
         $cases = [System.Collections.Generic.List[string]]::new()
         $axes = [ordered]@{}
+        $expectedCells = [System.Collections.Generic.List[object]]::new()
         foreach ($expected in @($definition.ExpectedCases)) {
             $parsed = ConvertFrom-BenchmarkExpectedCase $expected
             $identity = Get-BenchmarkMethodIdentity -Workload $workload -Definition $definition -Libraries $libraries -Method $parsed.Method
@@ -259,7 +316,9 @@ function New-BenchmarkDeclarationDocument {
                 if (-not $axes.Contains($parameter.Key)) { $axes[$parameter.Key] = [System.Collections.Generic.List[string]]::new() }
                 if (-not $axes[$parameter.Key].Contains([string] $parameter.Value)) { $axes[$parameter.Key].Add([string] $parameter.Value) }
             }
+            $expectedCells.Add([pscustomobject]@{ Library = $identity.Library; Case = $identity.Case; Parameters = $parsed.Parameters })
         }
+        $cells = @(Get-BenchmarkSparseCells -Cells $expectedCells -Libraries @($comparisonLibraries.Id) -Cases $cases -Axes $axes)
 
         $frameworks = @(
             foreach ($framework in $script:BenchmarkDeclarationFrameworks) {
@@ -282,9 +341,10 @@ function New-BenchmarkDeclarationDocument {
             libraries = @($comparisonLibraries.Id)
             axes = @(foreach ($axis in $axes.GetEnumerator()) { [ordered]@{ name = $axis.Key; values = @($axis.Value) } })
             cases = @($cases)
-            expectedPlatforms = @($definition.ExpectedPlatforms)
-            frameworks = $frameworks
         }
+        if ($cells.Count -gt 0) { $comparison.cells = $cells }
+        $comparison.expectedPlatforms = @($definition.ExpectedPlatforms)
+        $comparison.frameworks = $frameworks
         if (-not $definition.CatalogEligible) {
             $reason = [string] $definition.PublishRestriction
             if ([string]::IsNullOrWhiteSpace($reason) -or $reason -eq 'None') { $reason = 'Not a public library comparison.' }

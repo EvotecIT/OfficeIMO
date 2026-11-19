@@ -300,7 +300,6 @@ $executionPlan = @(
                 OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = @($librarySelection.Enabled) -join ','
             }
             LeftOutVariables = $leftOutVariables
-            AllowedExtraCaseLibraries = $enabledLibraries
             # Enabled restricted libraries may add cases beyond ExpectedCases; the plan names them.
             OptionalCaseLibraries = @($enabledLibraries.id)
             ArtifactsPath = $artifactsPath
@@ -708,31 +707,10 @@ foreach ($name in $selected) {
     $normalizedPath = Join-Path $OutputRoot ('{0}-normalized-result.json' -f (Split-Path -Leaf $artifactsPath))
     Write-BenchmarkEvidenceResult -Path $normalizedPath -InputObject $result
 
-    # Drift between the declarations and what ran blocks publication; the lane is still recorded.
+    # Drift between the declarations and what ran blocks publication; the lane is still recorded. PowerForge also
+    # reports every declared case, library and axis-value combination (or declared cell) that did not run, and every
+    # combination that ran outside the declared cells.
     $drift = @(Test-BenchmarkDeclaration -Path $declarationPath -InputObject $result -ComparisonId $definition.ComparisonId -PassThru)
-    # PowerForge compares cases, libraries and axis values separately, so a missing method and parameter
-    # combination (one library at one size) would pass as a partial lane. Every expected combination must have a
-    # row; a row that ran and failed counts, because a failed case is a result.
-    $measuredCombinations = @(
-        $result.Summary | ForEach-Object {
-            Get-BenchmarkMethodCombination -Row $_ -VariableName $definition.IdentityVariables
-        } | Sort-Object -Unique
-    )
-    $missingCombinations = @($workloadPlan.ExpectedCases | Where-Object { $_ -notin $measuredCombinations })
-    $unexpectedCombinations = @(
-        $measuredCombinations |
-            Where-Object { $_ -notin $workloadPlan.ExpectedCases } |
-            Where-Object {
-                $combination = $_
-                @($workloadPlan.AllowedExtraCaseLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $combination }).Count -eq 0
-            }
-    )
-    foreach ($combination in $missingCombinations) {
-        $drift += [pscustomobject]@{ Code = 'missing-combination'; Message = "Expected case '$combination' did not run." }
-    }
-    foreach ($combination in $unexpectedCombinations) {
-        $drift += [pscustomobject]@{ Code = 'unexpected-combination'; Message = "Case '$combination' ran but is not expected." }
-    }
     $publishLane = $workloadPlan.Publish
     if ($drift.Count -gt 0) {
         $failures.Add("${name}: the results drifted from Build/benchmark-declarations.json ($(@($drift | ForEach-Object { $_.Message }) -join ' ')). Regenerate the declarations or fix the benchmark.")

@@ -259,16 +259,6 @@ if (-not $diagnosticPublishBlocked) {
     throw 'A diagnostic run must never be publishable.'
 }
 
-# A missing method and parameter combination is drift even when every case, library and axis value appears in
-# another row; rows are compared in the runner's expected-case form, with renamed cases keeping their method.
-. (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
-$renamedRow = [pscustomobject]@{ Scenario = 'Default'; Variables = @{ Method = 'OpenStandardLibrary'; Scale = 'Normal'; Job = 'ShortRun' } }
-$combinedRow = [pscustomobject]@{ Scenario = 'Execute'; Variables = @{ Producer = 'IText&Operation=Merge' } }
-if ((Get-BenchmarkMethodCombination -Row $renamedRow -VariableName @('scale')) -cne 'OpenStandardLibrary|Scale=Normal' -or
-    (Get-BenchmarkMethodCombination -Row $combinedRow -VariableName @('producer', 'operation')) -cne 'Execute|Operation=Merge&Producer=IText' -or
-    (Get-BenchmarkMethodCombination -Row $renamedRow -VariableName @()) -cne 'OpenStandardLibrary') {
-    throw 'Imported rows must map back to the expected method and parameter combinations.'
-}
 $odsPlan = @(& $runner -Workload odscreate -Profile full -PlanOnly)
 if ('OpenStandardLibrary|Scale=Normal' -notin @($odsPlan[0].ExpectedCases)) {
     throw 'The plan must list every expected method and parameter combination.'

@@ -602,6 +602,53 @@
         "WriteDataReader",
         "WriteDataReaderParallel"
       ],
+      "cells": [
+        {
+          "case": "WriteDataReader",
+          "parameters": {
+            "RowCount": "25000",
+            "Shape": "Mixed"
+          }
+        },
+        {
+          "case": "WriteDataReaderParallel",
+          "library": "OfficeIMO",
+          "parameters": {
+            "RowCount": "25000",
+            "Shape": "Mixed"
+          }
+        },
+        {
+          "case": "WriteDataReader",
+          "parameters": {
+            "RowCount": "25000",
+            "Shape": "Quoted"
+          }
+        },
+        {
+          "case": "WriteDataReaderParallel",
+          "library": "OfficeIMO",
+          "parameters": {
+            "RowCount": "25000",
+            "Shape": "Quoted"
+          }
+        },
+        {
+          "case": "WriteDataReader",
+          "parameters": {
+            "RowCount": "25000",
+            "Shape": "Multiline"
+          }
+        },
+        {
+          "case": "WriteDataReaderParallel",
+          "library": "OfficeIMO",
+          "parameters": {
+            "RowCount": "25000",
+            "Shape": "Multiline"
+          }
+        }
+      ],
       "expectedPlatforms": [
         "windows",
         "linux",
@@ -665,6 +712,51 @@
         "InternStrings",
         "TypedStyles"
       ],
+      "cells": [
+        {
+          "case": "Default"
+        },
+        {
+          "case": "Prefetch",
+          "library": "OfficeIMO"
+        },
+        {
+          "case": "Prefetch",
+          "library": "ExcelReader.NET"
+        },
+        {
+          "case": "DefaultNumbers",
+          "library": "OfficeIMO"
+        },
+        {
+          "case": "DefaultNumbers_Prefetch",
+          "library": "OfficeIMO"
+        },
+        {
+          "case": "Loaded",
+          "library": "OfficeIMO"
+        },
+        {
+          "case": "SinglePass",
+          "library": "OfficeIMO"
+        },
+        {
+          "case": "Memory",
+          "library": "OfficeIMO"
+        },
+        {
+          "case": "Memory",
+          "library": "ExcelReader.NET"
+        },
+        {
+          "case": "InternStrings",
+          "library": "ExcelReader.NET"
+        },
+        {
+          "case": "TypedStyles",
+          "library": "Excel-PRIME"
+        }
+      ],
       "expectedPlatforms": [
         "windows",
         "linux",
@@ -724,6 +816,23 @@
         "SinglePass",
         "TypedStyles",
         "Prefetch"
+      ],
+      "cells": [
+        {
+          "case": "Default"
+        },
+        {
+          "case": "SinglePass",
+          "library": "OfficeIMO"
+        },
+        {
+          "case": "TypedStyles",
+          "library": "Excel-PRIME"
+        },
+        {
+          "case": "Prefetch",
+          "library": "ExcelReader.NET"
+        }
       ],
       "expectedPlatforms": [
         "windows",
@@ -1130,6 +1239,121 @@
         "Default",
         "WithValues"
       ],
+      "cells": [
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "KubernetesStream"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "KubernetesStream"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "DeepNesting"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "DeepNesting"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "BlockScalars"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "BlockScalars"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "FlowHeavy"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "FlowHeavy"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "AnchorHeavy"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "AnchorHeavy"
+          }
+        },
+        {
+          "case": "Default",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "ManySmallFiles"
+          }
+        },
+        {
+          "case": "Default",
+          "library": "YamlDotNet",
+          "parameters": {
+            "Workload": "ManySmallFiles"
+          }
+        },
+        {
+          "case": "Default",
+          "library": "SharpYaml",
+          "parameters": {
+            "Workload": "ManySmallFiles"
+          }
+        },
+        {
+          "case": "Default",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "ManySmallFiles"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "ManySmallFiles"
+          }
+        }
+      ],
       "expectedPlatforms": [
         "windows",
         "linux",
@@ -1281,6 +1505,218 @@
         "GeneratedUtf8",
         "GeneratedUtf8Bytes"
       ],
+      "cells": [
+        {
+          "case": "Reflection",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "YamlDotNet",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "SharpYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "VYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "GeneratedUtf8Bytes",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "YamlDotNet",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "SharpYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "VYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "GeneratedUtf8Bytes",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "YamlDotNet",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "SharpYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "VYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "GeneratedUtf8Bytes",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        }
+      ],
       "expectedPlatforms": [
         "windows",
         "linux",
@@ -1317,6 +1753,176 @@
         "Reflection",
         "Generated",
         "GeneratedUtf8"
+      ],
+      "cells": [
+        {
+          "case": "Reflection",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "YamlDotNet",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "SharpYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "VYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "YamlDotNet",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "SharpYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "VYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "LargeRecords"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "YamlDotNet",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Reflection",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "SharpYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "VYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "Generated",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        },
+        {
+          "case": "GeneratedUtf8",
+          "library": "OneYaml",
+          "parameters": {
+            "Workload": "KubernetesNested"
+          }
+        }
       ],
       "expectedPlatforms": [
         "windows",
@@ -1386,6 +1992,60 @@
       "cases": [
         "Default",
         "WithValues"
+      ],
+      "cells": [
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "SmallConfig"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "CargoWorkspace"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "CargoWorkspace"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "LockFile"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "LockFile"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "Workload": "Corpus"
+          }
+        },
+        {
+          "case": "WithValues",
+          "library": "OfficeIMO",
+          "parameters": {
+            "Workload": "Corpus"
+          }
+        }
       ],
       "expectedPlatforms": [
         "windows",
@@ -2181,6 +2841,47 @@
         "Default",
         "Minimal"
       ],
+      "cells": [
+        {
+          "case": "Default",
+          "parameters": {
+            "ItemCount": "100"
+          }
+        },
+        {
+          "case": "Minimal",
+          "library": "Open XML SDK",
+          "parameters": {
+            "ItemCount": "100"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "ItemCount": "1000"
+          }
+        },
+        {
+          "case": "Minimal",
+          "library": "Open XML SDK",
+          "parameters": {
+            "ItemCount": "1000"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "ItemCount": "10000"
+          }
+        },
+        {
+          "case": "Minimal",
+          "library": "Open XML SDK",
+          "parameters": {
+            "ItemCount": "10000"
+          }
+        }
+      ],
       "expectedPlatforms": [
         "windows",
         "linux",
@@ -2214,6 +2915,34 @@
       "cases": [
         "Default",
         "Minimal"
+      ],
+      "cells": [
+        {
+          "case": "Default",
+          "parameters": {
+            "RowCount": "100"
+          }
+        },
+        {
+          "case": "Default",
+          "parameters": {
+            "RowCount": "1000"
+          }
+        },
+        {
+          "case": "Minimal",
+          "library": "Open XML SDK",
+          "parameters": {
+            "RowCount": "100"
+          }
+        },
+        {
+          "case": "Minimal",
+          "library": "Open XML SDK",
+          "parameters": {
+            "RowCount": "1000"
+          }
+        }
       ],
       "expectedPlatforms": [
         "windows",
