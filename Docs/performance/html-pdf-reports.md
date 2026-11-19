@@ -26,6 +26,12 @@ outlines into bounded private placement storage and allocates fresh storage
 above its retention caps. Indexed extent traversal preserves its existing
 ordering, clipping, transforms and floating-point arithmetic.
 
+Paged slicing reads each container's scroll extent from its children once and
+keeps the value on the immutable container. A table that spans hundreds of
+pages no longer walks every row and cell again for each printed page. The
+cached value is the same `Math.Max` over the same children, so page breaks and
+saved geometry are unchanged.
+
 Table-internal math uses the canonical parsed-length resolver with the current
 font and numeric context. A bounded TrueType coverage record reuses only prior
 successful printable-ASCII scalar diagnostics for the same immutable font
@@ -168,3 +174,31 @@ The dated record also retains earlier `fc604c6f`, `e8b79548` and `2f76ef25`
 cohorts, supplementary reverse-order rows, and their slower or inconclusive
 results. Each keeps its own source and baseline. None of these measurements is
 extended to later source combinations.
+
+## Paged slicing measurements: 19 November 2026
+
+Baseline: `f058e0a46e` (master). Candidate: the same source plus the cached
+container scroll extent. Both run on the Apple M4 host described above with
+.NET 10, `DOTNET_PROCESSOR_COUNT=3`, six warmup and twelve measured iterations
+and no outlier removal, using the purchase-table command from
+[Reproduce the measurements](#reproduce-the-measurements).
+
+| Purchase-table workload | Baseline mean | Candidate mean | Baseline allocation | Candidate allocation |
+| --- | ---: | ---: | ---: | ---: |
+| 250 rows, prepared layout | 54.91 ± 10.85 ms | 47.53 ± 5.73 ms | 43.10 MB | 42.89 MB |
+| 250 rows, PDF export | 84.87 ± 3.30 ms | 82.16 ± 3.73 ms | 74.88 MB | 75.21 MB |
+| 2,500 rows, prepared layout | 773.59 ± 13.52 ms | 527.02 ± 4.31 ms | 415.93 MB | 413.91 MB |
+| 2,500 rows, PDF export | 1,326.02 ± 7.23 ms | 1,142.33 ± 107.35 ms | 736.44 MB | 739.76 MB |
+
+The 2,500-row prepared layout is 31.9% faster. Two interleaved warm runs of the
+full conversion (parse, layout and PDF bytes) averaged 1,515 ms for the baseline
+and 1,112 ms for the candidate. The 250-row cases, the 21 KiB plain-text, table
+and multilingual payloads and the 40-row report stay within run-to-run noise:
+those documents print too few pages for the repeated walk to matter. Allocation
+is unchanged apart from one reference per visual.
+
+All eight compared reports, including the 42- and 417-page purchase reports,
+produce byte-identical PDFs and identical diagnostics on Windows and macOS.
+The 1,000-page legal-document benchmark stops at the layout operation limit on
+both revisions, so it has no timing here.
+
