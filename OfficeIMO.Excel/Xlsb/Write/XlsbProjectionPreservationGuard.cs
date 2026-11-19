@@ -48,6 +48,8 @@ internal sealed class XlsbProjectionPreservationGuard {
             OpenXmlPart part = queue.Dequeue();
             if (!visited.Add(part)) continue;
             foreach (var pair in part.Parts) queue.Enqueue(pair.OpenXmlPart);
+            // Document properties are edited through the workbook API and rewritten from the model.
+            if (part is ExtendedFilePropertiesPart or CustomFilePropertiesPart) continue;
             bool editablePart = part is WorksheetPart or WorkbookPart or WorkbookStylesPart or SharedStringTablePart;
             if (worksheets ? !editablePart : part is WorksheetPart or WorkbookStylesPart or SharedStringTablePart) continue;
             result.Add(part.Uri.OriginalString, ExcelPackagePartFingerprint.Compute(part, includeContent: worksheets || part is not WorkbookPart,

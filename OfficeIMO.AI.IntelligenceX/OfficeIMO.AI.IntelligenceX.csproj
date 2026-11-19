@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
 
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <VersionPrefix>3.6.0</VersionPrefix>
+    <VersionPrefix>3.6.2</VersionPrefix>
     <Description>IntelligenceX execution adapter for provider-neutral OfficeIMO document AI operations.</Description>
     <PackageTags>ai;llm;document-ai;intelligencex;adapter;officeimo</PackageTags>
     <Authors>Przemyslaw Klys</Authors>

@@ -1,147 +1,32 @@
-{{~ # One benchmark area. Set benchmark_area_id before including. Everything is rendered at build time from data.benchmarks, the comparison view PowerForge builds from the evidence catalog (site.json BenchmarkEvidence). benchmark-area.js only switches between runs. ~}}
-{{~ include "benchmark-data" ~}}
+{{~ # One benchmark area page. Set benchmark_area_id before including. Every declared comparison of the area is ~}}
+{{~ # rendered by the PowerForge comparison component from data.benchmarks (site.json BenchmarkEvidence). ~}}
 {{~ area = null ~}}
-{{~ for candidate in bench_areas ~}}{{~ if candidate.id == benchmark_area_id ~}}{{~ area = candidate ~}}{{~ end ~}}{{~ end ~}}
+{{~ for candidate in data.benchmark_areas.areas; if candidate.id == benchmark_area_id; area = candidate; end; end ~}}
 {{~ if area ~}}
-{{~ measured = [] ~}}
-{{~ planned = [] ~}}
-{{~ for comparison in data.benchmarks.comparisons ~}}
-  {{~ if comparison.area == area.id ~}}{{~ if comparison.measured ~}}{{~ measured = measured | array.add comparison ~}}{{~ else ~}}{{~ planned = planned | array.add comparison ~}}{{~ end ~}}{{~ end ~}}
+{{~ comparisons = [] ~}}
+{{~ for c in data.benchmarks.comparisons; if c.area == area.id; comparisons = comparisons | array.add c; end; end ~}}
+{{~ published = 0 ~}}
+{{~ measured = 0 ~}}
+{{~ for c in comparisons ~}}
+{{~ shown = false ~}}
+{{~ for r in c.runs; if r.published; shown = true; end; end ~}}
+{{~ if shown; published = published + 1; end ~}}
+{{~ if c.measured; measured = measured + 1; end ~}}
 {{~ end ~}}
 <div class="imo-bench-area-page" data-benchmark-area="{{ area.id }}">
   <nav class="imo-bench-crumbs" aria-label="Breadcrumb"><a href="/benchmarks/">Benchmarks</a> <span aria-hidden="true">/</span> <span>{{ area.title }}</span></nav>
-  <p class="imo-bench-lead">Every workload compares OfficeIMO with the other .NET libraries doing the same validated work on one machine. Each run shows all contenders: full and quick runs, on every operating system measured so far. Lower is better.</p>
-  {{~ if measured.size > 0 ~}}
-  <nav class="imo-bench-toc" aria-label="Workloads on this page">
-    {{~ for comparison in measured ~}}<a href="#{{ comparison.id }}">{{ comparison.title }}{{ if comparison.id | string.contains "-net8.0" }} (.NET 8){{ end }} <small>{{ comparison.runs.size }} {{ if comparison.runs.size == 1 }}run{{ else }}runs{{ end }}</small></a>{{~ end ~}}
+  <p class="imo-bench-lead">A comparison runs OfficeIMO and other .NET libraries on the same validated work, one machine and one operating system at a time; a suite that measures OfficeIMO alone is listed without being published. Lower is better.</p>
+  <p class="imo-bench-status" data-benchmark-area-status>{{ published }} of {{ comparisons.size }} {{ if comparisons.size == 1 }}comparison has{{ else }}comparisons have{{ end }} a published run{{ if measured > published }}; {{ measured - published }} measured without a published run{{ end }}.</p>
+  {{~ if comparisons.size > 1 ~}}
+  <nav class="imo-bench-toc" aria-label="Comparisons on this page">
+    {{~ for c in comparisons ~}}<a href="#benchmark-{{ c.id }}">{{ c.title }}</a>{{~ end ~}}
   </nav>
-  {{~ else ~}}
-  <section class="imo-bench-empty">
-    <h2>No published results yet</h2>
-    <p>The suites for this area are part of the benchmark runner. Results appear here after the next measured run on Windows, Linux and macOS.</p>
-  </section>
   {{~ end ~}}
-
-  {{~ for comparison in measured ~}}
-  <section class="imo-bench-workload" id="{{ comparison.id }}" aria-labelledby="{{ comparison.id }}-title" data-benchmark-workload>
-    <header>
-      <h2 id="{{ comparison.id }}-title">{{ comparison.title }}</h2>
-      <p class="imo-bench-workload__contenders">{{ for library in comparison.libraries }}<span{{ if library == comparison.subject }} class="is-officeimo"{{ end }}>{{ library }}</span>{{ if !for.last }}<i aria-hidden="true">vs</i>{{ end }}{{ end }}</p>
-      <p class="imo-bench-workload__suite">{{ if comparison.id | string.contains "-net8.0" }}.NET 8{{ else }}.NET 10{{ end }}{{ if comparison.id | string.contains "-affinity-" }} · pinned to a fixed set of CPU cores{{ end }}</p>
-    </header>
-
-    {{~ if comparison.runs.size > 1 ~}}
-    <figure class="imo-bench-glance">
-      <figcaption>Every run at a glance: time relative to the fastest library in each run (geometric mean over its cases). 1.00× is the fastest; lower is better.</figcaption>
-      <div class="imo-bench-table-wrap">
-        <table class="imo-bench-table imo-bench-table--glance">
-          <thead><tr><th scope="col">Library</th>{{ for run in comparison.runs }}<th scope="col" class="imo-bench-num">{{ run.platformLabel }} · {{ if run.isFull }}full{{ else }}quick{{ end }}<small>{{ run.date }}</small></th>{{ end }}</tr></thead>
-          <tbody>
-            {{~ for contender in comparison.overview ~}}
-            <tr{{ if contender.isSubject }} class="is-officeimo"{{ end }}><th scope="row">{{ contender.name }}</th>{{ for cell in contender.runs }}<td class="imo-bench-num{{ if cell.isFastest }} is-best{{ end }}">{{ cell.text }}</td>{{ end }}</tr>
-            {{~ end ~}}
-          </tbody>
-        </table>
-      </div>
-    </figure>
+  <div class="imo-bench-comparisons">
+    {{~ for c in comparisons ~}}
+    {{ include "powerforge/benchmarks/comparison" c }}
     {{~ end ~}}
-
-    <div class="imo-bench-runs" role="group" aria-label="Runs">
-      {{~ for run in comparison.runs ~}}
-      <button type="button" class="imo-bench-run" data-run="{{ run.id }}" data-result="{{ run.resultPath }}" aria-pressed="{{ if run.id == comparison.preferredRunId }}true{{ else }}false{{ end }}">
-        <span>{{ run.platformLabel }}</span>
-        <small>{{ if run.isFull }}Full run{{ else }}Quick run{{ end }} · {{ run.date }}</small>
-      </button>
-      {{~ end ~}}
-    </div>
-
-    <div class="imo-bench-chart" data-benchmark-chart>
-      {{~ for run in comparison.runs ~}}
-      <div class="imo-bench-run-panel" data-run-panel="{{ run.id }}"{{ if run.id == comparison.preferredRunId }} data-preferred{{ end }}>
-        <p class="imo-bench-meta"><strong>{{ run.platformLabel }} · {{ if run.isFull }}full{{ else }}quick{{ end }} run</strong> · {{ run.environment.text }} · {{ run.date }}</p>
-        {{~ if !run.isFull ~}}
-        <p class="imo-bench-note">Quick run: a short diagnostic measurement, shown so every contender and platform is visible. Full runs carry more weight for comparisons.</p>
-        {{~ end ~}}
-        {{~ if run.workload.size > 0 ~}}
-        <p class="imo-bench-workload-shape">Workload: {{ for parameter in run.workload }}{{ parameter.name }} {{ parameter.value }}{{ if !for.last }} · {{ end }}{{ end }}</p>
-        {{~ end ~}}
-
-        {{~ if run.headToHead.size > 0 ~}}
-        <ul class="imo-bench-verdict">
-          {{~ for versus in run.headToHead ~}}
-          <li class="is-{{ versus.outcome }}"><strong>{{ versus.text }}</strong><span>{{ versus.detail }}</span></li>
-          {{~ end ~}}
-        </ul>
-        {{~ end ~}}
-
-        <figure class="imo-bench-figure">
-          <figcaption>{{ if run.statistic == "mean" }}Mean{{ else }}Median{{ end }} time per operation, allocations below. The fastest in each row is highlighted; lower is better.</figcaption>
-          <div class="imo-bench-table-wrap">
-            <table class="imo-bench-table imo-bench-table--matrix">
-              <thead>
-                <tr>
-                  <th scope="col">{{ if run.cases.size > 1 }}Case{{ else }}Workload{{ end }}</th>
-                  {{~ for contender in run.contenders ~}}
-                  <th scope="col" class="imo-bench-num{{ if contender.isSubject }} is-officeimo{{ end }}">{{ contender.name }}{{ if contender.version != "" }}<small>{{ contender.version }}</small>{{ end }}</th>
-                  {{~ end ~}}
-                </tr>
-              </thead>
-              <tbody>
-                {{~ for item in run.cases ~}}
-                <tr>
-                  <th scope="row">{{ if item.label != "" }}{{ item.label }}{{ else }}All{{ end }}</th>
-                  {{~ for cell in item.cells ~}}
-                  <td class="imo-bench-num{{ if cell.isSubject }} is-officeimo{{ end }}{{ if cell.relative.isFastest }} is-best{{ end }}">{{~ if cell.missing ~}}—{{~ else if cell.failed ~}}Failed{{~ else ~}}<span class="imo-bench-time">{{ cell.timeText }}</span><small>{{ if cell.relative.isFastest }}fastest{{ else }}{{ cell.relative.text }}{{ end }}{{ if cell.allocatedText != "" }} · {{ cell.allocatedText }}{{ end }}</small>{{~ end ~}}</td>
-                  {{~ end ~}}
-                </tr>
-                {{~ end ~}}
-              </tbody>
-            </table>
-          </div>
-        </figure>
-
-        <details class="imo-bench-detail">
-          <summary>Bars for each case</summary>
-          {{~ for item in run.cases ~}}
-          <div class="imo-bench-bars">
-            {{~ if item.label != "" ~}}<h4>{{ item.label }}</h4>{{~ end ~}}
-            {{~ for cell in item.cells ~}}{{~ if !cell.missing ~}}
-            <div class="imo-bench-bars__row{{ if cell.isSubject }} is-officeimo{{ end }}"><span class="imo-bench-bars__name">{{ cell.contender }}</span><span class="imo-bench-bars__track">{{ if cell.barPercent > 0 }}<span class="imo-bench-bar" style="width:{{ cell.barPercent }}%"></span>{{ end }}</span><span class="imo-bench-bars__value">{{ cell.timeText }}</span></div>
-            {{~ end ~}}{{~ end ~}}
-          </div>
-          {{~ end ~}}
-        </details>
-
-        <p class="imo-bench-links">{{ if run.sourceCommit != "" }}<a href="https://github.com/EvotecIT/OfficeIMO/tree/{{ run.sourceCommit }}">Source {{ run.sourceCommit | string.slice 0 12 }}</a> · {{ end }}<a href="{{ run.resultPath }}">Raw {{ run.platformLabel }} {{ if run.isFull }}full{{ else }}quick{{ end }}-run result for {{ comparison.title }}{{ if comparison.id | string.contains "-net8.0" }} (.NET 8){{ end }}</a> (JSON, every sample)</p>
-      </div>
-      {{~ end ~}}
-    </div>
-  </section>
-  {{~ end ~}}
-
-  {{~ if planned.size > 0 ~}}
-  <section class="imo-bench-planned-section" aria-labelledby="planned-title">
-    <h2 id="planned-title">Not measured yet</h2>
-    <p>These comparisons are in the benchmark runner but have no published result. They appear above after their first measured run.</p>
-    <ul class="imo-bench-planned">
-      {{~ for comparison in planned ~}}
-      <li><strong>{{ comparison.title }}{{ if comparison.id | string.contains "-net8.0" }} (.NET 8){{ end }}</strong>{{ if comparison.libraries.size > 0 }}<span>{{ comparison.libraries | array.join " vs " }}</span>{{ end }}</li>
-      {{~ end ~}}
-    </ul>
-    <p><a href="/docs/capabilities/benchmarks/">Run the suites yourself <span aria-hidden="true">→</span></a></p>
-  </section>
-  {{~ end ~}}
-  {{~ if area.id == "excel" || area.id == "csv" ~}}
-  <section class="imo-bench-snapshots" aria-labelledby="snapshots-title">
-    <h2 id="snapshots-title">More Excel and CSV workloads</h2>
-    <p>Dated workstation measurements from before the per-platform runner. They cover workloads the runner doesn't measure yet and keep their own recorded settings, so they are shown apart from the runs above.{{ if area.id == "excel" }} The <a href="/benchmarks/archive/">complete Excel matrix</a> keeps all 274 scenarios and seven libraries.{{ end }}</p>
-    {{ include "generated/benchmarks-overview" }}
-  </section>
-  {{~ end ~}}
-  <section class="imo-bench-method">
-    <h2>How to read these results</h2>
-    <p><strong>Full runs</strong> are complete BenchmarkDotNet measurements. <strong>Quick runs</strong> are shorter diagnostic runs; they are shown so every contender and platform is visible, and carry less weight. "1.6× faster" is the geometric mean of the per-case time ratios, so one large case doesn't dominate. Each run links to its raw JSON with every sample, the source commit and the recorded environment. Measure on hardware close to yours before deciding.</p>
-    <p><a href="/docs/capabilities/benchmarks/">Benchmark reproduction guide <span aria-hidden="true">→</span></a> · <a href="/benchmarks/archive/">Complete Excel matrix and earlier measurements <span aria-hidden="true">→</span></a></p>
-  </section>
+  </div>
+  {{ include "benchmark-method" }}
 </div>
 {{~ end ~}}

@@ -1,0 +1,53 @@
+{{~ # OfficeIMO's version of powerforge/benchmarks/index: the same areas, summaries and on-demand area results, ~}}
+{{~ # with the area titles and descriptions from data/benchmark_areas.json and a link to each area's page. ~}}
+{{~ v = $1 ~}}
+{{~ if v.index; idx = v.index; else; idx = v; end ~}}
+{{~ titles = {} ~}}
+{{~ for a in data.benchmark_areas.areas; titles[a.id] = a; end ~}}
+<div class="pf-bench-index imo-bench-index" data-pf-bench-index>
+  {{~ if idx.areas.size == 0 ~}}
+  <p class="pf-bench__empty">No benchmark results yet.</p>
+  {{~ end ~}}
+  {{~ for area in idx.areas ~}}
+  {{~ info = titles[area.id] ~}}
+  {{~ published = 0 ~}}
+  {{~ for s in area.comparisons; if s.published; published = published + 1; end; end ~}}
+  <section class="pf-bench-index__area imo-bench-index__area" id="benchmarks-{{ area.id | html.escape }}" data-area="{{ area.id | html.escape }}">
+    <header class="pf-bench-index__header">
+      <h2 class="pf-bench-index__title"><a href="/benchmarks/{{ area.id | html.escape }}/">{{ if info }}{{ info.title | html.escape }}{{ else }}{{ area.id | html.escape }}{{ end }}</a></h2>
+      <p class="pf-bench-index__meta">{{ published }} of {{ area.comparisons.size }} with a published run</p>
+    </header>
+    {{~ if info && info.summary != "" ~}}
+    <p class="imo-bench-index__summary">{{ info.summary | html.escape }}</p>
+    {{~ end ~}}
+    <ul class="pf-bench-index__list">
+      {{~ for s in area.comparisons ~}}
+      <li>
+        <a class="pf-bench-index__name" href="/benchmarks/{{ area.id | html.escape }}/#benchmark-{{ s.id | html.escape }}">{{ s.title | html.escape }}</a>
+        {{~ if s.headlines.size > 0 ~}}
+        {{~ for line in s.headlines ~}}
+        <span class="pf-bench-index__headline">{{ line | html.escape }}</span>
+        {{~ end ~}}
+        {{~ else if s.published ~}}
+        <span class="pf-bench-index__state">No head-to-head result in the published run.</span>
+        {{~ else if !s.eligibility.publishable ~}}
+        <span class="pf-bench-index__state">Not published: {{ s.eligibility.reason | html.escape }}</span>
+        {{~ else if s.measured ~}}
+        <span class="pf-bench-index__state">No published run yet.</span>
+        {{~ else ~}}
+        <span class="pf-bench-index__state">Not measured yet.</span>
+        {{~ end ~}}
+      </li>
+      {{~ end ~}}
+    </ul>
+    {{~ if v.areaFragments && v.areaFragments != "" ~}}
+    <details class="pf-bench-index__details" data-pf-bench-area-page>
+      <summary>Show results</summary>
+      <div class="pf-bench-index__body" data-pf-bench-area-body>
+        <a class="pf-bench-index__open" href="{{ v.areaFragments | html.escape }}{{ area.file | string.replace ".json" ".html" | html.escape }}" data-pf-bench-site-relative>Open the {{ if info }}{{ info.title | html.escape }}{{ else }}{{ area.id | html.escape }}{{ end }} results</a>
+      </div>
+    </details>
+    {{~ end ~}}
+  </section>
+  {{~ end ~}}
+</div>

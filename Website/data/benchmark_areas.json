@@ -3,37 +3,37 @@
     {
       "id": "pdf",
       "title": "PDF",
-      "summary": "Structured and HTML-to-PDF generation, merge, split, page selection and text extraction."
+      "summary": "Structured and HTML-to-PDF generation, text extraction, merge, split, page selection and PDF conversion to other formats."
     },
     {
       "id": "excel",
       "title": "Excel",
-      "summary": "Typed reads of XLSX, XLSB and XLS files, and fast workbook writes from a data reader."
+      "summary": "Typed reads of XLSX, XLSB and XLS files, and workbook writes from a data reader."
     },
     {
       "id": "csv",
       "title": "CSV",
-      "summary": "Decoded reads of a 65,000-record file and writes from a data reader."
+      "summary": "Decoded reads of a 65,000-record file, writes from a data reader, and asynchronous reads."
     },
     {
       "id": "word",
       "title": "Word",
-      "summary": "DOCX creation, editing and reading against other .NET Word libraries."
+      "summary": "DOCX creation, report building, reading and find-and-replace."
     },
     {
       "id": "powerpoint",
       "title": "PowerPoint",
-      "summary": "PPTX creation and editing against other .NET presentation libraries."
+      "summary": "PPTX creation and editing."
     },
     {
       "id": "markdown",
       "title": "Markdown",
-      "summary": "CommonMark parsing and rendering."
+      "summary": "CommonMark parsing and HTML rendering."
     },
     {
       "id": "html",
       "title": "HTML",
-      "summary": "HTML to Markdown and HTML parsing workloads."
+      "summary": "HTML to Markdown conversion."
     },
     {
       "id": "rtf",
@@ -43,27 +43,27 @@
     {
       "id": "image",
       "title": "Images",
-      "summary": "TIFF and WebP encoding and decoding."
+      "summary": "PNG and JPEG decoding, PNG encoding, resizing, TIFF LZW and lossless WebP."
     },
     {
       "id": "email",
       "title": "Email",
-      "summary": "MIME message parsing."
+      "summary": "MIME message reading and writing."
     },
     {
       "id": "epub",
       "title": "EPUB",
-      "summary": "EPUB book reading."
+      "summary": "EPUB opening and reading."
     },
     {
       "id": "opendocument",
       "title": "OpenDocument",
-      "summary": "ODS spreadsheet reading and writing."
+      "summary": "ODS spreadsheet creation and reading."
     },
     {
       "id": "zip",
       "title": "ZIP",
-      "summary": "Archive reading and writing."
+      "summary": "Archive traversal with path and size safety checks."
     },
     {
       "id": "yaml",
@@ -74,20 +74,6 @@
       "id": "toml",
       "title": "TOML",
       "summary": "Parsing, loading, lossless saving and object serialization."
-    }
-  ],
-  "platforms": [
-    {
-      "id": "windows",
-      "label": "Windows"
-    },
-    {
-      "id": "linux",
-      "label": "Linux"
-    },
-    {
-      "id": "macos",
-      "label": "macOS"
     }
   ]
 }

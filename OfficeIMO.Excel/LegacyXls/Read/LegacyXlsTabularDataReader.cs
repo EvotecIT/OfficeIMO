@@ -781,11 +781,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StoreNumber(int ordinal, double number, ushort style) {
             DateTime date = default;
-            bool isDate = _options.TreatDatesUsingNumberFormat
+            bool dateStyle = _options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length
-                && _dateStyles[style] != ExcelSerialDateStyle.None
+                && _dateStyles[style] != ExcelSerialDateStyle.None;
+            bool isDate = dateStyle
                 && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out date, _dateStyles[style] == ExcelSerialDateStyle.Calendar);
-            _kinds[ordinal] = isDate ? ValueKind.Date : ValueKind.Number;
+            _kinds[ordinal] = isDate ? ValueKind.Date : dateStyle ? ValueKind.DatelessSerial : ValueKind.Number;
             _numbers[ordinal] = number;
             if (isDate) {
                 _dates[ordinal] = date;
@@ -867,7 +868,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             Number,
             Boolean,
             Date,
-            Error
+            Error,
+            /// <summary>A date-formatted serial with no DateTime (Excel shows ####).</summary>
+            DatelessSerial
         }
     }
 }

@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtBeginBundleShs = 143;
         private const int BrtEndBundleShs = 144;
         private const int BrtBundleSh = 156;
+        private const int BrtBookView = 158;
         private const int BrtCalcProp = 157;
         private const int BrtBeginSst = 159;
         private const int BrtEndSst = 160;
@@ -157,6 +158,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
             ReadVbaProjectGraph(parts, workbookPartName!, relationships, resolved, workbook);
             ReadThemeGraph(parts, workbookPartName!, relationships, resolved, workbook);
+            ReadDocumentPropertyParts(parts, resolved, workbook);
             workbook.SharedStringCount = sharedStrings.Count;
             if (workbook.PreservedRecords.Count > 0) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
@@ -188,6 +190,13 @@ namespace OfficeIMO.Excel.Xlsb {
                     case BrtEndBundleShs:
                     case BrtBeginExternals:
                     case BrtEndExternals:
+                        break;
+                    case BrtBookView:
+                        // BrtBookView: five 32-bit window fields, then itabFirst and itabCur. Only the first view is read.
+                        if (record.Data.Length >= 29 && !workbook.ActiveTab.HasValue) {
+                            workbook.FirstSheet = BitConverter.ToUInt32(record.Data, 20);
+                            workbook.ActiveTab = BitConverter.ToUInt32(record.Data, 24);
+                        }
                         break;
                     case BrtBundleSh:
                         var cursor = new XlsbBinaryCursor(record.Data);
@@ -564,6 +573,10 @@ namespace OfficeIMO.Excel.Xlsb {
                         if (!worksheet.ShowGridLines.HasValue) {
                             worksheet.ShowGridLines = XlsbWorksheetViewReader.ReadGridlines(record);
                         }
+                        // fSelected is bit 6 of the first flags byte; iWbkView follows 22 bytes of view settings.
+                        if (!worksheet.TabSelected.HasValue && record.Data.Length >= 26 && BitConverter.ToUInt32(record.Data, 22) == 0U) {
+                            worksheet.TabSelected = (record.Data[0] & 0x40) != 0;
+                        }
                         break;
                     case BrtPane:
                         if (worksheet.Pane != null) {
@@ -814,9 +827,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     }
                 }
             }
-            if (worksheet.UsedRange == null) {
-                throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtWsDim.");
-            }
+            // [MS-XLSB] makes BrtWsDim optional; without it the used range comes from the cells, as in Excel.
             if (!sawSheetData) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtBeginSheetData/BrtEndSheetData.");
             }

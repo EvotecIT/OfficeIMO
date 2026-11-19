@@ -70,6 +70,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private Type GetValueType(int ordinal) => _kinds[ordinal] switch {
             ValueKind.Text or ValueKind.Error => typeof(string),
             ValueKind.Number => GetNumericValue(_numbers[ordinal]).GetType(),
+            ValueKind.DatelessSerial => typeof(double),
             ValueKind.Boolean => typeof(bool),
             ValueKind.Date => typeof(DateTime),
             _ => typeof(object)

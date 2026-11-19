@@ -6,7 +6,7 @@ function Get-LibraryComparisonDefinitions {
     .SYNOPSIS
     Returns every library-comparison declaration without executing a runner.
     .PARAMETER Framework
-    Target framework included in each comparison identity.
+    Target framework. It selects the cases compiled for that framework; comparison identities never include it.
     .EXAMPLE
     Get-LibraryComparisonDefinitions -Framework net10.0
     .OUTPUTS
@@ -31,7 +31,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'OfficeIMO-only snapshot/incremental profile; excluded from public library comparisons.'
             Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
             Filter = '*CsvLargeFirstRowBenchmarks*'
-            ComparisonId = "csv-million-first-row-$Framework"
+            ComparisonId = 'csv-million-first-row'
             Suite = 'OfficeIMO.CSV.LargeFirstRow'
             CatalogEligible = $false
             FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
@@ -52,7 +52,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'OfficeIMO-only snapshot/incremental profile; excluded from public library comparisons.'
             Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
             Filter = '*CsvAsyncReadBenchmarks*'
-            ComparisonId = "csv-async-read-$Framework"
+            ComparisonId = 'csv-async-read'
             Suite = 'OfficeIMO.CSV.AsyncRead'
             CatalogEligible = $false
             FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
@@ -77,7 +77,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'OfficeIMO-only snapshot/incremental profile; excluded from public library comparisons.'
             Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
             Filter = '*CsvWideAsyncReadBenchmarks*'
-            ComparisonId = "csv-wide-async-read-$Framework"
+            ComparisonId = 'csv-wide-async-read'
             Suite = 'OfficeIMO.CSV.WideAsyncRead'
             CatalogEligible = $false
             FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
@@ -101,7 +101,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfNativeOperationsBenchmarks*'
-            ComparisonId = "pdf-native-100-pages-$Framework"
+            ComparisonId = 'pdf-native-100-pages'
             Suite = 'OfficeIMO.Pdf.NativeOperations'
             IdentityVariables = @('producer', 'operation')
             ExpectedCases = @(
@@ -115,13 +115,13 @@ function Get-LibraryComparisonDefinitions {
         csv = [pscustomobject]@{
             Area = 'csv'
             Title = 'CSV 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sep', 'Sylvan', 'CsvHelper', 'Dataplat.Dbatools.Csv', 'LumenWorks')
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sep', 'Sylvan.Data.Csv', 'CsvHelper', 'Dataplat.Dbatools.Csv', 'LumenWorks')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
             Filter = '*MarkPflug65KCsvBenchmarks*'
-            ComparisonId = "markpflug-65k-csv-decoded-$Framework"
+            ComparisonId = 'markpflug-65k-csv-decoded'
             Suite = 'OfficeIMO.CSV.MarkPflug65K'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMO', 'ExcelReaderNet', 'Sep', 'Sylvan', 'CsvHelper', 'DataplatDbatools', 'LumenWorks')
@@ -129,13 +129,13 @@ function Get-LibraryComparisonDefinitions {
         csvwrite = [pscustomobject]@{
             Area = 'csv'
             Title = 'CSV data-reader writing'
-            Libraries = @('OfficeIMO', 'Sylvan')
+            Libraries = @('OfficeIMO', 'Sylvan.Data.Csv')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
             Filter = '*CsvDataReaderWriteBenchmarks*(RowCount: 25000,*'
-            ComparisonId = "csv-25k-datareader-write-$Framework"
+            ComparisonId = 'csv-25k-datareader-write'
             Suite = 'OfficeIMO.CSV.DataReaderWrite25K'
             IdentityVariables = @('rowcount', 'shape')
             ExpectedCases = @(
@@ -152,13 +152,13 @@ function Get-LibraryComparisonDefinitions {
         xls = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLS 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
             Filter = '*MarkPflug65KXlsBenchmarks*'
-            ComparisonId = "markpflug-65k-xls-typed-$Framework"
+            ComparisonId = 'markpflug-65k-xls-typed'
             Suite = 'OfficeIMO.Excel.Xls.MarkPflug65K'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMO', 'ExcelReaderNet', 'Sylvan', 'ExcelDataReader'; if ($one) { 'OneDocument' })
@@ -168,13 +168,13 @@ function Get-LibraryComparisonDefinitions {
             Title = 'XLSX 65K typed reading'
             # EPPlus is restricted by the library policy: published and default runs drop its case, and a run that
             # enables it requires the case to succeed.
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader', 'ClosedXML', 'EPPlus', 'MiniExcel', 'Excel-PRIME', 'HypeLab.IO.Excel', 'XLibur'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
             Filter = '*MarkPflug65KXlsxBenchmarks*'
-            ComparisonId = "markpflug-65k-xlsx-typed-$Framework"
+            ComparisonId = 'markpflug-65k-xlsx-typed'
             Suite = 'OfficeIMO.Excel.Xlsx.MarkPflug65K'
             IdentityVariables = @()
             ExpectedCases = @(
@@ -207,13 +207,13 @@ function Get-LibraryComparisonDefinitions {
         xlsxwrite = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSX data-reader writing'
-            Libraries = @('OfficeIMO', 'SpreadCheetah', 'Sylvan', 'LargeXlsx'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'SpreadCheetah', 'Sylvan.Data.Excel', 'LargeXlsx'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
             Filter = '*ExcelDataReaderWriteBenchmarks*'
-            ComparisonId = "xlsx-25k-datareader-write-$Framework"
+            ComparisonId = 'xlsx-25k-datareader-write'
             Suite = 'OfficeIMO.Excel.DataReaderWrite25K'
             IdentityVariables = @('rowcount')
             ExpectedCases = @(
@@ -227,13 +227,13 @@ function Get-LibraryComparisonDefinitions {
         xlsb = [pscustomobject]@{
             Area = 'excel'
             Title = 'XLSB 65K typed reading'
-            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan', 'ExcelDataReader', 'Excel-PRIME'; if ($one) { 'OneDocument' })
+            Libraries = @('OfficeIMO', 'ExcelReader.NET', 'Sylvan.Data.Excel', 'ExcelDataReader', 'Excel-PRIME'; if ($one) { 'OneDocument' })
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj'
             Filter = '*MarkPflug65KXlsbBenchmarks*'
-            ComparisonId = "markpflug-65k-xlsb-typed-$Framework"
+            ComparisonId = 'markpflug-65k-xlsb-typed'
             Suite = 'OfficeIMO.Excel.Xlsb.MarkPflug65K'
             IdentityVariables = @()
             ExpectedCases = @(
@@ -259,7 +259,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
             Filter = '*MarkdownParseBenchmarks.*_ParseSemantic*_CommonMark'
-            ComparisonId = "markdown-commonmark-parse-$Framework"
+            ComparisonId = 'markdown-commonmark-parse'
             Suite = 'OfficeIMO.Markdown.CommonMarkParse'
             IdentityVariables = @('corpusname')
             ExpectedCases = @(
@@ -286,7 +286,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
             Filter = '*MarkdownHtmlBenchmarks.*_ToHtml_CommonMark'
-            ComparisonId = "markdown-commonmark-html-$Framework"
+            ComparisonId = 'markdown-commonmark-html'
             Suite = 'OfficeIMO.Markdown.CommonMarkHtml'
             IdentityVariables = @('corpusname')
             ExpectedCases = @(
@@ -313,7 +313,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj'
             Filter = '*HtmlToMarkdownBenchmarks*'
-            ComparisonId = "html-to-markdown-$Framework"
+            ComparisonId = 'html-to-markdown'
             Suite = 'OfficeIMO.Markdown.HtmlToMarkdown'
             IdentityVariables = @('corpusname')
             ExpectedCases = @(
@@ -333,7 +333,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Rtf.Benchmarks.Comparisons\OfficeIMO.Rtf.Benchmarks.Comparisons.csproj'
             Filter = '*RtfToHtmlComparisonBenchmarks*'
-            ComparisonId = "rtf-to-html-$Framework"
+            ComparisonId = 'rtf-to-html'
             Suite = 'OfficeIMO.Rtf.HtmlComparison'
             ValidatedSizeEvidence = $true
             IdentityVariables = @('scale')
@@ -354,7 +354,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
             Filter = '*OdsCreateComparisonBenchmarks*'
-            ComparisonId = "opendocument-ods-create-$Framework"
+            ComparisonId = 'opendocument-ods-create'
             Suite = 'OfficeIMO.OpenDocument.OdsCreate'
             ValidatedSizeEvidence = $true
             IdentityVariables = @('scale')
@@ -375,7 +375,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.OpenDocument.Benchmarks.Comparisons\OfficeIMO.OpenDocument.Benchmarks.Comparisons.csproj'
             Filter = '*OdsReadComparisonBenchmarks*'
-            ComparisonId = "opendocument-ods-read-$Framework"
+            ComparisonId = 'opendocument-ods-read'
             Suite = 'OfficeIMO.OpenDocument.OdsRead'
             IdentityVariables = @('scale')
             ExpectedCases = @(
@@ -395,7 +395,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
             Filter = '*EmailMimeReadBenchmarks*'
-            ComparisonId = "email-mime-read-$Framework"
+            ComparisonId = 'email-mime-read'
             Suite = 'OfficeIMO.Email.MimeRead'
             ValidatedSizeEvidence = $true
             IdentityVariables = @('scale')
@@ -416,7 +416,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Email.Benchmarks.Comparisons\OfficeIMO.Email.Benchmarks.Comparisons.csproj'
             Filter = '*EmailMimeWriteBenchmarks*'
-            ComparisonId = "email-mime-write-$Framework"
+            ComparisonId = 'email-mime-write'
             Suite = 'OfficeIMO.Email.MimeWrite'
             ValidatedSizeEvidence = $true
             IdentityVariables = @('scale')
@@ -431,13 +431,15 @@ function Get-LibraryComparisonDefinitions {
         epubread = [pscustomobject]@{
             Area = 'epub'
             Title = 'EPUB opening and reading'
-            Libraries = @('OfficeIMO', 'VersOne.Epub', 'HtmlAgilityPack')
+            Libraries = @('OfficeIMO', 'VersOne.Epub')
+            # VersOne.Epub's timed workflow uses HtmlAgilityPack; its package is recorded with the run, not measured on its own.
+            Dependencies = @('HtmlAgilityPack')
             ExpectedPlatforms = @('windows', 'linux', 'macos')
             PublishRestriction = 'None'
             CatalogEligible = $true
             Project = 'OfficeIMO.Epub.Benchmarks.Comparisons\OfficeIMO.Epub.Benchmarks.Comparisons.csproj'
             Filter = '*EpubReadComparisonBenchmarks*'
-            ComparisonId = "epub-open-read-$Framework"
+            ComparisonId = 'epub-open-read'
             Suite = 'OfficeIMO.Epub.OpenRead'
             ValidatedSizeEvidence = $true
             IdentityVariables = @('scale')
@@ -457,7 +459,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'OfficeIMO enforces path and expansion safety; the platform lane projects raw metadata without equivalent safety policy. Not a public like-for-like safety comparison.'
             Project = 'OfficeIMO.Archives.Benchmarks\OfficeIMO.Archives.Benchmarks.csproj'
             Filter = '*ZipTraversalComparisonBenchmarks*'
-            ComparisonId = "zip-safe-traversal-$Framework"
+            ComparisonId = 'zip-safe-traversal'
             Suite = 'OfficeIMO.Archives.SafeZipTraversal'
             CatalogEligible = $false
             CollectNonPublishedEvidence = $true
@@ -479,7 +481,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
             Filter = '*YamlParseEventsBenchmarks*'
-            ComparisonId = "yaml-parse-events-$Framework"
+            ComparisonId = 'yaml-parse-events'
             Suite = 'OfficeIMO.Yaml.ParseEvents'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -500,7 +502,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
             Filter = '*YamlLoadTreeBenchmarks*'
-            ComparisonId = "yaml-load-$Framework"
+            ComparisonId = 'yaml-load'
             Suite = 'OfficeIMO.Yaml.Load'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -521,7 +523,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
             Filter = '*YamlLoadAndSaveBenchmarks*'
-            ComparisonId = "yaml-load-save-$Framework"
+            ComparisonId = 'yaml-load-save'
             Suite = 'OfficeIMO.Yaml.LoadAndSave'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -541,7 +543,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
             Filter = '*YamlEditAndSaveBenchmarks*'
-            ComparisonId = "yaml-edit-save-$Framework"
+            ComparisonId = 'yaml-edit-save'
             Suite = 'OfficeIMO.Yaml.EditAndSave'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -561,7 +563,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
             Filter = '*YamlEmitBenchmarks*'
-            ComparisonId = "yaml-emit-$Framework"
+            ComparisonId = 'yaml-emit'
             Suite = 'OfficeIMO.Yaml.Emit'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -581,7 +583,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
             Filter = '*YamlSerializeBenchmarks*'
-            ComparisonId = "yaml-serialize-$Framework"
+            ComparisonId = 'yaml-serialize'
             Suite = 'OfficeIMO.Yaml.Serialize'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -601,7 +603,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Yaml.Benchmarks\OfficeIMO.Yaml.Benchmarks.csproj'
             Filter = '*YamlDeserializeBenchmarks*'
-            ComparisonId = "yaml-deserialize-$Framework"
+            ComparisonId = 'yaml-deserialize'
             Suite = 'OfficeIMO.Yaml.Deserialize'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -621,7 +623,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
             Filter = '*TomlParseBenchmarks*'
-            ComparisonId = "toml-parse-$Framework"
+            ComparisonId = 'toml-parse'
             Suite = 'OfficeIMO.Toml.Parse'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -641,7 +643,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
             Filter = '*TomlLoadBenchmarks*'
-            ComparisonId = "toml-load-$Framework"
+            ComparisonId = 'toml-load'
             Suite = 'OfficeIMO.Toml.Load'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -661,7 +663,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
             Filter = '*TomlLoadAndSaveBenchmarks*'
-            ComparisonId = "toml-load-save-$Framework"
+            ComparisonId = 'toml-load-save'
             Suite = 'OfficeIMO.Toml.LoadAndSave'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -681,7 +683,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
             Filter = '*TomlDeserializeBenchmarks*'
-            ComparisonId = "toml-deserialize-$Framework"
+            ComparisonId = 'toml-deserialize'
             Suite = 'OfficeIMO.Toml.Deserialize'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -701,7 +703,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Toml.Benchmarks\OfficeIMO.Toml.Benchmarks.csproj'
             Filter = '*TomlSerializeBenchmarks*'
-            ComparisonId = "toml-serialize-$Framework"
+            ComparisonId = 'toml-serialize'
             Suite = 'OfficeIMO.Toml.Serialize'
             IdentityVariables = @('workload')
             ExpectedCases = @(
@@ -721,7 +723,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImagePngDecodeBenchmarks*'
-            ComparisonId = "image-png-decode-$Framework"
+            ComparisonId = 'image-png-decode'
             Suite = 'OfficeIMO.Drawing.PngDecode'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp'; if ($one) { 'OneImage' })
@@ -735,7 +737,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImageJpegDecodeBenchmarks*'
-            ComparisonId = "image-jpeg-decode-$Framework"
+            ComparisonId = 'image-jpeg-decode'
             Suite = 'OfficeIMO.Drawing.JpegDecode'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET', 'StbImageSharp'; if ($one) { 'OneImage' })
@@ -749,7 +751,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImagePngEncodeBenchmarks*'
-            ComparisonId = "image-png-encode-$Framework"
+            ComparisonId = 'image-png-encode'
             Suite = 'OfficeIMO.Drawing.PngEncode'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET'; if ($one) { 'OneImage' })
@@ -763,7 +765,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImageTiffLzw*Benchmarks*'
-            ComparisonId = "image-tiff-lzw-$Framework"
+            ComparisonId = 'image-tiff-lzw'
             Suite = 'OfficeIMO.Drawing.TiffLzw'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal'; if ($one) { 'OneImageEncode'; 'OneImageDecodeExternal' })
@@ -777,7 +779,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImageWebpLossless*Benchmarks*'
-            ComparisonId = "image-webp-lossless-$Framework"
+            ComparisonId = 'image-webp-lossless'
             Suite = 'OfficeIMO.Drawing.WebpLossless'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMOEncode', 'MagickNETEncode', 'OfficeIMODecodeExternal', 'MagickNETDecodeExternal'; if ($one) { 'OneImageEncode'; 'OneImageDecodeExternal' })
@@ -791,7 +793,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Drawing.Benchmarks.Comparisons\OfficeIMO.Drawing.Benchmarks.Comparisons.csproj'
             Filter = '*ImageResizeBenchmarks*'
-            ComparisonId = "image-resize-$Framework"
+            ComparisonId = 'image-resize'
             Suite = 'OfficeIMO.Drawing.Resize'
             IdentityVariables = @()
             ExpectedCases = @('OfficeIMO', 'SkiaSharp', 'MagickNET'; if ($one) { 'OneImage' })
@@ -805,7 +807,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfGenerationBenchmarks*'
-            ComparisonId = "pdf-structured-generation-$Framework"
+            ComparisonId = 'pdf-structured-generation'
             Suite = 'OfficeIMO.Pdf.StructuredGeneration'
             IdentityVariables = @('scale')
             ExpectedCases = @(
@@ -824,7 +826,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'Existing invoice comparison is not qualified for the public catalog; retain the reviewed exclusion.'
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfInvoiceGenerationBenchmarks*'
-            ComparisonId = "pdf-real-world-invoice-$Framework"
+            ComparisonId = 'pdf-real-world-invoice'
             Suite = 'OfficeIMO.Pdf.RealWorldInvoice'
             CatalogEligible = $false
             IdentityVariables = @()
@@ -838,7 +840,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'OfficeIMO-only workflow; excluded from public library comparisons.'
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfTypedInvoiceWorkflowBenchmarks*'
-            ComparisonId = "pdf-typed-invoice-workflow-$Framework"
+            ComparisonId = 'pdf-typed-invoice-workflow'
             Suite = 'OfficeIMO.Pdf.TypedInvoiceWorkflow'
             CatalogEligible = $false
             IdentityVariables = @()
@@ -853,7 +855,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfHtmlBenchmarks*'
-            ComparisonId = "pdf-html-generation-$Framework"
+            ComparisonId = 'pdf-html-generation'
             Suite = 'OfficeIMO.Pdf.HtmlGeneration'
             IdentityVariables = @('scale')
             ExpectedCases = @(
@@ -873,7 +875,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfHtmlPayloadBenchmarks*'
-            ComparisonId = "pdf-html-21k-payload-$Framework"
+            ComparisonId = 'pdf-html-21k-payload'
             Suite = 'OfficeIMO.Pdf.Html21KiBPayload'
             IdentityVariables = @('payload')
             ExpectedCases = @(
@@ -892,7 +894,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'OfficeIMO-only format route health; excluded from public library comparisons.'
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*Pdf*FormatConversionBenchmarks*'
-            ComparisonId = "officeimo-pdf-format-route-health-$Framework"
+            ComparisonId = 'officeimo-pdf-format-route-health'
             Suite = 'OfficeIMO.Pdf.FormatConversion'
             CatalogEligible = $false
             IdentityVariables = @('format')
@@ -925,7 +927,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfReadBenchmarks*'
-            ComparisonId = "pdf-text-extraction-$Framework"
+            ComparisonId = 'pdf-text-extraction'
             Suite = 'OfficeIMO.Pdf.TextExtraction'
             IdentityVariables = @('producer', 'scale')
             ExpectedCases = @(
@@ -946,7 +948,7 @@ function Get-LibraryComparisonDefinitions {
             PublishRestriction = 'OfficeIMO-only read profile route health; excluded from public library comparisons.'
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfStructuredRead*Benchmarks*'
-            ComparisonId = "officeimo-pdf-read-profile-route-health-$Framework"
+            ComparisonId = 'officeimo-pdf-read-profile-route-health'
             Suite = 'OfficeIMO.Pdf.ReadProfileRouteHealth'
             CatalogEligible = $false
             IdentityVariables = @('scale')
@@ -966,7 +968,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfReverseConversionBenchmarks*'
-            ComparisonId = "pdf-reverse-conversion-$Framework"
+            ComparisonId = 'pdf-reverse-conversion'
             Suite = 'OfficeIMO.Pdf.ReverseConversion'
             IdentityVariables = @('producer', 'scale')
             ExpectedCases = @(
@@ -996,7 +998,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfCorpusReadBenchmarks*'
-            ComparisonId = "pdf-corpus-text-extraction-$Framework"
+            ComparisonId = 'pdf-corpus-text-extraction'
             Suite = 'OfficeIMO.Pdf.CorpusTextExtraction'
             IdentityVariables = @('document')
             ExpectedCases = @(
@@ -1016,7 +1018,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfSplitBenchmarks*'
-            ComparisonId = "pdf-split-$Framework"
+            ComparisonId = 'pdf-split'
             Suite = 'OfficeIMO.Pdf.Split'
             IdentityVariables = @('density', 'producer', 'scale', 'workflow')
             ExpectedCases = @(
@@ -1042,7 +1044,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfMergeBenchmarks*'
-            ComparisonId = "pdf-merge-$Framework"
+            ComparisonId = 'pdf-merge'
             Suite = 'OfficeIMO.Pdf.Merge'
             IdentityVariables = @('density', 'producer', 'scale')
             ExpectedCases = @(
@@ -1066,7 +1068,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
             Filter = '*PdfPageSelectionBenchmarks*'
-            ComparisonId = "pdf-page-selection-$Framework"
+            ComparisonId = 'pdf-page-selection'
             Suite = 'OfficeIMO.Pdf.PageSelection'
             IdentityVariables = @('density', 'producer', 'scale')
             ExpectedCases = @(
@@ -1090,7 +1092,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordCreateParagraphComparisonBenchmarks*'
-            ComparisonId = "word-docx-create-paragraphs-$Framework"
+            ComparisonId = 'word-docx-create-paragraphs'
             Suite = 'OfficeIMO.Word.CreateParagraphs'
             IdentityVariables = @('itemcount')
             ExpectedCases = @(
@@ -1110,7 +1112,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordCreateReportComparisonBenchmarks*'
-            ComparisonId = "word-docx-create-report-$Framework"
+            ComparisonId = 'word-docx-create-report'
             Suite = 'OfficeIMO.Word.CreateReport'
             IdentityVariables = @('rowcount')
             ExpectedCases = @(
@@ -1136,7 +1138,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordReadComparisonBenchmarks*'
-            ComparisonId = "word-docx-read-paragraphs-$Framework"
+            ComparisonId = 'word-docx-read-paragraphs'
             Suite = 'OfficeIMO.Word.ReadParagraphs'
             IdentityVariables = @('itemcount')
             ExpectedCases = @(
@@ -1156,7 +1158,7 @@ function Get-LibraryComparisonDefinitions {
             CatalogEligible = $true
             Project = 'OfficeIMO.Word.Benchmarks\OfficeIMO.Word.Benchmarks.csproj'
             Filter = '*WordReplaceComparisonBenchmarks*'
-            ComparisonId = "word-docx-replace-and-save-$Framework"
+            ComparisonId = 'word-docx-replace-and-save'
             Suite = 'OfficeIMO.Word.ReplaceAndSave'
             IdentityVariables = @('itemcount')
             ExpectedCases = @(
@@ -1182,7 +1184,7 @@ function Get-LibraryComparisonDefinitions {
             RunnerArguments = @('bench')
             Frameworks = @('net10.0')
             Filter = '*PowerPointCreateComparisonBenchmarks*'
-            ComparisonId = "pptx-create-$Framework"
+            ComparisonId = 'pptx-create'
             Suite = 'OfficeIMO.PowerPoint.Create'
             IdentityVariables = @('slidecount')
             ExpectedCases = @(
@@ -1204,7 +1206,7 @@ function Get-LibraryComparisonDefinitions {
             RunnerArguments = @('bench')
             Frameworks = @('net10.0')
             Filter = '*PowerPointEditComparisonBenchmarks*'
-            ComparisonId = "pptx-edit-$Framework"
+            ComparisonId = 'pptx-edit'
             Suite = 'OfficeIMO.PowerPoint.Edit'
             IdentityVariables = @('slidecount')
             ExpectedCases = @(

@@ -184,6 +184,21 @@
       "note":""
     },
     {
+      "id":"Excel.Xlsb.Metadata.Properties",
+      "formatId":"Excel.Xlsb",
+      "family":"Excel",
+      "category":"Metadata",
+      "description":"Core, extended, and custom document properties.",
+      "representability":"Native",
+      "legacyImport":"Native",
+      "newLegacyWrite":"Native",
+      "legacyRoundTrip":"Native",
+      "modernToLegacy":"Native",
+      "legacyToModern":"Native",
+      "affectedFidelity":"None",
+      "note":""
+    },
+    {
       "id":"Excel.Xlsb.Drawing.ImagesShapes",
       "formatId":"Excel.Xlsb",
       "family":"Excel",

@@ -18,9 +18,9 @@ dotnet run --project OfficeIMO.Drawing.Benchmarks.Comparisons -c Release -f net1
 On heterogeneous or multi-CCD processors, collect comparative evidence through the repository runner with a reviewed affinity mask that keeps the benchmark on one representative processor region. For example, this host exposes one CCD as logical processors 0-15:
 
 ```powershell
-./Build/Run-LibraryComparisonBenchmarks.ps1 -RunMode full -Workload imagepngdecode -AffinityMask 0xFFFF
-./Build/Run-LibraryComparisonBenchmarks.ps1 -RunMode full -Workload imagetifflzw -AffinityMask 0xFFFF
-./Build/Run-LibraryComparisonBenchmarks.ps1 -RunMode full -Workload imagewebplossless -AffinityMask 0xFFFF
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Profile full -Workload imagepngdecode -AffinityMask 0xFFFF
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Profile full -Workload imagetifflzw -AffinityMask 0xFFFF
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Profile full -Workload imagewebplossless -AffinityMask 0xFFFF
 ```
 
 The runner records the mask in benchmark provenance. Affinity reduces scheduler noise; it does not make small differences meaningful, so conclusions should still favor effect sizes that clearly exceed run-to-run variation.

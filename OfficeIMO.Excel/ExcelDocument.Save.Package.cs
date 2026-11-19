@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel {
 
             WorkbookRoot.Save();
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveWorkbookRoot");
-            _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
+            if (!_keepModifiedTimestampOnSave) _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdatePackageProperties");
         }
 

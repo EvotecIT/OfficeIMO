@@ -70,7 +70,7 @@ foreach ($familyId in $requirements.Keys) {
 $contractRequirements = [ordered]@{
     'OfficeIMO.Word.LegacyDoc' = 33
     'OfficeIMO.Excel.LegacyXls' = 28
-    'OfficeIMO.Excel.Xlsb' = 20
+    'OfficeIMO.Excel.Xlsb' = 21
     'OfficeIMO.PowerPoint.LegacyPpt' = 56
 }
 $contracts = @($catalog.families.contracts)
@@ -83,8 +83,8 @@ foreach ($contractId in $contractRequirements.Keys) {
         throw "Capability contract '$contractId' has $($contract[0].capabilityCount) behaviors; expected $($contractRequirements[$contractId])."
     }
 }
-if ([int] $catalog.summary.capabilityCount -ne 137) {
-    throw "Capability catalog has $($catalog.summary.capabilityCount) behaviors; expected the current 137-behavior source total."
+if ([int] $catalog.summary.capabilityCount -ne 138) {
+    throw "Capability catalog has $($catalog.summary.capabilityCount) behaviors; expected the current 138-behavior source total."
 }
 
 $xlsbContract = @($contracts | Where-Object id -eq 'OfficeIMO.Excel.Xlsb')[0]

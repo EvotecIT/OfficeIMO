@@ -232,7 +232,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             if (normalizedTarget.StartsWith("/", StringComparison.Ordinal)) {
                 combined = normalizedTarget.TrimStart('/');
             } else {
-                string source = NormalizePartName(sourcePartName);
+                // An empty source names the package root, whose relationships live in _rels/.rels.
+                string source = sourcePartName.Length == 0 ? string.Empty : NormalizePartName(sourcePartName);
                 int separator = source.LastIndexOf('/');
                 string directory = separator < 0 ? string.Empty : source.Substring(0, separator + 1);
                 combined = directory + normalizedTarget;
@@ -295,7 +296,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         }
 
         private static string GetRelationshipPartName(string sourcePartName) {
-            string source = NormalizePartName(sourcePartName);
+            string source = sourcePartName.Length == 0 ? string.Empty : NormalizePartName(sourcePartName);
             int separator = source.LastIndexOf('/');
             string directory = separator < 0 ? string.Empty : source.Substring(0, separator + 1);
             string fileName = separator < 0 ? source : source.Substring(separator + 1);

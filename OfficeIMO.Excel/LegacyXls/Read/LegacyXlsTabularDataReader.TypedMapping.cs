@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             if (targetType == typeof(DateTime)) return kind == ValueKind.Date;
 
             // Date-to-number mapping retains the original serial and converter input.
-            return kind == ValueKind.Number
+            return kind is ValueKind.Number or ValueKind.DatelessSerial
                 && (targetType == typeof(byte) || targetType == typeof(short)
                     || targetType == typeof(int) || targetType == typeof(long)
                     || targetType == typeof(float) || targetType == typeof(double)
