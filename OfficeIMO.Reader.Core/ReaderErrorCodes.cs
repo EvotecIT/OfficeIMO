@@ -73,28 +73,37 @@ internal static partial class DocumentReaderEngine {
     }
 
     /// <summary>
-    /// Classifies a failed file read. Office engines report a missing or wrong password for an encrypted package as a
-    /// general load or decryption failure, so a generic code is refined from bounded detection of the same file: an
-    /// encrypted Office package or legacy Office file read without <see cref="ReaderOptions.OpenPassword"/> needs a
-    /// password, and a decryption failure with one means the password did not match.
+    /// <see cref="Exception.Data"/> key the Office engines set on an exception thrown because the supplied password did
+    /// not verify. It keeps a wrong password apart from damaged content that fails an integrity check after the password
+    /// was accepted, which surfaces as the same exception type.
+    /// </summary>
+    internal const string OfficePasswordRejectedDataKey = "OfficeIMO.PasswordRejected";
+
+    /// <summary>
+    /// Classifies a failed file read. A general load or decryption failure is refined when the cause is the password: an
+    /// Office engine marks a rejected password, and an encrypted Office or legacy Office file read without
+    /// <see cref="ReaderOptions.OpenPassword"/> is found by bounded detection of the same file, which follows the read's
+    /// detection limits and container-inspection setting. Other codes, such as an unsupported projection, are kept.
     /// </summary>
     internal static string ClassifyReadError(Exception exception, string? path, ReaderOptions? options) {
         string code = ClassifyReadError(exception);
-        if (path == null || code is not (ReaderErrorCodes.InvalidContent or ReaderErrorCodes.UnsupportedFormat or ReaderErrorCodes.ReadFailed)) {
-            return code;
+        if (code is not (ReaderErrorCodes.InvalidContent or ReaderErrorCodes.ReadFailed)) return code;
+        bool hasPassword = !string.IsNullOrEmpty(options?.OpenPassword);
+        if (GetExceptionChain(exception).Any(static current => current.Data.Contains(OfficePasswordRejectedDataKey))) {
+            return hasPassword ? ReaderErrorCodes.InvalidPassword : ReaderErrorCodes.PasswordRequired;
         }
+        if (path == null || hasPassword) return code;
 
         try {
             if (!File.Exists(path)) return code;
             ReaderDetectionResult detection = Detect(path, new ReaderDetectionOptions {
                 Mode = ReaderDetectionMode.PreferContent,
                 MaxProbeBytes = options?.DetectionMaxProbeBytes ?? ReaderOptions.DefaultDetectionMaxProbeBytes,
-                MaxContainerEntries = options?.DetectionMaxContainerEntries ?? ReaderOptions.DefaultDetectionMaxContainerEntries
+                MaxContainerEntries = options?.DetectionMaxContainerEntries ?? ReaderOptions.DefaultDetectionMaxContainerEntries,
+                InspectContainers = options?.DetectionInspectContainers ?? true
             });
-            if (!detection.IsEncrypted || !detection.Evidence.Any(IsOfficeEncryptionEvidence)) return code;
-            if (string.IsNullOrEmpty(options?.OpenPassword)) return ReaderErrorCodes.PasswordRequired;
-            return GetExceptionChain(exception).Any(static current => current is CryptographicException)
-                ? ReaderErrorCodes.InvalidPassword
+            return detection.IsEncrypted && detection.Evidence.Any(IsOfficeEncryptionEvidence)
+                ? ReaderErrorCodes.PasswordRequired
                 : code;
         } catch (Exception detectionFailure) when (detectionFailure is IOException or UnauthorizedAccessException
                                                        or InvalidDataException or ReaderResourceLimitException) {

@@ -2,13 +2,12 @@ namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
     private const ushort ZipEncryptedEntryFlag = 0x0001;
-    private const int PdfStartXrefTailBytes = 2048;
 
     /// <summary>
     /// Adds encryption evidence that bounded reads can confirm without opening or decrypting the input: a PDF encryption
-    /// dictionary in the active trailer, encrypted entries declared by an OpenDocument manifest, and encrypted ZIP entries. An encrypted Office package takes its kind from a
-    /// matching Word, Excel or PowerPoint extension at low confidence, because the format is only recorded inside the
-    /// encrypted payload.
+    /// dictionary in the active trailer, encrypted entries declared by an OpenDocument manifest, and encrypted ZIP entries.
+    /// An encrypted Office package takes its kind from a matching Word, Excel or PowerPoint extension at low confidence,
+    /// because the format is only recorded inside the encrypted payload.
     /// </summary>
     private static DetectionCandidate ApplyContentEncryption(
         DetectionCandidate candidate,
@@ -18,6 +17,7 @@ internal static partial class DocumentReaderEngine {
         bool seekable,
         byte[] prefix,
         ReaderDetectionOptions options,
+        bool zipContainer,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (candidate.IsEncrypted) {
@@ -30,20 +30,20 @@ internal static partial class DocumentReaderEngine {
         }
 
         if (candidate.Kind == ReaderInputKind.Pdf) {
-            return HasPdfEncryptDictionary(stream, start, seekable, prefix, options.MaxProbeBytes, cancellationToken)
+            return HasPdfEncryptDictionary(stream, start, seekable, prefix, cancellationToken)
                 ? candidate.WithEncryption("encryption:pdf-encrypt-dictionary")
                 : candidate;
         }
 
         if (candidate.Kind == ReaderInputKind.OpenDocument &&
-            candidate.Evidence.Contains("container:opendocument-mimetype", StringComparer.Ordinal)) {
-            return seekable && options.InspectContainers &&
-                   HasEncryptedOpenDocumentEntries(stream, start, options.MaxContainerEntries, cancellationToken)
-                ? candidate.WithEncryption("encryption:opendocument-manifest")
-                : candidate;
+            candidate.Evidence.Contains("container:opendocument-mimetype", StringComparer.Ordinal) &&
+            seekable && options.InspectContainers &&
+            HasEncryptedOpenDocumentEntries(stream, start, options.MaxContainerEntries, cancellationToken)) {
+            return candidate.WithEncryption("encryption:opendocument-manifest");
         }
 
-        if (candidate.Kind == ReaderInputKind.Zip) {
+        // A ZIP-based package keeps its specialized kind, such as Word or EPUB, and still reports encrypted entries.
+        if (zipContainer) {
             bool encrypted = HasEncryptedFirstZipEntry(prefix) ||
                              seekable && options.InspectContainers &&
                              HasEncryptedZipEntry(stream, start, options.MaxContainerEntries, cancellationToken);
@@ -80,114 +80,4 @@ internal static partial class DocumentReaderEngine {
             stream.Position = originalPosition;
         }
     }
-
-    /// <summary>
-    /// Looks for <c>/Encrypt</c> in the trailer dictionaries or cross-reference stream dictionaries visible in the prefix,
-    /// the file tail and the cross-reference section named by the final <c>startxref</c>. Every trailer of an encrypted
-    /// PDF carries the key, including the first-page trailer of a linearized file.
-    /// </summary>
-    private static bool HasPdfEncryptDictionary(Stream stream, long start, bool seekable, byte[] prefix, int windowBytes,
-        CancellationToken cancellationToken) {
-        if (ContainsPdfTrailerEncrypt(prefix)) return true;
-        if (!seekable) return false;
-
-        long originalPosition = stream.Position;
-        try {
-            long length = stream.Length - start;
-            if (length <= prefix.Length) return false;
-            byte[] tail = ReadPdfWindow(stream, start, Math.Max(0, length - windowBytes), windowBytes, length);
-            if (ContainsPdfTrailerEncrypt(tail)) return true;
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!TryReadPdfStartXref(tail, out long crossReferenceOffset) || crossReferenceOffset >= length) return false;
-            return ContainsPdfTrailerEncrypt(ReadPdfWindow(stream, start, crossReferenceOffset, windowBytes, length));
-        } finally {
-            stream.Position = originalPosition;
-        }
-    }
-
-    private static byte[] ReadPdfWindow(Stream stream, long start, long offset, int windowBytes, long length) {
-        int count = (int)Math.Min(windowBytes, length - offset);
-        var window = new byte[count];
-        stream.Position = start + offset;
-        int total = 0;
-        while (total < count) {
-            int read = stream.Read(window, total, count - total);
-            if (read <= 0) break;
-            total += read;
-        }
-        if (total == count) return window;
-        var exact = new byte[total];
-        Array.Copy(window, exact, total);
-        return exact;
-    }
-
-    private static bool TryReadPdfStartXref(byte[] tail, out long offset) {
-        offset = -1;
-        int searchFrom = Math.Max(0, tail.Length - PdfStartXrefTailBytes);
-        int keyword = FindLastAscii(tail, "startxref", searchFrom);
-        if (keyword < 0) return false;
-        int index = keyword + "startxref".Length;
-        while (index < tail.Length && IsPdfWhiteSpace(tail[index])) index++;
-        long value = 0;
-        int digits = 0;
-        while (index < tail.Length && tail[index] >= (byte)'0' && tail[index] <= (byte)'9' && digits < 18) {
-            value = value * 10 + (tail[index] - (byte)'0');
-            index++;
-            digits++;
-        }
-        if (digits == 0) return false;
-        offset = value;
-        return true;
-    }
-
-    private static bool ContainsPdfTrailerEncrypt(byte[] window) {
-        // Classic trailers: the dictionary follows the "trailer" keyword.
-        for (int index = FindAscii(window, "trailer", 0); index >= 0; index = FindAscii(window, "trailer", index + 7)) {
-            int end = FindAscii(window, "startxref", index + 7);
-            if (ContainsPdfEncryptKey(window, index + 7, end < 0 ? window.Length : end)) return true;
-        }
-        // Cross-reference streams: the trailer entries sit in the stream object's dictionary, ahead of its data.
-        for (int index = FindAscii(window, "/XRef", 0); index >= 0; index = FindAscii(window, "/XRef", index + 5)) {
-            int objectStart = FindLastAscii(window, " obj", 0, index);
-            int streamStart = FindAscii(window, "stream", index);
-            if (objectStart < 0) objectStart = Math.Max(0, index - 4096);
-            if (ContainsPdfEncryptKey(window, objectStart, streamStart < 0 ? window.Length : streamStart)) return true;
-        }
-        return false;
-    }
-
-    private static bool ContainsPdfEncryptKey(byte[] window, int from, int to) {
-        for (int index = FindAscii(window, "/Encrypt", from, to); index >= 0; index = FindAscii(window, "/Encrypt", index + 8, to)) {
-            int next = index + 8;
-            // "/EncryptMetadata" is a different key inside the encryption dictionary itself.
-            if (next >= window.Length || !IsPdfRegularCharacter(window[next])) return true;
-        }
-        return false;
-    }
-
-    private static int FindAscii(byte[] source, string value, int from, int to = int.MaxValue) {
-        int last = Math.Min(source.Length, to) - value.Length;
-        for (int index = Math.Max(0, from); index <= last; index++) {
-            int matched = 0;
-            while (matched < value.Length && source[index + matched] == value[matched]) matched++;
-            if (matched == value.Length) return index;
-        }
-        return -1;
-    }
-
-    private static int FindLastAscii(byte[] source, string value, int from, int to = int.MaxValue) {
-        for (int index = Math.Min(source.Length, to) - value.Length; index >= Math.Max(0, from); index--) {
-            int matched = 0;
-            while (matched < value.Length && source[index + matched] == value[matched]) matched++;
-            if (matched == value.Length) return index;
-        }
-        return -1;
-    }
-
-    private static bool IsPdfWhiteSpace(byte value) =>
-        value is 0 or 9 or 10 or 12 or 13 or 32;
-
-    private static bool IsPdfRegularCharacter(byte value) =>
-        !IsPdfWhiteSpace(value) && value is not ((byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
-            or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%');
 }

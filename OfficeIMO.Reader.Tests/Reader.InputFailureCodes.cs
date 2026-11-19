@@ -1,4 +1,6 @@
+using OfficeIMO;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
@@ -61,6 +63,101 @@ public sealed class ReaderInputFailureCodeTests {
         } finally {
             Directory.Delete(root, recursive: true);
         }
+    }
+
+    [Fact]
+    public async Task PasswordCodesNeedThePasswordToBeTheCause() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-reader-password-codes-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.All;
+
+            // A legacy workbook reports a wrong password as an engine diagnostic, not a decryption exception.
+            string workbook = Path.Combine(root, "book.xls");
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                document.AddSheet("Data").Cell(1, 1).SetValue("Legacy");
+                File.WriteAllBytes(workbook, document.ToBytes(new ExcelSaveOptions {
+                    Format = ExcelFileFormat.Xls, Password = Password, LossPolicy = OfficeConversionLossPolicy.Allow
+                }));
+            }
+            Assert.Equal(ReaderErrorCodes.InvalidPassword, Assert.Single(await reader.ReadDocumentsDetailedAsync(
+                new[] { workbook }, new ReaderOptions { OpenPassword = "not-the-password" })).ErrorCode);
+
+            // A damaged package that fails its integrity check after the right password is damaged content.
+            string deck = Path.Combine(root, "deck.pptx");
+            using (PowerPointDocument document = PowerPointDocument.Create()) {
+                document.AddSlide().AddTextBox("Encrypted deck");
+                File.WriteAllBytes(deck, CorruptEncryptedPackage(document.ToBytes(new PowerPointSaveOptions { Password = Password })));
+            }
+            ReaderDocumentReadOutcome damaged = Assert.Single(await reader.ReadDocumentsDetailedAsync(
+                new[] { deck }, new ReaderOptions { OpenPassword = Password }));
+            Assert.Equal(ReaderErrorCodes.InvalidContent, damaged.ErrorCode);
+
+            // A projection the handler cannot produce is not fixed by a password.
+            string encryptedDocx = Path.Combine(root, "report.docx");
+            File.Copy(deck, encryptedDocx);
+            OfficeDocumentReader richOnly = new OfficeDocumentReaderBuilder()
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.rich-only-docx",
+                    Kind = ReaderInputKind.Word,
+                    Extensions = new[] { ".docx" },
+                    ReadDocumentPath = (_, _, _) => new OfficeDocumentReadResult()
+                })
+                .Build();
+            Assert.Equal(ReaderErrorCodes.UnsupportedFormat, Assert.Single(await richOnly.ReadDocumentsDetailedAsync(
+                new[] { encryptedDocx }, new ReaderOptions { Projection = ReaderProjection.TextAndMetadata })).ErrorCode);
+
+            // With container inspection turned off the fallback probe cannot see the encrypted package either.
+            string plainDeck = Path.Combine(root, "plain-deck.pptx");
+            using (PowerPointDocument document = PowerPointDocument.Create()) {
+                document.AddSlide().AddTextBox("Encrypted deck");
+                File.WriteAllBytes(plainDeck, document.ToBytes(new PowerPointSaveOptions { Password = Password }));
+            }
+            Assert.Equal(ReaderErrorCodes.InvalidContent, Assert.Single(await reader.ReadDocumentsDetailedAsync(
+                new[] { plainDeck }, new ReaderOptions { DetectionInspectContainers = false })).ErrorCode);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CertificateProtectedPdfIsUnsupportedEncryptionNotAMissingPassword() {
+        string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.Pdf.Tests", "Pdf", "Fixtures", "Interoperability",
+            "PublicKeyEncryption", "pyhanko-s4-rc4-128.pdf");
+        OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.All;
+
+        Exception error = Assert.ThrowsAny<Exception>(() => reader.ReadDocument(path, new ReaderOptions { OpenPassword = Password }));
+        Assert.Equal(ReaderErrorCodes.UnsupportedEncryption, reader.ClassifyReadError(error, path));
+    }
+
+    [Fact]
+    public void ConventionalFileNamesUseTheRoutedExtensionsInputLimit() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.ruby",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".rb" },
+                DefaultMaxInputBytesByExtension = new Dictionary<string, long> { [".rb"] = 16 },
+                ReadDocumentStream = (_, _, _, _) => new OfficeDocumentReadResult()
+            })
+            .Build();
+        byte[] gemfile = System.Text.Encoding.UTF8.GetBytes("source 'https://rubygems.org'\ngem 'rake'\n");
+
+        Assert.ThrowsAny<IOException>(() => reader.ReadDocument(gemfile, "Gemfile"));
+    }
+
+    private static byte[] CorruptEncryptedPackage(byte[] encrypted) {
+        // Flip one ciphertext byte inside the EncryptedPackage stream, past its 8-byte length prefix.
+        byte[] name = System.Text.Encoding.Unicode.GetBytes("EncryptedPackage\0");
+        for (int entry = 512; entry + 128 <= encrypted.Length; entry += 128) {
+            if (!encrypted.AsSpan(entry, name.Length).SequenceEqual(name)) continue;
+            int sectorSize = 1 << BitConverter.ToUInt16(encrypted, 30);
+            long start = BitConverter.ToUInt32(encrypted, entry + 116);
+            byte[] copy = (byte[])encrypted.Clone();
+            copy[checked((int)((start + 1) * sectorSize + 64))] ^= 0x5A;
+            return copy;
+        }
+        throw new InvalidDataException("The package has no EncryptedPackage stream.");
     }
 
     [Fact]

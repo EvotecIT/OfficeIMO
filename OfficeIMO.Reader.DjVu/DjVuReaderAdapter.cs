@@ -19,20 +19,63 @@ internal static class DjVuReaderAdapter {
         foreach (var chunk in result.Chunks) DocumentReaderEngine.ApplyAdapterSource(chunk, input, reader.ComputeHashes);
         return result;
     }
-    /// <summary>Renders one page within the remainder of the read's layout deadline, keeping a shorter configured timeout.</summary>
-    private static DjVuRenderResult RenderPage(DjVuPage page, DjVuRenderOptions configured, TimeSpan layoutTimeout,
-        System.Diagnostics.Stopwatch? timer, CancellationToken token) {
-        if (timer == null) return page.Render(configured, token);
-        TimeSpan remaining = layoutTimeout - timer.Elapsed;
-        if (remaining <= TimeSpan.Zero) throw new OfficeImageExportTimeoutException(layoutTimeout);
-        if (configured.RenderTimeout != Timeout.InfiniteTimeSpan && configured.RenderTimeout <= remaining) return page.Render(configured, token);
-        DjVuRenderOptions bounded = configured.Clone();
-        bounded.RenderTimeout = remaining;
+    /// <summary>
+    /// The read's page-image allowance. Only page rendering and PNG encoding are charged; stored-text extraction and
+    /// projection between images are not.
+    /// </summary>
+    private sealed class PageImageTime {
+        private readonly TimeSpan _limit;
+        private TimeSpan _spent;
+
+        internal PageImageTime(TimeSpan limit) => _limit = limit;
+
+        /// <summary>Returns the allowance left, checking the caller's cancellation first so it is never reported as a timeout.</summary>
+        internal TimeSpan Remaining(CancellationToken token) {
+            token.ThrowIfCancellationRequested();
+            TimeSpan remaining = _limit - _spent;
+            if (remaining <= TimeSpan.Zero) throw new OfficeImageExportTimeoutException(_limit);
+            return remaining;
+        }
+
+        internal T Charge<T>(Func<T> work) {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            try {
+                return work();
+            } finally {
+                _spent += timer.Elapsed;
+            }
+        }
+
+        /// <summary>Reports the read's limit rather than the share of it that was left for one step.</summary>
+        internal OfficeImageExportTimeoutException Exceeded(Exception inner) => new OfficeImageExportTimeoutException(_limit, inner);
+    }
+
+    /// <summary>Renders one page within the remaining allowance, keeping a shorter configured render timeout.</summary>
+    private static DjVuRenderResult RenderPage(DjVuPage page, DjVuRenderOptions configured, PageImageTime? time, CancellationToken token) {
+        if (time == null) return page.Render(configured, token);
+        TimeSpan remaining = time.Remaining(token);
+        DjVuRenderOptions bounded = configured;
+        if (configured.RenderTimeout == Timeout.InfiniteTimeSpan || configured.RenderTimeout > remaining) {
+            bounded = configured.Clone();
+            bounded.RenderTimeout = remaining;
+        }
         try {
-            return page.Render(bounded, token);
-        } catch (OfficeImageExportTimeoutException exception) {
-            // Report the read's layout limit rather than the share of it left for this page.
-            throw new OfficeImageExportTimeoutException(layoutTimeout, exception);
+            return time.Charge(() => page.Render(bounded, token));
+        } catch (OfficeImageExportTimeoutException exception) when (!ReferenceEquals(bounded, configured)) {
+            throw time.Exceeded(exception);
+        }
+    }
+
+    /// <summary>Encodes one page image as PNG within the remaining allowance.</summary>
+    private static byte[] EncodePage(OfficeRasterImage image, long maximumBytes, PageImageTime? time, CancellationToken token) {
+        if (time == null) return OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, null, maximumBytes, token);
+        TimeSpan remaining = time.Remaining(token);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
+        deadline.CancelAfter(remaining);
+        try {
+            return time.Charge(() => OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Png, null, maximumBytes, deadline.Token));
+        } catch (OperationCanceledException exception) when (!token.IsCancellationRequested && deadline.IsCancellationRequested) {
+            throw time.Exceeded(exception);
         }
     }
 
@@ -56,7 +99,7 @@ internal static class DjVuReaderAdapter {
         metadata.Add(new OfficeDocumentMetadataEntry { Id = "djvu-page-count", Category = "reader.container", Name = "PageCount",
             Value = document.Pages.Count.ToString(CultureInfo.InvariantCulture), ValueType = "count" });
         long assetBytes = 0, chunkCharacters = 0, blockCharacters = 0;
-        var layoutTimer = reader.LayoutTimeout == Timeout.InfiniteTimeSpan ? null : System.Diagnostics.Stopwatch.StartNew();
+        var pageImageTime = reader.LayoutTimeout == Timeout.InfiniteTimeSpan ? null : new PageImageTime(reader.LayoutTimeout);
         foreach (var page in DjVuPageSelection.Select(document, options.PageNumbers, options.ReadOptions.MaxPages, token)) {
             token.ThrowIfCancellationRequested();
             int pageOrder = pages.Count + 1;
@@ -118,9 +161,9 @@ internal static class DjVuReaderAdapter {
                     remaining = options.MaxPageImageBytes;
                     byteLimitName = nameof(ReaderDjVuOptions.MaxPageImageBytes); byteLimit = options.MaxPageImageBytes;
                 }
-                var rendered = RenderPage(page, options.RenderOptions, reader.LayoutTimeout, layoutTimer, token);
+                var rendered = RenderPage(page, options.RenderOptions, pageImageTime, token);
                 byte[] payload;
-                try { payload = OfficeRasterImageEncoder.Encode(rendered.Image, OfficeImageExportFormat.Png, null, remaining, token); }
+                try { payload = EncodePage(rendered.Image, remaining, pageImageTime, token); }
                 catch (OfficeImageExportBatchLimitException) { throw new ReaderResourceLimitException(byteLimitName, byteLimit); }
                 assetBytes += payload.LongLength;
                 asset = new OfficeDocumentAsset { Id = "djvu-page-" + page.Number + "-image", Kind = "image", MediaType = "image/png", Extension = ".png",

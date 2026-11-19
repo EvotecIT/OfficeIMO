@@ -339,6 +339,7 @@ internal static partial class DocumentReaderEngine {
         try {
             byte[] prefix = ReadDetectionPrefix(stream, options.MaxProbeBytes);
             DetectionCandidate candidate = DetectContent(prefix);
+            bool zipContainer = candidate.Kind == ReaderInputKind.Zip;
             bool containerInspected = false;
 
             if (candidate.Kind == ReaderInputKind.Zip && options.InspectContainers && restorePosition) {
@@ -364,7 +365,7 @@ internal static partial class DocumentReaderEngine {
             }
 
             candidate = ApplyContentEncryption(candidate, extensionResult, stream, originalPosition, restorePosition, prefix,
-                options, CancellationToken.None);
+                options, zipContainer, CancellationToken.None);
             return BuildCombinedDetection(
                 extensionResult,
                 candidate,
@@ -391,6 +392,7 @@ internal static partial class DocumentReaderEngine {
         try {
             byte[] prefix = await ReadDetectionPrefixAsync(stream, options.MaxProbeBytes, cancellationToken).ConfigureAwait(false);
             DetectionCandidate candidate = DetectContent(prefix);
+            bool zipContainer = candidate.Kind == ReaderInputKind.Zip;
             bool containerInspected = false;
             if (candidate.Kind == ReaderInputKind.Zip && options.InspectContainers && restorePosition) {
                 DetectionCandidate containerCandidate = await InspectZipContainerAsync(
@@ -418,7 +420,7 @@ internal static partial class DocumentReaderEngine {
             }
 
             candidate = ApplyContentEncryption(candidate, extensionResult, stream, originalPosition, restorePosition, prefix,
-                options, cancellationToken);
+                options, zipContainer, cancellationToken);
             return BuildCombinedDetection(extensionResult, candidate, prefix.Length, containerInspected, options.Mode);
         } finally {
             if (restorePosition) stream.Position = originalPosition;

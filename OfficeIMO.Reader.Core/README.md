@@ -262,9 +262,11 @@ code.
 `ReaderErrorCodes` defines `password-required`, `invalid-password`, `unsupported-encryption`, `permission-denied`,
 `unsupported-format`, `invalid-content`, `timeout`, `not-found`, `access-denied`, `io-error` and `read-failed`.
 Codes are never renamed; treat a code you do not recognize as `read-failed`. The PDF, OpenDocument and email-store
-handlers map their engines' password and encryption failures. Word, Excel and PowerPoint report a missing or wrong
-password as a general load failure, so for a failed file Reader checks the file with the encryption detection below and
-reports `password-required` or `invalid-password`. A custom handler maps its own exceptions with
+handlers map their engines' password and encryption failures. The Office engines mark a password that did not verify,
+which Reader reports as `invalid-password`; damaged encrypted content that fails its integrity check after the right
+password stays `invalid-content`. Without `OpenPassword`, a failed Word, Excel or PowerPoint file that the encryption
+detection below finds encrypted is reported as `password-required`. Legacy `.doc` files are not decrypted, so a wrong
+password for one keeps the general code. A custom handler maps its own exceptions with
 `ReaderHandlerRegistration.ClassifyReadError`. Caller errors such as invalid arguments or options
 still throw, and resource and admission limits still end the whole operation.
 
@@ -286,11 +288,16 @@ if (detection.IsEncrypted) {
 
 It covers password-encrypted Office packages, legacy Word, Excel and PowerPoint files that mark themselves encrypted,
 OpenDocument packages whose `META-INF/manifest.xml` declares encrypted entries, PDFs whose trailer has an encryption
-dictionary, and ZIP archives with an encrypted entry. An `encryption:` evidence
-token names the signal. An encrypted Office package stores its format inside the encrypted payload, so its `Kind`
-comes from a `.docx`, `.xlsx`, `.pptx` or related extension. A PDF protected only by an owner password also reports
-`IsEncrypted` even though it opens without a password. Detection inspects content only in `PreferContent` mode, the standalone default, or when the extension is
-unknown.
+dictionary, and ZIP archives with an encrypted entry. An `encryption:` evidence token names the signal. An encrypted
+Office package stores its format inside the encrypted payload, so its `Kind` comes from a `.docx`, `.xlsx`, `.pptx` or
+related extension. A PDF protected only by an owner password also reports `IsEncrypted` even though it opens without a
+password.
+
+`IsEncrypted = true` is a finding; `false` only means detection saw no encryption, not that the input is unencrypted.
+Content is inspected in `PreferContent` mode, the standalone default, and in `ContentWhenUnknown` mode when the
+extension is unknown; `ExtensionOnly` never inspects content. A non-seekable stream, or `InspectContainers = false`,
+limits a ZIP archive to its first entry and skips the OpenDocument manifest; a non-seekable PDF is checked only within
+the probed prefix. Inspection also stops at `MaxProbeBytes` and `MaxContainerEntries`.
 
 ## Reuse an immutable read policy
 

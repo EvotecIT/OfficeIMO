@@ -59,10 +59,11 @@ public static class OfficeDocumentReaderBuilderPdfExtensions {
     }
 
     private static string? ClassifyReadError(Exception exception) => exception switch {
-        PdfPasswordRequiredException or PdfRecipientCertificateRequiredException => ReaderErrorCodes.PasswordRequired,
+        PdfPasswordRequiredException => ReaderErrorCodes.PasswordRequired,
         PdfInvalidPasswordException => ReaderErrorCodes.InvalidPassword,
-        PdfUnsupportedEncryptionException or PdfRecipientNotFoundException or PdfRecipientDecryptionException =>
-            ReaderErrorCodes.UnsupportedEncryption,
+        // Certificate-protected files need a recipient key that the common read options cannot supply.
+        PdfUnsupportedEncryptionException or PdfRecipientCertificateRequiredException or PdfRecipientNotFoundException
+            or PdfRecipientDecryptionException => ReaderErrorCodes.UnsupportedEncryption,
         PdfPermissionDeniedException => ReaderErrorCodes.PermissionDenied,
         _ => null
     };

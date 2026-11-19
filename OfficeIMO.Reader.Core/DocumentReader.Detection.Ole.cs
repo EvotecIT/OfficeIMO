@@ -128,7 +128,7 @@ internal static partial class DocumentReaderEngine {
             var options = new OfficeCompoundReadOptions(maxDirectoryEntries: Math.Max(1, maxContainerEntries));
             if (!OfficeCompoundFileReader.TryOpenStream(stream, options,
                     (path, _) => names.Contains(path, StringComparer.OrdinalIgnoreCase), leaveOpen: true,
-                    cancellationToken, out Stream? selected, out _) || selected == null) {
+                    cancellationToken, out Stream? selected, out _, maxViewBytes: LegacyEncryptionProbeBytes) || selected == null) {
                 return office;
             }
 

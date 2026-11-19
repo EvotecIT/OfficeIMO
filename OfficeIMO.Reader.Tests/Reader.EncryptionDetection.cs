@@ -73,6 +73,19 @@ public sealed class ReaderEncryptionDetectionTests {
         Assert.False(Reader.Detect(plain, "letter.odt").IsEncrypted);
     }
 
+    [Theory]
+    [InlineData("<< /Size 5 /Root 1 0 R >>", "BT (trailer /Encrypt 9 0 R) Tj ET", false)]
+    [InlineData("<< /Size 5 /Root 1 0 R /Info << /Encrypt 1 >> >>", "BT (plain) Tj ET\n% trailer << /Encrypt 9 0 R >>", false)]
+    [InlineData("<< /Size 5 /Root 1 0 R /EncryptMetadata false >>", "BT (plain) Tj ET", false)]
+    [InlineData("<< /Size 5 /Root 1 0 R /En#63rypt 9 0 R >>", "BT (plain) Tj ET", true)]
+    [InlineData("<< /Size 5 /Root 1 0 R /ID [<00> <01>] /Encrypt 9 0 R >>", "BT (plain) Tj ET", true)]
+    public void PdfEncryptionComesOnlyFromTheTrailerEncryptKey(string trailer, string content, bool encrypted) {
+        // Text in content streams, comments, nested dictionaries and other keys must not count; an escaped key name must.
+        byte[] pdf = BuildPdf(trailer, content);
+        Assert.Equal(encrypted, Reader.Detect(pdf, "file.pdf").IsEncrypted);
+        Assert.Equal(encrypted, Reader.Detect(pdf, "file.pdf", new ReaderDetectionOptions { MaxProbeBytes = 64 }).IsEncrypted);
+    }
+
     [Fact]
     public void ZipArchiveWithAnEncryptedEntryIsReported() {
         byte[] plain = CreateZip("notes.txt", "second.txt");
@@ -84,6 +97,13 @@ public sealed class ReaderEncryptionDetectionTests {
         Assert.Equal(ReaderInputKind.Zip, detection.Kind);
         Assert.Contains("encryption:zip-encrypted-entry", detection.Evidence);
         Assert.False(Reader.Detect(plain, "archive.zip").IsEncrypted);
+
+        // A package recognized from its entries keeps that kind and still reports the encrypted entry.
+        byte[] wordPackage = SetZipEntryEncrypted(CreateZip("[Content_Types].xml", "word/document.xml"), entryIndex: 1);
+        ReaderDetectionResult word = Reader.Detect(wordPackage, "letter.docx");
+        Assert.Equal(ReaderInputKind.Word, word.ContentKind);
+        Assert.True(word.IsEncrypted);
+        Assert.Contains("encryption:zip-encrypted-entry", word.Evidence);
     }
 
     [Fact]
@@ -118,6 +138,24 @@ public sealed class ReaderEncryptionDetectionTests {
         Assert.Contains("encryption:legacy-excel-filepass", xls.Evidence);
         Assert.False(Reader.Detect(plainPresentation, "deck.ppt").IsEncrypted);
         Assert.False(Reader.Detect(plainWorkbook, "book.xls").IsEncrypted);
+    }
+
+    private static byte[] BuildPdf(string trailer, string content) {
+        var builder = new System.Text.StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int>();
+        void Add(string body) {
+            offsets.Add(builder.Length);
+            builder.Append(offsets.Count).Append(" 0 obj\n").Append(body).Append("\nendobj\n");
+        }
+        Add("<< /Type /Catalog /Pages 2 0 R >>");
+        Add("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+        Add("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>");
+        Add("<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream");
+        int crossReference = builder.Length;
+        builder.Append("xref\n0 5\n0000000000 65535 f \n");
+        foreach (int offset in offsets) builder.Append(offset.ToString("D10")).Append(" 00000 n \n");
+        builder.Append("trailer\n").Append(trailer).Append("\nstartxref\n").Append(crossReference).Append("\n%%EOF\n");
+        return System.Text.Encoding.ASCII.GetBytes(builder.ToString());
     }
 
     private static byte[] SetWordFibEncrypted(byte[] document) {

@@ -376,14 +376,8 @@ internal sealed class ReaderHandlerDescriptor {
     }
 
     public long? ResolveDefaultMaxInputBytes(string? sourceName) {
-        string extension;
-        try {
-            extension = DocumentReaderEngine.NormalizeExtension(Path.GetExtension(sourceName ?? string.Empty));
-        } catch (ArgumentException) {
-            extension = string.Empty;
-        } catch (NotSupportedException) {
-            extension = string.Empty;
-        }
+        // Use the same extension as handler selection, including the routed extension of a conventional file name.
+        string extension = DocumentReaderEngine.GetRoutingExtension(sourceName);
         return extension.Length > 0 && DefaultMaxInputBytesByExtension.TryGetValue(extension, out long value)
             ? value
             : DefaultMaxInputBytes;

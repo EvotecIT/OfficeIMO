@@ -258,7 +258,7 @@ namespace OfficeIMO.Core.Internal {
                 expectedHash = Hash(verifier, descriptor.PasswordHashAlgorithm);
 
                 if (!ConstantTimeEquals(expectedHash, 0, decryptedVerifierHash, 0, descriptor.PasswordHashSize)) {
-                    throw new CryptographicException("The password is incorrect.");
+                    throw OfficePasswordRejection.Mark(new CryptographicException("The password is incorrect."));
                 }
 
                 keyKey = DeriveKeyFromPasswordHash(
