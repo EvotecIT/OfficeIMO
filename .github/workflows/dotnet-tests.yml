@@ -168,7 +168,7 @@ jobs:
           name: archives-windows-qualification
           path: ${{ runner.temp }}/officeimo-archives/qualification/reports
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
 
   chm-contracts:
     needs: changes

@@ -230,7 +230,7 @@ jobs:
           name: real-world-corpus-evidence-${{ env.CORPUS_CHUNK }}
           path: ${{ steps.download.outputs.report_directory }}
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
 
       - name: Mark unavailable corpus evidence as not measured
         if: steps.download.outputs.available != 'true'
