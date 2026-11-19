@@ -182,6 +182,9 @@ internal static partial class LegacyXlsWriter {
             }
             _complete = true;
         }
+        /// <summary>Bytes of row, cell and DBCELL records, excluding the fixed worksheet prefix and suffix.</summary>
+        internal long CellTableLength => _length;
+
         /// <summary>Adds this sheet's records at <paramref name="position"/> in the workbook stream and returns the following position.</summary>
         internal long AddSegments(List<ArraySegment<byte>> segments, long position) {
             if (!_complete) throw new InvalidOperationException("Complete each XLS table before publishing the workbook.");
