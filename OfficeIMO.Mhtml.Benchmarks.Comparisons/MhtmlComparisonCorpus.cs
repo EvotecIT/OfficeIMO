@@ -44,7 +44,6 @@ internal static class MhtmlComparisonCorpus {
             ContentId = RootContentId(scale),
             ContentLocation = new Uri(ContentLocation(scale))
         };
-        related.Add(root);
         foreach (MhtmlResourceData resource in CreateResources(scale)) {
             string[] mediaType = resource.ContentType.Split('/');
             var part = new MimePart(mediaType[0], mediaType[1]) {
@@ -57,6 +56,7 @@ internal static class MhtmlComparisonCorpus {
             };
             related.Add(part);
         }
+        // Setting Root inserts the part as the first child; adding it first as well would write the root twice.
         related.Root = root;
         message.Body = related;
         message.Headers.Add("Snapshot-Content-Location", ContentLocation(scale));
