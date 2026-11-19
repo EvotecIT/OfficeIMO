@@ -8,9 +8,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             backgroundWindow: backgroundWindow);
     }
 
-    private IReadOnlyList<HtmlRenderVisual> SliceVisuals(IEnumerable<HtmlRenderVisual> sourceVisuals, double start, double end, bool includeEndAnchor = false, PagedBackgroundWindow? backgroundWindow = null) {
+    private IReadOnlyList<HtmlRenderVisual> SliceVisuals(IEnumerable<HtmlRenderVisual> sourceVisuals, double start, double end, bool includeEndAnchor = false, PagedBackgroundWindow? backgroundWindow = null,
+        HtmlRenderVisual? owner = null) {
         var fragment = new List<HtmlRenderVisual>();
-        foreach (HtmlRenderVisual visual in sourceVisuals) {
+        foreach (HtmlRenderVisual visual in SliceCandidates(sourceVisuals, owner, start, end)) {
             int firstFragment = fragment.Count;
             try {
                 double visualTop = visual.LayoutY;
@@ -24,14 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
                 bool containsFlowAnchor = (_pageFloatEntries.Count > 0 || _columnEdgeFloatEntries.Count > 0) && ContainsFlowAnchor(visual);
-                double visualBottom = visual.LayoutY + visual.LayoutHeight;
-                // Paint-neutral wrappers can retain the CSS box height while
-                // their visible children continue across printed pages.
-                if (visual is HtmlRenderSemanticGroup or HtmlRenderLayoutRegion or HtmlRenderClipGroup { ClipVertical: false }) {
-                    visualBottom = Math.Max(visualBottom, ChildScrollBottom(visual)!.Value);
-                } else if (visual is HtmlRenderEffectGroup effectOverflow) {
-                    visualBottom = Math.Max(visualBottom, Math.Max(0D, ScrollBottom(effectOverflow)));
-                }
+                double visualBottom = SliceBottom(visual);
                 if (visual is HtmlRenderShape { CollapsedBorderBoundaryY: double boundary }
                     && Math.Abs(boundary - start) <= 0.0001D) {
                     // A resumed fragment retains both sides of its starting rule.
@@ -86,7 +80,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderClipGroup clipGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end, includeEndAnchor, backgroundWindow);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end, includeEndAnchor, backgroundWindow, clipGroup);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderClipGroup(
                             clipGroup.ClipX,
@@ -105,7 +99,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderSemanticGroup semanticGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(semanticGroup.Visuals, start, end, includeEndAnchor, backgroundWindow);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(semanticGroup.Visuals, start, end, includeEndAnchor, backgroundWindow, semanticGroup);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderSemanticGroup(
                             semanticGroup.Role,
@@ -127,7 +121,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderLayoutRegion layoutRegion) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(layoutRegion.Visuals, start, end, includeEndAnchor, backgroundWindow);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(layoutRegion.Visuals, start, end, includeEndAnchor, backgroundWindow, layoutRegion);
                     fragment.Add(new HtmlRenderLayoutRegion(
                         layoutRegion.SourceKey,
                         layoutRegion.RegionKind,
@@ -166,7 +160,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(logicalTextGroup.Visuals, start, end, includeEndAnchor, backgroundWindow);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(logicalTextGroup.Visuals, start, end, includeEndAnchor, backgroundWindow, logicalTextGroup);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderLogicalTextGroup(
                             ResolveLogicalText(children, logicalTextGroup.Text),
@@ -187,7 +181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     bool translated = TryGetVerticalPaintTranslation(effectGroup.Transform, out double verticalTranslation);
                     double childStart = translated ? start - verticalTranslation : start;
                     double childEnd = translated ? end - verticalTranslation : end;
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, childStart, childEnd, includeEndAnchor);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, childStart, childEnd, includeEndAnchor, owner: effectGroup);
                     if (children.Count > 0) {
                         if (translated && Math.Abs(verticalTranslation) > 0.0001D) {
                             // Child fragments are rebased to their pre-transform window;
@@ -226,7 +220,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (visual is HtmlRenderPathClipGroup pathClip) {
                     // Keep one source occurrence of text and flow anchors while
                     // retaining the authored path in its original coordinates.
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(pathClip.Visuals, start, end, includeEndAnchor);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(pathClip.Visuals, start, end, includeEndAnchor, owner: pathClip);
                     if (children.Count > 0) {
                         var slicedPath = new HtmlRenderPathClipGroup(pathClip.ClipX, pathClip.ClipY - start,
                             pathClip.ClipPath, children, 0, pathClip.Source, pathClip.LayoutY - start);
