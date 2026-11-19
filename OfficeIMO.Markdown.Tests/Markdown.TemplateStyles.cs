@@ -30,6 +30,13 @@ namespace OfficeIMO.Tests {
                 > > Nested
 
                 - Item
+
+                <details>
+                <summary>More</summary>
+
+                Hidden detail
+
+                </details>
                 """;
             var options = new MarkdownWordExportOptions {
                 Template = document,
@@ -53,6 +60,7 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual("CorpsTexte", StyleOf(paragraphs, "Item"));
             Assert.False(document.Styles.Contains("Heading1"));
 
+            Assert.Equal("CorpsTexte", StyleOf(paragraphs, "Hidden detail"));
             string exported = document.ToMarkdown().ToMarkdown();
             Assert.Contains("> Quoted", exported, StringComparison.Ordinal);
             Assert.Contains("> > Nested", exported, StringComparison.Ordinal);

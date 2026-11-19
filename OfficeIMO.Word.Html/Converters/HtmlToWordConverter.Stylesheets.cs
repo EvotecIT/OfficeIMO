@@ -211,9 +211,7 @@ namespace OfficeIMO.Word.Html {
 
             // HTML separates class names with any ASCII whitespace.
             foreach (var cls in (classAttr ?? string.Empty).Split(new[] { ' ', '\t', '\n', '\r', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
-                // Stylesheet mappings are inferred from CSS formatting, which IgnoreCssFormatting leaves to the document.
-                if (options.ClassStyles.TryGetValue(cls, out var style) ||
-                    !options.IgnoreCssFormatting && _cssClassStyles.TryGetValue(cls, out style)) {
+                if (options.ClassStyles.TryGetValue(cls, out var style)) {
                     paragraph.Style = style;
                     return true;
                 }
@@ -221,6 +219,13 @@ namespace OfficeIMO.Word.Html {
                 if (options.PreferDocumentStyles && paragraph._document is { } document &&
                     FindDocumentParagraphStyle(document, cls) is { } documentStyleId) {
                     paragraph.SetStyleId(documentStyleId);
+                    return true;
+                }
+
+                // Stylesheet mappings are inferred from CSS formatting: a document style outranks them, and
+                // IgnoreCssFormatting leaves them out.
+                if (!options.IgnoreCssFormatting && _cssClassStyles.TryGetValue(cls, out style)) {
+                    paragraph.Style = style;
                     return true;
                 }
 

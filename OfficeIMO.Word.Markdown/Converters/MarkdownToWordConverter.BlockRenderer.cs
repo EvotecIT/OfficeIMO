@@ -11,6 +11,9 @@ namespace OfficeIMO.Word.Markdown {
             private readonly WordDocument _document;
             private readonly int _listLevel;
             private readonly int _quoteDepth;
+            // Block quotes enclosing this content. Details blocks add layout depth but no quote; null means every
+            // level of the depth a caller passed in is a quote.
+            private readonly int? _quoteLevels;
             private readonly double _pageContentWidthPixels;
             private readonly Omd.MarkdownColumnAlignment _alignment;
 
@@ -22,7 +25,8 @@ namespace OfficeIMO.Word.Markdown {
                 int listLevel,
                 int quoteDepth,
                 double pageContentWidthPixels,
-                Omd.MarkdownColumnAlignment alignment) {
+                Omd.MarkdownColumnAlignment alignment,
+                int? quoteLevels = null) {
                 _converter = converter ?? throw new ArgumentNullException(nameof(converter));
                 _host = host ?? throw new ArgumentNullException(nameof(host));
                 _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -31,7 +35,10 @@ namespace OfficeIMO.Word.Markdown {
                 _quoteDepth = quoteDepth;
                 _pageContentWidthPixels = pageContentWidthPixels;
                 _alignment = alignment;
+                _quoteLevels = quoteLevels;
             }
+
+            private int QuoteLevels => _quoteLevels ?? _quoteDepth;
 
             public void Render(Omd.IMarkdownBlock block) {
                 if (block == null) {
@@ -55,7 +62,8 @@ namespace OfficeIMO.Word.Markdown {
                 int? listLevel = null,
                 int? quoteDepth = null,
                 double? pageContentWidthPixels = null,
-                Omd.MarkdownColumnAlignment? alignment = null) {
+                Omd.MarkdownColumnAlignment? alignment = null,
+                int? quoteLevels = null) {
                 new BlockRenderer(
                     _converter,
                     _host,
@@ -64,7 +72,8 @@ namespace OfficeIMO.Word.Markdown {
                     listLevel ?? _listLevel,
                     quoteDepth ?? _quoteDepth,
                     pageContentWidthPixels ?? _pageContentWidthPixels,
-                    alignment ?? _alignment)
+                    alignment ?? _alignment,
+                    quoteLevels ?? _quoteLevels)
                     .Render(block);
             }
 
@@ -102,7 +111,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
                 var paragraph = _host.CreateParagraph();
-                ApplyBodyParagraphStyle(paragraph, _listLevel, _quoteDepth, _options);
+                ApplyBodyParagraphStyle(paragraph, _listLevel, QuoteLevels, _options);
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
             }
@@ -346,7 +355,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitQuoteBlock(Omd.QuoteBlock block) {
                 foreach (var child in block.ChildBlocks) {
-                    RenderNested(child, quoteDepth: _quoteDepth + 1);
+                    RenderNested(child, quoteDepth: _quoteDepth + 1, quoteLevels: QuoteLevels + 1);
                 }
             }
 
@@ -366,7 +375,7 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 foreach (var child in block.ChildBlocks) {
-                    RenderNested(child, quoteDepth: _quoteDepth + 1);
+                    RenderNested(child, quoteDepth: _quoteDepth + 1, quoteLevels: QuoteLevels);
                 }
             }
 

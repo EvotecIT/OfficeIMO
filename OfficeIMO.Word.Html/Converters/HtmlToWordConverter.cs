@@ -95,7 +95,10 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 ApplyPageDefaults(wordDoc, document, options);
-                ApplyDocumentCanvasBackground(wordDoc, document);
+                // The page color is CSS formatting too; without the text colors it could leave text unreadable.
+                if (!options.IgnoreCssFormatting) {
+                    ApplyDocumentCanvasBackground(wordDoc, document);
+                }
 
                 var section = wordDoc.Sections.First();
                 var listStack = new Stack<WordList>();

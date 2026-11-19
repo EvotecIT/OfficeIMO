@@ -115,7 +115,8 @@ public partial class WordDocument {
 
     private BuiltInStyleIndex GetBuiltInStyleIndex() {
         StyleDefinitionsPart? part = _wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
-        BuiltInStyleIndex? index = _builtInStyleIndex;
+        // Once the raw package is handed out, edits to the styles DOM can't be observed, so the index is not reused.
+        BuiltInStyleIndex? index = _openXmlDocumentAccessed ? null : _builtInStyleIndex;
         // Reading a document classifies styles from the part's XML, so inspection does not load the styles DOM.
         if (part != null && !part.IsRootElementLoaded) {
             if (index != null && ReferenceEquals(index.Source, part)) return index;

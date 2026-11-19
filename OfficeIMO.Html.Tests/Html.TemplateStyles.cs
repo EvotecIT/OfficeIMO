@@ -124,13 +124,44 @@ namespace OfficeIMO.Tests {
             document.Styles.AddParagraphStyle("Body", "Upper body");
             document.Styles.AddParagraphStyle("body", "Lower body");
             document.Styles.AddParagraphStyle("Note", "Margin note");
+            document.Styles.AddParagraphStyle("HtmlDefinitionDescription", "Term look");
 
-            document.AddHtml("<p class=\"Body\">Upper</p><p class=\"body\">Lower</p><p class=\"aux\tNote\">Noted</p>",
+            document.AddHtml("<style>.Note { font-size: 24pt; font-weight: bold; }</style>" +
+                "<p class=\"Body\">Upper</p><p class=\"body\">Lower</p><p class=\"aux\tNote\">Noted</p>" +
+                "<dl><dt class=\"HtmlDefinitionDescription\">Term</dt><dd>Meaning</dd></dl>",
                 new HtmlWordExportOptions { PreferDocumentStyles = true });
 
             Assert.Equal("Body", document.Paragraphs.Single(paragraph => paragraph.Text == "Upper").StyleId);
             Assert.Equal("body", document.Paragraphs.Single(paragraph => paragraph.Text == "Lower").StyleId);
+            // The document style outranks the heading the stylesheet's bold 24pt rule would infer.
             Assert.Equal("Note", document.Paragraphs.Single(paragraph => paragraph.Text == "Noted").StyleId);
+            // The imported role, not the style identifier it happens to share, decides the exported element.
+            Assert.Contains("<dt>Term</dt>", document.ToHtml(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ToWord_IgnoringCssFormattingLeavesThePageColor() {
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument
+                .Parse("<body style=\"background-color:#101010;color:white\"><p>Text</p></body>")
+                .ToWord(new HtmlWordExportOptions { IgnoreCssFormatting = true });
+
+            Assert.Null(document.Background.Color);
+        }
+
+        [Fact]
+        public void AddHtml_AfterRawStyleEditsUsesTheCurrentStyles() {
+            using WordDocument document = WordDocument.Create();
+            document.Styles.AddParagraphStyle("Citation", "Quote");
+            document.AddHtml("<blockquote><p>First</p></blockquote>");
+            Assert.Equal("Citation", document.Paragraphs.Single(paragraph => paragraph.Text == "First").StyleId);
+
+            document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>()
+                .Single(style => style.StyleId == "Citation").Remove();
+            document.AddHtml("<blockquote><p>Second</p></blockquote>");
+
+            WordParagraph second = document.Paragraphs.Single(paragraph => paragraph.Text == "Second");
+            Assert.Null(second.StyleId);
+            Assert.Equal(720, checked((int?)second.IndentationBefore?.ToTwips()));
         }
 
         [Fact]

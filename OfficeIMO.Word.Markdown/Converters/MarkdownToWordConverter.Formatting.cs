@@ -104,9 +104,9 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>Gives a body paragraph outside lists the document's quote style or the default paragraph style.</summary>
-        private static void ApplyBodyParagraphStyle(WordParagraph paragraph, int listLevel, int quoteDepth, MarkdownWordExportOptions options) {
+        private static void ApplyBodyParagraphStyle(WordParagraph paragraph, int listLevel, int quoteLevels, MarkdownWordExportOptions options) {
             if (listLevel > 0 || paragraph.StyleId != null) return;
-            string? styleId = quoteDepth > 0 && options.ResolvedQuoteStyleId != null
+            string? styleId = quoteLevels > 0 && options.ResolvedQuoteStyleId != null
                 ? options.ResolvedQuoteStyleId
                 : options.ResolvedDefaultParagraphStyleId;
             if (styleId != null) paragraph.SetStyleId(styleId);
