@@ -820,7 +820,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 && LegacyXlsDateSerialConverter.TryConvert(value, _uses1904DateSystem, out DateTime date, _dateStyles[style] == ExcelSerialDateStyle.Calendar)) {
                 return date.ToString(_options.Culture);
             }
-            return value.ToString("R", _options.Culture);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, _options.Culture);
         }
 
         private void CheckCancellation() {

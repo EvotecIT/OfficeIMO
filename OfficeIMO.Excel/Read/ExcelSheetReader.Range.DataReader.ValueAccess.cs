@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
 
             /// <inheritdoc />
             public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
-                string value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
+                string value = ExcelCellValueText.Format(GetValue(ordinal), _culture);
                 if (buffer == null) {
                     return value.Length;
                 }
@@ -146,7 +146,7 @@ namespace OfficeIMO.Excel {
             public override string GetString(int ordinal) {
                 if (TryGetUnloadedString(ordinal, out string indexedText)) return indexedText;
                 object value = GetNonDbNullValue(ordinal);
-                return value is string text ? text : Convert.ToString(value, _culture) ?? string.Empty;
+                return value is string text ? text : ExcelCellValueText.Format(value, _culture);
             }
 
             /// <inheritdoc />

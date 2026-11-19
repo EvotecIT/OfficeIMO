@@ -123,7 +123,7 @@ namespace OfficeIMO.Excel {
             char[]? buffer,
             int bufferOffset,
             int length) {
-            string value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
+            string value = ExcelCellValueText.Format(GetValue(ordinal), _culture);
             if (buffer == null) {
                 return value.Length;
             }
@@ -184,7 +184,7 @@ namespace OfficeIMO.Excel {
         public override int GetOrdinal(string name) => _inner.GetOrdinal(name);
 
         public override string GetString(int ordinal) => IsSampledRow
-            ? Convert.ToString(GetNonDbNullValue(ordinal), _culture) ?? string.Empty
+            ? ExcelCellValueText.Format(GetNonDbNullValue(ordinal), _culture)
             : _inner.GetString(ordinal);
 
         public override object GetValue(int ordinal) => IsSampledRow

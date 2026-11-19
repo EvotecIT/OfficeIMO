@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel {
     internal static class InvariantNumberText {
@@ -43,6 +44,10 @@ namespace OfficeIMO.Excel {
                 : value.ToString(CultureInfo.InvariantCulture);
         }
 
+        /// <summary>
+        /// The shortest invariant text that parses back to the identical double. .NET Framework's "R" can return text
+        /// that parses to a neighbouring double, so those targets check the text and widen it when needed.
+        /// </summary>
         internal static string Get(double value) {
             if (value >= int.MinValue && value <= int.MaxValue) {
                 int integer = (int)value;
@@ -51,9 +56,14 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+#if NETCOREAPP3_0_OR_GREATER
             return value.ToString("R", CultureInfo.InvariantCulture);
+#else
+            return OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
+#endif
         }
 
+        /// <inheritdoc cref="Get(double)"/>
         internal static string Get(float value) {
             if (value >= int.MinValue && value <= int.MaxValue) {
                 int integer = (int)value;
@@ -62,7 +72,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+#if NETCOREAPP3_0_OR_GREATER
             return value.ToString("R", CultureInfo.InvariantCulture);
+#else
+            return OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
+#endif
         }
 
         internal static bool TryGet(int value, out string text) {
