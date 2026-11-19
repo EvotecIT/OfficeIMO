@@ -246,15 +246,20 @@ public static class ExcelDataConversions {
         var builder = new System.Text.StringBuilder();
         foreach (char c in name) builder.Append(c is '[' or ']' or ':' or '*' or '?' or '/' or '\\' ? '_' : c);
         string candidate = builder.Length == 0 ? "Data" : builder.ToString();
-        if (candidate.Length > 31) candidate = candidate.Substring(0, 31);
+        candidate = Cut(candidate, 31);
         string unique = candidate;
         for (int i = 2; !used.Add(unique); i++) {
             string suffix = " (" + i.ToString(CultureInfo.InvariantCulture) + ")";
-            unique = (candidate.Length + suffix.Length > 31 ? candidate.Substring(0, 31 - suffix.Length) : candidate) + suffix;
+            unique = Cut(candidate, 31 - suffix.Length) + suffix;
         }
 
         return unique;
     }
+
+    // A cut never separates a surrogate pair, which would leave an unpaired UTF-16 code unit in the name.
+    private static string Cut(string value, int length) =>
+        value.Length <= length ? value
+            : value.Substring(0, char.IsHighSurrogate(value[length - 1]) ? length - 1 : length);
 
     private static ExcelDocument LoadWorkbook(Func<Stream, OfficeConversionReport> write, out OfficeConversionReport report) {
         var buffer = new MemoryStream();

@@ -37,4 +37,22 @@ public class ExcelConversionTests {
         using ExcelDocument document = ExcelDocument.Load(workbook);
         Assert.Equal("12345678901234567", document.ToJson()![0]!["id"]!.GetValue<string>());
     }
+
+    [Fact]
+    public void TruncatedSheetNamesKeepSurrogatePairsWhole() {
+        string truncated = new string('a', 30) + "\U0001F600";
+        string collision = new string('b', 26) + "\U0001F600" + "ccc";
+        var rows = new JsonObject {
+            [truncated] = new JsonArray(new JsonObject { ["x"] = 1 }),
+            [collision] = new JsonArray(new JsonObject { ["x"] = 2 }),
+            [collision + "d"] = new JsonArray(new JsonObject { ["x"] = 3 })
+        };
+        using var workbook = new MemoryStream();
+        rows.SaveAsExcel(workbook);
+        workbook.Position = 0;
+        using ExcelDocument document = ExcelDocument.Load(workbook);
+
+        Assert.Equal(new[] { new string('a', 30), collision, new string('b', 26) + " (2)" },
+            document.Sheets.Select(sheet => sheet.Name).ToArray());
+    }
 }
