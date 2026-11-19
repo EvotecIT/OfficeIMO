@@ -11,10 +11,21 @@ internal static class HtmlRenderForcedBreakBoundaryIndex {
     private const int IndexedCount = 16;
     private static readonly ConditionalWeakTable<IReadOnlyList<HtmlRenderForcedBreak>, Dictionary<object, List<int>>> Indexes = new();
 
-    /// <summary>The ascending positions of the entries whose boundary is <paramref name="boundary"/>.</summary>
-    internal static IReadOnlyList<int> Of(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, object boundary) {
-        if (forcedBreaks.Count <= IndexedCount) return Scan(forcedBreaks, boundary);
-        Dictionary<object, List<int>> index = Indexes.GetValue(forcedBreaks, Build);
+    /// <summary>
+    /// The ascending positions of the entries whose boundary is <paramref name="boundary"/>. <paramref name="inspected"/>
+    /// reports the entries a scan or index build examined, and is zero when an existing index answered.
+    /// </summary>
+    internal static IReadOnlyList<int> Of(IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, object boundary, out int inspected) {
+        if (forcedBreaks.Count <= IndexedCount) {
+            inspected = forcedBreaks.Count;
+            return Scan(forcedBreaks, boundary);
+        }
+        inspected = 0;
+        if (!Indexes.TryGetValue(forcedBreaks, out Dictionary<object, List<int>>? index)) {
+            // Another thread may build the same index concurrently; each caller charges the build it may have run.
+            inspected = forcedBreaks.Count;
+            index = Indexes.GetValue(forcedBreaks, Build);
+        }
         return index.TryGetValue(boundary, out List<int>? positions) ? positions : Array.Empty<int>();
     }
 

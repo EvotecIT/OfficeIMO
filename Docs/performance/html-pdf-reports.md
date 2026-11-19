@@ -241,8 +241,8 @@ rows.
 The smallest `MaxLayoutOperations` that admits the legal-document benchmark
 grew from 579 operations per page at 100 pages to 1,495 per page at 1,000
 pages before the change, so the 1,000-page document needed 1,494,600
-operations against the default 1,000,000. After the change it needs 481 and
-500 operations per page, 499,614 in total.
+operations against the default 1,000,000. After the change it needs 482 and
+501 operations per page, 500,613 in total.
 
 All nine compared reports, including the 7,000-row table, produce
 byte-identical PDFs and identical diagnostics on Windows and macOS.

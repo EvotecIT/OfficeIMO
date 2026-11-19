@@ -251,11 +251,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     /// <summary>Combines one logical boundary without changing its physical cut or source ownership.</summary>
-    private static HtmlRenderForcedBreak FoldForcedPageBoundary(
-        IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, int firstIndex, int endIndex) =>
-        FoldForcedPageBoundary(forcedBreaks, firstIndex, endIndex, out _);
-
-    // Reports the entries examined: only those that share the first entry's boundary.
+    /// <remarks>
+    /// Reports the entries examined, including the boundary lookup's own scan or index build, so callers can
+    /// charge the layout operation budget for the work done.
+    /// </remarks>
     private static HtmlRenderForcedBreak FoldForcedPageBoundary(
         IReadOnlyList<HtmlRenderForcedBreak> forcedBreaks, int firstIndex, int endIndex, out int inspected) {
         HtmlRenderForcedBreak first = forcedBreaks[firstIndex];
@@ -264,8 +263,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string? pageName = first.PageName;
         bool changesPageName = first.ChangesPageName;
         // Visit only this boundary's entries, in the ascending order a full scan would use.
-        IReadOnlyList<int> sameBoundary = HtmlRenderForcedBreakBoundaryIndex.Of(forcedBreaks, first.Boundary);
-        inspected = 0;
+        // The lookup reports any scan or index build it performed, so the fold charges that work too.
+        IReadOnlyList<int> sameBoundary = HtmlRenderForcedBreakBoundaryIndex.Of(forcedBreaks, first.Boundary, out inspected);
         for (int position = HtmlRenderForcedBreakBoundaryIndex.FirstAtOrAfter(sameBoundary, firstIndex); position < sameBoundary.Count; position++) {
             int index = sameBoundary[position];
             if (index >= endIndex) break;
