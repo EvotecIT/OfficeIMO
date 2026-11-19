@@ -11,9 +11,10 @@ public class PdfStructuredReadFastBenchmarks {
     public PdfBenchmarkScale Scale { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _scenario.Setup(Scale, PdfReadProfile.Fast);
+    public void Setup() => _scenario.Setup(Scale, PdfReadProfile.Fast, nameof(FastLoadAndRead));
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:FastLoadAndRead")]
     public PdfStructuredReadObservation FastLoadAndRead() => _scenario.Read();
 }
 
@@ -26,9 +27,10 @@ public class PdfStructuredReadCompleteBenchmarks {
     public PdfBenchmarkScale Scale { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _scenario.Setup(Scale, PdfReadProfile.Structured);
+    public void Setup() => _scenario.Setup(Scale, PdfReadProfile.Structured, nameof(StructuredLoadAndRead));
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:StructuredLoadAndRead")]
     public PdfStructuredReadObservation StructuredLoadAndRead() => _scenario.Read();
 }
 
@@ -36,11 +38,17 @@ internal sealed class PdfStructuredReadBenchmarkScenario {
     private byte[] _pdf = null!;
     private PdfLoadOptions _options = null!;
 
-    internal void Setup(PdfBenchmarkScale scale, PdfReadProfile profile) {
+    internal void Setup(PdfBenchmarkScale scale, PdfReadProfile profile, string caseName) {
         PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(scale);
         _pdf = corpus.Pdf;
         _options = PdfUnderstandingBenchmarkReadOptions.Create(profile, corpus.Pages.Count);
+        string detail = profile == PdfReadProfile.Structured
+            ? $"Scale={scale}; {corpus.Pages.Count} pages, every labelled region, heading, table cell and continuation scored against the corpus labels"
+            : $"Scale={scale}; {corpus.Pages.Count} pages and tables, every labelled region text and table cell in the read text";
+        PdfBenchmarkValidation.Record("OfficeIMO", caseName, detail, () => Validate(corpus, profile));
+    }
 
+    private void Validate(PdfUnderstandingBenchmarkCorpus corpus, PdfReadProfile profile) {
         PdfDocumentReadResult result = ReadDocument();
         PdfStructuredReadObservation observation = PdfUnderstandingBenchmarkValidation.Observe(result);
         if (observation.PageCount != corpus.Pages.Count || observation.TableCount < corpus.Pages.Count) {
@@ -51,6 +59,16 @@ internal sealed class PdfStructuredReadBenchmarkScenario {
         if (profile == PdfReadProfile.Structured) {
             PdfSemanticCorrectnessObservation correctness = PdfUnderstandingBenchmarkValidation.Evaluate(result, corpus);
             PdfUnderstandingBenchmarkValidation.RequireDeterministicQuality(correctness);
+        } else {
+            // The Fast route skips document-wide enrichment but must still read every labelled text and table cell.
+            string text = PdfBenchmarkValidation.Normalize(result.Text);
+            foreach (PdfUnderstandingBenchmarkExpectation page in corpus.Pages) {
+                foreach (string expected in page.ExpectedRegionText.Values.Concat(page.ExpectedTableCells)) {
+                    if (text.IndexOf(PdfBenchmarkValidation.Normalize(expected), StringComparison.Ordinal) < 0) {
+                        throw new InvalidDataException($"Fast read of page {page.PageNumber} omitted '{expected}'.");
+                    }
+                }
+            }
         }
     }
 

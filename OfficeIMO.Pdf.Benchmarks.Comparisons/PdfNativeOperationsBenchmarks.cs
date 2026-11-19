@@ -35,6 +35,14 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons {
                 _sources = _mergeInputs.Select(item => item.Bytes).ToArray();
             }
             object result = Execute();
+            PdfBenchmarkValidation.Record(
+                "OfficeIMO",
+                "Execute",
+                $"Operation={Operation}; Producer={Producer}; result reopened with PdfPig (page operations) or compared with every source page (reads)",
+                () => ValidateResult(result));
+        }
+
+        private void ValidateResult(object result) {
             if (Operation.StartsWith("Read", StringComparison.Ordinal)) {
                 PdfBenchmarkValidation.ValidateRead(PdfBenchmarkValidation.Observe(100, (string)result), _scenario, Operation);
             } else {
@@ -52,6 +60,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons {
 
         /// <summary>Runs one operation and returns its observable result.</summary>
         [Benchmark]
+        [BenchmarkCategory("library:OfficeIMO", "case:Execute")]
         public object Execute() {
             if (Operation == "Merge") {
                 var documents = new List<PdfDocument>(_sources.Length);

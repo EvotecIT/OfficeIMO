@@ -52,6 +52,7 @@ public class PdfCorpusReadBenchmarks {
             !string.Equals(entry.Sha256, sha256, StringComparison.OrdinalIgnoreCase)) {
             throw new InvalidDataException($"Corpus SHA-256 mismatch for {corpusId}. Expected {entry.Sha256}, observed {sha256}.");
         }
+        PdfBenchmarkScenario? generatedScenario = null;
         if (string.Equals(entry.Generator, "officeimo-native-large", StringComparison.Ordinal)) {
             var scenario = new PdfBenchmarkScenario(
                 PdfBenchmarkScale.High,
@@ -63,18 +64,50 @@ public class PdfCorpusReadBenchmarks {
             if (!string.Equals(generatedSha256, sha256, StringComparison.Ordinal)) {
                 throw new InvalidDataException($"Generated corpus identity mismatch for {corpusId}. Expected {generatedSha256}, observed {sha256}.");
             }
+            generatedScenario = scenario;
         }
-        PdfCorpusReadPayload oracle = ReadPdfPig();
-        if (entry.ExpectedPages.HasValue && oracle.Pages.Count != entry.ExpectedPages.Value) {
-            throw new InvalidDataException($"Corpus page-count mismatch for {corpusId}. Expected {entry.ExpectedPages.Value}, observed {oracle.Pages.Count}.");
-        }
-        ValidatePayload("OfficeIMO", ReadOfficeImo(), oracle, entry.MinimumTokenRecall);
-        ValidatePayload("iText", ReadIText(), oracle, entry.MinimumTokenRecall);
+
+        // Every reader must report the manifest's page count. The generated document's exact text is known, so each
+        // reader is checked against it; for the downloaded documents OfficeIMO, iText and OnePDF must recover PdfPig's
+        // tokens page by page, and PdfPig and iText must recover each other's tokens, at the manifest's recall threshold.
+        PdfCorpusReadPayload pdfPig = ReadPdfPig();
+        PdfCorpusReadPayload officeImo = ReadOfficeImo();
+        PdfCorpusReadPayload iText = ReadIText();
+        string detail = $"Document={Document}; pages={pdfPig.Pages.Count}; minimum token recall {entry.MinimumTokenRecall:0.00}";
+        PdfBenchmarkValidation.Record("PdfPig", "Default", detail + "; recall against iText both ways", () => {
+            if (entry.ExpectedPages.HasValue && pdfPig.Pages.Count != entry.ExpectedPages.Value) {
+                throw new InvalidDataException($"Corpus page-count mismatch for {corpusId}. Expected {entry.ExpectedPages.Value}, observed {pdfPig.Pages.Count}.");
+            }
+            if (generatedScenario != null) {
+                PdfBenchmarkValidation.ValidateRead(pdfPig.Observation, generatedScenario, "PdfPig reading " + Document);
+            } else {
+                ValidatePayload("iText (against PdfPig)", iText, pdfPig, entry.MinimumTokenRecall);
+                ValidatePayload("PdfPig (against iText)", pdfPig, iText, entry.MinimumTokenRecall);
+            }
+        });
+        RecordAgainstPdfPig("OfficeIMO", "Default", officeImo, pdfPig, generatedScenario, entry.MinimumTokenRecall, detail);
+        RecordAgainstPdfPig("iText", "Default", iText, pdfPig, generatedScenario, entry.MinimumTokenRecall, detail);
 #if NET10_0_OR_GREATER
-        ValidatePayload("OnePDF", ReadOnePdf(parallel: false), oracle, entry.MinimumTokenRecall);
-        ValidatePayload("OnePDF parallel", ReadOnePdf(parallel: true), oracle, entry.MinimumTokenRecall);
+        RecordAgainstPdfPig("OnePDF", "Default", ReadOnePdf(parallel: false), pdfPig, generatedScenario, entry.MinimumTokenRecall, detail);
+        RecordAgainstPdfPig("OnePDF", "Parallel", ReadOnePdf(parallel: true), pdfPig, generatedScenario, entry.MinimumTokenRecall, detail);
 #endif
     }
+
+    private void RecordAgainstPdfPig(
+        string library,
+        string caseName,
+        PdfCorpusReadPayload actual,
+        PdfCorpusReadPayload pdfPig,
+        PdfBenchmarkScenario? generatedScenario,
+        double minimumTokenRecall,
+        string detail) =>
+        PdfBenchmarkValidation.Record(library, caseName, detail + "; recall against PdfPig", () => {
+            string lane = caseName == "Default" ? library : library + " " + caseName;
+            ValidatePayload(lane, actual, pdfPig, minimumTokenRecall);
+            if (generatedScenario != null) {
+                PdfBenchmarkValidation.ValidateRead(actual.Observation, generatedScenario, lane + " reading " + Document);
+            }
+        });
 
     private static PdfCorpusEntry LoadManifestEntry(string corpusId) {
         string copiedManifestPath = Path.Combine(AppContext.BaseDirectory, "Corpus", "pdf-corpus.json");
@@ -102,22 +135,25 @@ public class PdfCorpusReadBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public PdfReadObservation OfficeIMO() => ReadOfficeImo().Observation;
 
     [Benchmark]
+    [BenchmarkCategory("library:PdfPig", "case:Default")]
     public PdfReadObservation PdfPig() => ReadPdfPig().Observation;
 
     [Benchmark]
+    [BenchmarkCategory("library:iText", "case:Default")]
     public PdfReadObservation IText() => ReadIText().Observation;
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onepdf")]
+    [BenchmarkCategory("library:OnePDF", "case:Default")]
     public PdfReadObservation OnePdf() => ReadOnePdf(parallel: false).Observation;
 
     /// <summary>OnePDF's default whole-document extraction, which reads up to four pages at once.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:onepdf")]
+    [BenchmarkCategory("library:OnePDF", "case:Parallel")]
     public PdfReadObservation OnePdfParallel() => ReadOnePdf(parallel: true).Observation;
 
     private PdfCorpusReadPayload ReadOnePdf(bool parallel) =>
