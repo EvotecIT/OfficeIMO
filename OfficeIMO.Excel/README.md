@@ -326,14 +326,14 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Create | 23 | 15 | 0 | 13 | 1 | 2 |
-| Read | 37 | 0 | 15 | 0 | 0 | 2 |
-| Edit | 12 | 0 | 39 | 2 | 1 | 0 |
-| Preserve | 11 | 0 | 39 | 0 | 0 | 0 |
+| Create | 25 | 19 | 0 | 13 | 1 | 2 |
+| Read | 43 | 0 | 15 | 0 | 0 | 2 |
+| Edit | 12 | 0 | 45 | 2 | 1 | 0 |
+| Preserve | 11 | 0 | 45 | 0 | 0 | 0 |
 | Inspect | 6 | 0 | 0 | 0 | 0 | 0 |
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
-| Convert | 53 | 39 | 0 | 8 | 0 | 0 |
+| Convert | 61 | 43 | 0 | 8 | 0 | 0 |
 | Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Excel` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).

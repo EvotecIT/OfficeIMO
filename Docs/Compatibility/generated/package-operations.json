@@ -4945,6 +4945,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.IgnoredErrors:modern-to-legacy",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel",
+      "targetFormatId":"Excel.Xlsb",
+      "capabilityId":"Excel.Xlsb.Cells.IgnoredErrors",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Cells.IgnoredErrors::modern-to-legacy",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.Values:modern-to-legacy",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel",
@@ -4970,7 +4984,35 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.AutoFilter::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."
+      "limitation":"Color criteria remain preserved on import and block on save; native generation and loaded-package criteria rewrites support the other criteria when the filter range is unchanged."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Tables:modern-to-legacy",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel",
+      "targetFormatId":"Excel.Xlsb",
+      "capabilityId":"Excel.Xlsb.Data.Tables",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Tables::modern-to-legacy",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":"Tables and structured references project and are written natively, and edits to existing tables are rewritten in place. Custom table styles, sort state, query tables, and adding or removing a table in a loaded XLSB block."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Validation:modern-to-legacy",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel",
+      "targetFormatId":"Excel.Xlsb",
+      "capabilityId":"Excel.Xlsb.Data.Validation",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Validation::modern-to-legacy",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":"List, whole-number, decimal, date, time, text-length and custom rules project and are written natively; edited rules are re-encoded on rewrite. Office 2010 validations stored in extension records are preserved but not projected."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.Charts:modern-to-legacy",
@@ -5029,6 +5071,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Conditional:modern-to-legacy",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel",
+      "targetFormatId":"Excel.Xlsb",
+      "capabilityId":"Excel.Xlsb.Formatting.Conditional",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Conditional::modern-to-legacy",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":"Cell-value, expression, text, date, top/bottom, average, duplicate, blank and error rules, color scales, data bars and icon sets project and are written natively; edited rules are re-encoded on rewrite. Office 2010 extension rules are preserved on import and block on generation or edit."
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Styles:modern-to-legacy",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel",
@@ -5040,7 +5096,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles and differential formats. Complex gradients, style extensions, and custom table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:modern-to-legacy",
@@ -5141,6 +5197,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageBreaks:modern-to-legacy",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel",
+      "targetFormatId":"Excel.Xlsb",
+      "capabilityId":"Excel.Xlsb.Print.PageBreaks",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Print.PageBreaks::modern-to-legacy",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageSetup:modern-to-legacy",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel",
@@ -5153,6 +5223,20 @@
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
       "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Review.Comments:modern-to-legacy",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel",
+      "targetFormatId":"Excel.Xlsb",
+      "capabilityId":"Excel.Xlsb.Review.Comments",
+      "operation":"Convert",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Review.Comments::modern-to-legacy",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
+      "limitation":"Comments project and are written natively, and edits to existing comments are rewritten in place. Threaded comments block, as does adding comments to a sheet of a loaded XLSB that has none."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Security.DigitalSignatures:modern-to-legacy",
@@ -7325,6 +7409,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.IgnoredErrors:new-legacy-write",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Cells.IgnoredErrors",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Cells.IgnoredErrors::new-legacy-write",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.Values:new-legacy-write",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7350,7 +7448,35 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.AutoFilter::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."
+      "limitation":"Color criteria remain preserved on import and block on save; native generation and loaded-package criteria rewrites support the other criteria when the filter range is unchanged."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Tables:new-legacy-write",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Tables",
+      "operation":"Create",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Tables::new-legacy-write",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Tables and structured references project and are written natively, and edits to existing tables are rewritten in place. Custom table styles, sort state, query tables, and adding or removing a table in a loaded XLSB block."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Validation:new-legacy-write",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Validation",
+      "operation":"Create",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Validation::new-legacy-write",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"List, whole-number, decimal, date, time, text-length and custom rules project and are written natively; edited rules are re-encoded on rewrite. Office 2010 validations stored in extension records are preserved but not projected."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.Charts:new-legacy-write",
@@ -7409,6 +7535,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Conditional:new-legacy-write",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Formatting.Conditional",
+      "operation":"Create",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Conditional::new-legacy-write",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Cell-value, expression, text, date, top/bottom, average, duplicate, blank and error rules, color scales, data bars and icon sets project and are written natively; edited rules are re-encoded on rewrite. Office 2010 extension rules are preserved on import and block on generation or edit."
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Styles:new-legacy-write",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7420,7 +7560,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::new-legacy-write",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles and differential formats. Complex gradients, style extensions, and custom table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:new-legacy-write",
@@ -7521,6 +7661,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageBreaks:new-legacy-write",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Print.PageBreaks",
+      "operation":"Create",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Print.PageBreaks::new-legacy-write",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageSetup:new-legacy-write",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7533,6 +7687,20 @@
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
       "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Review.Comments:new-legacy-write",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Review.Comments",
+      "operation":"Create",
+      "state":"Partial",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Review.Comments::new-legacy-write",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Comments project and are written natively, and edits to existing comments are rewritten in place. Threaded comments block, as does adding comments to a sheet of a loaded XLSB that has none."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Security.DigitalSignatures:new-legacy-write",
@@ -7619,6 +7787,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.IgnoredErrors:legacy-import",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Cells.IgnoredErrors",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Cells.IgnoredErrors::legacy-import",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.Values:legacy-import",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7644,7 +7826,35 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.AutoFilter::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."
+      "limitation":"Color criteria remain preserved on import and block on save; native generation and loaded-package criteria rewrites support the other criteria when the filter range is unchanged."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Tables:legacy-import",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Tables",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Tables::legacy-import",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Tables and structured references project and are written natively, and edits to existing tables are rewritten in place. Custom table styles, sort state, query tables, and adding or removing a table in a loaded XLSB block."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Validation:legacy-import",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Validation",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Validation::legacy-import",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"List, whole-number, decimal, date, time, text-length and custom rules project and are written natively; edited rules are re-encoded on rewrite. Office 2010 validations stored in extension records are preserved but not projected."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.Charts:legacy-import",
@@ -7703,6 +7913,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Conditional:legacy-import",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Formatting.Conditional",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Conditional::legacy-import",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Cell-value, expression, text, date, top/bottom, average, duplicate, blank and error rules, color scales, data bars and icon sets project and are written natively; edited rules are re-encoded on rewrite. Office 2010 extension rules are preserved on import and block on generation or edit."
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Styles:legacy-import",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7714,7 +7938,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-import",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles and differential formats. Complex gradients, style extensions, and custom table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-import",
@@ -7815,6 +8039,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageBreaks:legacy-import",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Print.PageBreaks",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Print.PageBreaks::legacy-import",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageSetup:legacy-import",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7827,6 +8065,20 @@
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
       "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Review.Comments:legacy-import",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Review.Comments",
+      "operation":"Read",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Review.Comments::legacy-import",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Comments project and are written natively, and edits to existing comments are rewritten in place. Threaded comments block, as does adding comments to a sheet of a loaded XLSB that has none."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Security.DigitalSignatures:legacy-import",
@@ -7913,6 +8165,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.IgnoredErrors:legacy-round-trip-edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Cells.IgnoredErrors",
+      "operation":"Edit",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Cells.IgnoredErrors::legacy-round-trip-edit",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.Values:legacy-round-trip-edit",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -7938,7 +8204,35 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.AutoFilter::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."
+      "limitation":"Color criteria remain preserved on import and block on save; native generation and loaded-package criteria rewrites support the other criteria when the filter range is unchanged."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Tables:legacy-round-trip-edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Tables",
+      "operation":"Edit",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Tables::legacy-round-trip-edit",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Tables and structured references project and are written natively, and edits to existing tables are rewritten in place. Custom table styles, sort state, query tables, and adding or removing a table in a loaded XLSB block."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Validation:legacy-round-trip-edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Validation",
+      "operation":"Edit",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Validation::legacy-round-trip-edit",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"List, whole-number, decimal, date, time, text-length and custom rules project and are written natively; edited rules are re-encoded on rewrite. Office 2010 validations stored in extension records are preserved but not projected."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.Charts:legacy-round-trip-edit",
@@ -7997,6 +8291,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Conditional:legacy-round-trip-edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Formatting.Conditional",
+      "operation":"Edit",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Conditional::legacy-round-trip-edit",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Cell-value, expression, text, date, top/bottom, average, duplicate, blank and error rules, color scales, data bars and icon sets project and are written natively; edited rules are re-encoded on rewrite. Office 2010 extension rules are preserved on import and block on generation or edit."
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Styles:legacy-round-trip-edit",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8008,7 +8316,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles and differential formats. Complex gradients, style extensions, and custom table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-round-trip-edit",
@@ -8109,6 +8417,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageBreaks:legacy-round-trip-edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Print.PageBreaks",
+      "operation":"Edit",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Print.PageBreaks::legacy-round-trip-edit",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageSetup:legacy-round-trip-edit",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8121,6 +8443,20 @@
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
       "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Review.Comments:legacy-round-trip-edit",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Review.Comments",
+      "operation":"Edit",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Review.Comments::legacy-round-trip-edit",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Comments project and are written natively, and edits to existing comments are rewritten in place. Threaded comments block, as does adding comments to a sheet of a loaded XLSB that has none."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Security.DigitalSignatures:legacy-round-trip-edit",
@@ -8207,6 +8543,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.IgnoredErrors:legacy-round-trip-preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Cells.IgnoredErrors",
+      "operation":"Preserve",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Cells.IgnoredErrors::legacy-round-trip-preserve",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.Values:legacy-round-trip-preserve",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8232,7 +8582,35 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.AutoFilter::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."
+      "limitation":"Color criteria remain preserved on import and block on save; native generation and loaded-package criteria rewrites support the other criteria when the filter range is unchanged."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Tables:legacy-round-trip-preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Tables",
+      "operation":"Preserve",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Tables::legacy-round-trip-preserve",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Tables and structured references project and are written natively, and edits to existing tables are rewritten in place. Custom table styles, sort state, query tables, and adding or removing a table in a loaded XLSB block."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Validation:legacy-round-trip-preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Data.Validation",
+      "operation":"Preserve",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Validation::legacy-round-trip-preserve",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"List, whole-number, decimal, date, time, text-length and custom rules project and are written natively; edited rules are re-encoded on rewrite. Office 2010 validations stored in extension records are preserved but not projected."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.Charts:legacy-round-trip-preserve",
@@ -8291,6 +8669,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Conditional:legacy-round-trip-preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Formatting.Conditional",
+      "operation":"Preserve",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Conditional::legacy-round-trip-preserve",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Cell-value, expression, text, date, top/bottom, average, duplicate, blank and error rules, color scales, data bars and icon sets project and are written natively; edited rules are re-encoded on rewrite. Office 2010 extension rules are preserved on import and block on generation or edit."
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Styles:legacy-round-trip-preserve",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8302,7 +8694,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles and differential formats. Complex gradients, style extensions, and custom table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-round-trip-preserve",
@@ -8403,6 +8795,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageBreaks:legacy-round-trip-preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Print.PageBreaks",
+      "operation":"Preserve",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Print.PageBreaks::legacy-round-trip-preserve",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageSetup:legacy-round-trip-preserve",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8415,6 +8821,20 @@
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
       "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Review.Comments:legacy-round-trip-preserve",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"",
+      "capabilityId":"Excel.Xlsb.Review.Comments",
+      "operation":"Preserve",
+      "state":"Preserved",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Review.Comments::legacy-round-trip-preserve",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Comments project and are written natively, and edits to existing comments are rewritten in place. Threaded comments block, as does adding comments to a sheet of a loaded XLSB that has none."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Security.DigitalSignatures:legacy-round-trip-preserve",
@@ -8501,6 +8921,20 @@
       "limitation":""
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.IgnoredErrors:legacy-to-modern",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"Excel",
+      "capabilityId":"Excel.Xlsb.Cells.IgnoredErrors",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Cells.IgnoredErrors::legacy-to-modern",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Cells.Values:legacy-to-modern",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8526,7 +8960,35 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.AutoFilter::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"Unsupported criteria remain preserved on import; native generation and loaded-package criteria rewrites support the documented equality-list subset when the filter range is unchanged."
+      "limitation":"Color criteria remain preserved on import and block on save; native generation and loaded-package criteria rewrites support the other criteria when the filter range is unchanged."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Tables:legacy-to-modern",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"Excel",
+      "capabilityId":"Excel.Xlsb.Data.Tables",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Tables::legacy-to-modern",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Tables and structured references project and are written natively, and edits to existing tables are rewritten in place. Custom table styles, sort state, query tables, and adding or removing a table in a loaded XLSB block."
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Data.Validation:legacy-to-modern",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"Excel",
+      "capabilityId":"Excel.Xlsb.Data.Validation",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Data.Validation::legacy-to-modern",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"List, whole-number, decimal, date, time, text-length and custom rules project and are written natively; edited rules are re-encoded on rewrite. Office 2010 validations stored in extension records are preserved but not projected."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Drawing.Charts:legacy-to-modern",
@@ -8585,6 +9047,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Conditional:legacy-to-modern",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"Excel",
+      "capabilityId":"Excel.Xlsb.Formatting.Conditional",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Conditional::legacy-to-modern",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Cell-value, expression, text, date, top/bottom, average, duplicate, blank and error rules, color scales, data bars and icon sets project and are written natively; edited rules are re-encoded on rewrite. Office 2010 extension rules are preserved on import and block on generation or edit."
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formatting.Styles:legacy-to-modern",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8596,7 +9072,7 @@
       "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Formatting.Styles::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
-      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
+      "limitation":"A useful style subset projects and can be generated, including built-in and custom named cell styles and differential formats. Complex gradients, style extensions, and custom table styles remain guarded."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Formulas.Tokens:legacy-to-modern",
@@ -8697,6 +9173,20 @@
       "limitation":"Exact package copy and preservation-aware rewrites retain the carrier; conversion never treats unprojected BIFF12 records as editable parity."
     },
     {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageBreaks:legacy-to-modern",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"Excel",
+      "capabilityId":"Excel.Xlsb.Print.PageBreaks",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Print.PageBreaks::legacy-to-modern",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":""
+    },
+    {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Print.PageSetup:legacy-to-modern",
       "packageId":"OfficeIMO.Excel",
       "formatId":"Excel.Xlsb",
@@ -8709,6 +9199,20 @@
       "sourceCatalog":"OfficeIMO.Excel.Xlsb",
       "extensions":[".xlsb"],
       "limitation":""
+    },
+    {
+      "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Review.Comments:legacy-to-modern",
+      "packageId":"OfficeIMO.Excel",
+      "formatId":"Excel.Xlsb",
+      "targetFormatId":"Excel",
+      "capabilityId":"Excel.Xlsb.Review.Comments",
+      "operation":"Convert",
+      "state":"Supported",
+      "publicApi":"ExcelCompatibilityCatalog.Xlsb",
+      "evidence":"OfficeIMO.Excel.Xlsb::Excel.Xlsb.Review.Comments::legacy-to-modern",
+      "sourceCatalog":"OfficeIMO.Excel.Xlsb",
+      "extensions":[".xlsb"],
+      "limitation":"Comments project and are written natively, and edits to existing comments are rewritten in place. Threaded comments block, as does adding comments to a sheet of a loaded XLSB that has none."
     },
     {
       "id":"legacy:OfficeIMO.Excel.Xlsb:Excel.Xlsb.Security.DigitalSignatures:legacy-to-modern",
