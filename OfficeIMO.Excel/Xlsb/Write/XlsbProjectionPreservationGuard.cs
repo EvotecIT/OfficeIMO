@@ -37,6 +37,10 @@ internal sealed class XlsbProjectionPreservationGuard {
 
     internal bool HasWorksheetChanges(ExcelDocument document) => !Matches(_worksheets, CaptureParts(document, worksheets: true));
 
+    /// <summary>True when <paramref name="part"/> is an editable part whose content and relationships equal the captured state.</summary>
+    internal bool MatchesCaptured(OpenXmlPart part) =>
+        _worksheets.TryGetValue(part.Uri.OriginalString, out string? expected) && expected == Fingerprint(part, worksheets: true, renames: null);
+
     private static bool Matches(Dictionary<string, string> expected, Dictionary<string, string> actual) =>
         expected.Count == actual.Count && expected.All(item => actual.TryGetValue(item.Key, out string? value) && value == item.Value);
 
@@ -50,13 +54,19 @@ internal sealed class XlsbProjectionPreservationGuard {
             foreach (var pair in part.Parts) queue.Enqueue(pair.OpenXmlPart);
             // Document properties are edited through the workbook API and rewritten from the model.
             if (part is ExtendedFilePropertiesPart or CustomFilePropertiesPart) continue;
-            bool editablePart = part is WorksheetPart or WorkbookPart or WorkbookStylesPart or SharedStringTablePart;
-            if (worksheets ? !editablePart : part is WorksheetPart or WorkbookStylesPart or SharedStringTablePart) continue;
-            result.Add(part.Uri.OriginalString, ExcelPackagePartFingerprint.Compute(part, includeContent: worksheets || part is not WorkbookPart,
-                writeContent: part.RootElement == null || renames == null || renames.Count == 0 ? null : writer => ExcelPackageReferenceNormalizer.Copy(part.RootElement, renames).WriteTo(writer),
-                includeChildPart: part is WorkbookPart ? child => child is not WorksheetPart : null));
+            // Legacy comments with their VML drawing, and table definitions, are edited through the worksheet API; the rewrite
+            // compares them with the source itself.
+            bool worksheetOwned = part is WorksheetPart or WorksheetCommentsPart or VmlDrawingPart or TableDefinitionPart;
+            bool editablePart = worksheetOwned || part is WorkbookPart or WorkbookStylesPart or SharedStringTablePart;
+            if (worksheets ? !editablePart : worksheetOwned || part is WorkbookStylesPart or SharedStringTablePart) continue;
+            result.Add(part.Uri.OriginalString, Fingerprint(part, worksheets, renames));
         }
         return result;
     }
+
+    private static string Fingerprint(OpenXmlPart part, bool worksheets, IReadOnlyDictionary<string, string>? renames) =>
+        ExcelPackagePartFingerprint.Compute(part, includeContent: worksheets || part is not WorkbookPart,
+            writeContent: part.RootElement == null || renames == null || renames.Count == 0 ? null : writer => ExcelPackageReferenceNormalizer.Copy(part.RootElement, renames).WriteTo(writer),
+            includeChildPart: part is WorkbookPart ? child => child is not WorksheetPart : null);
 
 }

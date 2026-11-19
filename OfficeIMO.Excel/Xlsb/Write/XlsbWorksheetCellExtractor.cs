@@ -105,36 +105,29 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return ApplyArrayFormulaGroups(sheet, result, formulas).AsReadOnly();
         }
 
+        // Worksheet parts that a feature writer encodes or that the rewrite validates separately: the DrawingML
+        // drawing graph (XlsbWorksheetDrawingWriter, XlsbWorksheetDrawingPlan).
         private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {
-            if (sheet.WorksheetPart.Parts.Any()
-                || sheet.WorksheetPart.ExternalRelationships.Any()) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support relationship-backed content on worksheet '{sheet.Name}'.");
+            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet.WorksheetPart);
+            if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support {unsupportedPart ?? "relationship-backed content"} on worksheet '{sheet.Name}'.");
             }
 
-            OpenXmlElement? unsupported = sheet.WorksheetPart.Worksheet?.ChildElements
-                .FirstOrDefault(element => element is not SheetProperties
-                    && element is not SheetDimension
-                    && element is not SheetViews
-                    && element is not SheetFormatProperties
-                    && element is not Columns
-                    && element is not SheetData
-                    && element is not SheetProtection
-                    && element is not AutoFilter
-                    && element is not MergeCells
-                    && element is not Hyperlinks
-                    && element is not PrintOptions
-                    && element is not PageMargins
-                    && element is not PageSetup
-                    && element is not HeaderFooter);
+            OpenXmlElement? unsupported = XlsbWorksheetContent.FindUnsupported(sheet.WorksheetPart.Worksheet);
             if (unsupported != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported.LocalName}' on worksheet '{sheet.Name}'.");
             }
         }
 
         private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbSheet sourceSheet) {
-            if (sheet.WorksheetPart.Parts.Any()
-                || sheet.WorksheetPart.ExternalRelationships.Any()) {
-                throw new NotSupportedException($"Native XLSB rewriting currently cannot modify relationship-backed worksheet content on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
+            // Comments and their VML drawing are compared with the source by XlsbWorksheetCommentRewrite.
+            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet.WorksheetPart);
+            if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
+                throw new NotSupportedException($"Native XLSB rewriting currently cannot modify {unsupportedPart ?? "relationship-backed worksheet content"} on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
+            }
+            // Edited tables are rewritten in place; adding or removing a table needs new package parts.
+            if (!XlsbWorksheetTableProjector.TryPair(sheet, sourceSheet, out _)) {
+                throw new NotSupportedException($"Native XLSB rewriting cannot add or remove tables on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
             }
 
             XlsbWorksheetGeometryProjector.ValidateUnchanged(sheet, sourceSheet);

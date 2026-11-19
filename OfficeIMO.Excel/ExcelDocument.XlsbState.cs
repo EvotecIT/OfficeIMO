@@ -287,6 +287,7 @@ namespace OfficeIMO.Excel {
             }
             if (_xlsbAdvancedWorkbook != null)
                 foreach (var mapping in _xlsbAdvancedWorkbook.ProjectionPartUris) workbook.ProjectionPartUris[mapping.Key] = mapping.Value;
+            XlsbRelatedPartProjector.MapWorksheetDrawings(this, workbook);
             foreach (var sheet in Sheets) {
                 var native = workbook.Worksheets.FirstOrDefault(item => item.Name == sheet.Name);
                 if (native == null) continue;

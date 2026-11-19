@@ -14,9 +14,9 @@
   "summary": {
     "familyCount": 3,
     "formatCount": 28,
-    "capabilityCount": 138,
+    "capabilityCount": 144,
     "packageCount": 84,
-    "operationCount": 1556
+    "operationCount": 1592
   },
   "fidelityStates": [
     {
@@ -117,7 +117,7 @@
       "id": "word",
       "title": "Microsoft Word",
       "package": "OfficeIMO.Word",
-      "packageVersion": "3.6.0",
+      "packageVersion": "3.6.2",
       "productUrl": "/products/word/",
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -595,7 +595,7 @@
       "id": "excel",
       "title": "Microsoft Excel",
       "package": "OfficeIMO.Excel",
-      "packageVersion": "3.6.0",
+      "packageVersion": "3.6.2",
       "productUrl": "/products/excel/",
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -706,7 +706,7 @@
         }
       ],
       "contract": {
-        "capabilityCount": 49,
+        "capabilityCount": 55,
         "categoryCount": 17,
         "hasUnimplementedCoverage": false,
         "operations": [
@@ -718,13 +718,13 @@
                 "state": "Approximation",
                 "label": "Closest representation",
                 "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
-                "count": 7
+                "count": 5
               },
               {
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 32
+                "count": 40
               },
               {
                 "state": "Opaque",
@@ -742,13 +742,13 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 32
+                "count": 40
               },
               {
                 "state": "PreservedOpaque",
                 "label": "Preserved records",
                 "description": "Original records retained without claiming full editing semantics.",
-                "count": 17
+                "count": 15
               }
             ]
           },
@@ -760,19 +760,19 @@
                 "state": "Approximated",
                 "label": "Editable approximation",
                 "description": "Retained as editable content with a documented approximation.",
-                "count": 13
+                "count": 19
               },
               {
                 "state": "Blocked",
                 "label": "Blocked",
                 "description": "Operation refused when proceeding would silently misrepresent the result.",
-                "count": 15
+                "count": 13
               },
               {
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 19
+                "count": 21
               },
               {
                 "state": "NotApplicable",
@@ -796,7 +796,7 @@
                 "state": "PreservedOpaque",
                 "label": "Preserved records",
                 "description": "Original records retained without claiming full editing semantics.",
-                "count": 39
+                "count": 45
               }
             ]
           },
@@ -808,7 +808,7 @@
                 "state": "Approximated",
                 "label": "Editable approximation",
                 "description": "Retained as editable content with a documented approximation.",
-                "count": 13
+                "count": 19
               },
               {
                 "state": "Blocked",
@@ -826,13 +826,13 @@
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 19
+                "count": 21
               },
               {
                 "state": "Rasterized",
                 "label": "Visual fallback",
                 "description": "Appearance retained as a static image when editability is unavailable.",
-                "count": 7
+                "count": 5
               }
             ]
           },
@@ -856,13 +856,13 @@
                 "state": "EmbeddedSource",
                 "label": "Source retained",
                 "description": "Original source embedded with hash verification for recovery.",
-                "count": 5
+                "count": 3
               },
               {
                 "state": "Native",
                 "label": "Native",
                 "description": "Represented directly in the destination format.",
-                "count": 32
+                "count": 40
               }
             ]
           }
@@ -1049,8 +1049,8 @@
           "formats": [
             ".xlsb"
           ],
-          "capabilityCount": 21,
-          "categoryCount": 16,
+          "capabilityCount": 27,
+          "categoryCount": 17,
           "hasUnimplementedCoverage": false,
           "operations": [
             {
@@ -1061,13 +1061,13 @@
                   "state": "Approximation",
                   "label": "Closest representation",
                   "description": "Mapped to the closest supported representation, with a reported fidelity difference.",
-                  "count": 3
+                  "count": 1
                 },
                 {
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 13
+                  "count": 21
                 },
                 {
                   "state": "Opaque",
@@ -1085,13 +1085,13 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 13
+                  "count": 21
                 },
                 {
                   "state": "PreservedOpaque",
                   "label": "Preserved records",
                   "description": "Original records retained without claiming full editing semantics.",
-                  "count": 8
+                  "count": 6
                 }
               ]
             },
@@ -1103,19 +1103,19 @@
                   "state": "Approximated",
                   "label": "Editable approximation",
                   "description": "Retained as editable content with a documented approximation.",
-                  "count": 3
+                  "count": 9
                 },
                 {
                   "state": "Blocked",
                   "label": "Blocked",
                   "description": "Operation refused when proceeding would silently misrepresent the result.",
-                  "count": 7
+                  "count": 5
                 },
                 {
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 10
+                  "count": 12
                 },
                 {
                   "state": "NotApplicable",
@@ -1139,7 +1139,7 @@
                   "state": "PreservedOpaque",
                   "label": "Preserved records",
                   "description": "Original records retained without claiming full editing semantics.",
-                  "count": 19
+                  "count": 25
                 }
               ]
             },
@@ -1151,7 +1151,7 @@
                   "state": "Approximated",
                   "label": "Editable approximation",
                   "description": "Retained as editable content with a documented approximation.",
-                  "count": 3
+                  "count": 9
                 },
                 {
                   "state": "Blocked",
@@ -1169,13 +1169,13 @@
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 10
+                  "count": 12
                 },
                 {
                   "state": "Rasterized",
                   "label": "Visual fallback",
                   "description": "Appearance retained as a static image when editability is unavailable.",
-                  "count": 3
+                  "count": 1
                 }
               ]
             },
@@ -1193,13 +1193,13 @@
                   "state": "EmbeddedSource",
                   "label": "Source retained",
                   "description": "Original source embedded with hash verification for recovery.",
-                  "count": 4
+                  "count": 2
                 },
                 {
                   "state": "Native",
                   "label": "Native",
                   "description": "Represented directly in the destination format.",
-                  "count": 13
+                  "count": 21
                 }
               ]
             }
@@ -1211,7 +1211,7 @@
       "id": "powerpoint",
       "title": "Microsoft PowerPoint",
       "package": "OfficeIMO.PowerPoint",
-      "packageVersion": "3.6.0",
+      "packageVersion": "3.6.2",
       "productUrl": "/products/powerpoint/",
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
@@ -2891,7 +2891,7 @@
     {
       "id": "OfficeIMO.Excel",
       "slug": "excel",
-      "capabilityCount": 334,
+      "capabilityCount": 370,
       "formats": [
         "DBF/xBase",
         "DOCM/XLSM/XLSB/PPTM families",
@@ -2928,13 +2928,13 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 51
+              "count": 61
             },
             {
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 41
+              "count": 43
             },
             {
               "id": "Rejected",
@@ -2951,19 +2951,19 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 23
+              "count": 25
             },
             {
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 13
+              "count": 19
             },
             {
               "id": "Rejected",
               "label": "Rejected",
               "description": "The operation deliberately fails to prevent unsafe or misleading output.",
-              "count": 15
+              "count": 13
             },
             {
               "id": "Unsupported",
@@ -2992,7 +2992,7 @@
               "id": "Preserved",
               "label": "Preserved",
               "description": "Source content is retained without claiming editable interpretation.",
-              "count": 39
+              "count": 45
             },
             {
               "id": "Rejected",
@@ -3043,7 +3043,7 @@
               "id": "Preserved",
               "label": "Preserved",
               "description": "Source content is retained without claiming editable interpretation.",
-              "count": 39
+              "count": 45
             }
           ]
         },
@@ -3054,13 +3054,13 @@
               "id": "Supported",
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
-              "count": 35
+              "count": 43
             },
             {
               "id": "Preserved",
               "label": "Preserved",
               "description": "Source content is retained without claiming editable interpretation.",
-              "count": 17
+              "count": 15
             },
             {
               "id": "NotApplicable",

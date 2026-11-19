@@ -127,7 +127,9 @@ namespace OfficeIMO.Excel.Xlsb {
             int totalRowDefinitions = 0;
             int totalMergedRanges = 0;
             int totalHyperlinks = 0;
-            foreach (XlsbSheet worksheet in workbook.Sheets) {
+            var pendingTableFormulas = new List<XlsbTablePartReader.PendingFormula>();
+            for (int sheetIndex = 0; sheetIndex < workbook.Sheets.Count; sheetIndex++) {
+                XlsbSheet worksheet = workbook.Sheets[sheetIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!relationships.TryGetValue(worksheet.RelationshipId, out XlsbPackageRelationship? relationship)
                     || relationship.IsExternal
@@ -138,10 +140,27 @@ namespace OfficeIMO.Excel.Xlsb {
 
                 string sheetPartName = XlsbPackagePartReader.ResolveTarget(workbookPartName!, relationship.Target);
                 worksheet.PartName = sheetPartName;
-                IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = parts.ReadRelationships(sheetPartName, cancellationToken);
-                worksheet.Relationships = worksheetRelationships;
+                worksheet.Relationships = parts.ReadRelationships(sheetPartName, cancellationToken);
                 if (relationship.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartsheet") {
                     worksheet.IsChartSheet = true;
+                    continue;
+                }
+                // Tables are read before any cell so formulas can name them by their workbook-wide ids.
+                ReadTables(parts, worksheet, sheetIndex, resolved, workbook, recordBudget, pendingTableFormulas);
+            }
+            XlsbTablePartReader.ResolveFormulas(pendingTableFormulas, workbook);
+            // Defined-name formulas can use structured references, so they are decoded after the tables.
+            ResolveDefinedNames(resolved, workbook, workbookPartName!);
+            foreach (XlsbTable table in workbook.Tables.Values.Where(table => table.HasUnsupportedContent)) {
+                workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-table-partial", XlsbImportDiagnosticSeverity.Warning,
+                    $"Projected table '{table.DisplayName}' while keeping records outside the supported table subset in its native part.", table.PartName));
+            }
+
+            foreach (XlsbSheet worksheet in workbook.Sheets) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string sheetPartName = worksheet.PartName!;
+                IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = worksheet.Relationships;
+                if (worksheet.IsChartSheet) {
                     ReadChartSheet(parts, sheetPartName, worksheet, resolved, workbook, recordBudget);
                     continue;
                 }
@@ -158,6 +177,8 @@ namespace OfficeIMO.Excel.Xlsb {
                     ref totalRowDefinitions,
                     ref totalMergedRanges,
                     ref totalHyperlinks);
+                ReadComments(parts, sheetPartName, worksheet, resolved, workbook, recordBudget);
+                ReadWorksheetDrawingGraph(parts, sheetPartName, worksheet, resolved, workbook);
             }
 
             ReadVbaProjectGraph(parts, workbookPartName!, relationships, resolved, workbook);
@@ -172,6 +193,38 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             return workbook;
+        }
+
+        private static void ReadTables(XlsbPackagePartReader parts, XlsbSheet worksheet, int sheetIndex, XlsbImportOptions options,
+            XlsbWorkbook workbook, XlsbRecordReadBudget recordBudget, List<XlsbTablePartReader.PendingFormula> pending) {
+            bool unreadable = false;
+            foreach (XlsbPackageRelationship relationship in worksheet.Relationships.Values) {
+                if (!XlsbTablePartReader.IsTableRelationship(relationship)) continue;
+                string partName = XlsbPackagePartReader.ResolveTarget(worksheet.PartName!, relationship.Target);
+                // Single-cell XML tables use their own part type and stay preserved natively.
+                if (parts.GetContentType(partName) != Write.XlsbWorksheetTableWriter.ContentType) continue;
+                XlsbTable table;
+                try {
+                    table = XlsbTablePartReader.Read(parts.ReadPart(partName, options.CancellationToken), relationship.Id, partName,
+                        sheetIndex, options, recordBudget, pending);
+                    if (workbook.Tables.ContainsKey(table.Id)) {
+                        throw new InvalidDataException($"The XLSB workbook contains more than one table with id {table.Id}.");
+                    }
+                } catch (Exception exception) when (exception is InvalidDataException or EndOfStreamException) {
+                    // An unreadable table stays in its native part; the worksheet then keeps all of its tables unprojected.
+                    workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-table-partial", XlsbImportDiagnosticSeverity.Warning,
+                        $"Kept table part '{partName}' native because it could not be decoded: {exception.Message}", partName));
+                    unreadable = true;
+                    continue;
+                }
+                workbook.Tables.Add(table.Id, table);
+                worksheet.Tables.Add(relationship.Id, table);
+            }
+            // The worksheet projects its tables only when every table part is readable (XlsbWorksheetTableReader). Decide it
+            // here, before any name or cell formula is decoded, so formulas never name a table the model will not contain.
+            if (unreadable) {
+                foreach (XlsbTable table in worksheet.Tables.Values) table.IsProjected = false;
+            }
         }
 
         private static void ParseWorkbookPart(
@@ -264,8 +317,7 @@ namespace OfficeIMO.Excel.Xlsb {
                         break;
                 }
             }
-
-            ResolveDefinedNames(options, workbook, partName);
+            // Defined names are decoded once every table is known (see Load), so names such as Sales[Amount] resolve.
         }
 
         private static XlsbDefinedName ParseDefinedName(XlsbRecord record, XlsbImportOptions options) {
@@ -341,9 +393,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
                 if (XlsbDefinedNameFormulaCodec.TryDecode(
                     definedName,
-                    workbook.ExternalSheetReferences,
-                    workbook.SelfSupportingLinks,
-                    workbook.Sheets,
+                    workbook,
                     out string? formulaText,
                     out string? reason)) {
                     definedName.FormulaText = formulaText;
@@ -531,6 +581,7 @@ namespace OfficeIMO.Excel.Xlsb {
             bool inHeaderFooter = false;
             uint declaredMergeCount = 0;
             int actualMergeCount = 0;
+            var features = new XlsbWorksheetFeatureReader(worksheet, workbook, sheetIndex, partName);
             foreach (XlsbRecord record in records) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 if (currentAutoFilter != null && !IsSupportedAutoFilterRecord(record.Type)) {
@@ -539,6 +590,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     PreserveRecord(options, workbook, partName, record);
                     continue;
                 }
+                if (!inSheetData && features.TryRead(record)) continue;
                 switch (record.Type) {
                     case BrtBeginSheet:
                     case BrtEndSheet:
@@ -725,8 +777,19 @@ namespace OfficeIMO.Excel.Xlsb {
                         }
                         inFilterValues = false;
                         break;
+                    case XlsbAutoFilterCriteria.BrtIconFilter:
+                    case XlsbAutoFilterCriteria.BrtTop10Filter:
+                    case XlsbAutoFilterCriteria.BrtDynamicFilter:
+                    case XlsbAutoFilterCriteria.BrtBeginCustomFilters:
+                    case XlsbAutoFilterCriteria.BrtEndCustomFilters:
+                    case XlsbAutoFilterCriteria.BrtCustomFilter:
+                        if (currentFilterColumn == null || inFilterValues) {
+                            throw new InvalidDataException($"The AutoFilter criterion record {record.Type} at offset {record.Offset} appears outside an AutoFilter column.");
+                        }
+                        XlsbWorksheetAutoFilterReader.ReadCriterion(record, currentFilterColumn);
+                        break;
                     case BrtEndFilterColumn:
-                        if (record.Data.Length != 0 || currentFilterColumn == null || inFilterValues) {
+                        if (record.Data.Length != 0 || currentFilterColumn == null || inFilterValues || currentFilterColumn.InCustomFilters) {
                             throw new InvalidDataException($"The BrtEndFilterColumn record at offset {record.Offset} is invalid or has no matching begin record.");
                         }
                         currentFilterColumn = null;
@@ -820,12 +883,13 @@ namespace OfficeIMO.Excel.Xlsb {
             if (inSheetData || inColumnInfos || inMergeCells || currentAutoFilter != null || currentFilterColumn != null || inFilterValues || inHeaderFooter) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains an unterminated record collection.");
             }
+            features.Complete();
 
             if (worksheet.AutoFilter?.HasUnsupportedContent == true) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
                     "xlsb-autofilter-partial",
                     XlsbImportDiagnosticSeverity.Warning,
-                    $"Projected the AutoFilter range on worksheet '{worksheet.Name}' while preserving criteria outside the supported equality-list subset.",
+                    $"Projected the AutoFilter range on worksheet '{worksheet.Name}' while preserving criteria outside the supported equality-list, custom, top 10, dynamic and icon subset.",
                     partName));
             }
 
@@ -838,7 +902,8 @@ namespace OfficeIMO.Excel.Xlsb {
                     try {
                         byte[] materialized = group.Materialize(member.Row, member.Column);
                         int count = checked((int)XlsbFormulaGroup.Read(materialized, 2));
-                        if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook, sheetIndex)) member.FormulaText = text;
+                        byte[] extra = materialized.Skip(10 + count).ToArray();
+                        if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook, sheetIndex, extra)) member.FormulaText = text;
                     } catch (NotSupportedException) {
                         workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-formula-preserved", XlsbImportDiagnosticSeverity.Warning,
                             "Preserved an unsupported grouped formula and its cached result.", partName));
@@ -851,8 +916,10 @@ namespace OfficeIMO.Excel.Xlsb {
             }
         }
 
+        // BrtColorFilter refers to differential formats, which the reader does not project.
         private static bool IsSupportedAutoFilterRecord(int recordType) =>
-            recordType >= BrtBeginAFilter && recordType <= BrtFilter;
+            recordType >= BrtBeginAFilter && recordType <= XlsbAutoFilterCriteria.BrtCustomFilter
+            && recordType != XlsbAutoFilterCriteria.BrtColorFilter;
 
         private static XlsbCellRange ParseCellRange(XlsbRecord record, string recordName) {
             if (record.Data.Length != 16) {

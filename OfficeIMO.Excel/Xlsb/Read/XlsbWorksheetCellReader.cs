@@ -119,7 +119,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 FormulaBytes = tokens,
                 FormulaPayloadBytes = CopyTail(record.Data, formulaPayloadOffset)
             };
-            if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText, workbook, sheetIndex)) {
+            byte[]? extra = null;
+            if (cursor.Remaining >= 4) {
+                uint extraCount = cursor.ReadUInt32();
+                if (extraCount <= cursor.Remaining) extra = cursor.ReadBytes(checked((int)extraCount));
+            }
+            if (XlsbFormulaTextReader.TryRead(tokens, out string? formulaText, workbook, sheetIndex, extra)) {
                 cell.FormulaText = formulaText;
             } else if (!(tokens.Length == 5 && tokens[0] == 1)) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(

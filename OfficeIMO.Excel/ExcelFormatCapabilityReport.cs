@@ -90,13 +90,13 @@ namespace OfficeIMO.Excel {
                     "Classic chart authoring",
                     ExcelFormatCapabilityStatus.Native,
                     ExcelFormatCapabilityStatus.PreserveOnly,
-                    ExcelFormatCapabilityStatus.PreserveOnly,
-                    "Native XLS and XLSB writers do not yet create drawing/chart records; existing binary chart metadata is preserved or reported where supported."),
+                    ExcelFormatCapabilityStatus.NativeSubset,
+                    "The XLSB writer stores worksheet charts and images of new workbooks as their DrawingML parts and keeps them when a loaded XLSB is edited; adding them to a loaded XLSB and generating chart sheets are not yet supported. The XLS writer does not create chart records."),
                 new ExcelFormatCapabilityEntry(
                     "Histogram, Pareto, funnel, and waterfall recipes",
                     ExcelFormatCapabilityStatus.CompatibleRecipe,
                     ExcelFormatCapabilityStatus.Unsupported,
-                    ExcelFormatCapabilityStatus.Unsupported,
+                    ExcelFormatCapabilityStatus.CompatibleRecipe,
                     "These helpers intentionally use classic chart primitives; native ChartEx has a separate authoring surface."),
                 new ExcelFormatCapabilityEntry(
                     "Native ChartEx authoring and mutation",

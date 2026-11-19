@@ -11,6 +11,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtEndFonts = 612;
         private const int BrtBeginCellXfs = 617;
         private const int BrtEndCellXfs = 618;
+        private const int BrtBeginDxfs = 505;
+        private const int BrtEndDxfs = 506;
         private const int MaximumFonts = 0xFFD3;
         private const int MaximumCellFormats = 0xFF96;
 
@@ -61,6 +63,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Border[] borders = GetAppendedItems<Border>(current.Borders, expected.Borders, "borders");
             NumberingFormat[] formats = GetAppendedItems<NumberingFormat>(current.NumberingFormats, expected.NumberingFormats, "number formats");
             CellFormat[] xfs = GetAppendedItems<CellFormat>(current.CellFormats, expected.CellFormats, "cell formats");
+            DifferentialFormat[] dxfs = GetAppendedItems<DifferentialFormat>(current.DifferentialFormats, expected.DifferentialFormats, "differential formats");
             int fontCount = checked(sourceWorkbook.Stylesheet.Fonts.Count + fonts.Length);
             int fillCount = checked(sourceWorkbook.Stylesheet.Fills.Count + fills.Length);
             int borderCount = checked(sourceWorkbook.Stylesheet.Borders.Count + borders.Length);
@@ -81,7 +84,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 new Collection(BrtBeginFonts, BrtEndFonts, sourceWorkbook.Stylesheet.Fonts.Count, fonts.Select(XlsbStylesheetPartWriter.CreateFontRecord).ToArray()),
                 new Collection(603, 604, sourceWorkbook.Stylesheet.Fills.Count, fills.Select(XlsbStylesheetPartWriter.CreateFillRecord).ToArray()),
                 new Collection(613, 614, sourceWorkbook.Stylesheet.Borders.Count, borders.Select(XlsbStylesheetPartWriter.CreateBorderRecord).ToArray()),
-                new Collection(BrtBeginCellXfs, BrtEndCellXfs, sourceWorkbook.Stylesheet.CellFormats.Count, xfs.Select(format => XlsbStylesheetPartWriter.CreateCellFormatRecord(format)).ToArray())
+                new Collection(BrtBeginCellXfs, BrtEndCellXfs, sourceWorkbook.Stylesheet.CellFormats.Count, xfs.Select(format => XlsbStylesheetPartWriter.CreateCellFormatRecord(format)).ToArray()),
+                new Collection(BrtBeginDxfs, BrtEndDxfs, sourceWorkbook.Stylesheet.DifferentialFormats.Count, dxfs.Select(Styles.XlsbDifferentialFormatCodec.CreateRecord).ToArray())
             };
             byte[] replacement = RewriteCollections(sourcePartBytes, collections, maximumBytes);
             return new XlsbStylesheetRewritePlan(sourceWorkbook.StylesheetPartName, replacement, cellFormatCount);
@@ -89,7 +93,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static void ValidateRootAndUnchangedCollections(Stylesheet current, Stylesheet expected) {
             if (!AttributesMatch(current, expected, ignoreCount: false)) ThrowUnsupportedMutation();
-            static bool Editable(OpenXmlElement element) => element is Fonts or Fills or Borders or NumberingFormats or CellFormats;
+            static bool Editable(OpenXmlElement element) => element is Fonts or Fills or Borders or NumberingFormats or CellFormats or DifferentialFormats;
             if (current.ChildElements.Where(Editable).GroupBy(element => element.GetType()).Any(group => group.Count() != 1)) ThrowUnsupportedMutation();
             OpenXmlElement[] currentChildren = current.ChildElements.Where(element => !Editable(element)).ToArray();
             OpenXmlElement[] expectedChildren = expected.ChildElements.Where(element => !Editable(element)).ToArray();
@@ -225,6 +229,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void ThrowUnsupportedMutation() =>
-            throw new NotSupportedException("Native XLSB rewriting supports append-only font, fill, border, number-format and cell-format additions to the workbook style table. Save other style changes as .xlsx.");
+            throw new NotSupportedException("Native XLSB rewriting supports append-only font, fill, border, number-format, cell-format and differential-format additions to the workbook style table. Save other style changes as .xlsx.");
     }
 }

@@ -12,14 +12,32 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtSupSelf = 357;
         private const int BrtExternSheet = 362;
 
-        internal static void Validate(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
-            CreatePlan(definedNames, sheets);
+        internal static void Validate(ExcelDocument document, DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
+            CreatePlan(definedNames, sheets, new XlsbNewWorkbookFormulaContext(document, sheets, definedNames));
+        }
+
+        /// <summary>
+        /// The number of BrtName records written before the future-function names that formulas add: one per
+        /// definedName element, then one _FilterDatabase name per AutoFilter worksheet that has none.
+        /// </summary>
+        internal static int CountPlannedRecords(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
+            var filterDatabaseSheets = new HashSet<uint>();
+            int count = 0;
+            foreach (DefinedName definedName in definedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
+                count++;
+                if (IsFilterDatabaseName(definedName.Name?.Value) && definedName.LocalSheetId?.Value is uint scope) filterDatabaseSheets.Add(scope);
+            }
+            for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
+                if (!filterDatabaseSheets.Contains(checked((uint)sheetIndex))
+                    && sheets[sheetIndex].WorksheetPart.Worksheet?.GetFirstChild<AutoFilter>() != null) count++;
+            }
+            return count;
         }
 
         internal static void Write(Stream output, DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets,
             XlsbNewWorkbookFormulaContext? formulas = null) {
             ArgumentNullException.ThrowIfNull(output);
-            XlsbDefinedNamePlan plan = CreatePlan(definedNames, sheets);
+            XlsbDefinedNamePlan plan = CreatePlan(definedNames, sheets, formulas);
             bool cellReferences = formulas?.UsesExternalSheets == true;
             if (plan.Records.Count == 0 && !cellReferences) return;
 
@@ -33,7 +51,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static XlsbDefinedNamePlan CreatePlan(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets) {
+        private static XlsbDefinedNamePlan CreatePlan(DefinedNames? definedNames, IReadOnlyList<ExcelSheet> sheets,
+            XlsbNewWorkbookFormulaContext? formulas) {
             ArgumentNullException.ThrowIfNull(sheets);
             if (definedNames != null
                 && definedNames.HasChildren
@@ -64,12 +83,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     throw new NotSupportedException($"Defined name '{openXmlName}' has a comment longer than the XLSB limit of 255 characters.");
                 }
                 string formulaText = definedName.Text ?? string.Empty;
+                if (XlsbFutureFunctions.TryGetName(openXmlName, out string futureFunction)) {
+                    if (localSheetIndex != uint.MaxValue || comment != null
+                        || !string.Equals(formulaText.Trim().TrimStart('='), XlsbFutureFunctions.NameFormulaText, StringComparison.Ordinal)) {
+                        throw new NotSupportedException($"Native XLSB generation writes future-function name '{openXmlName}' only as a workbook-scoped {XlsbFutureFunctions.NameFormulaText} name without a comment.");
+                    }
+                    records.Add(XlsbDefinedNameRecord.FutureFunction(futureFunction));
+                    continue;
+                }
+                byte[] formulaExtra = Array.Empty<byte>();
                 if (!TryEncodeReferenceFormula(
                     formulaText,
                     localSheetIndex,
                     sheets,
                     out byte[]? formulaTokens,
-                    out string? reason)) {
+                    out string? reason)
+                    && !TryEncodeExpressionFormula(formulaText, localSheetIndex, sheets, formulas, out formulaTokens, out formulaExtra, ref reason)) {
                     throw new NotSupportedException($"Native XLSB generation cannot write defined name '{openXmlName}': {reason}.");
                 }
 
@@ -79,7 +108,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
                 uint flags = (definedName.Hidden?.Value == true ? 0x00000001U : 0U)
                     | (builtIn ? 0x00000020U : 0U);
-                records.Add(new XlsbDefinedNameRecord(flags, localSheetIndex, recordName, formulaTokens!, comment));
+                records.Add(new XlsbDefinedNameRecord(flags, localSheetIndex, recordName, formulaTokens!, formulaExtra, comment));
                 if (builtIn
                     && string.Equals(recordName, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
                     && localSheetIndex != uint.MaxValue) {
@@ -88,8 +117,56 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             AppendAutoFilterDefinedNames(records, filterDatabaseSheets, sheets);
+            // Formulas encoded so far (worksheets, then the names above) reserved these indexes after the planned names.
+            foreach (string futureFunction in formulas?.AddedFutureFunctions ?? Array.Empty<string>()) {
+                records.Add(XlsbDefinedNameRecord.FutureFunction(futureFunction));
+            }
 
             return new XlsbDefinedNamePlan(records);
+        }
+
+        private static bool IsFilterDatabaseName(string? name) =>
+            string.Equals(name, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(name, "_xlnm._FilterDatabase", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Encodes a defined name that is an expression rather than a reference list, for example an array constant.</summary>
+        private static bool TryEncodeExpressionFormula(
+            string formulaText,
+            uint localSheetIndex,
+            IReadOnlyList<ExcelSheet> sheets,
+            XlsbNewWorkbookFormulaContext? formulas,
+            out byte[]? formulaTokens,
+            out byte[] formulaExtra,
+            ref string? reason) {
+            formulaTokens = null;
+            formulaExtra = Array.Empty<byte>();
+            if (formulas == null) return false;
+            string text = formulaText.Trim();
+            if (text.StartsWith("=", StringComparison.Ordinal)) text = text.Substring(1);
+            if (text.Length == 0) return false;
+            string scopeSheet = localSheetIndex == uint.MaxValue ? string.Empty : sheets[checked((int)localSheetIndex)].Name;
+            if (!formulas.TryEncode(text, scopeSheet, out byte[] payload, out string? expressionReason,
+                    resultClass: ExcelNativeFormulaOperandTypes.Reference)) {
+                reason = expressionReason ?? reason;
+                return false;
+            }
+            // CellParsedFormula without grbit: cce, rgce, cb, rgcb, the NameParsedFormula layout (2.5.98.12).
+            int tokenCount = checked((int)(payload[2] | payload[3] << 8 | payload[4] << 16 | payload[5] << 24));
+            byte[] tokens = new byte[tokenCount];
+            Buffer.BlockCopy(payload, 6, tokens, 0, tokenCount);
+            byte[] extra = new byte[payload.Length - 10 - tokenCount];
+            Buffer.BlockCopy(payload, 10 + tokenCount, extra, 0, extra.Length);
+            bool relative = false;
+            XlsbFormulaTokenScanner.Visit(tokens, 0, tokens.Length, (offset, token, operand) => {
+                if (token >= 0x20 && (token & 0x1F) is 0x04 or 0x05 or 0x0C or 0x0D) relative = true;
+            });
+            if (relative) {
+                reason = "its expression refers to cells without a sheet name; qualify each reference with its sheet";
+                return false;
+            }
+            formulaTokens = tokens;
+            formulaExtra = extra;
+            return true;
         }
 
         private static void AppendAutoFilterDefinedNames(
@@ -120,6 +197,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     localSheetIndex,
                     "_FilterDatabase",
                     formulaTokens!,
+                    Array.Empty<byte>(),
                     comment: null));
             }
         }
@@ -312,8 +390,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteWideString(output, record.Name);
             WriteUInt32(output, checked((uint)record.FormulaTokens.Length));
             output.Write(record.FormulaTokens, 0, record.FormulaTokens.Length);
-            WriteUInt32(output, 0); // cbExtra
+            WriteUInt32(output, checked((uint)record.FormulaExtra.Length));
+            output.Write(record.FormulaExtra, 0, record.FormulaExtra.Length);
             WriteNullableWideString(output, record.Comment);
+            if ((record.Flags & 0x00000008U) != 0) {
+                // fProc names carry unusedstring1, description, helpTopic and unusedstring2.
+                for (int index = 0; index < 4; index++) WriteNullableWideString(output, null);
+            }
             return output.ToArray();
         }
 
@@ -419,18 +502,24 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private sealed class XlsbDefinedNameRecord {
-            internal XlsbDefinedNameRecord(uint flags, uint localSheetIndex, string name, byte[] formulaTokens, string? comment) {
+            internal XlsbDefinedNameRecord(uint flags, uint localSheetIndex, string name, byte[] formulaTokens, byte[] formulaExtra, string? comment) {
                 Flags = flags;
                 LocalSheetIndex = localSheetIndex;
                 Name = name;
                 FormulaTokens = formulaTokens;
+                FormulaExtra = formulaExtra;
                 Comment = comment;
             }
+
+            /// <summary>A future-function name (2.4.718): hidden XLM function name whose formula is a single #NAME? error.</summary>
+            internal static XlsbDefinedNameRecord FutureFunction(string name) =>
+                new XlsbDefinedNameRecord(XlsbFutureFunctions.NameFlags, uint.MaxValue, name, new byte[] { 0x1C, 0x1D }, Array.Empty<byte>(), comment: null);
 
             internal uint Flags { get; }
             internal uint LocalSheetIndex { get; }
             internal string Name { get; }
             internal byte[] FormulaTokens { get; }
+            internal byte[] FormulaExtra { get; }
             internal string? Comment { get; }
         }
     }

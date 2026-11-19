@@ -725,15 +725,13 @@ The [Draw API](../OfficeIMO.OpenDocument/README.md#create-and-edit-draw-document
 
 A workbook loaded from XLSX or XLS and saved as XLSB must keep everything the shared Excel model carries. The native writer refuses the content below with `NotSupportedException`, and conversion reports it as blocked or uses the [cell-raster fallback](Compatibility/generated/excel-xlsb.md). Each item needs writer records, reader projection and a round-trip test.
 
-- [ ] Write legacy cell comments: the BIFF12 comments part (`BrtBeginComments`, authors, `BrtCommentText` rich text) with its VML legacy-drawing part, and project comments when reading XLSB.
-- [ ] Write data validation (`BrtBeginDVals`, `BrtDVal`) using the bounded formula encoder for list, whole-number, decimal, date, time, text-length and custom rules, and project it when reading XLSB.
-- [ ] Write differential formats (`BrtBeginDxfs`, `BrtDXF`) and conditional formatting (`BrtBeginConditionalFormatting`, `BrtBeginCFRule`), including the Office 2010 extension rules the model carries, and project both when reading XLSB.
-- [ ] Write tables as BIFF12 list parts (`BrtBeginList` and its columns, style and AutoFilter) and project them when reading XLSB.
-- [ ] Write image and chart drawings by carrying the DrawingML drawing, chart and media parts with `BrtDrawing`, and write chart sheets. Worksheet and chart-sheet drawings are refused today.
-- [ ] Write manual page breaks (`BrtBeginRwBrk`, `BrtBeginColBrk`, `BrtBrk`) and ignored-error ranges (`BrtBeginCellIgnoreECs`, `BrtCellIgnoreEC`), and project both when reading XLSB.
-- [ ] Encode array constants inside expressions, such as `SUM(A1:A3*{1;2;3})`, and future-function defined names such as `_xlfn.AVERAGEIF`, in the native formula and name encoders.
-- [ ] Write AutoFilter criteria beyond equality lists: custom, top-10, dynamic, color and icon filters.
-- [ ] Encode rich text runs, added cell styles and changed sheet views when rewriting a loaded XLSB package; that path refuses those edits and keeps unchanged native records.
+- [ ] Add related parts when rewriting a loaded XLSB: the first comments, a table, or a drawing on an existing sheet, and any of them on a sheet added to the loaded workbook. Removing every comment, adding or removing a table, and adding, removing or editing a drawing are refused for the same reason.
+- [ ] Write chart sheets (the BIFF12 chart-sheet part with `BrtCsProp`, chart-sheet views and `BrtDrawing`, interleaved with worksheets in the workbook bundle, defined-name and formula sheet indexes), ChartEx charts and SmartArt drawing parts.
+- [ ] Write and project the Office 2010 extensions: conditional-formatting rules (`BrtBeginCFRule14` in `CONDITIONALFORMATTINGS`), data validations stored in `BrtDVal14`, and threaded comments.
+- [ ] Write AutoFilter color criteria (`BrtColorFilter`) against the differential-format table, and project boolean, blank and non-blank custom filter conditions.
+- [ ] Write custom table styles, table sort state, and gradient fills in differential formats.
+- [ ] Encode `LAMBDA`, `LET` and future functions missing from the MS-XLSB future-function table, such as `_xlfn.XMATCH`.
+- [ ] Encode rich text runs, added cell styles, changed sheet views, and comment runs that need a new font when rewriting a loaded XLSB package; that path refuses those edits and keeps unchanged native records.
 
 ## Microsoft Project document library
 

@@ -11,6 +11,7 @@ internal sealed class XlsbFormulaWriteContext : IXlsbFormulaEncodingContext {
     private readonly XlsbSheetStructure _structure;
     private LegacyXlsExternSheetTable? _links;
     private LegacyXlsFormulaNameIndex? _names;
+    private XlsbTableReferenceIndex? _tables;
     private readonly Dictionary<ushort, ushort> _mapped = new();
     private readonly List<(int First, int Last)> _added = new();
     private int _selfLink = -1;
@@ -19,7 +20,7 @@ internal sealed class XlsbFormulaWriteContext : IXlsbFormulaEncodingContext {
         _document = document; _source = source; _structure = structure;
     }
 
-    public bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false) {
+    public bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false, byte resultClass = 0) {
         var sheets = _document.Sheets.ToArray();
         _links ??= LegacyXlsExternSheetTable.Create(_document, sheets);
         if (_links.SupportingLinkRecords.Count > 1) throw new NotSupportedException("New external-workbook XLSB formulas require an external-link writer.");
@@ -39,9 +40,21 @@ internal sealed class XlsbFormulaWriteContext : IXlsbFormulaEncodingContext {
             _names = new LegacyXlsFormulaNameIndex(global, local, _links);
         }
         int sheetIndex = Array.FindIndex(sheets, sheet => sheet.Name == sheetName);
+        _tables ??= XlsbTableReferenceIndex.Create(sheets);
         bool result = XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex,
-            MapReference, out payload, out reason, arrayFormula);
+            MapReference, out payload, out reason, arrayFormula, resultClass, ResolveFutureFunction, _tables);
         return result;
+    }
+
+    // A rewritten workbook keeps its BrtName records, so only future functions it already declares can be called.
+    private uint? ResolveFutureFunction(string name) {
+        for (int index = 0; index < _source.DefinedNames.Count; index++) {
+            XlsbDefinedName definedName = _source.DefinedNames[index];
+            if (XlsbFutureFunctions.IsFutureFunctionName(definedName.Flags, definedName.FormulaTokens)
+                && string.Equals(definedName.Name, name, StringComparison.OrdinalIgnoreCase)
+                && _structure.NameIndexes.TryGetValue(checked((uint)index + 1), out uint? mapped)) return mapped;
+        }
+        return null;
     }
 
     public XlsbWriteCell RebindSourceCell(XlsbWriteCell cell) {

@@ -31,9 +31,15 @@ internal sealed class XlsbRichTextFontTable {
     internal XlsbTextRun[]? CreateRuns(Cell cell, uint styleIndex, string text) {
         Run[] items = TextRuns.GetRuns(cell);
         if (!XlsbCellTextRuns.HasFormattedRuns(items)) return null;
+        return CreateRuns(items, GetCellFont(styleIndex), text, "rich cell text");
+    }
 
-        ushort cellFont = GetCellFont(styleIndex);
-        var result = new List<XlsbTextRun>(items.Length);
+    /// <summary>
+    /// Returns the runs for <paramref name="items"/> whose concatenated text is <paramref name="text"/>, or null when
+    /// every run uses <paramref name="cellFont"/>. Runs without properties use <paramref name="cellFont"/>.
+    /// </summary>
+    internal XlsbTextRun[]? CreateRuns(IReadOnlyList<Run> items, ushort cellFont, string text, string purpose) {
+        var result = new List<XlsbTextRun>(items.Count);
         int position = 0;
         foreach (Run run in items) {
             int length = Utilities.ExcelSanitizer.DecodeXString(run.Text?.Text ?? string.Empty).Length;
@@ -43,7 +49,7 @@ internal sealed class XlsbRichTextFontTable {
             position += length;
         }
         if (position != text.Length) {
-            throw new NotSupportedException("Native XLSB generation found rich cell text whose runs do not match the cell text.");
+            throw new NotSupportedException($"Native XLSB generation found {purpose} whose runs do not match its text.");
         }
         return result.Count == 0 || (result.Count == 1 && result[0].Font == cellFont) ? null : result.ToArray();
     }

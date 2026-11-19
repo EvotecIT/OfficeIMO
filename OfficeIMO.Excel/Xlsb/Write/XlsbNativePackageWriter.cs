@@ -31,6 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var formulas = new XlsbFormulaWriteContext(document, sourceWorkbook, structure);
             var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             var deletions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var generatedTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using (var packageStream = new MemoryStream(sourcePackageBytes, writable: false))
             using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: false)) {
                 byte[]? sourceStylesPart = null;
@@ -63,8 +64,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         var hyperlinks = XlsbWorksheetHyperlinkPlan.Create(sheet, pruneOrphanedRelationships: true);
                         if (hyperlinks.Relationships.Count > 0) replacements[XlsbSheetStructure.RelationshipPartName(structure.PartNames[binding.Part.Uri.OriginalString])] = hyperlinks.CreateRelationshipPart();
                         structure.NewCodeNames.TryGetValue(binding.Name, out string? codeName);
+                        // Relationship-backed content (comments, tables, drawings) cannot yet add parts to a rewritten package.
+                        XlsbWorksheetFeatureRecords newFeatures = XlsbWorksheetFeatureRecords.Create(
+                            new XlsbWorksheetFeatureContext(document, sheet, formulas, parts: null));
                         byte[] createdPart = XlsbWorksheetPartWriter.Create(sheet, newCells,
-                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName);
+                            stylesheetPlan.CellFormatCount, hyperlinks.Records, maximumBytes: maximumBytes, codeName: codeName,
+                            features: newFeatures);
                         replacements.Add(structure.PartNames[binding.Part.Uri.OriginalString], ApplyFormulaCachePolicy(createdPart, calculation, maximumBytes));
                         continue;
                     }
@@ -75,6 +80,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         ?? throw new InvalidDataException($"The source XLSB worksheet part '{partName}' is missing.");
                     byte[] originalPart = ReadEntry(sourceEntry, (int)Math.Min(maximumBytes, MaxWorksheetPartBytes));
                     byte[] reboundPart = XlsbFormulaRecordRebinder.RebindPart(originalPart, structure.NameIndexes, maximumBytes);
+                    XlsbWorksheetDrawingWriter.ValidateUnchanged(sheet, sourceSheet, sourceWorkbook);
                     IReadOnlyList<XlsbWriteCell> cells = XlsbWorksheetCellExtractor.Extract(
                         document,
                         sheet,
@@ -100,11 +106,15 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         autoFilterPlan.Rewrite,
                         hyperlinkPlan?.Records ?? Array.Empty<XlsbGeneratedRecord>(),
                         rewriteHyperlinks, maximumBytes);
+                    var featureContext = new XlsbWorksheetFeatureContext(document, sheet, formulas, parts: null);
+                    rewrittenPart = XlsbRecordBlockEdit.Apply(rewrittenPart, XlsbWorksheetFeatureRewritePlan.Create(featureContext, sourceSheet), maximumBytes);
+                    XlsbWorksheetTableWriter.Rewrite(featureContext, sourceSheet, replacements, generatedTables);
                     rewrittenPart = ApplyFormulaCachePolicy(rewrittenPart, calculation, maximumBytes);
                     rewrittenPart = ApplyTabSelection(rewrittenPart, TabSelectionFor(sheet), maximumBytes);
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
+                    XlsbWorksheetCommentRewrite.Apply(document, sheet, sourceSheet, sourceWorkbook, replacements);
                     if (hyperlinkPlan != null && !hyperlinkPlan.RelationshipsMatch(sourceSheet)) {
                         string relationshipPartName = GetRelationshipPartName(partName);
                         int preservedRelationshipCount = sourceSheet.Relationships.Values.Count(relationship =>
@@ -119,7 +129,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 byte[] currentWorkbook = replacements.TryGetValue(workbookPart, out byte[]? replacementWorkbook) ? replacementWorkbook : ReadPart(workbookPart);
                 byte[] completedWorkbook = RewriteCalculationProperties(document, sourceWorkbook, formulas.CompleteWorkbook(currentWorkbook, maximumBytes), maximumBytes);
                 if (!ReferenceEquals(currentWorkbook, completedWorkbook)) replacements[workbookPart] = completedWorkbook;
-                RebindTableFormulas(archive, structure, replacements, deletions, sourceWorkbook.MaxPartBytes, maximumBytes);
+                RebindTableFormulas(archive, structure, replacements, deletions, generatedTables, sourceWorkbook.MaxPartBytes, maximumBytes);
             }
 
             if (replacements.Count == 0 && deletions.Count == 0) return sourcePackageBytes;
