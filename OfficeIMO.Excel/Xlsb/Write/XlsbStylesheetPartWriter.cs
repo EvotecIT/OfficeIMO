@@ -70,16 +70,22 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteCollection(output, BrtBeginCellXfs, BrtEndCellXfs, cellFormats,
                 (stream, format) => WriteCellFormat(stream, format, isStyleFormat: false));
             WriteCellStyles(output, stylesheet.CellStyles, styleFormats.Length);
-            WriteUInt32Record(output, BrtBeginDxfs, 0);
-            XlsbRecordWriter.Write(output, BrtEndDxfs);
+            DifferentialFormat[] differentialFormats = stylesheet.DifferentialFormats?.Elements<DifferentialFormat>().ToArray()
+                ?? Array.Empty<DifferentialFormat>();
+            WriteCollection(output, BrtBeginDxfs, BrtEndDxfs, differentialFormats, (stream, format) => {
+                XlsbGeneratedRecord record = Styles.XlsbDifferentialFormatCodec.CreateRecord(format);
+                XlsbRecordWriter.Write(stream, record.Type, record.Payload);
+            });
             WriteTableStyles(output, stylesheet.TableStyles);
             XlsbRecordWriter.Write(output, BrtEndStyleSheet);
             return output.ToArray();
         }
 
         private static void ValidateUnsupportedCollections(Stylesheet stylesheet) {
-            if (stylesheet.DifferentialFormats?.Elements<DifferentialFormat>().Any() == true) {
-                throw new NotSupportedException("Native XLSB generation does not yet encode differential formatting records.");
+            if (stylesheet.DifferentialFormats is DifferentialFormats differentialFormats
+                && (differentialFormats.ChildElements.Any(child => child is not DifferentialFormat)
+                    || XlsbOpenXmlAttributeValidator.FindUnsupported(differentialFormats, new[] { "count" }) != null)) {
+                throw new NotSupportedException("Native XLSB generation does not encode extensions on the differential formatting collection.");
             }
             if (stylesheet.Colors != null || stylesheet.ChildElements.Any(element => element.LocalName == "extLst")) {
                 throw new NotSupportedException("Native XLSB generation does not yet encode custom indexed colors or style extensions.");
@@ -381,7 +387,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static void WriteColor(Stream output, ColorType? color) {
+        /// <summary>
+        /// Writes a BrtColor-layout color (MS-XLSB 2.4.337), which XFPropColor (2.5.161) shares; XFPropColor forbids the
+        /// full-shade tint -32768, so <paramref name="allowFullShade"/> false writes -32767 for a tint of -1.
+        /// </summary>
+        internal static void WriteColor(Stream output, ColorType? color, bool allowFullShade = true) {
             byte type = 0;
             byte index = 0;
             byte red = 0;
@@ -412,7 +422,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             output.WriteByte((byte)((type << 1) | 0x01));
             output.WriteByte(index);
-            WriteInt16(output, ToTint(color?.Tint?.Value ?? 0D));
+            short tint = ToTint(color?.Tint?.Value ?? 0D);
+            if (!allowFullShade && tint == short.MinValue) tint = -32767;
+            WriteInt16(output, tint);
             output.WriteByte(red);
             output.WriteByte(green);
             output.WriteByte(blue);
@@ -446,7 +458,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return 0;
         }
 
-        private static uint ToFillPattern(PatternValues? value) {
+        internal static uint ToFillPattern(PatternValues? value) {
             if (value == PatternValues.Solid) return 1;
             if (value == PatternValues.MediumGray) return 2;
             if (value == PatternValues.DarkGray) return 3;
@@ -468,7 +480,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return 0;
         }
 
-        private static byte ToBorderStyle(BorderStyleValues? value) {
+        internal static byte ToBorderStyle(BorderStyleValues? value) {
             if (value == BorderStyleValues.Thin) return 1;
             if (value == BorderStyleValues.Medium) return 2;
             if (value == BorderStyleValues.Dashed) return 3;
@@ -485,7 +497,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return 0;
         }
 
-        private static byte ToHorizontalAlignment(HorizontalAlignmentValues? value) {
+        internal static byte ToHorizontalAlignment(HorizontalAlignmentValues? value) {
             if (value == HorizontalAlignmentValues.Left) return 1;
             if (value == HorizontalAlignmentValues.Center) return 2;
             if (value == HorizontalAlignmentValues.Right) return 3;
@@ -497,7 +509,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         // MS-XLSB BrtXF alcV: 0 is top and 2 is bottom, the SpreadsheetML default for a missing value.
-        private static byte ToVerticalAlignment(VerticalAlignmentValues? value) {
+        internal static byte ToVerticalAlignment(VerticalAlignmentValues? value) {
             if (value == VerticalAlignmentValues.Top) return 0;
             if (value == VerticalAlignmentValues.Center) return 1;
             if (value == VerticalAlignmentValues.Justify) return 3;

@@ -164,7 +164,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (reason != null) {
                 throw new NotSupportedException($"Native XLSB generation cannot encode the data-validation formula '{formula}' on worksheet '{context.Sheet.Name}': {reason}");
             }
-            ConvertToRelative(encoded, 4, cce, anchor);
+            // Excel keeps relative references in data validation formulas as offsets from the first cell of the first range.
+            var tokens = new byte[cce];
+            Buffer.BlockCopy(encoded, 4, tokens, 0, cce);
+            XlsbRelativeReferenceTokens.ToOffsets(tokens, anchor.Row, anchor.Column);
+            Buffer.BlockCopy(tokens, 0, encoded, 4, cce);
             payload.Write(encoded, 0, encoded.Length);
         }
 
@@ -217,42 +221,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             return true;
         }
-
-        /// <summary>
-        /// Rewrites PtgRef/PtgArea with relative parts as PtgRefN/PtgAreaN offsets from the first cell of the first range,
-        /// the form Excel uses for data validation formulas. Absolute references keep their coordinates.
-        /// </summary>
-        private static void ConvertToRelative(byte[] encoded, int start, int length, (int Row, int Column) anchor) {
-            XlsbFormulaTokenScanner.Visit(encoded, start, length, (offset, token, operand) => {
-                int kind = token & 0x1F;
-                if (token < 0x20 || kind is not (0x04 or 0x05)) return;
-                bool area = kind == 0x05;
-                int columnsAt = operand + (area ? 8 : 4);
-                bool relative = false;
-                for (int part = 0; part < (area ? 2 : 1); part++) {
-                    if ((ReadUInt16(encoded, columnsAt + part * 2) & 0xC000) != 0) relative = true;
-                }
-                if (!relative) return;
-                for (int part = 0; part < (area ? 2 : 1); part++) {
-                    int rowAt = operand + part * 4;
-                    int columnAt = columnsAt + part * 2;
-                    ushort columnBits = ReadUInt16(encoded, columnAt);
-                    if ((columnBits & 0x8000) != 0) {
-                        int row = checked((int)XlsbFormulaTokenScanner.ReadUInt32(encoded, rowAt));
-                        XlsbFormulaTokenScanner.WriteUInt32(encoded, rowAt, unchecked((uint)(row - anchor.Row)));
-                    }
-                    if ((columnBits & 0x4000) != 0) {
-                        int column = columnBits & 0x3FFF;
-                        columnBits = (ushort)((columnBits & 0xC000) | ((column - anchor.Column) & 0x3FFF));
-                        encoded[columnAt] = (byte)columnBits;
-                        encoded[columnAt + 1] = (byte)(columnBits >> 8);
-                    }
-                }
-                encoded[offset] = (byte)(token + 0x08); // PtgRef 0x04 -> PtgRefN 0x0C, PtgArea 0x05 -> PtgAreaN 0x0D
-            });
-        }
-
-        private static ushort ReadUInt16(byte[] bytes, int offset) => (ushort)(bytes[offset] | bytes[offset + 1] << 8);
 
         private static bool IsStringLiteral(string formula) {
             string text = formula.StartsWith("=", StringComparison.Ordinal) ? formula.Substring(1) : formula;

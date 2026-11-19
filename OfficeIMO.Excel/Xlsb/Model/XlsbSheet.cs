@@ -99,5 +99,11 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// records may only be copied unchanged.
         /// </summary>
         internal bool HasUndecodedDataValidations { get; set; }
+
+        /// <summary>
+        /// True when the worksheet has conditional formatting that is kept as native records without a projection, such as
+        /// Office 2010 rule extensions; replacing the projected collections would then lose or orphan that content.
+        /// </summary>
+        internal bool HasUnprojectedConditionalFormatting { get; set; }
     }
 }

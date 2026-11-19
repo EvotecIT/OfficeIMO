@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static XlsbWorksheetFeatureRecords Create(XlsbWorksheetFeatureContext context) {
             ArgumentNullException.ThrowIfNull(context);
             var records = new XlsbWorksheetFeatureRecords();
+            XlsbWorksheetConditionalFormattingWriter.Append(records, context);
             XlsbWorksheetPageBreakWriter.Append(records, context);
             XlsbWorksheetIgnoredErrorWriter.Append(records, context);
             XlsbWorksheetDataValidationWriter.Append(records, context);

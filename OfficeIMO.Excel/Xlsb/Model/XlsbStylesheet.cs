@@ -7,6 +7,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         private readonly List<XlsbBorder> _borders = new List<XlsbBorder>();
         private readonly List<XlsbCellFormat> _cellStyleFormats = new List<XlsbCellFormat>();
         private readonly List<XlsbCellFormat> _cellFormats = new List<XlsbCellFormat>();
+        private readonly List<DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat> _differentialFormats =
+            new List<DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat>();
 
         internal IReadOnlyDictionary<ushort, string> NumberFormats => _numberFormats;
 
@@ -19,6 +21,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal IReadOnlyList<XlsbCellFormat> CellStyleFormats => _cellStyleFormats;
 
         internal IReadOnlyList<XlsbCellFormat> CellFormats => _cellFormats;
+
+        /// <summary>Differential formats from the DXFS collection, already in their canonical SpreadsheetML shape.</summary>
+        internal IReadOnlyList<DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat> DifferentialFormats => _differentialFormats;
 
         /// <summary>Named cell styles; empty when the part has none or they stay preserved as native records.</summary>
         internal IReadOnlyList<XlsbCellStyle> CellStyles { get; set; } = Array.Empty<XlsbCellStyle>();
@@ -34,6 +39,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal void AddCellStyleFormat(XlsbCellFormat format) => _cellStyleFormats.Add(format);
 
         internal void AddCellFormat(XlsbCellFormat format) => _cellFormats.Add(format);
+
+        internal void AddDifferentialFormat(DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat format) => _differentialFormats.Add(format);
     }
 
     internal sealed class XlsbColor {

@@ -12,6 +12,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(source);
             var edits = new List<XlsbRecordBlockEdit>();
+            if (!XlsbWorksheetFeatureProjector.Matches<ConditionalFormatting>(context.Sheet, source)) {
+                if (source.HasUnprojectedConditionalFormatting) {
+                    throw new NotSupportedException(
+                        $"Native XLSB rewriting cannot change conditional formatting on worksheet '{context.Sheet.Name}' because it also holds Office 2010 or other conditional formatting that is kept as native records. Save as .xlsx to retain that change.");
+                }
+                edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetConditionalFormattingWriter.BrtBeginConditionalFormatting,
+                    XlsbWorksheetConditionalFormattingWriter.BrtEndConditionalFormatting, XlsbWorksheetConditionalFormattingWriter.Create(context)));
+            }
             if (!XlsbWorksheetFeatureProjector.Matches<RowBreaks>(context.Sheet, source)
                 || !XlsbWorksheetFeatureProjector.Matches<ColumnBreaks>(context.Sheet, source)) {
                 edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetPageBreakWriter.BrtBeginRwBrk, XlsbWorksheetPageBreakWriter.BrtEndRwBrk,

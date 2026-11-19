@@ -26,6 +26,12 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
         private const int BrtStyle = 48;
         private const int BrtBeginStyles = 619;
         private const int BrtEndStyles = 620;
+        private const int BrtBeginDxfs = 505;
+        private const int BrtEndDxfs = 506;
+        private const int BrtFrtBegin = 35;
+        private const int BrtFrtEnd = 36;
+        private const int BrtAcBegin = 37;
+        private const int BrtAcEnd = 38;
         private const int MaxStyleItems = 65_536;
         private const int MaxFonts = 0xFFD3;
         private const int MaxCellFormats = 0xFF96;
@@ -58,7 +64,9 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             int actualCount = 0;
             var styleRecords = new List<XlsbRecord>();
             bool inStyles = false;
+            var differentialFormats = new DifferentialFormatCollectionReader(stylesheet, workbook, partName, options);
             foreach (XlsbRecord record in records) {
+                if (active == CollectionKind.None && differentialFormats.TryRead(record)) continue;
                 switch (record.Type) {
                     case BrtBeginStyleSheet:
                         if (record.Offset != 0 || record.Data.Length != 0) {
@@ -160,6 +168,7 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             if (active != CollectionKind.None) {
                 throw new InvalidDataException($"The XLSB styles part '{partName}' ended inside the {active} collection.");
             }
+            differentialFormats.Complete();
 
             ValidateReferences(stylesheet, partName);
             ProjectCellStyles(stylesheet, styleRecords, options);
@@ -367,7 +376,7 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             return format;
         }
 
-        private static XlsbColor ReadColor(XlsbBinaryCursor cursor) {
+        internal static XlsbColor ReadColor(XlsbBinaryCursor cursor) {
             byte flags = cursor.ReadByte();
             byte index = cursor.ReadByte();
             short tint = cursor.ReadInt16();
@@ -416,6 +425,115 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             XlsbRecord record) {
             if (options.ReportPreservedRecords) {
                 workbook.AddPreservedRecord(new XlsbPreservedRecordInfo(partName, record.Type, record.Offset, record.Size));
+            }
+        }
+
+        /// <summary>
+        /// Reads DXFS (MS-XLSB 2.1.7.50): BrtBeginDXFs, then per DXF either a BrtDXF with optional FRT records or two
+        /// alternate-content blocks (BrtACBegin BrtDXF BrtACEnd BrtACBegin FRTDXF BrtACEnd), where the second block wins.
+        /// </summary>
+        private sealed class DifferentialFormatCollectionReader {
+            private readonly XlsbStylesheet _stylesheet;
+            private readonly XlsbWorkbook _workbook;
+            private readonly string _partName;
+            private readonly XlsbImportOptions _options;
+            private bool _active;
+            private bool _seen;
+            private uint _declared;
+            private int _alternateDepth;
+            private int _alternateBlocks;
+            private int _futureDepth;
+            private DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat? _pending;
+
+            internal DifferentialFormatCollectionReader(XlsbStylesheet stylesheet, XlsbWorkbook workbook, string partName, XlsbImportOptions options) {
+                _stylesheet = stylesheet;
+                _workbook = workbook;
+                _partName = partName;
+                _options = options;
+            }
+
+            internal bool TryRead(XlsbRecord record) {
+                if (!_active) {
+                    if (record.Type != BrtBeginDxfs) return false;
+                    if (_seen || record.Data.Length != 4) {
+                        throw new InvalidDataException($"The XLSB styles part '{_partName}' contains an invalid or repeated differential format collection.");
+                    }
+                    _declared = BitConverter.ToUInt32(record.Data, 0);
+                    if (_declared > int.MaxValue) {
+                        throw new InvalidDataException($"The XLSB styles part '{_partName}' declares too many differential formats.");
+                    }
+                    _seen = true;
+                    _active = true;
+                    return true;
+                }
+                if (_futureDepth > 0) {
+                    if (record.Type == BrtFrtBegin) _futureDepth++;
+                    else if (record.Type == BrtFrtEnd) _futureDepth--;
+                    PreserveRecord(_options, _workbook, _partName, record);
+                    return true;
+                }
+                switch (record.Type) {
+                    case XlsbDifferentialFormatCodec.BrtDXF:
+                        DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat format = Decode(record);
+                        if (_alternateDepth == 0) Add(format);
+                        else _pending = format;
+                        return true;
+                    case BrtAcBegin:
+                        _alternateDepth++;
+                        return true;
+                    case BrtAcEnd:
+                        if (_alternateDepth == 0) throw new InvalidDataException($"The XLSB styles part '{_partName}' contains an unmatched BrtACEnd record.");
+                        if (--_alternateDepth == 0 && ++_alternateBlocks == 2) {
+                            if (_pending == null) {
+                                throw new InvalidDataException($"The XLSB styles part '{_partName}' contains an alternate differential format without a BrtDXF record.");
+                            }
+                            Add(_pending);
+                            _pending = null;
+                            _alternateBlocks = 0;
+                        }
+                        return true;
+                    case BrtFrtBegin:
+                        _futureDepth = 1;
+                        PreserveRecord(_options, _workbook, _partName, record);
+                        return true;
+                    case BrtEndDxfs:
+                        if (_alternateDepth != 0 || _alternateBlocks != 0 || record.Data.Length != 0) {
+                            throw new InvalidDataException($"The XLSB styles part '{_partName}' contains an incomplete differential format.");
+                        }
+                        if (_stylesheet.DifferentialFormats.Count != _declared) {
+                            throw new InvalidDataException(
+                                $"The XLSB differential format collection declares {_declared} items but contains {_stylesheet.DifferentialFormats.Count}.");
+                        }
+                        _active = false;
+                        return true;
+                    default:
+                        throw new InvalidDataException($"The XLSB styles part '{_partName}' contains record {record.Type} inside the differential format collection.");
+                }
+            }
+
+            internal void Complete() {
+                if (_active) throw new InvalidDataException($"The XLSB styles part '{_partName}' ended inside the differential format collection.");
+            }
+
+            private void Add(DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat format) {
+                if (_stylesheet.DifferentialFormats.Count >= _declared) {
+                    throw new InvalidDataException($"The XLSB differential format collection contains more than the {_declared} items it declares.");
+                }
+                _stylesheet.AddDifferentialFormat(format);
+            }
+
+            private DocumentFormat.OpenXml.Spreadsheet.DifferentialFormat Decode(XlsbRecord record) {
+                try {
+                    return XlsbDifferentialFormatCodec.Read(record.Data, type => _workbook.AddDiagnostic(new XlsbImportDiagnostic(
+                        "xlsb-dxf-property-not-projected",
+                        XlsbImportDiagnosticSeverity.Warning,
+                        $"A differential format property of type 0x{type:X2} has no SpreadsheetML equivalent and is not projected.",
+                        _partName,
+                        record.Type,
+                        record.Offset)));
+                } catch (EndOfStreamException exception) {
+                    throw new InvalidDataException($"The BrtDXF record at offset {record.Offset} in '{_partName}' is truncated.", exception);
+                }
             }
         }
 

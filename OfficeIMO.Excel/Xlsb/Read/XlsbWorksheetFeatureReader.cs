@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed class XlsbWorksheetFeatureReader {
         private readonly XlsbWorksheetPageBreakReader _pageBreaks;
         private readonly XlsbWorksheetIgnoredErrorReader _ignoredErrors;
+        private readonly XlsbWorksheetConditionalFormattingReader _conditionalFormatting;
         private readonly XlsbWorksheetDataValidationReader _dataValidations;
 
         internal XlsbWorksheetFeatureReader(XlsbSheet sheet, XlsbWorkbook workbook, int sheetIndex, string partName) {
@@ -18,6 +19,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             PartName = partName;
             _pageBreaks = new XlsbWorksheetPageBreakReader(this);
             _ignoredErrors = new XlsbWorksheetIgnoredErrorReader(this);
+            _conditionalFormatting = new XlsbWorksheetConditionalFormattingReader(this);
             _dataValidations = new XlsbWorksheetDataValidationReader(this);
         }
 
@@ -31,12 +33,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         /// <summary>Consumes <paramref name="record"/> when it belongs to a decoded feature collection.</summary>
         internal bool TryRead(XlsbRecord record) =>
-            _pageBreaks.TryRead(record)
-            || _ignoredErrors.TryRead(record)
-            || _dataValidations.TryRead(record);
+            _conditionalFormatting.TryRead(record)
+            || _dataValidations.TryRead(record)
+            || _pageBreaks.TryRead(record)
+            || _ignoredErrors.TryRead(record);
 
         /// <summary>Called after the last worksheet record; throws when a collection is still open.</summary>
         internal void Complete() {
+            _conditionalFormatting.Complete();
             _pageBreaks.Complete();
             _ignoredErrors.Complete();
             _dataValidations.Complete();
@@ -46,7 +50,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         /// Decodes the cce/rgce/cb/rgcb layout of a DVParsedFormula, CFParsedFormula or similar structure at
         /// <paramref name="offset"/> and advances past it. Returns null when the tokens cannot be shown as text.
         /// </summary>
-        /// <remarks>relativeAnchor is the zero-based cell that PtgRefN/PtgAreaN offsets are relative to, when the structure uses them.</remarks>
+        /// <remarks>Pass the zero-based <paramref name="relativeAnchor"/> cell when the structure stores relative references as
+        /// PtgRefN/PtgAreaN offsets from it, as data validation and conditional formatting formulas do.</remarks>
         internal string? ReadFormula(byte[] payload, ref int offset, (int Row, int Column)? relativeAnchor = null) {
             if (offset > payload.Length - 4) throw new InvalidDataException($"A formula in '{PartName}' is truncated.");
             int cce = checked((int)BitConverter.ToUInt32(payload, offset));
@@ -62,7 +67,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Buffer.BlockCopy(payload, offset, extra, 0, cb);
             offset += cb;
             if (cce == 0) return string.Empty;
-            return XlsbFormulaTextReader.TryRead(tokens, out string? text, Workbook, SheetIndex, extra, relativeAnchor) ? text : null;
+            if (relativeAnchor.HasValue) {
+                try {
+                    XlsbRelativeReferenceTokens.ToCoordinates(tokens, relativeAnchor.Value.Row, relativeAnchor.Value.Column);
+                } catch (NotSupportedException) {
+                    return null;
+                }
+            }
+            return XlsbFormulaTextReader.TryRead(tokens, out string? text, Workbook, SheetIndex, extra) ? text : null;
         }
 
         internal static XlsbCellRange ReadRfX(byte[] payload, ref int offset, string partName) {

@@ -49,7 +49,9 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     BuiltinId = 0U
                 }) { Count = 1U }
                 : new CellStyles(source.CellStyles.Select(CreateCellStyle)) { Count = (uint)source.CellStyles.Count };
-            stylesheet.DifferentialFormats = new DifferentialFormats { Count = 0U };
+            stylesheet.DifferentialFormats = new DifferentialFormats(source.DifferentialFormats.Select(format => (DifferentialFormat)format.CloneNode(true))) {
+                Count = (uint)source.DifferentialFormats.Count
+            };
             stylesheet.TableStyles = new TableStyles {
                 Count = 0U,
                 DefaultTableStyle = "TableStyleMedium2",
@@ -213,7 +215,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             return color;
         }
 
-        private static void ApplyColor(ColorType target, XlsbColor source) {
+        internal static void ApplyColor(ColorType target, XlsbColor source) {
             switch (source.Type) {
                 case 0:
                     target.Auto = true;
@@ -252,7 +254,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             };
         }
 
-        private static PatternValues ToFillPattern(uint value) {
+        internal static PatternValues ToFillPattern(uint value) {
             return value switch {
                 1 => PatternValues.Solid,
                 2 => PatternValues.MediumGray,
@@ -276,7 +278,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             };
         }
 
-        private static BorderStyleValues? ToBorderStyle(byte value) {
+        internal static BorderStyleValues? ToBorderStyle(byte value) {
             return value switch {
                 1 => BorderStyleValues.Thin,
                 2 => BorderStyleValues.Medium,
