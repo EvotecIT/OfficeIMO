@@ -32,7 +32,7 @@ OfficeIMO is MIT-licensed and available without feature gates. These people and 
 ## Sponsors
 
 <p>
-  <a href="https://coderabbit.link/evotecit">CodeRabbit</a><br />
+  <a href="https://coderabbit.link/evotecit" title="CodeRabbit"><img src="https://officeimo.com/assets/sponsors/coderabbit-mark.svg" width="64" height="64" alt="CodeRabbit" /></a>
 </p>
 
 ## Past Sponsors

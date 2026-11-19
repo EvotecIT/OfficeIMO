@@ -193,7 +193,7 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
   <a href="https://github.com/thomas-moeller" title="Thomas M&#248;ller"><img src="https://avatars.githubusercontent.com/u/37923349?u=e5b9b9d52dc33256937ace98623e3b7c6aead98a&amp;v=4" width="48" height="48" alt="Thomas M&#248;ller" /></a>
   <a href="https://github.com/jakehildreth" title="Jake Hildreth"><img src="https://avatars.githubusercontent.com/u/93942157?u=e1e8d3f460d775c44f5491711ad1c47a5005fb5c&amp;v=4" width="48" height="48" alt="Jake Hildreth" /></a>
   <a href="https://github.com/syazdian" title="syazdian"><img src="https://avatars.githubusercontent.com/u/15229510?v=4" width="48" height="48" alt="syazdian" /></a>
-  <a href="https://coderabbit.link/evotecit">CodeRabbit</a><br />
+  <a href="https://coderabbit.link/evotecit" title="CodeRabbit"><img src="https://officeimo.com/assets/sponsors/coderabbit-mark.svg" width="48" height="48" alt="CodeRabbit" /></a>
 </p>
 
 [See all sponsors](SPONSORS.md)
