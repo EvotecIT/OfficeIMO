@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.PowerPoint;
 using ShapeCrawler;
 using Length = OfficeIMO.OfficeLength;
@@ -14,14 +15,18 @@ public class PowerPointCreateComparisonBenchmarks {
 
     [GlobalSetup]
     public void Validate() {
+        // Each deck is reopened with the Open XML SDK: slide count, bold title, three-paragraph body, 4x3 table text and
+        // the exact picture bytes on every slide, then the Open XML SDK validator.
         PresentationExpectation expected = PowerPointComparisonCorpus.Created(SlideCount);
-        PowerPointComparisonCorpus.Validate(nameof(OfficeIMO), OfficeIMO(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(ShapeCrawler), ShapeCrawler(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(OpenXmlSdk), OpenXmlSdk(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(OneDocument), OneDocument(), expected);
+        string detail = $"SlideCount={SlideCount}; {SlideCount} slides with title, body, table text and picture bytes as written; passes the Open XML SDK validator";
+        PowerPointComparisonCorpus.Validate("OfficeIMO", nameof(OfficeIMO), OfficeIMO(), expected, detail);
+        PowerPointComparisonCorpus.Validate("ShapeCrawler", nameof(ShapeCrawler), ShapeCrawler(), expected, detail);
+        PowerPointComparisonCorpus.Validate("Open XML SDK", nameof(OpenXmlSdk), OpenXmlSdk(), expected, detail);
+        PowerPointComparisonCorpus.Validate("OneDocument.Presentations", nameof(OneDocument), OneDocument(), expected, detail);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         for (int index = 0; index < SlideCount; index++) {
@@ -52,6 +57,7 @@ public class PowerPointCreateComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ShapeCrawler", "case:Default")]
     public byte[] ShapeCrawler() {
         using var presentation = new Presentation();
         while (presentation.Slides.Count < SlideCount) presentation.Slides.Add(1);
@@ -90,10 +96,11 @@ public class PowerPointCreateComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdk() => PowerPointOpenXmlSdkLane.Create(SlideCount);
 
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Presentations", "case:Default")]
     public byte[] OneDocument() => PowerPointOneDocumentLane.Create(SlideCount);
 }
 
@@ -120,13 +127,14 @@ public class PowerPointReadComparisonBenchmarks : PowerPointFixtureBenchmarks {
     public void Setup() {
         CreateFixture();
         _expected = PowerPointTextObservation.Expected(SlideCount);
-        Ensure(nameof(OfficeIMO), OfficeIMO());
-        Ensure(nameof(ShapeCrawler), ShapeCrawler());
-        Ensure(nameof(OpenXmlSdk), OpenXmlSdk());
-        Ensure(nameof(OneDocument), OneDocument());
+        Ensure("OfficeIMO", nameof(OfficeIMO), OfficeIMO());
+        Ensure("ShapeCrawler", nameof(ShapeCrawler), ShapeCrawler());
+        Ensure("Open XML SDK", nameof(OpenXmlSdk), OpenXmlSdk());
+        Ensure("OneDocument.Presentations", nameof(OneDocument), OneDocument());
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public PowerPointTextObservation OfficeIMO() {
         using var stream = new MemoryStream(Fixture, writable: false);
         using PowerPointDocument presentation = PowerPointDocument.Load(stream);
@@ -147,6 +155,7 @@ public class PowerPointReadComparisonBenchmarks : PowerPointFixtureBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ShapeCrawler", "case:Default")]
     public PowerPointTextObservation ShapeCrawler() {
         using var stream = new MemoryStream(Fixture, writable: false);
         using var presentation = new Presentation(stream);
@@ -168,14 +177,21 @@ public class PowerPointReadComparisonBenchmarks : PowerPointFixtureBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public PowerPointTextObservation OpenXmlSdk() => PowerPointOpenXmlSdkLane.Read(Fixture);
 
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Presentations", "case:Default")]
     public PowerPointTextObservation OneDocument() => PowerPointOneDocumentLane.Read(Fixture);
 
-    private void Ensure(string lane, PowerPointTextObservation actual) {
-        if (actual != _expected) throw new InvalidDataException(lane + " observed " + actual + "; expected " + _expected + ".");
+    /// <summary>Requires every text box and table cell text of the deck, in order (count, characters and checksum).</summary>
+    private void Ensure(string library, string lane, PowerPointTextObservation actual) {
+        string detail = $"SlideCount={SlideCount}; observed {_expected} as written";
+        if (actual != _expected) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": observed " + actual, "Default");
+            throw new InvalidDataException(lane + " observed " + actual + "; expected " + _expected + ".");
+        }
+        BenchmarkOutputValidationLog.Passed(library, detail, "Default");
     }
 }
 
@@ -186,14 +202,18 @@ public class PowerPointEditComparisonBenchmarks : PowerPointFixtureBenchmarks {
     [GlobalSetup]
     public void Setup() {
         CreateFixture();
+        // Each saved deck is reopened with the Open XML SDK: every slide must carry its edited title and edited cell
+        // with the rest of its content and picture unchanged, then pass the Open XML SDK validator.
         PresentationExpectation expected = PowerPointComparisonCorpus.Edited(SlideCount);
-        PowerPointComparisonCorpus.Validate(nameof(OfficeIMO), OfficeIMO(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(ShapeCrawler), ShapeCrawler(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(OpenXmlSdk), OpenXmlSdk(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(OneDocument), OneDocument(), expected);
+        string detail = $"SlideCount={SlideCount}; {SlideCount} slides with the edited title and cell and unchanged content; passes the Open XML SDK validator";
+        PowerPointComparisonCorpus.Validate("OfficeIMO", nameof(OfficeIMO), OfficeIMO(), expected, detail);
+        PowerPointComparisonCorpus.Validate("ShapeCrawler", nameof(ShapeCrawler), ShapeCrawler(), expected, detail);
+        PowerPointComparisonCorpus.Validate("Open XML SDK", nameof(OpenXmlSdk), OpenXmlSdk(), expected, detail);
+        PowerPointComparisonCorpus.Validate("OneDocument.Presentations", nameof(OneDocument), OneDocument(), expected, detail);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() {
         using var stream = new MemoryStream(Fixture, writable: false);
         using PowerPointDocument presentation = PowerPointDocument.Load(stream);
@@ -207,6 +227,7 @@ public class PowerPointEditComparisonBenchmarks : PowerPointFixtureBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ShapeCrawler", "case:Default")]
     public byte[] ShapeCrawler() {
         using var stream = new MemoryStream(Fixture, writable: false);
         using var presentation = new Presentation(stream);
@@ -221,10 +242,11 @@ public class PowerPointEditComparisonBenchmarks : PowerPointFixtureBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdk() => PowerPointOpenXmlSdkLane.Edit(Fixture);
 
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Presentations", "case:Default")]
     public byte[] OneDocument() => PowerPointOneDocumentLane.Edit(Fixture);
 }
 
@@ -235,14 +257,18 @@ public class PowerPointCopySlidesComparisonBenchmarks : PowerPointFixtureBenchma
     [GlobalSetup]
     public void Setup() {
         CreateFixture();
+        // Each saved deck is reopened with the Open XML SDK: twice the slides, each copy with its source slide's
+        // content and picture bytes, then the Open XML SDK validator.
         PresentationExpectation expected = PowerPointComparisonCorpus.Copied(SlideCount);
-        PowerPointComparisonCorpus.Validate(nameof(OfficeIMO), OfficeIMO(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(ShapeCrawler), ShapeCrawler(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(OpenXmlSdk), OpenXmlSdk(), expected);
-        PowerPointComparisonCorpus.Validate(nameof(OneDocument), OneDocument(), expected);
+        string detail = $"SlideCount={SlideCount}; {SlideCount * 2} slides, each copy matching its source; passes the Open XML SDK validator";
+        PowerPointComparisonCorpus.Validate("OfficeIMO", nameof(OfficeIMO), OfficeIMO(), expected, detail);
+        PowerPointComparisonCorpus.Validate("ShapeCrawler", nameof(ShapeCrawler), ShapeCrawler(), expected, detail);
+        PowerPointComparisonCorpus.Validate("Open XML SDK", nameof(OpenXmlSdk), OpenXmlSdk(), expected, detail);
+        PowerPointComparisonCorpus.Validate("OneDocument.Presentations", nameof(OneDocument), OneDocument(), expected, detail);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() {
         using var stream = new MemoryStream(Fixture, writable: false);
         using PowerPointDocument presentation = PowerPointDocument.Load(stream);
@@ -252,6 +278,7 @@ public class PowerPointCopySlidesComparisonBenchmarks : PowerPointFixtureBenchma
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ShapeCrawler", "case:Default")]
     public byte[] ShapeCrawler() {
         using var stream = new MemoryStream(Fixture, writable: false);
         using var presentation = new Presentation(stream);
@@ -263,9 +290,10 @@ public class PowerPointCopySlidesComparisonBenchmarks : PowerPointFixtureBenchma
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public byte[] OpenXmlSdk() => PowerPointOpenXmlSdkLane.CopySlides(Fixture);
 
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Presentations", "case:Default")]
     public byte[] OneDocument() => PowerPointOneDocumentLane.CopySlides(Fixture);
 }
