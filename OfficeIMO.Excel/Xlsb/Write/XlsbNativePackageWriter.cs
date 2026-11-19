@@ -111,6 +111,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     if (!originalPart.SequenceEqual(rewrittenPart)) {
                         replacements.Add(partName, rewrittenPart);
                     }
+                    XlsbWorksheetCommentRewrite.Apply(document, sheet, sourceSheet, sourceWorkbook, replacements);
                     if (hyperlinkPlan != null && !hyperlinkPlan.RelationshipsMatch(sourceSheet)) {
                         string relationshipPartName = GetRelationshipPartName(partName);
                         int preservedRelationshipCount = sourceSheet.Relationships.Values.Count(relationship =>

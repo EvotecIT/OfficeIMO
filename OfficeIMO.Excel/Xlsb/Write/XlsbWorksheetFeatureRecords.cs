@@ -7,11 +7,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDocument document,
             ExcelSheet sheet,
             IXlsbFormulaEncodingContext? formulas,
-            XlsbWorksheetPackageParts? parts) {
+            XlsbWorksheetPackageParts? parts,
+            XlsbRichTextFontTable? richText = null) {
             Document = document ?? throw new ArgumentNullException(nameof(document));
             Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             Formulas = formulas;
             Parts = parts;
+            RichText = richText;
         }
 
         internal ExcelDocument Document { get; }
@@ -26,6 +28,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         /// <summary>Collects related parts and worksheet relationships; null where the writer cannot add parts.</summary>
         internal XlsbWorksheetPackageParts? Parts { get; }
+
+        /// <summary>Maps formatted text runs to BrtFont indexes, adding fonts where needed; null where fonts cannot be added.</summary>
+        internal XlsbRichTextFontTable? RichText { get; }
 
         /// <summary>
         /// Encodes <paramref name="formulaText"/> and returns the shared cce/rgce/cb/rgcb layout of CellParsedFormula
@@ -82,6 +87,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbWorksheetPageBreakWriter.Append(records, context);
             XlsbWorksheetIgnoredErrorWriter.Append(records, context);
             XlsbWorksheetDataValidationWriter.Append(records, context);
+            XlsbWorksheetCommentWriter.Append(records, context);
             return records;
         }
     }

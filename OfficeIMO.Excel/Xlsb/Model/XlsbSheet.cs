@@ -23,6 +23,12 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? DrawingRelationshipId { get; set; }
 
+        /// <summary>The relationship id BrtLegacyDrawing stores when it names the VML drawing of the worksheet's comments.</summary>
+        internal string? LegacyDrawingRelationshipId { get; set; }
+
+        /// <summary>The worksheet's legacy comments, or null when it has no Comments part.</summary>
+        internal XlsbComments? Comments { get; set; }
+
         internal string Name { get; }
 
         internal string RelationshipId { get; }

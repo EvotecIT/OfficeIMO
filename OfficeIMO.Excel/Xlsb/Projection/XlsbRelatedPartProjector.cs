@@ -63,6 +63,10 @@ internal sealed class XlsbRelatedPartProjector {
         CopyRelationships(part, sourceName);
     }
 
+    /// <summary>Copies a worksheet-related native part and its own part graph under <paramref name="id"/>.</summary>
+    internal OpenXmlPart ProjectWorksheetPart(WorksheetPart owner, string sourceName, string relationshipType, string id) =>
+        Copy(owner, sourceName, relationshipType, id);
+
     private OpenXmlPart Copy(OpenXmlPartContainer owner, string sourceName, string relationshipType, string id) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (_copied.TryGetValue(sourceName, out var existing)) {
@@ -93,6 +97,7 @@ internal sealed class XlsbRelatedPartProjector {
         if (type == OfficeRelationships + "drawing" && contentType == "application/vnd.openxmlformats-officedocument.drawing+xml") return owner.AddNewPart<DrawingsPart>(id);
         if (type == OfficeRelationships + "chart" && contentType == "application/vnd.openxmlformats-officedocument.drawingml.chart+xml") return owner.AddNewPart<ChartPart>(id);
         if (type == OfficeRelationships + "chartUserShapes" && contentType == "application/vnd.openxmlformats-officedocument.drawingml.chartshapes+xml") return owner.AddNewPart<ChartDrawingPart>(id);
+        if (type == OfficeRelationships + "vmlDrawing" && contentType == "application/vnd.openxmlformats-officedocument.vmlDrawing") return owner.AddNewPart<VmlDrawingPart>(id);
         if (type == OfficeRelationships + "image") return owner.AddNewPart<ImagePart>(contentType, id);
         if (type == OfficeRelationships + "package") return owner.AddNewPart<EmbeddedPackagePart>(contentType, id);
         return owner.AddExtendedPart(type, contentType, string.IsNullOrEmpty(extension) ? ".bin" : extension, id);

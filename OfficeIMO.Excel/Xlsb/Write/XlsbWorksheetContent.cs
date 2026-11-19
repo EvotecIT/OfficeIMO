@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             typeof(RowBreaks),
             typeof(ColumnBreaks),
             typeof(IgnoredErrors),
+            typeof(LegacyDrawing),
         };
 
         // CT_Worksheet allows these children more than once; every other supported child occurs at most once.

@@ -106,9 +106,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {
-            if (sheet.WorksheetPart.Parts.Any()
-                || sheet.WorksheetPart.ExternalRelationships.Any()) {
-                throw new NotSupportedException($"Native XLSB generation does not yet support relationship-backed content on worksheet '{sheet.Name}'.");
+            string? unsupportedPart = XlsbWorksheetCommentModel.FindUnsupportedPart(sheet.WorksheetPart);
+            if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
+                throw new NotSupportedException($"Native XLSB generation does not yet support {unsupportedPart ?? "relationship-backed content"} on worksheet '{sheet.Name}'.");
             }
 
             OpenXmlElement? unsupported = XlsbWorksheetContent.FindUnsupported(sheet.WorksheetPart.Worksheet);
@@ -118,9 +118,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbSheet sourceSheet) {
-            if (sheet.WorksheetPart.Parts.Any()
-                || sheet.WorksheetPart.ExternalRelationships.Any()) {
-                throw new NotSupportedException($"Native XLSB rewriting currently cannot modify relationship-backed worksheet content on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
+            // Comments and their VML drawing are compared with the source by XlsbWorksheetCommentRewrite.
+            string? unsupportedPart = XlsbWorksheetCommentModel.FindUnsupportedPart(sheet.WorksheetPart);
+            if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
+                throw new NotSupportedException($"Native XLSB rewriting currently cannot modify {unsupportedPart ?? "relationship-backed worksheet content"} on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
             }
 
             XlsbWorksheetGeometryProjector.ValidateUnchanged(sheet, sourceSheet);

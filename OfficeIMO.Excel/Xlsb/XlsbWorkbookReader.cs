@@ -158,6 +158,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     ref totalRowDefinitions,
                     ref totalMergedRanges,
                     ref totalHyperlinks);
+                ReadComments(parts, sheetPartName, worksheet, resolved, workbook, recordBudget);
             }
 
             ReadVbaProjectGraph(parts, workbookPartName!, relationships, resolved, workbook);

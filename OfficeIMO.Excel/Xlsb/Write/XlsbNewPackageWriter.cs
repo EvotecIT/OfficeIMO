@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 packageParts[index] = new XlsbWorksheetPackageParts(WorksheetPartName(index), partNames,
                     hyperlinkPlans[index].Relationships.Select(relationship => relationship.Id));
                 XlsbWorksheetFeatureRecords features = XlsbWorksheetFeatureRecords.Create(
-                    new XlsbWorksheetFeatureContext(document, sheets[index], formulas, packageParts[index]));
+                    new XlsbWorksheetFeatureContext(document, sheets[index], formulas, packageParts[index], richText));
                 XlsbWriteCell? invalidStyle = cells.FirstOrDefault(cell => cell.StyleIndex >= cellFormatCount);
                 if (invalidStyle != null) {
                     throw new NotSupportedException($"Native XLSB generation found cell {sheets[index].Name}!R{invalidStyle.Row}C{invalidStyle.Column} with missing style index {invalidStyle.StyleIndex}.");
@@ -333,6 +333,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     && part is not SharedStringTablePart
                     && part is not WorkbookStylesPart
                     && part is not ThemePart);
+            if (unsupportedPart is WorkbookPersonPart) {
+                throw new NotSupportedException("Native XLSB generation does not support threaded comments; legacy notes (SetComment) are supported.");
+            }
             if (unsupportedPart != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook part '{unsupportedPart.ContentType}'.");
             }

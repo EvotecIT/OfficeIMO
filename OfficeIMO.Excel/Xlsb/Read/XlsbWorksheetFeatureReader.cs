@@ -36,7 +36,26 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _conditionalFormatting.TryRead(record)
             || _dataValidations.TryRead(record)
             || _pageBreaks.TryRead(record)
-            || _ignoredErrors.TryRead(record);
+            || _ignoredErrors.TryRead(record)
+            || TryReadCommentDrawing(record);
+
+        /// <summary>
+        /// Consumes BrtLegacyDrawing (MS-XLSB 2.4.703) when the worksheet has a Comments part and the record names its
+        /// VML drawing; the comments projection then owns both parts. Other legacy drawings stay preserved records.
+        /// </summary>
+        private bool TryReadCommentDrawing(XlsbRecord record) {
+            const int BrtLegacyDrawing = 551;
+            if (record.Type != BrtLegacyDrawing) return false;
+            if (!Sheet.Relationships.Values.Any(item => item.Type == XlsbCommentRelationships.Comments && !item.IsExternal)) return false;
+            var cursor = new XlsbBinaryCursor(record.Data);
+            string id = cursor.ReadWideString(255);
+            if (cursor.Remaining != 0) throw new InvalidDataException($"BrtLegacyDrawing in '{PartName}' has an unexpected payload.");
+            if (!Sheet.Relationships.TryGetValue(id, out var relationship) || relationship.IsExternal
+                || relationship.Type != XlsbCommentRelationships.VmlDrawing) return false;
+            if (Sheet.LegacyDrawingRelationshipId != null) throw new InvalidDataException($"The worksheet part '{PartName}' contains more than one BrtLegacyDrawing record.");
+            Sheet.LegacyDrawingRelationshipId = id;
+            return true;
+        }
 
         /// <summary>Called after the last worksheet record; throws when a collection is still open.</summary>
         internal void Complete() {
