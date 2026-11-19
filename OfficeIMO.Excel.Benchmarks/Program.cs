@@ -344,16 +344,11 @@ if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?"))
 if (IsCommand(args, "--snapshot", "snapshot")) {
     bool hasOutputPath = HasOutputPath(args);
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
-    string? websiteDataPath = ParseOptionValue(args, "--website-data", "--website-benchmarks");
     string? outputPathOverride = ParseOutputPath(args);
     string outputPath = ExcelBenchmarkSnapshotRunner.WriteSnapshot(
         outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.snapshot", rowCount),
-        rowCount,
-        websiteDataPath);
+        rowCount);
     Console.WriteLine($"Excel benchmark snapshot written to '{outputPath}'.");
-    if (!string.IsNullOrWhiteSpace(websiteDataPath)) {
-        Console.WriteLine($"Website benchmark data updated at '{websiteDataPath}'.");
-    }
     return;
 }
 
@@ -656,7 +651,7 @@ static void WriteUsage() {
     Console.WriteLine("OfficeIMO.Excel benchmark helpers");
     Console.WriteLine();
     Console.WriteLine("Commands:");
-    Console.WriteLine("  snapshot [output] [--rows N] [--website-data path]");
+    Console.WriteLine("  snapshot [output] [--rows N]");
     Console.WriteLine("  write-profile [output] [--rows N]");
     Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N] [--affinity mask]");
     Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
@@ -921,8 +916,6 @@ static bool OptionConsumesValue(string option)
        || string.Equals(option, "--out-dir", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--output-dir", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--directory", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(option, "--website-data", StringComparison.OrdinalIgnoreCase)
-       || string.Equals(option, "--website-benchmarks", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--scenario", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--scenarios", StringComparison.OrdinalIgnoreCase)
        || string.Equals(option, "--library", StringComparison.OrdinalIgnoreCase)

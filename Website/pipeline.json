@@ -798,42 +798,6 @@
       "preserveOnWarnings": true
     },
     {
-      "task": "exec",
-      "id": "generate-excel-benchmark-data",
-      "dependsOn": [
-        "build-api-net8-0-optional"
-      ],
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./Build/Generate-ExcelBenchmarkWebsiteData.ps1",
-        "-PackageProfilePath",
-        ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-10k-current.json;.\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-300k-current.json",
-        "-RunMode",
-        "unrecorded",
-        "-Platform",
-        "unrecorded"
-      ],
-      "workingDirectory": ".."
-    },
-    {
-      "task": "exec",
-      "id": "generate-benchmark-overview",
-      "dependsOn": [
-        "generate-excel-benchmark-data"
-      ],
-      "command": "pwsh",
-      "argsList": [
-        "-NoLogo",
-        "-NoProfile",
-        "-File",
-        "./Build/Generate-BenchmarkWebsiteOverview.ps1"
-      ],
-      "workingDirectory": ".."
-    },
-    {
       "task": "build",
       "id": "build-site",
       "dependsOn": [
@@ -841,8 +805,7 @@
         "update-cli-catalog",
         "build-api-net8-0-optional",
         "build-release-hub",
-        "build-ecosystem-stats",
-        "generate-benchmark-overview"
+        "build-ecosystem-stats"
       ],
       "config": "./site.json",
       "out": "./_site",
@@ -861,7 +824,7 @@
     },
     {
       "task": "exec",
-      "id": "verify-excel-benchmark-page",
+      "id": "verify-benchmark-pages",
       "dependsOn": [
         "build-site"
       ],
@@ -3114,7 +3077,7 @@
       "id": "verify-site",
       "dependsOn": [
         "deploy-theme-css",
-        "verify-excel-benchmark-page",
+        "verify-benchmark-pages",
         "verify-website-presentation"
       ],
       "skipModes": [

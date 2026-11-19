@@ -92,9 +92,9 @@ Run the equivalent comparison lanes through the repository's shared evidence
 runner when provenance and normalized JSON/CSV/Markdown output are needed:
 
 ```powershell
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownparse -RunMode full -Framework net8.0
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownhtml -RunMode full -Framework net8.0
-.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload htmltomarkdown -RunMode full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownparse -Profile full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload markdownhtml -Profile full -Framework net8.0
+.\Build\Run-LibraryComparisonBenchmarks.ps1 -Workload htmltomarkdown -Profile full -Framework net8.0
 ```
 
 ## Interpretation

@@ -1,352 +1,67 @@
 <#
 .SYNOPSIS
-Refreshes the compact CSV and Excel benchmark tables embedded in project READMEs.
+Refreshes the CSV and Excel benchmark tables embedded in project READMEs from the benchmark evidence catalog.
 
 .DESCRIPTION
-Selects representative, directly comparable benchmark rows, writes them in the
-PSPublishModule comparison schema, and delegates marker-delimited Markdown
-updates to Update-BenchmarkDocument. Use -Run to execute the focused CSV, Excel,
-or both benchmark sets locally before refreshing the tables. With no -Run value,
-the script only renders the last committed compact comparisons. Benchmarks are
-never scheduled or run by CI.
+Each marker-delimited block shows the published run of its comparisons on one platform and framework, rendered by
+PowerForge's Update-BenchmarkDocument from Website/static/data/benchmarks/evidence/index.json. A comparison without
+a published run on that platform shows a "no published run yet" line, so a README never quotes diagnostic or
+unpublished numbers. Measure with Build/Run-LibraryComparisonBenchmarks.ps1 and merge the results first; this
+script measures nothing.
 
-.PARAMETER Run
-Benchmark sets to execute locally before updating the READMEs. Accepts Csv,
-Excel, or All. Omit this parameter to refresh only from committed compact data.
+.PARAMETER Platform
+Platform whose published runs are shown: windows, linux or macos.
 
-.PARAMETER CsvArtifactPath
-Optional BenchmarkDotNet artifact directory or report for a fresh CSV run. When
-omitted, the last committed compact CSV comparison is rendered again.
+.PARAMETER Framework
+Target framework whose published runs are shown.
 
-.PARAMETER CsvAffinityMasks
-Optional processor-affinity masks for the CSV benchmark jobs.
+.PARAMETER CatalogPath
+Evidence catalog to render from.
 
-.PARAMETER CsvPriority
-Optional process priority for the CSV benchmark jobs.
-
-.PARAMETER CsvWarmupCount
-Warmup iterations for each CSV benchmark job (default 3).
-
-.PARAMETER CsvIterationCount
-Measured iterations for each CSV benchmark job (default 9).
-
-.PARAMETER ExcelSummaryPath
-Optional Excel comparison-suite summary to select. When supplied, the compact
-Excel comparison is rebuilt from that run. If the compact artifact does not yet
-exist, the committed current summary is used as the initial source.
+.PARAMETER PowerForgeRoot
+Optional PowerForge source checkout at the pinned commit, used by the shared initializer.
 
 .EXAMPLE
 ./Build/Benchmarks/Update-BenchmarkReadmes.ps1
 
 .EXAMPLE
-./Build/Benchmarks/Update-BenchmarkReadmes.ps1 -Run All
+./Build/Benchmarks/Update-BenchmarkReadmes.ps1 -Platform macos
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet("Csv", "Excel", "All")]
-    [string[]] $Run = @(),
-    [string] $CsvArtifactPath,
-    [string] $CsvAffinityMasks,
-    [ValidateSet("Idle", "BelowNormal", "Normal", "AboveNormal", "High")]
-    [string] $CsvPriority,
-    [ValidateRange(1, 100)] [int] $CsvWarmupCount = 3,
-    [ValidateRange(1, 100)] [int] $CsvIterationCount = 9,
-    [string] $ExcelSummaryPath = "./Docs/benchmarks/comparison-current/officeimo.excel.comparison-summary.json",
-    [string] $OutputDirectory = "./Docs/benchmarks/readme-current"
+    [ValidateSet('windows', 'linux', 'macos')]
+    [string] $Platform = 'windows',
+    [ValidateSet('net8.0', 'net10.0')]
+    [string] $Framework = 'net10.0',
+    [string] $CatalogPath = (Join-Path $PSScriptRoot '../../Website/static/data/benchmarks/evidence/index.json'),
+    [string] $PowerForgeRoot = $env:POWERFORGE_ROOT
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "../.."))
+$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+$CatalogPath = (Resolve-Path -LiteralPath $CatalogPath).ProviderPath
+& (Join-Path $repositoryRoot 'Build/Initialize-BenchmarkPowerForge.ps1') -PowerForgeRoot $PowerForgeRoot | Out-Null
 
-function Resolve-RepositoryPath {
-    param([Parameter(Mandatory)] [string] $Path)
-
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
+$blocks = @(
+    @{
+        Path = 'OfficeIMO.CSV.Benchmarks/README.md'
+        BlockId = 'officeimo-csv-benchmark-table'
+        Comparison = @('markpflug-65k-csv-decoded', 'csv-25k-datareader-write')
     }
-    return [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot $Path))
-}
-
-Push-Location $repositoryRoot
-try {
-    Import-Module PSPublishModule -MinimumVersion 3.0.57 -Force -ErrorAction Stop
-
-    $outputRoot = Resolve-RepositoryPath $OutputDirectory
-    [System.IO.Directory]::CreateDirectory($outputRoot) | Out-Null
-
-    function Invoke-DotNetBenchmark {
-        param(
-            [Parameter(Mandatory)] [string] $Name,
-            [Parameter(Mandatory)] [string[]] $Arguments
-        )
-
-        Write-Host "Running the focused $Name README benchmarks locally..."
-        & dotnet @Arguments
-        if ($LASTEXITCODE -ne 0) {
-            throw "$Name benchmark execution failed with exit code $LASTEXITCODE."
-        }
+    @{
+        Path = 'OfficeIMO.Excel.Benchmarks/README.md'
+        BlockId = 'officeimo-excel-benchmark-table'
+        Comparison = @('markpflug-65k-xlsx-typed', 'markpflug-65k-xlsb-typed', 'markpflug-65k-xls-typed', 'xlsx-25k-datareader-write')
     }
-
-    $runCsv = $Run -contains "Csv" -or $Run -contains "All"
-    $runExcel = $Run -contains "Excel" -or $Run -contains "All"
-    $artifactRoot = Resolve-RepositoryPath "./.benchmark-artifacts/readme-refresh"
-
-    if ($runCsv) {
-        $csvRunPath = Join-Path $artifactRoot "csv"
-        Remove-Item -LiteralPath $csvRunPath -Recurse -Force -ErrorAction SilentlyContinue
-        $previousCsvRowCount = $env:OFFICEIMO_CSV_WIDE_ROW_COUNT
-        try {
-            $env:OFFICEIMO_CSV_WIDE_ROW_COUNT = "25000"
-            $csvArguments = @(
-                "run", "-c", "Release", "--framework", "net8.0",
-                "--project", "OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj", "--",
-                "--filter",
-                "*CsvWideBenchmarks.OfficeIMO_ReadTextFieldSpanVisitorSkipHeader*",
-                "*CsvWideBenchmarks.Sep_ReadFieldSpans*",
-                "*CsvWideBenchmarks.Sylvan_ReadFieldSpans*",
-                "*CsvWideBenchmarks.OfficeIMO_WriteProjectedRows",
-                "*CsvWideBenchmarks.OfficeIMO_WriteDataReader*",
-                "*CsvWideBenchmarks.OfficeIMO_WriteValidatedTextRows*",
-                "*CsvWideBenchmarks.CsvHelper_WriteProjectedRows*",
-                "*CsvWideBenchmarks.CsvHelper_WriteTextRows*",
-                "*CsvWideBenchmarks.Sep_WriteTextRows*",
-                "*CsvWideBenchmarks.Sylvan_WriteProjectedRows*",
-                "*CsvWideBenchmarks.Sylvan_WriteTextRows*",
-                "*CsvWideBenchmarks.Dataplat_WriteProjectedRows*",
-                "*CsvWideBenchmarks.Dataplat_WriteFromReader*",
-                "*CsvWideBenchmarks.Dataplat_WriteTextRows*",
-                "--warmupCount", [string] $CsvWarmupCount, "--iterationCount", [string] $CsvIterationCount,
-                "--outliers", "DontRemove",
-                "--artifacts", $csvRunPath
-            )
-            if ($CsvAffinityMasks) { $csvArguments += @("--affinityMasks", $CsvAffinityMasks) }
-            if ($CsvPriority) { $csvArguments += @("--priority", $CsvPriority) }
-            Invoke-DotNetBenchmark -Name "CSV" -Arguments $csvArguments
-        } finally {
-            if ($null -eq $previousCsvRowCount) {
-                Remove-Item Env:OFFICEIMO_CSV_WIDE_ROW_COUNT -ErrorAction SilentlyContinue
-            } else {
-                $env:OFFICEIMO_CSV_WIDE_ROW_COUNT = $previousCsvRowCount
-            }
-        }
-        $CsvArtifactPath = "./.benchmark-artifacts/readme-refresh/csv"
-    }
-
-    if ($runExcel) {
-        $excelRunPath = Join-Path $artifactRoot "excel"
-        Remove-Item -LiteralPath $excelRunPath -Recurse -Force -ErrorAction SilentlyContinue
-        Invoke-DotNetBenchmark -Name "Excel" -Arguments @(
-            "run", "-c", "Release", "--framework", "net8.0",
-            "--project", "OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj", "--",
-            "comparison-suite", "--out-dir", $excelRunPath, "--row-set", "25000",
-            "--scenario", "write-datareader-table,read-objects-stream,write-datareader-compact-package",
-            "--skip-package-profile", "--skip-dense-helloworld",
-            "--warmup", "20", "--iterations", "9"
-        )
-        $ExcelSummaryPath = "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json"
-    }
-
-    function Write-ComparisonArtifact {
-        param(
-            [Parameter(Mandatory)] [string] $Path,
-            [Parameter(Mandatory)] [System.Collections.IDictionary] $Metadata,
-            [Parameter(Mandatory)] [object[]] $Rows
-        )
-
-        $payload = [ordered]@{
-            metadata = $Metadata
-            comparison = $Rows
-        }
-        $json = $payload | ConvertTo-Json -Depth 8
-        [System.IO.File]::WriteAllText($Path, $json + [Environment]::NewLine, [System.Text.UTF8Encoding]::new($false))
-    }
-
-    function New-ComparisonRow {
-        param(
-            [Parameter(Mandatory)] [string] $Scenario,
-            [Parameter(Mandatory)] [string] $Operation,
-            [Parameter(Mandatory)] [string] $Engine,
-            [Parameter(Mandatory)] [string] $BaselineEngine,
-            [Parameter(Mandatory)] [double] $Actual,
-            [Parameter(Mandatory)] [double] $Baseline,
-            [Parameter(Mandatory)] [string] $Metric,
-            [Parameter(Mandatory)] [System.Collections.IDictionary] $Variables,
-            [Parameter(Mandatory)] [string] $RuntimeHost,
-            [string] $OperatingSystem = "",
-            [string] $RunMode = "",
-            [ValidateRange(0, 1)] [double] $TieTolerance = 0.05
-        )
-
-        [ordered]@{
-            suite = "OfficeIMO README highlights"
-            scenario = $Scenario
-            operation = $Operation
-            host = $RuntimeHost
-            os = $OperatingSystem
-            runMode = $RunMode
-            variables = $Variables
-            engine = $Engine
-            baselineEngine = $BaselineEngine
-            status = "Succeeded"
-            actual = $Actual
-            baseline = $Baseline
-            ratio = if ($Baseline -gt 0) { $Actual / $Baseline } else { $null }
-            metric = $Metric
-            tieTolerance = $TieTolerance
-        }
-    }
-
-    $excelComparisonPath = Join-Path $outputRoot "officeimo.excel.comparison.json"
-    if ($runExcel -or $PSBoundParameters.ContainsKey("ExcelSummaryPath") -or -not [System.IO.File]::Exists($excelComparisonPath)) {
-        $excelSource = Resolve-RepositoryPath $ExcelSummaryPath
-        if (-not [System.IO.File]::Exists($excelSource)) {
-            throw "Excel benchmark summary was not found: $excelSource"
-        }
-
-        $excel = Get-Content -LiteralPath $excelSource -Raw -Encoding UTF8 | ConvertFrom-Json
-        $excelManifestPath = Join-Path (Split-Path -Parent $excelSource) "officeimo.excel.comparison-suite-manifest.json"
-        $excelManifest = if ([System.IO.File]::Exists($excelManifestPath)) {
-            Get-Content -LiteralPath $excelManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        } else { $null }
-        $excelOperatingSystem = ""
-        $excelRunMode = ""
-        if ($null -ne $excelManifest) {
-            if ($excelManifest.WarmupIterations -ne $excel.WarmupIterations -or
-                $excelManifest.MeasuredIterations -ne $excel.MeasuredIterations) {
-                throw "Excel benchmark summary and suite manifest have different iteration counts."
-            }
-            if ($excelManifest.PSObject.Properties['OperatingSystem']) {
-                $excelOperatingSystem = [string] $excelManifest.OperatingSystem
-            }
-            $excelRunMode = "local"
-            if ($excelManifest.PSObject.Properties['ProcessorAffinity'] -and $excelManifest.ProcessorAffinity) {
-                $excelRunMode += ", affinity $($excelManifest.ProcessorAffinity)"
-            }
-            if ($excelManifest.PSObject.Properties['ProcessPriority'] -and $excelManifest.ProcessPriority) {
-                $excelRunMode += ", $($excelManifest.ProcessPriority) priority"
-            }
-        }
-        # EPPlus 8 is PolyForm Noncommercial unless licensed commercially, so it is not part of published comparisons.
-        $excelSelections = [ordered]@{
-            "Styled DataReader table to XLSX" = @{ Scenario = "write-datareader-table"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "ClosedXML") }
-            "Typed objects streamed from XLSX" = @{ Scenario = "read-objects-stream"; Operation = "Read"; Libraries = @("OfficeIMO.Excel", "ClosedXML", "Sylvan.Data.Excel") }
-            "Compact DataReader to XLSX" = @{ Scenario = "write-datareader-compact-package"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "SpreadCheetah", "LargeXlsx", "Sylvan.Data.Excel") }
-        }
-        $excelRows = [System.Collections.Generic.List[object]]::new()
-        $excelSnapshot = ([DateTimeOffset] $excel.GeneratedAtUtc).UtcDateTime.ToString("yyyy-MM-dd")
-        foreach ($selection in $excelSelections.GetEnumerator()) {
-            $sourceRows = @($excel.Rows | Where-Object {
-                $_.ArtifactKind -eq "speed-comparison" -and
-                $_.RowCount -eq 25000 -and
-                $_.Scenario -eq $selection.Value.Scenario -and
-                $_.Library -in $selection.Value.Libraries
-            })
-            foreach ($library in $selection.Value.Libraries) {
-                if (@($sourceRows | Where-Object Library -eq $library).Count -ne 1) {
-                    throw "Excel benchmark summary requires exactly one '$library' result for '$($selection.Value.Scenario)'."
-                }
-            }
-            $baselineRow = $sourceRows | Where-Object Library -eq "OfficeIMO.Excel" | Select-Object -First 1
-            if ($null -eq $baselineRow) { throw "Excel baseline is missing for '$($selection.Value.Scenario)'." }
-            foreach ($row in $sourceRows) {
-                $variables = [ordered]@{
-                    Format = ".xlsx"
-                    Rows = "25,000"
-                    Snapshot = $excelSnapshot
-                    Runner = "rotated local"
-                }
-                if ($excel.WarmupIterations -gt 0) { $variables.Warmups = [string] $excel.WarmupIterations }
-                if ($excel.MeasuredIterations -gt 0) { $variables.MeasuredIterations = [string] $excel.MeasuredIterations }
-                $excelRows.Add((New-ComparisonRow -Scenario $selection.Key -Operation $selection.Value.Operation `
-                    -Engine $row.Library -BaselineEngine "OfficeIMO.Excel" -Actual ([double] $row.MedianMilliseconds) `
-                    -Baseline ([double] $baselineRow.MedianMilliseconds) -Metric "MedianMs" -RuntimeHost ".NET 8" `
-                    -Variables $variables -OperatingSystem $excelOperatingSystem -RunMode $excelRunMode))
-            }
-        }
-
-        Write-ComparisonArtifact -Path $excelComparisonPath -Metadata ([ordered]@{
-            generatedAtUtc = $excel.GeneratedAtUtc
-            source = $ExcelSummaryPath
-            sourceSha256 = (Get-FileHash -LiteralPath $excelSource -Algorithm SHA256).Hash
-            warmupIterations = $excel.WarmupIterations
-            measuredIterations = $excel.MeasuredIterations
-            note = "Rows use per-library medians from the lightweight rotated local runner. The linked summary retains aggregate statistics and allocations; its raw speed artifact retains every measured sample. Results are engineering evidence rather than cross-machine performance guarantees."
-        }) -Rows $excelRows.ToArray()
-    }
-
-    $csvComparisonPath = Join-Path $outputRoot "officeimo.csv.comparison.json"
-    if ($CsvArtifactPath) {
-        $csvSource = Resolve-RepositoryPath $CsvArtifactPath
-        $csvRun = Import-BenchmarkResult -Path $csvSource -Suite "OfficeIMO.CSV README highlights"
-        $csvEngines = [ordered]@{
-            "OfficeIMO_ReadTextFieldSpanVisitorSkipHeader" = "OfficeIMO.CSV"
-            "Sep_ReadFieldSpans" = "Sep"
-            "Sylvan_ReadFieldSpans" = "Sylvan.Data.Csv"
-            "OfficeIMO_WriteProjectedRows" = "OfficeIMO.CSV"
-            "OfficeIMO_WriteDataReader" = "OfficeIMO.CSV"
-            "OfficeIMO_WriteValidatedTextRows" = "OfficeIMO.CSV"
-            "CsvHelper_WriteProjectedRows" = "CsvHelper"
-            "CsvHelper_WriteTextRows" = "CsvHelper"
-            "Sep_WriteTextRows" = "Sep"
-            "Sylvan_WriteProjectedRows" = "Sylvan.Data.Csv"
-            "Sylvan_WriteTextRows" = "Sylvan.Data.Csv"
-            "Dataplat_WriteProjectedRows" = "Dataplat.Dbatools.Csv"
-            "Dataplat_WriteFromReader" = "Dataplat.Dbatools.Csv"
-            "Dataplat_WriteTextRows" = "Dataplat.Dbatools.Csv"
-        }
-        $csvSelections = [ordered]@{
-            "Wide field-span CSV read" = @{ Operation = "Read every field"; Baseline = "OfficeIMO_ReadTextFieldSpanVisitorSkipHeader"; Methods = @("OfficeIMO_ReadTextFieldSpanVisitorSkipHeader", "Sep_ReadFieldSpans", "Sylvan_ReadFieldSpans"); Contract = "field spans" }
-            "Wide projected-array CSV write" = @{ Operation = "Format and write rows"; Baseline = "OfficeIMO_WriteProjectedRows"; Methods = @("OfficeIMO_WriteProjectedRows", "CsvHelper_WriteProjectedRows", "Dataplat_WriteProjectedRows"); Contract = "projected object arrays" }
-            "Wide DataReader CSV write" = @{ Operation = "Format and write rows"; Baseline = "OfficeIMO_WriteDataReader"; Methods = @("OfficeIMO_WriteDataReader", "Sylvan_WriteProjectedRows", "Dataplat_WriteFromReader"); Contract = "IDataReader" }
-            "Wide validated text-row CSV write" = @{ Operation = "Validate and write rows"; Baseline = "OfficeIMO_WriteValidatedTextRows"; Methods = @("OfficeIMO_WriteValidatedTextRows", "CsvHelper_WriteTextRows", "Sep_WriteTextRows", "Sylvan_WriteTextRows", "Dataplat_WriteTextRows"); Contract = "preformatted text with escaping" }
-        }
-        $selected = @($csvRun.Summary | Where-Object {
-            $_.Scenario -in $csvEngines.Keys -and
-            -not $_.Variables.ContainsKey("Shape") -and
-            $_.Variables["RowCount"] -eq "25000"
-        })
-        $csvRows = [System.Collections.Generic.List[object]]::new()
-        $csvSnapshot = (Get-Item -Force -LiteralPath $csvSource).LastWriteTimeUtc.ToString("yyyy-MM-dd")
-        $csvRuntimeHost = ([string] $csvRun.Environment.RuntimeVersion -split ' ', 3)[0..1] -join ' '
-        $csvOperatingSystem = [string] $csvRun.Environment.OsFamily
-        foreach ($selection in $csvSelections.GetEnumerator()) {
-            $scenarioRows = @($selected | Where-Object Scenario -in $selection.Value.Methods)
-            foreach ($method in $selection.Value.Methods) {
-                $methodRows = @($scenarioRows | Where-Object Scenario -eq $method)
-                if ($methodRows.Count -ne 1 -or $methodRows[0].Status -ne "Succeeded") {
-                    throw "CSV comparison '$($selection.Key)' requires one successful '$method' result."
-                }
-            }
-            $baselineRow = $scenarioRows | Where-Object Scenario -eq $selection.Value.Baseline | Select-Object -First 1
-            foreach ($row in $scenarioRows) {
-                $csvRows.Add((New-ComparisonRow -Scenario $selection.Key -Operation $selection.Value.Operation `
-                    -Engine $csvEngines[$row.Scenario] -BaselineEngine "OfficeIMO.CSV" -Actual ([double] $row.MeanMs) `
-                    -Baseline ([double] $baselineRow.MeanMs) -Metric "MeanMs" -RuntimeHost $csvRuntimeHost `
-                    -OperatingSystem $csvOperatingSystem -RunMode "local" `
-                    -Variables ([ordered]@{ Format = "CSV"; Rows = "25,000"; Shape = "wide"; Contract = $selection.Value.Contract; Snapshot = $csvSnapshot; Runner = "BenchmarkDotNet local" })))
-            }
-        }
-        Write-ComparisonArtifact -Path $csvComparisonPath -Metadata ([ordered]@{
-            generatedAtUtc = [DateTimeOffset]::UtcNow
-            source = $CsvArtifactPath
-            note = "Focused BenchmarkDotNet run; read lanes traverse every field and write lanes semantically validate every output value."
-        }) -Rows $csvRows.ToArray()
-    } elseif (-not [System.IO.File]::Exists($csvComparisonPath)) {
-        throw "No CSV comparison artifact exists. Pass -CsvArtifactPath after a focused BenchmarkDotNet run."
-    }
-
-    $refreshCsv = $runCsv -or $PSBoundParameters.ContainsKey("CsvArtifactPath") -or
-        (-not $runExcel -and -not $PSBoundParameters.ContainsKey("ExcelSummaryPath"))
-    $refreshExcel = $runExcel -or $PSBoundParameters.ContainsKey("ExcelSummaryPath") -or
-        (-not $runCsv -and -not $PSBoundParameters.ContainsKey("CsvArtifactPath"))
-    if ($refreshCsv) {
-        Update-BenchmarkDocument -Path "./OfficeIMO.CSV.Benchmarks/README.md" -BlockId "officeimo-csv-benchmark-table" -ComparisonPath $csvComparisonPath -Renderer ComparisonTable | Out-Null
-    }
-    if ($refreshExcel) {
-        Update-BenchmarkDocument -Path "./OfficeIMO.Excel.Benchmarks/README.md" -BlockId "officeimo-excel-benchmark-table" -ComparisonPath $excelComparisonPath -Renderer ComparisonTable | Out-Null
-    }
-} finally {
-    Pop-Location
+)
+foreach ($block in $blocks) {
+    Update-BenchmarkDocument `
+        -Path (Join-Path $repositoryRoot $block.Path) `
+        -BlockId $block.BlockId `
+        -Catalog $CatalogPath `
+        -Comparison $block.Comparison `
+        -Platform $Platform `
+        -Framework $Framework
 }

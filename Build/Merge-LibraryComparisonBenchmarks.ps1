@@ -1,39 +1,39 @@
 #requires -Version 7.4
 <#
 .SYNOPSIS
-Merges portable library comparison bundles and refreshes build-time website data.
+Merges portable benchmark evidence bundles into the website's evidence catalog.
 .DESCRIPTION
-PowerForge verifies and merges the normalized artifacts. The destination is also
-an input so collecting a subset does not discard other platform or workload lanes.
-Declarations come from both framework plans, including restricted workloads.
+PowerForge verifies every normalized result against its recorded hash, re-evaluates every lane against
+Build/benchmark-declarations.json and the standard publish policy, and keeps earlier runs of a lane in the
+superseded history. The destination is also an input, so merging one platform's bundle keeps the other lanes.
+With no sources and no destination it writes a catalog of declarations only, so every comparison is listed as
+not measured yet. Catalogs from earlier schemas are rejected; record fresh runs instead.
 .PARAMETER SourcePath
-Zero or more bundle index.json files, each accompanied by its result artifacts.
+Zero or more bundle index.json files, each with its normalized results beside it.
 .PARAMETER Path
-Destination index. Defaults to the website's library comparison catalog.
+Destination catalog. Defaults to the website's evidence catalog.
 .PARAMETER PowerForgeRoot
-Optional exact PowerForge source checkout used by the shared initializer.
-.PARAMETER WebsiteIndexPath
-Build-time template data file receiving an identical copy of the published index.
+Optional PowerForge source checkout at the pinned commit, used by the shared initializer.
 .PARAMETER DryRun
-Returns the merge plan without setup, builds, measurements or filesystem writes.
+Returns the merge plan without setup, builds or filesystem writes.
 .EXAMPLE
-./Build/Merge-LibraryComparisonBenchmarks.ps1 -SourcePath ./artifacts/benchmark-bundles/windows/index.json, ./artifacts/benchmark-bundles/linux/index.json, ./artifacts/benchmark-bundles/macos/index.json
+./Build/Merge-LibraryComparisonBenchmarks.ps1 -SourcePath ./artifacts/benchmark-bundles/windows/index.json, ./artifacts/benchmark-bundles/macos/index.json
 .OUTPUTS
 A merge plan in DryRun mode; otherwise the merged PowerForge catalog.
 #>
 [CmdletBinding()]
 param(
     [string[]] $SourcePath = @(),
-    [string] $Path = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/library-comparisons/index.json'),
+    [string] $Path = (Join-Path $PSScriptRoot '../Website/static/data/benchmarks/evidence/index.json'),
     [string] $PowerForgeRoot = $env:POWERFORGE_ROOT,
-    [string] $WebsiteIndexPath = (Join-Path $PSScriptRoot '../Website/data/benchmarks_index.json'),
     [switch] $DryRun
 )
 
 $ErrorActionPreference = 'Stop'
-$resultPathPrefix = '/data/benchmarks/library-comparisons'
+$resultPathPrefix = '/data/benchmarks/evidence'
+$declarationPath = Join-Path $PSScriptRoot 'benchmark-declarations.json'
 $Path = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
-$WebsiteIndexPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WebsiteIndexPath)
+& (Join-Path $PSScriptRoot 'Export-BenchmarkDeclarations.ps1') -Check
 $sources = @(
     foreach ($source in $SourcePath) {
         $resolved = (Resolve-Path -LiteralPath $source -ErrorAction Stop).ProviderPath
@@ -48,92 +48,34 @@ $sources = @(
 )
 $sources = @($sources | Sort-Object -Unique)
 
-. (Join-Path $PSScriptRoot 'LibraryComparisonDefinitions.ps1')
-$declarations = [ordered]@{}
-foreach ($framework in @('net8.0', 'net10.0')) {
-    $plan = & (Join-Path $PSScriptRoot 'Run-LibraryComparisonBenchmarks.ps1') `
-        -Workload all -RunMode full -Framework $framework -PlanOnly
-    $frameworkDefinitions = Get-LibraryComparisonDefinitions -Framework $framework
-    foreach ($item in $plan) {
-        $supported = $frameworkDefinitions[$item.Workload].Frameworks
-        if ($supported -and $framework -notin $supported) { continue }
-        $declarations[$item.ComparisonId] = [pscustomobject]@{
-            comparisonId = $item.ComparisonId
-            area = $item.Area
-            title = $item.Title
-            libraries = @($item.Libraries)
-            expectedPlatforms = @($item.ExpectedPlatforms)
-        }
-    }
-}
-
-# Historical placement and warmed profiles remain distinct comparisons. Map only
-# the explicit suffixes produced by the runner; never infer an area from a name.
-foreach ($source in $sources) {
-    $catalog = Get-Content -LiteralPath $source -Raw -Encoding UTF8 | ConvertFrom-Json -Depth 100
-    foreach ($entry in @($catalog.entries)) {
-        $id = [string] $entry.comparisonId
-        if ($declarations.Contains($id)) {
-            continue
-        }
-        $baseId = $id -replace '-affinity-0x[0-9a-fA-F]+$', '' -replace '-warmed-v1$', ''
-        if ($baseId -eq $id -or -not $declarations.Contains($baseId)) {
-            throw "Comparison '$id' has no runner declaration. Add its definition before merging."
-        }
-        $definition = $declarations[$baseId]
-        $declarations[$id] = [pscustomobject]@{
-            comparisonId = $id
-            area = $definition.area
-            title = $definition.title + ' (' + $id.Substring($baseId.Length).TrimStart('-') + ')'
-            libraries = @($definition.libraries)
-            expectedPlatforms = @($definition.expectedPlatforms)
-        }
-    }
-}
-$definitions = @($declarations.Values | Sort-Object comparisonId)
-
 if ($DryRun) {
-    $powerForge = & (Join-Path $PSScriptRoot 'Initialize-BenchmarkPowerForge.ps1') -PowerForgeRoot $PowerForgeRoot -PlanOnly
     [pscustomobject]@{
         DryRun = $true
         SourcePath = @($sources)
         Path = $Path
+        DeclarationPath = $declarationPath
         ResultPathPrefix = $resultPathPrefix
         DeclaredOnly = @($sources).Count -eq 0
-        Comparisons = $definitions
-        WebsiteIndexPath = $WebsiteIndexPath
-        GeneratedFiles = @('benchmarks_index.json')
-        PowerForge = $powerForge
+        PowerForge = & (Join-Path $PSScriptRoot 'Initialize-BenchmarkPowerForge.ps1') -PowerForgeRoot $PowerForgeRoot -PlanOnly
     }
     return
 }
 
 & (Join-Path $PSScriptRoot 'Initialize-BenchmarkPowerForge.ps1') -PowerForgeRoot $PowerForgeRoot | Out-Null
-# Declaration inputs are transient merge metadata, separate from raw provenance.
-$temporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ('officeimo-comparison-merge-' + [guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $temporaryDirectory | Out-Null
+. (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
+$temporaryDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ('officeimo-benchmark-merge-' + [guid]::NewGuid().ToString('N'))
 try {
-    $comparisonPath = Join-Path $temporaryDirectory 'comparisons.json'
-    ConvertTo-Json -InputObject $definitions -Depth 20 |
-        Set-Content -LiteralPath $comparisonPath -Encoding utf8NoBOM
     if (@($sources).Count -eq 0) {
+        New-Item -ItemType Directory -Path $temporaryDirectory | Out-Null
         $emptySource = Join-Path $temporaryDirectory 'index.json'
-        [pscustomobject]@{
-            schemaVersion = 4
-            expectedPlatforms = @('windows', 'linux', 'macos')
-            areas = @()
-            comparisons = @()
-            entries = @()
-            availability = @()
-        } | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $emptySource -Encoding utf8NoBOM
+        Write-BenchmarkEvidenceResult -Path $emptySource -InputObject ([PowerForge.BenchmarkEvidenceCatalog]::new())
         $sources = @($emptySource)
     }
-    $merged = Merge-BenchmarkEvidenceCatalog -SourcePath @($sources) -Path $Path -ComparisonPath $comparisonPath `
-        -ResultPathPrefix $resultPathPrefix
-    & (Join-Path $PSScriptRoot 'Generate-LibraryComparisonWebsiteData.ps1') `
-        -CatalogPath $Path `
-        -WebsiteIndexPath $WebsiteIndexPath
-    $merged
+    New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
+    Merge-BenchmarkEvidenceCatalog -SourcePath @($sources) -Path $Path -DeclarationPath $declarationPath `
+        -ResultPathPrefix $resultPathPrefix -Policy ([PowerForge.BenchmarkPublishPolicy]::CreateDefault())
 } finally {
-    Remove-Item -LiteralPath $temporaryDirectory -Recurse -ErrorAction Stop
+    if (Test-Path -LiteralPath $temporaryDirectory) {
+        Remove-Item -LiteralPath $temporaryDirectory -Recurse -ErrorAction Stop
+    }
 }

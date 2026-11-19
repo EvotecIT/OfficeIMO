@@ -1,6 +1,9 @@
 param(
-    [ValidateSet('quick', 'full')]
-    [string] $RunMode = 'full',
+    # diagnostic: a quick check, never published. standard: enough samples for the publish policy.
+    # full: the complete BenchmarkDotNet job of each workload.
+    [ValidateSet('diagnostic', 'standard', 'full')]
+    [Alias('Profile', 'RunMode')]
+    [string] $BenchmarkProfile = 'full',
     [ValidateSet('net8.0', 'net10.0')]
     [string] $Framework = 'net10.0',
     [string[]] $Workload = @('all'),
@@ -34,17 +37,19 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-if ($Publish -and $RunMode -ne 'full') {
-    throw 'Only a full BenchmarkDotNet run can be marked publishable.'
+if ($Publish -and $BenchmarkProfile -eq 'diagnostic') {
+    throw 'A diagnostic run is never published; use -Profile standard or full.'
 }
 
 if ($MeasurementProfile -eq 'WarmedV1' -and
-    ($RunMode -ne 'full' -or $Workload.Count -ne 1 -or $Workload[0] -ne 'pdfhtmlpayload')) {
-    throw 'WarmedV1 requires -RunMode full -Workload pdfhtmlpayload.'
+    ($BenchmarkProfile -ne 'full' -or $Workload.Count -ne 1 -or $Workload[0] -ne 'pdfhtmlpayload')) {
+    throw 'WarmedV1 requires -Profile full -Workload pdfhtmlpayload.'
 }
 
 . (Join-Path $PSScriptRoot 'BenchmarkEvidence.ps1')
-. (Join-Path $PSScriptRoot 'BenchmarkLibraryPolicy.ps1')
+. (Join-Path $PSScriptRoot 'BenchmarkDeclarations.ps1')
+$declarationPath = Join-Path $PSScriptRoot 'benchmark-declarations.json'
+$declarations = Get-Content -LiteralPath $declarationPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $questPdfBenchmarkVersion = '2026.5.0'
@@ -84,7 +89,7 @@ if (-not $isPlanning -and $Platform -eq 'macos' -and $AffinityMask -ne 0) {
     throw 'macOS does not support this runner''s affinity control; use -AffinityMask 0.'
 }
 $stamp = [DateTimeOffset]::UtcNow.ToString('yyyyMMdd-HHmmss-fff')
-$websiteRoot = Join-Path $repositoryRoot 'Website/static/data/benchmarks/library-comparisons'
+$websiteRoot = Join-Path $repositoryRoot 'Website/static/data/benchmarks/evidence'
 $staticRoot = if ([string]::IsNullOrWhiteSpace($EvidenceRoot)) {
     Join-Path ([System.IO.Path]::GetTempPath()) "OfficeIMO/Benchmarks/Bundles/$Platform"
 } else {
@@ -95,13 +100,10 @@ if ($portableBundle -and -not $PSBoundParameters.ContainsKey('OutputRoot')) {
     $OutputRoot = Join-Path $staticRoot 'raw'
 }
 $catalogPath = Join-Path $staticRoot 'index.json'
-$comparisonPath = Join-Path $staticRoot 'comparisons.json'
 
-. (Join-Path $PSScriptRoot 'LibraryComparisonDefinitions.ps1')
 $definitions = Get-LibraryComparisonDefinitions -Framework $Framework
 
 if ($MeasurementProfile -eq 'WarmedV1') {
-    $definitions.pdfhtmlpayload.ComparisonId += '-warmed-v1'
     $definitions.pdfhtmlpayload | Add-Member -NotePropertyName FullRunArguments -NotePropertyValue @(
         '--strategy', 'Throughput',
         '--launchCount', '1',
@@ -212,18 +214,25 @@ $executionPlan = @(
                 $buildProperties[$property.Name] = [string] $property.Value
             }
         }
-        $catalogComparisonId = if ($null -ne $affinityLabel) {
-            '{0}-affinity-{1}' -f $definition.ComparisonId, $affinityLabel.ToLowerInvariant()
-        } else {
-            $definition.ComparisonId
+        # Framework, processor affinity and measurement profile are lane dimensions of one comparison, never part of its id.
+        $laneParameters = [ordered]@{}
+        if ($null -ne $affinityLabel) { $laneParameters.affinity = $affinityLabel.ToLowerInvariant() }
+        if ($MeasurementProfile -ne 'Default') { $laneParameters.measurement = $MeasurementProfile.ToLowerInvariant() }
+        $declaredComparison = @($declarations.comparisons | Where-Object comparisonId -eq $definition.ComparisonId)
+        if ($declaredComparison.Count -ne 1) {
+            throw "Workload '$name' ($($definition.ComparisonId)) is not in Build/benchmark-declarations.json; run ./Build/Export-BenchmarkDeclarations.ps1."
         }
+        $declaredComparison = $declaredComparison[0]
+        # Single-library comparisons and declared exclusions are recorded but never published.
+        $declaredPublishable = @($declaredComparison.libraries).Count -gt 1 -and
+            ($null -eq $declaredComparison.eligibility -or $declaredComparison.eligibility.publishable)
         $blockedReasons = @(
             if ($name -in @('markdownparse', 'markdownhtml') -and
                 -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS)) {
                 'Clear OFFICEIMO_MARKDOWN_BENCHMARK_CORPUS to collect the declared seven-corpus CommonMark matrix.'
             }
-            if ($null -ne $definition.Frameworks -and $Framework -notin $definition.Frameworks) {
-                "This comparison requires $($definition.Frameworks -join ', '); ShapeCrawler 0.82.0 ships only net10.0."
+            if ($Framework -notin @($declaredComparison.frameworks)) {
+                "This comparison is declared for $(@($declaredComparison.frameworks) -join ', ') only: on $Framework a library runs another version or other cases."
             }
             foreach ($library in $workloadLibraries) {
                 if ($library.restriction -eq 'excluded') {
@@ -249,12 +258,12 @@ $executionPlan = @(
         $willCatalog = -not $localOnlyRun -and
             ($catalogEligibleByPolicy -or $definition.CollectNonPublishedEvidence) -and
             $blockedReasons.Count -eq 0
-        $artifactsPath = Join-Path $OutputRoot "$Platform-$name-$RunMode-$stamp"
+        $artifactsPath = Join-Path $OutputRoot "$Platform-$name-$BenchmarkProfile-$stamp"
         $commandOptions = @{
             Definition = $definition
             RepositoryRoot = $repositoryRoot
             Framework = $Framework
-            RunMode = $RunMode
+            BenchmarkProfile = $BenchmarkProfile
             ArtifactsPath = $artifactsPath
             BuildArtifactsPath = $BuildArtifactsPath
             KeepBenchmarkFiles = $KeepBenchmarkFiles
@@ -296,15 +305,17 @@ $executionPlan = @(
             OptionalCaseLibraries = @($enabledLibraries.id)
             ArtifactsPath = $artifactsPath
             BundleRoot = $staticRoot
-            ComparisonPath = if (-not $localOnlyRun) { $comparisonPath } else { $null }
             EvidenceCatalog = if ($willCatalog) { $catalogPath } else { $null }
             Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
-            CatalogComparisonId = $catalogComparisonId
-            ProvenanceWorkloadId = $catalogComparisonId
+            Framework = $Framework
+            DeclaredFrameworks = @($declaredComparison.frameworks)
+            Profile = $BenchmarkProfile
+            LaneParameters = $laneParameters
+            ProvenanceWorkloadId = $definition.ComparisonId
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog
-            Publish = [bool] $Publish -and $catalogEligibleByPolicy -and $willCatalog
+            Publish = [bool] $Publish -and $catalogEligibleByPolicy -and $declaredPublishable -and $willCatalog
             ExpectedCases = $expectedCases
             ExpectedCaseCount = $expectedCases.Count
             AffinityMask = $affinityLabel
@@ -438,12 +449,56 @@ if ($selected -contains 'pdfhtml' -and $catalogEligible -and $htmlTinkerXSourceD
 
 & (Join-Path $PSScriptRoot 'Initialize-BenchmarkPowerForge.ps1') -PowerForgeRoot $PowerForgeRoot | Out-Null
 
-$measurements = [System.Collections.Generic.List[object]]::new()
+$declaredLibraries = @(Get-BenchmarkDeclaredLibraries -Policy $libraryPolicy)
+$subjectLibrary = [string] (@($declarations.comparisons)[0].subject)
+$acceptedLibraries = @(
+    foreach ($library in @($libraryPolicy.libraries | Where-Object { $_.id -in $librarySelection.Enabled })) {
+        @($declaredLibraries | Where-Object PolicyId -eq $library.id | ForEach-Object Id)
+    }
+)
+$outputs = [System.Collections.Generic.List[object]]::new()
+$failures = [System.Collections.Generic.List[string]]::new()
 foreach ($name in $selected) {
     $definition = $definitions[$name]
     $workloadPlan = $executionPlanByWorkload[$name]
     $artifactsPath = $workloadPlan.ArtifactsPath
     New-Item -ItemType Directory -Force -Path $artifactsPath | Out-Null
+    $comparisonLibraries = @($definition.Libraries | ForEach-Object { Resolve-BenchmarkDeclaredLibrary -Libraries $declaredLibraries -Name $_ })
+
+    # Restore first, so the competitor package versions and hashes the publish policy checks are bound into the
+    # provenance before measuring.
+    $projectPath = Join-Path $repositoryRoot $definition.Project
+    $restoreArguments = @('restore', $projectPath, '--nologo', '--verbosity', 'quiet')
+    if (-not [string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
+        $restoreArguments += @('--artifacts-path', [System.IO.Path]::GetFullPath($BuildArtifactsPath))
+    }
+    $restoreArguments += @(@($workloadPlan.Commands | Where-Object Kind -eq 'measure')[0].Arguments | Where-Object { $_ -like '-p:*' })
+    # The PDF comparisons build HtmlTinkerX from source or from its package depending on HTMLTINKERX_PROJECT_PATH;
+    # restore with the same choice as the measurement, so the recorded packages are the ones that are timed.
+    $isPdfComparison = $definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+    $previousRestoreHtmlTinkerX = $env:HTMLTINKERX_PROJECT_PATH
+    try {
+        if ($isPdfComparison) { $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath }
+        & dotnet @restoreArguments | Out-Host
+        $restoreExitCode = $LASTEXITCODE
+    } finally {
+        $env:HTMLTINKERX_PROJECT_PATH = $previousRestoreHtmlTinkerX
+    }
+    if ($restoreExitCode -ne 0) {
+        $failures.Add("${name}: restoring $($definition.Project) failed with exit code $restoreExitCode.")
+        continue
+    }
+    $projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
+    $assetsPath = if ([string]::IsNullOrWhiteSpace($BuildArtifactsPath)) {
+        Join-Path (Split-Path -Parent $projectPath) 'obj/project.assets.json'
+    } else {
+        Join-Path ([System.IO.Path]::GetFullPath($BuildArtifactsPath)) "obj/$projectName/project.assets.json"
+    }
+    # Competitors and the packages their timed workflows depend on (such as HtmlAgilityPack for VersOne.Epub).
+    $dependencyLibraries = @(@($definition.Dependencies | Where-Object { $_ }) | ForEach-Object { Resolve-BenchmarkDeclaredLibrary -Libraries $declaredLibraries -Name $_ })
+    $packageMetadata = Get-BenchmarkPackageProvenance -AssetsPath $assetsPath -Framework $Framework `
+        -Libraries @(@($comparisonLibraries | Where-Object Id -ne $subjectLibrary) + $dependencyLibraries)
+
     $provenanceMetadata = [ordered]@{
         'benchmark.workload.id' = $workloadPlan.ProvenanceWorkloadId
         'benchmark.workload.sourceCommit' = $gitSha
@@ -460,6 +515,9 @@ foreach ($name in $selected) {
     }
     if ($definition.ValidatedSizeEvidence) {
         $provenanceMetadata['benchmark.workload.sizeEvidencePath'] = 'validated-size-evidence.json'
+    }
+    foreach ($package in $packageMetadata.GetEnumerator()) {
+        $provenanceMetadata[$package.Key] = $package.Value
     }
     if ($name -in $questPdfWorkloads) {
         $provenanceMetadata['benchmark.dependency.questpdf.version'] = $effectiveQuestPdfVersion
@@ -486,14 +544,12 @@ foreach ($name in $selected) {
         }
         $provenanceMetadata['benchmark.fixture.html.font.profile'] = 'SharedCarlitoRegularBold'
         $peachVersion = [string] $peachVersionNode.InnerText
-        $provenanceMetadata['benchmark.package.peachpdf.version'] = $peachVersion
         $provenanceMetadata['benchmark.dependency.peachpdf.version'] = $peachVersion
         $pdfPeckerVersionNode = $pdfComparisonProject.SelectSingleNode('//PdfPeckerBenchmarkVersion')
         if ($null -eq $pdfPeckerVersionNode -or [string] $pdfPeckerVersionNode.InnerText -notmatch '^\d+\.\d+\.\d+$') {
             throw 'The HTML comparison must declare an exact PdfPecker package version.'
         }
         $pdfPeckerVersion = [string] $pdfPeckerVersionNode.InnerText
-        $provenanceMetadata['benchmark.package.pdfpecker.version'] = $pdfPeckerVersion
         $provenanceMetadata['benchmark.dependency.pdfpecker.version'] = $pdfPeckerVersion
         $provenanceMetadata['benchmark.dependency.pdfpecker.license'] = 'MIT AND OFL-1.1 AND Bitstream-Vera AND APAFML AND BSD-3-Clause AND MIT-Modern-Variant AND Unicode-3.0 AND FSFAP AND LPPL-1.3c'
         $provenanceMetadata['benchmark.dependency.pdfpecker.licenseUrl'] =
@@ -532,7 +588,6 @@ foreach ($name in $selected) {
             $htmlTinkerXPackageVersion = [string] $htmlTinkerXReferences[0].Version
             $provenanceMetadata['benchmark.browser.owner'] = 'HtmlTinkerX package'
             $provenanceMetadata['benchmark.browser.packageVersion'] = $htmlTinkerXPackageVersion
-            $provenanceMetadata['benchmark.package.htmltinkerx.version'] = $htmlTinkerXPackageVersion
             $provenanceMetadata['benchmark.dependency.htmltinkerx.version'] = $htmlTinkerXPackageVersion
         }
     }
@@ -540,20 +595,23 @@ foreach ($name in $selected) {
         -SourceRoot $repositoryRoot `
         -ArtifactRoot $artifactsPath `
         -Metadata $provenanceMetadata `
-        -RunMode $RunMode
+        -RunMode $BenchmarkProfile
     if ($name -in @('pdfhtml', 'pdfhtmlpayload')) {
         Move-Item -LiteralPath $packageEvidencePath -Destination (
             Join-Path $artifactsPath 'pdfpecker-package.json')
     }
 
     $arguments = @($workloadPlan.Commands | Where-Object Kind -eq 'measure')[0].Arguments
-    $isPdfComparison = $definition.Project -eq 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
 
     Push-Location -LiteralPath $repositoryRoot
     $previousPdfCorpusRoot = $env:OFFICEIMO_PDF_CORPUS_ROOT
     $previousHtmlTinkerXProjectPath = $env:HTMLTINKERX_PROJECT_PATH
     $previousExpectedAffinity = $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY
     $previousEnabledLibraries = $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES
+    $previousValidationPath = $env:OFFICEIMO_BENCHMARK_VALIDATION_PATH
+    # Benchmarks append one JSON object per validated output ({ library, case, status, detail }) to this file
+    # before timing; it stays inside the captured artifacts.
+    $validationLog = Join-Path $artifactsPath 'validation.jsonl'
     $previousLeftOutValues = @{}
     foreach ($variable in $workloadPlan.LeftOutVariables) {
         $previousLeftOutValues[$variable] = [Environment]::GetEnvironmentVariable($variable)
@@ -572,6 +630,7 @@ foreach ($name in $selected) {
             $env:HTMLTINKERX_PROJECT_PATH = $htmlTinkerXProjectPath
         }
         $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $affinityLabel
+        $env:OFFICEIMO_BENCHMARK_VALIDATION_PATH = $validationLog
         & dotnet @arguments
         $benchmarkExitCode = $LASTEXITCODE
     } finally {
@@ -579,13 +638,15 @@ foreach ($name in $selected) {
         $env:HTMLTINKERX_PROJECT_PATH = $previousHtmlTinkerXProjectPath
         $env:OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY = $previousExpectedAffinity
         $env:OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES = $previousEnabledLibraries
+        $env:OFFICEIMO_BENCHMARK_VALIDATION_PATH = $previousValidationPath
         foreach ($variable in $previousLeftOutValues.Keys) {
             [Environment]::SetEnvironmentVariable($variable, $previousLeftOutValues[$variable])
         }
         Pop-Location
     }
     if ($benchmarkExitCode -ne 0) {
-        throw "$name benchmark run failed with exit code $benchmarkExitCode."
+        # A crashed or failed case is a result: its cells are recorded as failed and the rest of the run continues.
+        $failures.Add("${name}: BenchmarkDotNet exited with code $benchmarkExitCode; failed cases are recorded as failed cells.")
     }
 
     $sizeEvidencePath = $null
@@ -623,163 +684,125 @@ foreach ($name in $selected) {
         Complete-BenchmarkProvenanceCapture |
         Out-Null
 
-    $result = Import-BenchmarkResult -Path $artifactsPath -Suite $definition.Suite
-    $successfulCases = @(
-        $result.Summary |
-            Where-Object {
-                $_.Status -in @('Success', 'Succeeded') -and
-                $_.SampleCount -gt 0 -and
-                $null -ne $_.MedianMs
-            } |
-            ForEach-Object {
-                Get-BenchmarkEvidenceCaseIdentity `
-                    -Row $_ `
-                    -VariableName $definition.IdentityVariables
-            } |
-            Sort-Object -Unique
-    )
-    $missingCases = @(
-        $workloadPlan.ExpectedCases |
-            Where-Object { $_ -notin $successfulCases }
-    )
-    $unexpectedCases = @(
-        $successfulCases |
-            Where-Object { $_ -notin $workloadPlan.ExpectedCases } |
-            Where-Object {
-                $case = $_
-                @($workloadPlan.AllowedExtraCaseLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $case }).Count -eq 0
-            }
-    )
-    if ($missingCases.Count -gt 0 -or $unexpectedCases.Count -gt 0) {
-        $details = @()
-        if ($missingCases.Count -gt 0) {
-            $details += "missing successful cases: $($missingCases -join ', ')"
-        }
-        if ($unexpectedCases.Count -gt 0) {
-            $details += "unexpected cases: $($unexpectedCases -join ', ')"
-        }
-        throw "$name benchmark evidence is incomplete ($($details -join '; '))."
+    # Derived files stay outside the completed raw-artifact provenance boundary.
+    $importOptions = @{
+        Path = $artifactsPath
+        Suite = $definition.Suite
     }
-
-    $evidenceLocation = Get-BenchmarkEvidenceLocation `
-        -ComparisonId $workloadPlan.CatalogComparisonId `
-        -Platform $platform `
-        -RunMode $RunMode `
-        -StaticRoot $staticRoot `
-        -Portable:$portableBundle
-    # Keep derived output outside the completed raw-artifact provenance boundary.
-    $normalizedPath = Join-Path $OutputRoot (
-        '{0}-normalized-result.json' -f (Split-Path -Leaf $artifactsPath))
+    $importMaps = Get-BenchmarkComparisonImportMaps -Workload $name -Definition $definition -Libraries $declaredLibraries
+    if ($importMaps.LibraryMap.Count -gt 0) { $importOptions.LibraryMap = $importMaps.LibraryMap }
+    if ($importMaps.CaseMap.Count -gt 0) { $importOptions.CaseMap = $importMaps.CaseMap }
+    if ($acceptedLibraries.Count -gt 0) { $importOptions.AcceptLicense = $acceptedLibraries }
+    if (Test-Path -LiteralPath $validationLog -PathType Leaf) {
+        $validations = @(Get-Content -LiteralPath $validationLog -Encoding UTF8 | Where-Object { $_.Trim() } | ForEach-Object { $_ | ConvertFrom-Json })
+        $validationPath = Join-Path $OutputRoot ('{0}-validation.json' -f (Split-Path -Leaf $artifactsPath))
+        ConvertTo-Json -InputObject $validations -Depth 5 | Set-Content -LiteralPath $validationPath -Encoding utf8NoBOM
+        $importOptions.ValidationPath = $validationPath
+    }
+    try {
+        $result = Import-BenchmarkResult @importOptions
+    } catch {
+        $failures.Add("${name}: the results could not be imported: $($_.Exception.Message)")
+        continue
+    }
+    $normalizedPath = Join-Path $OutputRoot ('{0}-normalized-result.json' -f (Split-Path -Leaf $artifactsPath))
     Write-BenchmarkEvidenceResult -Path $normalizedPath -InputObject $result
 
-    $measurements.Add([pscustomobject]@{
+    # Drift between the declarations and what ran blocks publication; the lane is still recorded.
+    $drift = @(Test-BenchmarkDeclaration -Path $declarationPath -InputObject $result -ComparisonId $definition.ComparisonId -PassThru)
+    # PowerForge compares cases, libraries and axis values separately, so a missing method and parameter
+    # combination (one library at one size) would pass as a partial lane. Every expected combination must have a
+    # row; a row that ran and failed counts, because a failed case is a result.
+    $measuredCombinations = @(
+        $result.Summary | ForEach-Object {
+            Get-BenchmarkMethodCombination -Row $_ -VariableName $definition.IdentityVariables
+        } | Sort-Object -Unique
+    )
+    $missingCombinations = @($workloadPlan.ExpectedCases | Where-Object { $_ -notin $measuredCombinations })
+    $unexpectedCombinations = @(
+        $measuredCombinations |
+            Where-Object { $_ -notin $workloadPlan.ExpectedCases } |
+            Where-Object {
+                $combination = $_
+                @($workloadPlan.AllowedExtraCaseLibraries | Where-Object { Test-BenchmarkCaseMatchesLibrary -Library $_ -Case $combination }).Count -eq 0
+            }
+    )
+    foreach ($combination in $missingCombinations) {
+        $drift += [pscustomobject]@{ Code = 'missing-combination'; Message = "Expected case '$combination' did not run." }
+    }
+    foreach ($combination in $unexpectedCombinations) {
+        $drift += [pscustomobject]@{ Code = 'unexpected-combination'; Message = "Case '$combination' ran but is not expected." }
+    }
+    $publishLane = $workloadPlan.Publish
+    if ($drift.Count -gt 0) {
+        $failures.Add("${name}: the results drifted from Build/benchmark-declarations.json ($(@($drift | ForEach-Object { $_.Message }) -join ' ')). Regenerate the declarations or fix the benchmark.")
+        $publishLane = $false
+    }
+
+    $laneKey = $null
+    if ($workloadPlan.WillCatalog) {
+        $resultName = @($definition.ComparisonId, $Platform, $Framework, $BenchmarkProfile) + @($workloadPlan.LaneParameters.Values)
+        $updateOptions = @{
+            InputObject = $result
+            Path = $catalogPath
+            ComparisonId = $definition.ComparisonId
+            ResultPath = ($resultName -join '-') + '.json'
+            Profile = $BenchmarkProfile
+            Framework = $Framework
+            Platform = $Platform
+            DeclarationPath = $declarationPath
+        }
+        if ($workloadPlan.LaneParameters.Count -gt 0) {
+            $updateOptions.LaneParameter = [hashtable] $workloadPlan.LaneParameters
+        }
+        if (-not $portableBundle) {
+            $updateOptions.ResultArtifactPath = Join-Path $staticRoot $updateOptions.ResultPath
+            $updateOptions.ResultPath = '/data/benchmarks/evidence/' + $updateOptions.ResultPath
+        }
+        try {
+            $catalog = Update-BenchmarkEvidenceCatalog @updateOptions -Publish:$publishLane
+        } catch {
+            if (-not $publishLane) { throw }
+            # The lane does not meet the publish policy; its evidence is kept unpublished and the reason reported.
+            $failures.Add("${name}: not published: $($_.Exception.Message)")
+            $publishLane = $false
+            $catalog = Update-BenchmarkEvidenceCatalog @updateOptions
+        }
+        $entry = @($catalog.Entries | Where-Object {
+                $_.ComparisonId -eq $definition.ComparisonId -and $_.Platform -eq $Platform -and $_.Framework -eq $Framework
+            } | Sort-Object GeneratedUtc -Descending | Select-Object -First 1)
+        if ($entry.Count -eq 1) { $laneKey = $entry[0].LaneKey }
+    }
+
+    $outputs.Add([pscustomobject]@{
         Workload = $name
-        Definition = $definition
-        Result = $result
-        EvidenceLocation = $evidenceLocation
+        Area = $definition.Area
+        ComparisonId = $definition.ComparisonId
+        Platform = $Platform
+        Framework = $Framework
+        Profile = $BenchmarkProfile
+        LaneParameters = $workloadPlan.LaneParameters
+        LaneKey = $laneKey
+        Publish = $publishLane
+        Drift = @($drift | ForEach-Object { $_.Message })
+        AffinityMask = $affinityLabel
+        AffinityApplication = $effectiveAffinityApplication
+        QuestPdfPackageVersion = $workloadPlan.QuestPdfPackageVersion
+        InternalOnly = $workloadPlan.InternalOnly
+        SourceCommit = $gitSha
         ArtifactsPath = $artifactsPath
         NormalizedResult = $normalizedPath
         SizeEvidence = $sizeEvidencePath
-        CatalogEligible = $workloadPlan.WillCatalog
+        BundleRoot = $staticRoot
+        EvidenceCatalog = if ($workloadPlan.WillCatalog) { $catalogPath } else { $null }
     })
 }
 
-if (($measurements.Count -ne $selected.Count) -or
-    (@($measurements | Where-Object { $null -eq $_.Result }).Count -gt 0)) {
-    throw 'Benchmark measurement collection did not produce exactly one normalized result per selected workload.'
-}
-
-if ($catalogEligible) {
-    foreach ($measurement in @($measurements | Where-Object CatalogEligible)) {
-        Update-BenchmarkEvidenceCatalog `
-            -InputObject $measurement.Result `
-            -Path $catalogPath `
-            -ComparisonId $executionPlanByWorkload[$measurement.Workload].CatalogComparisonId `
-            -ResultPath $measurement.EvidenceLocation.ResultPath `
-            -ResultArtifactPath $measurement.EvidenceLocation.Path `
-            -RunMode $RunMode `
-            -Platform $platform `
-            -ExpectedPlatform $measurement.Definition.ExpectedPlatforms `
-            -Publish:($executionPlanByWorkload[$measurement.Workload].Publish) | Out-Null
-    }
-}
-
-if (-not $localOnlyRun) {
-    # Declarations include restricted and uncollected workloads, even for a subset run.
-    # Keep this metadata outside completed raw provenance; PowerForge owns catalog merging.
-    $catalogDeclarations = [ordered]@{}
-    if (Test-Path -LiteralPath $catalogPath -PathType Leaf) {
-        $existingCatalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
-        foreach ($declaration in @($existingCatalog.comparisons)) {
-            $catalogDeclarations[$declaration.comparisonId] = $declaration
-        }
-    }
-    $baseDefinitions = Get-LibraryComparisonDefinitions -Framework $Framework
-    foreach ($definition in $baseDefinitions.Values) {
-        if ($definition.Frameworks -and $Framework -notin $definition.Frameworks) { continue }
-        $catalogDeclarations[$definition.ComparisonId] = [pscustomobject]@{
-            comparisonId = $definition.ComparisonId
-            area = $definition.Area
-            title = $definition.Title
-            libraries = @($definition.Libraries | Where-Object {
-                    (Resolve-BenchmarkLibrary -Policy $libraryPolicy -Name $_).restriction -eq 'open'
-                })
-            expectedPlatforms = @($definition.ExpectedPlatforms)
-        }
-    }
-    foreach ($item in $executionPlan) {
-        $definition = $baseDefinitions[$item.Workload]
-        if ($definition.Frameworks -and $Framework -notin $definition.Frameworks) { continue }
-        $baseId = $definition.ComparisonId
-        if ($item.CatalogComparisonId -eq $baseId) { continue }
-        $catalogDeclarations[$item.CatalogComparisonId] = [pscustomobject]@{
-            comparisonId = $item.CatalogComparisonId
-            area = $item.Area
-            title = $item.Title + ' (' + $item.CatalogComparisonId.Substring($baseId.Length).TrimStart('-') + ')'
-            libraries = @($item.Libraries)
-            expectedPlatforms = @($item.ExpectedPlatforms)
-        }
-    }
-    New-Item -ItemType Directory -Force -Path $staticRoot | Out-Null
-    ConvertTo-Json -InputObject @($catalogDeclarations.Values) -Depth 10 |
-        Set-Content -LiteralPath $comparisonPath -Encoding utf8NoBOM
-    if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) {
-        Write-BenchmarkEvidenceResult -Path $catalogPath -InputObject ([PowerForge.BenchmarkEvidenceCatalog]::new())
-    }
-    $mergedCatalog = Merge-BenchmarkEvidenceCatalog -SourcePath $catalogPath -Path $catalogPath -ComparisonPath $comparisonPath
-}
-
-$outputs = foreach ($measurement in $measurements) {
-    [pscustomobject]@{
-        Workload = $measurement.Workload
-        Area = $measurement.Definition.Area
-        CatalogComparisonId = $executionPlanByWorkload[$measurement.Workload].CatalogComparisonId
-        Platform = $platform
-        RunMode = $RunMode
-        Publish = $executionPlanByWorkload[$measurement.Workload].Publish
-        AffinityMask = $affinityLabel
-        AffinityApplication = $effectiveAffinityApplication
-        QuestPdfPackageVersion = $executionPlanByWorkload[$measurement.Workload].QuestPdfPackageVersion
-        InternalOnly = $executionPlanByWorkload[$measurement.Workload].InternalOnly
-        SourceCommit = $gitSha
-        ArtifactsPath = $measurement.ArtifactsPath
-        NormalizedResult = if ($measurement.CatalogEligible) {
-            $entry = @($mergedCatalog.Entries | Where-Object {
-                $_.ComparisonId -eq $executionPlanByWorkload[$measurement.Workload].CatalogComparisonId -and
-                $_.Platform -eq $Platform -and $_.RunMode -eq $RunMode
-            })[0]
-            Join-Path $staticRoot $entry.ArtifactRelativePath
-        } else {
-            $measurement.NormalizedResult
-        }
-        SizeEvidence = $measurement.SizeEvidence
-        BundleRoot = $staticRoot
-        ComparisonPath = if (-not $localOnlyRun) { $comparisonPath } else { $null }
-        EvidenceCatalog = if (-not $localOnlyRun) { $catalogPath } else { $null }
-    }
-}
-
 $outputs
+if ($failures.Count -gt 0) {
+    throw ("Some workloads did not complete cleanly; the evidence that was measured is recorded:" + [Environment]::NewLine +
+        ($failures -join [Environment]::NewLine))
+}
 } finally {
     $env:MSBUILDDISABLENODEREUSE = $previousNodeReuse
     $env:DOTNET_CLI_USE_MSBUILD_SERVER = $previousBuildServer
