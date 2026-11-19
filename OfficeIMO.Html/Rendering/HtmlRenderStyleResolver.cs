@@ -168,6 +168,12 @@ internal sealed partial class HtmlRenderStyleResolver {
         _computedStyles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle computed)
         && HasAuthoredValue(computed, propertyName);
 
+    /// <summary>The element's text-justify mode, whether or not it owns any text; null without a computed style.</summary>
+    internal string? ResolveTextJustifyMode(IElement element) =>
+        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
+            ? ResolveTextJustifyMode(computed.GetValue("text-justify"))
+            : null;
+
     internal bool IsPropertySpecified(IElement element, string propertyName) =>
         _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
         && computed.IsSpecifiedValue(propertyName);
@@ -365,8 +371,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             LineHeight = lineHeight,
             UsesNaturalLineHeight = usesNaturalLineHeight,
             InlineAlignmentLineHeight = alignmentLineHeight,
-            LetterSpacing = ResolveInheritableTextSpacing(computed, "letter-spacing", fontSize, parent?.LetterSpacing),
-            WordSpacing = ResolveInheritableTextSpacing(computed, "word-spacing", fontSize, parent?.WordSpacing),
+            LetterSpacing = ResolveInheritableTextSpacing(computed, "letter-spacing", fontSize, parent?.LetterSpacing,
+                parent?.LetterSpacingFontBasis ?? double.NaN, out double letterSpacingBasis),
+            LetterSpacingFontBasis = letterSpacingBasis,
+            WordSpacing = ResolveInheritableTextSpacing(computed, "word-spacing", fontSize, parent?.WordSpacing,
+                parent?.WordSpacingFontBasis ?? double.NaN, out double wordSpacingBasis),
+            WordSpacingFontBasis = wordSpacingBasis,
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = whiteSpaceCollapse is "preserve" or "break-spaces" or "preserve-spaces",
             PreserveLineBreaks = whiteSpaceCollapse == "preserve-breaks",
@@ -641,26 +651,25 @@ internal sealed partial class HtmlRenderStyleResolver {
         isLength = false;
     }
 
-    // A percentage inherits as a percentage and resolves against each element's own font size;
-    // other lengths inherit as the parent's resolved value.
-    private double ResolveInheritableTextSpacing(HtmlComputedStyle computed, string property, double fontSize, double? parentValue) {
+    // Percentages, bare or inside calc(), min(), max() or clamp(), inherit as percentages and resolve
+    // against each element's own font size. Font-relative lengths keep the font size of the element
+    // that declared them, recorded as the basis; a value without a percentage inherits as resolved.
+    private double ResolveInheritableTextSpacing(HtmlComputedStyle computed, string property, double fontSize,
+        double? parentValue, double parentBasis, out double basis) {
         string value = computed.GetValue(property);
-        if (parentValue.HasValue && computed.IsInheritedValue(property) && !IsTextSpacingPercentage(value)) return parentValue.Value;
+        if (parentValue.HasValue && computed.IsInheritedValue(property)) {
+            basis = double.IsNaN(parentBasis) ? fontSize : parentBasis;
+            return value.IndexOf('%') >= 0 ? ResolveTextSpacing(value, fontSize, parentValue.Value, basis) : parentValue.Value;
+        }
+        basis = fontSize;
         return ResolveTextSpacing(value, fontSize, parentValue ?? 0D);
     }
 
-    private static bool IsTextSpacingPercentage(string value) {
-        string trimmed = value.Trim();
-        return trimmed.Length > 1 && trimmed[trimmed.Length - 1] == '%'
-            && double.TryParse(trimmed.Substring(0, trimmed.Length - 1), System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out _);
-    }
-
-    private double ResolveTextSpacing(string value, double fontSize, double inherited) {
+    private double ResolveTextSpacing(string value, double fontSize, double inherited, double? emFontSize = null) {
         string normalized = value.Trim().ToLowerInvariant();
         if (normalized.Length == 0 || normalized == "inherit" || normalized == "unset") return inherited;
         if (normalized == "normal") return 0D;
-        return TryResolveLength(normalized, fontSize, fontSize, _rootFontSize, out double parsed)
+        return TryResolveLength(normalized, fontSize, emFontSize ?? fontSize, _rootFontSize, out double parsed)
             && !double.IsNaN(parsed) && !double.IsInfinity(parsed)
             ? parsed
             : 0D;

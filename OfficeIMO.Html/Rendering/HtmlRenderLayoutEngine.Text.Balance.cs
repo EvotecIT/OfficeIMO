@@ -27,6 +27,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// lines have similar lengths, and paints the lines in the full width for alignment.
     /// </summary>
     private HtmlInlineLayout LayoutBalancedInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width,
+        HtmlRenderBoxStyle paragraphStyle, AngleSharp.Dom.IElement? formattingContainer) =>
+        LayoutInlineRuns(runs, ResolveBalancedLineLength(runs, width, paragraphStyle, formattingContainer), paragraphStyle,
+            formattingContainer, inlineEdgesPrepared: true, renderWidth: width);
+
+    // The balanced line length for runs that LayoutInlineRuns would balance, when it is narrower than width.
+    private bool TryResolveBalancedLineWidth(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle,
+        AngleSharp.Dom.IElement? formattingContainer, IReadOnlyList<HtmlFloatExclusion>? inheritedFloats,
+        InlineFloatContext? floatContext, out double balanced) {
+        balanced = width;
+        if (runs.Count == 0 || width <= 0D || runs.Any(run => run.IsBlockInterruption)
+            || floatContext?.HasFloats == true || runs.Any(run => run.FloatingBlock != null) || inheritedFloats?.Count > 0
+            ) return false;
+        PrepareInlineEdgeScopes(runs);
+        if (!CanBalanceInlineLines(runs, paragraphStyle, 0, null, null)) return false;
+        balanced = ResolveBalancedLineLength(runs, width, paragraphStyle, formattingContainer);
+        return balanced < width;
+    }
+
+    private double ResolveBalancedLineLength(IReadOnlyList<HtmlInlineRun> runs, double width,
         HtmlRenderBoxStyle paragraphStyle, AngleSharp.Dom.IElement? formattingContainer) {
         int CountLines(double candidate, bool edgesPrepared) {
             int count = 0;
@@ -47,6 +66,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             balanced = high;
         }
-        return LayoutInlineRuns(runs, balanced, paragraphStyle, formattingContainer, inlineEdgesPrepared: true, renderWidth: width);
+        return balanced;
     }
 }

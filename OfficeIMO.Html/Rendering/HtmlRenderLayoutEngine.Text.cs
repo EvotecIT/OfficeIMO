@@ -44,8 +44,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ApplyPendingInlineTextTransforms(runs, retainSuppressedText: true);
         ApplyFirstLetterStyle(formattingContainer, width, parentStyle, runs);
         RemoveSuppressedInlineText(runs);
-        ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
+        var runsBeforeFirstLine = new List<HtmlInlineRun>(runs);
+        bool styledFirstLine = ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs);
         runs = ApplyScopedFontFallbacks(runs);
+        double layoutWidth = width;
+        double? renderWidth = null;
+        if (styledFirstLine && skipLogicalCharacters == 0
+            && TryResolveBalancedLineWidth(runs, width, parentStyle, formattingContainer, inheritedFloats, floatContext, out double balanced)) {
+            // Balancing moves words off the first line, so ::first-line is matched again at the chosen length.
+            runs = new List<HtmlInlineRun>(runsBeforeFirstLine);
+            ApplyFirstLineStyle(formattingContainer, width, parentStyle, runs, balanced);
+            runs = ApplyScopedFontFallbacks(runs);
+            layoutWidth = balanced;
+            renderWidth = width;
+        }
 
         if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
             int semanticNodeId = GetSemanticNodeId(formattingContainer);
@@ -54,7 +66,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AssignSemanticFragmentOrders(runs);
 
         if (marker == null || !marker.IsOutside || skipLogicalCharacters > 0) {
-            return LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats, floatContext: floatContext);
+            return LayoutInlineRuns(runs, layoutWidth, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats,
+                floatContext: floatContext, renderWidth: renderWidth);
         }
 
         HtmlRenderBoxStyle outsideMarkerStyle = marker.Style.Clone();
@@ -70,7 +83,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double markerAdvance = marker.Image?.Width ?? MeasureInlineText(marker.Content, outsideMarkerStyle);
         double gutter = Math.Min(Math.Max(1D, width * 0.5D), markerAdvance + gap);
         HtmlInlineLayout markerLayout = LayoutInlineRuns(markerRuns, gutter, outsideMarkerStyle, formattingContainer);
-        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, width, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats, floatContext: floatContext);
+        HtmlInlineLayout bodyLayout = LayoutInlineRuns(runs, layoutWidth, parentStyle, formattingContainer, skipLogicalCharacters, pageBoundary, inheritedFloats,
+            floatContext: floatContext, renderWidth: renderWidth);
         return CombineOutsideListMarker(markerLayout, bodyLayout, width, gap, parentStyle);
     }
 

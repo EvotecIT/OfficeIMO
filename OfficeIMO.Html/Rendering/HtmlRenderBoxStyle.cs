@@ -202,6 +202,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal double CharacterAdvance { get => _text.CharacterAdvance; set { if (!(SameValue(_text.CharacterAdvance, value))) MutableText().CharacterAdvance = value; } }
     internal double LetterSpacing { get => _text.LetterSpacing; set { if (!(SameValue(_text.LetterSpacing, value))) MutableText().LetterSpacing = value; } }
     internal double WordSpacing { get => _text.WordSpacing; set { if (!(SameValue(_text.WordSpacing, value))) MutableText().WordSpacing = value; } }
+    internal double LetterSpacingFontBasis { get => _text.LetterSpacingFontBasis; set { if (!(SameValue(_text.LetterSpacingFontBasis, value))) MutableText().LetterSpacingFontBasis = value; } }
+    internal double WordSpacingFontBasis { get => _text.WordSpacingFontBasis; set { if (!(SameValue(_text.WordSpacingFontBasis, value))) MutableText().WordSpacingFontBasis = value; } }
     internal OfficeTextFeatureSettings TextFeatureSettings { get => _text.TextFeatureSettings; set { if (!(ReferenceEquals(_text.TextFeatureSettings, value))) MutableText().TextFeatureSettings = value; } }
     internal string Direction { get => _text.Direction; set { if (!(string.Equals(_text.Direction, value, StringComparison.Ordinal))) MutableText().Direction = value; } }
     internal string WritingMode { get => _text.WritingMode; set { if (!(string.Equals(_text.WritingMode, value, StringComparison.Ordinal))) MutableText().WritingMode = value; } }
@@ -483,6 +485,10 @@ internal sealed class HtmlRenderBoxStyle {
         internal double CharacterAdvance = double.NaN;
         internal double LetterSpacing;
         internal double WordSpacing;
+        // Font size of the element that declared letter- or word-spacing; descendants resolve its
+        // font-relative lengths against it and its percentages against their own font size.
+        internal double LetterSpacingFontBasis = double.NaN;
+        internal double WordSpacingFontBasis = double.NaN;
         internal OfficeTextFeatureSettings TextFeatureSettings = OfficeTextFeatureSettings.Default;
         internal string Direction = "ltr";
         internal string WritingMode = "horizontal-tb";

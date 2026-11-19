@@ -259,6 +259,61 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_JustifiesGapsByAnAncestorThatOwnsNoText() {
+        HtmlRenderText[] firstLine = JustificationVisuals(HtmlRenderTestDriver.Render(
+                "<p style='text-align:justify;text-justify:inter-word;width:200px;margin:0;font-size:16px'>"
+                + "<span style='text-justify:inter-character'><span>aa</span><span>aa</span></span>"
+                + " lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor</p>", CssLayoutOptions)
+            .Pages[0].Visuals).OfType<HtmlRenderText>()
+            .GroupBy(text => Math.Round(text.LayoutY, 1)).OrderBy(group => group.Key).First()
+            .OrderBy(text => text.X).Take(4).ToArray();
+
+        // The wrapper's inter-character governs the gap between its two children as well as the gaps inside them.
+        Assert.Equal(new[] { "a", "a", "a", "a" }, firstLine.Select(text => text.Text));
+        Assert.Equal(firstLine[1].X - firstLine[0].X, firstLine[2].X - firstLine[1].X, 2);
+        Assert.Equal(firstLine[1].X - firstLine[0].X, firstLine[3].X - firstLine[2].X, 2);
+    }
+
+    [Fact]
+    public void HtmlRenderer_FirstLineKeepsTheTextJustifyOfItsText() {
+        HtmlRenderText[] firstLine = JustificationVisuals(HtmlRenderTestDriver.Render(
+                "<style>p::first-line{color:#0000ff}</style><p style='text-align:justify;text-justify:inter-word;width:200px;margin:0;font-size:16px'>"
+                + "<span style='text-justify:inter-character'>aaaa</span>"
+                + " lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor</p>", CssLayoutOptions)
+            .Pages[0].Visuals).OfType<HtmlRenderText>()
+            .GroupBy(text => Math.Round(text.LayoutY, 1)).OrderBy(group => group.Key).First()
+            .OrderBy(text => text.X).ToArray();
+
+        // ::first-line cannot set text-justify, so the span's inter-character still spreads its letters.
+        Assert.Equal(new[] { "a", "a", "a", "a" }, firstLine.Take(4).Select(text => text.Text));
+    }
+
+    [Fact]
+    public void HtmlRenderer_NoJustificationAtGapsWhoseAncestorDisablesIt() {
+        HtmlRenderText[] texts = JustificationVisuals(HtmlRenderTestDriver.Render(
+                "<p style='text-align:justify;text-align-last:justify;text-justify:none;width:200px;margin:0;font-size:16px'>"
+                + "<span style='text-justify:inter-character'>\u6F22</span><span style='text-justify:inter-character'>\u5B57</span></p>",
+                CssLayoutOptions).Pages[0].Visuals).OfType<HtmlRenderText>().OrderBy(text => text.X).ToArray();
+
+        // Neither span has a gap of its own, and the paragraph's none governs the one between them.
+        Assert.True(texts[1].X < 40D, "second character at " + texts[1].X);
+    }
+
+    [Fact]
+    public void HtmlRenderer_BalancedBlocksMatchFirstLineAtTheBalancedLength() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>h2::first-line{color:#ff0000}</style><h2 style='width:300px;margin:0;font-size:20px;text-wrap:balance'>"
+            + "A heading that is long enough to wrap onto a second short line</h2>", CssLayoutOptions);
+        HtmlRenderText[] texts = JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => !string.IsNullOrWhiteSpace(text.Text)).ToArray();
+        double firstLineY = texts.Min(text => Math.Round(text.LayoutY, 1));
+
+        Assert.True(texts.Select(text => Math.Round(text.LayoutY, 1)).Distinct().Count() > 1);
+        Assert.All(texts, text => Assert.Equal(Math.Round(text.LayoutY, 1) == firstLineY,
+            text.Color is OfficeIMO.OfficeColor { R: 0xFF, G: 0, B: 0 }));
+    }
+
+    [Fact]
     public void HtmlRenderer_JustifiesCharactersOfTextAProviderWouldShape() {
         // keep-all keeps each CJK word in one segment, which a configured provider would shape as one glyph run.
         const string text = "漢字の文章 単語の間に 空白がない 文字の間で 両端揃えに する必要が あります";
@@ -324,16 +379,20 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(BoxWidth("A B"), BoxWidth("A\tB"), 2);
     }
 
+    // Each value gives 4px on a 40px child of a 20px parent; em parts keep the parent's font.
     [Theory]
-    [InlineData("letter-spacing")]
-    [InlineData("word-spacing")]
-    public void HtmlRenderer_InheritedPercentageSpacingFollowsTheChildFont(string property) {
+    [InlineData("letter-spacing", "10%")]
+    [InlineData("word-spacing", "10%")]
+    [InlineData("letter-spacing", "calc(10%)")]
+    [InlineData("word-spacing", "max(10%, 1px)")]
+    [InlineData("letter-spacing", "calc(0.1em + 5%)")]
+    public void HtmlRenderer_InheritedPercentageSpacingFollowsTheChildFont(string property, string value) {
         double[] Positions(string parent, string child) =>
             JustificationVisuals(HtmlRenderTestDriver.Render("<p style='margin:0;font-size:20px;" + parent + "'><span style='font-size:40px;"
                     + child + "'>ab cd</span></p>", CssLayoutOptions)
                 .Pages[0].Visuals).OfType<HtmlRenderText>().Select(text => Math.Round(text.X, 3)).ToArray();
 
-        Assert.Equal(Positions(string.Empty, property + ":4px"), Positions(property + ":10%", string.Empty));
+        Assert.Equal(Positions(string.Empty, property + ":4px"), Positions(property + ":" + value, string.Empty));
     }
 
     [Fact]

@@ -11,7 +11,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// together. The last line of the block and lines ending in a forced break follow text-align-last;
     /// with its auto value they align to start.
     /// </summary>
-    private static double[] ApplyInlineLineJustification(IReadOnlyList<InlineLine> lines, double width,
+    private double[] ApplyInlineLineJustification(IReadOnlyList<InlineLine> lines, double width,
         HtmlRenderBoxStyle paragraphStyle, out JustificationLimit limits) {
         var added = new double[lines.Count];
         limits = JustificationLimit.None;
@@ -61,8 +61,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     // text-justify applies to text: a gap inside one element's text uses its value, and a gap between
-    // two elements' text uses the value of their nearest common ancestor.
-    private static string ResolveGapTextJustifyMode(InlineLine line, JustificationUnit unit, JustificationUnit next,
+    // two elements' text uses the value of their nearest common ancestor, whether or not it owns text.
+    private string ResolveGapTextJustifyMode(InlineLine line, JustificationUnit unit, JustificationUnit next,
         HtmlRenderBoxStyle paragraphStyle) {
         HtmlInlineRun run = line.Segments[unit.SegmentIndex].Run;
         HtmlInlineRun nextRun = line.Segments[next.SegmentIndex].Run;
@@ -71,10 +71,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (ancestor == null) return paragraphStyle.TextJustifyMode;
         if (ReferenceEquals(ancestor, run.OwnerElement)) return run.Style.TextJustifyMode;
         if (ReferenceEquals(ancestor, nextRun.OwnerElement)) return nextRun.Style.TextJustifyMode;
-        foreach (InlineSegment segment in line.Segments) {
-            if (ReferenceEquals(segment.Run.OwnerElement, ancestor)) return segment.Run.Style.TextJustifyMode;
-        }
-        return paragraphStyle.TextJustifyMode;
+        return _styleResolver.ResolveTextJustifyMode(ancestor) ?? paragraphStyle.TextJustifyMode;
     }
 
     private static AngleSharp.Dom.IElement? NearestCommonAncestor(AngleSharp.Dom.IElement? left, AngleSharp.Dom.IElement? right) {
@@ -190,6 +187,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static bool IsJustificationOpportunity(JustificationUnit unit, JustificationUnit next, string mode) {
+        // none turns justification off for every gap it governs, separators included.
+        if (mode == "none") return false;
         if (unit.Kind == JustificationUnitKind.Separator) return true;
         // A following separator already owns the gap.
         if (next.Kind == JustificationUnitKind.Separator) return false;
