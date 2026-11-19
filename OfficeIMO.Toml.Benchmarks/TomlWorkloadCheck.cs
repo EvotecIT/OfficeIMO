@@ -53,8 +53,8 @@ public static class TomlWorkloadCheck {
         List<string>[] officeIMO = inputs.Select(TomlContentCheck.EventsOfficeIMO).ToArray();
         List<string>[] tomlyn = inputs.Select(TomlContentCheck.EventsTomlyn).ToArray();
         List<string>[] expected = inputs.Select(input => TomlContentCheck.ScalarsOf(TomlContentCheck.LeavesTomlet(TomlLibraries.LoadTomlet(input)))).ToArray();
-        string detail = "Workload=" + workload + "; " + officeIMO.Sum(events => events.Count) + " keys and values in document order, identical across OfficeIMO and Tomlyn (hash " +
-            TomlContentCheck.Hash(officeIMO.SelectMany(events => events)) + "); " + expected.Sum(values => values.Count) + " decoded values match Tomlet's document";
+        string detail = "Workload=" + workload + "; " + officeIMO.Sum(events => TomlContentCheck.KeyedValues(events).Count) + " values with their keys in document order, identical across OfficeIMO and Tomlyn (hash " +
+            TomlContentCheck.Hash(officeIMO.SelectMany(TomlContentCheck.KeyedValues)) + "); " + expected.Sum(values => values.Count) + " decoded values match Tomlet's document";
         TomlContentCheck.Record("OfficeIMO", "Default", detail, () => CompareEach(inputs, index =>
             TomlContentCheck.Compare("values against Tomlet", expected[index], TomlContentCheck.ScalarsOfEvents(officeIMO[index])) ??
             TomlContentCheck.Compare("keyed values against Tomlyn", TomlContentCheck.KeyedValues(tomlyn[index]), TomlContentCheck.KeyedValues(officeIMO[index]))));
