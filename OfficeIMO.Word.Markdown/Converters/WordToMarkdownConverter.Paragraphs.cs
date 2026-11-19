@@ -226,17 +226,18 @@ namespace OfficeIMO.Word.Markdown {
         private const int MaximumBlockquoteDepth = 64;
 
         /// <summary>
-        /// The Markdown quote depth of a paragraph: one for the document's quote style, found by its built-in name, plus
-        /// the levels its direct indent adds to the style's own indent; otherwise the levels of its direct indent.
+        /// The Markdown quote depth of a paragraph: the levels its direct indent adds to its paragraph style's own
+        /// indent, plus one when that style is the document's quote style, found by its built-in name.
         /// </summary>
         private static int GetBlockquoteDepth(WordParagraph paragraph) {
             int direct = paragraph.IndentationBefore.HasValue ? checked((int)paragraph.IndentationBefore.Value.ToTwips()) : 0;
+            string? styleId = paragraph.StyleId;
+            int styleIndent = styleId != null ? paragraph._document?.GetStyleIndentationBeforeTwips(styleId) ?? 0 : 0;
+            int nested = paragraph.IndentationBefore.HasValue && direct > styleIndent ? GetBoundedBlockquoteDepth(direct - styleIndent) : 0;
             if (paragraph.BuiltInStyleId is "Quote" or "IntenseQuote") {
-                int styleIndent = paragraph._document?.GetStyleIndentationBeforeTwips(paragraph.StyleId!) ?? 0;
-                int nested = paragraph.IndentationBefore.HasValue && direct > styleIndent ? GetBoundedBlockquoteDepth(direct - styleIndent) : 0;
                 return Math.Min(MaximumBlockquoteDepth, 1 + nested);
             }
-            return direct > 0 ? GetBoundedBlockquoteDepth(direct) : 0;
+            return nested;
         }
 
         private static int GetBoundedBlockquoteDepth(double indentationBefore) {

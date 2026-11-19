@@ -340,12 +340,14 @@ namespace OfficeIMO.Word.Html {
                                     para.SetStyleId(quoteStyleId);
                                     styled = true;
                                 }
-                                // A quote or class style owns the indent; otherwise a direct indent marks the
-                                // quotation. Authored CSS margins apply afterwards in either case.
+                                // A quote style owns the indent. Any other style the paragraph keeps, from a class
+                                // or its own element, gets the quotation's 36pt on top of the style's own indent, so
+                                // the style and the quote both survive. Authored CSS margins apply afterwards.
                                 bool classStyled = ApplyClassStyle(element, para, options);
                                 string? classStyleId = classStyled ? para.StyleId : null;
-                                if (!styled && !classStyled) {
-                                    para.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                                if (para.BuiltInStyleId is not ("Quote" or "IntenseQuote")) {
+                                    int styleIndent = para.StyleId != null ? doc.GetStyleIndentationBeforeTwips(para.StyleId) : 0;
+                                    para.IndentationBefore = global::OfficeIMO.OfficeLength.Points((styleIndent + 720) / 20D);
                                 }
                                 HtmlSemanticMetadata.MarkBlockquote(para);
                                 ApplyParagraphStyleFromCss(

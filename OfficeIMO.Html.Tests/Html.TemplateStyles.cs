@@ -175,7 +175,8 @@ namespace OfficeIMO.Tests {
             WordParagraph pulled = document.Paragraphs.Single(paragraph => paragraph.Text == "Pulled");
             Assert.Equal("ListParagraph", pulled.StyleId);
             Assert.Equal(720, checked((int?)pulled.IndentationBefore?.ToTwips()));
-            Assert.Null(document.Paragraphs.Single(paragraph => paragraph.Text == "Plain").IndentationBefore);
+            // The class style keeps its own 36pt indent and the quotation adds 36pt on top.
+            Assert.Equal(1440, checked((int?)document.Paragraphs.Single(paragraph => paragraph.Text == "Plain").IndentationBefore?.ToTwips()));
         }
 
         [Fact]

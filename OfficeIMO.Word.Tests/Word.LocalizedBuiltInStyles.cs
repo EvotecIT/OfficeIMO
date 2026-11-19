@@ -145,6 +145,28 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(toc.SdtBlock.Descendants<ParagraphStyleId>(), style => style.Val == "Citation");
         }
 
+        [Theory]
+        [InlineData(0, 720)]
+        [InlineData(360, 1080)]
+        public void BlockquoteKeepingANonQuoteStyleStaysAQuoteThroughMarkdown(int noteIndentTwips, int expectedIndentTwips) {
+            using WordDocument document = WordDocument.Create();
+            WordStyle note = document.Styles.AddParagraphStyle("Note", "Note");
+            if (noteIndentTwips > 0) note.IndentationBefore = OfficeLength.Points(noteIndentTwips / 20D);
+
+            document.AddHtml("<blockquote class=\"Note\"><p>Class quote</p></blockquote><blockquote><p class=\"Note\">Own quote</p></blockquote>",
+                new HtmlWordExportOptions { PreferDocumentStyles = true });
+
+            foreach (string text in new[] { "Class quote", "Own quote" }) {
+                WordParagraph quoted = document.Paragraphs.Single(paragraph => paragraph.Text == text);
+                Assert.Equal("Note", quoted.StyleId);
+                Assert.Equal(expectedIndentTwips, checked((int?)quoted.IndentationBefore?.ToTwips()));
+            }
+            string markdown = document.ToMarkdown().ToMarkdown();
+            Assert.Contains("> Class quote", markdown, StringComparison.Ordinal);
+            Assert.Contains("> Own quote", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("> > ", markdown, StringComparison.Ordinal);
+        }
+
         [Fact]
         public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
             using var stream = new MemoryStream();
