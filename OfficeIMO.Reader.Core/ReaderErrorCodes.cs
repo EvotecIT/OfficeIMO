@@ -71,6 +71,9 @@ internal static partial class DocumentReaderEngine {
                 if (!string.IsNullOrWhiteSpace(code)) return code!;
             }
         }
+        if (chain.Any(static current => current.Data.Contains(UnsupportedEncryptionDataKey))) {
+            return ReaderErrorCodes.UnsupportedEncryption;
+        }
         // Engines wrap parse failures in a general IOException, so a more specific cause anywhere in the chain wins and
         // a generic I/O failure is reported only when nothing more specific is found.
         bool sawIOError = false;
@@ -91,6 +94,12 @@ internal static partial class DocumentReaderEngine {
     /// was accepted, which surfaces as the same exception type.
     /// </summary>
     internal const string OfficePasswordRejectedDataKey = "OfficeIMO.PasswordRejected";
+
+    /// <summary>
+    /// <see cref="Exception.Data"/> key the Office engines set on an exception thrown because the input uses an encryption
+    /// method they cannot open, such as encrypted ZIP entries in a package. Without it that failure reads as damaged content.
+    /// </summary>
+    internal const string UnsupportedEncryptionDataKey = "OfficeIMO.UnsupportedEncryption";
 
     /// <summary>
     /// Classifies a failed file read. A general load or decryption failure is refined when the cause is the password: an

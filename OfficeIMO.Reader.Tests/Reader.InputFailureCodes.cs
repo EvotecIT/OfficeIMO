@@ -187,6 +187,37 @@ public sealed class ReaderInputFailureCodeTests {
         }
     }
 
+    [Fact]
+    public async Task ExcelPackageWithEncryptedZipEntriesIsUnsupportedEncryption() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-reader-zip-encryption-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            // Traditional ZIP encryption on the entries is not Office encryption; no password option can open it.
+            string workbook = Path.Combine(root, "zip-encrypted.xlsx");
+            File.WriteAllBytes(workbook, SetZipEncryptionFlag(CreateOfficePackage(".xlsx")));
+            OfficeDocumentReader reader = OfficeIMO.Reader.Tests.ReaderTestReaders.All;
+
+            ReaderDocumentReadOutcome outcome = Assert.Single(await reader.ReadDocumentsDetailedAsync(new[] { workbook }));
+            Assert.False(outcome.Succeeded);
+            Assert.Equal(ReaderErrorCodes.UnsupportedEncryption, outcome.ErrorCode);
+            Assert.Equal(ReaderErrorCodes.UnsupportedEncryption,
+                reader.ClassifyReadError(Assert.ThrowsAny<Exception>(() => reader.ReadDocument(workbook)), workbook));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    // Sets general-purpose bit 0 (traditional ZIP encryption) in every local and central file header.
+    private static byte[] SetZipEncryptionFlag(byte[] package) {
+        byte[] bytes = (byte[])package.Clone();
+        for (int offset = 0; offset + 4 <= bytes.Length; offset++) {
+            uint signature = BitConverter.ToUInt32(bytes, offset);
+            if (signature == 0x04034B50U) bytes[offset + 6] |= 1;
+            else if (signature == 0x02014B50U) bytes[offset + 8] |= 1;
+        }
+        return bytes;
+    }
+
     private static byte[] CreateOfficePackage(string extension) {
         switch (extension) {
             case ".xlsx": {

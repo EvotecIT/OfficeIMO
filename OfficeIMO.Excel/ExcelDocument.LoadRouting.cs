@@ -74,8 +74,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (directory.HasEncryptedEntries) {
-                throw new InvalidDataException(
-                    "The ZIP package contains encrypted entries and cannot be read as a workbook. Password-protected Excel workbooks are encrypted Office packages; open those with ExcelLoadOptions.Password or ExcelReaderOptions.Password.");
+                throw OfficeUnsupportedEncryption.Mark(new InvalidDataException(
+                    "The ZIP package contains encrypted entries and cannot be read as a workbook. Password-protected Excel workbooks are encrypted Office packages; open those with ExcelLoadOptions.Password or ExcelReaderOptions.Password."));
             }
         }
 
