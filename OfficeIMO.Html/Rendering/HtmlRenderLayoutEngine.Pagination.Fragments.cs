@@ -34,10 +34,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool suppressedHeader = false;
         bool suppressedFooter = false;
         bool forced = false;
-        if (consumedBoundaries != null)
-            ChargeLayoutOperations(block.ForcedBreaks.Count, "page fragment authored-boundary cursor");
         bool hasForcedBreak = TryGetNextForcedBreak(block.ForcedBreaks, start, out HtmlRenderForcedBreak? forcedBreak,
-            consumedBoundaries, includeProjectedBoundaries);
+            out int inspectedBreaks, consumedBoundaries, includeProjectedBoundaries);
+        // Charge the entries the cursor examined. Charging every break of a long document on each of its pages
+        // counted breaks times pages and stopped legitimate long documents at the operation limit.
+        if (consumedBoundaries != null)
+            ChargeLayoutOperations(inspectedBreaks, "page fragment authored-boundary cursor");
         // A separate empty source boundary advances the physical page without
         // consuming table rows or repeating their header/footer on a blank page.
         if (includeProjectedBoundaries && hasForcedBreak && forcedBreak!.Offset <= start + 0.0001D)
