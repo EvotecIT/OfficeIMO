@@ -46,7 +46,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// The shortest invariant text that parses back to the identical double. .NET Framework's "R" can return text
-        /// that parses to a neighbouring double, so those targets check the text and widen it when needed.
+        /// that parses to a neighbouring double, so those targets check the text and widen it when needed. Negative zero
+        /// is written as 0, as Excel stores it; <see cref="GetExact(double)"/> keeps its sign.
         /// </summary>
         internal static string Get(double value) {
             if (value >= int.MinValue && value <= int.MaxValue) {
@@ -78,6 +79,13 @@ namespace OfficeIMO.Excel {
             return OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 #endif
         }
+
+        /// <summary>
+        /// Like <see cref="Get(double)"/>, but negative zero keeps the sign the runtime's round-trip format gives it, for
+        /// values that are copied rather than stored as Excel cell values.
+        /// </summary>
+        internal static string GetExact(double value) =>
+            BitConverter.DoubleToInt64Bits(value) == long.MinValue ? value.ToString("R", CultureInfo.InvariantCulture) : Get(value);
 
         internal static bool TryGet(int value, out string text) {
             var cache = NonNegativeCache;

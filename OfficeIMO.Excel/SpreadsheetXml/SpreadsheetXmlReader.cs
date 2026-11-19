@@ -150,7 +150,7 @@ internal static class SpreadsheetXmlReader {
             case "String": cell.DataType = CellValues.InlineString; cell.InlineString = new InlineString(new Text(Utilities.ExcelSanitizer.EncodeXString(text)) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }); break;
             case "Number":
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number)) throw new InvalidDataException("Invalid XML Spreadsheet number.");
-                cell.DataType = CellValues.Number; cell.CellValue = new CellValue(InvariantNumberText.Get(number)); break;
+                cell.DataType = CellValues.Number; cell.CellValue = new CellValue(InvariantNumberText.GetExact(number)); break;
             case "Boolean":
                 if (text != "0" && text != "1") throw new InvalidDataException("Invalid XML Spreadsheet Boolean.");
                 cell.DataType = CellValues.Boolean; cell.CellValue = new CellValue(text); break;
@@ -159,7 +159,7 @@ internal static class SpreadsheetXmlReader {
                 try { date = XmlConvert.ToDateTime(text, XmlDateTimeSerializationMode.Unspecified); }
                 catch (FormatException exception) { throw new InvalidDataException("Invalid XML Spreadsheet date.", exception); }
                 double serial = ExcelDateSystemConverter.ToSerial(date, date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred);
-                cell.DataType = CellValues.Number; cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
+                cell.DataType = CellValues.Number; cell.CellValue = new CellValue(InvariantNumberText.GetExact(serial));
                 cell.StyleIndex = SpreadsheetXmlStyles.EnsureDateStyle(sheet.WorksheetPart.GetParentParts().OfType<DocumentFormat.OpenXml.Packaging.WorkbookPart>().Single(), cell.StyleIndex?.Value ?? 0, context);
                 break;
             case "Error":

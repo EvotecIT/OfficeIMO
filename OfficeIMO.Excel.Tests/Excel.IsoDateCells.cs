@@ -100,6 +100,106 @@ namespace OfficeIMO.Excel.Tests {
             }
         }
 
+        public sealed class IsoTextRow {
+            public string? Value { get; set; }
+        }
+
+        [Theory]
+        [InlineData("10:30:00.12345678", 378001234567L)] // a fraction longer than a tick is truncated
+        [InlineData("T10:30:00Z", 378000000000L)]
+        [InlineData("10:30:00+0530", 378000000000L)]
+        [InlineData("10:30:00-03", 378000000000L)]
+        [InlineData("10:30", 378000000000L)]
+        public void IsoTimeOfDayTextStaysOnTheClockOnlyPath(string text, long expectedTicks) {
+            string path = CreateSingleIsoDateCellWorkbook(text);
+            string converted = Path.ChangeExtension(path, ".xls");
+            try {
+                using (var reader = ExcelDocumentReader.Open(path)) {
+                    Assert.Equal(new DateTime(1899, 12, 30).AddTicks(expectedTicks),
+                        Assert.IsType<DateTime>(reader.GetSheet("Data").ReadRange("A2:A2")[0, 0]));
+                }
+
+                using (var document = ExcelDocument.Load(path)) {
+                    document.Save(converted, new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
+                }
+
+                using var convertedDocument = ExcelDocument.Load(converted);
+                Assert.Equal(TimeSpan.FromTicks(expectedTicks).TotalDays, convertedDocument.Sheets[0].Cell(2, 1).GetValue<double>(), 12);
+            } finally {
+                File.Delete(path);
+                File.Delete(converted);
+            }
+        }
+
+        [Theory]
+        [InlineData("10:30:00+garbage")]
+        [InlineData("10:30:00+25:00")]
+        [InlineData("10:30:00Zjunk")]
+        [InlineData("10:30:00.")]
+        [InlineData("25:00:00")]
+        public void MalformedIsoTimeOfDayTextIsNotADate(string text) {
+            string path = CreateSingleIsoDateCellWorkbook(text);
+            string converted = Path.ChangeExtension(path, ".xls");
+            try {
+                using (var reader = ExcelDocumentReader.Open(path)) {
+                    Assert.Equal(text, Assert.IsType<string>(reader.GetSheet("Data").ReadRange("A2:A2")[0, 0]));
+                }
+
+                using var document = ExcelDocument.Load(path);
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                    document.Save(converted, new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
+                Assert.Contains("date value", exception.Message, StringComparison.Ordinal);
+            } finally {
+                File.Delete(path);
+                File.Delete(converted);
+            }
+        }
+
+        [Fact]
+        public void StringBindingsKeepTimeOnlyTextOutsideTheCultureCalendar() {
+            // Um Al Qura dates start in 1900, after the time-only base date of December 30, 1899.
+            var culture = (CultureInfo)CultureInfo.GetCultureInfo("ar-SA").Clone();
+            culture.DateTimeFormat.Calendar = new UmAlQuraCalendar();
+            string path = CreateSingleIsoDateCellWorkbook("10:30:00");
+            try {
+                var options = new ExcelReaderOptions { Culture = culture };
+                using (var reader = ExcelDocumentReader.Open(path, options)) {
+                    Assert.Equal("10:30:00", reader.GetSheet("Data").ReadObjects<IsoTextRow>("A1:A2").Single().Value);
+                    Assert.Equal("10:30:00", reader.GetSheet("Data").ReadObjectsStream<IsoTextRow>("A1:A2").Single().Value);
+                }
+
+                using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options)) {
+                    Assert.True(reader.Read());
+                    Assert.Equal(new DateTime(1899, 12, 30, 10, 30, 0), reader.GetDateTime(0));
+                    // The culture cannot format the date, so the text uses the invariant culture.
+                    Assert.Equal("12/30/1899 10:30:00", reader.GetString(0));
+                }
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        private static string CreateSingleIsoDateCellWorkbook(string text) {
+            string path = CreateCompactFastPathWorkbook();
+            try {
+                ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(
+                    "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
+                    + "<dimension ref=\"A1:A2\"/><sheetData>"
+                    + "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Value</t></is></c></row>"
+                    + "<row r=\"2\"><c r=\"A2\" s=\"1\" t=\"d\"><v>" + text + "</v></c></row>"
+                    + "</sheetData></worksheet>"));
+                ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(
+                    "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
+                    + "<fonts count=\"1\"><font/></fonts><fills count=\"1\"><fill/></fills><borders count=\"1\"><border/></borders>"
+                    + "<cellStyleXfs count=\"1\"><xf/></cellStyleXfs>"
+                    + "<cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"21\" applyNumberFormat=\"1\"/></cellXfs></styleSheet>"));
+                return path;
+            } catch {
+                File.Delete(path);
+                throw;
+            }
+        }
+
         private static void AssertIsoDateCellRecord(IDataReader reader, DateTime expectedTime, DateTime expectedDate) {
             Assert.True(reader.Read());
             Assert.Equal(expectedTime, reader.GetDateTime(0));

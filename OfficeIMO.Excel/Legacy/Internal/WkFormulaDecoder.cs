@@ -44,7 +44,7 @@ internal static partial class WkFormulaDecoder {
                     token -= 6;
                 }
                 switch (token) {
-                    case 0x00: Push(stack, Literal(InvariantNumberText.Get(ReadLaterNumber(data, ref cursor, end, context, compact: false)), maximumCharacters), ref nodeCount, maximumNodes); break;
+                    case 0x00: Push(stack, Literal(InvariantNumberText.GetExact(ReadLaterNumber(data, ref cursor, end, context, compact: false)), maximumCharacters), ref nodeCount, maximumNodes); break;
                     case 0x01: Push(stack, Literal(ReadLaterReference(data, ref cursor, end, currentRowZeroBased, currentColumnZeroBased, context), maximumCharacters), ref nodeCount, maximumNodes); break;
                     case 0x02: {
                         if (context?.References != null) {

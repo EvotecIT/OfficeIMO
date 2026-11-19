@@ -616,7 +616,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             };
             string? rawText = cell.RawText ?? cell.Kind switch {
                 XlsbTabularValueKind.Number or XlsbTabularValueKind.Date or XlsbTabularValueKind.Time =>
-                    InvariantNumberText.Get(cell.Number),
+                    InvariantNumberText.GetExact(cell.Number),
                 XlsbTabularValueKind.Boolean => cell.Boolean ? "1" : "0",
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
                 _ => null

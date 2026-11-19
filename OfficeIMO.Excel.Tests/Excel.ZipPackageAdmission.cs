@@ -29,6 +29,29 @@ public sealed class ExcelZipPackageAdmissionTests {
         Assert.Equal(OfficePackageSecurityRule.PartCount, exception.Rule);
     }
 
+    [Theory]
+    [MemberData(nameof(EntryPoints))]
+    public void Zip64PackageWithAContradictoryClassicDirectoryIsRejectedBeforeOpening(string entryPoint) {
+        // The masked classic offset sends readers to the ZIP64 record, whose entry total is above the limit,
+        // while the classic count claims a single entry.
+        byte[] package = AddEmptyEntries(CreateWorkbook(), ushort.MaxValue + 2);
+        int endRecord = LastIndexOfSignature(package, 0x06054B50U);
+        BitConverter.GetBytes((ushort)1).CopyTo(package, endRecord + 8);
+        BitConverter.GetBytes((ushort)1).CopyTo(package, endRecord + 10);
+        BitConverter.GetBytes(uint.MaxValue).CopyTo(package, endRecord + 16);
+
+        OfficePackageSecurityException exception = Assert.Throws<OfficePackageSecurityException>(() => Open(entryPoint, package));
+
+        Assert.Equal(OfficePackageSecurityRule.MalformedPackage, exception.Rule);
+    }
+
+    private static int LastIndexOfSignature(byte[] bytes, uint signature) {
+        for (int offset = bytes.Length - 4; offset >= 0; offset--) {
+            if (BitConverter.ToUInt32(bytes, offset) == signature) return offset;
+        }
+        throw new InvalidDataException("The signature was not found.");
+    }
+
     private static void Open(string entryPoint, byte[] package) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.ZipAdmission.{Guid.NewGuid():N}.xlsx");
         File.WriteAllBytes(path, package);

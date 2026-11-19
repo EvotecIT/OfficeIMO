@@ -63,6 +63,20 @@ namespace OfficeIMO.Excel.Tests {
             }
         }
 
+#if NETCOREAPP3_0_OR_GREATER
+        // .NET Core formats and parses negative zero with its sign; .NET Framework does neither. Imported values keep
+        // the text a round-trip format gives them.
+        [Fact]
+        public void ImportedNegativeZeroKeepsItsSign() {
+            byte[] input = System.Text.Encoding.UTF8.GetBytes(
+                "<Workbook xmlns='urn:schemas-microsoft-com:office:spreadsheet' xmlns:ss='urn:schemas-microsoft-com:office:spreadsheet'>"
+                + "<Worksheet ss:Name='Data'><Table><Row><Cell><Data ss:Type='Number'>-0</Data></Cell></Row></Table></Worksheet></Workbook>");
+
+            using ExcelDocument document = ExcelDocument.ImportSpreadsheetXml(input).Value;
+            AssertSameDouble(-0.0D, document.Sheets[0].Cell(1, 1).GetValue<double>());
+        }
+#endif
+
         private static void AssertSameDouble(double expected, double actual) =>
             Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
     }

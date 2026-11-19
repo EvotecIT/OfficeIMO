@@ -65,6 +65,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateZipDirectory(OfficeArchiveSafety.ZipCentralDirectoryScanResult directory, int entryLimit) {
+            // An ambiguous or malformed directory may be read differently by the loader, for example with a ZIP64 entry
+            // count that the scan could not confirm, so it is rejected like the package security inspector does.
+            if (!directory.IsValid) {
+                throw new OfficePackageSecurityException(OfficePackageSecurityRule.MalformedPackage,
+                    directory.Error ?? "The ZIP central directory is malformed.");
+            }
+
             // Reject an oversized directory here: either loader would otherwise open the archive
             // and materialize every entry before its own checks run.
             if (directory.LimitExceeded) {

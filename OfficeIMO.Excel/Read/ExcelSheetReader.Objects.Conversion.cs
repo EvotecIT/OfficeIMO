@@ -215,8 +215,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
-                if (ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
-                    return TryConvertDateTimeForBinding(dt, binding, out converted);
+                if (ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)
+                    && TryConvertDateTimeForBinding(dt, binding, out converted)) {
+                    return true;
                 }
 
                 return TryConvertStringForBinding(raw.RawText, binding, out converted);
@@ -230,9 +231,10 @@ namespace OfficeIMO.Excel {
                 && binding.NeedsDateStyleConversion
                 && raw.StyleIndex is not null
                 && Styles.IsDateLike(raw.StyleIndex.Value)) {
-                if (TryParseInvariantDouble(raw.RawText, out var oa)
-                    || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    return TryConvertDateTimeForBinding(FromExcelSerialDate(oa, raw.StyleIndex), binding, out converted);
+                if ((TryParseInvariantDouble(raw.RawText, out var oa)
+                    || double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
+                    && TryConvertDateTimeForBinding(FromExcelSerialDate(oa, raw.StyleIndex), binding, out converted)) {
+                    return true;
                 }
 
                 return TryConvertStringForBinding(raw.RawText, binding, out converted);
@@ -743,6 +745,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (destinationType == typeof(string)) {
+                // A date the culture's calendar cannot represent, such as a time-only value before an Um Al Qura
+                // calendar's first date, keeps the cell text instead.
+                Calendar calendar = _opt.Culture.DateTimeFormat.Calendar;
+                if (value < calendar.MinSupportedDateTime || value > calendar.MaxSupportedDateTime) return false;
                 converted = value.ToString(_opt.Culture);
                 return true;
             }

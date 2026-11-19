@@ -342,7 +342,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
                 value.Type = W.ValueObjectTypes[index].Type;
                 if (formula != null) value.Val = formula;
-                else if (type is 1 or 4 or 5) value.Val = InvariantNumberText.Get(number);
+                else if (type is 1 or 4 or 5) value.Val = InvariantNumberText.GetExact(number);
                 if (_visual is IconSet && !greaterOrEqual) value.GreaterThanOrEqual = false;
                 return value;
             } catch (EndOfStreamException exception) {
