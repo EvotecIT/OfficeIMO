@@ -127,8 +127,7 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
     internal WordStyle? FindByName(string name) {
         string trimmed = name.Trim();
         Style? style = ReadOnlyCatalog is { } catalog
-            ? catalog.Definitions.FirstOrDefault(definition =>
-                string.Equals(definition.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase))?.Element
+            ? catalog.FindDefinitionByName(trimmed)?.Element
             : Definitions.FirstOrDefault(definition =>
                 string.Equals(definition.StyleName?.Val?.Value?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
         return style == null ? null : new WordStyle(_document, style);

@@ -240,18 +240,31 @@ internal static class WordStyleDefinitionsReader {
     /// Counts every element of an unloaded styles part, root included, as many elements as its DOM would hold;
     /// null when <see cref="CreateStreamingSettings"/> declines the part or its XML cannot be read.
     /// </summary>
-    internal static long? TryCountElements(StylesPart? part) {
+    internal static long? TryCountElements(StylesPart? part) => TryCount(part, _ => true);
+
+    /// <summary>
+    /// Counts the elements below the root of an unloaded styles part whose local name matches
+    /// <paramref name="localName"/> ignoring case, as a search of its DOM's descendants would; null when the part
+    /// cannot be streamed.
+    /// </summary>
+    internal static long? TryCountDescendantsByLocalName(StylesPart? part, string localName) =>
+        TryCount(part, reader => reader.Depth > 0 && string.Equals(reader.LocalName, localName, StringComparison.OrdinalIgnoreCase));
+
+    // A comment or processing instruction becomes a child node of the loaded DOM, which walks count; such a part
+    // is left to the DOM so streamed counts never fall below loaded ones.
+    private static long? TryCount(StylesPart? part, Func<XmlReader, bool> counts) {
         XmlReaderSettings? settings = part == null ? null : CreateStreamingSettings(part);
         if (part == null || settings == null) return null;
-        settings.IgnoreComments = true;
-        settings.IgnoreProcessingInstructions = true;
+        settings.IgnoreComments = false;
+        settings.IgnoreProcessingInstructions = false;
         settings.IgnoreWhitespace = true;
         try {
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
             using XmlReader reader = XmlReader.Create(stream, settings);
             long count = 0;
             while (reader.Read()) {
-                if (reader.NodeType == XmlNodeType.Element) count++;
+                if (reader.NodeType is XmlNodeType.Comment or XmlNodeType.ProcessingInstruction) return null;
+                if (reader.NodeType == XmlNodeType.Element && counts(reader)) count++;
             }
             return count;
         } catch (XmlException) {

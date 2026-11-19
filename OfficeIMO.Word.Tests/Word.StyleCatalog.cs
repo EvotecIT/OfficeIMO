@@ -1,6 +1,7 @@
 using System.Text;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -87,10 +88,84 @@ public partial class Word {
 
         document.AddTable(2, 2, added);
 
-        // The library definition is written into the still-unloaded part; the catalog must read it again.
-        Assert.False(stylesPart.IsRootElementLoaded);
+        // When the process-wide cache of extended default catalogs admits the style, its definition is written into
+        // the still-unloaded part and the catalog must read the part again. When the cache is full, the style is
+        // appended to the loaded DOM instead. Either way the catalog sees it.
         Assert.True(document.Styles.Contains(styleId));
         Assert.True(document.Styles.Count > before);
+    }
+
+    [Theory]
+    [InlineData("Documents/sample1.docx", "Documents/sample2.docx")]
+    [InlineData("WordLayoutFixtures/native-word-report.docx", "Documents/sample3.docx")]
+    public void StructuredComparisonReadsStylesWithoutLoadingStylesPartsAndMatchesLoadedDom(string sourceFixture, string targetFixture) {
+        byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, sourceFixture));
+        byte[] target = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, targetFixture));
+
+        string streamed = Compare(loadStylesFirst: false, out bool stylesLoaded);
+        Assert.False(stylesLoaded);
+        Assert.Equal(Compare(loadStylesFirst: true, out _), streamed);
+
+        string Compare(bool loadStylesFirst, out bool loaded) {
+            using var sourceInput = new MemoryStream(source, writable: false);
+            using var targetInput = new MemoryStream(target, writable: false);
+            using WordDocument sourceDocument = WordDocument.Load(sourceInput, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            using WordDocument targetDocument = WordDocument.Load(targetInput, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+            StylesPart[] parts = new[] { sourceDocument, targetDocument }
+                .SelectMany(document => new StylesPart?[] {
+                    document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart,
+                    document._wordprocessingDocument.MainDocumentPart!.StylesWithEffectsPart
+                })
+                .OfType<StylesPart>().ToArray();
+            if (loadStylesFirst) foreach (StylesPart part in parts) _ = part.Styles;
+            string json = WordDocumentComparer.CompareStructure(sourceDocument, targetDocument).ToJson();
+            loaded = parts.Any(part => part.IsRootElementLoaded);
+            return json;
+        }
+    }
+
+    [Fact]
+    public void LegacyDocSaveReadsStylesWithoutLoadingStylesPartAndMatchesLoadedDom() {
+        byte[] package;
+        using (var stream = new MemoryStream()) {
+            using (WordDocument source = WordDocument.Create(stream)) {
+                WordStyle heading = source.Styles.AddParagraphStyle("ThemedHeading", "Themed heading");
+                heading.ThemeFont = WordThemeFont.Major;
+                heading.Bold = true;
+                WordStyle body = source.Styles.AddParagraphStyle("IndentedBody", "Indented body");
+                body.BasedOnStyleId = "ThemedHeading";
+                body.IndentationBefore = OfficeLength.Centimeters(1);
+                source.AddParagraph("Heading").SetStyleId("ThemedHeading");
+                WordParagraph paragraph = source.AddParagraph("Body with a note").SetStyleId("IndentedBody");
+                paragraph.AddFootNote("Footnote text");
+                // A theme font without a cached family name resolves only through the document's theme.
+                Style reference = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                    .Elements<Style>().First(style => style.StyleId == "FootnoteReference");
+                (reference.StyleRunProperties ??= new StyleRunProperties()).RunFonts = new RunFonts {
+                    AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi
+                };
+                WordTable table = source.AddTable(2, 2, WordTableStyle.TableGrid);
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
+                source.Save();
+            }
+            package = stream.ToArray();
+        }
+
+        byte[] streamed = SaveAsDoc(loadStylesFirst: false, out bool stylesLoaded);
+        Assert.False(stylesLoaded);
+        Assert.Equal(SaveAsDoc(loadStylesFirst: true, out _), streamed);
+
+        byte[] SaveAsDoc(bool loadStylesFirst, out bool loaded) {
+            using var input = new MemoryStream();
+            input.Write(package, 0, package.Length);
+            input.Position = 0;
+            using WordDocument document = WordDocument.Load(input);
+            StyleDefinitionsPart stylesPart = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!;
+            if (loadStylesFirst) _ = stylesPart.Styles;
+            byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
+            loaded = stylesPart.IsRootElementLoaded;
+            return bytes;
+        }
     }
 
     private sealed record StyleCatalogConversion(string Inspection, string Markdown, string Html, IReadOnlyList<byte[]> Pages, bool StylesLoaded);

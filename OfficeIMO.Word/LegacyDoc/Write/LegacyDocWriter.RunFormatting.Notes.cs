@@ -46,14 +46,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableFormatting direct = ReadSupportedRunFormatting(run.RunProperties,
                 allowHyperlinkRunStyle: false, allowNoteReferenceRunStyle: true);
             OpenXmlPartRootElement? root = run.Ancestors<OpenXmlPartRootElement>().LastOrDefault();
-            Styles? styles = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            MainDocumentPart? mainPart = (root?.OpenXmlPart?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
             string? styleId = run.RunProperties?.RunStyle?.Val?.Value;
             var visited = new HashSet<string>(StringComparer.Ordinal);
-            Dictionary<string, Style>? definitions = styles == null ? null : IndexStyles(styles);
+            WordStyleCatalog? definitions = mainPart?.StyleDefinitionsPart == null ? null : WordStyleCatalog.For(mainPart);
             LegacyDocWritableFormatting styleFormatting = LegacyDocWritableFormatting.Plain;
             while (definitions != null && !string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
                 if (visited.Count > MaxInheritedStyleDepth) throw new NotSupportedException("Native DOC saving does not support note reference style chains beyond 256 levels.");
-                if (!definitions.TryGetValue(styleId!, out Style? style)) break;
+                if (definitions.FindById(styleId) is not { } style) break;
                 styleFormatting = styleFormatting.WithInheritedFormatting(
                     ReadSupportedRunFormatting(style.StyleRunProperties, allowHyperlinkRunStyle: false));
                 styleId = style.BasedOn?.Val?.Value;

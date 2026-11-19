@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using StyleDefinition = OfficeIMO.Word.WordStyleDefinitionsReader.StyleDefinition;
@@ -5,12 +6,12 @@ using StyleDefinition = OfficeIMO.Word.WordStyleDefinitionsReader.StyleDefinitio
 namespace OfficeIMO.Word;
 
 /// <summary>
-/// The style definitions of one document as read-only callers see them: the styles in document order, lookup by
+/// The style definitions of one styles part as read-only callers see them: the styles in document order, lookup by
 /// identifier, default styles, <c>w:basedOn</c> chains and the document defaults.
 /// </summary>
 /// <remarks>
-/// While the styles part is unloaded the catalog is read from its stream once and kept for the document until
-/// the part changes. Each style's facts are available at once; its properties are parsed into a detached
+/// While the styles part is unloaded the catalog is read from its stream once and kept with the part until the
+/// part is loaded or OfficeIMO replaces its content. Each style's facts are available at once; its properties are parsed into a detached
 /// <see cref="Style"/> only when a caller asks for them, so a reader pays only for the styles its content uses.
 /// When the styles part is already loaded (it may carry unsaved edits), when the package was opened with
 /// markup-compatibility processing, or when the raw Open XML document has been handed out, the catalog answers
@@ -18,53 +19,92 @@ namespace OfficeIMO.Word;
 /// Elements returned from a streamed catalog are detached copies and must not be modified.
 /// </remarks>
 internal sealed class WordStyleCatalog {
-    private static readonly WordStyleCatalog Empty = new(null, null, null, 0);
+    private static readonly WordStyleCatalog Empty = new(null, null);
+    private static readonly ConditionalWeakTable<StylesPart, PartState> Parts = new();
 
     private readonly Styles? _loaded;
     private readonly WordStyleDefinitionsReader.StyleDefinitionSet? _streamed;
     private readonly Dictionary<string, StyleDefinition>? _firstById;
-    private readonly StylesPart? _part;
-    private readonly int _revision;
+    private readonly Dictionary<string, StyleDefinition>? _firstByName;
 
-    private WordStyleCatalog(Styles? loaded, WordStyleDefinitionsReader.StyleDefinitionSet? streamed, StylesPart? part, int revision) {
+    /// <summary>The catalog last read for one part, and whether its stream can no longer be trusted.</summary>
+    private sealed class PartState {
+        internal WordStyleCatalog? Catalog;
+        internal volatile bool UseLoaded;
+    }
+
+    private WordStyleCatalog(Styles? loaded, WordStyleDefinitionsReader.StyleDefinitionSet? streamed) {
         _loaded = loaded;
         _streamed = streamed;
-        _part = part;
-        _revision = revision;
         if (streamed == null) return;
         _firstById = new Dictionary<string, StyleDefinition>(StringComparer.Ordinal);
         foreach (StyleDefinition definition in streamed.Styles) {
             if (definition.StyleId != null && !_firstById.ContainsKey(definition.StyleId)) _firstById.Add(definition.StyleId, definition);
+            string? name = definition.Name?.Trim();
+            if (name != null) {
+                _firstByName ??= new Dictionary<string, StyleDefinition>(StringComparer.OrdinalIgnoreCase);
+                if (!_firstByName.ContainsKey(name)) _firstByName.Add(name, definition);
+            }
         }
     }
 
     /// <summary>Returns the catalog of <paramref name="document"/>'s styles part, reusing the one already read.</summary>
     internal static WordStyleCatalog For(WordDocument document) {
         StylesPart? part = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
+        // Once the raw package has been handed out, its parts can be rewritten without OfficeIMO noticing.
+        if (part != null && document._openXmlDocumentAccessed) UseLoadedDefinitions(part);
+        return For(part);
+    }
+
+    /// <summary>Returns the catalog of the styles part of the package that owns <paramref name="mainPart"/>.</summary>
+    internal static WordStyleCatalog For(MainDocumentPart? mainPart) => For(mainPart?.StyleDefinitionsPart);
+
+    /// <summary>
+    /// Returns the catalog of <paramref name="part"/>, which may be the styles or the styles-with-effects part,
+    /// reusing the one already read while the part stays unloaded.
+    /// </summary>
+    internal static WordStyleCatalog For(StylesPart? part) {
         if (part == null) return Empty;
-        int revision = Volatile.Read(ref document._styleDefinitionsRevision);
-        WordStyleCatalog? cached = Volatile.Read(ref document._styleCatalog);
-        if (!part.IsRootElementLoaded && !document._openXmlDocumentAccessed) {
-            if (cached != null && cached._streamed != null && ReferenceEquals(cached._part, part) && cached._revision == revision) return cached;
+        PartState state = Parts.GetValue(part, _ => new PartState());
+        WordStyleCatalog? cached = Volatile.Read(ref state.Catalog);
+        if (!part.IsRootElementLoaded && !state.UseLoaded) {
+            if (cached?._streamed != null) return cached;
             WordStyleDefinitionsReader.StyleDefinitionSet? streamed = WordStyleDefinitionsReader.TryRead(part);
             if (streamed != null) {
-                var created = new WordStyleCatalog(null, streamed, part, revision);
-                Volatile.Write(ref document._styleCatalog, created);
+                var created = new WordStyleCatalog(null, streamed);
+                Volatile.Write(ref state.Catalog, created);
                 return created;
             }
         }
         Styles? styles = part.Styles;
         if (cached != null && cached._streamed == null && ReferenceEquals(cached._loaded, styles)) return cached;
-        var loaded = styles == null ? Empty : new WordStyleCatalog(styles, null, part, revision);
-        Volatile.Write(ref document._styleCatalog, loaded);
+        var loaded = styles == null ? Empty : new WordStyleCatalog(styles, null);
+        Volatile.Write(ref state.Catalog, loaded);
         return loaded;
     }
 
+    /// <summary>Forgets the catalog read from <paramref name="part"/> after OfficeIMO replaced the part's content.</summary>
+    internal static void Invalidate(StylesPart? part) {
+        if (part != null && Parts.TryGetValue(part, out PartState? state)) Volatile.Write(ref state.Catalog, null);
+    }
+
+    /// <summary>Answers every later request for <paramref name="part"/> from its loaded DOM.</summary>
+    internal static void UseLoadedDefinitions(StylesPart? part) {
+        if (part == null) return;
+        PartState state = Parts.GetValue(part, _ => new PartState());
+        if (state.UseLoaded) return;
+        state.UseLoaded = true;
+        Volatile.Write(ref state.Catalog, null);
+    }
+
     /// <summary>A catalog over a <see cref="Styles"/> element the caller already holds, such as one being edited.</summary>
-    internal static WordStyleCatalog ForLoaded(Styles? styles) => styles == null ? Empty : new WordStyleCatalog(styles, null, null, 0);
+    internal static WordStyleCatalog ForLoaded(Styles? styles) => styles == null ? Empty : new WordStyleCatalog(styles, null);
 
     /// <summary>Whether the catalog was read from the unloaded styles part rather than its loaded DOM.</summary>
     internal bool IsStreamed => _streamed != null;
+
+    /// <summary>The loaded <see cref="Styles"/> element the catalog reads, or null when it was streamed.</summary>
+    internal Styles? Loaded => _loaded;
 
     /// <summary>The streamed definitions, or null when the catalog reads the loaded DOM.</summary>
     internal WordStyleDefinitionsReader.StyleDefinitionSet? Streamed => _streamed;
@@ -111,6 +151,18 @@ internal sealed class WordStyleCatalog {
         if (styleId == null) return null;
         if (_firstById != null) return _firstById.TryGetValue(styleId!, out StyleDefinition? definition) ? definition.Element : null;
         return _loaded?.Elements<Style>().FirstOrDefault(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The facts of the first style whose <c>w:name</c> matches <paramref name="name"/>, both trimmed and ignoring case.
+    /// Built-in style identifiers are localized in some documents while their names stay English.
+    /// </summary>
+    internal StyleDefinition? FindDefinitionByName(string name) {
+        string trimmed = name.Trim();
+        if (_streamed != null) return _firstByName != null && _firstByName.TryGetValue(trimmed, out StyleDefinition? definition) ? definition : null;
+        Style? style = _loaded?.Elements<Style>().FirstOrDefault(candidate =>
+            string.Equals(candidate.StyleName?.Val?.Value?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+        return style == null ? null : new StyleDefinition(style);
     }
 
     /// <summary>The facts of the first style with <paramref name="styleId"/> that has no type or <paramref name="type"/>.</summary>

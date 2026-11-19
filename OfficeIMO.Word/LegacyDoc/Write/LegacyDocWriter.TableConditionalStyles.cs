@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             | TableLookNoHorizontalBand
             | TableLookNoVerticalBand;
 
-        private static LegacyDocTableConditionalStyleSet ReadSupportedTableConditionalStyles(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+        private static LegacyDocTableConditionalStyleSet ReadSupportedTableConditionalStyles(TableStyle? tableStyle, LegacyDocTableStyleDefinitions tableStyleDefinitions) {
             Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
             if (style == null) {
                 return LegacyDocTableConditionalStyleSet.Empty;
@@ -45,11 +45,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : new LegacyDocTableConditionalStyleSet(orderedConditionalStyles, rowBandSize, columnBandSize);
         }
 
-        private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles) {
+        private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles) {
             AppendSupportedTableStyleBaseConditionalStyles(style, tableStyleDefinitions, conditionalStyles, new HashSet<string>(StringComparer.Ordinal));
         }
 
-        private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles, ISet<string> visitedStyleIds) {
+        private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, LegacyDocTableStyleDefinitions tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles, ISet<string> visitedStyleIds) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
             if (IsNoOpTableStyle(baseStyleId)) {
                 return;

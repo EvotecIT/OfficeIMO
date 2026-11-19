@@ -2,8 +2,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void MaterializeDocumentDefaultCharacterScale(Dictionary<string, Style> paragraphStyles, Styles? styles) {
-            CharacterScale? defaults = styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.GetFirstChild<CharacterScale>();
+        private static void MaterializeDocumentDefaultCharacterScale(Dictionary<string, Style> paragraphStyles, DocDefaults? documentDefaults) {
+            CharacterScale? defaults = documentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.GetFirstChild<CharacterScale>();
             if (defaults == null) return;
             _ = ReadSupportedCharacterScale(defaults);
 
