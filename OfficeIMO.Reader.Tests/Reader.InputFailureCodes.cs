@@ -159,6 +159,57 @@ public sealed class ReaderInputFailureCodeTests {
         }
     }
 
+    [Theory]
+    [InlineData(".xlsx", "[Content_Types].xml")]
+    [InlineData(".xlsx", "_rels/.rels")]
+    [InlineData(".docx", "[Content_Types].xml")]
+    [InlineData(".pptx", "[Content_Types].xml")]
+    public async Task DamagedOfficePackageIsInvalidContentWhateverTheEngineWrapsItIn(string extension, string damagedPart) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-reader-damaged-xlsx-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string workbook = Path.Combine(root, "package" + extension);
+            File.WriteAllBytes(workbook, CreateOfficePackage(extension));
+            // Break a package part's XML. Excel wraps the parse failure in a general IOException, and the package security
+            // check reports it as an IOException subtype; neither is an I/O failure.
+            using (var archive = System.IO.Compression.ZipFile.Open(workbook, System.IO.Compression.ZipArchiveMode.Update)) {
+                archive.GetEntry(damagedPart)!.Delete();
+                using var writer = new StreamWriter(archive.CreateEntry(damagedPart).Open());
+                writer.Write("<broken");
+            }
+
+            ReaderDocumentReadOutcome outcome = Assert.Single(await OfficeIMO.Reader.Tests.ReaderTestReaders.All
+                .ReadDocumentsDetailedAsync(new[] { workbook }));
+            Assert.False(outcome.Succeeded);
+            Assert.Equal(ReaderErrorCodes.InvalidContent, outcome.ErrorCode);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static byte[] CreateOfficePackage(string extension) {
+        switch (extension) {
+            case ".xlsx": {
+                using ExcelDocument document = ExcelDocument.Create();
+                document.AddSheet("Data").Cell(1, 1).SetValue("Damaged");
+                return document.ToBytes();
+            }
+            case ".pptx": {
+                using PowerPointDocument document = PowerPointDocument.Create();
+                document.AddSlide().AddTextBox("Damaged");
+                return document.ToBytes();
+            }
+            default: {
+                using var stream = new MemoryStream();
+                using (WordDocument document = WordDocument.Create(stream)) {
+                    document.AddParagraph("Damaged");
+                    document.Save();
+                }
+                return stream.ToArray();
+            }
+        }
+    }
+
     [Fact]
     public void ConventionalFileNamesUseTheRoutedExtensionsInputLimit() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()

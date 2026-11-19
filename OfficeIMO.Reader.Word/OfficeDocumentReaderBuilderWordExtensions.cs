@@ -60,6 +60,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             ProbeStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ProbeEncryptedOpenXml(stream, readerOptions, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
+            ClassifyReadError = OfficeIMO.Reader.FormatInternals.OpenXmlReaderAdmission.ClassifyReadError,
             DefaultMaxInputBytes = global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes,
             InputLimitProbeBytes = routeWordForDos ? LegacyWordReaderAdapter.WordForDosHeaderLength : 0,
             ResolveMaxInputBytesFromPrefix = routeWordForDos
@@ -92,6 +93,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) => LegacyWordReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
+            ClassifyReadError = OfficeIMO.Reader.FormatInternals.OpenXmlReaderAdmission.ClassifyReadError,
             DefaultMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes,
             MaxInputBytesCeiling = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
         }, replaceExisting);

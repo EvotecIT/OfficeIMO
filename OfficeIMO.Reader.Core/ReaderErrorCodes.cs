@@ -71,11 +71,18 @@ internal static partial class DocumentReaderEngine {
                 if (!string.IsNullOrWhiteSpace(code)) return code!;
             }
         }
+        // Engines wrap parse failures in a general IOException, so a more specific cause anywhere in the chain wins and
+        // a generic I/O failure is reported only when nothing more specific is found.
+        bool sawIOError = false;
         foreach (Exception current in chain) {
             string? code = ClassifyCommonReadError(current);
-            if (code != null) return code;
+            if (code == ReaderErrorCodes.IOError) {
+                sawIOError = true;
+            } else if (code != null) {
+                return code;
+            }
         }
-        return ReaderErrorCodes.ReadFailed;
+        return sawIOError ? ReaderErrorCodes.IOError : ReaderErrorCodes.ReadFailed;
     }
 
     /// <summary>
