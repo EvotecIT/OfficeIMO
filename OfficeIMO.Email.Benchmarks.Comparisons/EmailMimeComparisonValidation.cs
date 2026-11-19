@@ -1,6 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using MimeKit;
+#if NET10_0_OR_GREATER
+using OneMailApi = RecursiveAI.OneMail;
+#endif
 
 namespace OfficeIMO.Email.Benchmarks.Comparisons;
 
@@ -38,6 +41,13 @@ internal static class EmailMimeComparisonValidation {
         RequireEqual(scaleName, "canonical input", expected, ObserveOffice(mimeOutput));
         RequireEqual(scaleName, "OfficeIMO output through OfficeIMO", expected, ObserveOffice(officeOutput));
         RequireEqual(scaleName, "OfficeIMO output through MimeKit", expected, ObserveMimeKit(officeOutput));
+#if NET10_0_OR_GREATER
+        byte[] oneMailOutput = EmailMimeComparisonCorpus.WriteOneMail(EmailMimeComparisonCorpus.CreateOneMailMessage(scale));
+        RequireEqual(scaleName, "canonical input through OneMail", expected, ObserveOneMail(mimeOutput));
+        RequireEqual(scaleName, "OneMail output through OneMail", expected, ObserveOneMail(oneMailOutput));
+        RequireEqual(scaleName, "OneMail output through MimeKit", expected, ObserveMimeKit(oneMailOutput));
+        RequireEqual(scaleName, "OneMail output through OfficeIMO", expected, ObserveOffice(oneMailOutput));
+#endif
 
         return new EmailMimeComparisonReport(
             scale.Name,
@@ -78,6 +88,55 @@ internal static class EmailMimeComparisonValidation {
         return checksum;
     }
 
+#if NET10_0_OR_GREATER
+    internal static int ConsumeOneMail(byte[] input) {
+        OneMailApi.IMailItem item = OneMailApi.Mail.Parse(input);
+        int checksum = (item.Subject?.Length ?? 0) +
+                       (item.TextBody?.ReadText().Length ?? 0) +
+                       (item.HtmlBody?.ReadText().Length ?? 0) +
+                       item.ToRecipients.Count + item.Cc.Count;
+        foreach (OneMailApi.IMailAttachment attachment in item.Attachments) {
+            checksum = ConsumeBytes(checksum, ReadOneMailAttachment(attachment));
+        }
+        return checksum;
+    }
+
+    internal static EmailMimeObservation ObserveOneMail(byte[] input) {
+        OneMailApi.IMailItem item = OneMailApi.Mail.Parse(input);
+        return new EmailMimeObservation(
+            item.Subject ?? string.Empty,
+            NormalizeAddress(item.From.Count > 0 ? item.From[0].Address : null),
+            item.ToRecipients.Select(address => NormalizeAddress(address.Address)).ToArray(),
+            item.Cc.Select(address => NormalizeAddress(address.Address)).ToArray(),
+            NormalizeBody(item.TextBody?.ReadText()),
+            NormalizeBody(item.HtmlBody?.ReadText()),
+            item.Attachments.Select(attachment => {
+                byte[] content = ReadOneMailAttachment(attachment);
+                return new EmailMimeAttachmentObservation(
+                    attachment.FileName ?? string.Empty,
+                    content.Length,
+                    Convert.ToHexString(SHA256.HashData(content)));
+            }).ToArray());
+    }
+
+    internal static EmailMimeRetainedProjection RetainOneMail(byte[] input) {
+        OneMailApi.IMailItem item = OneMailApi.Mail.Parse(input);
+        return new EmailMimeRetainedProjection(
+            item,
+            item.Subject ?? string.Empty,
+            NormalizeBody(item.TextBody?.ReadText()),
+            NormalizeBody(item.HtmlBody?.ReadText()),
+            item.Attachments.Select(ReadOneMailAttachment).ToArray());
+    }
+
+    private static byte[] ReadOneMailAttachment(OneMailApi.IMailAttachment attachment) {
+        using Stream decoded = attachment.Open();
+        using var output = new MemoryStream();
+        decoded.CopyTo(output);
+        return output.ToArray();
+    }
+
+#endif
     internal static EmailMimeObservation ObserveOffice(byte[] input) {
         EmailDocument document = EmailDocument.Load(input);
         return new EmailMimeObservation(

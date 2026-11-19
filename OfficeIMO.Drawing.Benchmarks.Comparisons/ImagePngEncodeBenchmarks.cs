@@ -10,6 +10,9 @@ public class ImagePngEncodeBenchmarks {
     private OfficeRasterImage _officeImage = null!;
     private SKBitmap _skiaImage = null!;
     private MagickImage _magickImage = null!;
+#if NET10_0_OR_GREATER
+    private global::OneImage.Image _oneImage = null!;
+#endif
 
     [GlobalSetup]
     public void Setup() {
@@ -18,6 +21,10 @@ public class ImagePngEncodeBenchmarks {
         _skiaImage = ImageComparisonAdapters.CreateSkiaBitmap(rgba, _officeImage.Width, _officeImage.Height);
         _magickImage = ImageComparisonAdapters.CreateMagickImage(rgba, _officeImage.Width, _officeImage.Height);
         ImageComparisonValidation.ValidatePngEncode(_officeImage, OfficeIMO(), SkiaSharp(), MagickNET());
+#if NET10_0_OR_GREATER
+        _oneImage = OneImageComparisonAdapters.CreateImage(rgba, _officeImage.Width, _officeImage.Height);
+        ImageComparisonValidation.ValidatePngEncode(_officeImage, OneImage());
+#endif
     }
 
     [GlobalCleanup]
@@ -34,4 +41,10 @@ public class ImagePngEncodeBenchmarks {
 
     [Benchmark]
     public byte[] MagickNET() => ImageComparisonAdapters.EncodeMagick(_magickImage);
+#if NET10_0_OR_GREATER
+
+    [Benchmark]
+    [BenchmarkCategory("library:oneimage")]
+    public byte[] OneImage() => OneImageComparisonAdapters.EncodePng(_oneImage);
+#endif
 }

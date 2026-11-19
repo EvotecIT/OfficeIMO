@@ -96,10 +96,12 @@ public class WordReadComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
     public WordReadObservation OneDocument() => WordOneDocumentWorkloads.ReadParagraphs(_fixture);
 
     /// <summary>OneDocument's streaming extractor: same text, no document model.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
     public WordReadObservation OneDocumentExtractText() => WordOneDocumentWorkloads.ExtractText(_fixture);
 
 #endif

@@ -42,6 +42,7 @@ public class PdfGenerationBenchmarks {
 #if NET10_0_OR_GREATER
     /// <summary>OnePDF.Layout writes a tagged PDF by default; the other lanes write untagged or lightly tagged output.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:onepdf")]
     public byte[] OnePdfLayout() => OnePdfComparisonEngines.Generate(_scenario);
 
 #endif

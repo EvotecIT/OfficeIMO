@@ -27,6 +27,9 @@ public class WordCreateImageComparisonBenchmarks {
         if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateImageDocument(DocX(), ImageCount, requireOpenXmlSdkConformance: false);
         WordWorkloadCorpus.ValidateImageDocument(NPOI(), ImageCount);
         WordWorkloadCorpus.ValidateImageDocument(OpenXmlSdk(), ImageCount);
+#if NET10_0_OR_GREATER
+        WordWorkloadCorpus.ValidateImageDocument(OneDocument(), ImageCount);
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -97,6 +100,12 @@ public class WordCreateImageComparisonBenchmarks {
         return stream.ToArray();
     }
 
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public byte[] OneDocument() => WordOneDocumentWorkloads.CreateImages(ImageCount);
+#endif
+
     private static DocumentFormat.OpenXml.Wordprocessing.Drawing InlinePicture(string relationshipId, uint id) {
         long cx = WordBenchmarkImages.WidthPixels * EmuPerPixel;
         long cy = WordBenchmarkImages.HeightPixels * EmuPerPixel;
@@ -136,6 +145,9 @@ public class WordTemplateFillComparisonBenchmarks {
         if (BenchmarkLibrarySelection.IsEnabled("docx")) WordWorkloadCorpus.ValidateFilledDocument(DocX(), ItemCount, requireOpenXmlSdkConformance: false);
         WordWorkloadCorpus.ValidateFilledDocument(NPOI(), ItemCount);
         WordWorkloadCorpus.ValidateFilledDocument(OpenXmlSdk(), ItemCount);
+#if NET10_0_OR_GREATER
+        WordWorkloadCorpus.ValidateFilledDocument(OneDocument(), ItemCount);
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -197,6 +209,12 @@ public class WordTemplateFillComparisonBenchmarks {
         return stream.ToArray();
     }
 
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public byte[] OneDocument() => WordOneDocumentWorkloads.FillTemplate(_fixture);
+#endif
+
     private static string ReplaceFields(string text) {
         if (text.IndexOf("{{", StringComparison.Ordinal) < 0) return text;
         string updated = text;
@@ -225,6 +243,9 @@ public class WordReadTableComparisonBenchmarks {
         if (BenchmarkLibrarySelection.IsEnabled("docx")) Ensure(nameof(DocX), DocX());
         Ensure(nameof(NPOI), NPOI());
         Ensure(nameof(OpenXmlSdk), OpenXmlSdk());
+#if NET10_0_OR_GREATER
+        Ensure(nameof(OneDocument), OneDocument());
+#endif
     }
 
     [Benchmark(Baseline = true)]
@@ -287,6 +308,12 @@ public class WordReadTableComparisonBenchmarks {
         }
         return observation;
     }
+
+#if NET10_0_OR_GREATER
+    [Benchmark]
+    [BenchmarkCategory("library:onedocument")]
+    public WordReadObservation OneDocument() => WordOneDocumentWorkloads.ReadTables(_fixture);
+#endif
 
     private void Ensure(string implementation, WordReadObservation actual) {
         if (actual != _expected) {

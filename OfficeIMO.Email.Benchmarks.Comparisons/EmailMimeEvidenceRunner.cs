@@ -10,7 +10,12 @@ namespace OfficeIMO.Email.Benchmarks.Comparisons;
 internal static class EmailMimeEvidenceRunner {
     private const string OfficeEngine = "OfficeIMO";
     private const string MimeKitEngine = "MimeKit";
+#if NET10_0_OR_GREATER
+    private const string OneMailEngine = "OneMail";
+    private static readonly string[] Engines = [OfficeEngine, MimeKitEngine, OneMailEngine];
+#else
     private static readonly string[] Engines = [OfficeEngine, MimeKitEngine];
+#endif
     private static readonly string[] Operations = ["Read", "Write"];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -21,7 +26,7 @@ internal static class EmailMimeEvidenceRunner {
     internal static int RunProbe(string[] args) {
         if (args.Length != 6) {
             Console.Error.WriteLine(
-                "Usage: --evidence-probe <Read|Write> <OfficeIMO|MimeKit> <Small|Normal> <input.eml> <operations> <retained-results>");
+                "Usage: --evidence-probe <Read|Write> <OfficeIMO|MimeKit|OneMail> <Small|Normal> <input.eml> <operations> <retained-results>");
             return 2;
         }
         try {
@@ -141,9 +146,7 @@ internal static class EmailMimeEvidenceRunner {
         object? preparedModel = selectedOperation == "Write" ? CreateModel(selectedEngine, scale) : null;
         try {
             EmailMimeObservation? inputObservation = selectedOperation == "Read"
-                ? selectedEngine == OfficeEngine
-                    ? EmailMimeComparisonValidation.ObserveOffice(input)
-                    : EmailMimeComparisonValidation.ObserveMimeKit(input)
+                ? Observe(selectedEngine, input)
                 : null;
             int warmups = scale.Name == "Normal" ? 128 : 512;
             for (int index = 0; index < warmups; index++) {
@@ -163,9 +166,7 @@ internal static class EmailMimeEvidenceRunner {
             GC.KeepAlive(lastResult);
 
             byte[] semanticSource = selectedOperation == "Write" ? (byte[])lastResult! : input;
-            EmailMimeObservation observation = inputObservation ?? (selectedEngine == OfficeEngine
-                ? EmailMimeComparisonValidation.ObserveOffice(semanticSource)
-                : EmailMimeComparisonValidation.ObserveMimeKit(semanticSource));
+            EmailMimeObservation observation = inputObservation ?? Observe(selectedEngine, semanticSource);
             string fingerprint = Convert.ToHexString(SHA256.HashData(
                 JsonSerializer.SerializeToUtf8Bytes(observation, JsonOptions)));
 
@@ -214,26 +215,49 @@ internal static class EmailMimeEvidenceRunner {
         }
     }
 
-    private static object CreateModel(string engine, EmailMimeBenchmarkScale scale) =>
-        engine == OfficeEngine
-            ? EmailMimeComparisonCorpus.CreateOfficeDocument(scale)
-            : EmailMimeComparisonCorpus.CreateMimeMessage(scale);
+    private static EmailMimeObservation Observe(string engine, byte[] input) => engine switch {
+        OfficeEngine => EmailMimeComparisonValidation.ObserveOffice(input),
+#if NET10_0_OR_GREATER
+        OneMailEngine => EmailMimeComparisonValidation.ObserveOneMail(input),
+#endif
+        _ => EmailMimeComparisonValidation.ObserveMimeKit(input)
+    };
+
+    private static object CreateModel(string engine, EmailMimeBenchmarkScale scale) => engine switch {
+        OfficeEngine => EmailMimeComparisonCorpus.CreateOfficeDocument(scale),
+#if NET10_0_OR_GREATER
+        OneMailEngine => EmailMimeComparisonCorpus.CreateOneMailMessage(scale),
+#endif
+        _ => EmailMimeComparisonCorpus.CreateMimeMessage(scale)
+    };
 
     private static object Execute(string operation, string engine, byte[] input, object? preparedModel) {
         if (operation == "Read") {
-            return engine == OfficeEngine
-                ? EmailMimeComparisonValidation.ConsumeOffice(input)
-                : EmailMimeComparisonValidation.ConsumeMimeKit(input);
+            return engine switch {
+                OfficeEngine => EmailMimeComparisonValidation.ConsumeOffice(input),
+#if NET10_0_OR_GREATER
+                OneMailEngine => EmailMimeComparisonValidation.ConsumeOneMail(input),
+#endif
+                _ => EmailMimeComparisonValidation.ConsumeMimeKit(input)
+            };
         }
-        return engine == OfficeEngine
-            ? ((EmailDocument)preparedModel!).ToBytes(EmailFileFormat.Eml)
-            : EmailMimeComparisonCorpus.WriteMimeKit((MimeMessage)preparedModel!);
+        return engine switch {
+            OfficeEngine => ((EmailDocument)preparedModel!).ToBytes(EmailFileFormat.Eml),
+#if NET10_0_OR_GREATER
+            OneMailEngine => EmailMimeComparisonCorpus.WriteOneMail(
+                (RecursiveAI.OneMail.Composition.OutgoingMessage)preparedModel!),
+#endif
+            _ => EmailMimeComparisonCorpus.WriteMimeKit((MimeMessage)preparedModel!)
+        };
     }
 
-    private static EmailMimeRetainedProjection RetainRead(string engine, byte[] input) =>
-        engine == OfficeEngine
-            ? EmailMimeComparisonValidation.RetainOffice(input)
-            : EmailMimeComparisonValidation.RetainMimeKit(input);
+    private static EmailMimeRetainedProjection RetainRead(string engine, byte[] input) => engine switch {
+        OfficeEngine => EmailMimeComparisonValidation.RetainOffice(input),
+#if NET10_0_OR_GREATER
+        OneMailEngine => EmailMimeComparisonValidation.RetainOneMail(input),
+#endif
+        _ => EmailMimeComparisonValidation.RetainMimeKit(input)
+    };
 
     private static EmailMimeEvidenceMeasurement RunChildProbe(
         string operation,
@@ -283,7 +307,8 @@ internal static class EmailMimeEvidenceRunner {
                     value.Operation == operation && value.Scale == scale && value.Engine == OfficeEngine).ToArray();
                 EmailMimeEvidenceMeasurement[] mimeKit = measurements.Where(value =>
                     value.Operation == operation && value.Scale == scale && value.Engine == MimeKitEngine).ToArray();
-                EmailMimeEvidenceMeasurement[] combined = office.Concat(mimeKit).ToArray();
+                EmailMimeEvidenceMeasurement[] combined = measurements.Where(value =>
+                    value.Operation == operation && value.Scale == scale).ToArray();
                 if (combined.Select(value => value.SemanticFingerprint).Distinct(StringComparer.Ordinal).Count() != 1
                     || combined.Select(value => value.InputBytes).Distinct().Count() != 1) {
                     throw new InvalidOperationException($"{operation}/{scale} probes did not observe equivalent results.");

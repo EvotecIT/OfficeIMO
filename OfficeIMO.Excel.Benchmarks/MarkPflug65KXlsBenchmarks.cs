@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
-public class MarkPflug65KXlsBenchmarks {
+public partial class MarkPflug65KXlsBenchmarks {
     private ExcelReadObservation _expected;
 
     [GlobalSetup]

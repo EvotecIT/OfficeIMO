@@ -21,8 +21,9 @@ dependencies of `OfficeIMO.Word`.
 
 ### OneDocument lanes
 
-On `net10.0` the read, replace and structured-report comparisons gain a
-`OneDocument` lane, and read gains `OneDocumentExtractText`:
+On `net10.0` every comparison workload gains a `OneDocument` lane, and read
+gains `OneDocumentExtractText`. Each lane carries the `library:onedocument`
+category:
 
 | Lane | Measured operation | Correctness proof |
 | --- | --- | --- |
@@ -30,8 +31,15 @@ On `net10.0` the read, replace and structured-report comparisons gain a
 | Read paragraphs, `OfficeIMOReaderText` (all targets) | `OfficeIMO.Reader` with `ReaderProjection.TextAndMetadata`, then `GetText()`, split into lines | Same observation; this is OfficeIMO's plain-text route, so it pairs with OneDocument's extractor |
 | Read paragraphs, `OfficeIMOReaderStreamedText` (all targets) | The same Reader read with `ReaderProjection.Text`, which streams simple bodies without building the Word model | Same observation |
 | Read paragraphs, `OneDocumentExtractText` | `Document.Open` and `ExtractText()`, OneDocument's streaming extractor, split into lines | Same observation; it skips the document model, so it is the cheaper of the two OneDocument routes |
-| Replace and save | `Document.Open`, `Document.Replace` for `{{Status}}`, `SaveAs` to a DOCX stream | Every output paragraph and Open XML SDK validation |
+| Create paragraphs | `Document.Create`, the first item in the new document's empty paragraph, then `Body.AddParagraph` for the rest | Exact paragraph count and text, and Open XML SDK validation |
+| Replace and save | `Document.Open`, case-sensitive `Document.Replace` for `{{Status}}`, `SaveAs` to a DOCX stream | Every output paragraph and Open XML SDK validation |
 | Create structured report | `Document.Create`, header and footer stories, bold 18 pt title, summary, and a two-column table built from a cell array | The same structure, formatting, header/footer and Open XML SDK checks as the other lanes |
+| Create with images | `Document.Create`, one caption paragraph and one `Body.AddPicture` paragraph per image at the same 96 dpi size as the other lanes | Every caption, every picture's exact bytes, and Open XML SDK validation |
+| Fill a template | `Document.Open`, one case-sensitive `Document.Replace` per field, `SaveAs` to a DOCX stream | Every filled paragraph and Open XML SDK validation |
+| Read tables | `Document.Open` and the `Text` of every cell of every `Document.Tables` entry | Same cell count, character count and checksum as every other reader |
+
+`Document.Replace` matches case-insensitively by default; the lanes pass
+`MatchCase = true` so they do the same search as the OfficeIMO lane.
 
 OneDocument has no paragraph-level API on header and footer stories, so the
 report lane writes their text through the story's typed `w:hdr`/`w:ftr` view.
@@ -41,7 +49,7 @@ content and formatting, not column widths.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- validate
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*WordReadComparisonBenchmarks*' '*WordReplaceComparisonBenchmarks*' '*WordCreateReportComparisonBenchmarks*' --job Short
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Word.Benchmarks -- --filter '*Word*ComparisonBenchmarks*' --job Short
 ```
 
 ## Comparison workloads
