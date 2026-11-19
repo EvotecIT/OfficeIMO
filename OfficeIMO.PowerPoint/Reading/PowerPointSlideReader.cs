@@ -16,6 +16,9 @@ namespace OfficeIMO.PowerPoint {
     ///     </para>
     ///     <para>
     ///         Relationships are read per slide when the slide is read, not for the whole package when it opens.
+    ///         The package is opened without the repair step a model load applies, so a package whose relationship
+    ///         targets are not valid URIs fails when the part that holds them is read; <see cref="PowerPointDocument.Load(string, PowerPointLoadOptions?)"/>
+    ///         reads such packages.
     ///         The reader keeps the package open until it is disposed. A file is opened for shared reading; a caller
     ///         stream stays open and owned by the caller.
     ///     </para>

@@ -1,52 +1,63 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>
-/// Describes the shapes of a loaded slide with the content records <see cref="PowerPointSlideReader"/> returns, so
-/// extraction renders a loaded presentation and a streamed one through the same code.
+/// Describes the text boxes and tables of a loaded slide with the content records <see cref="PowerPointSlideReader"/>
+/// returns, so extraction renders a loaded presentation and a streamed one through the same code. The records are read
+/// straight from the slide's elements and carry only what extraction reads: other shapes are skipped, and identity,
+/// visibility and image fields are left empty because the shape enumeration has already applied visibility.
 /// </summary>
 internal static class PowerPointSlideContentProjection {
     internal static IEnumerable<PowerPointShapeContent> ProjectShapes(PowerPointSlide slide, bool includeHidden) {
         foreach (PowerPointShape shape in slide.EnumerateShapesDeep(slide.Shapes, includeHidden)) {
-            yield return ProjectShape(shape);
+            if (shape is PowerPointTextBox textBox) {
+                yield return new PowerPointShapeContent(PowerPointShapeContentType.TextBox, null, null, null, false,
+                    isVisible: true, depth: 0, textBox.ShapePlaceholderType, ProjectParagraphs(textBox), null, null);
+            } else if (shape is PowerPointTable table) {
+                yield return new PowerPointShapeContent(PowerPointShapeContentType.Table, null, null, null, false,
+                    isVisible: true, depth: 0, null, Array.Empty<PowerPointParagraphContent>(), ProjectTable(table, slide.SlidePart), null);
+            }
         }
     }
 
-    private static PowerPointShapeContent ProjectShape(PowerPointShape shape) {
-        IReadOnlyList<PowerPointParagraphContent> paragraphs = shape is PowerPointTextBox textBox
-            ? textBox.Paragraphs.Select(ProjectParagraph).ToList()
-            : Array.Empty<PowerPointParagraphContent>();
-        PowerPointTableContent? table = shape is PowerPointTable powerPointTable ? ProjectTable(powerPointTable) : null;
-        return new PowerPointShapeContent(shape.ShapeContentType, shape.Id, shape.Name, shape.AltText, shape.Hidden,
-            isVisible: !shape.Hidden, depth: 0, shape.ShapePlaceholderType, paragraphs, table, image: null);
+    /// <summary>Projects a loaded text box's paragraphs, as <see cref="PowerPointTextBox.Paragraphs"/> lists them.</summary>
+    internal static IReadOnlyList<PowerPointParagraphContent> ProjectParagraphs(PowerPointTextBox textBox) =>
+        ProjectParagraphs(textBox.TextBody, textBox.OwnerSlide?.SlidePart);
+
+    private static PowerPointTableContent ProjectTable(PowerPointTable table, SlidePart slidePart) {
+        A.Table element = table.TableElement;
+        A.TableGrid? grid = element.TableGrid;
+        var rows = new List<PowerPointTableRowContent>();
+        foreach (A.TableRow row in element.Elements<A.TableRow>()) {
+            var cells = new List<PowerPointTableCellContent>();
+            foreach (A.TableCell cell in row.Elements<A.TableCell>()) {
+                cells.Add(new PowerPointTableCellContent(ProjectParagraphs(cell.TextBody, slidePart)));
+            }
+            rows.Add(new PowerPointTableRowContent(cells));
+        }
+        return new PowerPointTableContent(null, grid?.Elements<A.GridColumn>().Count() ?? 0,
+            element.TableProperties?.FirstRow?.Value == true, rows, hasGrid: grid != null);
     }
 
-    private static PowerPointTableContent ProjectTable(PowerPointTable table) {
-        A.TableGrid? grid = table.TableElement.TableGrid;
-        var rows = table.Rows
-            .Select(row => new PowerPointTableRowContent(row.Cells
-                .Select(cell => new PowerPointTableCellContent(cell.Paragraphs.Select(ProjectParagraph).ToList()))
-                .ToList()))
-            .ToList();
-        return new PowerPointTableContent(table.Name, grid?.Elements<A.GridColumn>().Count() ?? 0, table.HeaderRow, rows,
-            hasGrid: grid != null);
+    private static IReadOnlyList<PowerPointParagraphContent> ProjectParagraphs(OpenXmlElement? body, SlidePart? slidePart) {
+        if (body == null) return Array.Empty<PowerPointParagraphContent>();
+        List<PowerPointParagraphContent>? paragraphs = null;
+        foreach (A.Paragraph paragraph in body.Elements<A.Paragraph>()) {
+            (paragraphs ??= new List<PowerPointParagraphContent>()).Add(ProjectParagraph(paragraph, slidePart));
+        }
+        return paragraphs ?? (IReadOnlyList<PowerPointParagraphContent>)Array.Empty<PowerPointParagraphContent>();
     }
 
-    internal static PowerPointParagraphContent ProjectParagraph(PowerPointParagraph paragraph) {
-        // Run wrappers resolve hyperlinks through the owning part; build them only when a run has a click link.
-        IReadOnlyList<PowerPointTextRun>? runs = null;
-        int runIndex = 0;
+    // Reads what PowerPointParagraph and PowerPointTextRun report for a slide paragraph without creating them.
+    private static PowerPointParagraphContent ProjectParagraph(A.Paragraph paragraph, SlidePart? slidePart) {
         var inlines = new List<PowerPointInlineContent>();
-        foreach (OpenXmlElement child in paragraph.Paragraph.ChildElements) {
+        foreach (OpenXmlElement child in paragraph.ChildElements) {
             if (child is A.Run run) {
-                Uri? hyperlink = null;
-                if (run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>() != null) {
-                    runs ??= paragraph.Runs;
-                    hyperlink = runs[runIndex].Hyperlink;
-                }
-                runIndex++;
+                A.HyperlinkOnClick? click = run.RunProperties?.GetFirstChild<A.HyperlinkOnClick>();
+                Uri? hyperlink = click == null || slidePart == null ? null : PowerPointHyperlinkResolver.Resolve(slidePart, slidePart, click);
                 inlines.Add(new PowerPointInlineContent(PowerPointParagraphInlineKind.Run, run.Text?.Text ?? string.Empty, hyperlink, null));
             } else if (child is A.Break) {
                 inlines.Add(PowerPointInlineContent.LineBreak);
@@ -55,7 +66,10 @@ internal static class PowerPointSlideContentProjection {
                     null, field.Text == null ? field.InnerText ?? string.Empty : null));
             }
         }
-        return new PowerPointParagraphContent(inlines, paragraph.Level, paragraph.BulletCharacter, paragraph.IsNumbered,
-            paragraph.NumberingScheme, paragraph.NumberingStartAt);
+        A.ParagraphProperties? properties = paragraph.ParagraphProperties;
+        A.AutoNumberedBullet? numbering = properties?.GetFirstChild<A.AutoNumberedBullet>();
+        return new PowerPointParagraphContent(inlines, properties?.Level?.Value,
+            properties?.GetFirstChild<A.CharacterBullet>()?.Char?.Value, numbering != null,
+            numbering?.Type?.Value.ToOfficeEnum(), numbering?.StartAt?.Value);
     }
 }

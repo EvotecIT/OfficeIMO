@@ -72,6 +72,10 @@ string text = reader.ReadDocument("slides.pptx", new ReaderOptions {
 ## Inspect comments and authored visibility
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.PowerPoint;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPowerPointHandler().Build();
 OfficeDocumentReadResult inspected = reader.ReadDocument("review.pptx", new ReaderOptions {
     Inspection = new ReaderInspectionOptions()
 });

@@ -156,8 +156,7 @@ internal static partial class PowerPointRichMapping {
         List<OfficeDocumentBlock> blocks,
         List<OfficeDocumentLink> links,
         ref int linkIndex) {
-        IReadOnlyList<PowerPointParagraphContent> paragraphs = textBox.Paragraphs
-            .Select(PowerPointSlideContentProjection.ProjectParagraph).ToArray();
+        IReadOnlyList<PowerPointParagraphContent> paragraphs = PowerPointSlideContentProjection.ProjectParagraphs(textBox);
         bool isTitle = textBox.ShapePlaceholderType == PowerPointPlaceholderType.Title || textBox.ShapePlaceholderType == PowerPointPlaceholderType.CenteredTitle;
         ProjectPowerPointParagraphs(paragraphs, isTitle, shapeLocation, region, blocks, links, ref linkIndex);
     }
