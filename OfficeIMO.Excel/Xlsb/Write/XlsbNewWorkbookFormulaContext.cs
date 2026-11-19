@@ -14,6 +14,7 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
     private readonly DefinedNames? _definedNames;
     private readonly Dictionary<ushort, ushort> _mapped = new();
     private readonly List<(int First, int Last)> _ranges = new();
+    private readonly List<string> _addedFutureFunctions = new();
     private LegacyXlsExternSheetTable? _links;
     private LegacyXlsFormulaNameIndex? _names;
 
@@ -29,6 +30,12 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
     /// <summary>True once an encoded formula refers to the self-reference table.</summary>
     internal bool UsesExternalSheets => _mapped.Count != 0;
 
+    /// <summary>
+    /// Future-function names that encoded formulas call but the definedNames collection lacks. The workbook writes
+    /// them after its planned names (<see cref="XlsbDefinedNameWriter.CountPlannedRecords"/>), in this order.
+    /// </summary>
+    internal IReadOnlyList<string> AddedFutureFunctions => _addedFutureFunctions;
+
     public bool TryEncode(string text, string sheetName, out byte[] payload, out string? reason, bool arrayFormula = false, byte resultClass = 0) {
         _links ??= LegacyXlsExternSheetTable.Create(_document, _sheets);
         if (_links.SupportingLinkRecords.Count > 1) {
@@ -39,7 +46,22 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
         for (int index = 0; index < _sheets.Count; index++) {
             if (string.Equals(_sheets[index].Name, sheetName, StringComparison.Ordinal)) { sheetIndex = index; break; }
         }
-        return XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex, MapReference, out payload, out reason, arrayFormula, resultClass);
+        return XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex, MapReference, out payload, out reason, arrayFormula, resultClass,
+            ResolveFutureFunction);
+    }
+
+    private uint? ResolveFutureFunction(string name) {
+        uint id = 0;
+        foreach (DefinedName definedName in _definedNames?.Elements<DefinedName>() ?? Enumerable.Empty<DefinedName>()) {
+            id++;
+            if (definedName.LocalSheetId == null && string.Equals(definedName.Name?.Value, name, StringComparison.OrdinalIgnoreCase)) return id;
+        }
+        int added = _addedFutureFunctions.IndexOf(name);
+        if (added < 0) {
+            added = _addedFutureFunctions.Count;
+            _addedFutureFunctions.Add(name);
+        }
+        return checked((uint)(XlsbDefinedNameWriter.CountPlannedRecords(_definedNames, _sheets) + added + 1));
     }
 
     public XlsbWriteCell RebindSourceCell(XlsbWriteCell cell) => cell;

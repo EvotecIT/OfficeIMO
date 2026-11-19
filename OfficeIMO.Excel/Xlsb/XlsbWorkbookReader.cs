@@ -341,9 +341,7 @@ namespace OfficeIMO.Excel.Xlsb {
 
                 if (XlsbDefinedNameFormulaCodec.TryDecode(
                     definedName,
-                    workbook.ExternalSheetReferences,
-                    workbook.SelfSupportingLinks,
-                    workbook.Sheets,
+                    workbook,
                     out string? formulaText,
                     out string? reason)) {
                     definedName.FormulaText = formulaText;
@@ -727,8 +725,19 @@ namespace OfficeIMO.Excel.Xlsb {
                         }
                         inFilterValues = false;
                         break;
+                    case XlsbAutoFilterCriteria.BrtIconFilter:
+                    case XlsbAutoFilterCriteria.BrtTop10Filter:
+                    case XlsbAutoFilterCriteria.BrtDynamicFilter:
+                    case XlsbAutoFilterCriteria.BrtBeginCustomFilters:
+                    case XlsbAutoFilterCriteria.BrtEndCustomFilters:
+                    case XlsbAutoFilterCriteria.BrtCustomFilter:
+                        if (currentFilterColumn == null || inFilterValues) {
+                            throw new InvalidDataException($"The AutoFilter criterion record {record.Type} at offset {record.Offset} appears outside an AutoFilter column.");
+                        }
+                        XlsbWorksheetAutoFilterReader.ReadCriterion(record, currentFilterColumn);
+                        break;
                     case BrtEndFilterColumn:
-                        if (record.Data.Length != 0 || currentFilterColumn == null || inFilterValues) {
+                        if (record.Data.Length != 0 || currentFilterColumn == null || inFilterValues || currentFilterColumn.InCustomFilters) {
                             throw new InvalidDataException($"The BrtEndFilterColumn record at offset {record.Offset} is invalid or has no matching begin record.");
                         }
                         currentFilterColumn = null;
@@ -828,7 +837,7 @@ namespace OfficeIMO.Excel.Xlsb {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(
                     "xlsb-autofilter-partial",
                     XlsbImportDiagnosticSeverity.Warning,
-                    $"Projected the AutoFilter range on worksheet '{worksheet.Name}' while preserving criteria outside the supported equality-list subset.",
+                    $"Projected the AutoFilter range on worksheet '{worksheet.Name}' while preserving criteria outside the supported equality-list, custom, top 10, dynamic and icon subset.",
                     partName));
             }
 
@@ -841,7 +850,8 @@ namespace OfficeIMO.Excel.Xlsb {
                     try {
                         byte[] materialized = group.Materialize(member.Row, member.Column);
                         int count = checked((int)XlsbFormulaGroup.Read(materialized, 2));
-                        if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook, sheetIndex)) member.FormulaText = text;
+                        byte[] extra = materialized.Skip(10 + count).ToArray();
+                        if (XlsbFormulaTextReader.TryRead(materialized.Skip(6).Take(count).ToArray(), out string? text, workbook, sheetIndex, extra)) member.FormulaText = text;
                     } catch (NotSupportedException) {
                         workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-formula-preserved", XlsbImportDiagnosticSeverity.Warning,
                             "Preserved an unsupported grouped formula and its cached result.", partName));
@@ -854,8 +864,10 @@ namespace OfficeIMO.Excel.Xlsb {
             }
         }
 
+        // BrtColorFilter refers to differential formats, which the reader does not project.
         private static bool IsSupportedAutoFilterRecord(int recordType) =>
-            recordType >= BrtBeginAFilter && recordType <= BrtFilter;
+            recordType >= BrtBeginAFilter && recordType <= XlsbAutoFilterCriteria.BrtCustomFilter
+            && recordType != XlsbAutoFilterCriteria.BrtColorFilter;
 
         private static XlsbCellRange ParseCellRange(XlsbRecord record, string recordName) {
             if (record.Data.Length != 16) {

@@ -59,7 +59,9 @@ namespace OfficeIMO.Excel {
                     if ((scalarFunction || conditionalFunction) && work.ArrayEvaluation) output = Array;
                     bytes[token.Offset] = (byte)(kind | output);
                     for (int index = 0; index < node.Children.Length; index++) {
-                        byte argument = ArgumentType(name, index);
+                        // User-defined and future functions (iftab 0x00FF) take their name and every argument as
+                        // ref / val operands; a range stays a reference instead of being intersected to one cell.
+                        byte argument = token.Function.Value == 0x00FF ? Reference : ArgumentType(name, index);
                         if (argument == 0) argument = output; // IF/CHOOSE result branches follow the requested result class.
                         else if (argument == Value && output == Array && (scalarFunction || conditionalFunction)) argument = Array;
                         pending.Push((node.Children[index], argument, arrayEvaluation));

@@ -53,9 +53,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int cb = checked((int)BitConverter.ToUInt32(payload, offset));
             offset += 4;
             if (cb < 0 || offset > payload.Length - cb) throw new InvalidDataException($"A formula in '{PartName}' is truncated.");
+            byte[] extra = new byte[cb];
+            Buffer.BlockCopy(payload, offset, extra, 0, cb);
             offset += cb;
             if (cce == 0) return string.Empty;
-            return XlsbFormulaTextReader.TryRead(tokens, out string? text, Workbook, SheetIndex) ? text : null;
+            return XlsbFormulaTextReader.TryRead(tokens, out string? text, Workbook, SheetIndex, extra) ? text : null;
         }
 
         internal static XlsbCellRange ReadRfX(byte[] payload, ref int offset, string partName) {

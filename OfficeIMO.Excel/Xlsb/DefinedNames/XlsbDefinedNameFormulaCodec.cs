@@ -7,14 +7,21 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
     internal static class XlsbDefinedNameFormulaCodec {
         internal static bool TryDecode(
             XlsbDefinedName definedName,
-            IReadOnlyList<XlsbExternalSheetReference> externalSheetReferences,
-            IReadOnlyList<bool> selfSupportingLinks,
-            IReadOnlyList<XlsbSheet> worksheets,
+            XlsbWorkbook workbook,
             out string? formulaText,
             out string? reason) {
             ArgumentNullException.ThrowIfNull(definedName);
+            ArgumentNullException.ThrowIfNull(workbook);
+            IReadOnlyList<XlsbExternalSheetReference> externalSheetReferences = workbook.ExternalSheetReferences;
+            IReadOnlyList<bool> selfSupportingLinks = workbook.SelfSupportingLinks;
+            IReadOnlyList<XlsbSheet> worksheets = workbook.Sheets;
             formulaText = null;
             reason = null;
+            if (XlsbFutureFunctions.IsFutureFunctionName(definedName.Flags, definedName.FormulaTokens)) {
+                // SpreadsheetML spells a future-function name as a hidden #NAME? defined name.
+                formulaText = XlsbFutureFunctions.NameFormulaText;
+                return true;
+            }
             if (!definedName.IsSimpleName) {
                 reason = "macro, future-function, published, or workbook-parameter defined names";
                 return false;
@@ -31,7 +38,8 @@ namespace OfficeIMO.Excel.Xlsb.NameRecords {
             }
             if (reason != null) return false;
 
-            if (XlsbFormulaTextReader.TryRead(definedName.FormulaTokens, out formulaText)) {
+            int sheetIndex = definedName.LocalSheetIndex == uint.MaxValue ? -1 : checked((int)definedName.LocalSheetIndex);
+            if (XlsbFormulaTextReader.TryRead(definedName.FormulaTokens, out formulaText, workbook, sheetIndex, definedName.FormulaExtraBytes)) {
                 return true;
             }
 

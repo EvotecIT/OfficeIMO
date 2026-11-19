@@ -20,12 +20,15 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private const int RangePrecedence = 9;
         private const int AtomPrecedence = 10;
 
-        internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null, int sheetIndex = -1) {
+        /// <remarks>extra is the formula's rgcb; PtgArray values (PtgExtraArray) are read from it in token order.</remarks>
+        internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null, int sheetIndex = -1, byte[]? extra = null) {
             ArgumentNullException.ThrowIfNull(tokens);
 
             formulaText = null;
             var stack = new Stack<FormulaExpression>();
             int offset = 0;
+            int extraOffset = 0;
+            bool readArray = false;
             while (offset < tokens.Length) {
                 byte token = tokens[offset++];
                 switch (token) {
@@ -117,6 +120,14 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                         if (!TryReadDouble(tokens, ref offset, out double number)) return false;
                         stack.Push(new FormulaExpression(number.ToString("G15", CultureInfo.InvariantCulture), AtomPrecedence));
                         break;
+                    case 0x20:
+                    case 0x40:
+                    case 0x60:
+                        if (extra == null || !TrySkip(tokens, ref offset, 14)
+                            || !TryReadArrayConstant(extra, ref extraOffset, out string? array)) return false;
+                        stack.Push(new FormulaExpression(array!, AtomPrecedence));
+                        readArray = true;
+                        break;
                     case 0x21:
                     case 0x41:
                     case 0x61:
@@ -140,7 +151,8 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                         // when that spelling would select a different scoped binding.
                         if (name.LocalSheetIndex != uint.MaxValue && name.LocalSheetIndex != sheetIndex) return false;
                         if (name.LocalSheetIndex == uint.MaxValue && workbook.HasLocalNameShadow(name.Name, sheetIndex)) return false;
-                        stack.Push(new FormulaExpression(name.Name, AtomPrecedence));
+                        stack.Push(new FormulaExpression(name.Name, AtomPrecedence,
+                            futureFunction: XlsbFutureFunctions.IsFutureFunctionName(name.Flags, name.FormulaTokens)));
                         break;
                     case 0x3A:
                     case 0x5A:
@@ -178,8 +190,10 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                 }
             }
 
-            if (stack.Count != 1) return false;
-            formulaText = stack.Pop().Text;
+            if (stack.Count != 1 || (readArray && extraOffset != extra!.Length)) return false;
+            FormulaExpression result = stack.Pop();
+            if (result.IsFutureFunctionName) return false;
+            formulaText = result.Text;
             return !string.IsNullOrWhiteSpace(formulaText);
         }
 
@@ -281,10 +295,61 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private static bool ApplyVariableFunction(Stack<FormulaExpression> stack, byte count, ushort functionBits) {
             if ((functionBits & 0x8000) != 0) return false;
             ushort functionId = (ushort)(functionBits & 0x7FFF);
+            if (functionId == 0x00FF) return ApplyFutureFunction(stack, count & 0x7F);
             if (!BiffFormulaFunctionMetadata.TryGetFunctionName(functionId, out string? name)
                 || !BiffFormulaFunctionMetadata.IsSupportedVariableFunctionArgumentCount(functionId, count)
                 || stack.Count < count) return false;
             return ApplyFunction(stack, name!, count);
+        }
+
+        // future-function (2.5.98.10, iftab 0x00FF): the first parameter is the PtgName of a future-function BrtName.
+        private static bool ApplyFutureFunction(Stack<FormulaExpression> stack, int count) {
+            if (count < 1 || stack.Count < count) return false;
+            FormulaExpression[] arguments = new FormulaExpression[count];
+            for (int index = count - 1; index >= 0; index--) arguments[index] = stack.Pop();
+            if (!arguments[0].IsFutureFunctionName || arguments.Skip(1).Any(argument => argument.IsFutureFunctionName)) return false;
+            stack.Push(new FormulaExpression(arguments[0].Text + "(" + string.Join(",", arguments.Skip(1).Select(argument =>
+                argument.HasUngroupedUnion ? "(" + argument.Text + ")" : argument.Text)) + ")", AtomPrecedence));
+            return true;
+        }
+
+        /// <summary>Reads a PtgExtraArray (2.5.98.41) as an array constant: columns split by commas, rows by semicolons.</summary>
+        private static bool TryReadArrayConstant(byte[] extra, ref int offset, out string? text) {
+            text = null;
+            if (!TryReadUInt32(extra, ref offset, out uint rows) || !TryReadUInt32(extra, ref offset, out uint columns)
+                || rows == 0 || columns == 0 || rows > 1_048_576 || columns > 16_384
+                || (ulong)rows * columns > (ulong)(extra.Length - offset)) return false;
+            var builder = new StringBuilder("{");
+            for (uint row = 0; row < rows; row++) {
+                if (row > 0) builder.Append(';');
+                for (uint column = 0; column < columns; column++) {
+                    if (column > 0) builder.Append(',');
+                    if (offset >= extra.Length) return false;
+                    switch (extra[offset++]) {
+                        case 0x00: // SerNum
+                            if (!TryReadDouble(extra, ref offset, out double number)) return false;
+                            builder.Append(number.ToString("G15", CultureInfo.InvariantCulture));
+                            break;
+                        case 0x01: // SerStr
+                            if (!TryReadFormulaString(extra, ref offset, out string? value)) return false;
+                            builder.Append(QuoteFormulaString(value!));
+                            break;
+                        case 0x02: // SerBool
+                            if (offset >= extra.Length) return false;
+                            builder.Append(extra[offset++] == 0 ? "FALSE" : "TRUE");
+                            break;
+                        case 0x04: // SerErr: err, then three reserved bytes
+                            if (offset > extra.Length - 4) return false;
+                            builder.Append(BiffErrorValue.ToText(extra[offset]));
+                            offset += 4;
+                            break;
+                        default:
+                            return false;
+                    }
+                }
+            }
+            text = builder.Append('}').ToString();
+            return true;
         }
 
         private static bool ApplyFunction(Stack<FormulaExpression> stack, string name, int count) {
@@ -377,11 +442,15 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         private readonly struct FormulaExpression {
-            internal FormulaExpression(string text, int precedence, bool hasUngroupedUnion = false) {
+            internal FormulaExpression(string text, int precedence, bool hasUngroupedUnion = false, bool futureFunction = false) {
                 Text = text;
                 Precedence = precedence;
                 HasUngroupedUnion = hasUngroupedUnion;
+                IsFutureFunctionName = futureFunction;
             }
+
+            /// <summary>A future-function name, which is valid only as the first parameter of iftab 0x00FF.</summary>
+            internal bool IsFutureFunctionName { get; }
 
             internal string Text { get; }
 

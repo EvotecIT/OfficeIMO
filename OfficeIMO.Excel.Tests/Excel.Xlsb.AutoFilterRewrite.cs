@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             Assert.Single(changed.Sheets).Range("A1:A2").AutoFilter().Column(0U).Equals(new[] { "Open", "Closed" });
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
                 () => changed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
-            Assert.Contains("outside the supported equality-list subset", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("outside the supported equality-list, custom, top 10, dynamic and icon subset", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]

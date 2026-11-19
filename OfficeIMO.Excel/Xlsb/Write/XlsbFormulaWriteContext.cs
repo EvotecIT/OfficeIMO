@@ -40,8 +40,19 @@ internal sealed class XlsbFormulaWriteContext : IXlsbFormulaEncodingContext {
         }
         int sheetIndex = Array.FindIndex(sheets, sheet => sheet.Name == sheetName);
         bool result = XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex,
-            MapReference, out payload, out reason, arrayFormula, resultClass);
+            MapReference, out payload, out reason, arrayFormula, resultClass, ResolveFutureFunction);
         return result;
+    }
+
+    // A rewritten workbook keeps its BrtName records, so only future functions it already declares can be called.
+    private uint? ResolveFutureFunction(string name) {
+        for (int index = 0; index < _source.DefinedNames.Count; index++) {
+            XlsbDefinedName definedName = _source.DefinedNames[index];
+            if (XlsbFutureFunctions.IsFutureFunctionName(definedName.Flags, definedName.FormulaTokens)
+                && string.Equals(definedName.Name, name, StringComparison.OrdinalIgnoreCase)
+                && _structure.NameIndexes.TryGetValue(checked((uint)index + 1), out uint? mapped)) return mapped;
+        }
+        return null;
     }
 
     public XlsbWriteCell RebindSourceCell(XlsbWriteCell cell) {

@@ -308,7 +308,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             XlsbWorkbookViewWriter.Validate(document.WorkbookRoot.GetFirstChild<BookViews>(), sheets.Count);
             XlsbWorkbookProtectionWriter.Validate(document.WorkbookRoot.GetFirstChild<WorkbookProtection>());
-            XlsbDefinedNameWriter.Validate(document.WorkbookRoot.GetFirstChild<DefinedNames>(), sheets);
+            XlsbDefinedNameWriter.Validate(document, document.WorkbookRoot.GetFirstChild<DefinedNames>(), sheets);
             XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.GetFirstChild<CalculationProperties>());
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();

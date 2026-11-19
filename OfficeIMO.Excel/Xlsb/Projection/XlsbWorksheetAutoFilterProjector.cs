@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.Xlsb.Model;
 
 namespace OfficeIMO.Excel.Xlsb.Projection {
-    /// <summary>Projects and compares the common XLSB worksheet AutoFilter subset.</summary>
+    /// <summary>Projects and compares XLSB worksheet AutoFilters: equality lists, custom, top 10, dynamic and icon criteria.</summary>
     internal static class XlsbWorksheetAutoFilterProjector {
         internal static void Apply(ExcelSheet sheet, XlsbAutoFilter? source) {
             ArgumentNullException.ThrowIfNull(sheet);
@@ -30,11 +30,15 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             foreach (XlsbAutoFilterColumn sourceColumn in source.Columns) {
                 if (sourceColumn.HasUnsupportedContent) continue;
                 var column = new FilterColumn { ColumnId = sourceColumn.ColumnId };
-                var filters = new Filters { Blank = sourceColumn.IncludeBlank };
-                foreach (string value in sourceColumn.Values) {
-                    filters.Append(new Filter { Val = value });
+                if (sourceColumn.Criterion != null) {
+                    column.Append(sourceColumn.Criterion.CloneNode(deep: true));
+                } else {
+                    var filters = new Filters { Blank = sourceColumn.IncludeBlank };
+                    foreach (string value in sourceColumn.Values) {
+                        filters.Append(new Filter { Val = value });
+                    }
+                    column.Append(filters);
                 }
-                column.Append(filters);
                 result.Append(column);
             }
             return result;
