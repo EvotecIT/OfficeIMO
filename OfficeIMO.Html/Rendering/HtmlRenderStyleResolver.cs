@@ -293,7 +293,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             : computed.IsImplicitlyInheritedValue("color") && parent != null
             ? parent.Color
             : ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color");
-        ResolveWhiteSpace(computed, out string whiteSpaceCollapse, out string textWrapMode, out string textWrapStyle);
+        ResolveWhiteSpace(computed, parent, out string whiteSpaceCollapse, out string textWrapMode, out string textWrapStyle);
         bool defaultCentered = (tag == "caption" || (tag == "math" && display == "block"))
             && (string.IsNullOrWhiteSpace(computed.GetValue("text-align")) || computed.IsImplicitlyInheritedValue("text-align"));
         OfficeTextAlignment alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent,
@@ -342,6 +342,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             BaselineScale = 1D,
             BaselineOffset = baselineOffset + keywordShift,
             VerticalAlignShift = keywordShift,
+            VerticalAlignParentFontSize = parent?.Font.Size ?? fontSize,
             LineRelativeAlign = lineRelativeAlign,
             Color = color,
             DecorationColor = propagatedUnderline && !ownsUnderline
@@ -367,6 +368,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             PreserveLineBreaks = whiteSpaceCollapse == "preserve-breaks",
             CollapseSegmentBreaks = whiteSpaceCollapse == "preserve-spaces",
             BreakSpaces = whiteSpaceCollapse == "break-spaces",
+            WhiteSpaceCollapse = whiteSpaceCollapse,
             PreventTextWrapping = textWrapMode == "nowrap",
             TextWrapStyle = textWrapStyle,
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
@@ -434,9 +436,11 @@ internal sealed partial class HtmlRenderStyleResolver {
         ApplyFloat(computed, style);
         ApplyPositioning(physicalComputed, style);
         if (!pseudoElement && parent != null && parent.LegacyBlockAlign.Length > 0 && !display.StartsWith("inline", StringComparison.Ordinal)
+            && IsBlockFlowContainer(parent.Display)
             && style.Position is not ("absolute" or "fixed") && style.FloatSide is "" or "none") {
             // A -webkit-center, -webkit-right or -webkit-left parent (div align) also aligns its child
-            // blocks, as HTML's legacy alignment does. Authored horizontal margins win.
+            // blocks in normal flow, as HTML's legacy alignment does; flex and grid items keep their
+            // own alignment. Authored horizontal margins win.
             bool authoredMargins = HasAuthoredValue(physicalComputed, "margin-left") || HasAuthoredValue(physicalComputed, "margin-right");
             if (!authoredMargins) {
                 if (parent.LegacyBlockAlign is "center" or "right") style.MarginLeftAuto = true;
@@ -1073,8 +1077,11 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     // white-space is a shorthand for white-space-collapse and text-wrap-mode, and text-wrap for
     // text-wrap-mode and text-wrap-style. For each part, the declaration that wins the cascade
-    // among the shorthand and its longhand applies, as if the shorthand had been expanded.
-    private static void ResolveWhiteSpace(HtmlComputedStyle computed, out string collapse, out string wrapMode, out string wrapStyle) {
+    // among the shorthand and its longhands applies, as if the shorthand had been expanded.
+    // Only this element's own declarations compete: a part none of them sets inherits the
+    // parent's resolved longhand, so a parent's losing declaration never reaches its children.
+    private static void ResolveWhiteSpace(HtmlComputedStyle computed, HtmlRenderBoxStyle? parent,
+        out string collapse, out string wrapMode, out string wrapStyle) {
         string whiteSpace = computed.GetValue("white-space").Trim().ToLowerInvariant();
         string? shorthandCollapse = null, shorthandMode = null;
         if (whiteSpace.Length > 0 && HtmlComputedStyleEngine.TryExpandWhiteSpace(whiteSpace, out string expandedCollapse, out string expandedMode)) {
@@ -1087,24 +1094,35 @@ internal sealed partial class HtmlRenderStyleResolver {
             textWrapMode = expandedWrapMode;
             textWrapStyle = expandedWrapStyle;
         }
-        collapse = PickCascadeWinner(computed, "collapse",
+        collapse = PickCascadeWinner(computed, parent?.WhiteSpaceCollapse, "collapse",
             ("white-space", shorthandCollapse), ("white-space-collapse", computed.GetValue("white-space-collapse")));
-        wrapMode = PickCascadeWinner(computed, "wrap",
+        wrapMode = PickCascadeWinner(computed, parent == null ? null : parent.PreventTextWrapping ? "nowrap" : "wrap", "wrap",
             ("white-space", shorthandMode), ("text-wrap", textWrapMode), ("text-wrap-mode", computed.GetValue("text-wrap-mode")));
-        wrapStyle = PickCascadeWinner(computed, "auto",
+        wrapStyle = PickCascadeWinner(computed, parent?.TextWrapStyle, "auto",
             ("text-wrap", textWrapStyle), ("text-wrap-style", computed.GetValue("text-wrap-style")));
     }
 
-    private static string PickCascadeWinner(HtmlComputedStyle computed, string fallback,
+    private static bool IsBlockFlowContainer(string display) =>
+        display is "block" or "flow-root" or "list-item" or "inline-block" or "table-cell" or "table-caption";
+
+    private static string PickCascadeWinner(HtmlComputedStyle computed, string? parentValue, string fallback,
         params (string Property, string? Value)[] candidates) {
         string? winner = null;
         bool winnerInherited = false;
         HtmlCssCascadePriority? winnerPriority = null;
         foreach ((string property, string? value) in candidates) {
             string normalized = value?.Trim().ToLowerInvariant() ?? string.Empty;
+            // initial resets every longhand the declaration sets to its initial value.
+            if (normalized.Length == 0 && computed.IsResetValue(property)) normalized = fallback;
             if (normalized.Length == 0) continue;
-            // A value of this element beats an inherited one; then cascade priority; then the longhand.
             bool inherited = computed.IsImplicitlyInheritedValue(property);
+            // With a parent, an inherited value is the parent's resolved part rather than its raw
+            // declaration, which may have lost to a competing shorthand or longhand there.
+            if (parentValue != null && computed.IsInheritedValue(property)) {
+                if (inherited) continue;
+                normalized = parentValue;
+            }
+            // A value of this element beats an inherited one; then cascade priority; then the longhand.
             HtmlCssCascadePriority? priority = computed.TryGetCascadePriority(property, out HtmlCssCascadePriority found)
                 ? found : null;
             bool wins = winner == null
@@ -1116,7 +1134,7 @@ internal sealed partial class HtmlRenderStyleResolver {
             winnerInherited = inherited;
             winnerPriority = priority;
         }
-        return winner ?? fallback;
+        return winner ?? parentValue ?? fallback;
     }
 
     private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {

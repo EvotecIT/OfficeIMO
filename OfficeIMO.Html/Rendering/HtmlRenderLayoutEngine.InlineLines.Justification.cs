@@ -217,33 +217,63 @@ internal sealed partial class HtmlRenderLayoutEngine {
     /// <summary>
     /// Places the space a justified segment received. A single character, such as a word separator,
     /// is painted across its whole advance so decorations stay continuous; longer text is painted
-    /// one character at a time with its added space.
+    /// one character at a time with its added space. Paint that letter- or word-spacing already
+    /// split keeps its pieces, each moved by the space added before it.
     /// </summary>
     private IReadOnlyList<InlinePaintSegment> ApplyJustificationToPaint(InlineSegment segment,
         IReadOnlyList<InlinePaintSegment> segments) {
         double[]? spacing = segment.ClusterJustification;
         if (spacing == null || segment.JustificationAdvance <= 0D || segments.Count == 0) return segments;
-        if (spacing.Length > 1 && segments.Count == 1 && segments[0].PreparedShaping == null) {
-            IReadOnlyList<string> elements = OfficeTextElements.Split(segments[0].Text);
-            if (elements.Count == spacing.Length) {
-                OfficeFontInfo font = GetEffectiveTextFont(segment.Run.Style);
-                var spaced = new InlinePaintSegment[elements.Count];
-                double cursor = segments[0].X;
-                for (int index = 0; index < elements.Count; index++) {
-                    double glyphWidth = MeasureSpacedPaintText(elements[index], segment.Run.Style, font);
-                    double advance = glyphWidth + spacing[index];
-                    spaced[index] = new InlinePaintSegment(elements[index], cursor, Math.Max(0.01D, advance), advance, index,
-                        segments[0].BidiResolved);
-                    cursor += advance;
-                }
-                return spaced;
-            }
-        }
+        if (spacing.Length > 1 && TrySplitJustifiedPaint(segment, segments, spacing) is { } spaced) return spaced;
         var widened = new InlinePaintSegment[segments.Count];
         for (int index = 0; index < segments.Count; index++) widened[index] = segments[index];
         InlinePaintSegment last = widened[widened.Length - 1];
         widened[widened.Length - 1] = new InlinePaintSegment(last.Text, last.X, last.Width + segment.JustificationAdvance,
             last.Advance + segment.JustificationAdvance, last.LogicalOrder, last.BidiResolved, last.PreparedShaping);
         return widened;
+    }
+
+    // Distributes per-character space over unshaped paint pieces that cover the segment's text in
+    // order. Returns null when the pieces were shaped or reordered.
+    private InlinePaintSegment[]? TrySplitJustifiedPaint(InlineSegment segment,
+        IReadOnlyList<InlinePaintSegment> segments, double[] spacing) {
+        var pieceElements = new IReadOnlyList<string>[segments.Count];
+        int elementCount = 0;
+        for (int index = 0; index < segments.Count; index++) {
+            if (segments[index].PreparedShaping != null) return null;
+            if (index > 0 && segments[index].X < segments[index - 1].X) return null;
+            pieceElements[index] = OfficeTextElements.Split(segments[index].Text);
+            elementCount += pieceElements[index].Count;
+        }
+        if (elementCount != spacing.Length) return null;
+
+        HtmlRenderBoxStyle style = segment.Run.Style;
+        OfficeFontInfo font = GetEffectiveTextFont(style);
+        var spaced = new List<InlinePaintSegment>(elementCount);
+        double shift = 0D;
+        int element = 0;
+        for (int index = 0; index < segments.Count; index++) {
+            InlinePaintSegment piece = segments[index];
+            IReadOnlyList<string> elements = pieceElements[index];
+            if (elements.Count == 1) {
+                double advance = piece.Advance + spacing[element];
+                spaced.Add(new InlinePaintSegment(piece.Text, piece.X + shift, Math.Max(0.01D, advance), advance,
+                    element, piece.BidiResolved));
+                shift += spacing[element++];
+                continue;
+            }
+            // A piece of several characters is painted one character at a time; its letter
+            // spacing is zero, or spacing would already have split it.
+            double cursor = piece.X + shift;
+            for (int part = 0; part < elements.Count; part++) {
+                double glyphWidth = MeasureSpacedPaintText(elements[part], style, font);
+                double advance = glyphWidth + (IsWordSpacingSeparator(elements[part]) ? style.WordSpacing : 0D) + spacing[element];
+                spaced.Add(new InlinePaintSegment(elements[part], cursor, Math.Max(0.01D, advance), advance,
+                    element, piece.BidiResolved));
+                cursor += advance;
+                shift += spacing[element++];
+            }
+        }
+        return spaced.ToArray();
     }
 }

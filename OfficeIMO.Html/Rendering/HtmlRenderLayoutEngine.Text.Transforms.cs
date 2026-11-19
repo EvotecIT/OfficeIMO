@@ -234,7 +234,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? segments.Select(OfficeMathTextTransform.MathAuto).ToArray()
             : OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
         if (fullWidth || fullSizeKana) {
-            transformed = transformed.Select(segment => HtmlTextWidthTransform.Apply(segment, fullWidth, fullSizeKana)).ToArray();
+            // Layout collapses, trims and breaks lines at ASCII spaces after this transform, so a
+            // space becomes an ideographic space only where it does none of that: white space
+            // that is preserved and does not wrap.
+            bool fullWidthSpaces = style.PreserveWhitespace && !style.BreakSpaces && style.PreventTextWrapping;
+            transformed = transformed.Select(segment => HtmlTextWidthTransform.Apply(segment, fullWidth, fullSizeKana, fullWidthSpaces)).ToArray();
         }
         return applySmallCaps && style.ApproximateSmallCaps
             ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)

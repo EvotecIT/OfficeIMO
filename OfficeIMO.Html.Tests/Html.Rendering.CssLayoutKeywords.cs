@@ -41,6 +41,19 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(verticalAlign == "top" ? baseline < 20D : baseline > 30D, "baseline " + baseline);
     }
 
+    // The box aligns against its 40px parent span: x-height 20px, ascent 32px, descent 8px.
+    [Theory]
+    [InlineData("middle", -15D)]
+    [InlineData("text-top", -32D)]
+    [InlineData("text-bottom", -2D)]
+    public void HtmlRenderer_AlignsNestedInlineBlocksAgainstTheirParentFont(string verticalAlign, double topFromBaseline) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='margin:0;font-size:16px'>Ab <span style='font-size:40px'>Xy<span style='display:inline-block;width:20px;height:10px;"
+            + "background:#ff0000;vertical-align:" + verticalAlign + "'></span></span></p>", CssLayoutOptions);
+
+        Assert.Equal(topFromBaseline, VerticalAlignBox(rendered).Y - TextBaseline(rendered, "Ab"), 1);
+    }
+
     [Fact]
     public void HtmlRenderer_ShiftsInlineTextByVerticalAlignKeywords() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
@@ -72,6 +85,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_JustifiesLetterSpacedTextBetweenEveryCharacter() {
+        double[] FirstWord(string align) {
+            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+                "<p style='" + align + "letter-spacing:1px;width:300px;margin:0'>" + JustifiedText + "</p>", CssLayoutOptions);
+            return JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+                .GroupBy(text => Math.Round(text.LayoutY, 1)).OrderBy(group => group.Key).First()
+                .OrderBy(text => text.X).Take(5).Select(text => text.X).ToArray();
+        }
+        double[] start = FirstWord(string.Empty);
+        double[] justified = FirstWord("text-align:justify;text-justify:inter-character;");
+
+        // Each gap inside "Lorem" receives the same share, so the n-th letter moves n shares.
+        double share = justified[1] - start[1];
+        Assert.True(share > 0.01D, "share " + share);
+        for (int index = 2; index < 5; index++) Assert.Equal(index * share, justified[index] - start[index], 2);
+    }
+
+    [Fact]
     public void HtmlRenderer_InterWordJustificationKeepsWordsWhole() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<p style='text-align:justify;text-justify:inter-word;width:200px;margin:0'>漢字の文章は単語の間に空白がないので文字の間で両端揃えにする必要があります。 end</p>",
@@ -81,7 +112,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData("full-width", "ab 12", "ａｂ　１２")]
+    // Spaces keep collapsing and line breaking; preserved white space that does not wrap becomes ideographic.
+    [InlineData("full-width", " ab   12 ", "ａｂ １２")]
+    [InlineData("full-width;white-space:pre", "ab  12", "ａｂ　　１２")]
     [InlineData("uppercase full-width", "ab", "ＡＢ")]
     [InlineData("full-width", "ｶﾞ", "ガ")]
     [InlineData("full-size-kana", "ァィゥッ ｧ", "アイウツ ｱ")]
@@ -127,6 +160,9 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("white-space:normal;text-wrap-mode:nowrap;width:80px", "aaa bbb ccc ddd", new[] { "aaa bbb ccc ddd" })]
     // A later white-space resets both of its longhands.
     [InlineData("text-wrap-mode:nowrap;white-space:normal;width:80px", "aaa bbb ccc ddd", new[] { "aaa bbb", "ccc ddd" })]
+    // Children inherit the resolved longhands, not the declaration that lost.
+    [InlineData("text-wrap-mode:nowrap;white-space:normal;width:80px", "<span>aaa bbb ccc ddd</span>", new[] { "aaa bbb", "ccc ddd" })]
+    [InlineData("white-space-collapse:preserve;white-space:normal", "<span>a   b</span>", new[] { "a b" })]
     public void HtmlRenderer_AppliesWhiteSpaceAndTextWrapLonghands(string declarations, string text, string[] expected) {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<div style='" + declarations + "'>" + text + "</div>", CssLayoutOptions);
@@ -164,6 +200,8 @@ public sealed partial class HtmlRenderingTests {
     // Nested blocks inherit the legacy alignment; authored margins still win.
     [InlineData("<div align='center' style='width:300px'><div><div style='width:50px;background:#ff0000'>b</div></div></div>", 125D)]
     [InlineData("<div align='center' style='width:300px'><div style='width:50px;margin-left:10px;background:#ff0000'>b</div></div>", 10D)]
+    // Flex items keep their own alignment.
+    [InlineData("<div align='center' style='width:300px;display:flex'><div style='width:50px;background:#ff0000'>b</div><div style='width:50px'>c</div></div>", 0D)]
     public void HtmlRenderer_LegacyDivAlignmentAlignsChildBlocks(string html, double expectedX) {
         HtmlRenderShape box = Assert.Single(JustificationVisuals(HtmlRenderTestDriver.Render(html, CssLayoutOptions).Pages[0].Visuals)
             .OfType<HtmlRenderShape>(), shape => shape.Shape.FillColor is OfficeIMO.OfficeColor { R: 0xFF, G: 0, B: 0 });

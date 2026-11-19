@@ -7,14 +7,14 @@ namespace OfficeIMO.Html;
 /// UTF-16 code unit to one code unit, so logical text offsets stay aligned with the painted text.
 /// </summary>
 internal static class HtmlTextWidthTransform {
-    internal static string Apply(string text, bool fullWidth, bool fullSizeKana) {
+    internal static string Apply(string text, bool fullWidth, bool fullSizeKana, bool fullWidthSpaces) {
         if (text.Length == 0 || !fullWidth && !fullSizeKana) return text;
         StringBuilder? builder = null;
         for (int index = 0; index < text.Length; index++) {
             char source = text[index];
             char mapped = source;
             if (fullSizeKana) mapped = ToFullSizeKana(mapped);
-            if (fullWidth) mapped = ToFullWidth(mapped);
+            if (fullWidth && (fullWidthSpaces || mapped != ' ')) mapped = ToFullWidth(mapped);
             if (mapped == source) {
                 builder?.Append(source);
                 continue;

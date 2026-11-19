@@ -209,6 +209,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         PreserveWhitespace = parentStyle.PreserveWhitespace,
         PreserveLineBreaks = parentStyle.PreserveLineBreaks,
         CollapseSegmentBreaks = parentStyle.CollapseSegmentBreaks,
+        WhiteSpaceCollapse = parentStyle.WhiteSpaceCollapse,
         TextWrapStyle = parentStyle.TextWrapStyle,
         TextTransform = parentStyle.TextTransform,
         SemanticRole = semanticRole,

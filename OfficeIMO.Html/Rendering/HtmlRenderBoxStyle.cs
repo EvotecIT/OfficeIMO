@@ -86,6 +86,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool PreserveLineBreaks;
     // white-space-collapse: preserve-spaces keeps spaces and turns segment breaks into spaces.
     internal bool CollapseSegmentBreaks;
+    // The resolved white-space-collapse keyword, which descendants inherit.
+    internal string WhiteSpaceCollapse = "collapse";
     // text-wrap-style: auto, balance, stable or pretty.
     internal string TextWrapStyle = "auto";
     internal bool PreventTextWrapping;
@@ -187,6 +189,8 @@ internal sealed class HtmlRenderBoxStyle {
     // The part of BaselineOffset added by a middle, text-top or text-bottom keyword for text boxes.
     // Atomic inline boxes replace it with a shift computed from their own height.
     internal double VerticalAlignShift { get => _text.VerticalAlignShift; set { if (!(SameValue(_text.VerticalAlignShift, value))) MutableText().VerticalAlignShift = value; } }
+    // The parent's font size, which middle, text-top and text-bottom align an atomic inline box against.
+    internal double VerticalAlignParentFontSize { get => _text.VerticalAlignParentFontSize; set { if (!(SameValue(_text.VerticalAlignParentFontSize, value))) MutableText().VerticalAlignParentFontSize = value; } }
     // top or bottom from the box's own vertical-align or an inline ancestor's; empty otherwise.
     internal string LineRelativeAlign { get => _text.LineRelativeAlign; set { if (!(string.Equals(_text.LineRelativeAlign, value, StringComparison.Ordinal))) MutableText().LineRelativeAlign = value; } }
     internal double BaselineOffset { get => _text.BaselineOffset; set { if (!(SameValue(_text.BaselineOffset, value))) MutableText().BaselineOffset = value; } }
@@ -466,6 +470,7 @@ internal sealed class HtmlRenderBoxStyle {
         internal double BaselineScale = 1D;
         internal double BaselineOffset;
         internal double VerticalAlignShift;
+        internal double VerticalAlignParentFontSize;
         internal string LineRelativeAlign = string.Empty;
         internal HtmlRenderTextIndent? TextIndent;
         internal double CharacterAdvance = double.NaN;

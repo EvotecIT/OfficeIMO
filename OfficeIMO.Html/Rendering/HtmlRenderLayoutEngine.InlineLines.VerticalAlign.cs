@@ -97,7 +97,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height, double atomicBaseline) {
         HtmlRenderBoxStyle style = run.Style;
         double inherited = style.BaselineOffset - style.VerticalAlignShift - paragraphStyle.BaselineOffset;
-        double parentFontSize = paragraphStyle.Font.Size;
+        double parentFontSize = style.VerticalAlignParentFontSize > 0D ? style.VerticalAlignParentFontSize : paragraphStyle.Font.Size;
         return style.TableVerticalAlignment switch {
             "middle" => inherited + atomicBaseline - height / 2D - parentFontSize * 0.25D,
             "text-top" => inherited + atomicBaseline - parentFontSize * 0.8D,
