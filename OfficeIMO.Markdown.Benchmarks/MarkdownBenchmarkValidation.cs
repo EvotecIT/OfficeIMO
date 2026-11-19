@@ -1,4 +1,5 @@
 using Markdig;
+using OfficeIMO.Benchmarks;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Markdown.Benchmarks;
@@ -23,6 +24,28 @@ internal static class MarkdownBenchmarkValidation {
             $"OfficeIMO length: {officeHtml.Length}; Markdig length: {markdigHtml.Length}. " +
             $"OfficeIMO: '{GetDifferenceWindow(officeHtml, difference)}'; " +
             $"Markdig: '{GetDifferenceWindow(markdigHtml, difference)}'.");
+    }
+
+    /// <summary>
+    /// Checks the HTML the measured OfficeIMO and Markdig lanes produce for one corpus: after whitespace normalization
+    /// both must render the same CommonMark HTML. Records the result for both libraries and throws on a mismatch.
+    /// </summary>
+    internal static void ValidateMeasuredLanes(string corpusName, string caseName, string officeHtml, string markdigHtml) {
+        string office = NormalizeHtml(officeHtml);
+        string markdig = NormalizeHtml(markdigHtml);
+        string detail = $"CorpusName={corpusName}; normalized HTML characters OfficeIMO={office.Length}, Markdig={markdig.Length}";
+        if (office.Length > 0 && string.Equals(office, markdig, StringComparison.Ordinal)) {
+            BenchmarkOutputValidationLog.Passed("OfficeIMO", detail + "; identical CommonMark HTML", caseName);
+            BenchmarkOutputValidationLog.Passed("Markdig", detail + "; identical CommonMark HTML", caseName);
+            return;
+        }
+
+        int difference = FindFirstDifference(office, markdig);
+        string message = $"CommonMark output of the measured lanes differs for corpus '{corpusName}' at character {difference}. " +
+            $"OfficeIMO: '{GetDifferenceWindow(office, difference)}'; Markdig: '{GetDifferenceWindow(markdig, difference)}'.";
+        BenchmarkOutputValidationLog.Failed("OfficeIMO", detail + "; " + message, caseName);
+        BenchmarkOutputValidationLog.Failed("Markdig", detail + "; " + message, caseName);
+        throw new InvalidOperationException(message);
     }
 
     internal static string NormalizeHtml(string html) {
