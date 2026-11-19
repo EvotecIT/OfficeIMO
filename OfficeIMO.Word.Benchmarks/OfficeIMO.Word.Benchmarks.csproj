@@ -56,4 +56,5 @@
   <ItemGroup>
     <None Include="..\OfficeIMO.TestAssets\Images\EvotecLogo.png" Link="benchmark-logo.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Import Project="..\Benchmarks\BenchmarkLibraryFilter.props" />
 </Project>

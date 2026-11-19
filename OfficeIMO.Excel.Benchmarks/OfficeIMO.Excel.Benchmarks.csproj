@@ -69,6 +69,7 @@
     <Compile Include="..\Benchmarks\BenchmarkProcessorAffinity.cs" Link="Shared\BenchmarkProcessorAffinity.cs" />
     <Compile Include="..\Benchmarks\BenchmarkLibrarySelection.cs" Link="Shared\BenchmarkLibrarySelection.cs" />
     <Compile Include="..\Benchmarks\BenchmarkLibraryFilter.cs" Link="Shared\BenchmarkLibraryFilter.cs" />
+    <Compile Include="..\Benchmarks\BenchmarkOutputValidationLog.cs" Link="Shared\BenchmarkOutputValidationLog.cs" />
     <Compile Include="..\Benchmarks\BenchmarkProcessPriority.cs" Link="Shared\BenchmarkProcessPriority.cs" />
     <Compile Include="..\Benchmarks\MarkPflug65KFixture.cs" Link="Shared\MarkPflug65KFixture.cs" />
     <Compile Include="..\Benchmarks\SalesMappingFixture.cs" Link="Shared\SalesMappingFixture.cs" />
@@ -84,4 +85,5 @@
     </ItemGroup>
   </Target>
 
+  <Import Project="..\Benchmarks\BenchmarkLibraryFilter.props" />
 </Project>

@@ -1,0 +1,12 @@
+<Project>
+  <!-- Projects that compile Benchmarks/BenchmarkLibraryFilter.cs import this file: the filter reads which libraries
+       are restricted from the library policy embedded here, so the policy has one copy. -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)..\Build\benchmark-libraries.json"
+                      LogicalName="OfficeIMO.Benchmarks.benchmark-libraries.json"
+                      Link="Shared\benchmark-libraries.json" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETFramework'">
+    <Reference Include="System.Runtime.Serialization" />
+  </ItemGroup>
+</Project>
