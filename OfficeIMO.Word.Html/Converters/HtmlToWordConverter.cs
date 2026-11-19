@@ -80,6 +80,7 @@ namespace OfficeIMO.Word.Html {
 
             var wordDoc = WordDocument.Create(new WordCreateOptions { Theme = options.Theme });
             try {
+                PrepareDocumentStyles(wordDoc, options);
                 if (!string.IsNullOrEmpty(options.FontFamily)) {
                     var resolved = ResolveFontFamily(options.FontFamily) ?? options.FontFamily;
                     wordDoc.Settings.FontFamily = resolved;
@@ -113,6 +114,7 @@ namespace OfficeIMO.Word.Html {
 
                 cancellationToken.ThrowIfCancellationRequested();
                 InsertTopBookmarkIfNeeded(wordDoc);
+                ApplyDefaultParagraphStyle(wordDoc, wordDoc.BodyRoot.ChildElements);
                 return wordDoc;
             } catch {
                 wordDoc.Dispose();
@@ -127,6 +129,7 @@ namespace OfficeIMO.Word.Html {
             Body body = doc._wordprocessingDocument?.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("The document body is unavailable.");
             var existingBlocks = new HashSet<OpenXmlElement>(body.ChildElements, OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
+            PrepareDocumentStyles(doc, options);
             ApplyDocumentMetadata(doc, document);
 
             var listStack = new Stack<WordList>();
@@ -141,8 +144,9 @@ namespace OfficeIMO.Word.Html {
                 });
             }
             InsertTopBookmarkIfNeeded(doc);
-            return WordSection.WrapBlockElements(doc,
-                body.ChildElements.Where(block => !existingBlocks.Contains(block)), cancellationToken);
+            List<OpenXmlElement> generatedBlocks = body.ChildElements.Where(block => !existingBlocks.Contains(block)).ToList();
+            ApplyDefaultParagraphStyle(doc, generatedBlocks);
+            return WordSection.WrapBlockElements(doc, generatedBlocks, cancellationToken);
         }
 
         internal async Task<IReadOnlyList<WordElement>> AddHtmlToHeaderAsync(WordDocument doc, WordSection section, WordHeader header, IHtmlDocument document, HtmlWordExportOptions options, CancellationToken cancellationToken = default) {
@@ -158,6 +162,7 @@ namespace OfficeIMO.Word.Html {
             options ??= new HtmlWordExportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
             var existingBlocks = new HashSet<OpenXmlElement>(headerFooter.ChildElements, OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
+            PrepareDocumentStyles(doc, options);
             ApplyDocumentMetadata(doc, document);
 
             var listStack = new Stack<WordList>();
@@ -166,8 +171,9 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
             }
-            return WordSection.WrapBlockElements(doc,
-                headerFooter.ChildElements.Where(block => !existingBlocks.Contains(block)), cancellationToken);
+            List<OpenXmlElement> generatedBlocks = headerFooter.ChildElements.Where(block => !existingBlocks.Contains(block)).ToList();
+            ApplyDefaultParagraphStyle(doc, generatedBlocks);
+            return WordSection.WrapBlockElements(doc, generatedBlocks, cancellationToken);
         }
 
         internal async Task<IReadOnlyList<WordElement>> AddHtmlToTableCellAsync(
@@ -186,6 +192,7 @@ namespace OfficeIMO.Word.Html {
                 ? paragraphs[0]
                 : null;
             WordDocument doc = cell.Document;
+            PrepareDocumentStyles(doc, options);
             ApplyDocumentMetadata(doc, document);
             WordSection section = doc.Sections.First();
             var listStack = new Stack<WordList>();
@@ -210,8 +217,9 @@ namespace OfficeIMO.Word.Html {
                 !IsReplaceableEmptyCellParagraph(placeholder)) {
                 existingBlocks.Remove(placeholder._paragraph);
             }
-            return WordSection.WrapBlockElements(doc,
-                cell._tableCell.ChildElements.Where(block => !existingBlocks.Contains(block)), cancellationToken);
+            List<OpenXmlElement> generatedBlocks = cell._tableCell.ChildElements.Where(block => !existingBlocks.Contains(block)).ToList();
+            ApplyDefaultParagraphStyle(doc, generatedBlocks);
+            return WordSection.WrapBlockElements(doc, generatedBlocks, cancellationToken);
         }
 
         private async Task PrepareImportAsync(

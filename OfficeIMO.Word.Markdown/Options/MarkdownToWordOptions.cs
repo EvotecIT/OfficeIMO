@@ -66,6 +66,41 @@ namespace OfficeIMO.Word.Markdown {
         public string? FontFamily { get; set; }
 
         /// <summary>
+        /// Paragraph style, by identifier or name, for Markdown paragraphs outside lists. With
+        /// <see cref="PreferDocumentStyles"/>, paragraphs in a block quote use the document's quote style instead when it has one.
+        /// </summary>
+        /// <remarks>
+        /// The style must be a paragraph style the target document or template defines, or an OfficeIMO built-in
+        /// paragraph style, which is added to the document when used. Otherwise conversion throws
+        /// <see cref="InvalidOperationException"/> before the document is changed.
+        /// </remarks>
+        public string? DefaultParagraphStyleId { get; set; }
+
+        /// <summary>
+        /// Prefers the target document's own styles: block quotes use the document's quote style, which replaces the
+        /// direct indent of the first quote level, when the document defines one.
+        /// </summary>
+        /// <remarks>
+        /// Built-in heading and quote styles always resolve through their built-in names, so a localized template's
+        /// <c>Titre1</c> or <c>Citation</c> is reused instead of adding an English duplicate.
+        /// </remarks>
+        public bool PreferDocumentStyles { get; set; }
+
+        internal string? ResolvedDefaultParagraphStyleId { get; private set; }
+        internal string? ResolvedQuoteStyleId { get; private set; }
+
+        /// <summary>Resolves the document styles these options name, before the conversion changes the document.</summary>
+        internal void ResolveDocumentStyles(WordDocument document) {
+            ResolvedDefaultParagraphStyleId = null;
+            ResolvedQuoteStyleId = PreferDocumentStyles ? document.FindBuiltInStyleId("Quote") : null;
+            if (string.IsNullOrWhiteSpace(DefaultParagraphStyleId)) return;
+            ResolvedDefaultParagraphStyleId = document.Styles.ResolveParagraphStyleForContent(DefaultParagraphStyleId!.Trim())
+                ?? throw new InvalidOperationException(
+                    $"The default paragraph style '{DefaultParagraphStyleId}' is not a paragraph style of the target document " +
+                    "or an OfficeIMO built-in paragraph style. Add the style to the template or change DefaultParagraphStyleId.");
+        }
+
+        /// <summary>
         /// Optional base URI applied when resolving relative links and images in Markdown.
         /// </summary>
         public string? BaseUri { get; set; }

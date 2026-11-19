@@ -81,7 +81,13 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment, MarkdownWordExportOptions options) {
             if (quoteDepth > 0) {
-                paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * quoteDepth / 20D);
+                // The document's quote style owns the first level's indent; deeper levels still step in.
+                bool quoteStyled = options.ResolvedQuoteStyleId != null &&
+                    string.Equals(paragraph.StyleId, options.ResolvedQuoteStyleId, StringComparison.Ordinal);
+                int indentLevels = quoteStyled ? quoteDepth - 1 : quoteDepth;
+                if (indentLevels > 0) {
+                    paragraph.IndentationBefore = OfficeLength.Points(IndentTwipsPerLevel * indentLevels / 20D);
+                }
                 if (ResolveTheme(options) is { } theme) {
                     paragraph.Borders.LeftStyle = WordBorderStyle.Single;
                     paragraph.Borders.LeftColorValue = theme.PaletteSnapshot.Border.ToRgbHex();
@@ -91,6 +97,15 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             ApplyAlignment(alignment, paragraph);
+        }
+
+        /// <summary>Gives a body paragraph outside lists the document's quote style or the default paragraph style.</summary>
+        private static void ApplyBodyParagraphStyle(WordParagraph paragraph, int listLevel, int quoteDepth, MarkdownWordExportOptions options) {
+            if (listLevel > 0 || paragraph.StyleId != null) return;
+            string? styleId = quoteDepth > 0 && options.ResolvedQuoteStyleId != null
+                ? options.ResolvedQuoteStyleId
+                : options.ResolvedDefaultParagraphStyleId;
+            if (styleId != null) paragraph.SetStyleId(styleId);
         }
 
         private static Omd.MarkdownVisualTheme? ResolveTheme(MarkdownWordExportOptions options) {

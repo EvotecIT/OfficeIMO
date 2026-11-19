@@ -64,7 +64,8 @@ public partial class WordDocument {
             if (WordThemeDefaults.TryHeadingLevel(styleId, out int level)) return (ThemeTextRole)level;
         }
         foreach (Style style in chain) {
-            string? id = style.StyleId?.Value;
+            // Built-in styles are classified by name, so localized identifiers such as Titre1 keep their role.
+            string? id = WordBuiltInStyleNames.GetBuiltInId(style) ?? style.StyleId?.Value;
             if (id == "Title") return ThemeTextRole.Title;
             if (id == "Subtitle") return ThemeTextRole.Subtitle;
             if (id == "OfficeIMOCodeBlock") return ThemeTextRole.Code;

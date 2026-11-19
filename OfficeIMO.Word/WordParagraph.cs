@@ -237,14 +237,20 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the paragraph style. Updating this to a heading style will flag the document to update the table of contents on open.
         /// </summary>
+        /// <remarks>
+        /// Built-in styles are matched by their built-in name, so a localized template's <c>Titre1</c> reads as
+        /// <see cref="WordParagraphStyles.Heading1"/>, and setting a built-in style reuses that definition instead of
+        /// adding an English one.
+        /// </remarks>
         public WordParagraphStyles? Style {
             get {
-                var styleId = _paragraphProperties?.ParagraphStyleId?.Val;
-                return styleId != null ? WordParagraphStyle.GetStyle(styleId.Value!) : null;
+                string? styleId = _paragraphProperties?.ParagraphStyleId?.Val?.Value;
+                if (styleId == null) return null;
+                return WordParagraphStyle.GetStyle(_document?.GetBuiltInStyleId(styleId) ?? styleId);
             }
             set {
                 if (value != null) {
-                    _document?.EnsureStyleDefinition(value.Value.ToStringStyle());
+                    string styleId = _document?.UseBuiltInStyle(value.Value.ToStringStyle()) ?? value.Value.ToStringStyle();
                     if (_paragraphProperties == null) {
                         _paragraph.ParagraphProperties = new ParagraphProperties();
                     }
@@ -253,7 +259,7 @@ namespace OfficeIMO.Word {
                         if (paragraphProperties.ParagraphStyleId == null) {
                             paragraphProperties.ParagraphStyleId = new ParagraphStyleId();
                         }
-                        paragraphProperties.ParagraphStyleId.Val = value.Value.ToStringStyle();
+                        paragraphProperties.ParagraphStyleId.Val = styleId;
                         if (value.Value >= WordParagraphStyles.Heading1 && value.Value <= WordParagraphStyles.Heading9) {
                             _document?.HeadingModified();
                         }

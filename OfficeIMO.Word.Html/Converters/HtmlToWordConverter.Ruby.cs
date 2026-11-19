@@ -272,7 +272,7 @@ namespace OfficeIMO.Word.Html {
             if (formatting.LetterSpacing.HasValue) properties.AppendChild(new Spacing { Val = formatting.LetterSpacing.Value });
             if (!string.IsNullOrWhiteSpace(formatting.Language)) properties.AppendChild(new Languages { Val = formatting.Language! });
 
-            var font = ResolveFontFamily(formatting.FontFamily) ?? ResolveFontFamily(options.FontFamily);
+            var font = ResolveFontFamily(formatting.FontFamily) ?? ResolveFontFamily(GetRunFontFamilyOption(options));
             if (!string.IsNullOrEmpty(font)) {
                 properties.AppendChild(new RunFonts { Ascii = font, HighAnsi = font, EastAsia = font, ComplexScript = font });
             }

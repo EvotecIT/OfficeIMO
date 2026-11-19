@@ -13,8 +13,8 @@ namespace OfficeIMO.Word.Html {
                 return string.Empty;
             }
 
-            string? bodyFont = ResolveStyleFont(document, "Normal");
-            string? headingFont = ResolveStyleFont(document, "Heading1") ?? bodyFont;
+            string? bodyFont = ResolveStyleFont(document, document.ResolveBuiltInStyleId("Normal"));
+            string? headingFont = ResolveStyleFont(document, document.ResolveBuiltInStyleId("Heading1")) ?? bodyFont;
             var css = new StringBuilder();
             // The document shells style text through these custom properties with more specific
             // selectors, so override the properties as well as the plain element rules.
@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Html {
 
         private static string? GetFirstHeadingText(WordDocument document) {
             foreach (WordParagraph paragraph in document.Paragraphs.Take(200)) {
-                if (string.Equals(paragraph.StyleId, "Title", StringComparison.Ordinal) ||
+                if (string.Equals(paragraph.BuiltInStyleId, "Title", StringComparison.Ordinal) ||
                     (paragraph.Style.HasValue && WordHeadingStyleMapper.GetLevelForHeadingStyle(paragraph.Style.Value) == 1)) {
                     string text = paragraph.Text.Trim();
                     if (text.Length > 0) {

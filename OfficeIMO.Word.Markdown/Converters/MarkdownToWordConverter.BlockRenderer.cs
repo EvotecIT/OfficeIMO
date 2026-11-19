@@ -102,6 +102,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
                 var paragraph = _host.CreateParagraph();
+                ApplyBodyParagraphStyle(paragraph, _listLevel, _quoteDepth, _options);
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment, _options);
                 ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
             }
@@ -270,12 +271,12 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 var headingParagraph = _host.CreateParagraph();
-                var headingStyle = WordHeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
+                int headingLevel = NormalizeTocTitleLevel(block.TitleLevel);
                 bool nativeTheme = ResolveTheme(_options)?.SourceTheme != null;
-                if (nativeTheme) headingParagraph.Style = headingStyle;
+                if (nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(headingLevel);
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment, _options);
                 AddContextText(headingParagraph, block.Title.Trim(), _options);
-                if (!nativeTheme) headingParagraph.Style = headingStyle;
+                if (!nativeTheme) headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(headingLevel);
                 ApplyHeadingTheme(headingParagraph, _options);
             }
 

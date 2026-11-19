@@ -40,8 +40,13 @@ namespace OfficeIMO.Word {
             var existing = new HashSet<string>(
                 styles.Elements<Style>().Select(style => style.StyleId?.Value).Where(id => id != null).Cast<string>(),
                 StringComparer.Ordinal);
+            // A localized template defines these styles under translated identifiers and the built-in names.
+            var existingNames = new HashSet<string>(
+                styles.Elements<Style>().Select(style => style.StyleName?.Val?.Value?.Trim()).Where(name => name != null).Cast<string>(),
+                StringComparer.OrdinalIgnoreCase);
             bool changed = false;
             foreach (Style style in Create(ResolveRightTabTwips(part))) {
+                if (style.StyleName?.Val?.Value is { } name && existingNames.Contains(name.Trim())) continue;
                 if (existing.Add(style.StyleId!.Value!)) {
                     styles.Append(style);
                     changed = true;

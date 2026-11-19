@@ -50,7 +50,7 @@ namespace OfficeIMO.Word.Markdown {
             if (body == null) return map;
             foreach (var paragraph in body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
                 string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-                if (styleId == null || !styleId.StartsWith("Heading", StringComparison.Ordinal)) continue;
+                if (document.GetHeadingLevel(styleId) == 0) continue;
                 string text = string.Concat(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Select(item => item.Text)).Trim();
                 if (text.Length == 0) continue;
                 string slug = MarkdownSlug.Generate(text, MarkdownHeadingIdentifierStyle.OfficeIMO, registry);

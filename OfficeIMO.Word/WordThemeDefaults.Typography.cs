@@ -34,7 +34,8 @@ internal static partial class WordThemeDefaults {
     /// <summary>Updates existing role definitions without changing style identity, inheritance, or default flags.</summary>
     internal static void ApplyCreationTypography(Styles styles, OfficeTheme theme) {
         foreach (Style existing in styles.Elements<Style>()) {
-            string? id = existing.StyleId?.Value;
+            // Built-in styles are recognized by name, so a localized template's Titre1 is themed as heading 1.
+            string? id = existing.Type?.Value == StyleValues.Paragraph ? WordBuiltInStyleNames.GetBuiltInId(existing) ?? existing.StyleId?.Value : existing.StyleId?.Value;
             Style? appearance = null;
             if (id == "Normal" || existing.Type?.Value == StyleValues.Paragraph && existing.Default?.Value == true)
                 appearance = CreateBody(theme);

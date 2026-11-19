@@ -61,6 +61,7 @@ public sealed class WordStyle {
             if (existing != null && !ReferenceEquals(existing.Element, Element))
                 throw new ArgumentException($"The document already has a style named '{value}'.", nameof(value));
             Element.StyleName = new StyleName { Val = value };
+            _document.InvalidateBuiltInStyleIndex();
         }
     }
 

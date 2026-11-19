@@ -274,8 +274,9 @@ namespace OfficeIMO.Word.Html {
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
-                            ApplyClassStyle(element, paragraph, options);
-                            paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionTerm);
+                            if (!ApplyClassStyle(element, paragraph, options)) {
+                                paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionTerm);
+                            }
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
@@ -294,12 +295,16 @@ namespace OfficeIMO.Word.Html {
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
-                            ApplyClassStyle(element, paragraph, options);
-                            paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionDescription);
+                            bool classStyled = ApplyClassStyle(element, paragraph, options);
+                            if (!classStyled) {
+                                paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionDescription);
+                            }
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
+                            // The semantic style id usually has no definition, so the indent shows the description.
+                            // A class style, or a document definition of the semantic style, owns its own layout.
                             var currentIndent = checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0;
-                            if (currentIndent < 720) {
+                            if (!classStyled && !doc.StyleExists(HtmlSemanticStyleIds.DefinitionDescription) && currentIndent < 720) {
                                 paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
                             }
                             foreach (var child in element.ChildNodes) {
@@ -324,17 +329,29 @@ namespace OfficeIMO.Word.Html {
                                 firstPara = AddParagraphInScope(section, cell, headerFooter);
                             }
                             List<WordParagraph> generatedBlockquoteParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeMark);
+                            string? quoteStyleId = doc.FindBuiltInStyleId("Quote");
                             foreach (var para in generatedBlockquoteParagraphs) {
-                                if (doc.StyleExists("Quote")) {
-                                    para.SetStyleId("Quote");
+                                bool styled = options.PreferDocumentStyles && para.StyleId != null;
+                                if (!styled && quoteStyleId != null) {
+                                    para.SetStyleId(quoteStyleId);
+                                    styled = true;
                                 }
-                                para.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                                // A quote or class style owns the indent; otherwise a direct indent marks the
+                                // quotation, which the block quote's CSS margins replace.
+                                if (!styled) {
+                                    para.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                                }
                                 HtmlSemanticMetadata.MarkBlockquote(para);
                                 ApplyParagraphStyleFromCss(
                                     para,
                                     element,
                                     applyVerticalBoxSpacing: false);
-                                ApplyClassStyle(element, para, options);
+                                if (ApplyClassStyle(element, para, options) && !styled && para.IndentationBefore?.ToTwips() == 720) {
+                                    para.IndentationBefore = null;
+                                    if (para._paragraph.ParagraphProperties?.Indentation is { HasAttributes: false } emptyIndentation) {
+                                        emptyIndentation.Remove();
+                                    }
+                                }
                                 ApplyBidiIfPresent(element, para);
                                 if (para == firstPara) {
                                     AddBookmarkIfPresent(element, para);
@@ -781,8 +798,8 @@ namespace OfficeIMO.Word.Html {
                                     linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
                                 }
 
-                                if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    linkParaAnchor.SetFontFamily(options.FontFamily!);
+                                if (GetRunFontFamilyOption(options) is { } anchorFont) {
+                                    linkParaAnchor.SetFontFamily(anchorFont);
                                 }
                                 var linkAnchor = linkParaAnchor.Hyperlink;
                                 if (linkAnchor != null) {
@@ -829,8 +846,8 @@ namespace OfficeIMO.Word.Html {
                                     linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
                                 }
 
-                                if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    linkPara.SetFontFamily(options.FontFamily!);
+                                if (GetRunFontFamilyOption(options) is { } linkFont) {
+                                    linkPara.SetFontFamily(linkFont);
                                 }
                                 var link = linkPara.Hyperlink;
                                 if (link != null) {
