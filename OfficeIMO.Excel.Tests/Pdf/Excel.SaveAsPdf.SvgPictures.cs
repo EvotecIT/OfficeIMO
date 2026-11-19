@@ -71,6 +71,21 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_SvgPictureWithRelativeLinkReportsTheOmittedLink() {
+        byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'>" +
+            "<rect width='40' height='20' fill='#ff0000'/></svg>");
+        using var document = ExcelDocument.Create();
+        ExcelImage image = document.AddSheet("Data").AddImage(2, 2, svg, new ExcelImageOptions { ContentType = "image/svg+xml",
+            Width = global::OfficeIMO.OfficeLength.Points(80), Height = global::OfficeIMO.OfficeLength.Points(40) });
+        image.HyperlinkUri = new Uri("../orders/42.html", UriKind.Relative);
+
+        byte[] pdf = document.ToPdf(null, out OfficeConversionReport report).ToBytes();
+
+        Assert.Empty(PdfCore.PdfDocumentReadResult.Load(pdf).Links);
+        Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == "worksheet-image" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void SaveAsPdf_SvgPictureThatCannotBeDrawnExportsItsRasterFallbackAndReportsIt() {
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'>" +
             "<rect width='40' height='20' fill='#ff0000'/></svg>");

@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static string? GetNativeTableCellImageLink(WordImage image) {
+        private static string? GetNativeImageLink(WordImage image) {
             Uri? uri = image.Hyperlink;
             if (uri == null && image._Image?.Descendants<A.HyperlinkOnClick>().FirstOrDefault()?.Id?.Value is { } relationshipId) {
                 WordParagraph paragraph = image.Paragraph;

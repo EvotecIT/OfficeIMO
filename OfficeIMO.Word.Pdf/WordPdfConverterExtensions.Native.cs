@@ -81,7 +81,7 @@ namespace OfficeIMO.Word.Pdf {
             void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null);
             void Canvas(Action<PdfCore.PdfPageCanvas> build);
             void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style);
-            void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null);
+            void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null);
         }
 
         private sealed class NativePdfDocumentFlow : INativePdfFlow {
@@ -125,7 +125,7 @@ namespace OfficeIMO.Word.Pdf {
             public void Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeAlignment? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Drawing(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Canvas(Action<PdfCore.PdfPageCanvas> build) => _pdf.Canvas(build);
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style) => _pdf.Table(rows, align, style);
-            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null) => _pdf.Image(bytes, width, height, align, style: style ?? CreateNativeImageStyle());
+            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Image(bytes, width, height, align, style: style ?? CreateNativeImageStyle(), linkUri: linkUri, linkContents: linkContents);
         }
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
@@ -179,7 +179,7 @@ namespace OfficeIMO.Word.Pdf {
                 else _page.Canvas(build);
             }
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, global::OfficeIMO.OfficeAlignment align, PdfCore.PdfTableStyle? style) => _column.AddTable(rows, align, style);
-            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null) => _column.AddImage(bytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), align, style: style ?? CreateNativeImageStyle());
+            public void Image(byte[] bytes, double width, double height, global::OfficeIMO.OfficeAlignment? align = null, PdfCore.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.AddImage(bytes, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), align, style: style ?? CreateNativeImageStyle(), linkUri: linkUri, linkContents: linkContents);
         }
 
         /// <summary>Preserves text layout inside decorations while the surrounding panel owns paragraph spacing.</summary>

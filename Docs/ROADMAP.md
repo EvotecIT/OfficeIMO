@@ -153,6 +153,7 @@ Printing lives in `OfficeIMO.Workflows/Printing`, outside the PDF engine. It ren
 - [ ] Preserve named link destinations targeting table headers inside clipped, transformed containers during PDF export.
 - [ ] Project imported Word bookmark destinations inside table cells, text boxes and running stories. Keep the [visible-link fallback and omission diagnostics](../OfficeIMO.Word.Pdf/README.md#what-it-exports) until each source position has a qualified PDF destination.
 - [ ] Preserve rich text-box paragraphs and anchored placement inside Word table cells, including nested tables and running stories. Qualify inner paragraph formatting, boundaries, shape geometry, wrapping and pagination beyond the [diagnosed flattened-cell profile](../OfficeIMO.Word.Pdf/README.md#what-it-exports).
+- [ ] Carry click hyperlinks on floating Word pictures placed at their anchors, behind or in front of text, into PDF links over their transformed frame. Inline pictures and pictures placed in document flow already keep them.
 
 
 - [ ] Qualify picture-wrapping profiles beyond the [rectangular body/header/footer contract](../OfficeIMO.Word.Pdf/README.md#word-to-pdf-layout), including other Square sides, inferred or child distances, tight/through contours, wrapped pictures in tables/text boxes/notes, rotated/grouped/effect-expanded pictures, column-dependent anchors and broader object interactions. Continue qualifying Word line/paragraph-spacing differences against pinned Microsoft Word exports, including automatic line height for mixed Latin and East Asian fonts.

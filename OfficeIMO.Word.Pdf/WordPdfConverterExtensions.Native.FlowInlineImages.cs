@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (!allowFrameOverflow)
                     return TryCreateNativeCellInlineImage(image, out inline, options, cancellationToken: cancellationToken,
                         reportPreparationWarnings: false, clipToParagraphFragment: clipToParagraphFragment,
-                        linkUri: GetNativeTableCellImageLink(image));
+                        linkUri: GetNativeImageLink(image));
                 inline = null;
                 // The ordinary paragraph renderer owns unavailable-image diagnostics.
                 // A successful probe still maps crop diagnostics through options.
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfImageStyle style = CreateNativeImageStyle(image, options, "inline image");
                 style.ScaleDownToFit = false;
                 inline = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, global::OfficeIMO.OfficeLength.Points(0D),
-                    linkUri: GetNativeTableCellImageLink(image)) {
+                    linkUri: GetNativeImageLink(image)) {
                     AllowFrameOverflow = true
                 });
                 return true;

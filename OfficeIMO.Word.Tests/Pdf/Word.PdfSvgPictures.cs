@@ -81,6 +81,24 @@ public sealed class WordPdfSvgPictureTests {
     }
 
     [Fact]
+    public void LinkedSvgPictureFlowedFromAnUnsupportedWrapKeepsItsLink() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph();
+        paragraph.AddImage(new MemoryStream(Encoding.UTF8.GetBytes(Logo)), "logo.svg", OfficeLength.Points(80), OfficeLength.Points(40));
+        // Tight wrapping is outside the fixed-placement profile, so the picture is placed in document flow.
+        paragraph.Image!.WrapText = WordImageTextWrapping.Tight;
+        paragraph.Image.Hyperlink = new Uri("https://example.com/flowed");
+
+        byte[] pdf = document.ToPdf(null, out OfficeConversionReport report).ToBytes();
+
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "native-anchored-image-wrap-approximated");
+        Assert.Empty(PdfDocument.Load(pdf).Reader.Images());
+        PdfLinkAnnotation link = Assert.Single(PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.com/flowed")).SourceLink;
+        Assert.InRange(link.Width, 79D, 81D);
+        Assert.InRange(link.Height, 39D, 41D);
+    }
+
+    [Fact]
     public void SvgPictureThatCannotBeDrawnExportsItsRasterFallbackAndReportsIt() {
         using var stream = new MemoryStream();
         using (WordDocument document = WordDocument.Create(stream)) {

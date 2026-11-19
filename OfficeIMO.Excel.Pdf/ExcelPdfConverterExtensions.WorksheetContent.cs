@@ -114,10 +114,24 @@ namespace OfficeIMO.Excel.Pdf {
                     image.FlipVertical,
                     alternativeText,
                     ReadWorksheetImageCrop(image, options, sheetName),
-                    image.HyperlinkUri is { IsAbsoluteUri: true } link ? link.AbsoluteUri : null));
+                    ReadWorksheetImageLink(image, options, sheetName)));
             }
 
             return images;
+        }
+
+        // Like the Word and PowerPoint converters, pictures carry absolute link targets; a relative one is reported and omitted.
+        private static string? ReadWorksheetImageLink(ExcelImage image, ExcelPdfExportOptions options, string sheetName) {
+            Uri? link = image.HyperlinkUri;
+            if (link == null) return null;
+            if (link.IsAbsoluteUri) return link.AbsoluteUri;
+            AddWarning(
+                options,
+                sheetName,
+                "worksheet-image",
+                $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} has a relative hyperlink target, so its PDF link was omitted.",
+                OfficeConversionLossKind.Omission);
+            return null;
         }
 
         // DrawingML crop ratios are fractions of the source; outsets or a collapsed rectangle fit the whole image instead.
