@@ -38,7 +38,7 @@
       "formatId":"Excel.Xlsb",
       "family":"Excel",
       "category":"Cells",
-      "description":"Numeric, text, Boolean, error, blank, date, shared-string, and cached formula values.",
+      "description":"Numeric, text, rich text, Boolean, error, blank, date, shared-string, and cached formula values.",
       "representability":"Native",
       "legacyImport":"Native",
       "newLegacyWrite":"Native",
@@ -61,7 +61,7 @@
       "modernToLegacy":"Approximated",
       "legacyToModern":"Native",
       "affectedFidelity":"Editability, Carrier",
-      "note":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder."
+      "note":"Supported scalar, shared and fixed-array formulas can be edited, with native cached-result and calculation policies. Unchanged unsupported payloads remain native; new expressions use the bounded token encoder, including other-sheet, multi-sheet, and defined-name references."
     },
     {
       "id":"Excel.Xlsb.Formatting.Styles",
@@ -76,7 +76,7 @@
       "modernToLegacy":"Approximated",
       "legacyToModern":"Native",
       "affectedFidelity":"Editability, Carrier",
-      "note":"A useful style subset projects and can be generated. Complex gradients, extensions, differential styles, and custom style families remain guarded."
+      "note":"A useful style subset projects and can be generated, including built-in and custom named cell styles. Complex gradients, extensions, differential styles, and table styles remain guarded."
     },
     {
       "id":"Excel.Xlsb.Structure.Geometry",

@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.Model;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
@@ -459,6 +460,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return checked((int)zeroBasedColumn + 1);
         }
 
+        // BrtCellRString (MS-XLSB 2.4.328): Cell, then a RichStr with fRichStr set, the text and its StrRun array.
+        private static void WriteRichTextCell(Stream output, XlsbWriteCell cell, string text, XlsbTextRun[] runs) {
+            WriteSimpleCellHeader(output, BrtCellRString, checked(17 + text.Length * 2 + runs.Length * 4), cell);
+            output.WriteByte(0x01);
+            WriteWideString(output, text);
+            WriteUInt32(output, checked((uint)runs.Length));
+            foreach (XlsbTextRun run in runs) {
+                WriteUInt16(output, run.Start);
+                WriteUInt16(output, run.Font);
+            }
+        }
+
         private static void WriteCell(Stream output, XlsbWriteCell cell, XlsbSharedStringTable? sharedStrings = null) {
             if (cell.SourceRecordType.HasValue && cell.SourceRecordData != null) {
                 XlsbRecordWriter.Write(output, cell.SourceRecordType.Value, cell.SourceRecordData);
@@ -488,6 +501,10 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     return;
                 case XlsbWriteCellKind.Text:
                     string text = (string?)cell.Value ?? string.Empty;
+                    if (cell.TextRuns != null) {
+                        WriteRichTextCell(output, cell, text, cell.TextRuns);
+                        return;
+                    }
                     if (sharedStrings != null) {
                         WriteSimpleCellHeader(output, BrtCellIsst, payloadLength: 12, cell);
                         WriteUInt32(output, checked((uint)sharedStrings.GetOrAdd(text)));
@@ -571,6 +588,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             buffer[offset + 1] = (byte)(value >> 8);
             buffer[offset + 2] = (byte)(value >> 16);
             buffer[offset + 3] = (byte)(value >> 24);
+        }
+
+        private static void WriteUInt16(Stream stream, ushort value) {
+            stream.WriteByte((byte)value);
+            stream.WriteByte((byte)(value >> 8));
         }
 
         private static void WriteUInt32(Stream stream, uint value) {

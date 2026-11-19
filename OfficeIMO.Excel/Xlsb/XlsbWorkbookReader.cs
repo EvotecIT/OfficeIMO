@@ -32,7 +32,11 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtEndSheetData = 146;
         private const int BrtWsProp = 147;
         private const int BrtWsDim = 148;
+        private const int BrtBeginWsViews = 133;
+        private const int BrtEndWsViews = 134;
         private const int BrtBeginWsView = 137;
+        private const int BrtEndWsView = 138;
+        private const int BrtSel = 152;
         private const int BrtPane = 151;
         private const int BrtWbProp = 153;
         private const int BrtBeginBundleShs = 143;
@@ -468,10 +472,12 @@ namespace OfficeIMO.Excel.Xlsb {
                                 $"The XLSB shared-string table exceeds the configured aggregate limit of {options.MaxSharedStringCharacters} characters.");
                         }
                         totalSharedStringCharacters += value.Length;
-                        values.Add(value);
-                        if ((flags & 0x03) != 0 || cursor.Remaining > 0) {
+                        if (!XlsbTextRun.TryReadRuns(cursor, flags, value.Length, out XlsbTextRun[]? runs)) {
                             PreserveRecord(options, workbook, partName, record);
+                        } else if (runs != null) {
+                            workbook.SharedStringRuns[values.Count] = runs;
                         }
+                        values.Add(value);
                         break;
                     case BrtEndSst:
                         hasEnd = true;
@@ -512,6 +518,7 @@ namespace OfficeIMO.Excel.Xlsb {
             int previousRow = -1;
             int previousCellColumn = -1;
             int previousColumnEnd = -1;
+            XlsbSheetView? primaryView = null;
             bool inSheetData = false;
             bool inColumnInfos = false;
             bool inMergeCells = false;
@@ -573,10 +580,21 @@ namespace OfficeIMO.Excel.Xlsb {
                         if (!worksheet.ShowGridLines.HasValue) {
                             worksheet.ShowGridLines = XlsbWorksheetViewReader.ReadGridlines(record);
                         }
-                        // fSelected is bit 6 of the first flags byte; iWbkView follows 22 bytes of view settings.
-                        if (!worksheet.TabSelected.HasValue && record.Data.Length >= 26 && BitConverter.ToUInt32(record.Data, 22) == 0U) {
+                        primaryView = worksheet.View == null ? XlsbWorksheetViewReader.ReadPrimaryView(record) : null;
+                        if (primaryView != null) worksheet.View = primaryView;
+                        // fSelected is bit 6 of the first flags byte; iWbkView follows 26 bytes of view settings.
+                        if (!worksheet.TabSelected.HasValue && record.Data.Length >= 30 && BitConverter.ToUInt32(record.Data, 26) == 0U) {
                             worksheet.TabSelected = (record.Data[0] & 0x40) != 0;
                         }
+                        break;
+                    case BrtEndWsView:
+                        primaryView = null;
+                        break;
+                    case BrtBeginWsViews:
+                    case BrtEndWsViews:
+                        break;
+                    case BrtSel when primaryView != null && XlsbWorksheetViewReader.TryReadSelection(record, out XlsbSelection? selection):
+                        primaryView.AddSelection(selection!);
                         break;
                     case BrtPane:
                         if (worksheet.Pane != null) {

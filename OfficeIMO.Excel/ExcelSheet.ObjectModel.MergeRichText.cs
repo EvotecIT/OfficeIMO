@@ -195,6 +195,18 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        /// <summary>Installs imported rich text runs on a cell, keeping its style and other cell metadata.</summary>
+        internal void SetImportedRichText(int row, int column, InlineString inline) {
+            ArgumentNullException.ThrowIfNull(inline);
+            WriteLock(() => {
+                var cell = GetCell(row, column);
+                cell.CellFormula = null;
+                cell.CellValue = null;
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
+                cell.InlineString = inline;
+            });
+        }
+
         /// <summary>
         /// Reads rich text runs from an inline-string or shared-string cell.
         /// </summary>

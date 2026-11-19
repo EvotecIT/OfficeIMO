@@ -60,12 +60,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         throw new InvalidDataException($"The XLSB cell at row {row}, column {column} refers to missing shared string {sharedStringIndex}.");
                     }
                     cell = new XlsbCell(row, column, XlsbCellValueKind.Text, sharedStrings[checked((int)sharedStringIndex)], styleIndex);
+                    if (workbook.SharedStringRuns.TryGetValue(checked((int)sharedStringIndex), out XlsbTextRun[]? sharedRuns)) cell.TextRuns = sharedRuns;
                     break;
                 case BrtCellRString:
                     byte flags = cursor.ReadByte();
                     string richText = cursor.ReadWideString(options.MaxStringCharacters);
-                    if ((flags & 0x03) != 0 || cursor.Remaining > 0) PreserveRecord(options, workbook, partName, record);
-                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, richText, styleIndex);
+                    bool readRuns = XlsbTextRun.TryReadRuns(cursor, flags, richText.Length, out XlsbTextRun[]? cellRuns);
+                    if (!readRuns) PreserveRecord(options, workbook, partName, record);
+                    cell = new XlsbCell(row, column, XlsbCellValueKind.Text, richText, styleIndex) { TextRuns = cellRuns };
                     break;
                 case BrtFmlaNum:
                     cell = ReadFormula(record, cursor, row, column, styleIndex, XlsbCellValueKind.Number, cursor.ReadDouble(), options, workbook, partName, sheetIndex);

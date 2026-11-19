@@ -180,7 +180,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             SheetView view = sheetViews[0];
             OpenXmlAttribute? unsupportedView = XlsbOpenXmlAttributeValidator.FindUnsupported(
-                view, new[] { "workbookViewId", "showGridLines", "tabSelected" }, IsDefaultSheetViewAttribute);
+                view, SheetViewAttributes);
             if (unsupportedView.HasValue) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support attribute '{unsupportedView.Value.LocalName}' with value '{unsupportedView.Value.Value}' on worksheet element 'sheetView' in worksheet '{sheetName}'.");
             }
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             records.Add(new XlsbGeneratedRecord(BrtBeginWsViews, Array.Empty<byte>()));
-            records.Add(new XlsbGeneratedRecord(BrtBeginWsView, CreateSheetViewPayload(view)));
+            records.Add(new XlsbGeneratedRecord(BrtBeginWsView, CreateSheetViewPayload(view, sheetName)));
 
             Pane? pane = panes.FirstOrDefault();
             if (pane != null) AppendPane(records, pane, sheetName);
@@ -258,47 +258,64 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             records.Add(new XlsbGeneratedRecord(BrtPane, payload.ToArray()));
         }
 
-        // The BrtBeginWsView payload below fixes these settings at Excel's defaults, so an
-        // explicit default (as XLS imports write them) is already represented.
-        private static bool IsDefaultSheetViewAttribute(OpenXmlAttribute attribute) {
-            if (!string.IsNullOrEmpty(attribute.NamespaceUri)) return false;
-            switch (attribute.LocalName) {
-                case "showFormulas":
-                case "rightToLeft":
-                case "windowProtection":
-                    return attribute.Value is "0" or "false";
-                case "showRowColHeaders":
-                case "showZeros":
-                case "showOutlineSymbols":
-                case "defaultGridColor":
-                case "showRuler":
-                case "showWhiteSpace":
-                    return attribute.Value is "1" or "true";
-                case "view":
-                    return attribute.Value == "normal";
-                case "topLeftCell":
-                    return attribute.Value == "A1";
-                case "colorId":
-                    return attribute.Value == "64";
-                case "zoomScale":
-                case "zoomScaleNormal":
-                    return attribute.Value == "100";
-                default:
-                    return false;
+        private static readonly string[] SheetViewAttributes = {
+            "workbookViewId", "showGridLines", "tabSelected", "windowProtection", "showFormulas", "showRowColHeaders",
+            "showZeros", "rightToLeft", "showRuler", "showOutlineSymbols", "defaultGridColor", "showWhiteSpace", "view",
+            "topLeftCell", "colorId", "zoomScale", "zoomScaleNormal", "zoomScaleSheetLayoutView", "zoomScalePageLayoutView"
+        };
+
+        // BrtBeginWsView (MS-XLSB 2.4.307): flags, xlView, rwTop, colLeft, icvHdr, two reserved fields, wScale,
+        // wScaleNormal, wScaleSLV, wScalePLV and iWbkView.
+        private static byte[] CreateSheetViewPayload(SheetView view, string sheetName) {
+            ushort flags = 0;
+            if (view.WindowProtection?.Value == true) flags |= 0x0001;
+            if (view.ShowFormulas?.Value == true) flags |= 0x0002;
+            if (view.ShowGridLines?.Value != false) flags |= 0x0004;
+            if (view.ShowRowColHeaders?.Value != false) flags |= 0x0008;
+            if (view.ShowZeros?.Value != false) flags |= 0x0010;
+            if (view.RightToLeft?.Value == true) flags |= 0x0020;
+            if (view.TabSelected?.Value == true) flags |= 0x0040;
+            if (view.ShowRuler?.Value != false) flags |= 0x0080;
+            if (view.ShowOutlineSymbols?.Value != false) flags |= 0x0100;
+            if (view.DefaultGridColor?.Value != false) flags |= 0x0200;
+            if (view.ShowWhiteSpace?.Value == false) flags |= 0x0400;
+
+            SheetViewValues? viewType = view.View?.Value;
+            uint xlView = viewType == SheetViewValues.PageBreakPreview ? 1U : viewType == SheetViewValues.PageLayout ? 2U : 0U;
+            int topRow = 1, leftColumn = 1;
+            if (!string.IsNullOrEmpty(view.TopLeftCell?.Value)
+                && !ExcelA1.TryParseCellReferenceFast(view.TopLeftCell!.Value!, out topRow, out leftColumn)) {
+                throw new NotSupportedException($"Native XLSB generation cannot encode sheet view top-left cell '{view.TopLeftCell.Value}' on worksheet '{sheetName}'.");
             }
+            uint gridColor = view.ColorId?.Value ?? 64U;
+            if (gridColor > byte.MaxValue) {
+                throw new NotSupportedException($"Native XLSB generation cannot encode sheet view grid color {gridColor} on worksheet '{sheetName}'.");
+            }
+
+            using var payload = new MemoryStream(30);
+            WriteUInt16(payload, flags);
+            WriteUInt32(payload, xlView);
+            WriteUInt32(payload, checked((uint)(topRow - 1)));
+            WriteUInt32(payload, checked((uint)(leftColumn - 1)));
+            payload.WriteByte((byte)gridColor);
+            payload.WriteByte(0);
+            WriteUInt16(payload, 0);
+            WriteUInt16(payload, ToZoom(view.ZoomScale?.Value, 100U, "zoomScale", sheetName));
+            WriteUInt16(payload, ToZoom(view.ZoomScaleNormal?.Value, 0U, "zoomScaleNormal", sheetName));
+            WriteUInt16(payload, ToZoom(view.ZoomScaleSheetLayoutView?.Value, 0U, "zoomScaleSheetLayoutView", sheetName));
+            WriteUInt16(payload, ToZoom(view.ZoomScalePageLayoutView?.Value, 0U, "zoomScalePageLayoutView", sheetName));
+            WriteUInt32(payload, 0U);
+            return payload.ToArray();
         }
 
-        private static byte[] CreateSheetViewPayload(SheetView view) {
-            return new byte[] {
-                (byte)((view.ShowGridLines?.Value == false ? 0x98 : 0x9C) | (view.TabSelected?.Value == true ? 0x40 : 0)), 0x03, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x40, 0x00,
-                0x00, 0x00, 0x64, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00
-            };
+        // wScale is 10 through 400; the other zoom fields also allow 0, which means 100.
+        private static ushort ToZoom(uint? value, uint fallback, string attribute, string sheetName) {
+            uint zoom = value ?? fallback;
+            if (zoom == 0U && fallback == 0U) return 0;
+            if (zoom < 10U || zoom > 400U) {
+                throw new NotSupportedException($"Native XLSB generation cannot encode {attribute} {zoom} on worksheet '{sheetName}'.");
+            }
+            return (ushort)zoom;
         }
 
         private static byte[] CreateSelectionPayload(Selection? selection, string sheetName) {

@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             ValidateDimension(worksheet, sourceSheet, sheet);
             // Tab selection is written from the document model by the rewrite; it is not pane geometry.
             SheetViews[] actualViews = worksheet.Elements<SheetViews>().Select(WithoutTabSelection).ToArray();
-            bool equivalentDefaultView = sourceSheet.Pane == null && sourceSheet.ShowGridLines != false
+            bool equivalentDefaultView = ExcelSheet.IsNeutralSheetViews(CreateSheetViews(sourceSheet))
                 && (actualViews.Length == 0 || actualViews.Length == 1 && ExcelSheet.IsNeutralSheetViews(actualViews[0]));
             if (!equivalentDefaultView) {
                 SheetViews expectedViews = CreateSheetViews(sourceSheet);
@@ -238,21 +238,64 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             SheetViews views = ExcelSheet.CreateDefaultSheetViews();
             SheetView view = views.Elements<SheetView>().Single();
             if (sourceSheet.ShowGridLines == false) view.ShowGridLines = false;
+            if (sourceSheet.View != null) ApplyViewSettings(view, sourceSheet.View);
             XlsbPaneInfo? source = sourceSheet.Pane;
-            if (source == null) return views;
-
-            var pane = new Pane {
-                HorizontalSplit = source.HorizontalSplit,
-                VerticalSplit = source.VerticalSplit,
-                TopLeftCell = ExcelA1.CellReference(source.TopRow + 1, source.LeftColumn + 1),
-                ActivePane = ToPane(source.ActivePane),
-                State = source.Frozen
-                    ? source.FrozenNoSplit ? PaneStateValues.FrozenSplit : PaneStateValues.Frozen
-                    : PaneStateValues.Split
-            };
-            view.Append(pane);
+            if (source != null) {
+                view.Append(new Pane {
+                    HorizontalSplit = source.HorizontalSplit,
+                    VerticalSplit = source.VerticalSplit,
+                    TopLeftCell = ExcelA1.CellReference(source.TopRow + 1, source.LeftColumn + 1),
+                    ActivePane = ToPane(source.ActivePane),
+                    State = source.Frozen
+                        ? source.FrozenNoSplit ? PaneStateValues.FrozenSplit : PaneStateValues.Frozen
+                        : PaneStateValues.Split
+                });
+            }
+            IReadOnlyList<XlsbSelection> selections = sourceSheet.View?.Selections ?? Array.Empty<XlsbSelection>();
+            // A lone top-left A1 selection is the default every view carries; the neutral view omits it.
+            if (selections.Count != 1 || !IsDefaultSelection(selections[0])) {
+                foreach (XlsbSelection selection in selections) view.Append(CreateSelection(selection));
+            }
             return views;
         }
+
+        // Only values that differ from the SpreadsheetML defaults become attributes (MS-XLSB 2.4.307 field order).
+        private static void ApplyViewSettings(SheetView view, XlsbSheetView source) {
+            ushort flags = source.Flags;
+            if ((flags & 0x0001) != 0) view.WindowProtection = true;
+            if ((flags & 0x0002) != 0) view.ShowFormulas = true;
+            if ((flags & 0x0008) == 0) view.ShowRowColHeaders = false;
+            if ((flags & 0x0010) == 0) view.ShowZeros = false;
+            if ((flags & 0x0020) != 0) view.RightToLeft = true;
+            if ((flags & 0x0080) == 0) view.ShowRuler = false;
+            if ((flags & 0x0100) == 0) view.ShowOutlineSymbols = false;
+            if ((flags & 0x0200) == 0) view.DefaultGridColor = false;
+            if ((flags & 0x0400) != 0) view.ShowWhiteSpace = false;
+            if (source.View == 1U) view.View = SheetViewValues.PageBreakPreview;
+            else if (source.View == 2U) view.View = SheetViewValues.PageLayout;
+            if (source.TopRow != 0 || source.LeftColumn != 0) view.TopLeftCell = ExcelA1.CellReference(source.TopRow + 1, source.LeftColumn + 1);
+            if (source.GridColor != DefaultGridColorIndex) view.ColorId = source.GridColor;
+            if (source.Zoom != 100) view.ZoomScale = source.Zoom;
+            if (source.ZoomNormal != 0) view.ZoomScaleNormal = source.ZoomNormal;
+            if (source.ZoomPageBreak != 0) view.ZoomScaleSheetLayoutView = source.ZoomPageBreak;
+            if (source.ZoomPageLayout != 0) view.ZoomScalePageLayoutView = source.ZoomPageLayout;
+        }
+
+        private const byte DefaultGridColorIndex = 64;
+
+        private static bool IsDefaultSelection(XlsbSelection selection) =>
+            selection.Pane == 3U && selection.ActiveRow == 1 && selection.ActiveColumn == 1 && selection.ActiveCellId == 0U
+            && selection.Ranges.Count == 1 && selection.Ranges[0].FirstRow == 1 && selection.Ranges[0].LastRow == 1
+            && selection.Ranges[0].FirstColumn == 1 && selection.Ranges[0].LastColumn == 1;
+
+        private static Selection CreateSelection(XlsbSelection source) => new Selection {
+            Pane = source.Pane == 3U ? null : ToPane(source.Pane),
+            ActiveCell = ExcelA1.CellReference(source.ActiveRow, source.ActiveColumn),
+            ActiveCellId = source.ActiveCellId == 0U ? null : source.ActiveCellId,
+            SequenceOfReferences = new ListValue<StringValue> {
+                InnerText = string.Join(" ", source.Ranges.Select(range => range.ToA1Reference()))
+            }
+        };
 
         private static PaneValues ToPane(uint pane) {
             return pane switch {

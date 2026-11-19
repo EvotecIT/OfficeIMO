@@ -12,30 +12,34 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDocument document,
             ExcelSheet sheet,
             XlsbSheet sourceSheet,
-            int availableCellFormatCount, XlsbFormulaWriteContext? formulas = null) {
+            int availableCellFormatCount, IXlsbFormulaEncodingContext? formulas = null, XlsbCellTextRuns? textRuns = null) {
             ArgumentNullException.ThrowIfNull(document);
             ArgumentNullException.ThrowIfNull(sheet);
             ArgumentNullException.ThrowIfNull(sourceSheet);
 
             ThrowIfUnsupportedWorksheetMutation(sheet, sourceSheet);
-            return ExtractCore(document, sheet, sourceSheet, availableCellFormatCount, formulas);
+            return ExtractCore(document, sheet, sourceSheet, availableCellFormatCount, formulas, textRuns: textRuns);
         }
 
         internal static IReadOnlyList<XlsbWriteCell> ExtractNew(
             ExcelDocument document,
-            ExcelSheet sheet, XlsbFormulaWriteContext? formulas = null) {
+            ExcelSheet sheet, IXlsbFormulaEncodingContext? formulas = null, XlsbRichTextFontTable? richText = null,
+            XlsbCellTextRuns? textRuns = null) {
             ArgumentNullException.ThrowIfNull(document);
             ArgumentNullException.ThrowIfNull(sheet);
 
             ThrowIfUnsupportedNewWorksheetContent(sheet);
-            return ExtractCore(document, sheet, sourceSheet: null, availableCellFormatCount: null, formulas);
+            return ExtractCore(document, sheet, sourceSheet: null, availableCellFormatCount: null, formulas, richText, textRuns);
         }
 
         private static IReadOnlyList<XlsbWriteCell> ExtractCore(
             ExcelDocument document,
             ExcelSheet sheet,
             XlsbSheet? sourceSheet,
-            int? availableCellFormatCount, XlsbFormulaWriteContext? formulas) {
+            int? availableCellFormatCount, IXlsbFormulaEncodingContext? formulas, XlsbRichTextFontTable? richText = null,
+            XlsbCellTextRuns? textRuns = null) {
+            textRuns = richText?.TextRuns ?? textRuns
+                ?? new XlsbCellTextRuns(document.WorkbookPartRoot.SharedStringTablePart?.SharedStringTable);
             var sourceCells = sourceSheet?.Cells.ToDictionary(cell => (cell.Row, cell.Column))
                 ?? new Dictionary<(int Row, int Column), XlsbCell>();
             var visitedSourceCells = new HashSet<(int Row, int Column)>();
@@ -64,7 +68,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         allowNewStyles: sourceSheet == null,
                         availableCellFormatCount);
                     if (sourceCell != null
-                        && CellMatchesSource(sheet, cell, sourceCell, resolvedFormulaTexts)) {
+                        && CellMatchesSource(sheet, cell, sourceCell, resolvedFormulaTexts, textRuns)) {
                         var preserved = XlsbWriteCell.PreserveSource(sourceCell, styleIndex);
                         result.Add(formulas?.RebindSourceCell(preserved) ?? preserved);
                         sequentialColumn = cellColumn + 1;
@@ -79,7 +83,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         cellRow,
                         cellColumn,
                         styleIndex,
-                        resolvedFormulaTexts, formulas);
+                        resolvedFormulaTexts, formulas, richText, textRuns);
                     if (writeCell != null) result.Add(writeCell);
                     sequentialColumn = cellColumn + 1;
                 }
@@ -152,7 +156,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int row,
             int column,
             uint styleIndex,
-            IReadOnlyDictionary<string, string> resolvedFormulaTexts, XlsbFormulaWriteContext? formulas) {
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts, IXlsbFormulaEncodingContext? formulas,
+            XlsbRichTextFontTable? richText, XlsbCellTextRuns textRuns) {
             if (cell.CellFormula != null) {
                 return ConvertFormulaCell(document, sheet, cell, sourceCell, row, column, styleIndex, resolvedFormulaTexts, formulas);
             }
@@ -186,7 +191,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 || !string.IsNullOrEmpty(rawValue)) {
                 string text = sheet.GetCellText(cell);
                 EnsureCellTextLength(text, row, column);
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Text, text);
+                if (richText == null && textRuns.HasFormattedRuns(cell)) {
+                    throw new NotSupportedException($"Native XLSB rewriting cannot add rich text runs at {sheet.Name}!{ToAddress(row, column)}; save as .xlsx to retain that change.");
+                }
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Text, text) {
+                    TextRuns = richText?.CreateRuns(cell, styleIndex, text)
+                };
             }
 
             // Preserve native source cells and intentional styled blanks, including
@@ -204,7 +214,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             int row,
             int column,
             uint styleIndex,
-            IReadOnlyDictionary<string, string> resolvedFormulaTexts, XlsbFormulaWriteContext? formulas) {
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts, IXlsbFormulaEncodingContext? formulas) {
             string formulaText = GetResolvedFormulaText(cell, resolvedFormulaTexts);
             byte[] formulaPayload;
             if (sourceCell?.FormulaBytes != null
@@ -268,7 +278,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet sheet,
             Cell cell,
             XlsbCell sourceCell,
-            IReadOnlyDictionary<string, string> resolvedFormulaTexts) {
+            IReadOnlyDictionary<string, string> resolvedFormulaTexts,
+            XlsbCellTextRuns textRuns) {
             string? currentFormula = cell.CellFormula == null
                 ? null
                 : GetResolvedFormulaText(cell, resolvedFormulaTexts);
@@ -292,7 +303,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                         && sourceCell.Value is double sourceNumber
                         && number.Equals(sourceNumber);
                 case XlsbCellValueKind.Text:
-                    return string.Equals(sheet.GetCellText(cell), sourceCell.Value as string ?? string.Empty, StringComparison.Ordinal);
+                    // Equal text with added, changed or removed runs is an edit, so the source record is not kept.
+                    return string.Equals(sheet.GetCellText(cell), sourceCell.Value as string ?? string.Empty, StringComparison.Ordinal)
+                        && (sourceCell.FormulaBytes != null || textRuns.MatchesSource(cell, sourceCell));
                 case XlsbCellValueKind.Boolean:
                     bool value = rawValue == "1" || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase);
                     return sourceCell.Value is bool sourceBoolean && value == sourceBoolean;

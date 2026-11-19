@@ -783,7 +783,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool TryParseCellTextSharedStringIndex(string? text, out int index) {
+        internal static bool TryParseCellTextSharedStringIndex(string? text, out int index) {
             index = 0;
             if (string.IsNullOrEmpty(text)) {
                 return false;
