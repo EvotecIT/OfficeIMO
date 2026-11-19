@@ -328,12 +328,16 @@ public static partial class PowerPointPdfConverterExtensions {
             // An SVG picture is parsed once here and drawn as vectors. One the PDF writer cannot draw
             // still exports through its raster fallback, read within what remains of the conversion's image budget.
             // A damaged SVG part that no longer identifies as SVG takes the fallback too.
+            string? svgReason = "the SVG part is not recognizable SVG.";
             if (PdfCore.PdfDocument.IsSvgImage(imageBytes, out _) &&
-                PdfCore.PdfDocument.TryPrepareImageKeepingSvg(imageBytes, default, out byte[] svg, out _, out _)) {
+                PdfCore.PdfDocument.TryPrepareImageKeepingSvg(imageBytes, default, out byte[] svg, out _, out svgReason)) {
                 imageBytes = svg;
             } else if (picture.TryGetRasterFallback(GetImageReadLimit(options), out byte[] fallback)) {
                 imageBytes = fallback;
                 options.EmbeddedImageBytesRead += imageBytes.Length;
+                AddWarning(options, slideNumber, OfficeDiagnosticCodes.SvgImageRasterFallback,
+                    "A PowerPoint SVG picture could not be drawn as vectors, so its stored raster fallback was exported. " + svgReason,
+                    lossKind: OfficeConversionLossKind.Approximation);
             }
             AddPowerPointImageAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
 

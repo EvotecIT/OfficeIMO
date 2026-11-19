@@ -54,11 +54,17 @@ namespace OfficeIMO.Excel.Pdf {
                 byte[]? vectorBytes = null;
                 // An SVG picture is drawn as vectors; one the PDF writer cannot draw exports its raster fallback.
                 if (OfficeImageInfo.FromMimeType(contentType) == OfficeImageFormat.Svg) {
-                    if (bytes.Length > 0 && PdfCore.PdfDocument.TryPrepareImageKeepingSvg(bytes, default, out byte[] svg, out _, out _)) {
+                    string? svgReason = "the SVG part is empty.";
+                    if (bytes.Length > 0 && PdfCore.PdfDocument.TryPrepareImageKeepingSvg(bytes, default, out byte[] svg, out _, out svgReason)) {
                         vectorBytes = svg;
                     } else if (image.TryGetRasterFallback(out byte[] fallback, out string fallbackType)) {
                         bytes = fallback;
                         contentType = fallbackType;
+                        AddWarning(
+                            options,
+                            sheetName,
+                            OfficeDiagnosticCodes.SvgImageRasterFallback,
+                            $"Worksheet SVG image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} could not be drawn as vectors, so its stored raster fallback was exported. {svgReason}");
                     }
                 }
 
@@ -106,10 +112,29 @@ namespace OfficeIMO.Excel.Pdf {
                     image.RotationDegrees,
                     image.FlipHorizontal,
                     image.FlipVertical,
-                    alternativeText));
+                    alternativeText,
+                    ReadWorksheetImageCrop(image, options, sheetName),
+                    image.HyperlinkUri is { IsAbsoluteUri: true } link ? link.AbsoluteUri : null));
             }
 
             return images;
+        }
+
+        // DrawingML crop ratios are fractions of the source; outsets or a collapsed rectangle fit the whole image instead.
+        private static PdfCore.PdfImageSourceCrop? ReadWorksheetImageCrop(ExcelImage image, ExcelPdfExportOptions options, string sheetName) {
+            double left = image.CropLeftRatio, top = image.CropTopRatio, right = image.CropRightRatio, bottom = image.CropBottomRatio;
+            if (left == 0D && top == 0D && right == 0D && bottom == 0D) return null;
+            if (left >= 0D && top >= 0D && right >= 0D && bottom >= 0D && left + right < 1D && top + bottom < 1D) {
+                return new PdfCore.PdfImageSourceCrop(left, top, right, bottom);
+            }
+
+            AddWarning(
+                options,
+                sheetName,
+                "worksheet-image",
+                $"Worksheet image anchored at {ExcelA1.CellReference(image.RowIndex, image.ColumnIndex)} uses crop outsets or a collapsed crop rectangle; the whole image is fitted to its frame.",
+                OfficeConversionLossKind.Approximation);
+            return null;
         }
 
         private static IReadOnlyList<WorksheetChartExportData> ReadWorksheetCharts(ExcelSheet? workbookSheet, ExcelPdfExportOptions options, string sheetName) {

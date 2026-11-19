@@ -22,7 +22,7 @@ namespace OfficeIMO.Word.Pdf {
             bool clipToParagraphFragment = false, string? linkUri = null) {
             run = null;
             if (!TryPrepareNativeBodyImage(image, reportPreparationWarnings ? options : null, "table cell image", out byte[] prepared,
-                    cancellationToken: options?.CancellationToken ?? cancellationToken)) return false;
+                    cancellationToken: options?.CancellationToken ?? cancellationToken, svgFallbackReport: options)) return false;
             double width = image.Width?.ToPoints() ?? 144D;
             double height = image.Height?.ToPoints() ?? 144D;
             run = PdfCore.PdfTextRun.Inline(new PdfCore.PdfInlineImage(prepared, global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height),

@@ -9,7 +9,12 @@ namespace OfficeIMO.Core.Internal;
 internal static class OfficeSvgPictureFallback {
     internal const string BlipExtensionUri = "{96DAC541-7B7A-43D3-8B79-37D633B846F1}";
     private const double RasterScale = 2D;
-    private const int FallbackGeometryCommands = 250_000;
+
+    /// <summary>
+    /// Geometry command budget for an Office SVG picture. Generated symbols such as large QR codes draw thousands of
+    /// module runs; renderers that draw the picture's SVG use the same budget as its stored fallback.
+    /// </summary>
+    internal const int MaximumGeometryCommands = 250_000;
 
     /// <summary>Renders the PNG fallback for an SVG picture.</summary>
     /// <remarks>
@@ -21,8 +26,8 @@ internal static class OfficeSvgPictureFallback {
         width = height = 0D;
         if (svg == null || svg.Length == 0) return false;
         try {
-            // Generated symbols such as large QR codes draw thousands of module runs; the pixel budget still bounds the raster.
-            var options = new OfficeSvgDrawingReaderOptions { MaximumGeometryCommands = FallbackGeometryCommands };
+            // The pixel budget still bounds the raster.
+            var options = new OfficeSvgDrawingReaderOptions { MaximumGeometryCommands = MaximumGeometryCommands };
             if (!OfficeSvgDrawingReader.TryRead(svg, options, out OfficeDrawing? drawing, out int unsupportedFeatures) || unsupportedFeatures > 0 ||
                 drawing == null || drawing.Width <= 0D || drawing.Height <= 0D) return false;
             width = drawing.Width;

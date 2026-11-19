@@ -69,6 +69,25 @@ public partial class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_SvgPictureThatCannotBeDrawnExportsItsRasterFallbackAndReportsIt() {
+        using var stream = new MemoryStream();
+        using (var presentation = PowerPointDocument.Create(stream)) {
+            byte[] svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20'>" +
+                "<rect width='40' height='20' fill='#ff0000'/></svg>");
+            presentation.AddSlide().AddImage(new MemoryStream(svg), OfficeImageFormat.Svg, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(80)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)));
+            presentation.Save();
+        }
+        OfficeSvgPartDamage.Truncate(stream);
+
+        using var reopened = PowerPointDocument.Load(stream);
+        byte[] pdf = reopened.ToPdf(null, out OfficeIMO.OfficeConversionReport report).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+
+        Assert.Single(PdfDocument.Load(pdf).Reader.Images());
+        Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == OfficeIMO.OfficeDiagnosticCodes.SvgImageRasterFallback);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointDocument_RotatesPictureCropWithImageFrame() {
         string folder = Path.Combine(AppContext.BaseDirectory, "Documents", "PowerPointNativeImagePlacement");
         using var presentation = PowerPointDocument.Load(Path.Combine(folder, "picture-crop-rotation.pptx"));

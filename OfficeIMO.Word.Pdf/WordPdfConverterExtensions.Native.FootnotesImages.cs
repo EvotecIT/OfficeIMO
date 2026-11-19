@@ -271,13 +271,25 @@ namespace OfficeIMO.Word.Pdf {
             return true;
         }
 
+        // Probes that leave unavailable-image warnings to the ordinary renderer still report an SVG fallback through svgFallbackReport.
         private static bool TryPrepareNativeBodyImage(WordImage image, WordPdfExportOptions? options, string source, out byte[] bytes,
-            string unsupportedCode = "NativeBodyImageUnsupported", System.Threading.CancellationToken cancellationToken = default) {
+            string unsupportedCode = "NativeBodyImageUnsupported", System.Threading.CancellationToken cancellationToken = default,
+            WordPdfExportOptions? svgFallbackReport = null) {
             try {
                 cancellationToken = options?.CancellationToken ?? cancellationToken;
+                svgFallbackReport ??= options;
                 string? unsupportedReason = null;
+                // Candidates list the picture's SVG parts before its raster blip.
+                bool svgFailed = false;
                 foreach (byte[] candidate in image.GetRenderingImageCandidates(cancellationToken)) {
-                    if (TryPrepareNativePdfImageBytes(candidate, out bytes, out unsupportedReason, cancellationToken)) return true;
+                    string? svgReason = unsupportedReason;
+                    if (TryPrepareNativePdfImageBytes(candidate, out bytes, out unsupportedReason, cancellationToken)) {
+                        if (svgFailed && svgFallbackReport != null && svgFallbackReport.DiagnosedSvgFallbackImages.Add(image.OccurrenceElement))
+                            AddNativeExportWarning(svgFallbackReport, OfficeDiagnosticCodes.SvgImageRasterFallback, source,
+                                "Word SVG image could not be drawn as vectors, so its stored raster fallback was exported. " + svgReason);
+                        return true;
+                    }
+                    svgFailed = true;
                 }
                 bytes = System.Array.Empty<byte>();
                 if (options != null) AddNativeExportWarning(options, unsupportedCode, source,
