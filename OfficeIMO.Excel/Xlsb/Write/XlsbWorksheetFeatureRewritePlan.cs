@@ -23,6 +23,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetIgnoredErrorWriter.BrtBeginCellIgnoreECs,
                     XlsbWorksheetIgnoredErrorWriter.BrtEndCellIgnoreECs, XlsbWorksheetIgnoredErrorWriter.Create(context)));
             }
+            if (!XlsbWorksheetFeatureProjector.Matches<DataValidations>(context.Sheet, source)) {
+                if (source.HasUndecodedDataValidations) {
+                    throw new NotSupportedException($"Native XLSB rewrite cannot change the data validations of worksheet '{context.Sheet.Name}' because some of its existing validations could not be decoded.");
+                }
+                edits.Add(new XlsbRecordBlockEdit(XlsbWorksheetDataValidationWriter.BrtBeginDVals,
+                    XlsbWorksheetDataValidationWriter.BrtEndDVals, XlsbWorksheetDataValidationWriter.Create(context)));
+            }
             return edits;
         }
     }

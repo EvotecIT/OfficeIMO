@@ -93,5 +93,11 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         internal IReadOnlyList<DocumentFormat.OpenXml.OpenXmlElement> FeatureElements => _featureElements;
 
         internal void AddFeatureElement(DocumentFormat.OpenXml.OpenXmlElement element) => _featureElements.Add(element);
+
+        /// <summary>
+        /// True when the source holds data validations that could not be decoded, so none were projected and the native
+        /// records may only be copied unchanged.
+        /// </summary>
+        internal bool HasUndecodedDataValidations { get; set; }
     }
 }

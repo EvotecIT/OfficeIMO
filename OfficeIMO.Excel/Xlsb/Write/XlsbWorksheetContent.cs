@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             typeof(SheetProtection),
             typeof(AutoFilter),
             typeof(MergeCells),
+            typeof(DataValidations),
             typeof(Hyperlinks),
             typeof(PrintOptions),
             typeof(PageMargins),

@@ -20,8 +20,12 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private const int RangePrecedence = 9;
         private const int AtomPrecedence = 10;
 
-        /// <remarks>extra is the formula's rgcb; PtgArray values (PtgExtraArray) are read from it in token order.</remarks>
-        internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null, int sheetIndex = -1, byte[]? extra = null) {
+        /// <remarks>extra is the formula's rgcb; PtgArray values (PtgExtraArray) are read from it in token order.
+        /// relativeAnchor is the zero-based cell that PtgRefN and PtgAreaN offsets are relative to (MS-XLSB 2.5.98.90,
+        /// 2.5.98.92), such as the first cell of a data validation range; without it those tokens are not decoded.
+        /// </remarks>
+        internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null, int sheetIndex = -1,
+            byte[]? extra = null, (int Row, int Column)? relativeAnchor = null) {
             ArgumentNullException.ThrowIfNull(tokens);
 
             formulaText = null;
@@ -185,6 +189,18 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                         if (!TryReadArea(tokens, ref offset, out string? area)) return false;
                         stack.Push(new FormulaExpression(area!, AtomPrecedence));
                         break;
+                    case 0x2C:
+                    case 0x4C:
+                    case 0x6C:
+                        if (relativeAnchor == null || !TryReadRelativeReference(tokens, ref offset, relativeAnchor.Value, out string? relativeReference)) return false;
+                        stack.Push(new FormulaExpression(relativeReference!, AtomPrecedence));
+                        break;
+                    case 0x2D:
+                    case 0x4D:
+                    case 0x6D:
+                        if (relativeAnchor == null || !TryReadRelativeArea(tokens, ref offset, relativeAnchor.Value, out string? relativeArea)) return false;
+                        stack.Push(new FormulaExpression(relativeArea!, AtomPrecedence));
+                        break;
                     default:
                         return false;
                 }
@@ -268,6 +284,44 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                 (lastColumnBits & 0x8000) != 0,
                 (lastColumnBits & 0x4000) != 0);
             area = first + ":" + last;
+            return true;
+        }
+
+        private static bool TryReadRelativeReference(byte[] tokens, ref int offset, (int Row, int Column) anchor, out string? reference) {
+            reference = null;
+            if (!TryReadUInt32(tokens, ref offset, out uint row)
+                || !TryReadUInt16(tokens, ref offset, out ushort columnBits)) return false;
+            return TryFormatRelative(row, columnBits, anchor, out reference);
+        }
+
+        private static bool TryReadRelativeArea(byte[] tokens, ref int offset, (int Row, int Column) anchor, out string? area) {
+            area = null;
+            if (!TryReadUInt32(tokens, ref offset, out uint firstRow)
+                || !TryReadUInt32(tokens, ref offset, out uint lastRow)
+                || !TryReadUInt16(tokens, ref offset, out ushort firstColumnBits)
+                || !TryReadUInt16(tokens, ref offset, out ushort lastColumnBits)) return false;
+            if (!TryFormatRelative(firstRow, firstColumnBits, anchor, out string? first)
+                || !TryFormatRelative(lastRow, lastColumnBits, anchor, out string? last)) return false;
+            area = first + ":" + last;
+            return true;
+        }
+
+        // RgceLocRel/RgceAreaRel: relative parts are offsets from the anchor, wrapped into the sheet (RwRelNeg, ColRelShort).
+        private static bool TryFormatRelative(uint rowBits, ushort columnBits, (int Row, int Column) anchor, out string? reference) {
+            reference = null;
+            bool columnRelative = (columnBits & 0x4000) != 0;
+            bool rowRelative = (columnBits & 0x8000) != 0;
+            int row;
+            if (rowRelative) {
+                int rowOffset = unchecked((int)rowBits);
+                if (rowOffset <= -1_048_576 || rowOffset >= 1_048_576) return false;
+                row = (anchor.Row + rowOffset) & 0xFFFFF;
+            } else {
+                if (rowBits >= 1_048_576) return false;
+                row = (int)rowBits;
+            }
+            int column = columnRelative ? (anchor.Column + (columnBits & 0x3FFF)) & 0x3FFF : columnBits & 0x3FFF;
+            reference = FormatReference(row, column, rowRelative, columnRelative);
             return true;
         }
 

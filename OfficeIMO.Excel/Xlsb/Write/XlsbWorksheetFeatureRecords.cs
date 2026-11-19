@@ -80,6 +80,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             var records = new XlsbWorksheetFeatureRecords();
             XlsbWorksheetPageBreakWriter.Append(records, context);
             XlsbWorksheetIgnoredErrorWriter.Append(records, context);
+            XlsbWorksheetDataValidationWriter.Append(records, context);
             return records;
         }
     }
