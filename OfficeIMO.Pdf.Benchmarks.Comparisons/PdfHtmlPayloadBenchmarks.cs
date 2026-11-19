@@ -22,7 +22,6 @@ public class PdfHtmlPayloadBenchmarks {
     private byte[]? _peachPdfResult;
     private byte[]? _pdfPeckerResult;
 #if NET10_0_OR_GREATER
-    private TextFontProvider? _oneRenderFonts;
     private byte[]? _oneRenderResult;
 #endif
 
@@ -37,18 +36,6 @@ public class PdfHtmlPayloadBenchmarks {
             PdfBenchmarkAssets.CarlitoRegular,
             PdfBenchmarkAssets.CarlitoBold);
     }
-
-#if NET10_0_OR_GREATER
-    /// <summary>
-    /// Prepares the OneRender font provider only. Like the other engines, OneRender's output is validated in cleanup,
-    /// so its first render stays inside the measured cold start.
-    /// </summary>
-    [GlobalSetup(Target = nameof(OneRender))]
-    public void SetupOneRender() {
-        Setup();
-        _oneRenderFonts = OneRenderHtmlGenerator.CreateFontProvider(_sharedFont);
-    }
-#endif
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() =>
@@ -66,8 +53,7 @@ public class PdfHtmlPayloadBenchmarks {
     [Benchmark]
     [BenchmarkCategory("library:onerender")]
     public byte[] OneRender() =>
-        _oneRenderResult = OneRenderHtmlGenerator.Generate(_scenario.Html, _oneRenderFonts
-            ?? throw new InvalidOperationException("The OneRender font provider was not initialized."));
+        _oneRenderResult = OneRenderHtmlGenerator.Generate(_scenario.Html, OneRenderHtmlGenerator.CreateFontProvider(_sharedFont));
 
     [GlobalCleanup(Target = nameof(OneRender))]
     public void ValidateOneRender() => Validate(nameof(OneRender), _oneRenderResult);

@@ -9,9 +9,9 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 /// <summary>
 /// Adapts OneRender's one-call HTML-to-tagged-PDF API to the shared comparison documents.
-/// The font provider is created once and reused, as OneRender recommends: creating one
-/// reloads the packaged faces, and each document clears the previous document's
-/// @font-face faces before adding its own.
+/// The comparison creates the font provider inside each measured call, because the other
+/// engines register the shared faces per document too. A host that renders many documents
+/// can reuse one provider, which OneRender supports.
 /// </summary>
 internal static class OneRenderHtmlGenerator {
     /// <summary>Creates the reusable text service, optionally registering the shared fixture font.</summary>
