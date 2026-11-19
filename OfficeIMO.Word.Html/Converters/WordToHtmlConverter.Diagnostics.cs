@@ -34,9 +34,17 @@ namespace OfficeIMO.Word.Html {
             long outputConstructionCharacters = 0;
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
             if (mainPart != null) {
-                foreach ((OpenXmlElement Root, string PartUri) root in EnumerateExportRoots(
+                foreach ((OpenXmlElement? Root, string PartUri, long StreamedElements) root in EnumerateExportRoots(
                     mainPart,
                     options.IncludeCustomProperties ? document._wordprocessingDocument.CustomFilePropertiesPart : null)) {
+                    if (root.Root == null) {
+                        // A styles part that was never loaded is counted from its stream; it holds no exported content.
+                        elements = SaturatingAdd(elements, root.StreamedElements);
+                        if (elements > options.MaxDocumentElements) {
+                            ThrowExportLimitExceeded(options, "word-element-limit-exceeded", "The Word document exceeds the configured HTML export element limit.", root.PartUri, options.MaxDocumentElements + 1, options.MaxDocumentElements);
+                        }
+                        continue;
+                    }
                     bool countOutputContent = IsOutputContentRoot(root.Root, options);
                     bool inspectExportedStory = IsSelectedStoryRoot(root.Root, options);
                     foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
@@ -187,15 +195,15 @@ namespace OfficeIMO.Word.Html {
             _ => false
         };
 
-        private static IEnumerable<(OpenXmlElement Root, string PartUri)> EnumerateExportRoots(
+        private static IEnumerable<(OpenXmlElement? Root, string PartUri, long StreamedElements)> EnumerateExportRoots(
             MainDocumentPart mainPart,
             CustomFilePropertiesPart? customPropertiesPart) {
             if (customPropertiesPart?.Properties is OpenXmlElement customProperties) {
-                yield return (customProperties, customPropertiesPart.Uri.ToString());
+                yield return (customProperties, customPropertiesPart.Uri.ToString(), 0);
             }
 
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-                yield return (root.Root, root.PartUri);
+                yield return (root.Root, root.PartUri, 0);
             }
             var chartUris = new HashSet<Uri>();
             IEnumerable<OpenXmlPart> stories = new OpenXmlPart[] { mainPart }
@@ -206,37 +214,39 @@ namespace OfficeIMO.Word.Html {
                 foreach (var chart in story.Parts.Select(relationship => relationship.OpenXmlPart)
                     .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
                     if (chartUris.Add(chart.Uri) && chart.RootElement is OpenXmlElement chartRoot)
-                        yield return (chartRoot, chart.Uri.ToString());
+                        yield return (chartRoot, chart.Uri.ToString(), 0);
                     foreach (var presentation in chart.Parts.Select(relationship => relationship.OpenXmlPart)
                         .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
                         if (chartUris.Add(presentation.Uri) && presentation.RootElement is OpenXmlElement presentationRoot)
-                            yield return (presentationRoot, presentation.Uri.ToString());
+                            yield return (presentationRoot, presentation.Uri.ToString(), 0);
                     }
                 }
             }
             if (mainPart.WordprocessingCommentsPart?.Comments is OpenXmlElement comments) {
-                yield return (comments, mainPart.WordprocessingCommentsPart.Uri.ToString());
+                yield return (comments, mainPart.WordprocessingCommentsPart.Uri.ToString(), 0);
             }
-            if (mainPart.StyleDefinitionsPart?.Styles is OpenXmlElement styles) {
-                yield return (styles, mainPart.StyleDefinitionsPart.Uri.ToString());
-            }
-            if (mainPart.StylesWithEffectsPart?.Styles is OpenXmlElement stylesWithEffects) {
-                yield return (stylesWithEffects, mainPart.StylesWithEffectsPart.Uri.ToString());
+            foreach (StylesPart? stylesPart in new StylesPart?[] { mainPart.StyleDefinitionsPart, mainPart.StylesWithEffectsPart }) {
+                if (stylesPart == null) continue;
+                if (WordStyleDefinitionsReader.TryCountElements(stylesPart) is long count) {
+                    yield return (null, stylesPart.Uri.ToString(), count);
+                } else if (stylesPart.Styles is OpenXmlElement styles) {
+                    yield return (styles, stylesPart.Uri.ToString(), 0);
+                }
             }
             if (mainPart.NumberingDefinitionsPart?.Numbering is OpenXmlElement numbering) {
-                yield return (numbering, mainPart.NumberingDefinitionsPart.Uri.ToString());
+                yield return (numbering, mainPart.NumberingDefinitionsPart.Uri.ToString(), 0);
             }
             if (mainPart.ThemePart?.Theme is OpenXmlElement theme) {
-                yield return (theme, mainPart.ThemePart.Uri.ToString());
+                yield return (theme, mainPart.ThemePart.Uri.ToString(), 0);
             }
             if (mainPart.FontTablePart?.Fonts is OpenXmlElement fonts) {
-                yield return (fonts, mainPart.FontTablePart.Uri.ToString());
+                yield return (fonts, mainPart.FontTablePart.Uri.ToString(), 0);
             }
             if (mainPart.DocumentSettingsPart?.Settings is OpenXmlElement settings) {
-                yield return (settings, mainPart.DocumentSettingsPart.Uri.ToString());
+                yield return (settings, mainPart.DocumentSettingsPart.Uri.ToString(), 0);
             }
             if (mainPart.WebSettingsPart?.WebSettings is OpenXmlElement webSettings) {
-                yield return (webSettings, mainPart.WebSettingsPart.Uri.ToString());
+                yield return (webSettings, mainPart.WebSettingsPart.Uri.ToString(), 0);
             }
         }
 

@@ -16,7 +16,7 @@ internal static partial class WordRunFormatting {
     private sealed class RunPaintConversion {
         internal readonly CancellationToken CancellationToken;
         internal readonly Dictionary<Table, TableRunPaintState> Tables = new();
-        internal readonly Dictionary<(Styles Styles, string? StyleId, StyleValues Type), Style[]> StyleChains = new();
+        internal readonly Dictionary<(WordStyleCatalog Styles, string? StyleId, StyleValues Type), Style[]> StyleChains = new();
         internal readonly Dictionary<(RunPaintKey Run, HighlightColorValues? TableHighlight), HighlightColorValues?> RunHighlights = new();
         internal readonly Dictionary<RunPaintKey, string?> RunShadings = new();
         internal RunPaintConversion(CancellationToken cancellationToken) => CancellationToken = cancellationToken;
@@ -55,17 +55,17 @@ internal static partial class WordRunFormatting {
     }
 
     /// <summary>
-    /// Returns <see cref="EnumerateStyleChain"/> for one style. Each lookup scans the style
-    /// list, and paint resolution repeats it for every run, so a conversion keeps the chains
-    /// it has already walked.
+    /// Returns <see cref="WordStyleCatalog.EnumerateChain"/> for one style. Over a loaded DOM each
+    /// lookup scans the style list, and paint resolution repeats it for every run, so a conversion
+    /// keeps the chains it has already walked.
     /// </summary>
-    private static IEnumerable<Style> GetStyleChain(Styles? styles, string? styleId, StyleValues expectedType) {
+    private static IEnumerable<Style> GetStyleChain(WordStyleCatalog styles, string? styleId, StyleValues expectedType) {
         RunPaintConversion? conversion = RunPaintConversions.Value;
-        if (conversion == null || styles == null) return EnumerateStyleChain(styles, styleId, expectedType);
+        if (conversion == null) return styles.EnumerateChain(styleId, expectedType);
         lock (conversion.StyleChains) {
             var key = (styles, styleId, expectedType);
             if (!conversion.StyleChains.TryGetValue(key, out Style[]? chain)) {
-                chain = EnumerateStyleChain(styles, styleId, expectedType).ToArray();
+                chain = styles.EnumerateChain(styleId, expectedType).ToArray();
                 conversion.StyleChains.Add(key, chain);
             }
             return chain;
@@ -83,7 +83,7 @@ internal static partial class WordRunFormatting {
         }
     }
 
-    private static TableRunPaintState GetTableRunPaintState(Table table, Styles? styles) {
+    private static TableRunPaintState GetTableRunPaintState(Table table, WordStyleCatalog styles) {
         RunPaintConversion? conversion = RunPaintConversions.Value;
         if (conversion == null) return new TableRunPaintState(table, styles, default);
         lock (conversion.Tables) {
@@ -104,9 +104,9 @@ internal static partial class WordRunFormatting {
         internal readonly int RowBandSize, ColumnBandSize;
         internal readonly bool HasConditionalFormatting;
 
-        internal TableRunPaintState(Table table, Styles? styles, CancellationToken token) {
+        internal TableRunPaintState(Table table, WordStyleCatalog styles, CancellationToken token) {
             string? styleId = table.GetFirstChild<TableProperties>()?.TableStyle?.Val?.Value;
-            RunChain = EnumerateStyleChain(styles, styleId, StyleValues.Table).ToArray();
+            RunChain = styles.EnumerateChain(styleId, StyleValues.Table).ToArray();
             // Paint retains its established built-in normal-table fallback boundary. Semantic
             // run formatting also honors explicitly authored properties in those definitions.
             Chain = RunChain.TakeWhile(style => !IsBuiltInNormalTableStyle(style.StyleId?.Value)).ToArray();

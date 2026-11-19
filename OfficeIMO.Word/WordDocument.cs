@@ -36,6 +36,10 @@ namespace OfficeIMO.Word {
         private bool _normalizeOpenOfficeRelationshipsOnSave = true;
         private bool _disposed;
         internal bool _openXmlDocumentAccessed;
+        /// <summary>The style catalog last read for this document; see <see cref="WordStyleCatalog.For"/>.</summary>
+        internal WordStyleCatalog? _styleCatalog;
+        /// <summary>Changes whenever OfficeIMO replaces the styles part's content without loading its DOM.</summary>
+        internal int _styleDefinitionsRevision;
         private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
     }
 }

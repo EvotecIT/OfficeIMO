@@ -47,11 +47,12 @@ internal static class WordListNumberingResolver {
         internal int EffectStyleCount;
         internal int NumberingCount;
         internal int NumberingRevision;
+        internal WordStyleCatalog? StyleDefinitions;
         internal StyleCatalog? Catalog;
     }
 
     internal sealed class StyleCatalog {
-        internal StyleCatalog(MainDocumentPart? mainPart, bool memoizeResolutions = false) {
+        internal StyleCatalog(MainDocumentPart? mainPart, WordStyleCatalog? styleDefinitions, bool memoizeResolutions = false) {
             if (memoizeResolutions) {
                 NumberingByStyle = new Dictionary<string, NumberingProperties?>(StringComparer.Ordinal);
                 LinkedStyleByStyle = new Dictionary<string, ResolvedNumbering?>(StringComparer.Ordinal);
@@ -59,8 +60,8 @@ internal static class WordListNumberingResolver {
             }
             ById = new Dictionary<string, ParagraphStyleEntry>(StringComparer.Ordinal);
             string? defaultStyleId = null;
-            StreamedStyleDefinitions = WordStyleDefinitionsReader.TryRead(mainPart?.StyleDefinitionsPart);
-            AddParagraphStyles(mainPart?.StyleDefinitionsPart, StreamedStyleDefinitions, ref defaultStyleId);
+            // The document's style catalog has usually read the styles part already; only stylesWithEffects is read here.
+            AddParagraphStyles(mainPart?.StyleDefinitionsPart, styleDefinitions?.Streamed, ref defaultStyleId);
             AddParagraphStyles(mainPart?.StylesWithEffectsPart, WordStyleDefinitionsReader.TryRead(mainPart?.StylesWithEffectsPart), ref defaultStyleId);
             DefaultStyleId = defaultStyleId;
             LinkedLevels = new Dictionary<(int NumberId, string StyleId), int>();
@@ -118,11 +119,6 @@ internal static class WordListNumberingResolver {
         /// <summary>Paragraph styles by identifier, first definition winning, from the styles part and then the styles-with-effects part.</summary>
         internal Dictionary<string, ParagraphStyleEntry> ById { get; }
 
-        /// <summary>
-        /// Style definitions read from the unloaded styles part without building its DOM, or null when the catalog
-        /// read the loaded <see cref="Styles"/> element instead.
-        /// </summary>
-        internal WordStyleDefinitionsReader.StyleDefinitionSet? StreamedStyleDefinitions { get; }
         internal string? DefaultStyleId { get; }
         internal Dictionary<(int NumberId, string StyleId), int> LinkedLevels { get; }
         internal Dictionary<string, ResolvedNumbering> LinkedStyles { get; }
@@ -161,9 +157,9 @@ internal static class WordListNumberingResolver {
     /// </summary>
     internal static StyleCatalog CreateStyleCatalog(WordDocument document) {
         if (ActiveReadOnlyPass.Value is { } pass && ReferenceEquals(pass.Document, document)) {
-            return pass.Catalog ??= new StyleCatalog(document._wordprocessingDocument.MainDocumentPart, memoizeResolutions: true);
+            return pass.Catalog ??= new StyleCatalog(document._wordprocessingDocument.MainDocumentPart, WordStyleCatalog.For(document), memoizeResolutions: true);
         }
-        return new StyleCatalog(document._wordprocessingDocument.MainDocumentPart, memoizeResolutions: true);
+        return new StyleCatalog(document._wordprocessingDocument.MainDocumentPart, WordStyleCatalog.For(document), memoizeResolutions: true);
     }
 
     /// <summary>
@@ -200,21 +196,22 @@ internal static class WordListNumberingResolver {
 
     internal static StyleCatalog GetCachedStyleCatalog(WordDocument document) {
         if (ActiveReadOnlyPass.Value is { } pass && ReferenceEquals(pass.Document, document)) {
-            return pass.Catalog ??= new StyleCatalog(document._wordprocessingDocument.MainDocumentPart, memoizeResolutions: true);
+            return pass.Catalog ??= new StyleCatalog(document._wordprocessingDocument.MainDocumentPart, WordStyleCatalog.For(document), memoizeResolutions: true);
         }
         return GetUnscopedStyleCatalog(document);
     }
 
     private static StyleCatalog GetUnscopedStyleCatalog(WordDocument document) {
         MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-        if (mainPart == null) return new StyleCatalog(null);
-        if (document._openXmlDocumentAccessed) return new StyleCatalog(mainPart);
+        if (mainPart == null) return new StyleCatalog(null, null);
+        if (document._openXmlDocumentAccessed) return new StyleCatalog(mainPart, WordStyleCatalog.For(document));
 
         CachedStyleCatalog cached = StyleCatalogs.GetValue(mainPart, _ => new CachedStyleCatalog());
         lock (cached) {
             // An unloaded styles part is read as a stream and is not loaded just to validate the cache.
             StylesPart? stylesPart = mainPart.StyleDefinitionsPart;
             StylesPart? effectsPart = mainPart.StylesWithEffectsPart;
+            WordStyleCatalog styleDefinitions = WordStyleCatalog.For(document);
             Styles? styles = LoadedStyles(stylesPart);
             Styles? effects = LoadedStyles(effectsPart);
             Numbering? numbering = mainPart.NumberingDefinitionsPart?.Numbering;
@@ -222,17 +219,18 @@ internal static class WordListNumberingResolver {
             int effectCount = effects?.ChildElements.Count ?? 0;
             int numberingCount = numbering?.ChildElements.Count ?? 0;
             int numberingRevision = numbering == null ? 0 : Volatile.Read(ref NumberingRevisions.GetValue(numbering, _ => new NumberingRevision()).Value);
-            if (cached.Catalog == null ||
+            if (cached.Catalog == null || !ReferenceEquals(cached.StyleDefinitions, styleDefinitions) ||
                 !ReferenceEquals(cached.StylesPart, stylesPart) || !ReferenceEquals(cached.StylesWithEffectsPart, effectsPart) ||
                 !ReferenceEquals(cached.Styles, styles) || cached.StyleCount != styleCount ||
                 !ReferenceEquals(cached.StylesWithEffects, effects) || cached.EffectStyleCount != effectCount ||
                 !ReferenceEquals(cached.Numbering, numbering) || cached.NumberingCount != numberingCount || cached.NumberingRevision != numberingRevision) {
-                cached.Catalog = new StyleCatalog(mainPart);
+                cached.Catalog = new StyleCatalog(mainPart, styleDefinitions);
                 // Building the catalog loads a styles part that could not be streamed; record what it read.
                 styles = LoadedStyles(stylesPart);
                 effects = LoadedStyles(effectsPart);
                 styleCount = styles?.ChildElements.Count ?? 0;
                 effectCount = effects?.ChildElements.Count ?? 0;
+                cached.StyleDefinitions = styleDefinitions;
                 cached.StylesPart = stylesPart;
                 cached.StylesWithEffectsPart = effectsPart;
                 cached.Styles = styles;

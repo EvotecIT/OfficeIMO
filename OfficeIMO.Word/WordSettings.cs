@@ -252,11 +252,9 @@ namespace OfficeIMO.Word {
             document.Settings = this;
         }
 
-        private RunPropertiesBaseStyle? GetDefaultStyleProperties() {
-            return _document._wordprocessingDocument.MainDocumentPart?
-                .StyleDefinitionsPart?.Styles?
-                .DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
-        }
+        // Read-only: getters inspect the document defaults through the style catalog.
+        private RunPropertiesBaseStyle? GetDefaultStyleProperties() =>
+            WordStyleCatalog.For(_document).DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
 
         private RunPropertiesBaseStyle? SetDefaultStyleProperties() {
             _document.EnsureStyleDefinitionsInitialized();

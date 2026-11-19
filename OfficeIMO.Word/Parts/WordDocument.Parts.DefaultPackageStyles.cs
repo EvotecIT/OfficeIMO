@@ -103,6 +103,7 @@ public partial class WordDocument {
         using (var stream = new MemoryStream(extended.PartBytes!, writable: false)) {
             _defaultPackageStylesPart!.FeedData(stream);
         }
+        Interlocked.Increment(ref _styleDefinitionsRevision);
         _defaultPackageAppendedStyle = styleId;
         dependencies = extended.Dependencies[styleId];
         return true;

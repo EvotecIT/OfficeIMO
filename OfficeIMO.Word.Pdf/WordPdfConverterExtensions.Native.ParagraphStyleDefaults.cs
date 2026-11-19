@@ -369,8 +369,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (!hasDirectNumbering) AddTabs(numberingTabs);
-            AddTabs(paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?
-                .Styles?.DocDefaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.GetFirstChild<W.Tabs>());
+            if (paragraph._document != null) {
+                AddTabs(WordStyleCatalog.For(paragraph._document).DocumentDefaults?
+                    .ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.GetFirstChild<W.Tabs>());
+            }
             return tabStops.Values.OrderBy(tabStop => tabStop.Position).ToArray();
 
             void AddTabs(W.Tabs? tabs) {
@@ -394,28 +396,6 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
             }
-        }
-
-        private static bool IsNativeParagraphStyle(W.Style style) {
-            if (style.Type == null) {
-                return false;
-            }
-
-            string? type = string.IsNullOrWhiteSpace(style.Type.InnerText)
-                ? style.Type.Value.ToString()
-                : style.Type.InnerText;
-            return string.Equals(type, "paragraph", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static bool IsNativeCharacterStyle(W.Style style) {
-            if (style.Type == null) {
-                return false;
-            }
-
-            string? type = string.IsNullOrWhiteSpace(style.Type.InnerText)
-                ? style.Type.Value.ToString()
-                : style.Type.InnerText;
-            return string.Equals(type, "character", StringComparison.OrdinalIgnoreCase);
         }
 
         private static NativeParagraphBorders MergeNativeParagraphBorders(NativeParagraphBorders current, W.ParagraphBorders? borders) {

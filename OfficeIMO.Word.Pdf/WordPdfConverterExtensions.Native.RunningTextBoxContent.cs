@@ -119,9 +119,9 @@ public static partial class WordPdfConverterExtensions {
 
     /// <summary>Run-only box content cannot reproduce the paragraph's panel or patterned shading.</summary>
     private static bool HasNativeUnsupportedRunningTextBoxParagraphPaint(WordParagraph paragraph) {
-        W.ParagraphPropertiesBaseStyle? documentProperties = paragraph._document?._wordprocessingDocument?
-            .MainDocumentPart?.StyleDefinitionsPart?.Styles?.DocDefaults?.GetFirstChild<W.ParagraphPropertiesDefault>()?
-            .GetFirstChild<W.ParagraphPropertiesBaseStyle>();
+        W.ParagraphPropertiesBaseStyle? documentProperties = paragraph._document == null ? null
+            : WordStyleCatalog.For(paragraph._document).DocumentDefaults?.GetFirstChild<W.ParagraphPropertiesDefault>()?
+                .GetFirstChild<W.ParagraphPropertiesBaseStyle>();
         // A fill-only resolver discards auto/missing fills, which can still have a visible shading pattern.
         return HasNativeParagraphBorder(GetNativeEffectiveParagraphBorders(paragraph)) ||
             paragraph._paragraph.ParagraphProperties?.GetFirstChild<W.Shading>() != null ||

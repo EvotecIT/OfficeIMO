@@ -129,12 +129,13 @@ internal static partial class WordRunFormatting {
     }
 
     private static RunPropertiesBaseStyle? GetDocumentDefaultRunProperties(WordParagraph paragraph) =>
-        paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles?
-            .DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+        paragraph._document == null ? null
+            : WordStyleCatalog.For(paragraph._document).DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
 
     /// <summary>Enumerates character-style then paragraph-style run properties, each in override order.</summary>
     internal static IEnumerable<StyleRunProperties> EnumerateRunStyleProperties(WordParagraph paragraph) {
-        Styles? styles = paragraph._document?._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+        if (paragraph._document == null) yield break;
+        WordStyleCatalog styles = WordStyleCatalog.For(paragraph._document);
         foreach (Style style in GetStyleChain(styles, paragraph.CharacterStyleId, StyleValues.Character)) {
             if (style.StyleRunProperties != null) {
                 yield return style.StyleRunProperties;
@@ -151,27 +152,8 @@ internal static partial class WordRunFormatting {
     /// Enumerates a style and its ancestors in override order, using the default style only when no ID is supplied.
     /// Missing styles, mismatched style types, and inheritance cycles terminate the chain.
     /// </summary>
-    internal static IEnumerable<Style> EnumerateStyleChain(Styles? styles, string? styleId, StyleValues expectedType) {
-        if (styles == null) yield break;
-        if (string.IsNullOrWhiteSpace(styleId))
-            styleId = styles.Elements<Style>().FirstOrDefault(style =>
-                style.Type?.Value == expectedType && style.Default?.Value == true)?.StyleId?.Value;
-        if (string.IsNullOrWhiteSpace(styleId)) yield break;
-
-        HashSet<string> visited = new HashSet<string>(StringComparer.Ordinal);
-        while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
-            Style? style = styles.Elements<Style>()
-                .FirstOrDefault(candidate =>
-                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal) &&
-                    (candidate.Type == null || !candidate.Type.HasValue || candidate.Type.Value == expectedType));
-            if (style == null) {
-                yield break;
-            }
-
-            yield return style;
-            styleId = style.BasedOn?.Val?.Value;
-        }
-    }
+    internal static IEnumerable<Style> EnumerateStyleChain(Styles? styles, string? styleId, StyleValues expectedType) =>
+        WordStyleCatalog.ForLoaded(styles).EnumerateChain(styleId, expectedType);
 
     private static bool TryResolveShadingFillColor(
         Shading? shading,

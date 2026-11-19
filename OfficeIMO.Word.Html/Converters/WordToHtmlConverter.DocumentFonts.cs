@@ -41,12 +41,12 @@ namespace OfficeIMO.Word.Html {
 
         private static string? ResolveStyleFont(WordDocument document, string styleId) {
             var mainPart = document._wordprocessingDocument?.MainDocumentPart;
-            Styles? styles = mainPart?.StyleDefinitionsPart?.Styles;
-            if (styles == null) {
+            WordStyleCatalog styles = WordStyleCatalog.For(document);
+            if (mainPart?.StyleDefinitionsPart == null) {
                 return null;
             }
 
-            foreach (Style style in WordRunFormatting.EnumerateStyleChain(styles, styleId, StyleValues.Paragraph)) {
+            foreach (Style style in styles.EnumerateChain(styleId, StyleValues.Paragraph)) {
                 if (!string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal) &&
                     !string.Equals(styleId, "Normal", StringComparison.Ordinal) &&
                     string.Equals(style.StyleId?.Value, "Normal", StringComparison.Ordinal)) {
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            RunFonts? defaults = styles.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.RunFonts;
+            RunFonts? defaults = styles.DocumentDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.RunFonts;
             return ResolveRunFonts(defaults, mainPart);
         }
 
