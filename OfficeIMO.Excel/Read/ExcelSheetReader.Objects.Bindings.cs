@@ -114,8 +114,7 @@ namespace OfficeIMO.Excel {
             private const int HeaderBindingCacheLimit = 64;
             private const int HeaderBindingCacheCharacterLimit = 65_536;
 
-            internal static readonly PropertyInfo[] WritableProperties = typeof(TTarget)
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            internal static readonly PropertyInfo[] WritableProperties = PublicInstanceProperties.Get(typeof(TTarget))
                 .Where(p => p.CanWrite)
                 .ToArray();
 

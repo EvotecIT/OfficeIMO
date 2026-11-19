@@ -84,16 +84,6 @@ public sealed class CsvTypedRowsApiTests {
     }
 
     [Fact]
-    public void RowsAs_RejectsUsedHiddenPropertyAmbiguity() {
-        CsvDocument document = CsvDocument.Parse("Hidden\n42\n");
-
-        DataMappingException exception = Assert.Throws<DataMappingException>(() =>
-            document.RowsAs<HiddenDerivedRow>().ToArray());
-
-        Assert.Contains("with that exact name", exception.Message);
-    }
-
-    [Fact]
     public void ReaderRowsAs_MapsForwardOnlyRowsWithoutMaterializingADocument() {
         using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Order Id,Sales Channel,Amount\n42,Online,165258.24\n84,Partner,12.50\n"));
 

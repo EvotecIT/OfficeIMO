@@ -137,14 +137,13 @@ namespace OfficeIMO.Excel {
 
         private static PropertyInfo[] GetSimpleObjectExportProperties(
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type) {
-            var properties = type.GetProperties().Where(property => property.CanRead).ToArray();
+            var properties = PublicInstanceProperties.Get(type).Where(property => property.CanRead).ToArray();
             if (properties.Length == 0) {
                 return Array.Empty<PropertyInfo>();
             }
 
             for (int i = 0; i < properties.Length; i++) {
-                if (properties[i].GetIndexParameters().Length != 0
-                    || !IsObjectExportScalarType(properties[i].PropertyType)) {
+                if (!IsObjectExportScalarType(properties[i].PropertyType)) {
                     return Array.Empty<PropertyInfo>();
                 }
             }

@@ -666,7 +666,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var props = type.GetProperties().Where(p => p.CanRead);
+            var props = PublicInstanceProperties.Get(type).Where(p => p.CanRead);
             bool hasAny = false;
             foreach (var prop in props) {
                 hasAny = true;
