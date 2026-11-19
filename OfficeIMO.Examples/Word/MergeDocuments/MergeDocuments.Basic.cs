@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Word {
             using (var source = WordDocument.Load(sourcePath)) {
                 destination.AppendDocument(source);
                 destination.UpdateFields(new WordFieldUpdateOptions {
-                    UpdateTablesOfContents = true
+                    TablesOfContentsOnly = true
                 }.WithPdfLayoutPagination());
                 destination.SaveCopy(mergedPath);
                 if (openWord) destination.OpenInApplication(mergedPath);

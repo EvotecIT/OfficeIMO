@@ -10,6 +10,7 @@ namespace OfficeIMO.Word.Pdf {
                 CurrentDateTime = options.CurrentDateTime,
                 DateTimeFieldsOnly = options.DateTimeFieldsOnly,
                 UpdateTablesOfContents = options.UpdateTablesOfContents,
+                TablesOfContentsOnly = options.TablesOfContentsOnly,
                 UseLayoutPagination = true,
                 LayoutPaginationProvider = WordPdfLayoutPagination.Create
             };

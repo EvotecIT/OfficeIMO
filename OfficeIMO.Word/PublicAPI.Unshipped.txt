@@ -88,6 +88,8 @@ OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.set -> void
 OfficeIMO.Word.WordDocumentMergeOptions.WordDocumentMergeOptions() -> void
 *REMOVED*OfficeIMO.Word.WordDocumentRegexExtensions
 OfficeIMO.Word.WordFieldEvaluationBasis.LayoutPagination = 6 -> OfficeIMO.Word.WordFieldEvaluationBasis
+OfficeIMO.Word.WordFieldUpdateOptions.TablesOfContentsOnly.get -> bool
+OfficeIMO.Word.WordFieldUpdateOptions.TablesOfContentsOnly.set -> void
 OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.get -> bool
 OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.set -> void
 OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.get -> bool

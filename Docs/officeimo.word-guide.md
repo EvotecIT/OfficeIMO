@@ -549,6 +549,8 @@ document.UpdateFields(new WordFieldUpdateOptions {
 
 Each table of contents becomes a complete TOC field with one hyperlinked entry per heading and a `PAGEREF` page number, and the document is no longer flagged to update fields on open. Reference `OfficeIMO.Word.Pdf` and add `using OfficeIMO.Word.Pdf;` for `WithPdfLayoutPagination()`. This explicit engine selection lays out a copy of the document, so it costs about as much as a PDF conversion; without it, `PAGEREF` and `NUMPAGES` use explicit page and section breaks. Headings are paragraphs with `Heading1`-`Heading9` styles, heading styles copied by a merge (such as `heading 1_0`), or outline levels from the paragraph or its style.
 
+`TablesOfContentsOnly` regenerates the tables of contents the same way but refreshes only the fields inside them, their `PAGEREF` page numbers, and leaves every other field result as it is.
+
 ### Append documents
 
 `AppendDocument` copies another document's body together with the styles, lists, images, hyperlinks, headers, footers, footnotes, endnotes and comments it uses. List, note, comment, bookmark, drawing and content-control ids are renumbered, and bookmarks whose names already exist are renamed along with the hyperlinks and fields that target them.
@@ -560,9 +562,11 @@ foreach (string brief in briefs) {
     pack.AppendDocument(source);
 }
 
-pack.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true }.WithPdfLayoutPagination());
+pack.UpdateFields(new WordFieldUpdateOptions { TablesOfContentsOnly = true }.WithPdfLayoutPagination());
 pack.Save("pack.docx");
 ```
+
+Refresh only the tables of contents after appending. A full field update evaluates `DOCPROPERTY`, `TITLE`, `AUTHOR` and the other property fields in the appended content against the pack's own properties, so each brief would show the cover's values instead of its own.
 
 `StyleConflictMode` decides what happens when a source style matches a destination style by name (or id) but is defined differently. Matching styles with the same definition are shared, and styles the destination lacks are copied, in every mode:
 
