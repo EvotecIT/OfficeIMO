@@ -215,6 +215,30 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_PerCharacterPaintMeasuresLongTextInLinearWork() {
+        const int length = 20000;
+        string text = new string(Enumerable.Range(0, length).Select(index => (char)('a' + index % 26)).ToArray());
+        long measuredCharacters = 0;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 400D,
+            Margins = HtmlRenderMargins.All(0D),
+            AllowSystemFontFallback = false,
+            FallbackTextMeasurement = (value, font, _) => {
+                measuredCharacters += value.Length;
+                return value.Length * font.Size * 0.5D;
+            }
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style=\"font-family:'No Such Font';font-size:2px;letter-spacing:0.1px;margin:0\">" + text + "</p>", options);
+
+        // Painting every character in context must not measure every growing prefix of the line.
+        Assert.True(JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>().Count() >= length);
+        Assert.True(measuredCharacters <= 20L * length, "measured characters " + measuredCharacters);
+    }
+
+    [Fact]
     public void HtmlRenderer_InterWordJustificationKeepsWordsWhole() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<p style='text-align:justify;text-justify:inter-word;width:200px;margin:0'>漢字の文章は単語の間に空白がないので文字の間で両端揃えにする必要があります。 end</p>",

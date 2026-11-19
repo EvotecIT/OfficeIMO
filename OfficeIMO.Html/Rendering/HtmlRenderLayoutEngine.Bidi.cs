@@ -115,22 +115,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? shaped
             : MeasureText(text, font, style.FontDescriptor);
 
-    // Advances of text elements in their context: each starts where the measured text puts it, so pair
-    // kerning and other contextual adjustments stay where line layout measured them, and they sum to
-    // the width of the whole text.
+    // Advances of text elements in their context: each element's own width plus the pair adjustment with
+    // the next one, such as kerning, so characters sit where line layout measured them. One measurement of
+    // the whole text settles the last advance, so they sum to its width. The work is linear in the text.
     private double[] MeasureContextualAdvances(IReadOnlyList<string> elements, HtmlRenderBoxStyle style, OfficeFontInfo font) {
         var advances = new double[elements.Count];
         if (elements.Count == 0) return advances;
-        var starts = new double[elements.Count];
-        var prefix = new StringBuilder();
-        for (int index = 0; index < elements.Count; index++) {
-            prefix.Append(elements[index]);
-            if (index > 0) starts[index] = MeasureSpacedPaintText(prefix.ToString(), style, font) - MeasureSpacedPaintText(elements[index], style, font);
+        var widths = new Dictionary<string, double>(StringComparer.Ordinal);
+        var pairs = new Dictionary<string, double>(StringComparer.Ordinal);
+        double Width(string element) {
+            if (!widths.TryGetValue(element, out double width)) widths[element] = width = MeasureSpacedPaintText(element, style, font);
+            return width;
         }
-        double total = MeasureSpacedPaintText(prefix.ToString(), style, font);
+        double sum = 0D;
         for (int index = 0; index < elements.Count; index++) {
-            advances[index] = (index + 1 < elements.Count ? starts[index + 1] : total) - starts[index];
+            double advance = Width(elements[index]);
+            if (index + 1 < elements.Count) {
+                string pair = elements[index] + elements[index + 1];
+                if (!pairs.TryGetValue(pair, out double adjustment)) {
+                    pairs[pair] = adjustment = MeasureSpacedPaintText(pair, style, font) - advance - Width(elements[index + 1]);
+                }
+                advance += adjustment;
+            }
+            advances[index] = advance;
+            sum += advance;
         }
+        if (elements.Count > 1) advances[elements.Count - 1] += MeasureSpacedPaintText(string.Concat(elements), style, font) - sum;
         return advances;
     }
 
