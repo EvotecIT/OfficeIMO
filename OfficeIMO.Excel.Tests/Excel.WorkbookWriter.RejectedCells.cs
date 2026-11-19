@@ -8,6 +8,13 @@ namespace OfficeIMO.Tests;
 public class ExcelWorkbookWriterRejectedCellTests {
     private static readonly string TooLong = new('x', 32_768);
 
+    // A type the writers have no cell mapping for, so they write its text.
+    private sealed class TextOnlyValue {
+        private readonly string _text;
+        public TextOnlyValue(string text) => _text = text;
+        public override string ToString() => _text;
+    }
+
     [Theory]
     [InlineData(ExcelFileFormat.Xlsx)]
     [InlineData(ExcelFileFormat.Xlsb)]
@@ -18,6 +25,7 @@ public class ExcelWorkbookWriterRejectedCellTests {
             writer.WriteTable("Data", new[] { 1 }, new[] { "Skipped", "Text", "Number" }, (row, _) => {
                 row.WriteBlank();
                 Assert.Throws<ArgumentException>(() => row.Write(TooLong));
+                Assert.Throws<ArgumentException>(() => row.Write((object)new TextOnlyValue(TooLong)));
                 row.Write("ok").Write(5);
             });
         }

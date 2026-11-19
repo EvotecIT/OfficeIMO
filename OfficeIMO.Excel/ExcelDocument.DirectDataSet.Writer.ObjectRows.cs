@@ -176,6 +176,15 @@ namespace OfficeIMO.Excel {
                 if (_native != null) return WriteNativeValue(value);
                 if (value is string text) return Write(text);
                 if (value is byte[] bytes) return Write(System.Convert.ToBase64String(bytes));
+                if (value != null && value != DBNull.Value && DirectDataSetWorkbookWriter.WritesTextFallback(value)) {
+                    // Other types are written as their text; check its length before the cell starts.
+                    string fallback = value.ToString() ?? string.Empty;
+                    CoerceValueHelper.ValidateSharedStringLength(fallback, nameof(value));
+                    BeginCell();
+                    DirectDataSetWorkbookWriter.WriteInlineStringCell(_writer, fallback);
+                    return this;
+                }
+
                 BeginCell(value, useRuntimeStyle: true);
                 DirectDataSetWorkbookWriter.WriteCellValue(_writer, value, _dateTimeOffsetWriteStrategy, _dateSystem, _sharedStrings);
                 return this;
