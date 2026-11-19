@@ -48,7 +48,7 @@ public class WordCreateParagraphComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -145,7 +145,7 @@ public class WordCreateReportComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {

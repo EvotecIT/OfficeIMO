@@ -59,7 +59,7 @@ public class WordReadComparisonBenchmarks {
     public WordReadObservation OfficeIMOReaderStreamedText() => WordReaderTextWorkload.ReadStreamed(_fixture);
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);

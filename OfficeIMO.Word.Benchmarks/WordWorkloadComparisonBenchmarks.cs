@@ -43,7 +43,7 @@ public class WordCreateImageComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX")]
     public byte[] DocX() {
         using var stream = new MemoryStream();
         using (XceedDocX document = XceedDocX.Create(stream)) {
@@ -150,7 +150,7 @@ public class WordTemplateFillComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX")]
     public byte[] DocX() {
         using var input = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(input);
@@ -243,7 +243,7 @@ public class WordReadTableComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);

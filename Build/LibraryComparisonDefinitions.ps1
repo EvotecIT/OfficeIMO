@@ -1,4 +1,6 @@
 # Shared workload declarations for collection and site generation. Loading this file performs no work.
+# Further suites are declared per area in Build/LibraryComparisonDefinitions/<area>.ps1; each file takes -Framework
+# and returns an ordered dictionary of workloads in the same shape.
 # PublishRestriction records why a comparison's shape is unpublishable. Licence restrictions come from the
 # libraries in Build/benchmark-libraries.json; the runner derives publishability from both.
 function Get-LibraryComparisonDefinitions {
@@ -1153,6 +1155,17 @@ function Get-LibraryComparisonDefinitions {
             )
         }
 
+    }
+
+    $areaRoot = Join-Path $PSScriptRoot 'LibraryComparisonDefinitions'
+    foreach ($file in @(if (Test-Path -LiteralPath $areaRoot) { Get-ChildItem -LiteralPath $areaRoot -Filter '*.ps1' -File | Sort-Object Name })) {
+        $areaDefinitions = & $file.FullName -Framework $Framework
+        foreach ($entry in $areaDefinitions.GetEnumerator()) {
+            if ($definitions.Contains($entry.Key)) {
+                throw "Workload '$($entry.Key)' in $($file.Name) is already declared."
+            }
+            $definitions[$entry.Key] = $entry.Value
+        }
     }
 
     return $definitions

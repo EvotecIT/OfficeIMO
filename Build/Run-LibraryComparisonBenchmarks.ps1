@@ -120,10 +120,12 @@ $includeAll = 'all' -in $Workload
 $explicitWorkloads = @(
     foreach ($requested in $Workload) {
         if ($requested -eq 'all') { continue }
-        if ($requested -eq 'word') { 'wordcreate'; 'wordreport'; 'wordread'; 'wordreplace' }
-        elseif ($requested -eq 'powerpoint') { 'pptxcreate'; 'pptxedit' }
-        elseif ($definitions.Contains($requested)) { $requested }
-        else { throw "Unknown workload '$requested'. Choose all, word, powerpoint, or: $($definitions.Keys -join ', ')." }
+        if ($definitions.Contains($requested)) { $requested; continue }
+        # An area name selects every workload of that area.
+        $areaWorkloads = @($definitions.Keys | Where-Object { $definitions[$_].Area -eq $requested })
+        if ($areaWorkloads.Count -gt 0) { $areaWorkloads; continue }
+        $areas = @($definitions.Values | ForEach-Object { $_.Area } | Sort-Object -Unique)
+        throw "Unknown workload '$requested'. Choose all, an area ($($areas -join ', ')), or: $($definitions.Keys -join ', ')."
     }
 )
 $selected = @(@(if ($includeAll) { $definitions.Keys }; $explicitWorkloads) | Select-Object -Unique)

@@ -114,7 +114,8 @@ function Get-BenchmarkMethodIdentity {
     .DESCRIPTION
     The method name starts with its library ("MagickNETEncode" is Magick.NET's "Encode" case, "Sylvan" is the
     Sylvan library's default case). A comparison of one library uses the method name as its case. Methods that do
-    not follow the pattern are listed in $BenchmarkMethodIdentityOverrides. Ambiguous or unmatched methods fail, so
+    not follow the pattern are listed in the definition's MethodIdentity ("Method" = "Library|Case") or in
+    $BenchmarkMethodIdentityOverrides. Ambiguous or unmatched methods fail, so
     the importer never has to guess.
     .OUTPUTS
     An object with Library (declared id) and Case.
@@ -129,6 +130,9 @@ function Get-BenchmarkMethodIdentity {
 
     $comparisonLibraries = @($Definition.Libraries | ForEach-Object { Resolve-BenchmarkDeclaredLibrary -Libraries $Libraries -Name $_ })
     $override = $script:BenchmarkMethodIdentityOverrides["$Workload|$Method"]
+    if ($null -ne $Definition.PSObject.Properties['MethodIdentity'] -and $Definition.MethodIdentity.Contains($Method)) {
+        $override = [string] $Definition.MethodIdentity[$Method]
+    }
     if ($null -ne $override) {
         $libraryName, $case = $override -split '\|', 2
         return [pscustomobject]@{ Library = (Resolve-BenchmarkDeclaredLibrary -Libraries $Libraries -Name $libraryName).Id; Case = $case }

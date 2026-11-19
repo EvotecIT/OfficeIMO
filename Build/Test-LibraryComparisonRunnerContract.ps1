@@ -418,4 +418,7 @@ if ($acceptingProjects.Count -gt 0) {
     throw "Project files accept NPOI's OSMF EULA by default: $($acceptingProjects.Name -join ', ')."
 }
 
+# Library and case categories in benchmark code must name what the declarations derive.
+& (Join-Path $PSScriptRoot 'Test-BenchmarkCategories.ps1') | Out-Null
+
 Write-Host 'Library comparison runner policy verified for the library policy, standalone diagnostics, canonical PDF structured read, HTML-to-PDF route health, and mixed comparison selection.'

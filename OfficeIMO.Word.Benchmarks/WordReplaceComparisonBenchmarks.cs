@@ -48,7 +48,7 @@ public class WordReplaceComparisonBenchmarks {
     }
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX")]
     public byte[] DocX() {
         using var input = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(input);

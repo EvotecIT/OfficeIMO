@@ -11,8 +11,8 @@ namespace OfficeIMO.Benchmarks;
 internal static class BenchmarkLibrarySelection {
     internal const string EnabledLibrariesVariable = "OFFICEIMO_BENCHMARK_ENABLED_LIBRARIES";
 
-    /// <summary>BenchmarkDotNet category prefix that marks a restricted library's cases, as in <c>Library:epplus</c>.</summary>
-    internal const string CategoryPrefix = "Library:";
+    /// <summary>BenchmarkDotNet category prefix that marks a restricted library's cases with its declared id, as in <c>library:EPPlus</c>.</summary>
+    internal const string CategoryPrefix = "library:";
 
     /// <summary>Whether the restricted library <paramref name="libraryId"/> is enabled for this process.</summary>
     internal static bool IsEnabled(string libraryId) {
