@@ -1,9 +1,22 @@
+using OfficeIMO.Benchmarks;
 using OfficeIMO.Invoicing.Validation;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Invoicing.Benchmarks;
 
 internal static class InvoiceBenchmarkCorrectness {
+    /// <summary>Runs one operation's correctness check outside timing and records the outcome for the evidence catalog.</summary>
+    internal static void Record(string caseName, string detail, Action validate) {
+        try {
+            validate();
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed("OfficeIMO", detail + ": " + exception.Message, caseName);
+            throw;
+        }
+
+        BenchmarkOutputValidationLog.Passed("OfficeIMO", detail, caseName);
+    }
+
     internal static void Write(byte[] xml, InvoiceBenchmarkCorpus corpus) {
         if (!xml.SequenceEqual(corpus.Xml))
             throw new InvalidDataException("The XML write workload did not reproduce the canonical equivalent corpus.");

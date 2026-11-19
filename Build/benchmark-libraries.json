@@ -245,6 +245,15 @@
       "reason": "MIT."
     },
     {
+      "id": "anglesharp",
+      "name": "AngleSharp",
+      "packages": [ { "id": "AngleSharp", "version": "1.8.3" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
       "id": "system-io-compression",
       "name": "System.IO.Compression",
       "packages": [],
