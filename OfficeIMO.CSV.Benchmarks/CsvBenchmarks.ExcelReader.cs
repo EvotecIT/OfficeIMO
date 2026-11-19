@@ -6,6 +6,7 @@ namespace OfficeIMO.CSV.Benchmarks;
 public partial class CsvBenchmarks {
     /// <summary>Materializes every field, matching the string accessors used by the other raw read lanes.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:ReadFields")]
     public int ExcelReaderNet_ReadFields() {
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
         int fieldCount = 0;
@@ -43,16 +44,45 @@ public class CsvExcelReaderGeneratedBenchmarks {
         OfficeIMO.Benchmarks.BenchmarkProcessPriority.ApplyConfiguredPriority();
         _workload.Setup();
         _workload.ValidateGeneratedUtf8Reads();
+        // Setup checked every lane below value by value against the generated rows and threw on any mismatch.
+        foreach (string lane in new[] {
+            nameof(OfficeIMO_Read), nameof(ExcelReaderNet_Read), nameof(Sylvan_Read), nameof(Sep_Read), nameof(CsvHelper_Read),
+            nameof(Dataplat_Read), nameof(OfficeIMO_Parse), nameof(ExcelReaderNet_Parse), nameof(CsvHelper_Parse),
+            nameof(OfficeIMO_Write), nameof(ExcelReaderNet_Write) }) {
+            CsvBenchmarkOutputValidator.RecordPassed(lane, "RowCount=50000; Shape=Mixed; every field compared with the generated rows");
+        }
     }
-    [Benchmark] public int OfficeIMO_Read() => _workload.OfficeIMO_ReadStreamGetStrings();
-    [Benchmark] public int ExcelReaderNet_Read() => _workload.ExcelReaderNet_ReadFields();
-    [Benchmark] public int Sylvan_Read() => _workload.Sylvan_ReadUtf8Fields();
-    [Benchmark] public int Sep_Read() => _workload.Sep_ReadUtf8Fields();
-    [Benchmark] public int CsvHelper_Read() => _workload.CsvHelper_ReadUtf8Fields();
-    [Benchmark] public int Dataplat_Read() => _workload.Dataplat_ReadUtf8Fields();
-    [Benchmark] public int OfficeIMO_Parse() => _workload.OfficeIMO_ReadTypedRowsStream();
-    [Benchmark] public int ExcelReaderNet_Parse() => _workload.ExcelReaderNet_ReadTypedRecords();
-    [Benchmark] public int CsvHelper_Parse() => _workload.CsvHelper_ReadTypedRecordsUtf8();
-    [Benchmark] public int OfficeIMO_Write() => _workload.OfficeIMO_WriteProjectedRowsUtf8();
-    [Benchmark] public int ExcelReaderNet_Write() => _workload.ExcelReaderNet_WriteProjectedRows();
+    [BenchmarkCategory("library:OfficeIMO", "case:Read")]
+    [Benchmark]
+    public int OfficeIMO_Read() => _workload.OfficeIMO_ReadStreamGetStrings();
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Read")]
+    [Benchmark]
+    public int ExcelReaderNet_Read() => _workload.ExcelReaderNet_ReadFields();
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:Read")]
+    [Benchmark]
+    public int Sylvan_Read() => _workload.Sylvan_ReadUtf8Fields();
+    [BenchmarkCategory("library:Sep", "case:Read")]
+    [Benchmark]
+    public int Sep_Read() => _workload.Sep_ReadUtf8Fields();
+    [BenchmarkCategory("library:CsvHelper", "case:Read")]
+    [Benchmark]
+    public int CsvHelper_Read() => _workload.CsvHelper_ReadUtf8Fields();
+    [BenchmarkCategory("library:Dataplat.Dbatools.Csv", "case:Read")]
+    [Benchmark]
+    public int Dataplat_Read() => _workload.Dataplat_ReadUtf8Fields();
+    [BenchmarkCategory("library:OfficeIMO", "case:Parse")]
+    [Benchmark]
+    public int OfficeIMO_Parse() => _workload.OfficeIMO_ReadTypedRowsStream();
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Parse")]
+    [Benchmark]
+    public int ExcelReaderNet_Parse() => _workload.ExcelReaderNet_ReadTypedRecords();
+    [BenchmarkCategory("library:CsvHelper", "case:Parse")]
+    [Benchmark]
+    public int CsvHelper_Parse() => _workload.CsvHelper_ReadTypedRecordsUtf8();
+    [BenchmarkCategory("library:OfficeIMO", "case:Write")]
+    [Benchmark]
+    public int OfficeIMO_Write() => _workload.OfficeIMO_WriteProjectedRowsUtf8();
+    [BenchmarkCategory("library:ExcelReader.NET", "case:Write")]
+    [Benchmark]
+    public int ExcelReaderNet_Write() => _workload.ExcelReaderNet_WriteProjectedRows();
 }

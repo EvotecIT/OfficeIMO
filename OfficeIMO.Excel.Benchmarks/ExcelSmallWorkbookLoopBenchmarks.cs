@@ -22,14 +22,23 @@ public class ExcelSmallWorkbookLoopBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _workbooks = new byte[Files][];
+        // Text cells add their length and number cells their value, the observation every lane returns.
+        double expected = 0;
         for (int file = 0; file < Files; file++) {
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Create(output)) {
                 ExcelSheet sheet = document.AddSheet("Export");
                 for (int row = 1; row <= Rows; row++) {
                     for (int column = 1; column <= Columns; column++) {
-                        if (column % 2 == 1) sheet.Cell(row, column).SetValue($"F{file}-R{row}-C{column}");
-                        else sheet.Cell(row, column).SetValue(file * 1000 + row * 10 + column + 0.5);
+                        if (column % 2 == 1) {
+                            string text = $"F{file}-R{row}-C{column}";
+                            sheet.Cell(row, column).SetValue(text);
+                            expected += text.Length;
+                        } else {
+                            double number = file * 1000 + row * 10 + column + 0.5;
+                            sheet.Cell(row, column).SetValue(number);
+                            expected += number;
+                        }
                     }
                 }
                 document.Save(output);
@@ -37,13 +46,20 @@ public class ExcelSmallWorkbookLoopBenchmarks {
             _workbooks[file] = output.ToArray();
         }
 
-        double expected = OfficeIMO_Open_Read();
-        if (ClosedXML_Open_Read() != expected || OpenXml_Open_Read() != expected) {
-            throw new InvalidDataException("The libraries read different values from the same workbooks.");
+        string detail = $"{Files} workbooks of {Rows}x{Columns} cells; every text length and number summed and compared with the generated values";
+        ExcelOutputValidation.Check("OfficeIMO", "Open_Read", detail, () => CheckObservation(OfficeIMO_Open_Read(), expected));
+        ExcelOutputValidation.Check("ClosedXML", "Open_Read", detail, () => CheckObservation(ClosedXML_Open_Read(), expected));
+        ExcelOutputValidation.Check("Open XML SDK", "Open_Read", detail, () => CheckObservation(OpenXml_Open_Read(), expected));
+    }
+
+    private static void CheckObservation(double actual, double expected) {
+        if (actual != expected) {
+            throw new InvalidDataException($"Read observation {actual} differs from the generated workbooks' {expected}.");
         }
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Open_Read")]
     public double OfficeIMO_Open_Read() {
         double checksum = 0;
         foreach (byte[] workbook in _workbooks) {
@@ -56,6 +72,7 @@ public class ExcelSmallWorkbookLoopBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Open_Read")]
     public double ClosedXML_Open_Read() {
         double checksum = 0;
         foreach (byte[] workbook in _workbooks) {
@@ -68,6 +85,7 @@ public class ExcelSmallWorkbookLoopBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Open_Read")]
     public double OpenXml_Open_Read() {
         double checksum = 0;
         foreach (byte[] workbook in _workbooks) {

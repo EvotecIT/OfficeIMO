@@ -32,14 +32,18 @@ public class WordLoadBenchmarks {
             _document = document.ToBytes();
         }
 
-        int images = Load();
-        if (images != ImageCount) {
-            throw new InvalidOperationException("Loading found " + images + " images; expected " + ImageCount + ".");
-        }
+        WordBenchmarkCorpus.Check("OfficeIMO", string.Empty,
+            $"ImageCount={ImageCount}; AccessMode={AccessMode}; the loaded document exposes all {ImageCount} images", () => {
+                int images = Load();
+                if (images != ImageCount) {
+                    throw new InvalidOperationException("Loading found " + images + " images; expected " + ImageCount + ".");
+                }
+            });
         Console.WriteLine("// Input bytes: " + InputBytes);
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Load")]
     public int Load() {
         using var stream = new MemoryStream(_document, writable: false);
         using WordDocument document = WordDocument.Load(stream, new WordLoadOptions { AccessMode = AccessMode });

@@ -23,13 +23,16 @@ public class HtmlToMarkdownBenchmarks {
         HtmlToMarkdownBenchmarkValidation.AssertDefaultEquivalent(
             CorpusName,
             OfficeIMO_Default_Profile(),
-            ReverseMarkdown_Default_Profile());
+            ReverseMarkdown_Default_Profile(),
+            recordValidation: true);
     }
 
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default_Profile")]
     public string OfficeIMO_Default_Profile() => HtmlConversionDocument.Parse(_html).ToMarkdown(_officeOptions).ToMarkdown();
 
     [Benchmark(Description = "ReverseMarkdown")]
+    [BenchmarkCategory("library:ReverseMarkdown", "case:Default_Profile")]
     public string ReverseMarkdown_Default_Profile() => _reverseDefault.Convert(_html);
 }
 

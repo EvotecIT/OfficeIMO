@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Archives.Benchmarks;
 
@@ -19,21 +20,42 @@ public class ZipTraversalComparisonBenchmarks {
     public void Setup() {
         ZipBenchmarkScale scale = ZipComparisonCorpus.Get(Scale);
         _input = ZipComparisonCorpus.CreateArchive(scale);
-        ZipComparisonValidation.Validate(scale, _input);
+        ZipComparisonReport report;
+        try {
+            report = ZipComparisonValidation.Validate(scale, _input);
+        } catch (InvalidOperationException exception) {
+            BenchmarkOutputValidationLog.Failed("OfficeIMO", $"Scale={Scale}; {exception.Message}");
+            BenchmarkOutputValidationLog.Failed("System.IO.Compression", $"Scale={Scale}; {exception.Message}");
+#if NET10_0_OR_GREATER
+            BenchmarkOutputValidationLog.Failed("OneArchive", $"Scale={Scale}; {exception.Message}");
+#endif
+            throw;
+        }
+
+        // Every projection carries the expected file count and uncompressed bytes and the same names, depths, sizes and
+        // timestamps (one structural fingerprint).
+        string detail = $"Scale={Scale}; {report.EntryCount} files, {report.TotalUncompressedBytes} uncompressed bytes, fingerprint {report.StructuralFingerprint}";
+        BenchmarkOutputValidationLog.Passed("OfficeIMO", detail);
+        BenchmarkOutputValidationLog.Passed("System.IO.Compression", detail);
+#if NET10_0_OR_GREATER
+        BenchmarkOutputValidationLog.Passed("OneArchive", detail);
+#endif
     }
 
     /// <summary>Traverses metadata with OfficeIMO path and expansion-safety policy.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public ArchiveTraversalResult OfficeIMO() => ZipComparisonWorkflows.TraverseOffice(_input);
 
     /// <summary>Traverses the same safe archive through raw platform metadata projection.</summary>
     [Benchmark(Description = "System.IO.Compression")]
+    [BenchmarkCategory("library:System.IO.Compression", "case:Default")]
     public IReadOnlyList<ZipProjectionDescriptor> Platform() => ZipComparisonWorkflows.TraversePlatform(_input);
 #if NET10_0_OR_GREATER
 
     /// <summary>Lists the same archive through OneArchive with its default reading limits.</summary>
     [Benchmark(Description = "OneArchive")]
-    [BenchmarkCategory("library:onearchive")]
+    [BenchmarkCategory("library:OneArchive", "case:Default")]
     public IReadOnlyList<ZipProjectionDescriptor> OneArchive() => ZipComparisonWorkflows.TraverseOneArchive(_input);
 #endif
 }

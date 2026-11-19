@@ -57,6 +57,6 @@ BenchmarkDotNet artifacts are machine-specific. Keep them under the ignored
 `.benchmark-artifacts` root or another temporary location and publish only
 environment-qualified results.
 
-The [2026-10-03 model memory evidence](../Docs/benchmarks/officeimo.latex-model-memory-2026-10-03.md)
+The 2026-10-03 model memory evidence
 records controlled comparisons, native platform qualification and the allocation
 tradeoff when callers inspect every public token.

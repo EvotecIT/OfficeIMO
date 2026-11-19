@@ -65,21 +65,27 @@ public class CsvTsvDialectBenchmarks
     public void Cleanup() => Directory.Delete(Path.GetDirectoryName(_csvPath)!, recursive: true);
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Csv_TextReader")]
     public long Csv_TextReader() => ReadAll(CsvDocument.OpenReader(new StringReader(_csvText), _csvOptions));
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Tsv_TextReader")]
     public long Tsv_TextReader() => ReadAll(CsvDocument.OpenReader(new StringReader(_tsvText), _tsvOptions));
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Csv_PathReader")]
     public long Csv_PathReader() => ReadAll(CsvDocument.OpenReader(_csvPath, _csvOptions));
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Tsv_PathReader")]
     public long Tsv_PathReader() => ReadAll(CsvDocument.OpenReader(_tsvPath, _tsvOptions));
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Csv_FieldSpans")]
     public long Csv_FieldSpans() => SumSpans(_csvText, _csvOptions);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Tsv_FieldSpans")]
     public long Tsv_FieldSpans() => SumSpans(_tsvText, _tsvOptions);
 
     private static long ReadAll(CsvDataReader reader)

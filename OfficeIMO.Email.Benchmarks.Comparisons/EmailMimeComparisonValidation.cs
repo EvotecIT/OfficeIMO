@@ -4,6 +4,7 @@ using MimeKit;
 #if NET10_0_OR_GREATER
 using OneMailApi = RecursiveAI.OneMail;
 #endif
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Email.Benchmarks.Comparisons;
 
@@ -56,6 +57,43 @@ internal static class EmailMimeComparisonValidation {
             mimeOutput.Length,
             expected.Attachments.Count,
             expected.Attachments.Sum(attachment => attachment.Length));
+    }
+
+    /// <summary>
+    /// Compares what each reader recovered from one library's lane with the corpus' expected headers, bodies and
+    /// decoded attachments, records the result for <paramref name="library"/> and throws on a mismatch.
+    /// </summary>
+    internal static void RecordLane(
+        string library,
+        string scaleName,
+        EmailMimeObservation expected,
+        params (string Reader, EmailMimeObservation Observation)[] observations) {
+        string detail = $"Scale={scaleName}; subject, From, {expected.To.Count} To, {expected.Cc.Count} Cc, " +
+            $"text body {expected.TextBody.Length} chars, HTML body {expected.HtmlBody.Length} chars, " +
+            $"{expected.Attachments.Count} attachments ({expected.Attachments.Sum(attachment => attachment.Length)} bytes, SHA-256)";
+        foreach ((string reader, EmailMimeObservation observation) in observations) {
+            if (!Equivalent(expected, observation)) {
+                string message = $"Email MIME content read by {reader} does not match the expected message: {Describe(expected, observation)}.";
+                BenchmarkOutputValidationLog.Failed(library, detail + "; " + message);
+                throw new InvalidOperationException(message);
+            }
+        }
+
+        BenchmarkOutputValidationLog.Passed(
+            library,
+            detail + "; matched through " + string.Join(" and ", observations.Select(observation => observation.Reader)));
+    }
+
+    private static string Describe(EmailMimeObservation expected, EmailMimeObservation actual) {
+        var differences = new List<string>();
+        if (expected.Subject != actual.Subject) differences.Add("subject");
+        if (expected.From != actual.From) differences.Add("From");
+        if (!expected.To.SequenceEqual(actual.To, StringComparer.Ordinal)) differences.Add("To");
+        if (!expected.Cc.SequenceEqual(actual.Cc, StringComparer.Ordinal)) differences.Add("Cc");
+        if (expected.TextBody != actual.TextBody) differences.Add($"text body ({actual.TextBody.Length} of {expected.TextBody.Length} chars)");
+        if (expected.HtmlBody != actual.HtmlBody) differences.Add($"HTML body ({actual.HtmlBody.Length} of {expected.HtmlBody.Length} chars)");
+        if (!expected.Attachments.SequenceEqual(actual.Attachments)) differences.Add($"attachments ({actual.Attachments.Count} of {expected.Attachments.Count})");
+        return string.Join(", ", differences);
     }
 
     internal static int ConsumeOffice(byte[] input) {
@@ -200,7 +238,7 @@ internal static class EmailMimeComparisonValidation {
 
     private static string NormalizeAddress(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
 
-    private static string NormalizeBody(string? value) =>
+    internal static string NormalizeBody(string? value) =>
         (value ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').TrimEnd();
 
     private static void RequireEqual(

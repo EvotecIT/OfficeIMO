@@ -25,9 +25,11 @@ public class OdsCreateComparisonBenchmarks {
 
     /// <summary>Creates the complete ODS package through OfficeIMO.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public byte[] OfficeIMO() => OdsComparisonWorkflows.CreateOfficeIMO(_scale);
 
     /// <summary>Creates the same complete ODS package through OpenStandardLibrary.</summary>
     [Benchmark(Description = "OpenStandardLibrary")]
+    [BenchmarkCategory("library:OpenStandardLibrary", "case:Default")]
     public Task<byte[]> OpenStandardLibrary() => OdsComparisonWorkflows.CreateOpenStandardLibrary(_scale);
 }

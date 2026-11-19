@@ -32,16 +32,21 @@ public class WordMarkdownConversionBenchmarks {
         _markdown = builder.ToString();
         _document = ConvertMarkdownToWord();
 
-        Validate();
+        WordBenchmarkCorpus.Check("OfficeIMO", string.Empty,
+            $"SectionCount={SectionCount}; {SectionCount} Word tables, and {SectionCount} headings, table rows and list items in the Markdown and chunk output",
+            Validate);
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:MarkdownToWord")]
     public int MarkdownToWord() => ConvertMarkdownToWord().Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WordToMarkdown")]
     public int WordToMarkdown() => ConvertWordToMarkdown().Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WordToMarkdownChunks")]
     public int WordToMarkdownChunks() {
         using var stream = new MemoryStream(_document, writable: false);
         using WordDocument document = WordDocument.Load(stream);

@@ -24,10 +24,13 @@ public class WordHtmlImportBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _html = BuildHtml(Shape, BlockCount);
-        Validate();
+        WordBenchmarkCorpus.Check("OfficeIMO", string.Empty,
+            $"Shape={Shape}; BlockCount={BlockCount}; reloaded DOCX has the expected marker paragraphs and {Shape} content",
+            Validate);
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:HtmlToWord")]
     public int HtmlToWord() => ConvertHtmlToWord().Length;
 
     private byte[] ConvertHtmlToWord() {

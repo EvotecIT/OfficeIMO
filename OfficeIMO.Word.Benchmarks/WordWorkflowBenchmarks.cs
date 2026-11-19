@@ -68,10 +68,13 @@ public class WordWorkflowBenchmarks {
             macro.Save();
         }
 
-        ValidateWorkflowResults();
+        WordBenchmarkCorpus.Check("OfficeIMO", string.Empty,
+            $"ItemCount={ItemCount}; field, merge, load, HTML (parsed with AngleSharp), macro and comparison results match the corpus",
+            ValidateWorkflowResults);
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:UpdateFields")]
     public int UpdateFields() {
         using var stream = new MemoryStream(_fieldDocument, writable: false);
         using WordDocument document = WordDocument.Load(stream);
@@ -79,6 +82,7 @@ public class WordWorkflowBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ExecuteMailMerge")]
     public int ExecuteMailMerge() {
         using var stream = new MemoryStream(_mergeDocument, writable: false);
         using WordDocument document = WordDocument.Load(stream);
@@ -86,9 +90,11 @@ public class WordWorkflowBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ExportHtml")]
     public int ExportHtml() => ExportHtmlDocument().Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:LoadDocument")]
     public int LoadDocument() {
         using var stream = new MemoryStream(_htmlDocument, writable: false);
         using WordDocument document = WordDocument.Load(stream);
@@ -96,12 +102,15 @@ public class WordWorkflowBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ExportLoadedHtml")]
     public int ExportLoadedHtml() => _loadedHtmlDocument.ToHtml().Length;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:CompareStructure")]
     public int CompareStructure() => WordDocumentComparer.CompareStructure(_sourcePath, _targetPath).Findings.Count;
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:InspectMacroSignatures")]
     public long InspectMacroSignatures() =>
         WordDocument.InspectMacroProjectSignatures(_macroPath).MacroProjectLength ?? 0;
 

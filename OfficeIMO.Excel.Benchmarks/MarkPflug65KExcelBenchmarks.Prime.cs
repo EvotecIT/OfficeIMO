@@ -6,9 +6,11 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 public partial class MarkPflug65KXlsxBenchmarks {
     [Benchmark]
+    [BenchmarkCategory("library:Excel-PRIME", "case:Default")]
     public ExcelReadObservation ExcelPrime() => ReadExcelPrime(styledTypes: false);
 
     [Benchmark]
+    [BenchmarkCategory("library:Excel-PRIME", "case:TypedStyles")]
     public ExcelReadObservation ExcelPrime_TypedStyles() => ReadExcelPrime(styledTypes: true);
 
     private ExcelReadObservation ReadExcelPrime(bool styledTypes) {
@@ -20,9 +22,11 @@ public partial class MarkPflug65KXlsxBenchmarks {
 
 public partial class MarkPflug65KXlsbBenchmarks {
     [Benchmark]
+    [BenchmarkCategory("library:Excel-PRIME", "case:Default")]
     public ExcelReadObservation ExcelPrime() => ReadExcelPrime(styledTypes: false);
 
     [Benchmark]
+    [BenchmarkCategory("library:Excel-PRIME", "case:TypedStyles")]
     public ExcelReadObservation ExcelPrime_TypedStyles() => ReadExcelPrime(styledTypes: true);
 
     private ExcelReadObservation ReadExcelPrime(bool styledTypes) {

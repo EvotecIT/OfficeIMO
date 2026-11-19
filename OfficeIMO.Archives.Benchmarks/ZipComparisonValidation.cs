@@ -38,6 +38,11 @@ internal static class ZipComparisonValidation {
             throw new InvalidOperationException(
                 $"{scale.Name} returned {officeObservation.EntryCount} files; expected {scale.FileCount}.");
         }
+        long expectedBytes = (long)scale.FileCount * scale.PayloadBytes;
+        if (officeObservation.TotalUncompressedBytes != expectedBytes) {
+            throw new InvalidOperationException(
+                $"{scale.Name} reported {officeObservation.TotalUncompressedBytes} uncompressed bytes; expected {expectedBytes}.");
+        }
 
         return new ZipComparisonReport(
             scale.Name,

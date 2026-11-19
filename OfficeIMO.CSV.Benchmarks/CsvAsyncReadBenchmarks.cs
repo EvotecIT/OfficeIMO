@@ -83,6 +83,7 @@ public class CsvAsyncReadBenchmarks
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMO_Snapshot")]
     public async Task<ReadChecksum> OfficeIMO_Snapshot()
     {
         var document = await CsvDocument.LoadAsync(_path).ConfigureAwait(false);
@@ -91,6 +92,7 @@ public class CsvAsyncReadBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:OfficeIMO_Incremental")]
     public async Task<ReadChecksum> OfficeIMO_Incremental()
     {
         using var reader = await CsvDocument.OpenReaderAsync(_path).ConfigureAwait(false);
@@ -122,14 +124,25 @@ public class CsvAsyncReadBenchmarks
         {
             var expected = Values(++rows);
             if (reader.GetString(0) != expected.Id || reader.GetString(1) != expected.Name || reader.GetString(2) != expected.Notes)
+            {
+                BenchmarkOutputValidationLog.Failed("OfficeIMO", $"RowCount={RowCount}; Shape={Shape}; Operation={Operation}; field mismatch at row {rows}",
+                    incremental ? nameof(OfficeIMO_Incremental) : nameof(OfficeIMO_Snapshot));
                 throw new InvalidDataException($"CSV async {incremental} field mismatch at row {rows}.");
+            }
             if (Operation == AsyncReadOperation.FirstRow) break;
         }
         ReadChecksum actual = incremental
             ? await OfficeIMO_Incremental().ConfigureAwait(false)
             : await OfficeIMO_Snapshot().ConfigureAwait(false);
+        string caseName = incremental ? nameof(OfficeIMO_Incremental) : nameof(OfficeIMO_Snapshot);
+        string detail = $"RowCount={RowCount}; Shape={Shape}; Operation={Operation}; {caseName}: {rows} rows of generated values, checksum {actual}";
         if (rows != _expected.Rows || actual != _expected)
+        {
+            BenchmarkOutputValidationLog.Failed("OfficeIMO", detail + $"; expected {_expected}", caseName);
             throw new InvalidDataException($"CSV async {incremental} checksum mismatch: {actual} versus {_expected}.");
+        }
+
+        BenchmarkOutputValidationLog.Passed("OfficeIMO", detail, caseName);
     }
 
     private (string Id, string Name, string Notes) Values(int id)

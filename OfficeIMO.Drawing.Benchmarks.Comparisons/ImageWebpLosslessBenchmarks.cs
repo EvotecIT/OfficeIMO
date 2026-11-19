@@ -19,12 +19,13 @@ public class ImageWebpLosslessEncodeBenchmarks {
         ImageComparisonAdapters.ConfigureMagickWebpLossless(_magick);
         byte[] officeEncoded = ImageComparisonAdapters.EncodeOfficeImoWebpLossless(_image);
         byte[] magickEncoded = ImageComparisonAdapters.EncodeMagickWebpLossless(_magick);
-        ImageComparisonValidation.ValidateLosslessInterchange(
-            "lossless WebP encode benchmark", _image, officeEncoded, magickEncoded, OfficeImageFormat.Webp);
 #if NET10_0_OR_GREATER
         _oneImage = OneImageComparisonAdapters.CreateImage(_image.GetPixels(), _image.Width, _image.Height);
-        ImageComparisonValidation.ValidateOneImageLosslessInterchange(
-            "lossless WebP encode benchmark", _image, OneImageEncode(), officeEncoded, magickEncoded, OfficeImageFormat.Webp);
+        ImageComparisonValidation.ValidateLosslessEncode(
+            "lossless WebP", _image, officeEncoded, magickEncoded, OfficeImageFormat.Webp, OneImageEncode());
+#else
+        ImageComparisonValidation.ValidateLosslessEncode(
+            "lossless WebP", _image, officeEncoded, magickEncoded, OfficeImageFormat.Webp);
 #endif
     }
 
@@ -32,14 +33,16 @@ public class ImageWebpLosslessEncodeBenchmarks {
     public void Cleanup() => _magick.Dispose();
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Encode")]
     public byte[] OfficeIMOEncode() => ImageComparisonAdapters.EncodeOfficeImoWebpLossless(_image);
 
     [Benchmark]
+    [BenchmarkCategory("library:Magick.NET", "case:Encode")]
     public byte[] MagickNETEncode() => ImageComparisonAdapters.EncodeMagickWebpLossless(_magick);
 #if NET10_0_OR_GREATER
 
     [Benchmark]
-    [BenchmarkCategory("library:oneimage")]
+    [BenchmarkCategory("library:OneImage", "case:Encode")]
     public byte[] OneImageEncode() => OneImageComparisonAdapters.EncodeWebpLossless(_oneImage);
 #endif
 }
@@ -55,30 +58,21 @@ public class ImageWebpLosslessDecodeBenchmarks {
         using MagickImage magick = ImageComparisonAdapters.CreateMagickImage(
             image.GetPixels(), image.Width, image.Height);
         ImageComparisonAdapters.ConfigureMagickWebpLossless(magick);
-        byte[] officeEncoded = ImageComparisonAdapters.EncodeOfficeImoWebpLossless(image);
         _magickEncoded = ImageComparisonAdapters.EncodeMagickWebpLossless(magick);
-        ImageComparisonValidation.ValidateLosslessInterchange(
-            "lossless WebP decode benchmark", image, officeEncoded, _magickEncoded, OfficeImageFormat.Webp);
-#if NET10_0_OR_GREATER
-        ImageComparisonValidation.ValidateOneImageLosslessInterchange(
-            "lossless WebP decode benchmark",
-            image,
-            OneImageComparisonAdapters.EncodeWebpLossless(OneImageComparisonAdapters.CreateImage(image.GetPixels(), image.Width, image.Height)),
-            officeEncoded,
-            _magickEncoded,
-            OfficeImageFormat.Webp);
-#endif
+        ImageComparisonValidation.ValidateLosslessDecode("lossless WebP", image, _magickEncoded, OfficeImageFormat.Webp);
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:DecodeExternal")]
     public byte[] OfficeIMODecodeExternal() => ImageComparisonAdapters.DecodeOfficeImoRgba(_magickEncoded);
 
     [Benchmark]
+    [BenchmarkCategory("library:Magick.NET", "case:DecodeExternal")]
     public byte[] MagickNETDecodeExternal() => ImageComparisonAdapters.DecodeMagickRgba(_magickEncoded);
 #if NET10_0_OR_GREATER
 
     [Benchmark]
-    [BenchmarkCategory("library:oneimage")]
+    [BenchmarkCategory("library:OneImage", "case:DecodeExternal")]
     public byte[] OneImageDecodeExternal() => OneImageComparisonAdapters.DecodeRgba(_magickEncoded);
 #endif
 }

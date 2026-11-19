@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using AngleSharp.Html.Parser;
 using MimeKit;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Mhtml.Benchmarks.Comparisons;
 
@@ -56,6 +57,46 @@ internal static class MhtmlComparisonValidation {
         MhtmlObservation expected = Expected(scale);
         RequireEqual(scale.Name, "evidence output through OfficeIMO", expected, ObserveOffice(output));
         RequireEqual(scale.Name, "evidence output through MimeKit", expected, ObserveMimeKit(output));
+    }
+
+    /// <summary>Validates one read lane over the measured archive and records the outcome.</summary>
+    internal static void RecordRead(string library, MhtmlBenchmarkScale scale, byte[] input) =>
+        Record(library, $"Scale={scale.Name}; measured archive read back with subject, root ids, HTML and decoded resources", () => {
+            MhtmlObservation expected = Expected(scale);
+            if (library == "OfficeIMO") {
+                RequireEqual(scale.Name, "OfficeIMO read lane", expected, ObserveOffice(input));
+            } else {
+                RequireEqual(scale.Name, "MimeKit read lane", expected, ObserveMimeKit(input));
+                // The measured lane also builds the AngleSharp DOM and retains decoded resources.
+                using MhtmlMimeKitProjection projection = LoadMimeKit(input);
+                int elements = ((AngleSharp.Dom.IDocument)projection.HtmlDocument).All.Length;
+                if (elements != expected.HtmlElementCount ||
+                    !projection.Resources.Select(resource => Convert.ToHexString(SHA256.HashData(resource)))
+                        .SequenceEqual(expected.Resources.Select(resource => resource.Sha256))) {
+                    throw new InvalidOperationException(
+                        $"MHTML MimeKit read lane for {scale.Name} built {elements} elements and {projection.Resources.Count} resources; " +
+                        $"expected {expected.HtmlElementCount} and {expected.Resources.Count}.");
+                }
+            }
+        });
+
+    /// <summary>Validates one write lane's archive through both readers and records the outcome.</summary>
+    internal static void RecordWrite(string library, MhtmlBenchmarkScale scale, byte[] output) =>
+        Record(library, $"Scale={scale.Name}; written archive read back through OfficeIMO and MimeKit", () => {
+            MhtmlObservation expected = Expected(scale);
+            RequireEqual(scale.Name, library + " output through OfficeIMO", expected, ObserveOffice(output));
+            RequireEqual(scale.Name, library + " output through MimeKit", expected, ObserveMimeKit(output));
+        });
+
+    private static void Record(string library, string detail, Action validate) {
+        try {
+            validate();
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, "Default");
+            throw;
+        }
+
+        BenchmarkOutputValidationLog.Passed(library, detail, "Default");
     }
 
     internal static MhtmlDocument LoadOffice(byte[] input) {

@@ -13,12 +13,20 @@ public class ExcelReaderGeneratedXlsxWriteBenchmarks {
     public void Setup() {
         _workload.SetupOfficeIMO();
         _workload.SetupExcelReader();
-        _workload.Validate(SpreadCheetah());
+        _workload.Record("SpreadCheetah", "Default", () => _workload.Validate(SpreadCheetah()));
     }
 
-    [Benchmark(Baseline = true)] public byte[] OfficeIMO() => _workload.OfficeIMO();
-    [Benchmark] public byte[] ExcelReaderNet() => _workload.ExcelReaderNet();
-    [Benchmark] public byte[] SpreadCheetah() => WriteSpreadCheetah().GetAwaiter().GetResult();
+    [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Default")]
+    public byte[] OfficeIMO() => _workload.OfficeIMO();
+
+    [Benchmark]
+    [BenchmarkCategory("case:Default")]
+    public byte[] ExcelReaderNet() => _workload.ExcelReaderNet();
+
+    [Benchmark]
+    [BenchmarkCategory("case:Default")]
+    public byte[] SpreadCheetah() => WriteSpreadCheetah().GetAwaiter().GetResult();
 
     private async Task<byte[]> WriteSpreadCheetah() {
         using var output = new MemoryStream();

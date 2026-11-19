@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Benchmarks;
 using OfficeIMO.Pdf;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
@@ -16,6 +17,37 @@ public readonly record struct PdfReadObservation(
 internal sealed record PdfExpectedPage(IReadOnlyList<string> RequiredFragments);
 
 internal static partial class PdfBenchmarkValidation {
+    /// <summary>
+    /// Runs <paramref name="validate"/> outside timing and records the outcome for the benchmark evidence catalog.
+    /// <paramref name="library"/> is the id declared in Build/benchmark-declarations.json.
+    /// </summary>
+    internal static void Record(string library, string caseName, string detail, Action validate) {
+        try {
+            validate();
+        } catch (Exception exception) {
+            BenchmarkOutputValidationLog.Failed(library, detail + ": " + exception.Message, caseName);
+            throw;
+        }
+
+        BenchmarkOutputValidationLog.Passed(library, detail, caseName);
+    }
+
+    /// <summary>Maps a benchmark lane name to the library id declared in Build/benchmark-declarations.json.</summary>
+    internal static string LibraryId(string lane) => lane switch {
+        "IText" => "iText",
+        "ITextPdfHtml" => "iText pdfHTML",
+        "PdfSharp" => "PDFsharp",
+        "OnePdf" or "OnePdfParallel" or "OnePdfLayout" => "OnePDF",
+        _ => lane
+    };
+
+    /// <summary>Maps a benchmark lane name to the case declared for it in Build/benchmark-declarations.json.</summary>
+    internal static string CaseId(string lane) => lane switch {
+        "OnePdfParallel" => "Parallel",
+        "OnePdfLayout" => "Layout",
+        _ => "Default"
+    };
+
     internal static PdfReadObservation ValidateGenerated(byte[] bytes, PdfBenchmarkScenario scenario, string engine) {
         if (bytes.Length < 5 || !bytes.AsSpan(0, 4).SequenceEqual("%PDF"u8)) {
             throw new InvalidDataException($"{engine} did not produce a PDF header for {scenario.Scale}.");

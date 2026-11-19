@@ -26,10 +26,19 @@ public class PdfFormatConversionBenchmarks {
     public void Setup() => _scenario = PdfFormatConversionScenario.Create(Format);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ConvertToPdfBytes")]
     public byte[] ConvertToPdfBytes() => _result = _scenario.ConvertToPdf();
 
+    // Cleanup validates the PDF the last measured invocation produced, outside timing, and records the outcome.
     [GlobalCleanup]
-    public void Validate() {
+    public void Validate() =>
+        PdfBenchmarkValidation.Record(
+            "OfficeIMO",
+            nameof(ConvertToPdfBytes),
+            $"Format={Format}; measured PDF reopened with PdfPig: 1-80 pages and every record of the source manifest",
+            ValidateResult);
+
+    private void ValidateResult() {
         if (_result == null) {
             throw new InvalidDataException($"{Format} did not return a PDF result.");
         }

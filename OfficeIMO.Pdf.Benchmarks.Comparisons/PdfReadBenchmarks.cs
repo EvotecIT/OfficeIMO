@@ -40,25 +40,34 @@ public class PdfReadBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public PdfReadObservation OfficeIMO() => PdfDocumentReaders.Read(PdfReaderEngine.OfficeIMO, _pdf);
 
     [Benchmark]
+    [BenchmarkCategory("library:PdfPig", "case:Default")]
     public PdfReadObservation PdfPig() => PdfDocumentReaders.Read(PdfReaderEngine.PdfPig, _pdf);
 
     [Benchmark]
+    [BenchmarkCategory("library:iText", "case:Default")]
     public PdfReadObservation IText() => PdfDocumentReaders.Read(PdfReaderEngine.IText, _pdf);
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onepdf")]
+    [BenchmarkCategory("library:OnePDF", "case:Default")]
     public PdfReadObservation OnePdf() => OnePdfComparisonEngines.Read(_pdf);
 
     /// <summary>OnePDF's default whole-document extraction, which reads up to four pages at once.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:onepdf")]
+    [BenchmarkCategory("library:OnePDF", "case:Parallel")]
     public PdfReadObservation OnePdfParallel() => OnePdfComparisonEngines.ReadParallel(_pdf);
 
 #endif
+    // Extracted text, normalised to upper-case letters and digits, must hold the page count, one report marker per
+    // page and every title, narrative and table row of the source scenario as often as the source has it.
     private void Validate(string engine, PdfReadObservation observation) =>
-        PdfBenchmarkValidation.ValidateRead(observation, _scenario, engine + " reading " + Producer);
+        PdfBenchmarkValidation.Record(
+            PdfBenchmarkValidation.LibraryId(engine),
+            PdfBenchmarkValidation.CaseId(engine),
+            $"Producer={Producer}; Scale={Scale}; {observation.PageCount} pages, every source title, narrative and table row extracted",
+            () => PdfBenchmarkValidation.ValidateRead(observation, _scenario, engine + " reading " + Producer));
 }

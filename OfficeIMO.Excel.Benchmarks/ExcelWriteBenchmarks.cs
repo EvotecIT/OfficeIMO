@@ -13,11 +13,16 @@ public class ExcelWriteBenchmarks {
     [GlobalSetup]
     public void Setup() {
         _rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(RowCount);
-        ExcelSalesOutputValidator.ValidateWorkbook(OfficeIMO_Write_Report(), _rows);
-        ExcelSalesOutputValidator.ValidateWorkbook(ClosedXML_Write_Report(), _rows);
+        // ExcelDataReader reopens each output and checks the sheet, the headers and every value.
+        string detail = $"RowCount={RowCount}; ExcelDataReader reread every value";
+        ExcelOutputValidation.Check("OfficeIMO", "Write_Report", detail,
+            () => ExcelSalesOutputValidator.ValidateWorkbook(OfficeIMO_Write_Report(), _rows));
+        ExcelOutputValidation.Check("ClosedXML", "Write_Report", detail,
+            () => ExcelSalesOutputValidator.ValidateWorkbook(ClosedXML_Write_Report(), _rows));
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Write_Report")]
     public byte[] OfficeIMO_Write_Report() {
         using var stream = new MemoryStream();
 
@@ -31,6 +36,7 @@ public class ExcelWriteBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("case:Write_Report")]
     public byte[] ClosedXML_Write_Report() {
         using var stream = new MemoryStream();
         using var workbook = new XLWorkbook();

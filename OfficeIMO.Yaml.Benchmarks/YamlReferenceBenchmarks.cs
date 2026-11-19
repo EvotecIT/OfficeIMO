@@ -24,21 +24,26 @@ public class YamlParseEventsBenchmarks {
     public void SetupVYaml() => Setup(VYamlLibrary.Instance);
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:YamlDotNet", "case:Default")]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
+    [BenchmarkCategory("library:SharpYaml", "case:Default")]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     /// <summary>VYaml reads UTF-8 bytes encoded once during setup.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:VYaml", "case:Default")]
     public long VYaml() => Run(VYamlLibrary.Instance);
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
-        YamlWorkloadValidation.ValidateParse(library, Workload, _inputs);
+        YamlWorkloadValidation.Record(library, Workload, "event count matches the library's conformance adapter; event content matches {other}",
+            () => YamlWorkloadValidation.ValidateParse(library, Workload, _inputs));
     }
 
     private long Run(IYamlReferenceLibrary library) {
@@ -73,23 +78,29 @@ public class YamlLoadTreeBenchmarks {
 
     /// <summary>OneYaml's tree is its lossless document; this is its untyped deserialization from UTF-8 bytes.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OneYaml", "case:Default")]
     public long OneYaml() => Run(OneYamlLibrary.Instance);
 
     /// <summary>VYaml has no representation tree; this is its dynamic deserialization into dictionaries and lists.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:VYaml", "case:Default")]
     public long VYaml() => Run(VYamlLibrary.Instance);
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:YamlDotNet", "case:Default")]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
+    [BenchmarkCategory("library:SharpYaml", "case:Default")]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     /// <summary>Also reads every scalar value, which the reference trees materialize while loading.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:WithValues")]
     public long OfficeIMOYamlWithValues() {
         long total = 0;
         foreach (string input in _inputs) total += YamlReferenceLibraries.OfficeIMOYaml.LoadTreeAndValues(input);
@@ -98,7 +109,11 @@ public class YamlLoadTreeBenchmarks {
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
-        YamlWorkloadValidation.ValidateLoad(library, Workload, _inputs);
+        // OfficeIMO's tree reads scalar values on demand; only its WithValues lane does the reference trees' work, so
+        // only that case is recorded as validated.
+        YamlWorkloadValidation.Record(library, Workload, "tree covers every node event; loaded values match {other}",
+            () => YamlWorkloadValidation.ValidateLoad(library, Workload, _inputs),
+            ReferenceEquals(library, YamlReferenceLibraries.OfficeIMOYaml) ? "WithValues" : "");
     }
 
     private long Run(IYamlReferenceLibrary library) {
@@ -129,20 +144,25 @@ public class YamlLoadAndSaveBenchmarks {
     public void SetupOneYaml() => Setup(OneYamlLibrary.Instance);
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:YamlDotNet", "case:Default")]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
+    [BenchmarkCategory("library:SharpYaml", "case:Default")]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
 
     [Benchmark]
+    [BenchmarkCategory("library:OneYaml", "case:Default")]
     public long OneYaml() => Run(OneYamlLibrary.Instance);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
-        YamlWorkloadValidation.ValidateLoadAndSave(library, Workload, _inputs);
+        YamlWorkloadValidation.Record(library, Workload, "saved output loads to the input's values through {other}; lossless savers return the input unchanged",
+            () => YamlWorkloadValidation.ValidateLoadAndSave(library, Workload, _inputs));
     }
 
     private long Run(IYamlReferenceLibrary library) {
@@ -173,20 +193,25 @@ public class YamlEditAndSaveBenchmarks {
     public void SetupOneYaml() => Setup(OneYamlLibrary.Instance);
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:YamlDotNet", "case:Default")]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
+    [BenchmarkCategory("library:SharpYaml", "case:Default")]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
 
     [Benchmark]
+    [BenchmarkCategory("library:OneYaml", "case:Default")]
     public long OneYaml() => Run(OneYamlLibrary.Instance);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
-        YamlWorkloadValidation.ValidateEditAndSave(library, Workload, _inputs);
+        YamlWorkloadValidation.Record(library, Workload, "edited output loads through {other} to the input's values with the edited scalar changed",
+            () => YamlWorkloadValidation.ValidateEditAndSave(library, Workload, _inputs));
     }
 
     private long Run(IYamlReferenceLibrary library) {
@@ -214,18 +239,22 @@ public class YamlEmitBenchmarks {
     public void SetupOfficeIMOYaml() => Setup(YamlReferenceLibraries.OfficeIMOYaml);
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:YamlDotNet", "case:Default")]
     public long YamlDotNet() => Run(YamlReferenceLibraries.YamlDotNet);
 
     [Benchmark]
+    [BenchmarkCategory("library:SharpYaml", "case:Default")]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     private void Setup(IYamlReferenceLibrary library) {
         string[] inputs = YamlWorkloads.Get(Workload);
         _events = inputs.Select(library.CaptureEvents).ToArray();
-        YamlWorkloadValidation.ValidateEmit(library, Workload, inputs, _events);
+        YamlWorkloadValidation.Record(library, Workload, "emitted output parses through {other} to the input's event content",
+            () => YamlWorkloadValidation.ValidateEmit(library, Workload, inputs, _events));
     }
 
     private long Run(IYamlReferenceLibrary library) {

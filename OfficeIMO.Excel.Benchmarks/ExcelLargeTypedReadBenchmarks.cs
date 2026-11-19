@@ -61,13 +61,20 @@ public class ExcelLargeTypedReadBenchmarks {
                     destination1.Position = 0;
             }
             _expected = ExpectedObservation(Operation == "FirstRow" ? 1 : RowCount);
-            if (engine == nameof(ExcelReaderNet)) {
-                ReadExcelReader(validate: true, firstRow: false);
-            }
-            else {
-                using DbDataReader reader = Open(engine);
-                Read(reader, validate: true, firstRow: false);
-            }
+            string library = engine switch {
+                nameof(Sylvan) => "Sylvan.Data.Excel",
+                nameof(ExcelReaderNet) => "ExcelReader.NET",
+                _ => "OfficeIMO"
+            };
+            ExcelOutputValidation.Check(library, "Default", $"RowCount={RowCount}; every typed value of every row checked", () => {
+                if (engine == nameof(ExcelReaderNet)) {
+                    ReadExcelReader(validate: true, firstRow: false);
+                }
+                else {
+                    using DbDataReader reader = Open(engine);
+                    Read(reader, validate: true, firstRow: false);
+                }
+            });
         }
         catch {
             Cleanup();
@@ -81,12 +88,15 @@ public class ExcelLargeTypedReadBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("case:Default")]
     public long OfficeIMO() => Measure(nameof(OfficeIMO));
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public long Sylvan() => Measure(nameof(Sylvan));
 
     [Benchmark]
+    [BenchmarkCategory("case:Default")]
     public long ExcelReaderNet() => Check(ReadExcelReader(validate: false, Operation == "FirstRow"));
 
     private long Measure(string engine) {

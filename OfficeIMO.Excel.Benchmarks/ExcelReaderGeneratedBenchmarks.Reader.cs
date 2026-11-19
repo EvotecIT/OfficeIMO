@@ -10,7 +10,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
     internal static readonly global::ExcelReader.Core.Reader.ExcelReaderOptions PrefetchReaderOptions =
         global::ExcelReader.Core.Reader.ExcelReaderOptions.Default with { PrefetchDecompression = true };
 
-    [Benchmark, BenchmarkCategory("Read")]
+    [Benchmark, BenchmarkCategory("Read", "case:Read")]
     public long ExcelReaderNet_Read() => ReadExcelReader(options: null);
 
     internal long ReadExcelReader(global::ExcelReader.Core.Reader.ExcelReaderOptions? options) {

@@ -20,26 +20,27 @@ public class WordReadComparisonBenchmarks {
     [GlobalSetup]
     public void Setup() {
         SetupOfficeAndOpenXml();
-        if (BenchmarkLibrarySelection.IsEnabled("docx")) EnsureExpected(nameof(DocX), DocX());
-        EnsureExpected(nameof(NPOI), NPOI());
+        if (BenchmarkLibrarySelection.IsEnabled("docx")) EnsureExpected("DocX", "Default", nameof(DocX), DocX());
+        EnsureExpected("NPOI", "Default", nameof(NPOI), NPOI());
 #if NET10_0_OR_GREATER
-        EnsureExpected(nameof(OneDocument), OneDocument());
-        EnsureExpected(nameof(OneDocumentExtractText), OneDocumentExtractText());
+        EnsureExpected("OneDocument.Documents", "Default", nameof(OneDocument), OneDocument());
+        EnsureExpected("OneDocument.Documents", "ExtractText", nameof(OneDocumentExtractText), OneDocumentExtractText());
 #endif
     }
 
     internal void SetupOfficeAndOpenXml() {
         _fixture = WordBenchmarkCorpus.CreateParagraphFixture(ItemCount);
         _expected = WordBenchmarkCorpus.ObserveExpectedParagraphs(ItemCount);
-        EnsureExpected(nameof(OfficeIMO), OfficeIMO());
-        EnsureExpected(nameof(OpenXmlSdk), OpenXmlSdk());
-        EnsureExpected(nameof(OfficeIMOReaderText), OfficeIMOReaderText());
-        EnsureExpected(nameof(OfficeIMOReaderStreamedText), OfficeIMOReaderStreamedText());
+        EnsureExpected("OfficeIMO", "Default", nameof(OfficeIMO), OfficeIMO());
+        EnsureExpected("Open XML SDK", "Default", nameof(OpenXmlSdk), OpenXmlSdk());
+        EnsureExpected("OfficeIMO", "ReaderText", nameof(OfficeIMOReaderText), OfficeIMOReaderText());
+        EnsureExpected("OfficeIMO", "ReaderStreamedText", nameof(OfficeIMOReaderStreamedText), OfficeIMOReaderStreamedText());
     }
 
     internal int InputBytes => _fixture.Length;
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public WordReadObservation OfficeIMO() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using WordDocument document = WordDocument.Load(stream);
@@ -52,14 +53,16 @@ public class WordReadComparisonBenchmarks {
 
     /// <summary>OfficeIMO.Reader's text-and-metadata projection: the plain-text route for ingestion and search.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReaderText")]
     public WordReadObservation OfficeIMOReaderText() => WordReaderTextWorkload.Read(_fixture);
 
     /// <summary>OfficeIMO.Reader's <c>Text</c> projection, which returns only text chunks.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReaderStreamedText")]
     public WordReadObservation OfficeIMOReaderStreamedText() => WordReaderTextWorkload.ReadStreamed(_fixture);
 
     [Benchmark]
-    [BenchmarkCategory("Library:docx")]
+    [BenchmarkCategory("library:DocX", "case:Default")]
     public WordReadObservation DocX() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using XceedDocX document = XceedDocX.Load(stream);
@@ -71,6 +74,7 @@ public class WordReadComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:NPOI", "case:Default")]
     public WordReadObservation NPOI() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using var document = new NpoiDocument(stream);
@@ -82,6 +86,7 @@ public class WordReadComparisonBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Open XML SDK", "case:Default")]
     public WordReadObservation OpenXmlSdk() {
         using var stream = new MemoryStream(_fixture, writable: false);
         using WordprocessingDocument document = WordprocessingDocument.Open(stream, isEditable: false);
@@ -96,15 +101,24 @@ public class WordReadComparisonBenchmarks {
 
 #if NET10_0_OR_GREATER
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Documents", "case:Default")]
     public WordReadObservation OneDocument() => WordOneDocumentWorkloads.ReadParagraphs(_fixture);
 
     /// <summary>OneDocument's streaming extractor: same text, no document model.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:onedocument")]
+    [BenchmarkCategory("library:OneDocument.Documents", "case:ExtractText")]
     public WordReadObservation OneDocumentExtractText() => WordOneDocumentWorkloads.ExtractText(_fixture);
 
 #endif
+    /// <summary>
+    /// Requires the lane to observe every paragraph of the fixture with the corpus text (count, characters and an
+    /// order-sensitive checksum) and records the result under the lane's declared library and case.
+    /// </summary>
+    private void EnsureExpected(string library, string caseName, string implementation, WordReadObservation actual) =>
+        WordBenchmarkCorpus.Check(library, caseName,
+            $"ItemCount={ItemCount}; {_expected.ParagraphCount} paragraphs, {_expected.CharacterCount} characters, checksum {_expected.Checksum:X16} as written",
+            () => EnsureExpected(implementation, actual));
+
     private void EnsureExpected(string implementation, WordReadObservation actual) {
         if (actual != _expected) {
             throw new InvalidDataException(

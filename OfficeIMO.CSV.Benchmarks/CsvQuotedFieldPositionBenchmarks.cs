@@ -51,16 +51,18 @@ public class CsvQuotedFieldPositionBenchmarks {
         _expected = expected.ToObservation(RowCount);
         _validateValues = true;
         try {
-            OfficeIMO();
-            Sep();
-            Sylvan();
-            CsvHelper();
+            string detail = $"RowCount={RowCount}; Delimiter={Delimiter}; QuotedColumn={QuotedColumn}; every decoded value compared in order";
+            CsvBenchmarkOutputValidator.Record(nameof(OfficeIMO), detail, OfficeIMO);
+            CsvBenchmarkOutputValidator.Record(nameof(Sep), detail, Sep);
+            CsvBenchmarkOutputValidator.Record(nameof(Sylvan), detail, Sylvan);
+            CsvBenchmarkOutputValidator.Record(nameof(CsvHelper), detail, CsvHelper);
         } finally {
             _validateValues = false;
         }
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public CsvReadObservation OfficeIMO() {
         using var text = new StringReader(_text);
         using var reader = CsvDocument.OpenReader(text, new CsvReaderOptions { Delimiter = Delimiter, HasHeaderRow = true });
@@ -75,6 +77,7 @@ public class CsvQuotedFieldPositionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sep", "case:Default")]
     public CsvReadObservation Sep() {
         using var reader = nietras.SeparatedValues.Sep.New(Delimiter).Reader(options => options with { Unescape = true }).FromText(_text);
         var observation = new CsvObservationAccumulator();
@@ -88,6 +91,7 @@ public class CsvQuotedFieldPositionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:Sylvan.Data.Csv", "case:Default")]
     public CsvReadObservation Sylvan() {
         using var text = new StringReader(_text);
         using var reader = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
@@ -103,6 +107,7 @@ public class CsvQuotedFieldPositionBenchmarks {
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:Default")]
     public CsvReadObservation CsvHelper() {
         using var text = new StringReader(_text);
         using var reader = new global::CsvHelper.CsvReader(text,

@@ -455,7 +455,7 @@ if (IsCommand(args, "--package-profile", "package-profile", "profile-package")) 
 if (IsCommand(args, "--anti-cheat-suite", "anti-cheat-suite", "robustness-suite", "variant-suite")) {
     bool hasOutputPath = HasOutputPath(args);
     string outputDirectory = ParseOptionValue(args, "--out-dir", "--output-dir", "--directory")
-        ?? (hasOutputPath ? args[1] : Path.Combine("Docs", "benchmarks", "anti-cheat-current"));
+        ?? (hasOutputPath ? args[1] : Path.Combine("artifacts", "benchmarks", "anti-cheat-current"));
     int[] rowCounts = ParseRowCountsOrDefault(args, startIndex: hasOutputPath ? 2 : 1, [100, 2500, 25000]);
     bool includeLegacyEpPlus = HasSwitch(args, "--include-legacy-epplus");
     bool includePackageProfile = !HasSwitch(args, "--skip-package-profile");
@@ -529,7 +529,7 @@ if (IsCommand(args, "--anti-cheat-suite", "anti-cheat-suite", "robustness-suite"
 if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-suite", "competitive-suite", "suite")) {
     bool hasOutputPath = HasOutputPath(args);
     string outputDirectory = ParseOptionValue(args, "--out-dir", "--output-dir", "--directory")
-        ?? (hasOutputPath ? args[1] : Path.Combine("Docs", "benchmarks"));
+        ?? (hasOutputPath ? args[1] : Path.Combine("artifacts", "benchmarks"));
     int[] rowCounts = ParseRowCounts(args, startIndex: hasOutputPath ? 2 : 1);
     bool includeLegacyEpPlus = HasSwitch(args, "--include-legacy-epplus");
     bool includePackageProfile = !HasSwitch(args, "--skip-package-profile");
@@ -687,7 +687,7 @@ static string? ParseOutputPath(string[] args)
 
 static string BuildDefaultOutputPath(string baseName, int rowCount) {
     string suffix = rowCount == 2500 ? string.Empty : "-" + rowCount.ToString(CultureInfo.InvariantCulture);
-    return Path.Combine("Docs", "benchmarks", baseName + suffix + ".json");
+    return Path.Combine("artifacts", "benchmarks", baseName + suffix + ".json");
 }
 
 static int ParseRowCount(string[] args, int startIndex) {

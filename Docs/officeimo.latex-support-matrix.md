@@ -107,8 +107,8 @@ Native .NET 8 and .NET 10 builds and focused LaTeX, conversion and Reader suites
 qualified on Windows, Linux/WSL x64 and macOS Arm64; Windows also runs .NET Framework
 4.7.2. Public Reader file, stream and byte-array routes are compared on the pinned
 official inputs. Linux uses an NTFS-mounted WSL checkout, so native ext4 checkout
-behavior and other Reader formats are outside this qualification. The [model memory
-evidence](benchmarks/officeimo.latex-model-memory-2026-10-03.md) separates parsing from
+behavior and other Reader formats are outside this qualification. The model memory
+evidence separates parsing from
 complete public-token inspection and records timing and process-memory limits.
 
 ## Deliberate limits

@@ -6,6 +6,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 public partial class MarkPflug65KXlsxBenchmarks {
     /// <summary>Observes the same typed sales values through XLibur's loaded workbook API.</summary>
     [Benchmark]
+    [BenchmarkCategory("library:XLibur", "case:Default")]
     public ExcelReadObservation XLibur() {
         using var workbook = new global::XLibur.Excel.XLWorkbook(MarkPflug65KFixture.XlsxPath);
         var sheet = workbook.Worksheets.First();

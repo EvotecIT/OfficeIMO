@@ -37,6 +37,15 @@
       "reason": "MIT."
     },
     {
+      "id": "recordparser",
+      "name": "RecordParser",
+      "packages": [ { "id": "RecordParser", "version": "2.3.0" } ],
+      "license": { "expression": "MIT", "url": "https://www.nuget.org/packages/RecordParser/2.3.0/License" },
+      "licenseSource": "package-file",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
       "id": "sylvan",
       "name": "Sylvan",
       "aliases": [ "Sylvan.Data.Csv", "Sylvan.Data.Excel" ],
@@ -230,6 +239,15 @@
       "id": "htmlagilitypack",
       "name": "HtmlAgilityPack",
       "packages": [ { "id": "HtmlAgilityPack", "version": "1.12.4" } ],
+      "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
+      "licenseSource": "package",
+      "restriction": "open",
+      "reason": "MIT."
+    },
+    {
+      "id": "anglesharp",
+      "name": "AngleSharp",
+      "packages": [ { "id": "AngleSharp", "version": "1.8.3" } ],
       "license": { "expression": "MIT", "url": "https://licenses.nuget.org/MIT" },
       "licenseSource": "package",
       "restriction": "open",

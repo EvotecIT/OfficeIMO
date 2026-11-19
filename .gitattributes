@@ -225,11 +225,6 @@ OfficeIMO.Visio.Tests/Fixtures/LegacyBinary/*.vtx -text -diff
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodg -text
 OfficeIMO.OpenDocument.Tests/Fixtures/Drawing/*.fodp -text
 
-# Captured benchmark packets retain exact member bytes inside verified archives.
-Docs/benchmarks/excel-csv-broad-throughput-2026-10-04/raw-packets.zip -text -diff
-Docs/benchmarks/excel-csv-throughput-2026-10-04/raw-packets.zip -text -diff
-Docs/benchmarks/excel-large-typed-read-2026-10-04/raw-packets.zip -text -diff
-
 # Preserve the independent composite-font refusal fixture across checkout platforms.
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -text -diff
 
@@ -237,9 +232,4 @@ OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/CompositeTextDecoding/*.pdf -t
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/PredefinedCjk/*.pdf -text -diff
 OfficeIMO.Pdf/Resources/AdobeCMaps/** -text -whitespace
 
-# The dated tabular publication manifest pins raw and derived member bytes,
-# including captured CRLF and native report whitespace.
-Docs/benchmarks/officeimo.excel-tabular-2026-10-08.md -text -whitespace
-Docs/benchmarks/officeimo.excel-tabular-2026-10-08/** -text -whitespace
-Docs/benchmarks/officeimo.excel-tabular-2026-10-08/raw-packets.zip -diff
 OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/StandardEncryption/*.pdf -text -diff

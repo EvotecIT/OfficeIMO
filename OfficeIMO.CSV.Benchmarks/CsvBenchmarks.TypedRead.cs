@@ -52,6 +52,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadTypedRowsForwardOnly")]
     public int OfficeIMO_ReadTypedRowsForwardOnly()
     {
         using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(_csvText));
@@ -65,6 +66,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:OfficeIMO", "case:ReadTypedRowsMaterialized")]
     public int OfficeIMO_ReadTypedRowsMaterialized()
     {
         CsvDocument document = CsvDocument.Parse(_csvText);
@@ -78,6 +80,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:CsvHelper", "case:ReadTypedRecords")]
     public int CsvHelper_ReadTypedRecords()
     {
         using var reader = new StringReader(_csvText);
@@ -92,6 +95,7 @@ public partial class CsvBenchmarks
     }
 
     [Benchmark]
+    [BenchmarkCategory("library:ExcelReader.NET", "case:ReadTypedRecords")]
     public int ExcelReaderNet_ReadTypedRecords()
     {
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
