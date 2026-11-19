@@ -429,10 +429,16 @@ namespace OfficeIMO.PowerPoint {
                 if (!treeFound) return null;
                 string notes = string.Join(Environment.NewLine + Environment.NewLine, shapes).Trim();
                 return notes.Length > 0 ? notes : null;
-            } catch (Exception exception) when (exception is not OutOfMemoryException and not OperationCanceledException) {
+            } catch (Exception exception) when (exception is not OutOfMemoryException and not OperationCanceledException
+                                                  && !IsPartSizeLimit(exception)) {
+                // Like the model, malformed notes count as no notes; a part over the size limit does not.
                 return null;
             }
         }
+
+        // XmlReader reports MaxCharactersInDocument with a plain XmlException whose message names the setting.
+        private static bool IsPartSizeLimit(Exception exception) =>
+            exception is XmlException && exception.Message.IndexOf(nameof(XmlReaderSettings.MaxCharactersInDocument), StringComparison.Ordinal) >= 0;
 
         private static string ReadNotesShapeText(XmlReader reader) {
             var paragraphs = new List<string>();

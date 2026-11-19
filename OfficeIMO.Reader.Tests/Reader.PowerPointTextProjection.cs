@@ -62,6 +62,28 @@ public sealed class ReaderPowerPointTextProjectionTests {
         Assert.Equal(lean.Message, text!.Message);
     }
 
+    // A notes part over the configured character limit sends the text projection to the presentation model.
+    [Fact]
+    public void TextProjectionReadsTheModelWhenNotesExceedThePartLimit() {
+        using var stream = new MemoryStream();
+        using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBox("Long notes");
+            slide.Notes.Text = new string('n', 50_000);
+            presentation.Save();
+        }
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddPowerPointHandler().Build();
+
+        OfficeDocumentReadResult limited = reader.ReadDocument(stream.ToArray(), "notes.pptx",
+            new ReaderOptions { Projection = ReaderProjection.Text, OpenXmlMaxCharactersInPart = 20_000 });
+        OfficeDocumentReadResult unlimited = reader.ReadDocument(stream.ToArray(), "notes.pptx",
+            new ReaderOptions { Projection = ReaderProjection.Text });
+
+        Assert.DoesNotContain(StreamedCapability, limited.CapabilitiesUsed);
+        Assert.Contains("Long notes", limited.GetText(), StringComparison.Ordinal);
+        Assert.Contains(StreamedCapability, unlimited.CapabilitiesUsed);
+    }
+
     private static string[] Describe(OfficeDocumentReadResult result) =>
         result.Chunks.Select(chunk => string.Join("|", chunk.Id, chunk.Kind, chunk.Location.Slide, chunk.Location.BlockIndex,
                 chunk.Location.SourceBlockIndex, chunk.Location.SourceBlockKind, chunk.Location.BlockAnchor, chunk.Location.LogicalOrder,

@@ -179,6 +179,28 @@ namespace OfficeIMO.Tests {
             Assert.Empty(reader.ReadSlides());
         }
 
+        // A notes part over the character limit is an error for the caller, not a slide without notes.
+        [Fact]
+        public void NotesOverThePartCharacterLimitReachTheCaller() {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                slide.AddTextBox("Long notes");
+                slide.Notes.Text = new string('n', 50_000);
+                presentation.Save();
+            }
+            var options = new PowerPointLoadOptions { OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 20_000 } };
+
+            stream.Position = 0;
+            using (PowerPointSlideReader reader = PowerPointSlideReader.Open(stream, options, CancellationToken.None)) {
+                Assert.Equal("Long notes", Assert.Single(Assert.Single(reader.ReadSlides(includeNotes: false)).Shapes).Text);
+            }
+            stream.Position = 0;
+            using (PowerPointSlideReader reader = PowerPointSlideReader.Open(stream, options, CancellationToken.None)) {
+                Assert.Throws<XmlException>(() => reader.ReadSlides().ToArray());
+            }
+        }
+
         // Cancellation requested while a slide's notes are read stops that slide instead of returning it.
         [Fact]
         public void CancellationDuringNotesStopsTheSlide() {
