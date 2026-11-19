@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private readonly XlsbWorksheetIgnoredErrorReader _ignoredErrors;
         private readonly XlsbWorksheetConditionalFormattingReader _conditionalFormatting;
         private readonly XlsbWorksheetDataValidationReader _dataValidations;
+        private readonly XlsbWorksheetTableReader _tables;
 
         internal XlsbWorksheetFeatureReader(XlsbSheet sheet, XlsbWorkbook workbook, int sheetIndex, string partName) {
             Sheet = sheet;
@@ -21,6 +22,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _ignoredErrors = new XlsbWorksheetIgnoredErrorReader(this);
             _conditionalFormatting = new XlsbWorksheetConditionalFormattingReader(this);
             _dataValidations = new XlsbWorksheetDataValidationReader(this);
+            _tables = new XlsbWorksheetTableReader(this);
         }
 
         internal XlsbSheet Sheet { get; }
@@ -37,6 +39,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             || _dataValidations.TryRead(record)
             || _pageBreaks.TryRead(record)
             || _ignoredErrors.TryRead(record)
+            || _tables.TryRead(record)
             || TryReadCommentDrawing(record);
 
         /// <summary>
@@ -63,6 +66,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _pageBreaks.Complete();
             _ignoredErrors.Complete();
             _dataValidations.Complete();
+            _tables.Complete();
         }
 
         /// <summary>

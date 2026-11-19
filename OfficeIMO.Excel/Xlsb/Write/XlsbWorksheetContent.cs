@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -25,6 +26,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             typeof(ColumnBreaks),
             typeof(IgnoredErrors),
             typeof(LegacyDrawing),
+            typeof(TableParts),
         };
 
         // CT_Worksheet allows these children more than once; every other supported child occurs at most once.
@@ -38,5 +40,28 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         internal static OpenXmlElement? FindUnsupported(Worksheet? worksheet) =>
             worksheet?.ChildElements.FirstOrDefault(element => !IsSupported(element));
+
+        /// <summary>
+        /// Returns a message naming the first worksheet-related part the native writers cannot carry, or null. Comments with
+        /// the VML drawing that LegacyDrawing names, and table definitions, are the related parts accepted.
+        /// </summary>
+        internal static string? FindUnsupportedPart(WorksheetPart worksheetPart) {
+            string? legacyId = worksheetPart.Worksheet?.GetFirstChild<LegacyDrawing>()?.Id?.Value;
+            foreach (IdPartPair pair in worksheetPart.Parts) {
+                switch (pair.OpenXmlPart) {
+                    case WorksheetCommentsPart:
+                    case TableDefinitionPart:
+                        continue;
+                    case VmlDrawingPart when legacyId != null && pair.RelationshipId == legacyId
+                        && worksheetPart.WorksheetCommentsPart != null:
+                        continue;
+                    case WorksheetThreadedCommentsPart:
+                        return "threaded comments; legacy notes (SetComment) are supported";
+                    default:
+                        return "relationship-backed content";
+                }
+            }
+            return null;
+        }
     }
 }

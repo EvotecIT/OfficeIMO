@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                         && string.Equals(actual[0].OuterXml, expectedElement.OuterXml, StringComparison.Ordinal));
         }
 
-        private static AutoFilter Create(XlsbAutoFilter source) {
+        internal static AutoFilter Create(XlsbAutoFilter source) {
             var result = new AutoFilter { Reference = source.Range.ToA1Reference() };
             foreach (XlsbAutoFilterColumn sourceColumn in source.Columns) {
                 if (sourceColumn.HasUnsupportedContent) continue;

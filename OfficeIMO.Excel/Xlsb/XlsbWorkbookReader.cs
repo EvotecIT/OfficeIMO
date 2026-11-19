@@ -127,7 +127,9 @@ namespace OfficeIMO.Excel.Xlsb {
             int totalRowDefinitions = 0;
             int totalMergedRanges = 0;
             int totalHyperlinks = 0;
-            foreach (XlsbSheet worksheet in workbook.Sheets) {
+            var pendingTableFormulas = new List<XlsbTablePartReader.PendingFormula>();
+            for (int sheetIndex = 0; sheetIndex < workbook.Sheets.Count; sheetIndex++) {
+                XlsbSheet worksheet = workbook.Sheets[sheetIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!relationships.TryGetValue(worksheet.RelationshipId, out XlsbPackageRelationship? relationship)
                     || relationship.IsExternal
@@ -138,10 +140,25 @@ namespace OfficeIMO.Excel.Xlsb {
 
                 string sheetPartName = XlsbPackagePartReader.ResolveTarget(workbookPartName!, relationship.Target);
                 worksheet.PartName = sheetPartName;
-                IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = parts.ReadRelationships(sheetPartName, cancellationToken);
-                worksheet.Relationships = worksheetRelationships;
+                worksheet.Relationships = parts.ReadRelationships(sheetPartName, cancellationToken);
                 if (relationship.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/chartsheet") {
                     worksheet.IsChartSheet = true;
+                    continue;
+                }
+                // Tables are read before any cell so formulas can name them by their workbook-wide ids.
+                ReadTables(parts, worksheet, sheetIndex, resolved, workbook, recordBudget, pendingTableFormulas);
+            }
+            XlsbTablePartReader.ResolveFormulas(pendingTableFormulas, workbook);
+            foreach (XlsbTable table in workbook.Tables.Values.Where(table => table.HasUnsupportedContent)) {
+                workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-table-partial", XlsbImportDiagnosticSeverity.Warning,
+                    $"Projected table '{table.DisplayName}' while keeping records outside the supported table subset in its native part.", table.PartName));
+            }
+
+            foreach (XlsbSheet worksheet in workbook.Sheets) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string sheetPartName = worksheet.PartName!;
+                IReadOnlyDictionary<string, XlsbPackageRelationship> worksheetRelationships = worksheet.Relationships;
+                if (worksheet.IsChartSheet) {
                     ReadChartSheet(parts, sheetPartName, worksheet, resolved, workbook, recordBudget);
                     continue;
                 }
@@ -173,6 +190,31 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             return workbook;
+        }
+
+        private static void ReadTables(XlsbPackagePartReader parts, XlsbSheet worksheet, int sheetIndex, XlsbImportOptions options,
+            XlsbWorkbook workbook, XlsbRecordReadBudget recordBudget, List<XlsbTablePartReader.PendingFormula> pending) {
+            foreach (XlsbPackageRelationship relationship in worksheet.Relationships.Values) {
+                if (!XlsbTablePartReader.IsTableRelationship(relationship)) continue;
+                string partName = XlsbPackagePartReader.ResolveTarget(worksheet.PartName!, relationship.Target);
+                // Single-cell XML tables use their own part type and stay preserved natively.
+                if (parts.GetContentType(partName) != Write.XlsbWorksheetTableWriter.ContentType) continue;
+                XlsbTable table;
+                try {
+                    table = XlsbTablePartReader.Read(parts.ReadPart(partName, options.CancellationToken), relationship.Id, partName,
+                        sheetIndex, options, recordBudget, pending);
+                    if (workbook.Tables.ContainsKey(table.Id)) {
+                        throw new InvalidDataException($"The XLSB workbook contains more than one table with id {table.Id}.");
+                    }
+                } catch (Exception exception) when (exception is InvalidDataException or EndOfStreamException) {
+                    // An unreadable table stays in its native part; the worksheet then keeps all of its tables unprojected.
+                    workbook.AddDiagnostic(new XlsbImportDiagnostic("xlsb-table-partial", XlsbImportDiagnosticSeverity.Warning,
+                        $"Kept table part '{partName}' native because it could not be decoded: {exception.Message}", partName));
+                    continue;
+                }
+                workbook.Tables.Add(table.Id, table);
+                worksheet.Tables.Add(relationship.Id, table);
+            }
         }
 
         private static void ParseWorkbookPart(

@@ -11,6 +11,7 @@ internal sealed class XlsbFormulaWriteContext : IXlsbFormulaEncodingContext {
     private readonly XlsbSheetStructure _structure;
     private LegacyXlsExternSheetTable? _links;
     private LegacyXlsFormulaNameIndex? _names;
+    private XlsbTableReferenceIndex? _tables;
     private readonly Dictionary<ushort, ushort> _mapped = new();
     private readonly List<(int First, int Last)> _added = new();
     private int _selfLink = -1;
@@ -39,8 +40,9 @@ internal sealed class XlsbFormulaWriteContext : IXlsbFormulaEncodingContext {
             _names = new LegacyXlsFormulaNameIndex(global, local, _links);
         }
         int sheetIndex = Array.FindIndex(sheets, sheet => sheet.Name == sheetName);
+        _tables ??= XlsbTableReferenceIndex.Create(sheets);
         bool result = XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex,
-            MapReference, out payload, out reason, arrayFormula, resultClass, ResolveFutureFunction);
+            MapReference, out payload, out reason, arrayFormula, resultClass, ResolveFutureFunction, _tables);
         return result;
     }
 

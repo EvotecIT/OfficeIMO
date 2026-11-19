@@ -101,6 +101,11 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                         if (!TryReadFormulaString(tokens, ref offset, out string? text)) return false;
                         stack.Push(new FormulaExpression(QuoteFormulaString(text!), AtomPrecedence));
                         break;
+                    case 0x18:
+                        // PtgList: a structured reference to a table decoded from the workbook's Table parts.
+                        if (!Write.XlsbStructuredReferences.TryFormat(tokens, ref offset, workbook, out string? list)) return false;
+                        stack.Push(new FormulaExpression(list!, AtomPrecedence));
+                        break;
                     case 0x19:
                         if (!TryApplyAttribute(tokens, ref offset, stack)) return false;
                         break;

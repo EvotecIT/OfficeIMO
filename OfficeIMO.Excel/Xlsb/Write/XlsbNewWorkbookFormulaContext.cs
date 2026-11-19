@@ -17,6 +17,7 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
     private readonly List<string> _addedFutureFunctions = new();
     private LegacyXlsExternSheetTable? _links;
     private LegacyXlsFormulaNameIndex? _names;
+    private XlsbTableReferenceIndex? _tables;
 
     internal XlsbNewWorkbookFormulaContext(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets, DefinedNames? definedNames) {
         _document = document;
@@ -46,8 +47,9 @@ internal sealed class XlsbNewWorkbookFormulaContext : IXlsbFormulaEncodingContex
         for (int index = 0; index < _sheets.Count; index++) {
             if (string.Equals(_sheets[index].Name, sheetName, StringComparison.Ordinal)) { sheetIndex = index; break; }
         }
+        _tables ??= XlsbTableReferenceIndex.Create(_sheets);
         return XlsbFormulaEncoder.TryEncode(text, _names, sheetIndex, MapReference, out payload, out reason, arrayFormula, resultClass,
-            ResolveFutureFunction);
+            ResolveFutureFunction, _tables);
     }
 
     private uint? ResolveFutureFunction(string name) {

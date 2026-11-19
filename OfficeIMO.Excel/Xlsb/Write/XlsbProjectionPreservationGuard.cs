@@ -54,8 +54,9 @@ internal sealed class XlsbProjectionPreservationGuard {
             foreach (var pair in part.Parts) queue.Enqueue(pair.OpenXmlPart);
             // Document properties are edited through the workbook API and rewritten from the model.
             if (part is ExtendedFilePropertiesPart or CustomFilePropertiesPart) continue;
-            // Legacy comments and their VML drawing are edited through the worksheet API; the rewrite compares them itself.
-            bool worksheetOwned = part is WorksheetPart or WorksheetCommentsPart or VmlDrawingPart;
+            // Legacy comments with their VML drawing, and table definitions, are edited through the worksheet API; the rewrite
+            // compares them with the source itself.
+            bool worksheetOwned = part is WorksheetPart or WorksheetCommentsPart or VmlDrawingPart or TableDefinitionPart;
             bool editablePart = worksheetOwned || part is WorkbookPart or WorkbookStylesPart or SharedStringTablePart;
             if (worksheets ? !editablePart : worksheetOwned || part is WorkbookStylesPart or SharedStringTablePart) continue;
             result.Add(part.Uri.OriginalString, Fingerprint(part, worksheets, renames));

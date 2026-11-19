@@ -106,7 +106,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private static void ThrowIfUnsupportedNewWorksheetContent(ExcelSheet sheet) {
-            string? unsupportedPart = XlsbWorksheetCommentModel.FindUnsupportedPart(sheet.WorksheetPart);
+            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet.WorksheetPart);
             if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support {unsupportedPart ?? "relationship-backed content"} on worksheet '{sheet.Name}'.");
             }
@@ -119,9 +119,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
         private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbSheet sourceSheet) {
             // Comments and their VML drawing are compared with the source by XlsbWorksheetCommentRewrite.
-            string? unsupportedPart = XlsbWorksheetCommentModel.FindUnsupportedPart(sheet.WorksheetPart);
+            string? unsupportedPart = XlsbWorksheetContent.FindUnsupportedPart(sheet.WorksheetPart);
             if (unsupportedPart != null || sheet.WorksheetPart.ExternalRelationships.Any()) {
                 throw new NotSupportedException($"Native XLSB rewriting currently cannot modify {unsupportedPart ?? "relationship-backed worksheet content"} on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
+            }
+            // Edited tables are rewritten in place; adding or removing a table needs new package parts.
+            if (!XlsbWorksheetTableProjector.TryPair(sheet, sourceSheet, out _)) {
+                throw new NotSupportedException($"Native XLSB rewriting cannot add or remove tables on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
             }
 
             XlsbWorksheetGeometryProjector.ValidateUnchanged(sheet, sourceSheet);

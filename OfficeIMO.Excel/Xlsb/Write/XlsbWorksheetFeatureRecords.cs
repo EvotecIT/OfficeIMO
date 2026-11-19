@@ -88,6 +88,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             XlsbWorksheetIgnoredErrorWriter.Append(records, context);
             XlsbWorksheetDataValidationWriter.Append(records, context);
             XlsbWorksheetCommentWriter.Append(records, context);
+            XlsbWorksheetTableWriter.Append(records, context);
             return records;
         }
     }

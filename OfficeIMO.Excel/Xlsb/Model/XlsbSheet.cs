@@ -111,5 +111,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
         /// Office 2010 rule extensions; replacing the projected collections would then lose or orphan that content.
         /// </summary>
         internal bool HasUnprojectedConditionalFormatting { get; set; }
+
+        /// <summary>Tables decoded from the worksheet's Table parts, keyed by their worksheet relationship id.</summary>
+        internal Dictionary<string, XlsbTable> Tables { get; } = new Dictionary<string, XlsbTable>(StringComparer.Ordinal);
     }
 }

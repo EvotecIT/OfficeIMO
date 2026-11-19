@@ -73,6 +73,9 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? StylesheetPartName { get; set; }
 
+        /// <summary>Every decoded table in the workbook, keyed by its idList.</summary>
+        internal Dictionary<uint, XlsbTable> Tables { get; } = new Dictionary<uint, XlsbTable>();
+
         internal void AddSheet(XlsbSheet worksheet) => _worksheets.Add(worksheet);
 
         internal void AddDefinedName(XlsbDefinedName definedName) {

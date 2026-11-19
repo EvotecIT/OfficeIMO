@@ -18,9 +18,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         /// _xlfn. spelling), or null when the target workbook cannot provide that name.</remarks>
         internal static bool TryEncode(string formulaText, LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal,
             out byte[] formulaPayload, out string? reason, bool arrayFormula = false, byte resultClass = 0,
-            Func<string, uint?>? futureFunctions = null) {
+            Func<string, uint?>? futureFunctions = null, XlsbTableReferenceIndex? tables = null) {
             formulaPayload = Array.Empty<byte>();
             ArgumentNullException.ThrowIfNull(formulaText);
+            if (!XlsbStructuredReferences.TrySubstitute(formulaText, tables, names, sheetIndex, mapExternal, out formulaText,
+                    out IReadOnlyList<byte[]> lists, out reason)) return false;
+            var placeholders = lists.Count == 0 ? null : new XlsbStructuredReferences.Placeholders(lists);
             if (formulaText.Length > MaximumFormulaCharacters) {
                 reason = $"Formula text exceeds the supported limit of {MaximumFormulaCharacters} characters.";
                 return false;
@@ -29,8 +32,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 reason = $"Formula syntactic nesting exceeds the supported depth of {MaximumControlFunctionDepth}.";
                 return false;
             }
-            var scope = new EncodeScope(names, sheetIndex, mapExternal, futureFunctions);
+            var scope = new EncodeScope(names, sheetIndex, mapExternal, futureFunctions, placeholders);
             if (!TryEncodeTokens(formulaText, depth: 0, scope, out byte[] biff12Tokens, out byte[] extra, out reason)) return false;
+            if (placeholders != null && !placeholders.IsComplete) {
+                reason = "A structured table reference is used where native XLSB formulas cannot store it.";
+                return false;
+            }
             if (biff12Tokens.Length == 0 || biff12Tokens.Length > MaximumTokenBytes) {
                 reason = "The encoded formula is outside the XLSB formula-token size limit.";
                 return false;
@@ -112,7 +119,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return false;
             }
 
-            return TryConvertTokens(biff8Tokens, biff8Extra, scope.MapExternal, out tokens, out extra, out reason);
+            if (!TryConvertTokens(biff8Tokens, biff8Extra, scope.MapExternal, out tokens, out extra, out reason)) return false;
+            // Swap placeholders in each leaf so control-function jumps are computed over the final token sizes.
+            if (scope.Placeholders != null && !scope.Placeholders.TryReplace(tokens, out tokens)) {
+                reason = "A structured table reference could not be placed in the native formula.";
+                return false;
+            }
+            return true;
         }
 
         private static bool TryEncodeControlFunction(string formulaText, int depth, EncodeScope scope,
@@ -548,17 +561,20 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         private sealed class EncodeScope {
-            internal EncodeScope(LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal, Func<string, uint?>? futureFunctions) {
+            internal EncodeScope(LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal, Func<string, uint?>? futureFunctions,
+                XlsbStructuredReferences.Placeholders? placeholders) {
                 Names = names;
                 SheetIndex = sheetIndex;
                 MapExternal = mapExternal;
                 FutureFunctions = futureFunctions;
+                Placeholders = placeholders;
             }
 
             internal LegacyXlsFormulaNameIndex Names { get; }
             internal int SheetIndex { get; }
             internal Func<ushort, ushort>? MapExternal { get; }
             internal Func<string, uint?>? FutureFunctions { get; }
+            internal XlsbStructuredReferences.Placeholders? Placeholders { get; }
         }
     }
 }

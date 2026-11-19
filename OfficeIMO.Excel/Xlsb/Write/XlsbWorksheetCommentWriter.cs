@@ -35,28 +35,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return output.ToArray();
         }
 
-        /// <summary>
-        /// Returns a message naming the first worksheet-related part the native writers cannot carry, or null. Comments and
-        /// the VML drawing that LegacyDrawing names are the only related parts accepted.
-        /// </summary>
-        internal static string? FindUnsupportedPart(WorksheetPart worksheetPart) {
-            string? legacyId = worksheetPart.Worksheet?.GetFirstChild<LegacyDrawing>()?.Id?.Value;
-            foreach (IdPartPair pair in worksheetPart.Parts) {
-                switch (pair.OpenXmlPart) {
-                    case WorksheetCommentsPart:
-                        continue;
-                    case VmlDrawingPart when legacyId != null && pair.RelationshipId == legacyId
-                        && worksheetPart.WorksheetCommentsPart != null:
-                        continue;
-                    case WorksheetThreadedCommentsPart:
-                        return "threaded comments; legacy notes (SetComment) are supported";
-                    default:
-                        return "relationship-backed content";
-                }
-            }
-            return null;
-        }
-
         /// <summary>Reads and validates the worksheet's comments; null when the worksheet has none.</summary>
         internal static XlsbWorksheetCommentModel? Read(ExcelSheet sheet, string operation) {
             WorksheetPart worksheetPart = sheet.WorksheetPart;
