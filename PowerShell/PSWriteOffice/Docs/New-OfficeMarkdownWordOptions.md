@@ -11,7 +11,7 @@ Creates native Markdown-to-Word settings, including an engine-owned template pat
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeMarkdownWordOptions [-Template <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-NoFrontMatter] [-Font <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-Theme <OfficeThemeInput>] [-AllowRemoteImages] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-NoDataUriImages] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidth <OfficeLength>] [-MaxImageHeight <OfficeLength>] [-MaxImageWidthPercentOfContent <Double>] [<CommonParameters>]
+New-OfficeMarkdownWordOptions [-Template <string>] [-BookmarkName <string>] [-ContentControlTag <string>] [-ContentControlAlias <string>] [-KeepPlaceholder] [-NoFrontMatter] [-Font <string>] [-BaseUri <string>] [-AllowLocalImages] [-AllowedImageDirectory <string[]>] [-Theme <OfficeThemeInput>] [-AllowRemoteImages] [-ReaderOptions <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-NoDataUriImages] [-MaxDataUriImageBytes <Int64>] [-PreferNarrativeSingleLineDefinitions] [-FitImagesToPageContentWidth] [-FitImagesToContextWidth] [-MaxImageWidth <OfficeLength>] [-MaxImageHeight <OfficeLength>] [-MaxImageWidthPercentOfContent <Double>] [-DefaultParagraphStyle <string>] [-PreferDocumentStyles] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -126,6 +126,22 @@ Accept wildcard characters: False
 
 ### -ContentControlTag
 ContentControlTag override; omission preserves the native default.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -DefaultParagraphStyle
+Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style.
 
 ```yaml
 Type: String
@@ -308,6 +324,22 @@ Type: MarkdownInputNormalizationPreset
 Parameter Sets: Default
 Aliases: None
 Possible values: None, IntelligenceXTranscript, IntelligenceXTranscriptStrict, DocsLoose
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -PreferDocumentStyles
+Format block quotes with the template's quote style instead of a direct indent.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
 
 Required: False
 Position: named

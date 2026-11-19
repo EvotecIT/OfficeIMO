@@ -166,6 +166,35 @@ await section.PageSetup.Footer.AddHtmlAsync(
 document.Save();
 ```
 
+### Keep the document's styles
+
+When you add HTML to a template, three options keep the imported content on the template's styles instead of the formatting carried by the HTML:
+
+- `DefaultParagraphStyleId` styles body paragraphs that get no heading, list, quote, definition or class style. It takes a style identifier or name. The document must define it unless it is an OfficeIMO built-in paragraph style; otherwise the import throws `InvalidOperationException` before the document changes.
+- `PreferDocumentStyles` maps a CSS class to the document's paragraph style with that identifier or name, and keeps the own style of paragraphs inside a block quote.
+- `IgnoreCssFormatting` stops inline CSS, stylesheets and `FontFamily` from becoming direct font, size, color, spacing, indentation, alignment, border or shading. Structural CSS (`display`, `visibility`, `white-space`, page breaks, direction, list markers and sizes) still applies, as do bold, italic, code, highlights and links from the HTML elements.
+
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
+
+using WordDocument document = WordDocument.Load("template.docx");
+document.AddHtml(
+    "<h1 style=\"font-family: Arial\">Report</h1><p style=\"color: red\">Body</p><p class=\"Note\">Note</p>",
+    new HtmlWordExportOptions {
+        PreferDocumentStyles = true,
+        DefaultParagraphStyleId = "Body Text",
+        IgnoreCssFormatting = true
+    });
+document.Save("report.docx");
+```
+
+```powershell
+$options = New-OfficeHtmlWordOptions -PreferDocumentStyles -DefaultParagraphStyle 'Body Text' -IgnoreCssFormatting
+```
+
+Built-in styles are found by their built-in name rather than their identifier. Word localizes the identifier, so a French template stores `heading 1` as `Titre1` and `Quote` as `Citation`. Headings, block quotes and captions use those definitions instead of adding English duplicates, and a class style on `dt` or `dd` wins over the definition-list styles. A block quote gets a direct indent only when neither the document's quote style nor a class style formats it.
+
 ## Supported HTML elements and CSS
 
 | HTML element | Word result |
