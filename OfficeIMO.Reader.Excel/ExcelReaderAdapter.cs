@@ -54,7 +54,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, path);
-        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false, options.SheetName);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result, display);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
@@ -79,7 +79,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, logicalName);
-        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false, options.SheetName);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result, display);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }
@@ -105,7 +105,7 @@ internal static partial class ExcelReaderAdapter {
             capabilities: new[] { capabilityId },
             assets: assets);
         AttachWarningsWhenEmpty(result, chunks, warnings, sourceName);
-        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false);
+        ExcelWorkbookInfo snapshot = document.Inspect(null, cancellationToken, includeCellPresentation: false, options.SheetName);
         result = ExcelRichMapping.Apply(snapshot, readerOptions, options, result, display);
         return ExcelInspectionProjection.Apply(document, snapshot, readerOptions, options, result, cancellationToken);
     }

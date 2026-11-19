@@ -428,8 +428,14 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
+        /// <summary>
+        /// Converts a cell of this worksheet's loaded DOM the way cell enumeration does, so a caller that already
+        /// walks the DOM does not read the worksheet part a second time for its values.
+        /// </summary>
+        internal object? ConvertLoadedCell(Cell cell) => ConvertCell(cell);
+
         /// <summary>The SDK's child properties each allocate a lookup key, which dominates reading a large worksheet.</summary>
-        private static void GetCellChildren(Cell cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString) {
+        internal static void GetCellChildren(Cell cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString) {
             formula = null;
             cellValue = null;
             inlineString = null;
