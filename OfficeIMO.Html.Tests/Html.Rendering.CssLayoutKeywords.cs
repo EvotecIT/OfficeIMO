@@ -75,6 +75,17 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_AlignsBeforeAndAfterAsSeparateGroups() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>p::before{content:'A';vertical-align:top;line-height:10px}p::after{content:'Z';vertical-align:bottom;line-height:40px}</style>"
+            + "<p style='margin:0;font-size:16px;line-height:20px'>x</p>", CssLayoutOptions);
+
+        // The 40px ::after sets the line and sits at its bottom; the 10px ::before stays at the top.
+        Assert.True(TextBaseline(rendered, "Z") - TextBaseline(rendered, "A") > 10D,
+            "A " + TextBaseline(rendered, "A") + ", Z " + TextBaseline(rendered, "Z"));
+    }
+
+    [Fact]
     public void HtmlRenderer_ShiftsInlineTextByVerticalAlignKeywords() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<p style='margin:0;font-size:16px'>Ab <span style='font-size:8px;vertical-align:middle'>mid</span>"
@@ -123,6 +134,19 @@ public sealed partial class HtmlRenderingTests {
         double share = justified[1] - start[1];
         Assert.True(share > 0.01D, "share " + share);
         for (int index = 2; index < 5; index++) Assert.Equal(index * share, justified[index] - start[index], 2);
+    }
+
+    [Fact]
+    public void HtmlRenderer_JustifiedLinesKeepTheSpaceOfBidiControls() {
+        // The left-to-right mark owns the gap before the following letter, and the Hebrew word sends the line through bidi.
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='text-align:justify;text-justify:inter-character;width:300px;margin:0'>Lo\u200E" + JustifiedText.Substring(2)
+            + " \u05E9\u05DC\u05D5\u05DD</p>", CssLayoutOptions);
+        HtmlRenderText[] firstLine = JustificationVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderText>()
+            .Where(text => !string.IsNullOrWhiteSpace(text.Text))
+            .GroupBy(text => Math.Round(text.LayoutY, 1)).OrderBy(group => group.Key).First().ToArray();
+
+        Assert.Equal(300D, firstLine.Max(text => text.X + (text.TextAdvanceWidth ?? text.Width)), 1);
     }
 
     [Fact]

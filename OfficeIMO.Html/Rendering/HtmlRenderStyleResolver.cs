@@ -352,7 +352,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             VerticalAlignShift = keywordShift,
             VerticalAlignParentFontSize = parent?.Font.Size ?? fontSize,
             LineRelativeAlign = lineRelativeAlign,
-            LineRelativeAlignRoot = lineRelativeAlign.Length == 0 ? null : startsLineRelativeGroup ? element : parent?.LineRelativeAlignRoot,
+            // ::before and ::after share their originating element but are separate boxes, so each has its own group.
+            LineRelativeAlignRoot = lineRelativeAlign.Length == 0 ? null
+                : startsLineRelativeGroup ? pseudoElement ? (element, pseudoSemanticRole) : element
+                : parent?.LineRelativeAlignRoot,
             LineRelativeAlignOffset = startsLineRelativeGroup ? baselineOffset + keywordShift : parent?.LineRelativeAlignOffset ?? 0D,
             Color = color,
             DecorationColor = propagatedUnderline && !ownsUnderline

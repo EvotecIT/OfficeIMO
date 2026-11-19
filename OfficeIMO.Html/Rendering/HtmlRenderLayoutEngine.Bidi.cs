@@ -353,6 +353,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     || index > 0 && elements[index].SourceElementIndex <= elements[index - 1].SourceElementIndex) return false;
             }
         }
+        // Bidi controls are not carried by any group; space after one would be lost, so the caller adds it at the end.
+        var carried = new HashSet<int>(groups.SelectMany(item => item.Elements).Select(element => element.SourceElementIndex));
+        for (int index = 0; index < spacing.Length; index++) {
+            if (spacing[index] > 0D && !carried.Contains(index)) return false;
+        }
         foreach ((InlineSegment group, InlineBidiElement[] elements) in groups) {
             double[] groupSpacing = elements.Select(element => spacing[element.SourceElementIndex]).ToArray();
             group.ClusterJustification = groupSpacing;
