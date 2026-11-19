@@ -13,7 +13,7 @@ namespace OfficeIMO.Drawing.CodeGlyphX.Tests;
 
 // Each format's one-call placement is checked at the public boundary: the saved file reopens with the
 // code at its documented size and alternative text, the stored symbol decodes, and the page OfficeIMO's
-// PDF conversion produces still decodes. The PDF adapter itself must draw vector content.
+// PDF conversion produces draws it as vector content that still decodes.
 public sealed class DocumentBarcodePlacementTests : IDisposable {
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "officeimo-codeglyphx-" + Guid.NewGuid().ToString("N"));
 
@@ -42,6 +42,19 @@ public sealed class DocumentBarcodePlacementTests : IDisposable {
 
         using var pdf = new MemoryStream();
         reopened.SaveAsPdf(pdf);
+        AssertPdfPageDecodes(pdf.ToArray(), SymbolFormat.QrCode, payload);
+    }
+
+    [Fact]
+    public void DenseWordQrCodeStaysVectorAndScannableInPdf() {
+        // About 1,500 characters need tens of thousands of module-run commands.
+        string payload = string.Concat(Enumerable.Range(0, 1500).Select(index => (char)('a' + index * 7 % 26)));
+        using WordDocument document = WordDocument.Create();
+        document.AddQrCode(payload, options => options.Width = OfficeLength.Inches(5));
+
+        using var pdf = new MemoryStream();
+        document.SaveAsPdf(pdf);
+
         AssertPdfPageDecodes(pdf.ToArray(), SymbolFormat.QrCode, payload);
     }
 
@@ -190,6 +203,8 @@ public sealed class DocumentBarcodePlacementTests : IDisposable {
 
     private static void AssertPdfPageDecodes(byte[] bytes, SymbolFormat format, string payload) {
         using PdfDocument pdf = PdfDocument.Load(new MemoryStream(bytes));
+        // The symbol stays vector: no image XObject stands in for it.
+        Assert.Empty(pdf.Images.Extract());
         byte[] page = pdf.Render.DisplayPage(1, new PdfPageDisplayOptions { Scale = 2D }).Bytes!;
         Assert.Equal(payload, ScanSingle(page, format));
     }

@@ -57,6 +57,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.HorizontalMetrics.cs" Link="ManagedTextShapingTestAssets.HorizontalMetrics.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Measurement.cs" Link="ManagedTextShapingTestAssets.Measurement.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\Pdf\PdfOperatorSearchText.cs" Link="Pdf\PdfOperatorSearchText.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\Pdf\OfficeSvgPartDamage.cs" Link="Pdf\OfficeSvgPartDamage.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

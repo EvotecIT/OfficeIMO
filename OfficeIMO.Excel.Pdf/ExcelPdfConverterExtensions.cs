@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel.Pdf {
                             foreach (WorksheetImageExportData image in plan.Images) {
                                 cancellationToken.ThrowIfCancellationRequested();
                                 if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
-                                    item.AddImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), global::OfficeIMO.OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), spacingAfter: global::OfficeIMO.OfficeLength.Points(6), style: CreateConverterImageStyle(image));
+                                    item.AddImage(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), global::OfficeIMO.OfficeAlignment.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), spacingAfter: global::OfficeIMO.OfficeLength.Points(6), style: CreateConverterImageStyle(image), linkUri: image.LinkUri, linkContents: image.LinkUri != null ? image.AlternativeText : null);
                                 }
                             }
 
@@ -147,6 +147,10 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfImageStyle CreateConverterImageStyle(WorksheetImageExportData image) {
             PdfCore.PdfImageStyle style = CreateConverterImageStyle();
             style.RotationAngle = -image.RotationDegrees;
+            style.HorizontalFlip = image.HorizontalFlip;
+            style.VerticalFlip = image.VerticalFlip;
+            style.SourceCrop = image.SourceCrop;
+            style.AltText = image.AlternativeText;
             return style;
         }
 

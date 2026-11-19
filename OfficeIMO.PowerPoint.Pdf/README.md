@@ -113,7 +113,7 @@ foreach (OfficeDiagnostic finding in report.Diagnostics) {
 - Full-slide pages use the authored slide size; notes pages use portrait letter and handouts use landscape letter.
 - Slide backgrounds, text boxes, supported pictures, supported tables, supported charts, and basic auto-shapes.
 - Text box fill, outline, margins, font defaults, alignment, vertical anchoring, rich runs, and hyperlinks.
-- Supported JPEG/PNG pictures through the shared PDF image pipeline.
+- Supported JPEG/PNG pictures through the shared PDF image pipeline, and SVG pictures as PDF vector content at their placed size with crop, rotation, mirroring, links and alternative text. An SVG part the PDF writer cannot read exports the stored PNG fallback, and SVG paint the vector writer cannot express is rasterized at the placed size; both report `svg-image-raster-fallback`.
 - Full-slide PDF output always uses the native per-shape PDF renderer, including hyperlinks and rich text. Conversion no longer chooses a different renderer from document content or an option toggle.
 - PNG, SVG, visual-review HTML, and notes/handout thumbnails use the shared visual snapshot; those surfaces have a different scene/raster contract and do not select the PDF engine at runtime.
 - Profile presets through `PowerPointPdfExportOptions.UseProfile(...)`, plus shared `TextFallbacks` and `ResourcePolicy` controls. The balanced default uses installed fonts while denying arbitrary local and remote reads; portable deterministic mode is explicit.
