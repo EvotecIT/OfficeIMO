@@ -135,4 +135,47 @@ public sealed class DrawingChartSecondaryScaleTests {
         Assert.Contains("3", labels);
         Assert.DoesNotContain(labels, label => label.Contains('%'));
     }
+
+    [Fact]
+    public void LogarithmicSecondaryAxisSpacesPowersEvenlyAndLabelsSourceValues() {
+        OfficeColor secondary = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+            new OfficeSeries("Primary", new[] { 1d, 2d, 3d }),
+            new OfficeSeries("Secondary", new[] { 10d, 100d, 1000d }, null, secondary, null, false,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        });
+        var layout = new OfficeChartLayout(showLegend: false)
+            .WithSecondaryValueAxis(new OfficeChartValueAxisLayout().WithLogarithmicScale(10D));
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
+
+        // 10, 100 and 1000 are one power apart, so the line falls by the same height on each step.
+        static IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing source) => source.Shapes.Concat(
+            source.Elements.OfType<OfficeDrawingGroup>().SelectMany(group => Shapes(group.Drawing)));
+        double[] ys = Shapes(drawing).Where(shape => shape.Shape.StrokeColor == secondary && shape.Shape.Kind == OfficeShapeKind.Line)
+            .SelectMany(shape => shape.Shape.Points.Select(point => Math.Round(shape.Y + point.Y, 6))).Distinct().OrderByDescending(y => y).ToArray();
+        Assert.Equal(3, ys.Length);
+        Assert.Equal(ys[0] - ys[1], ys[1] - ys[2], 3);
+        string[] labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+        Assert.Contains("10", labels);
+        Assert.Contains("100", labels);
+    }
+
+    [Fact]
+    public void ReversedSecondaryAxisPutsItsMinimumAtTheTop() {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Primary", new[] { 1d, 2d }),
+            new OfficeSeries("Secondary", new[] { 40d, 50d }, null, null, null, false,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        });
+        var layout = new OfficeChartLayout(showLegend: false).WithSecondaryValueAxis(
+            new OfficeChartValueAxisLayout(minimum: 0, maximum: 50, majorUnit: 10).WithReversedScale(true));
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
+
+        OfficeDrawingText[] texts = drawing.Elements.OfType<OfficeDrawingText>().ToArray();
+        OfficeDrawingText zero = Assert.Single(texts, text => text.Text == "0" && text.X > 300);
+        OfficeDrawingText fifty = Assert.Single(texts, text => text.Text == "50");
+        Assert.True(zero.Y < fifty.Y);
+    }
 }

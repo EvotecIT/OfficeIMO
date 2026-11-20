@@ -387,7 +387,7 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("The secondary axis number format cannot be rendered.");
             var resolved = new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
                 native.MinorUnit, numberFormat, native.MajorTickMark,
-                native.MinorTickMark);
+                native.MinorTickMark).WithLogarithmicScale(native.LogBase).WithReversedScale(native.IsReversed);
             return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 

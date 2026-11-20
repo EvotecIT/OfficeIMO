@@ -229,8 +229,6 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Theory]
-    [InlineData("logarithmic")]
-    [InlineData("reversed")]
     [InlineData("displayUnits")]
     [InlineData("deleted")]
     public void SecondaryValueAxis_UnsupportedProjectionPreservesNativeUpdates(string setting) {
@@ -245,8 +243,6 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var secondary = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
         if (setting == "deleted") secondary.AddChild(new C.Delete { Val = true }, true);
-        else if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
-        else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else secondary.AddChild(new C.DisplayUnits(new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
         string Appearance(C.ValueAxis axis) {
             var copy = (C.ValueAxis)axis.CloneNode(true);
@@ -280,6 +276,51 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(secondary.NumberingFormat.FormatCode?.Value,
             snapshot.Layout.SecondaryValueAxis!.NumberFormat);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SecondaryValueAxis_ProjectsLogarithmicAndReversedScalesAndKeepsThemOnUpdate(bool reversed) {
+        using var presentation = PowerPointDocument.Create();
+        var slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Count", new[] { 100d, 150d }),
+            new OfficeSeries("Ratio", new[] { 1d, 10d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, data);
+        C.ValueAxis Secondary() => slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        C.ValueAxis axis = Secondary();
+        if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
+        else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        OfficeChartValueAxisLayout secondary = snapshot.Layout.SecondaryValueAxis!;
+        Assert.Equal((reversed, reversed ? (double?)null : 10D), (secondary.IsReversed, secondary.LogBase));
+        Assert.Equal((false, (double?)null), (snapshot.Layout.ReverseVerticalValueAxis, snapshot.Layout.VerticalAxisLogBase));
+        chart.UpdateData(data);
+        axis = Secondary();
+        Assert.Equal(reversed, axis.Scaling!.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin);
+        Assert.Equal(!reversed, axis.Scaling.GetFirstChild<C.LogBase>()?.Val?.Value == 10);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
+    [Fact]
+    public void SecondaryValueAxis_WritesLogarithmicAndReversedScales() {
+        using var presentation = PowerPointDocument.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Count", new[] { 100d, 150d }),
+            new OfficeSeries("Ratio", new[] { 1d, 10d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithLogarithmicScale(10D).WithReversedScale(true));
+
+        C.Scaling scaling = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).Scaling!;
+        Assert.Equal(10D, scaling.GetFirstChild<C.LogBase>()?.Val?.Value);
+        Assert.Equal(C.OrientationValues.MaxMin, scaling.GetFirstChild<C.Orientation>()?.Val?.Value);
+        Assert.Empty(presentation.ValidateDocument());
     }
 
     [Theory]

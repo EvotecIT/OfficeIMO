@@ -35,7 +35,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             // Plotted values restated as source values, and back for drawing.
             Func<double, double>? sourceY = series.SourceValue;
-            Func<double, double>? plotY = sourceY != null ? GetPlottingTransform(layout, horizontal: false) : null;
+            Func<double, double>? plotY = sourceY != null ? GetSeriesPlottingTransform(layout, series, horizontal: false) : null;
             Func<double, double>? sourceX = scatter ? series.SourceXValue : null;
             Func<double, double>? plotX = sourceX != null ? GetPlottingTransform(layout, horizontal: true) : null;
             var xs = new List<double>();

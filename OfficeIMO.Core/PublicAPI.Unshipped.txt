@@ -879,3 +879,7 @@ OfficeIMO.Drawing.OfficeChartManualLayout.X.get -> double
 OfficeIMO.Drawing.OfficeChartManualLayout.XMode.get -> OfficeIMO.Drawing.OfficeChartLayoutMode
 OfficeIMO.Drawing.OfficeChartManualLayout.Y.get -> double
 OfficeIMO.Drawing.OfficeChartManualLayout.YMode.get -> OfficeIMO.Drawing.OfficeChartLayoutMode
+OfficeIMO.Drawing.OfficeChartValueAxisLayout.IsReversed.get -> bool
+OfficeIMO.Drawing.OfficeChartValueAxisLayout.LogBase.get -> double?
+OfficeIMO.Drawing.OfficeChartValueAxisLayout.WithLogarithmicScale(double? logBase) -> OfficeIMO.Drawing.OfficeChartValueAxisLayout!
+OfficeIMO.Drawing.OfficeChartValueAxisLayout.WithReversedScale(bool reversed) -> OfficeIMO.Drawing.OfficeChartValueAxisLayout!

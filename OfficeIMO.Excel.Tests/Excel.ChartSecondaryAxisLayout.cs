@@ -31,8 +31,6 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [InlineData("zeroUnit")]
     [InlineData("invertedBounds")]
     [InlineData("malformedNumber")]
-    [InlineData("logarithmic")]
-    [InlineData("reversed")]
     [InlineData("displayUnits")]
     [InlineData("deleted")]
     public void SecondaryValueAxis_InvalidImportedSettingsRejectSnapshot(string setting) {
@@ -52,9 +50,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         else if (setting == "invertedBounds") {
             secondary.Scaling!.AddChild(new C.MinAxisValue { Val = 2 }, true);
             secondary.Scaling.AddChild(new C.MaxAxisValue { Val = 1 }, true);
-        } else if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
-        else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
-        else if (setting == "displayUnits") secondary.AddChild(new C.DisplayUnits(
+        } else if (setting == "displayUnits") secondary.AddChild(new C.DisplayUnits(
             new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
         else secondary.Scaling!.AddChild(new C.MaxAxisValue { Val = new DocumentFormat.OpenXml.DoubleValue { InnerText = "invalid" } }, true);
         Assert.False(chart.TryGetSnapshot(out _));
@@ -89,6 +85,24 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         Assert.Equal(OfficeChartAxisTickMark.Cross, snapshot.Layout.SecondaryValueAxis.MajorTickMark);
         Assert.Equal(OfficeChartAxisTickMark.Outside, snapshot.Layout.SecondaryValueAxis.MinorTickMark);
         Assert.Equal("Secondary ratio", snapshot.Layout.SecondaryValueAxis.Title);
+    }
+
+    [Fact]
+    public void SecondaryValueAxis_LogarithmicScaleIsDrawnWithSourceLabels() {
+        using var document = ExcelDocument.Create();
+        var chart = document.AddSheet("Results").AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeSeries("Count", new[] { 1d, 2d, 3d }),
+                new OfficeSeries("Ratio", new[] { 2d, 30d, 400d }, null, null, null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithLogarithmicScale(10D));
+
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        Assert.Equal(10D, snapshot.Layout!.SecondaryValueAxis!.LogBase);
+        string svg = System.Text.Encoding.UTF8.GetString(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
+        // The secondary axis spans the powers 1, 10, 100 and 1000 around the values.
+        Assert.Contains(">10<", svg);
+        Assert.Contains(">100<", svg);
     }
 
     [Fact]
