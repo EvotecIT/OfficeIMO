@@ -111,10 +111,12 @@ public class YamlLoadTreeBenchmarks {
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
         // OfficeIMO's tree reads scalar values on demand; only its Default lane, which also reads them, does the
-        // reference trees' work, so only that case is recorded as validated.
+        // reference trees' work, so only that case is recorded as validated, through the method it times.
+        bool officeIMO = ReferenceEquals(library, YamlReferenceLibraries.OfficeIMOYaml);
         YamlWorkloadValidation.Record(library, Workload, "tree covers every node event; loaded values match {other}",
-            () => YamlWorkloadValidation.ValidateLoad(library, Workload, _inputs),
-            ReferenceEquals(library, YamlReferenceLibraries.OfficeIMOYaml) ? "Default" : "");
+            () => YamlWorkloadValidation.ValidateLoad(library, Workload, _inputs,
+                officeIMO ? YamlReferenceLibraries.OfficeIMOYaml.LoadTreeAndValues : null),
+            officeIMO ? "Default" : "");
     }
 
     private long Run(IYamlReferenceLibrary library) {
