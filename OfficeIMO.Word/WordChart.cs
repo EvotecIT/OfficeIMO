@@ -414,10 +414,13 @@ namespace OfficeIMO.Word {
         }
 
         private void RestyleAxisTitle(Title title) {
-            var paragraphs = title.ChartText?.RichText?.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>()
-                ?? title.GetFirstChild<TextProperties>()?.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>()
-                ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Paragraph>();
-            foreach (var paragraph in paragraphs.ToList()) {
+            // Rich text carries its own paragraphs. A title that shows a cell reference or its cache is
+            // formatted through c:txPr, which is created when the saved title has none.
+            OpenXmlCompositeElement textBody = (OpenXmlCompositeElement?)title.ChartText?.RichText ?? GetOrCreateTitleTextProperties(title);
+            if (!textBody.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>().Any()) {
+                textBody.AppendChild(new DocumentFormat.OpenXml.Drawing.Paragraph(new DocumentFormat.OpenXml.Drawing.EndParagraphRunProperties()));
+            }
+            foreach (var paragraph in textBody.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>().ToList()) {
                 var paragraphProperties = paragraph.ParagraphProperties ?? paragraph.PrependChild(new DocumentFormat.OpenXml.Drawing.ParagraphProperties());
                 var defaults = paragraphProperties.GetFirstChild<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>()
                     ?? paragraphProperties.AppendChild(new DocumentFormat.OpenXml.Drawing.DefaultRunProperties());
@@ -425,7 +428,18 @@ namespace OfficeIMO.Word {
                 foreach (var run in paragraph.Elements<DocumentFormat.OpenXml.Drawing.Run>()) {
                     ApplyAxisTitleFormat(run.RunProperties ?? run.PrependChild(new DocumentFormat.OpenXml.Drawing.RunProperties()));
                 }
+                foreach (var field in paragraph.Elements<DocumentFormat.OpenXml.Drawing.Field>()) {
+                    ApplyAxisTitleFormat(field.RunProperties ?? field.PrependChild(new DocumentFormat.OpenXml.Drawing.RunProperties()));
+                }
             }
+        }
+
+        private static TextProperties GetOrCreateTitleTextProperties(Title title) {
+            var properties = title.GetFirstChild<TextProperties>();
+            if (properties != null) return properties;
+            properties = new TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(), new DocumentFormat.OpenXml.Drawing.ListStyle());
+            title.AddChild(properties);
+            return properties;
         }
 
         private void ApplyAxisTitleFormat(DocumentFormat.OpenXml.Drawing.TextCharacterPropertiesType properties) {

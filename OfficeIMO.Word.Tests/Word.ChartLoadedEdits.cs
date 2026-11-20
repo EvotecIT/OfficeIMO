@@ -44,6 +44,38 @@ public sealed class WordChartLoadedEditTests {
     }
 
     [Fact]
+    public void SetAxisTitleFormatStylesReferenceTitlesAndFields() {
+        using var reloaded = SaveAndLoad(document => {
+            var chart = CreateBarChart(document);
+            chart.SetXAxisTitle("Quarter");
+            chart.SetYAxisTitle("Revenue");
+            var plot = chart.ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single();
+            var categoryTitle = plot.GetFirstChild<C.CategoryAxis>()!.GetFirstChild<C.Title>()!;
+            categoryTitle.ChartText!.Remove();
+            categoryTitle.GetFirstChild<C.TextProperties>()?.Remove();
+            categoryTitle.PrependChild(new C.ChartText(new C.StringReference(new C.Formula("Sheet1!$A$1"),
+                new C.StringCache(new C.PointCount { Val = 1U }, new C.StringPoint(new C.NumericValue("Quarter")) { Index = 0U }))));
+            var valueRun = plot.GetFirstChild<C.ValueAxis>()!.GetFirstChild<C.Title>()!.Descendants<A.Run>().Single();
+            valueRun.InsertAfterSelf(new A.Field(new A.RunProperties(new A.LatinFont { Typeface = "Calibri" }), new A.Text(" 2026")) {
+                Id = "{2C3D4E5F-0000-4000-8000-000000000001}", Type = "datetime"
+            });
+        });
+        WordChart chart = Assert.Single(reloaded.Charts);
+
+        chart.SetAxisTitleFormat("Arial", OfficeLength.Points(14), OfficeColor.Parse("#C0392B"));
+
+        var plotArea = chart.ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single();
+        var referenceDefaults = plotArea.GetFirstChild<C.CategoryAxis>()!.GetFirstChild<C.Title>()!
+            .GetFirstChild<C.TextProperties>()!.Descendants<A.DefaultRunProperties>().Single();
+        Assert.Equal("Arial", referenceDefaults.GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+        Assert.Equal(1400, referenceDefaults.FontSize!.Value);
+        var field = plotArea.GetFirstChild<C.ValueAxis>()!.GetFirstChild<C.Title>()!.Descendants<A.Field>().Single();
+        Assert.Equal("Arial", field.RunProperties!.GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+        Assert.Equal("C0392B", field.RunProperties.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+        Assert.Empty(reloaded.ValidateDocument());
+    }
+
+    [Fact]
     public void LoadedChartReadsSavedTitleAndCategoriesForLaterEdits() {
         using var reloaded = SaveAndLoad(document => CreateBarChart(document));
         WordChart chart = Assert.Single(reloaded.Charts);
