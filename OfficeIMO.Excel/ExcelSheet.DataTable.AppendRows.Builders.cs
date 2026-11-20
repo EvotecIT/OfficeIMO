@@ -342,11 +342,11 @@ namespace OfficeIMO.Excel {
                     if (value is DateOnly dateOnlyValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(dateOnlyValue.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem));
                     break;
                 case TabularAppendColumnKind.TimeOnly:
-                    if (value is TimeOnly timeOnlyValue) return CoerceValueHelper.HandleNumber(timeOnlyValue.ToTimeSpan().TotalDays);
+                    if (value is TimeOnly timeOnlyValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(timeOnlyValue.ToTimeSpan()));
                     break;
 #endif
                 case TabularAppendColumnKind.TimeSpan:
-                    if (value is TimeSpan timeSpanValue) return CoerceValueHelper.HandleNumber(timeSpanValue.TotalDays);
+                    if (value is TimeSpan timeSpanValue) return CoerceValueHelper.HandleNumber(ExcelDateSystemConverter.ToSerial(timeSpanValue));
                     break;
             }
 

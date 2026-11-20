@@ -2,8 +2,16 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Converts dates to and from Excel serial values using the workbook's configured date system.
     /// </summary>
+    /// <remarks>
+    /// A serial counts days, and its whole part is the day Excel reports for it. Serials hold whole milliseconds:
+    /// values are stored truncated to the millisecond, so a time just before midnight stays on its own day, and
+    /// serials read back rounded to the nearest millisecond, never past the last millisecond of the serial's day.
+    /// </remarks>
     public static class ExcelDateSystemConverter {
         private static readonly DateTime Early1900Epoch = new DateTime(1899, 12, 31);
+        private static readonly DateTime OleAutomationEpoch = new DateTime(1899, 12, 30);
+        private const long MillisecondsPerDay = 86_400_000L;
+        private const double MaximumDateTimeDays = 3_652_059d;
         /// <summary>
         /// Number of days between the Excel 1900 and 1904 date-system epochs.
         /// </summary>
@@ -14,7 +22,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static double ToSerial(DateTime value, ExcelDateSystem dateSystem) {
             if (dateSystem == ExcelDateSystem.NineteenHundred && value < new DateTime(1900, 3, 1))
-                return (value - Early1900Epoch).TotalDays;
+                return ToMillisecondSerial(FloorToMilliseconds(value.Ticks - Early1900Epoch.Ticks));
+            // ToOADate truncates to the millisecond, which keeps the time on the value's day.
             double serial = value.ToOADate();
             return dateSystem == ExcelDateSystem.NineteenFour ? serial - Date1904OffsetDays : serial;
         }
@@ -28,10 +37,51 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static DateTime FromSerial(double serial, ExcelDateSystem dateSystem) {
             if (dateSystem == ExcelDateSystem.NineteenHundred && serial < 60d)
-                return Early1900Epoch.AddDays(serial);
-            double oa = dateSystem == ExcelDateSystem.NineteenFour ? serial + Date1904OffsetDays : serial;
-            return DateTime.FromOADate(oa);
+                return FromLinearSerial(Early1900Epoch, serial);
+            return FromOleAutomationSerial(dateSystem == ExcelDateSystem.NineteenFour ? serial + Date1904OffsetDays : serial);
         }
+
+        /// <summary>
+        /// Converts a time of day or a duration to its serial, truncated toward zero to whole milliseconds.
+        /// A duration of 24 hours or more spans that many days; a negative duration has a negative serial.
+        /// </summary>
+        internal static double ToSerial(TimeSpan value) => ToMillisecondSerial(value.Ticks / TimeSpan.TicksPerMillisecond);
+
+        /// <summary>
+        /// Converts a serial formatted as a time or elapsed time. These count days from December 30, 1899 in both
+        /// date systems, so the result minus that date is the stored duration, including a negative one.
+        /// </summary>
+        internal static DateTime FromElapsedSerial(double serial) => FromLinearSerial(OleAutomationEpoch, serial);
+
+        /// <summary>
+        /// Converts an OLE Automation date as <see cref="DateTime.FromOADate"/> does, without rounding the time into
+        /// the next day.
+        /// </summary>
+        internal static DateTime FromOleAutomationSerial(double value) {
+            if (value >= 0d) return FromLinearSerial(OleAutomationEpoch, value);
+            // A negative OLE Automation date counts whole days back from the epoch and adds its fraction as a time.
+            DateTime date = DateTime.FromOADate(value);
+            DateTime day = OleAutomationEpoch.AddDays(Math.Truncate(value));
+            return date >= day && date < day.AddDays(1) ? date : day.AddTicks(TimeSpan.TicksPerDay - TimeSpan.TicksPerMillisecond);
+        }
+
+        private static DateTime FromLinearSerial(DateTime epoch, double serial) {
+            double wholeDays = Math.Floor(serial);
+            // Also rejects NaN and infinities before the day count becomes an integer.
+            if (!(wholeDays >= -MaximumDateTimeDays && wholeDays <= MaximumDateTimeDays)) {
+                throw new ArgumentOutOfRangeException(nameof(serial), serial, "The serial is outside the range of DateTime.");
+            }
+            long milliseconds = (long)Math.Round((serial - wholeDays) * MillisecondsPerDay, MidpointRounding.AwayFromZero);
+            if (milliseconds == MillisecondsPerDay) milliseconds--;
+            return epoch.AddTicks((long)wholeDays * TimeSpan.TicksPerDay + milliseconds * TimeSpan.TicksPerMillisecond);
+        }
+
+        private static long FloorToMilliseconds(long ticks) {
+            long milliseconds = ticks / TimeSpan.TicksPerMillisecond;
+            return ticks % TimeSpan.TicksPerMillisecond < 0 ? milliseconds - 1 : milliseconds;
+        }
+
+        private static double ToMillisecondSerial(long milliseconds) => milliseconds / (double)MillisecondsPerDay;
 
         /// <summary>
         /// Converts a date-formatted serial, or returns false when no <see cref="DateTime"/> represents it, the case

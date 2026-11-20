@@ -61,9 +61,9 @@ internal static class CoerceValueHelper {
             DateTimeOffset dto => HandleDateTimeOffset(dto, sharedStringHandler, dateTimeOffsetStrategy, dateSystem, nameof(value)),
 #if NET6_0_OR_GREATER
             DateOnly dateOnly => HandleNumber(ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem)),
-            TimeOnly timeOnly => HandleNumber(timeOnly.ToTimeSpan().TotalDays),
+            TimeOnly timeOnly => HandleNumber(ExcelDateSystemConverter.ToSerial(timeOnly.ToTimeSpan())),
 #endif
-            TimeSpan ts => HandleNumber(ts.TotalDays),
+            TimeSpan ts => HandleNumber(ExcelDateSystemConverter.ToSerial(ts)),
             bool b => HandleBoolean(b),
             uint ui => HandleUnsignedInteger(ui),
             ulong ul when ExcelExactNumber.FitsNumberCell(ul) => HandleUnsignedInteger(ul),

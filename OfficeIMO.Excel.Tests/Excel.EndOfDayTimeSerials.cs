@@ -1,0 +1,155 @@
+using System.Data;
+using System.Globalization;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public partial class Excel {
+        public sealed class EndOfDayTimeRow {
+            public TimeSpan Duration { get; set; }
+            public DateTime When { get; set; }
+            public TimeSpan Elapsed { get; set; }
+            public TimeSpan Negative { get; set; }
+#if NET6_0_OR_GREATER
+            public TimeOnly Time { get; set; }
+#endif
+        }
+
+        /// <summary>The serial Excel stores for a duration: whole milliseconds as a fraction of a day.</summary>
+        internal static double MillisecondSerial(TimeSpan value) => value.Ticks / TimeSpan.TicksPerMillisecond / 86_400_000d;
+
+        private static readonly long LastTickOfDay = TimeSpan.TicksPerDay - 1;
+        private static readonly DateTime TimeSerialBase = new DateTime(1899, 12, 30);
+        private static readonly TimeSpan LastMillisecondOfDay = new TimeSpan(TimeSpan.TicksPerDay - TimeSpan.TicksPerMillisecond);
+
+        private static EndOfDayTimeRow CreateEndOfDayTimeRow() => new EndOfDayTimeRow {
+            Duration = new TimeSpan(LastTickOfDay),
+            When = new DateTime(2024, 3, 5).AddTicks(LastTickOfDay),
+            Elapsed = new TimeSpan(TimeSpan.TicksPerDay + LastTickOfDay),
+            Negative = new TimeSpan(-LastTickOfDay),
+#if NET6_0_OR_GREATER
+            Time = TimeOnly.MaxValue,
+#endif
+        };
+
+        // Values keep whole milliseconds, truncated toward zero, and never move into the next day. Time and
+        // elapsed-time cells read as their duration after December 30, 1899 in both date systems.
+        private static IReadOnlyList<(string Name, DateTime Expected)> ExpectedEndOfDayTimes() {
+            var expected = new List<(string, DateTime)> {
+                ("Duration", TimeSerialBase + LastMillisecondOfDay),
+                ("When", new DateTime(2024, 3, 5) + LastMillisecondOfDay),
+                ("Elapsed", TimeSerialBase.AddDays(1) + LastMillisecondOfDay),
+                ("Negative", TimeSerialBase - LastMillisecondOfDay),
+            };
+#if NET6_0_OR_GREATER
+            expected.Add(("Time", TimeSerialBase + LastMillisecondOfDay));
+#endif
+            return expected;
+        }
+
+        private static DataTable CreateEndOfDayTimeTable() {
+            EndOfDayTimeRow row = CreateEndOfDayTimeRow();
+            var table = new DataTable("Times");
+            table.Columns.Add("Duration", typeof(TimeSpan));
+            table.Columns.Add("When", typeof(DateTime));
+            table.Columns.Add("Elapsed", typeof(TimeSpan));
+            table.Columns.Add("Negative", typeof(TimeSpan));
+#if NET6_0_OR_GREATER
+            table.Columns.Add("Time", typeof(TimeOnly));
+            table.Rows.Add(row.Duration, row.When, row.Elapsed, row.Negative, row.Time);
+#else
+            table.Rows.Add(row.Duration, row.When, row.Elapsed, row.Negative);
+#endif
+            return table;
+        }
+
+        public static IEnumerable<object[]> EndOfDayTimeWriteRoutes() {
+            foreach (bool date1904 in new[] { false, true }) {
+                foreach (ExcelFileFormat format in new[] { ExcelFileFormat.Xlsx, ExcelFileFormat.Xlsb, ExcelFileFormat.Xls }) {
+                    yield return new object[] { "DataTable", format, date1904 };
+                    yield return new object[] { "DataReader", format, date1904 };
+                    yield return new object[] { "Objects", format, date1904 };
+                }
+                yield return new object[] { "CellValues", ExcelFileFormat.Xlsx, date1904 };
+                yield return new object[] { "WriteData", ExcelFileFormat.Xlsx, date1904 };
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(EndOfDayTimeWriteRoutes))]
+        public void EndOfDayTimesStayOnTheirDayThroughWriteAndRead(string route, ExcelFileFormat format, bool date1904) {
+            ExcelDateSystem dateSystem = date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
+            string path = Path.Combine(_directoryWithFiles, $"EndOfDay-{route}-{dateSystem}.{format.ToString().ToLowerInvariant()}");
+            WriteEndOfDayTimes(route, format, dateSystem, path);
+            IReadOnlyList<(string Name, DateTime Expected)> expected = ExpectedEndOfDayTimes();
+
+            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path)) {
+                Assert.True(reader.Read());
+                foreach ((string name, DateTime value) in expected) {
+                    Assert.Equal(value, reader.GetDateTime(reader.GetOrdinal(name)));
+                }
+            }
+
+            if (format != ExcelFileFormat.Xlsx) return;
+
+            using (var document = ExcelDocumentReader.Open(path)) {
+                object?[,] range = document.GetSheet("Times").ReadRange("A2:" + (char)('A' + expected.Count - 1) + "2");
+                for (int column = 0; column < expected.Count; column++) {
+                    Assert.Equal(expected[column].Expected, Assert.IsType<DateTime>(range[0, column]));
+                }
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(path, false)) {
+                Cell duration = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>()
+                    .First(cell => cell.CellReference?.Value == "A2");
+                Assert.Equal(86_399_999d / 86_400_000d, double.Parse(duration.CellValue!.Text, CultureInfo.InvariantCulture));
+            }
+        }
+
+        private static void WriteEndOfDayTimes(string route, ExcelFileFormat format, ExcelDateSystem dateSystem, string path) {
+            if (route == "CellValues" || route == "WriteData") {
+                using var document = ExcelDocument.Create(path);
+                document.DateSystem = dateSystem;
+                ExcelSheet sheet = document.AddSheet("Times");
+                DataTable table = CreateEndOfDayTimeTable();
+                if (route == "WriteData") {
+                    sheet.WriteData(table, includeHeaders: true);
+                } else {
+                    for (int column = 0; column < table.Columns.Count; column++) {
+                        sheet.Cell(1, column + 1).SetValue(table.Columns[column].ColumnName);
+                        sheet.Cell(2, column + 1).SetValue(table.Rows[0][column]);
+                    }
+                }
+                document.Save();
+                return;
+            }
+
+            using ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(format, path, new ExcelWriterOptions { DateSystem = dateSystem });
+            switch (route) {
+                case "DataTable":
+                    writer.WriteTable("Times", CreateEndOfDayTimeTable());
+                    break;
+                case "DataReader":
+                    using (IDataReader reader = CreateEndOfDayTimeTable().CreateDataReader()) {
+                        writer.WriteTable("Times", reader);
+                    }
+                    break;
+                default:
+                    writer.WriteTable("Times", new[] { CreateEndOfDayTimeRow() });
+                    break;
+            }
+        }
+
+        [Theory]
+        [InlineData(1.9999999999988426, false, 1900, 1, 1)]
+        [InlineData(45356.99999999999, false, 2024, 3, 5)]
+        [InlineData(0.9999999999988426, true, 1904, 1, 1)]
+        [InlineData(43894.99999999999, true, 2024, 3, 5)]
+        public void SerialsJustBeforeMidnightReadOnTheirOwnDay(double serial, bool date1904, int year, int month, int day) {
+            ExcelDateSystem dateSystem = date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
+            Assert.Equal(new DateTime(year, month, day) + LastMillisecondOfDay, ExcelDateSystemConverter.FromSerial(serial, dateSystem));
+        }
+    }
+}

@@ -7438,6 +7438,22 @@ serial directly. Calendar date formats continue to use the workbook date system.
 This distinction also applies to XLS and XLSB tabular readers. Early calendar
 serials in XLS and XLSB use the same January 1, 1900 = serial 1 contract as XLSX.
 
+## Excel times at the end of the day
+
+Excel stores times as day serials with millisecond resolution. `TimeSpan` and
+`TimeOnly` values are now stored truncated toward zero to whole milliseconds, as
+`DateTime` values already were, so `23:59:59.9999999` is stored as
+`23:59:59.999` instead of a serial that rounds to the next day. Code that
+compared stored duration serials with `TimeSpan.TotalDays` should compare with
+the millisecond value instead.
+
+Reading a serial rounds to the nearest millisecond but never past the last
+millisecond of the serial's day: a time cell holding `0.99999999999` reads as
+`1899-12-30 23:59:59.999` rather than `1899-12-31 00:00`. Time and elapsed-time
+cells read as December 30, 1899 plus their stored duration in both date systems,
+so a negative duration such as `-6:00:00` now reads as `1899-12-29 18:00`
+instead of `1899-12-30 06:00`. Subtract December 30, 1899 to recover the duration.
+
 ## XLS import date-system preservation
 
 XLS import retains the source workbook's date system, numeric date and duration

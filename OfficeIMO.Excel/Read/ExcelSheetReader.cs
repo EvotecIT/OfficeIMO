@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel {
             throw new InvalidOperationException("No worksheet stream is available.");
         }
 
-        private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
+        private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : ExcelDateSystemConverter.FromElapsedSerial(serial);
         private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
         private bool TryFromExcelSerialDate(double serial, bool calendarStyle, out DateTime value) =>
             ExcelDateSystemConverter.TryFromSerial(serial, _dateSystem, calendarStyle, out value);

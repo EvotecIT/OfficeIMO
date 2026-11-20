@@ -124,7 +124,9 @@ namespace OfficeIMO.Excel.Tests {
                 }
 
                 using var convertedDocument = ExcelDocument.Load(converted);
-                Assert.Equal(TimeSpan.FromTicks(expectedTicks).TotalDays, convertedDocument.Sheets[0].Cell(2, 1).GetValue<double>(), 12);
+                // Stored serials keep whole milliseconds.
+                long expectedMilliseconds = expectedTicks / TimeSpan.TicksPerMillisecond;
+                Assert.Equal(expectedMilliseconds / 86_400_000d, convertedDocument.Sheets[0].Cell(2, 1).GetValue<double>());
             } finally {
                 File.Delete(path);
                 File.Delete(converted);
