@@ -853,15 +853,20 @@ internal static partial class PdfTextDiagnostics {
 
     // A bitmap or SVG emoji glyph has no outline to embed. Check the glyphs the shaped run
     // paints, so a ligature decides for its whole sequence, and report each at the source
-    // position it covers unless that position already has a diagnostic.
+    // position it covers unless that position already has a diagnostic. Rendering removes
+    // U+200B before shaping, which can join a sequence it split, so the check shapes that text.
     private static List<PdfTextEncodingDiagnostic> AddUnpaintableColorGlyphDiagnostics(string text, PdfTrueTypeFontProgram font,
         List<PdfTextEncodingDiagnostic> diagnostics, PdfTextShapingOptions shaping, Func<int, PdfTextEncodingDiagnostic> create) {
         if (!font.HasBitmapColorGlyphs) return diagnostics;
+        string shaped = PdfWriter.WithoutOptionalBreaks(text);
+        int[]? sourceIndexes = shaped.Length == text.Length ? null : MapOptionalBreakFreeIndexes(text, shaped.Length);
         var reported = new HashSet<int>(diagnostics.Select(static diagnostic => diagnostic.Index));
         bool added = false;
-        foreach (PdfGlyphInfo glyph in font.ShapeText(text, shaping).Glyphs) {
-            if (glyph.TextIndex >= text.Length || !font.IsUnpaintableColorGlyph(glyph.GlyphId) || !reported.Add(glyph.TextIndex)) continue;
-            diagnostics.Add(create(glyph.TextIndex));
+        foreach (PdfGlyphInfo glyph in font.ShapeText(shaped, shaping.ForText(shaped)).Glyphs) {
+            if (glyph.TextIndex >= shaped.Length || !font.IsUnpaintableColorGlyph(glyph.GlyphId)) continue;
+            int start = sourceIndexes?[glyph.TextIndex] ?? glyph.TextIndex;
+            if (!reported.Add(start)) continue;
+            diagnostics.Add(create(start));
             added = true;
         }
         if (added) diagnostics.Sort((left, right) => left.Index.CompareTo(right.Index));
@@ -920,6 +925,16 @@ internal static partial class PdfTextDiagnostics {
         }
 
         return diagnostics;
+    }
+
+    // The source index of each UTF-16 unit that remains once U+200B is removed.
+    private static int[] MapOptionalBreakFreeIndexes(string text, int length) {
+        var indexes = new int[length];
+        int next = 0;
+        for (int index = 0; index < text.Length; index++) {
+            if (text[index] != '\u200B') indexes[next++] = index;
+        }
+        return indexes;
     }
 
     private static string AppendRunLocation(string location, int runIndex) {

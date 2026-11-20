@@ -89,6 +89,32 @@ public class PdfEmojiSequenceTests {
         Assert.Equal(0, Assert.Single(diagnostics).Index);
     }
 
+    // Rendering removes U+200B before shaping, so a zero-width space inside a sequence still forms the
+    // ligature, and the check reports the painted ligature at its source position past the space.
+    [Theory]
+    [InlineData(false, -1)]
+    [InlineData(true, 1)]
+    public void BitmapOnlyCheckShapesTheTextRenderingPaints(bool bitmapLigature, int reportedIndex) {
+        const string text = "​\U0001F3CB​‍♂";
+        int[] bitmapOnly = bitmapLigature
+            ? new[] { ManagedTextShapingTestAssets.EmojiSequenceLigatures[0].Ligature }
+            : new[] { ManagedTextShapingTestAssets.EmojiGlyph(0x1F3CB), ManagedTextShapingTestAssets.EmojiGlyph(0x2642) };
+        PdfCreateOptions options = new PdfCreateOptions().RegisterNamedFontFamily(
+            new PdfEmbeddedFontFamily(Family, ManagedTextShapingTestAssets.CreateEmojiSequenceFont(bitmapOnly)));
+        PdfDocument document = PdfDocument.Create(doc => doc.Page(page => page.Content(content =>
+            content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal(text, fontFamily: Family) })))), options);
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        if (reportedIndex < 0) {
+            Assert.Empty(diagnostics);
+            return;
+        }
+        PdfTextEncodingDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(reportedIndex, diagnostic.Index);
+        Assert.Equal("U+1F3CB", diagnostic.CodePoint);
+    }
+
     // Built-in Latin ligatures hand joiner text to OpenType shaping, which writes the blank
     // space glyph for a ZWJ the font does not map; the preflight checks that same route.
     [Fact]
