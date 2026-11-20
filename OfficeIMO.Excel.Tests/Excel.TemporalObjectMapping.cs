@@ -33,6 +33,8 @@ namespace OfficeIMO.Tests {
             var when = new DateTime(2024, 3, 5, 10, 30, 0);
             AssertTemporalMapping(format, dateSystem, when, new DateTimeOffset(when));
             AssertTemporalMapping<DateTime, DateTimeOffset?>(format, dateSystem, when, new DateTimeOffset(when));
+            // A calendar date read as a duration is its serial's day count, not the distance from December 30, 1899.
+            AssertTemporalMapping(format, dateSystem, when, when - (date1904 ? new DateTime(1904, 1, 1) : new DateTime(1899, 12, 30)));
 
             // A plain number read as a date is a serial in the workbook's date system.
             DateTime epoch = date1904 ? new DateTime(1904, 1, 1) : new DateTime(1899, 12, 30);
@@ -68,67 +70,84 @@ namespace OfficeIMO.Tests {
 
         private void AssertTemporalMapping<TSource, TTarget>(ExcelFileFormat format, ExcelDateSystem dateSystem, TSource value, TTarget expected) {
             string path = WriteTemporalMappingWorkbook(format, dateSystem, value);
-            foreach ((string route, Func<TTarget> read) in TemporalMappingRoutes<TTarget>(path, format)) {
-                Assert.True(Equals(expected, read()), $"{route} on {format} {dateSystem}: expected {expected}, got {read()}.");
+            foreach (TemporalMappingRoute<TTarget> route in TemporalMappingRoutes<TTarget>(path, format)) {
+                TTarget actual = route.Read();
+                Assert.True(Equals(expected, actual), $"{route.Name} on {format} {dateSystem}: expected {expected}, got {actual}.");
             }
         }
 
         private void AssertTemporalMappingFails<TTarget>(ExcelFileFormat format, ExcelDateSystem dateSystem) {
             string path = WriteTemporalMappingWorkbook(format, dateSystem, "not a time");
-            foreach ((string route, Func<TTarget> read) in TemporalMappingRoutes<TTarget>(path, format)) {
-                Exception? error = Record.Exception(() => read());
-                Assert.True(error is DataMappingException or InvalidCastException or FormatException, $"{route} on {format} {dateSystem} returned {(error == null ? "a value" : error.GetType().Name)}.");
+            foreach (TemporalMappingRoute<TTarget> route in TemporalMappingRoutes<TTarget>(path, format)) {
+                Exception? error = Record.Exception(() => route.Read());
+                Assert.True(error?.GetType() == route.Failure,
+                    $"{route.Name} on {format} {dateSystem}: expected {route.Failure.Name}, got {(error == null ? "a value" : error.GetType().Name)}.");
             }
         }
 
-        private static IEnumerable<(string Route, Func<TTarget> Read)> TemporalMappingRoutes<TTarget>(string path, ExcelFileFormat format) {
-            if (format == ExcelFileFormat.Xlsx) {
-                yield return ("ReadObjects", () => {
-                    using var reader = ExcelDocumentReader.Open(path);
-                    return reader.GetSheet("Data").ReadObjects<TemporalMappingTarget<TTarget>>("A1:A2").Single().Value;
-                });
-                yield return ("ReadObjectsStream", () => {
-                    using var reader = ExcelDocumentReader.Open(path);
-                    return reader.GetSheet("Data").ReadObjectsStream<TemporalMappingTarget<TTarget>>("A1:A2").Single().Value;
-                });
-                yield return ("ReadColumnAs", () => {
-                    using var reader = ExcelDocumentReader.Open(path);
-                    return reader.GetSheet("Data").ReadColumnAs<TTarget>("A2:A2").Single();
-                });
+        private sealed record TemporalMappingRoute<TTarget>(string Name, Func<TTarget> Read, Type Failure);
+
+        private static IEnumerable<TemporalMappingRoute<TTarget>> TemporalMappingRoutes<TTarget>(string path, ExcelFileFormat format) {
+            // Object mapping reports a value that is not a date, time or duration as a mapping failure. GetFieldValue
+            // for DateTime is the data reader's own GetDateTime, which fails for text as data readers do.
+            Type mapping = typeof(DataMappingException);
+            Type getter = (Nullable.GetUnderlyingType(typeof(TTarget)) ?? typeof(TTarget)) == typeof(DateTime) ? typeof(FormatException) : mapping;
+            foreach (bool numericAsDecimal in new[] { false, true }) {
+                var options = new ExcelReaderOptions { NumericAsDecimal = numericAsDecimal };
+                string suffix = numericAsDecimal ? " with decimal numbers" : string.Empty;
+                if (format == ExcelFileFormat.Xlsx) {
+                    yield return new("ReadObjects" + suffix, () => {
+                        using var reader = ExcelDocumentReader.Open(path, options);
+                        return reader.GetSheet("Data").ReadObjects<TemporalMappingTarget<TTarget>>("A1:A2").Single().Value;
+                    }, mapping);
+                    yield return new("ReadObjectsStream" + suffix, () => {
+                        using var reader = ExcelDocumentReader.Open(path, options);
+                        return reader.GetSheet("Data").ReadObjectsStream<TemporalMappingTarget<TTarget>>("A1:A2").Single().Value;
+                    }, mapping);
+                    yield return new("ReadColumnAs" + suffix, () => {
+                        using var reader = ExcelDocumentReader.Open(path, options);
+                        return reader.GetSheet("Data").ReadColumnAs<TTarget>("A2:A2").Single();
+                    }, mapping);
+                    yield return new("ReadRangeAs" + suffix, () => {
+                        using var reader = ExcelDocumentReader.Open(path, options);
+                        return reader.GetSheet("Data").ReadRangeAs<TTarget>("A2:A2")[0, 0];
+                    }, mapping);
+                }
+
+                yield return new("RowsAs" + suffix, () => {
+                    using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options);
+                    return reader.RowsAs<TemporalMappingTarget<TTarget>>().Single().Value;
+                }, mapping);
+                yield return new("GetFieldValue" + suffix, () => {
+                    using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options);
+                    Assert.True(reader.Read());
+                    return reader.GetFieldValue<TTarget>(0);
+                }, getter);
             }
 
-            yield return ("RowsAs", () => {
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
-                return reader.RowsAs<TemporalMappingTarget<TTarget>>().Single().Value;
-            });
-            yield return ("GetFieldValue", () => {
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
-                Assert.True(reader.Read());
-                return reader.GetFieldValue<TTarget>(0);
-            });
-            yield return ("RowsAs with an explicit mapper", () => {
+            yield return new("RowsAs with an explicit mapper", () => {
                 using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
                 return reader.RowsAs<TemporalMappingTarget<TTarget>>(mapper =>
                     mapper.FromColumn<TTarget>("Value", (target, value) => { target.Value = value; return target; })).Single().Value;
-            });
-            yield return ("RowsAsParallel", () => {
+            }, mapping);
+            yield return new("RowsAsParallel", () => {
                 using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
                 return reader.RowsAsParallel<TemporalMappingTarget<TTarget>>(
                     new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 }).Single().Value;
-            });
-            yield return ("RowsAs with schema inference", () => {
+            }, mapping);
+            yield return new("RowsAs with schema inference", () => {
                 using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = true, SchemaSampleRows = 8 });
                 return reader.RowsAs<TemporalMappingTarget<TTarget>>().Single().Value;
-            });
-            yield return ("GetFieldValue with schema inference", () => {
+            }, mapping);
+            yield return new("GetFieldValue with schema inference", () => {
                 using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { InferSchema = true, SchemaSampleRows = 8 });
                 Assert.True(reader.Read());
                 return reader.GetFieldValue<TTarget>(0);
-            });
-            yield return ("ExcelSheet.RowsAs", () => {
+            }, getter);
+            yield return new("ExcelSheet.RowsAs", () => {
                 using var document = ExcelDocument.Load(path);
                 return document.Sheets[0].RowsAs<TemporalMappingTarget<TTarget>>().Single().Value;
-            });
+            }, mapping);
         }
     }
 }

@@ -16,7 +16,7 @@ internal sealed class DataReaderMappingValue {
         object? value = reader.GetValue(ordinal);
         Type effective = Nullable.GetUnderlyingType(targetType) ?? targetType;
         // A number read as a date takes the reader's own date interpretation, such as a workbook's date system.
-        if (value is double && IsDate(effective)) return ReadDate(reader, ordinal, value);
+        if ((value is double || value is decimal) && IsDate(effective)) return ReadDate(reader, ordinal, value);
         // A duration is the day count of a date value's serial, not its calendar date.
         if (value is not DateTime || !(IsNumeric(effective) || effective == typeof(TimeSpan))) return value;
         try {

@@ -53,6 +53,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static object? TryConvert(object value, Type destinationType, ExcelDateSystem dateSystem, CultureInfo culture) {
+            // A number read with NumericAsDecimal is the same serial.
+            if (value is decimal number) value = (double)number;
             if (destinationType.IsInstanceOfType(value)) return value;
             if (destinationType == typeof(TimeSpan)) {
                 return value switch {

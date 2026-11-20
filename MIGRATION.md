@@ -7472,9 +7472,12 @@ their nullable forms. A duration is the cell's serial as a number of days, so
 `new DateTimeOffset(DateTime)` does.
 
 `ReadObjects` used to leave such properties at their default, `00:00:00` or
-`0001-01-01`, and `RowsAs` threw an invalid cast. A cell that holds no date,
-time or duration for one of these properties, or for a `DateTime` property,
-now throws `DataMappingException` instead of leaving the default in place.
+`0001-01-01`, and `RowsAs` threw an invalid cast. A cell with text or another
+value that is not a date, time or duration now throws `DataMappingException`
+for one of these properties, or for a `DateTime` property, instead of leaving
+the default in place. A blank cell, or one holding empty text, is not an error:
+a non-nullable property keeps its default and a nullable property is set to
+`null`, as for other property types.
 
 A plain number mapped to `DateTime`, `DateOnly` or `DateTimeOffset` is read as a
 serial in the workbook's date system. In a 1904 workbook it used to read as a
