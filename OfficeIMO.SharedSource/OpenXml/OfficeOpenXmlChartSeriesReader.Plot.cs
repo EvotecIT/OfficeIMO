@@ -60,13 +60,13 @@ namespace OfficeIMO.OpenXml.Internal {
                 } else if (layer is C.ScatterChart scatter) {
                     if (layers.Count != 1) return null;
                     data = ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, maximumPoints,
-                        validatePlot: false, projectionBudget: projectionBudget);
+                        validatePlot: false, projectionBudget: projectionBudget, keepMissingValues: true);
                 } else {
                     if (layers.Count > 1 && (layer is C.PieChart || layer is C.DoughnutChart || layer is C.RadarChart)) return null;
                     if (layer is C.RadarChart radar && radar.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled) return null;
                     data = ReadCategories(layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser"),
                         layerKind, scheme, axisGroups.Read(layer), maximumPoints,
-                        validatePlot: false, projectionBudget: projectionBudget);
+                        validatePlot: false, projectionBudget: projectionBudget, keepMissingValues: true);
                 }
                 if (data == null) return null;
                 if (data.Series.Any(item => item.HasUnsupportedAppearance)) {
@@ -98,7 +98,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     series.Select(item => item.Data), kind))
                 return null;
             // The same authoring contract declares supported family/axis combinations.
-            OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind);
+            OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind, allowEmptyValues: true);
             return result;
         }
 
@@ -283,8 +283,12 @@ namespace OfficeIMO.OpenXml.Internal {
                     if (cache == null) return true;
                     var points = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(cache.Descendants<C.NumericPoint>(), maximumPoints);
                     int length = OfficeOpenXmlChartCacheReader.GetCachedPointLength(cache, points, point => point.Index?.Value, maximumPoints);
-                    if (length == 0 || points.Count != length || points.Any(point => point.Index?.Value == null) ||
-                        points.Select(point => point.Index!.Value).Distinct().Count() != length ||
+                    // An empty cell leaves its plotted value out of the cache, which the chart's blank setting draws.
+                    // Bubble values and scatter X positions have no such rule.
+                    bool allowsEmptyCells = layer is not C.BubbleChart && cache is C.Values or C.YValues;
+                    if (length == 0 || points.Count != length && !allowsEmptyCells ||
+                        points.Any(point => point.Index?.Value == null) ||
+                        points.Select(point => point.Index!.Value).Distinct().Count() != points.Count ||
                         points.Any(point => !double.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float,
                             System.Globalization.CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))) return true;
                     if (seriesLength.HasValue && seriesLength.Value != length) return true;

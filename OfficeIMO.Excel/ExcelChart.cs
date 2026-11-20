@@ -124,7 +124,7 @@ namespace OfficeIMO.Excel {
                 ExcelSheet sheet = range == null ? _document[_sheetName] : _document[range.SheetName];
                 ExcelChartData? chartData = range == null
                     ? ExcelChartUtils.TryReadChartData(chartPart, sheet)
-                    : ExcelChartUtils.TryReadChartData(sheet, range);
+                    : ExcelChartUtils.TryReadChartData(sheet, range, keepBlankCells: true);
                 if (chartData == null) {
                     data = null!;
                     return false;
@@ -184,7 +184,8 @@ namespace OfficeIMO.Excel {
                         GetImageExportSource(), OfficeConversionLossKind.Approximation))).ToArray();
                 snapshot = new ExcelChartInfo(
                     Name,
-                    Title,
+                    Title ?? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(GetChart(),
+                        data.Series.Count == 1 ? data.Series[0].Name : null),
                     ChartType,
                     data,
                     GetAnchorRow(),

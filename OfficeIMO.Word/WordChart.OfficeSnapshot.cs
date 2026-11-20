@@ -44,7 +44,7 @@ public partial class WordChart {
             if (groups?.Length > 10000) return false;
             if (groups?.Length == 1 && groups[0] is C.Bar3DChart or C.Line3DChart or C.Area3DChart or C.Pie3DChart) {
                 if (!TryGetSnapshot(out var legacy) || !OfficeOpenXmlChartSeriesReader.TryReadKind(groups[0], out var legacyKind)) return false;
-                snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title, legacyKind,
+                snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title ?? OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(chart), legacyKind,
                     new OfficeChartData(legacy.Data.Categories, legacy.Data.Series.Select(series => series.ToOfficeSeries()).ToArray()),
                     global::OfficeIMO.OfficeLength.Points(legacy.WidthPoints), global::OfficeIMO.OfficeLength.Points(legacy.HeightPoints), style: null, layout: null, radialLayout: legacy.RadialLayout);
                 return true;
@@ -63,7 +63,7 @@ public partial class WordChart {
                 return false;
             }
             OfficeChartData officeData = data.ToData();
-            snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, officeData, global::OfficeIMO.OfficeLength.Points(GetWidthPoints()), global::OfficeIMO.OfficeLength.Points(GetHeightPoints()),
+            snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart) ?? OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(chart), kind, officeData, global::OfficeIMO.OfficeLength.Points(GetWidthPoints()), global::OfficeIMO.OfficeLength.Points(GetHeightPoints()),
                 OfficeOpenXmlChartSeriesReader.ReadStyleOrApproximate(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
                 OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme, data),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));

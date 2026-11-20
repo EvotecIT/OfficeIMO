@@ -1060,12 +1060,15 @@ separator, number format, and position. Mixed body fonts, per-point or series-sp
 best-fit radial leader lines, unsupported radial label positions, unsupported effects, and unrepresented outlines return false
 without changing the native document. Native authoring remains available for these charts.
 Outside-end radial leader lines are supported when they can be placed without crossing another doughnut ring.
-Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
-axis crossing are preserved where the renderer supports them; automatic zero crossing through a negative
-value range and maximum crossing on horizontal bars are rejected. Nonstandard axis arrangements,
+Deleted axes suppress their lines. Primary tick-label placement (next to the axis, low, high or none),
+automatic, minimum, maximum and explicit axis crossings, and value-axis display units are preserved: a
+category axis crossing at zero runs along the zero line with its labels beside it, as in Office. Empty
+cells keep the chart's blank-cell setting (gaps, connected lines or zero), and a title without text
+shows the single series name, or Office's English "Chart Title" placeholder for an English chart with
+several series. Nonstandard axis arrangements,
 title shape fills or unsupported legend fills,
 manual title layouts, unsupported numeric formats, and nondefault bar spacing
-require a richer projection and return false. Analytical overlays, sparse, empty, unequal or nonnumeric value caches,
+require a richer projection and return false. Analytical overlays, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
 multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,
 category-label skipping, offsets or non-centered alignment, rounded chart frames, non-box bar shapes,

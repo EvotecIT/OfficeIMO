@@ -641,16 +641,16 @@ public sealed partial class OfficeChartLayout {
     public string? CategoryAxisNumberFormat { get; }
 
     /// <summary>Optional divisor applied to horizontal value-axis labels.</summary>
-    public double? HorizontalAxisDisplayUnitDivisor { get; }
+    public double? HorizontalAxisDisplayUnitDivisor { get; private set; }
 
     /// <summary>Optional display-unit label shown for horizontal value axes.</summary>
-    public string? HorizontalAxisDisplayUnitLabel { get; }
+    public string? HorizontalAxisDisplayUnitLabel { get; private set; }
 
     /// <summary>Optional divisor applied to vertical value-axis labels.</summary>
-    public double? VerticalAxisDisplayUnitDivisor { get; }
+    public double? VerticalAxisDisplayUnitDivisor { get; private set; }
 
     /// <summary>Optional display-unit label shown for vertical value axes.</summary>
-    public string? VerticalAxisDisplayUnitLabel { get; }
+    public string? VerticalAxisDisplayUnitLabel { get; private set; }
 
     /// <summary>Optional minimum for horizontal value axes.</summary>
     public double? HorizontalAxisMinimum { get; }
@@ -725,10 +725,10 @@ public sealed partial class OfficeChartLayout {
     public OfficeChartAxisTickLabelPosition VerticalAxisTickLabelPosition { get; }
 
     /// <summary>Physical crossing side for the horizontal axis.</summary>
-    public OfficeChartAxisCrossingPosition HorizontalAxisCrossingPosition { get; }
+    public OfficeChartAxisCrossingPosition HorizontalAxisCrossingPosition { get; private set; }
 
     /// <summary>Physical crossing side for the vertical axis.</summary>
-    public OfficeChartAxisCrossingPosition VerticalAxisCrossingPosition { get; }
+    public OfficeChartAxisCrossingPosition VerticalAxisCrossingPosition { get; private set; }
 
     /// <summary>Whether category-axis slots should be rendered in reverse order.</summary>
     public bool ReverseCategoryAxis { get; }

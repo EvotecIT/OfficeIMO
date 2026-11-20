@@ -35,16 +35,18 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static Result? ReadCategories(IEnumerable<OpenXmlCompositeElement> source,
             OfficeChartType kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints,
             bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000,
-            bool forDataUpdate = false) {
+            bool forDataUpdate = false, bool keepMissingValues = false) {
             List<OpenXmlCompositeElement> elements = OrderSeries(OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints));
             if (validatePlot) ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
             projectionBudget ??= new ProjectionBudget();
+            // Office leaves an empty cell out of the cache; a renderer needs to know it is missing, not zero.
+            double missing = keepMissingValues ? double.NaN : 0D;
             IReadOnlyList<string> categories = Array.Empty<string>();
             var populated = new List<(OpenXmlCompositeElement Element, IReadOnlyList<double> Values, int Position)>();
             int maximumLength = 0;
             for (int position = 0; position < elements.Count; position++) {
                 OpenXmlCompositeElement element = elements[position];
-                var values = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.Values>(), maximumPoints);
+                var values = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.Values>(), maximumPoints, missing);
                 if (values.Count == 0) continue;
                 populated.Add((element, values, position));
                 var labels = OfficeOpenXmlChartCacheReader.ReadCachedStrings(element.GetFirstChild<C.CategoryAxisData>(), maximumPoints);
@@ -59,7 +61,7 @@ namespace OfficeIMO.OpenXml.Internal {
             var series = new List<Series>();
             foreach (var item in populated) {
                 projectionBudget.Reserve(categories.Count);
-                double[] normalized = new double[categories.Count];
+                double[] normalized = Enumerable.Repeat(missing, categories.Count).ToArray();
                 for (int index = 0; index < item.Values.Count; index++) normalized[index] = item.Values[index];
                 series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints,
                     maximumPointOverrides, forDataUpdate, projectionBudget.AutomaticColors));
@@ -69,7 +71,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static Result? ReadScatter(IEnumerable<C.ScatterChartSeries> source, A.ColorScheme? scheme, int maximumPoints,
             bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000,
-            bool forDataUpdate = false) {
+            bool forDataUpdate = false, bool keepMissingValues = false) {
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
             int sourcePosition = -1;
@@ -79,7 +81,8 @@ namespace OfficeIMO.OpenXml.Internal {
             foreach (C.ScatterChartSeries element in elements) {
                 sourcePosition++;
                 var x = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.XValues>(), maximumPoints);
-                var y = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.YValues>(), maximumPoints);
+                var y = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.YValues>(), maximumPoints,
+                    keepMissingValues ? double.NaN : 0D);
                 int count = Math.Min(x.Count, y.Count);
                 if (count == 0) continue;
                 projectionBudget.Reserve(Math.Max(x.Count, y.Count));
