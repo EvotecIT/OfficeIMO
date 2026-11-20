@@ -44,7 +44,13 @@ namespace OfficeIMO.OpenXml.Internal {
             List<C.NumericPoint> points = GetBoundedCachedPoints(container.Descendants<C.NumericPoint>(), maximumPoints);
             points.Sort((left, right) => (left.Index?.Value ?? 0U).CompareTo(right.Index?.Value ?? 0U));
             if (points.Count == 0) {
-                return Array.Empty<double>();
+                // A series whose cells are all empty keeps its declared length as missing values,
+                // when the caller asks for missing values rather than zeros.
+                uint? declared = container.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value;
+                if (!double.IsNaN(missingValue) || !declared.HasValue || declared.Value == 0U) return Array.Empty<double>();
+                if (declared.Value > maximumPoints)
+                    throw new InvalidDataException($"The chart cache declares more than the supported limit of {maximumPoints} points.");
+                return Enumerable.Repeat(double.NaN, (int)declared.Value).ToArray();
             }
 
             return CreateIndexedCache(

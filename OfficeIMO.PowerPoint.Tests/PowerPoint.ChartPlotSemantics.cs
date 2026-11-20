@@ -71,6 +71,15 @@ public sealed class PowerPointChartPlotSemanticsTests {
     }
 
     [Fact]
+    public void DisplayUnitLabelLinkedToACellShowsItsCachedText() {
+        using PowerPointDocument presentation = LoadChart(Chart(BarGroup(Series(0, "Sales", 3000, 2000, 4500)),
+            axes: Axes(valueExtra: "<c:dispUnits><c:builtInUnit val=\"thousands\"/><c:dispUnitsLbl><c:tx><c:strRef><c:f>Sheet1!$D$1</c:f>" +
+                "<c:strCache><c:ptCount val=\"1\"/><c:pt idx=\"0\"><c:v>in thousands</c:v></c:pt></c:strCache></c:strRef></c:tx></c:dispUnitsLbl></c:dispUnits>")));
+
+        Assert.Equal("in thousands", Snapshot(presentation).Layout.VerticalAxisDisplayUnitLabel);
+    }
+
+    [Fact]
     public void TopRightLegendKeepsItsPosition() {
         using PowerPointDocument presentation = LoadChart(Chart(BarGroup(Series(0, "A", 1, 2, 3) + Series(1, "B", 2, 3, 4)),
             legend: "<c:legend><c:legendPos val=\"tr\"/><c:overlay val=\"0\"/></c:legend>"));

@@ -132,6 +132,60 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.Equal(Text(right, "A").X, Text(topRight, "A").X, 3);
     }
 
+    [Fact]
+    public void AreaLabelsSkipEmptyCellsButKeepRealZeros() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true);
+        OfficeDrawing drawing = Render(OfficeChartType.Area, layout, Series(new double[] { 7, double.NaN, 9, 0, 11 }));
+
+        // One "0" is the value-axis label; the empty cell adds none, the real zero adds one.
+        Assert.Equal(2, Texts(drawing).Count(text => text.Text == "0"));
+    }
+
+    [Fact]
+    public void InsideEndLabelsFollowAColumnGrowingFromAnAxisCrossing() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true,
+            dataLabelPosition: OfficeChartDataLabelPosition.InsideEnd).WithAxisCrossings(
+            OfficeChartAxisCrossingPosition.AutoZero, -10D, OfficeChartAxisCrossingPosition.AutoZero, null);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, layout, Series(new double[] { 30, -5, 45, -35, 10 }));
+
+        // -5 is above the -10 crossing, so its column grows up and the label sits inside its top.
+        OfficeDrawingShape column = SeriesFill(drawing).OrderBy(bar => bar.X).ElementAt(1);
+        OfficeDrawingText label = Text(drawing, "-5");
+        Assert.InRange(label.Y, column.Y, column.Y + column.Shape.Height / 2D);
+    }
+
+    [Fact]
+    public void RadarSpanJoinsTheTwoRemainingPoints() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Radar,
+            new OfficeChartData(new[] { "N", "E", "S", "W" }, new[] { Series(new double[] { 10, double.NaN, 20, double.NaN }) }),
+            global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300),
+            layout: new OfficeChartLayout(showLegend: false).WithBlankDisplay(OfficeChartBlankDisplay.Span)));
+
+        OfficeDrawingShape line = Assert.Single(Shapes(drawing), shape => shape.Shape.StrokeColor == Ink);
+        Assert.Equal(OfficeShapeKind.Line, line.Shape.Kind);
+    }
+
+    [Fact]
+    public void PercentStackedLabelsCompareTheirStackTopWithTheMaximum() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true,
+            verticalAxisMinimum: 0D, verticalAxisMaximum: 0.5D).WithDataLabelsOverMaximum(false);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnStacked100, layout,
+            new OfficeSeries("Low", new double[] { 30, 30, 30, 30, 30 }), new OfficeSeries("High", new double[] { 70, 70, 70, 70, 70 }));
+
+        // The low segment tops out at 30%, below the 50% maximum; the high one reaches 100%.
+        Assert.Equal(5, Texts(drawing).Count(text => text.Text == "30"));
+        Assert.DoesNotContain(Texts(drawing), text => text.Text == "70");
+    }
+
+    [Fact]
+    public void RadarAxisLabelsUseDisplayUnits() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false).WithAxisDisplayUnits(null, null, 1000D, "Thousands");
+        OfficeDrawing drawing = Render(OfficeChartType.Radar, layout, Series(new double[] { 1000, 2000, 3000, 4000, 4000 }));
+
+        Assert.Contains(Texts(drawing), text => text.Text == "Thousands");
+        Assert.DoesNotContain(Texts(drawing), text => text.Text == "4000" || text.Text == "4,000");
+    }
+
     private static OfficeSeries Series(double[] values, bool numericX = false) =>
         new OfficeSeries("Sales", values, numericX ? values.Select((_, index) => index + 1D) : null, Ink, null, showMarkers: false);
 

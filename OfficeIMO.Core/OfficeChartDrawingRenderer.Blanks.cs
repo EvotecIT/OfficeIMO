@@ -24,6 +24,20 @@ public static partial class OfficeChartDrawingRenderer {
             snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
     }
 
+    // An empty cell in an area series is drawn at zero but has no value, so it gets no data label.
+    // Under OOXML dispBlanksAs="zero" the cell is a real zero and keeps its label.
+    private static HashSet<(int Series, int Point)>? GetMissingAreaPoints(OfficeChartSnapshot snapshot) {
+        if (snapshot.Layout.BlankDisplay == OfficeChartBlankDisplay.Zero || !snapshot.Layout.ShowDataLabels) return null;
+        HashSet<(int Series, int Point)>? missing = null;
+        for (int s = 0; s < snapshot.Data.Series.Count; s++) {
+            OfficeSeries series = snapshot.Data.Series[s];
+            if (!IsAreaChart(series.RenderKind ?? snapshot.ChartKind)) continue;
+            for (int i = 0; i < series.Values.Count; i++)
+                if (!IsFiniteChartValue(series.Values[i])) (missing ??= new HashSet<(int Series, int Point)>()).Add((s, i));
+        }
+        return missing;
+    }
+
     private static bool HasMissingValue(IReadOnlyList<double> values) {
         for (int i = 0; i < values.Count; i++) if (!IsFiniteChartValue(values[i])) return true;
         return false;

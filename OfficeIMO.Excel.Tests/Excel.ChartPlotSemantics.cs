@@ -36,6 +36,42 @@ public sealed class ExcelChartPlotSemanticsTests {
         Assert.Equal("Actual", snapshot.Title);
     }
 
+    [Fact]
+    public void AutomaticTitleUsesTheCurrentSeriesNameCell() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = Sheet(document);
+        ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4",
+            new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
+        C.Chart native = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts).ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.PrependChild(new C.Title(new C.Overlay { Val = false }));
+        native.GetFirstChild<C.AutoTitleDeleted>()!.Val = false;
+        sheet.Cell(1, 2).SetValue("Forecast");
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+
+        Assert.Equal("Forecast", snapshot.Title);
+    }
+
+    [Fact]
+    public void SnapshotKeepsEmptyCellsMissingInRowsWaitingForTheWriter() {
+        var table = new System.Data.DataTable();
+        table.Columns.Add("Month", typeof(object));
+        table.Columns.Add("Actual", typeof(object));
+        table.Rows.Add("Jan", 120);
+        table.Rows.Add("Feb", null);
+        table.Rows.Add("Mar", 160);
+        using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.AddTable(table, new ExcelTableOptions { Name = "Scores", AutoFit = false }, row: 1, column: 1);
+        ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
+
+        // The rows still wait for the writer, so the chart data comes from the deferred reader.
+        Assert.True(document.HasUnmaterializedDirectDataSetRows);
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+
+        Assert.Equal(new[] { 120D, double.NaN, 160D }, snapshot.Data.Series.Single().Values);
+    }
+
     private static ExcelSheet Sheet(ExcelDocument document) {
         ExcelSheet sheet = document.AddSheet("Data");
         sheet.Cell(1, 1).SetValue("Month");

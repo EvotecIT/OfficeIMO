@@ -273,7 +273,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     // An empty cell leaves its plotted value out of the cache, which the chart's blank setting draws.
                     // Bubble values and scatter X positions have no such rule.
                     bool allowsEmptyCells = layer is not C.BubbleChart && cache is C.Values or C.YValues;
-                    if (length == 0 || points.Count == 0 || points.Count != length && !allowsEmptyCells ||
+                    if (length == 0 || points.Count != length && !allowsEmptyCells ||
                         points.Any(point => point.Index?.Value == null) ||
                         points.Select(point => point.Index!.Value).Distinct().Count() != points.Count ||
                         points.Any(point => !double.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float,

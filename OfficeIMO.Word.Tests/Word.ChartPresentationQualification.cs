@@ -476,5 +476,17 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.Equal(OfficeChartBlankDisplay.Span, snapshot.Layout.BlankDisplay);
     }
 
+    [Fact]
+    public void Snapshot_KeepsASeriesWhoseCellsAreAllEmpty() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Values", new[] { 3d, 4d }), new OfficeSeries("Pending", new[] { 1d, 2d }) }));
+        var pending = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().ElementAt(1);
+        foreach (var point in pending.GetFirstChild<C.Values>()!.Descendants<C.NumericPoint>().ToArray()) point.Remove();
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(new[] { double.NaN, double.NaN }, snapshot.Data.Series[1].Values);
+    }
+
     private static WordChart Create(WordDocument document, OfficeChartType kind) => document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Chart" });
 }

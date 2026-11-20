@@ -22,21 +22,27 @@ public static partial class OfficeChartDrawingRenderer {
     public static OfficeDrawing Render(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         List<ChartLabelBounds>? previousLabels = _renderPassLabels;
-        double? previousLabelMaximum = _renderPassLabelMaximum;
+        HashSet<(int Series, int Point)>? previousHiddenLabels = _renderPassHiddenLabels;
         _renderPassLabels = new List<ChartLabelBounds>();
-        _renderPassLabelMaximum = null;
+        _renderPassHiddenLabels = null;
         try {
             return RenderCore(snapshot, useMinimumCanvas, diagnostics);
         } finally {
             _renderPassLabels = previousLabels;
-            _renderPassLabelMaximum = previousLabelMaximum;
+            _renderPassHiddenLabels = previousHiddenLabels;
         }
     }
 
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         ArgumentNullException.ThrowIfNull(snapshot);
+        HashSet<(int Series, int Point)>? missingAreaPoints = GetMissingAreaPoints(snapshot);
         snapshot = ApplyBlankDisplay(snapshot);
+        _renderPassHiddenLabels = GetLabelsOverMaximum(snapshot);
+        if (missingAreaPoints != null) {
+            _renderPassHiddenLabels ??= new HashSet<(int Series, int Point)>();
+            _renderPassHiddenLabels.UnionWith(missingAreaPoints);
+        }
         if (!IsPieChart(snapshot.ChartKind) && !IsDoughnutChart(snapshot.ChartKind) &&
             snapshot.Data.Series.Any(series => series.PointExplosions != null))
             throw new NotSupportedException("Point explosions require a pie or doughnut chart.");
@@ -113,7 +119,6 @@ public static partial class OfficeChartDrawingRenderer {
         bool hasSecondaryAxisTitle = hasSecondaryAxis && layout.ShowValueAxis &&
             !string.IsNullOrWhiteSpace(layout.SecondaryValueAxis?.Title);
         ValueRange axisRange = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondaryAxis);
-        if (!layout.ShowDataLabelsOverMaximum && !hasSecondaryAxis) _renderPassLabelMaximum = axisRange.Max;
         // Each axis sits where it crosses the perpendicular axis: 0 is the bottom or left plot edge, 1 the top or right.
         AxisCrossings crossings = GetAxisCrossings(snapshot, layout, barChart, axisRange);
         bool horizontalAxisCrossesAtMaximum = crossings.Horizontal >= 1D;
@@ -1147,6 +1152,8 @@ public static partial class OfficeChartDrawingRenderer {
                 double max = range.Max;
                 // Clustered bars grow from where the category axis crosses the value axis, as in Office.
                 if (!seriesStacked) baseline = GetClusteredBarBaseline(layout, horizontal, range);
+                // Stacks grow from their running total by the value's sign; clustered bars grow away from the crossing.
+                bool growsForward = seriesStacked ? plottedValue >= 0D : plottedValue >= baseline;
                 int layoutSlot = seriesStacked
                     ? stackedSlots[seriesKind]
                     : clusteredSlots[sourceSeriesIndex];
@@ -1181,7 +1188,8 @@ public static partial class OfficeChartDrawingRenderer {
                         y,
                         y + rowHeight,
                         sourceSeriesIndex,
-                        category);
+                        category,
+                        growsForward);
                 } else {
                     int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
                     double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + barWidth * barStepRatio * layoutSlot;
@@ -1207,7 +1215,8 @@ public static partial class OfficeChartDrawingRenderer {
                         y,
                         y + h,
                         sourceSeriesIndex,
-                        category);
+                        category,
+                        growsForward);
                 }
             }
         }
@@ -1701,11 +1710,14 @@ public static partial class OfficeChartDrawingRenderer {
             for (int ring = 1; ring <= 4; ring++) {
                 double tick = range.Min + (range.Max - range.Min) * ring / 4D;
                 double y = centerY - radius * ring / 4D - labelHeight / 2D;
-                AddChartText(drawing, FormatAxisValue(tick, layout, false, layout.VerticalAxisNumberFormat),
+                AddChartText(drawing, FormatAxisValue(tick, layout, false, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor),
                     centerX + 4D, y, 42D, labelHeight, layout.AxisLabelFontSize,
                     style.MutedTextColor, OfficeTextAlignment.Left, style,
                     layout.AxisTextFontFamily, layout.AxisTextFontStyle);
             }
+            // The display-unit label ("Thousands") sits above the outermost ring label.
+            AddAxisDisplayUnitLabel(drawing, layout.VerticalAxisDisplayUnitLabel, centerX + 4D,
+                centerY - radius - labelHeight * 1.5D - 2D, 80D, style, layout, OfficeTextAlignment.Left);
         }
 
         if (GetShowCategoryGridLines(style)) {
@@ -1744,12 +1756,18 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             OfficePoint[] outlinePoints = points;
+            bool spanned = false;
             if (!allPointsPlotted && layout.BlankDisplay == OfficeChartBlankDisplay.Span) {
                 CompactPlottedPoints(points, plotted, out outlinePoints, out _);
                 allPointsPlotted = outlinePoints.Length >= 3;
+                spanned = !allPointsPlotted;
             }
 
-            if (allPointsPlotted && series[s].ConnectLine) {
+            if (spanned) {
+                // Two remaining points span the gap with one unfilled line; one point has no outline.
+                if (outlinePoints.Length == 2 && series[s].ConnectLine && series[s].SeriesStyle?.ShowOutline != false)
+                    AddPointLine(drawing, outlinePoints, series[s].SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle);
+            } else if (allPointsPlotted && series[s].ConnectLine) {
                 AddPolygonShape(
                     drawing,
                     outlinePoints,

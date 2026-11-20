@@ -166,7 +166,8 @@ namespace OfficeIMO.Excel {
                 var bubble = ReadBubbleImageSettings(plot, data);
                 snapshot = new ExcelChartInfo(
                     Name,
-                    Title ?? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(GetChart()),
+                    Title ?? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(GetChart(),
+                        data.Series.Count == 1 ? data.Series[0].Name : null),
                     ChartType,
                     data,
                     GetAnchorRow(),

@@ -815,7 +815,8 @@ public static partial class OfficeChartDrawingRenderer {
             return false;
         }
 
-        if (layout.HidesDataLabelPoint(seriesIndex, pointIndex)) {
+        if (layout.HidesDataLabelPoint(seriesIndex, pointIndex) ||
+            _renderPassHiddenLabels?.Contains((seriesIndex, pointIndex)) == true) {
             return false;
         }
 
@@ -1227,12 +1228,15 @@ public static partial class OfficeChartDrawingRenderer {
         double barTop,
         double barBottom,
         int seriesIndex,
-        int pointIndex) {
-        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex) || IsDataLabelOverMaximum(value)) {
+        int pointIndex,
+        bool? growsForward = null) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
             return;
         }
 
         string label = FormatDataLabel(layout, category, series, value, total);
+        // A bar grows away from its baseline, which an axis crossing can move off zero.
+        bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
             return;
         }
@@ -1242,11 +1246,11 @@ public static partial class OfficeChartDrawingRenderer {
         double x = centerX - labelWidth / 2D;
         double y = layout.DataLabelPosition switch {
             OfficeChartDataLabelPosition.Center => barCenterY - labelHeight / 2D,
-            OfficeChartDataLabelPosition.InsideEnd => value >= 0D ? barTop + 1D : barBottom - labelHeight - 1D,
-            OfficeChartDataLabelPosition.InsideBase => value >= 0D ? barBottom - labelHeight - 1D : barTop + 1D,
+            OfficeChartDataLabelPosition.InsideEnd => forward ? barTop + 1D : barBottom - labelHeight - 1D,
+            OfficeChartDataLabelPosition.InsideBase => forward ? barBottom - labelHeight - 1D : barTop + 1D,
             OfficeChartDataLabelPosition.Bottom => barBottom + 1D,
             OfficeChartDataLabelPosition.Left or OfficeChartDataLabelPosition.Right => barCenterY - labelHeight / 2D,
-            _ => value >= 0D ? barTop - labelHeight - 1D : barBottom + 1D
+            _ => forward ? barTop - labelHeight - 1D : barBottom + 1D
         };
         if (layout.DataLabelPosition == OfficeChartDataLabelPosition.Left) {
             x = centerX - labelWidth - 4D;
@@ -1270,12 +1274,15 @@ public static partial class OfficeChartDrawingRenderer {
         double barTop,
         double barBottom,
         int seriesIndex,
-        int pointIndex) {
-        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex) || IsDataLabelOverMaximum(value)) {
+        int pointIndex,
+        bool? growsForward = null) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
             return;
         }
 
         string label = FormatDataLabel(layout, category, series, value, total);
+        // A bar grows away from its baseline, which an axis crossing can move off zero.
+        bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
             return;
         }
@@ -1285,10 +1292,10 @@ public static partial class OfficeChartDrawingRenderer {
         double centerY = (barTop + barBottom) / 2D;
         double x = layout.DataLabelPosition switch {
             OfficeChartDataLabelPosition.Center => centerX - labelWidth / 2D,
-            OfficeChartDataLabelPosition.InsideEnd => value >= 0D ? barRight - labelWidth - 2D : barLeft + 2D,
-            OfficeChartDataLabelPosition.InsideBase => value >= 0D ? barLeft + 2D : barRight - labelWidth - 2D,
+            OfficeChartDataLabelPosition.InsideEnd => forward ? barRight - labelWidth - 2D : barLeft + 2D,
+            OfficeChartDataLabelPosition.InsideBase => forward ? barLeft + 2D : barRight - labelWidth - 2D,
             OfficeChartDataLabelPosition.Left => barLeft - labelWidth - 2D,
-            _ => value >= 0D ? barRight + 2D : barLeft - labelWidth - 2D
+            _ => forward ? barRight + 2D : barLeft - labelWidth - 2D
         };
         double y = layout.DataLabelPosition switch {
             OfficeChartDataLabelPosition.Top => barTop - labelHeight - 1D,
@@ -1297,7 +1304,7 @@ public static partial class OfficeChartDrawingRenderer {
         };
         OfficeTextAlignment alignment = layout.DataLabelPosition == OfficeChartDataLabelPosition.Center
             ? OfficeTextAlignment.Center
-            : value >= 0D ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
+            : forward ? OfficeTextAlignment.Left : OfficeTextAlignment.Right;
         AddDataLabel(drawing, layout, style, label, x, y, labelWidth, labelHeight, alignment);
     }
 
@@ -1313,7 +1320,7 @@ public static partial class OfficeChartDrawingRenderer {
         double y,
         int seriesIndex,
         int pointIndex) {
-        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex) || IsDataLabelOverMaximum(value)) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
             return;
         }
 
@@ -1382,10 +1389,8 @@ public static partial class OfficeChartDrawingRenderer {
     // sub-drawings, so the registry belongs to the render pass rather than to one drawing.
     [ThreadStatic] private static List<ChartLabelBounds>? _renderPassLabels;
 
-    // The value-axis maximum above which this render pass hides data labels (OOXML showDLblsOverMax off), or null.
-    [ThreadStatic] private static double? _renderPassLabelMaximum;
-
-    private static bool IsDataLabelOverMaximum(double value) => _renderPassLabelMaximum is double maximum && value > maximum;
+    // Points whose labels this render pass hides: beyond an explicit axis maximum, or an empty area cell drawn at zero.
+    [ThreadStatic] private static HashSet<(int Series, int Point)>? _renderPassHiddenLabels;
 
     private readonly struct ChartLabelBounds {
         internal ChartLabelBounds(double left, double top, double right, double bottom) {

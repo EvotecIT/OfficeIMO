@@ -34,7 +34,9 @@ internal static class OfficeOpenXmlChartPlotSemantics {
     /// user interface language; the placeholder is returned only when the chart's c:lang is English or absent, so a
     /// chart in another language is not given English text. Returns null when the chart has no such title, when its
     /// automatic title was deleted (c:autoTitleDeleted), or when no text applies.</remarks>
-    internal static string? ReadAutomaticTitle(C.Chart chart) {
+    /// <param name="chart">The native chart.</param>
+    /// <param name="singleSeriesName">The series name a caller resolved from current source cells, used in place of the cached name.</param>
+    internal static string? ReadAutomaticTitle(C.Chart chart, string? singleSeriesName = null) {
         C.Title? title = chart.GetFirstChild<C.Title>();
         if (title == null || title.GetFirstChild<C.ChartText>() != null) return null;
         C.AutoTitleDeleted? deleted = chart.GetFirstChild<C.AutoTitleDeleted>();
@@ -45,7 +47,7 @@ internal static class OfficeOpenXmlChartPlotSemantics {
             .Take(2).ToArray() ?? Array.Empty<OpenXmlCompositeElement>();
         if (series.Length == 0) return null;
         if (series.Length == 1) {
-            string? name = ReadSeriesName(series[0]);
+            string? name = string.IsNullOrWhiteSpace(singleSeriesName) ? ReadSeriesName(series[0]) : singleSeriesName;
             if (!string.IsNullOrWhiteSpace(name)) return name!.Trim();
         }
 
@@ -120,7 +122,7 @@ internal static class OfficeOpenXmlChartPlotSemantics {
         if (!divisor.HasValue || divisor.Value <= 0D || double.IsNaN(divisor.Value) || double.IsInfinity(divisor.Value))
             return default;
         C.DisplayUnitsLabel? displayUnitsLabel = displayUnits.GetFirstChild<C.DisplayUnitsLabel>();
-        string? label = displayUnitsLabel?.GetFirstChild<C.ChartText>()?.InnerText;
+        string? label = ReadChartTextValue(displayUnitsLabel?.GetFirstChild<C.ChartText>());
         if (displayUnitsLabel != null && string.IsNullOrWhiteSpace(label)) {
             label = builtInUnit == null
                 ? divisor.Value.ToString("0.##", CultureInfo.InvariantCulture)
@@ -128,6 +130,17 @@ internal static class OfficeOpenXmlChartPlotSemantics {
         }
 
         return (divisor.Value, string.IsNullOrWhiteSpace(label) ? null : label!.Trim());
+    }
+
+    // The displayed text of c:tx: its rich-text runs, or the first cached point of a formula reference.
+    // InnerText would also include the formula itself.
+    private static string? ReadChartTextValue(C.ChartText? text) {
+        if (text == null) return null;
+        C.RichText? rich = text.GetFirstChild<C.RichText>();
+        if (rich != null) return string.Concat(rich.Descendants<DocumentFormat.OpenXml.Drawing.Text>().Select(run => run.Text));
+        C.StringPoint? point = text.GetFirstChild<C.StringReference>()?.StringCache?.Elements<C.StringPoint>()
+            .FirstOrDefault(item => (item.Index?.Value ?? 0U) == 0U);
+        return point?.NumericValue?.Text ?? text.GetFirstChild<C.StringLiteral>()?.Elements<C.StringPoint>().FirstOrDefault()?.NumericValue?.Text;
     }
 
     private static double? GetBuiltInDivisor(string builtInUnit) => NormalizeBuiltInUnit(builtInUnit) switch {
