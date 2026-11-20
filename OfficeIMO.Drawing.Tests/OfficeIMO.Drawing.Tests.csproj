@@ -37,6 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Core\Diagnostics\diagnostic-code-map.json" Link="TestAssets\diagnostic-code-map.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\Build\Visual\themes.json" Link="TestAssets\themes.json" CopyToOutputDirectory="PreserveNewest" />
     <EmbeddedResource Include="TestAssets\FontParserLimits\*.gz" />
