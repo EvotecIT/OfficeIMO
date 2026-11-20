@@ -15,11 +15,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             // A whole-day serial in the common range is the OLE Automation epoch plus that many days,
             // which is exactly what the full conversion returns for it in either date system and style.
             if (serial >= AlwaysConvertibleMinimum && serial < AlwaysConvertibleLimit) {
-                double days = calendarStyle && uses1904DateSystem
-                    ? ExcelDateSystemConverter.ShiftSerialDays(serial, ExcelDateSystemConverter.Date1904OffsetDays)
-                    : serial;
-                long wholeDays = (long)days;
-                if (wholeDays == days) {
+                long wholeDays = (long)serial;
+                if (wholeDays == serial) {
+                    if (calendarStyle && uses1904DateSystem) wholeDays += (long)ExcelDateSystemConverter.Date1904OffsetDays;
                     value = new DateTime(OleAutomationEpochTicks + wholeDays * TimeSpan.TicksPerDay);
                     return true;
                 }

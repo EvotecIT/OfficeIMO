@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Converts dates to and from Excel serial values using the workbook's configured date system.
@@ -6,10 +8,13 @@ namespace OfficeIMO.Excel {
     /// A serial counts days, and its whole part is the day Excel reports for it. Serials hold whole milliseconds:
     /// values are stored truncated to the millisecond, so a time just before midnight stays on its own day, and
     /// serials read back rounded to the nearest millisecond, never past the last millisecond of the serial's day.
+    /// The time always comes from the serial's own fraction; a date system's epoch moves only whole days, as
+    /// integer arithmetic, so the 1904 offset never changes how a fraction rounds.
     /// </remarks>
     public static class ExcelDateSystemConverter {
         private static readonly DateTime Early1900Epoch = new DateTime(1899, 12, 31);
         private static readonly DateTime OleAutomationEpoch = new DateTime(1899, 12, 30);
+        private static readonly DateTime Epoch1904 = new DateTime(1904, 1, 1);
         private const long MillisecondsPerDay = 86_400_000L;
         private const double MaximumDateTimeDays = 3_652_059d;
         /// <summary>
@@ -23,9 +28,13 @@ namespace OfficeIMO.Excel {
         public static double ToSerial(DateTime value, ExcelDateSystem dateSystem) {
             if (dateSystem == ExcelDateSystem.NineteenHundred && value < new DateTime(1900, 3, 1))
                 return ToMillisecondSerial(FloorToMilliseconds(value.Ticks - Early1900Epoch.Ticks));
-            // ToOADate truncates to the millisecond, which keeps the time on the value's day.
-            double serial = value.ToOADate();
-            return dateSystem == ExcelDateSystem.NineteenFour ? ShiftSerialDays(serial, -Date1904OffsetDays) : serial;
+            DateTime epoch = dateSystem == ExcelDateSystem.NineteenFour ? Epoch1904 : OleAutomationEpoch;
+            if (value >= OleAutomationEpoch) return ToMillisecondSerial(FloorToMilliseconds(value.Ticks - epoch.Ticks));
+            // Earlier dates keep the OLE Automation encoding, whose negative serials hold the time as a positive fraction.
+            long milliseconds = OleAutomationMilliseconds(value);
+            return ToMillisecondSerial(dateSystem == ExcelDateSystem.NineteenFour
+                ? milliseconds - (long)Date1904OffsetDays * MillisecondsPerDay
+                : milliseconds);
         }
 
         /// <summary>
@@ -38,23 +47,30 @@ namespace OfficeIMO.Excel {
         public static DateTime FromSerial(double serial, ExcelDateSystem dateSystem) {
             if (dateSystem == ExcelDateSystem.NineteenHundred && serial < 60d)
                 return FromLinearSerial(Early1900Epoch, serial);
-            return FromOleAutomationSerial(dateSystem == ExcelDateSystem.NineteenFour ? ShiftSerialDays(serial, Date1904OffsetDays) : serial);
+            return FromOleAutomationSerial(serial, dateSystem);
         }
 
         /// <summary>
-        /// Moves a serial by whole days without changing its time. Adding the days directly can round a fraction just
-        /// below one up into the next day, because the larger result has fewer fractional bits; the result then keeps
-        /// the largest serial still on the shifted day.
+        /// Converts a serial in either date system as an OLE Automation date, without the 1900 system's early-date rule.
         /// </summary>
-        internal static double ShiftSerialDays(double serial, double days) {
-            if (double.IsNaN(serial) || double.IsInfinity(serial)) return serial + days;
+        internal static DateTime FromOleAutomationSerial(double serial, ExcelDateSystem dateSystem) {
+            if (dateSystem == ExcelDateSystem.NineteenHundred) return FromOleAutomationSerial(serial);
+            // From the OLE Automation epoch on, a 1904 serial counts days from January 1, 1904.
+            if (serial >= -Date1904OffsetDays) return FromLinearSerial(Epoch1904, serial);
+            // Before it, adding the offset moves the serial toward zero, which is exact.
+            return FromOleAutomationSerial(serial + Date1904OffsetDays);
+        }
+
+        /// <summary>
+        /// Moves a serial by whole days, keeping its time to the millisecond. The time is resolved from the serial's
+        /// own fraction before the days are added, so it never rounds into another day.
+        /// </summary>
+        internal static double ShiftSerialDays(double serial, long days) {
             double whole = Math.Floor(serial);
-            double shiftedWhole = whole + days;
-            double shifted = shiftedWhole + (serial - whole);
-            if (shifted < shiftedWhole + 1d) return shifted;
-            double nextDay = shiftedWhole + 1d;
-            if (nextDay == 0d) return -double.Epsilon;
-            return BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(nextDay) + (nextDay > 0d ? -1L : 1L));
+            // Serials too large for whole milliseconds to be exact are not dates; shift them as numbers.
+            if (!(Math.Abs(whole) <= MaximumDateTimeDays * 2)) return serial + days;
+            long milliseconds = ((long)whole + days) * MillisecondsPerDay + RoundFractionToMilliseconds(serial - whole);
+            return ToMillisecondSerial(milliseconds);
         }
 
         /// <summary>
@@ -87,9 +103,45 @@ namespace OfficeIMO.Excel {
             if (!(wholeDays >= -MaximumDateTimeDays && wholeDays <= MaximumDateTimeDays)) {
                 throw new ArgumentOutOfRangeException(nameof(serial), serial, "The serial is outside the range of DateTime.");
             }
-            long milliseconds = (long)Math.Round((serial - wholeDays) * MillisecondsPerDay, MidpointRounding.AwayFromZero);
-            if (milliseconds == MillisecondsPerDay) milliseconds--;
+            long milliseconds = RoundFractionToMilliseconds(serial - wholeDays);
             return epoch.AddTicks((long)wholeDays * TimeSpan.TicksPerDay + milliseconds * TimeSpan.TicksPerMillisecond);
+        }
+
+        /// <summary>
+        /// Rounds a day fraction in [0, 1) to milliseconds, halves away from zero, and keeps the result within the day.
+        /// The double product is correctly rounded, so it can only land on a half when the exact product is close to
+        /// one; that case is decided exactly.
+        /// </summary>
+        private static long RoundFractionToMilliseconds(double fraction) {
+            double product = fraction * MillisecondsPerDay;
+            double floor = Math.Floor(product);
+            long milliseconds = (long)floor;
+            double rest = product - floor;
+            if (rest > 0.5d || rest == 0.5d && !IsExactProductBelowHalf(fraction, milliseconds)) milliseconds++;
+            return Math.Min(milliseconds, MillisecondsPerDay - 1);
+        }
+
+        /// <summary>Whether fraction × milliseconds per day is exactly less than <paramref name="milliseconds"/> + 0.5.</summary>
+        private static bool IsExactProductBelowHalf(double fraction, long milliseconds) {
+            long bits = BitConverter.DoubleToInt64Bits(fraction);
+            int exponentBits = (int)((bits >> 52) & 0x7FF);
+            long mantissa = bits & 0xF_FFFF_FFFF_FFFFL;
+            if (exponentBits != 0) mantissa |= 1L << 52;
+            int scale = 1075 - (exponentBits == 0 ? 1 : exponentBits);
+            // fraction = mantissa / 2^scale; compare 2 * mantissa * msPerDay with (2 * ms + 1) * 2^scale.
+            BigInteger product = new BigInteger(mantissa) * (2 * MillisecondsPerDay);
+            BigInteger half = new BigInteger(2 * milliseconds + 1) << scale;
+            return product < half;
+        }
+
+        /// <summary>The OLE Automation date of <paramref name="value"/> in milliseconds, as <see cref="DateTime.ToOADate"/> encodes it.</summary>
+        private static long OleAutomationMilliseconds(DateTime value) {
+            long milliseconds = (value.Ticks - OleAutomationEpoch.Ticks) / TimeSpan.TicksPerMillisecond;
+            if (milliseconds < 0) {
+                long fraction = milliseconds % MillisecondsPerDay;
+                if (fraction != 0) milliseconds -= (MillisecondsPerDay + fraction) * 2;
+            }
+            return milliseconds;
         }
 
         private static long FloorToMilliseconds(long ticks) {

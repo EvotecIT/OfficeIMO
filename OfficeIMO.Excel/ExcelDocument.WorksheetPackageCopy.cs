@@ -329,9 +329,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            double offset = targetDateSystem == ExcelDateSystem.NineteenFour
-                ? -ExcelDateSystemConverter.Date1904OffsetDays
-                : ExcelDateSystemConverter.Date1904OffsetDays;
+            long offset = targetDateSystem == ExcelDateSystem.NineteenFour
+                ? -(long)ExcelDateSystemConverter.Date1904OffsetDays
+                : (long)ExcelDateSystemConverter.Date1904OffsetDays;
             Dictionary<int, uint> rowStyleIndexes = BuildRowStyleIndexMap(worksheet);
             (int Min, int Max, uint StyleIndex)[] columnStyleIndexes = BuildColumnStyleIndexRanges(worksheet);
 

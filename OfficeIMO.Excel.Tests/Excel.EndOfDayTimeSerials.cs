@@ -154,6 +154,42 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new DateTime(year, month, day) + LastMillisecondOfDay, ExcelDateSystemConverter.FromSerial(serial, dateSystem));
         }
 
+        [Fact]
+        public void HalfMillisecondSerialRoundsUpInThe1904DateSystem() {
+            // 2.5 ms as a double is a little over 2.5 ms; adding 1,462 days first would move it under.
+            Assert.Equal(new DateTime(1904, 1, 1, 0, 0, 0, 3), ExcelDateSystemConverter.FromSerial(2.5 / 86_400_000d, ExcelDateSystem.NineteenFour));
+        }
+
+        public static IEnumerable<object[]> HalfMillisecondSerials() {
+            long[] milliseconds = { 0, 1, 2, 499, 43_199_999, 86_399_998, 86_399_999 };
+            foreach (long millisecond in milliseconds) {
+                foreach (int day in new[] { 0, 1, 100, 45356 }) yield return new object[] { true, day, millisecond };
+                foreach (int day in new[] { 61, 45356 }) yield return new object[] { false, day, millisecond };
+            }
+        }
+
+        // The time comes from the serial's own fraction, rounded half away from zero, whatever the date system.
+        [Theory]
+        [MemberData(nameof(HalfMillisecondSerials))]
+        public void HalfMillisecondSerialsRoundFromTheirOwnFraction(bool date1904, int day, long millisecond) {
+            double serial = day + (millisecond + 0.5d) / 86_400_000d;
+            DateTime dayStart = (date1904 ? new DateTime(1904, 1, 1) : new DateTime(1899, 12, 30)).AddDays(day);
+            long expected = Math.Min(ExactRoundedMilliseconds(serial - Math.Floor(serial)), 86_399_999L);
+            Assert.Equal(dayStart.AddTicks(expected * TimeSpan.TicksPerMillisecond),
+                ExcelDateSystemConverter.FromSerial(serial, date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred));
+        }
+
+        /// <summary>Rounds fraction x 86,400,000 half up using exact integer arithmetic on the double's bits.</summary>
+        private static long ExactRoundedMilliseconds(double fraction) {
+            long bits = BitConverter.DoubleToInt64Bits(fraction);
+            int exponent = (int)((bits >> 52) & 0x7FF);
+            if (exponent == 0) return 0;
+            var mantissa = new System.Numerics.BigInteger((bits & 0xF_FFFF_FFFF_FFFFL) | (1L << 52));
+            int scale = 1075 - exponent;
+            var numerator = mantissa * 86_400_000 * 2 + (System.Numerics.BigInteger.One << scale);
+            return (long)(numerator >> (scale + 1));
+        }
+
         // Adding the 1904 offset to these serials directly rounds them up to the next whole day.
         [Theory]
         [InlineData(ExcelFileFormat.Xlsx)]
