@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
         private readonly List<object[]> _sampledRows;
         private readonly Type[] _columnTypes;
         private readonly CultureInfo _culture;
+        private readonly ExcelDateSystem _dateSystem;
         private int _sampleIndex;
         private object[]? _sampledCurrentRow;
         private bool _closed;
@@ -26,9 +27,11 @@ namespace OfficeIMO.Excel {
             int maximumSchemaSampleRows,
             long maximumBufferedCells,
             CultureInfo culture,
+            ExcelDateSystem dateSystem,
             CancellationToken cancellationToken) {
             _inner = inner;
             _culture = culture;
+            _dateSystem = dateSystem;
 
             int fieldCount = inner.FieldCount;
             if (maximumSchemaSampleRows < 0 || maximumBufferedCells <= 0L) {
@@ -68,6 +71,7 @@ namespace OfficeIMO.Excel {
             int maximumSchemaSampleRows,
             long maximumBufferedCells,
             CultureInfo culture,
+            ExcelDateSystem dateSystem,
             CancellationToken cancellationToken) {
             try {
                 return new ExcelSchemaInferenceDataReader(
@@ -76,6 +80,7 @@ namespace OfficeIMO.Excel {
                     maximumSchemaSampleRows,
                     maximumBufferedCells,
                     culture,
+                    dateSystem,
                     cancellationToken);
             } catch {
                 inner.Dispose();
@@ -139,7 +144,7 @@ namespace OfficeIMO.Excel {
         public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
 
         public override DateTime GetDateTime(int ordinal) => IsSampledRow
-            ? Convert.ToDateTime(GetNonDbNullValue(ordinal), _culture)
+            ? ExcelSheetReader.DataReaderDateValue(GetNonDbNullValue(ordinal), _dateSystem, _culture)
             : _inner.GetDateTime(ordinal);
 
         public override decimal GetDecimal(int ordinal) => IsSampledRow

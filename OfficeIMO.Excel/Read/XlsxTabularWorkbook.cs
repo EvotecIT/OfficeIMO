@@ -279,6 +279,7 @@ namespace OfficeIMO.Excel {
                     _options.MaxDataReaderSchemaSampleRows,
                     _options.MaxDataReaderBufferedCells,
                     _options.Culture,
+                    DateSystem,
                     cancellationToken)
                 : dataReader;
         }

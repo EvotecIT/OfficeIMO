@@ -65,8 +65,7 @@ namespace OfficeIMO.Excel {
                     return MaterializeDateSerial(ordinal);
                 }
 
-                object value = GetNonDbNullValue(ordinal);
-                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, _culture);
+                return DataReaderDateValue(GetNonDbNullValue(ordinal), _owner._dateSystem, _culture);
             }
 
             /// <inheritdoc />

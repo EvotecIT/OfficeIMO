@@ -7455,6 +7455,32 @@ cells read as December 30, 1899 plus their stored duration in both date systems,
 so a negative duration such as `-6:00:00` now reads as `1899-12-29 18:00`
 instead of `1899-12-30 06:00`. Subtract December 30, 1899 to recover the duration.
 
+In a 1904 workbook, dates before December 30, 1899 are now stored as negative
+serials counted back from January 1, 1904, as the 1900 system already counts
+back from December 31, 1899, instead of with the OLE Automation encoding. Excel
+shows such cells as `####` in either system; OfficeIMO reads them back as the
+same date.
+
+## Excel cells mapped to date and time properties
+
+Object mapping (`ReadObjects`, `ReadObjectsStream`, `ReadColumnAs`, `RowsAs`)
+and `GetFieldValue<T>` now convert time and elapsed-time cells to `TimeSpan`
+and `TimeOnly`, and date cells to `DateOnly` and `DateTimeOffset`, including
+their nullable forms. A duration is the cell's serial as a number of days, so
+`26:30:00` maps to `1.02:30:00` and a negative duration stays negative. A
+`DateTimeOffset` takes the local offset for the cell's date, as
+`new DateTimeOffset(DateTime)` does.
+
+`ReadObjects` used to leave such properties at their default, `00:00:00` or
+`0001-01-01`, and `RowsAs` threw an invalid cast. A cell that holds no date,
+time or duration for one of these properties, or for a `DateTime` property,
+now throws `DataMappingException` instead of leaving the default in place.
+
+A plain number mapped to `DateTime`, `DateOnly` or `DateTimeOffset` is read as a
+serial in the workbook's date system. In a 1904 workbook it used to read as a
+1900-system date, four years and a day early. `RowsAs` and the data readers'
+`GetDateTime` now accept such numbers too instead of throwing.
+
 ## XLS import date-system preservation
 
 XLS import retains the source workbook's date system, numeric date and duration
