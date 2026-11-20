@@ -39,6 +39,9 @@ namespace OfficeIMO.Tests {
             // A plain number read as a date is a serial in the workbook's date system.
             DateTime epoch = date1904 ? new DateTime(1904, 1, 1) : new DateTime(1899, 12, 30);
             AssertTemporalMapping(format, dateSystem, 45356.5, epoch.AddDays(45356.5));
+            // A plain number read as a duration is that many days.
+            AssertTemporalMapping(format, dateSystem, 1.5, TimeSpan.FromHours(36));
+            AssertTemporalMapping<double, TimeSpan?>(format, dateSystem, 1.5, TimeSpan.FromHours(36));
 #if NET6_0_OR_GREATER
             AssertTemporalMapping(format, dateSystem, new TimeOnly(10, 30), new TimeOnly(10, 30));
             AssertTemporalMapping(format, dateSystem, new TimeOnly(10, 30), new TimeSpan(10, 30, 0));
@@ -59,6 +62,33 @@ namespace OfficeIMO.Tests {
             AssertTemporalMappingFails<DateOnly>(format, dateSystem);
             AssertTemporalMappingFails<TimeOnly?>(format, dateSystem);
 #endif
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void TypedReadersPassDateCellsToTheTypeConverterAndHonorTheChunkLimit(bool date1904) {
+            ExcelDateSystem dateSystem = date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
+            var when = new DateTime(2024, 3, 5, 10, 30, 0);
+            string path = WriteTemporalMappingWorkbook(ExcelFileFormat.Xlsx, dateSystem, when);
+            TimeSpan serialDays = when - (date1904 ? new DateTime(1904, 1, 1) : new DateTime(1899, 12, 30));
+
+            // A converter that handles DateTime sees the cell's date, not the serial read for durations.
+            var hooked = new ExcelReaderOptions {
+                TypeConverter = (raw, type, _) => raw is DateTime date && type == typeof(TimeSpan) ? (true, (object?)date.TimeOfDay) : (false, null)
+            };
+            AssertTypedReaders(path, hooked, when.TimeOfDay);
+
+            // A chunk limit below the default chunk size still reads the serial.
+            AssertTypedReaders(path, new ExcelReaderOptions { MaxDataReaderChunkRows = 16 }, serialDays);
+        }
+
+        private static void AssertTypedReaders(string path, ExcelReaderOptions options, TimeSpan expected) {
+            using var reader = ExcelDocumentReader.Open(path, options);
+            var sheet = reader.GetSheet("Data");
+            Assert.Equal(expected, sheet.ReadColumnAs<TimeSpan>("A2:A2").Single());
+            Assert.Equal(expected, sheet.ReadRowsAs<TimeSpan>("A2:A2").Single()[0]);
+            Assert.Equal(expected, sheet.ReadRangeAs<TimeSpan>("A2:A2")[0, 0]);
         }
 
         private string WriteTemporalMappingWorkbook<TSource>(ExcelFileFormat format, ExcelDateSystem dateSystem, TSource value) {

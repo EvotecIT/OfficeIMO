@@ -945,7 +945,14 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        private object? TryChangeType(object value, Type targetType, CultureInfo culture) {
+        /// <param name="value">The cell value.</param>
+        /// <param name="targetType">The destination type.</param>
+        /// <param name="culture">The culture for text conversion.</param>
+        /// <param name="serial">
+        /// The stored serial of a date cell read for a duration or time of day. The converter hook still sees the cell's
+        /// own value; the serial replaces it only for the built-in conversion.
+        /// </param>
+        private object? TryChangeType(object value, Type targetType, CultureInfo culture, double? serial = null) {
             if (value == null) return null;
 
             var nullable = Nullable.GetUnderlyingType(targetType);
@@ -956,6 +963,8 @@ namespace OfficeIMO.Excel {
                 var (ok, v) = hook(value, destType, culture);
                 if (ok) return v;
             }
+
+            if (serial.HasValue) value = serial.Value;
 
             var srcType = value.GetType();
             if (targetType.IsAssignableFrom(srcType)) return value;
