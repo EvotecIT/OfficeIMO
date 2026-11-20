@@ -62,13 +62,14 @@ public sealed class AccessibilityCommandTests {
         Directory.CreateDirectory(directory);
         try {
             string input = CreateWorkbook(directory, "errors.xlsx", withHeaderlessTable: true);
-            var transport = new StdioClientTransport(new() {
+            var serverOptions = new StdioClientTransportOptions {
                 Name = "officeimo-accessibility-test", Command = "dotnet", Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
                 WorkingDirectory = directory,
                 EnvironmentVariables = new Dictionary<string, string?> { [AgentPathPolicy.AllowedRootsEnvironmentVariable] = directory }
-            });
+            };
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+            await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+            McpClient client = server.Client;
 
             CallToolResult result = await client.CallToolAsync("officeimo_check_accessibility",
                 new Dictionary<string, object?> { ["path"] = input, ["maxFindings"] = 1, ["includeSarif"] = true }, cancellationToken: timeout.Token);

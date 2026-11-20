@@ -78,13 +78,14 @@ public sealed class PdfRedlineCommandTests {
         Directory.CreateDirectory(root);
         try {
             string first = Write(root, "v1.pdf", Sentence), second = Write(root, "v2.pdf", Sentence.Replace("the spring", "the long spring"));
-            var transport = new StdioClientTransport(new() {
+            var serverOptions = new StdioClientTransportOptions {
                 Name = "officeimo-redline-test", Command = "dotnet", Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
                 WorkingDirectory = root,
                 EnvironmentVariables = new Dictionary<string, string?> { [AgentPathPolicy.AllowedRootsEnvironmentVariable] = root }
-            });
+            };
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            await using var client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+            await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+            McpClient client = server.Client;
             string Id(CallToolResult inspected) => inspected.StructuredContent!.Value.GetProperty("sourceId").GetString()!;
             string oldId = Id(await client.CallToolAsync("officeimo_inspect", new Dictionary<string, object?> { ["path"] = first }, cancellationToken: timeout.Token));
             string newId = Id(await client.CallToolAsync("officeimo_inspect", new Dictionary<string, object?> { ["path"] = second }, cancellationToken: timeout.Token));
