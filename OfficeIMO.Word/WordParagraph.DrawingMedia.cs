@@ -113,16 +113,15 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the chart contained in this paragraph, if present.
         /// </summary>
-        public WordChart? Chart {
-            get {
-                if (_run is not null && HasGraphicCandidate()) {
-                    foreach (WordDrawing drawing in EnumerateEffectiveRunContent().OfType<WordDrawing>()) {
-                        if (DrawingOwnsChart(drawing)) {
-                            return new WordChart(_document, this, drawing);
-                        }
-                    }
+        public WordChart? Chart => EnumerateCharts().FirstOrDefault();
+
+        /// <summary>Yields a chart for every chart drawing in this run, in document order.</summary>
+        internal IEnumerable<WordChart> EnumerateCharts() {
+            if (_run is null || !HasGraphicCandidate()) yield break;
+            foreach (WordDrawing drawing in EnumerateEffectiveRunContent().OfType<WordDrawing>()) {
+                if (DrawingOwnsChart(drawing)) {
+                    yield return new WordChart(_document, this, drawing);
                 }
-                return null;
             }
         }
 

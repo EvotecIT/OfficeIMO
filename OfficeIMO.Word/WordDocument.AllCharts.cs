@@ -31,10 +31,10 @@ public partial class WordDocument {
 
             var main = _wordprocessingDocument.MainDocumentPart;
             if (main?.FootnotesPart?.Footnotes is { } footnotes) {
-                foreach (Footnote note in footnotes.Elements<Footnote>().Where(note => note.Type == null)) AddCharts(charts, note);
+                foreach (Footnote note in footnotes.Elements<Footnote>().Where(WordNoteResolver.IsOrdinary)) AddCharts(charts, note);
             }
             if (main?.EndnotesPart?.Endnotes is { } endnotes) {
-                foreach (Endnote note in endnotes.Elements<Endnote>().Where(note => note.Type == null)) AddCharts(charts, note);
+                foreach (Endnote note in endnotes.Elements<Endnote>().Where(WordNoteResolver.IsOrdinary)) AddCharts(charts, note);
             }
             return charts.AsReadOnly();
         }
@@ -42,7 +42,7 @@ public partial class WordDocument {
 
     private void AddCharts(List<WordChart> charts, OpenXmlCompositeElement root) {
         foreach (WordParagraph paragraph in WordSection.ConvertParagraphsToWordParagraphs(this, root.Descendants<Paragraph>())) {
-            if (paragraph.IsChart && paragraph.Chart is { } chart) charts.Add(chart);
+            charts.AddRange(paragraph.EnumerateCharts());
         }
     }
 }

@@ -258,9 +258,7 @@ namespace OfficeIMO.Word {
         public List<WordChart> Charts {
             get {
                 return ParagraphsCharts
-                    .Select(p => p.Chart)
-                    .Where(chart => chart != null)
-                    .Cast<WordChart>()
+                    .SelectMany(p => p.EnumerateCharts())
                     .ToList();
             }
         }
