@@ -5,7 +5,9 @@ namespace OfficeIMO.Word {
     public partial class WordDocument {
         /// <summary>
         /// Appends the content of another <see cref="WordDocument"/> to this
-        /// document, keeping destination styles and the source page setup.
+        /// document with the source page setup. Destination style definitions are never changed; appended content
+        /// whose style differs from a destination style with the same name keeps its look through a renamed copy.
+        /// Use <see cref="WordStyleConflictMode.KeepTarget"/> to format it with the destination styles instead.
         /// </summary>
         /// <param name="source">The document to append.</param>
         public void AppendDocument(WordDocument source) {
@@ -36,6 +38,7 @@ namespace OfficeIMO.Word {
             new WordDocumentMerge(this, sourceMain, destinationMain, options ?? new WordDocumentMergeOptions())
                 .Append(sourceBody, destinationBody);
 
+            InvalidateBuiltInStyleIndex();
             LoadSections();
             WordListStyles.InitializeAbstractNumberId(_wordprocessingDocument);
         }

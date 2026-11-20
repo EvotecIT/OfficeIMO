@@ -274,8 +274,11 @@ namespace OfficeIMO.Word.Html {
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
-                            ApplyClassStyle(element, paragraph, options);
-                            paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionTerm);
+                            if (ApplyClassStyle(element, paragraph, options)) {
+                                HtmlSemanticMetadata.MarkDefinitionListItem(paragraph, description: false);
+                            } else {
+                                paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionTerm);
+                            }
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
@@ -294,13 +297,21 @@ namespace OfficeIMO.Word.Html {
                             if (props.WhiteSpace.HasValue) {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
-                            ApplyClassStyle(element, paragraph, options);
-                            paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionDescription);
+                            bool classStyled = ApplyClassStyle(element, paragraph, options);
+                            if (classStyled) {
+                                HtmlSemanticMetadata.MarkDefinitionListItem(paragraph, description: true);
+                            } else {
+                                paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionDescription);
+                            }
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
+                            // The semantic style id usually has no definition, so the indent shows the description.
+                            // A class style, or a document definition of the semantic style, owns its own layout.
+                            // The description indent goes on top of the indent the paragraph has from its style.
+                            int descriptionIndent = doc.GetStyleIndentationBeforeTwips(paragraph.StyleId) + 720;
                             var currentIndent = checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0;
-                            if (currentIndent < 720) {
-                                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                            if (!classStyled && !doc.StyleExists(HtmlSemanticStyleIds.DefinitionDescription) && currentIndent < descriptionIndent) {
+                                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(descriptionIndent / 20D);
                             }
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, paragraph, listStack, fmt, cell, headerFooter, headingList);
@@ -324,17 +335,31 @@ namespace OfficeIMO.Word.Html {
                                 firstPara = AddParagraphInScope(section, cell, headerFooter);
                             }
                             List<WordParagraph> generatedBlockquoteParagraphs = GetGeneratedParagraphs(section, cell, headerFooter, scopeMark);
+                            string? quoteStyleId = doc.FindBuiltInStyleId("Quote");
                             foreach (var para in generatedBlockquoteParagraphs) {
-                                if (doc.StyleExists("Quote")) {
-                                    para.SetStyleId("Quote");
+                                bool styled = options.PreferDocumentStyles && HasOwnStyle(para);
+                                if (!styled && quoteStyleId != null) {
+                                    para.SetStyleId(quoteStyleId);
+                                    styled = true;
                                 }
-                                para.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                                // A quote style owns the indent. Any other style the paragraph keeps, from a class
+                                // or its own element, gets the quotation's 36pt on top of the style's own indent, so
+                                // the style and the quote both survive. Authored CSS margins apply afterwards.
+                                bool classStyled = ApplyClassStyle(element, para, options);
+                                string? classStyleId = classStyled ? para.StyleId : null;
+                                if (para.BuiltInStyleId is not ("Quote" or "IntenseQuote")) {
+                                    int styleIndent = doc.GetStyleIndentationBeforeTwips(para.StyleId);
+                                    para.IndentationBefore = global::OfficeIMO.OfficeLength.Points((styleIndent + 720) / 20D);
+                                }
                                 HtmlSemanticMetadata.MarkBlockquote(para);
                                 ApplyParagraphStyleFromCss(
                                     para,
                                     element,
                                     applyVerticalBoxSpacing: false);
-                                ApplyClassStyle(element, para, options);
+                                // The class style outranks a style the CSS heuristics infer.
+                                if (classStyleId != null && !string.Equals(para.StyleId, classStyleId, StringComparison.Ordinal)) {
+                                    para.SetStyleId(classStyleId);
+                                }
                                 ApplyBidiIfPresent(element, para);
                                 if (para == firstPara) {
                                     AddBookmarkIfPresent(element, para);
@@ -781,8 +806,8 @@ namespace OfficeIMO.Word.Html {
                                     linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
                                 }
 
-                                if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    linkParaAnchor.SetFontFamily(options.FontFamily!);
+                                if (GetRunFontFamilyOption(options) is { } anchorFont) {
+                                    linkParaAnchor.SetFontFamily(anchorFont);
                                 }
                                 var linkAnchor = linkParaAnchor.Hyperlink;
                                 if (linkAnchor != null) {
@@ -829,8 +854,8 @@ namespace OfficeIMO.Word.Html {
                                     linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
                                 }
 
-                                if (!string.IsNullOrEmpty(options.FontFamily)) {
-                                    linkPara.SetFontFamily(options.FontFamily!);
+                                if (GetRunFontFamilyOption(options) is { } linkFont) {
+                                    linkPara.SetFontFamily(linkFont);
                                 }
                                 var link = linkPara.Hyperlink;
                                 if (link != null) {

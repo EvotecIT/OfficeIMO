@@ -1,0 +1,167 @@
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public class Markdown_TemplateStyles {
+        [Fact]
+        public void MarkdownIntoTemplate_WithDocumentStyles_UsesTemplateHeadingBodyAndQuoteStyles() {
+            using var stream = new MemoryStream();
+            using (WordDocument template = WordDocument.Create(stream)) {
+                template.Styles.AddParagraphStyle("CorpsTexte", "Corps de texte").FontFamily = "Garamond";
+                template.Styles.Remove("Heading1");
+                template.Styles.AddParagraphStyle("Titre1", "heading 1").Bold = true;
+                WordStyle quoteStyle = template.Styles.AddParagraphStyle("Citation", "Quote");
+                quoteStyle.Italic = true;
+                quoteStyle.IndentationBefore = OfficeLength.Points(48);
+                template.AddParagraph("PLACEHOLDER").AddBookmark("Content");
+                template.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            const string markdown = """
+                # Report
+
+                Body text.
+
+                > Quoted
+                >
+                > > Nested
+
+                - Item
+
+                <details>
+                <summary>More</summary>
+
+                Hidden detail
+
+                </details>
+                """;
+            var options = new MarkdownWordExportOptions {
+                Template = document,
+                BookmarkName = "Content",
+                PreferDocumentStyles = true,
+                DefaultParagraphStyleId = "Corps de texte"
+            };
+
+            OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options.CreateReaderOptions()).ToWord(options);
+
+            List<Paragraph> paragraphs = document.BodyRoot.Elements<Paragraph>().ToList();
+            Assert.Equal("Titre1", StyleOf(paragraphs, "Report"));
+            Assert.Equal("CorpsTexte", StyleOf(paragraphs, "Body text."));
+            Paragraph quoted = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Quoted");
+            Assert.Equal("Citation", quoted.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            Assert.Null(quoted.ParagraphProperties?.Indentation);
+            Paragraph nested = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Nested");
+            Assert.Equal("Citation", nested.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            // A direct indent replaces the quote style's 48pt, so the nested level adds 36pt to it.
+            Assert.Equal("1680", nested.ParagraphProperties?.Indentation?.Left?.Value);
+            Assert.NotEqual("CorpsTexte", StyleOf(paragraphs, "Item"));
+            Assert.False(document.Styles.Contains("Heading1"));
+
+            Assert.Equal("CorpsTexte", StyleOf(paragraphs, "Hidden detail"));
+            string exported = document.ToMarkdown().ToMarkdown();
+            Assert.Contains("> Quoted", exported, StringComparison.Ordinal);
+            Assert.Contains("> > Nested", exported, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownIntoTemplate_QuoteDepthRoundTripsThroughAnyQuoteStyle() {
+            using var stream = new MemoryStream();
+            using (WordDocument template = WordDocument.Create(stream)) {
+                template.Styles.AddParagraphStyle("Quote", "Quote");
+                Styles styles = template._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.DocDefaults!.ParagraphPropertiesDefault ??= new ParagraphPropertiesDefault(new ParagraphPropertiesBaseStyle());
+                styles.DocDefaults.ParagraphPropertiesDefault.ParagraphPropertiesBaseStyle ??= new ParagraphPropertiesBaseStyle();
+                styles.DocDefaults.ParagraphPropertiesDefault.ParagraphPropertiesBaseStyle.Indentation = new Indentation { Left = "1440" };
+                template.AddParagraph("PLACEHOLDER").AddBookmark("Content");
+                template.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            var options = new MarkdownWordExportOptions { Template = document, BookmarkName = "Content", DefaultParagraphStyleId = "Quote" };
+
+            OfficeIMO.Markdown.MarkdownDocument.Parse("> Outer\n>\n> > Inner", options.CreateReaderOptions()).ToWord(options);
+
+            Paragraph outer = Assert.Single(document.BodyRoot.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Outer");
+            Paragraph inner = Assert.Single(document.BodyRoot.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Inner");
+            Assert.Null(outer.ParagraphProperties?.Indentation);
+            // The quote style inherits the 1440-twip default indent, and the nested level adds 720 to it.
+            Assert.Equal("2160", inner.ParagraphProperties?.Indentation?.Left?.Value);
+            string exported = document.ToMarkdown().ToMarkdown();
+            Assert.Contains("> Outer", exported, StringComparison.Ordinal);
+            Assert.DoesNotContain("> > Outer", exported, StringComparison.Ordinal);
+            Assert.Contains("> > Inner", exported, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void MarkdownIntoTemplate_QuotesOnAnIndentedBodyStyleRoundTrip(bool preferDocumentStyles) {
+            using var stream = new MemoryStream();
+            using (WordDocument template = WordDocument.Create(stream)) {
+                template.Styles.AddParagraphStyle("CorpsTexte", "Corps de texte").IndentationBefore = OfficeLength.Points(18);
+                template.AddParagraph("PLACEHOLDER").AddBookmark("Content");
+                template.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            var options = new MarkdownWordExportOptions {
+                Template = document, BookmarkName = "Content", PreferDocumentStyles = preferDocumentStyles, DefaultParagraphStyleId = "CorpsTexte"
+            };
+
+            OfficeIMO.Markdown.MarkdownDocument.Parse("Body\n\n> Outer\n>\n> > Inner", options.CreateReaderOptions()).ToWord(options);
+
+            List<Paragraph> paragraphs = document.BodyRoot.Elements<Paragraph>().ToList();
+            Paragraph body = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Body");
+            Paragraph outer = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Outer");
+            Paragraph inner = Assert.Single(paragraphs, paragraph => paragraph.InnerText == "Inner");
+            Assert.Null(body.ParagraphProperties?.Indentation);
+            Assert.Equal("CorpsTexte", outer.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            // The style's 360 twips stay under each 720-twip quote level.
+            Assert.Equal("1080", outer.ParagraphProperties?.Indentation?.Left?.Value);
+            Assert.Equal("1800", inner.ParagraphProperties?.Indentation?.Left?.Value);
+            string exported = document.ToMarkdown().ToMarkdown();
+            Assert.DoesNotContain("> Body", exported, StringComparison.Ordinal);
+            Assert.Contains("> Outer", exported, StringComparison.Ordinal);
+            Assert.DoesNotContain("> > Outer", exported, StringComparison.Ordinal);
+            Assert.Contains("> > Inner", exported, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownIntoTemplate_QuotedHeadingIndentStartsFromTheHeadingStyle() {
+            using var stream = new MemoryStream();
+            using (WordDocument template = WordDocument.Create(stream)) {
+                template.Styles.Remove("Heading1");
+                template.Styles.AddParagraphStyle("Titre1", "heading 1").IndentationBefore = OfficeLength.Points(18);
+                template.AddParagraph("PLACEHOLDER").AddBookmark("Content");
+                template.Save();
+            }
+            stream.Position = 0;
+            using WordDocument document = WordDocument.Load(stream);
+            var options = new MarkdownWordExportOptions { Template = document, BookmarkName = "Content" };
+
+            OfficeIMO.Markdown.MarkdownDocument.Parse("> # Quoted heading", options.CreateReaderOptions()).ToWord(options);
+
+            Paragraph heading = Assert.Single(document.BodyRoot.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Quoted heading");
+            Assert.Equal("Titre1", heading.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+            // The heading style's 360 twips stay under the quotation's 720.
+            Assert.Equal("1080", heading.ParagraphProperties?.Indentation?.Left?.Value);
+            Assert.Contains("> # Quoted heading", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownToWord_WithUnknownDefaultParagraphStyle_Throws() {
+            var options = new MarkdownWordExportOptions { DefaultParagraphStyleId = "MissingBody" };
+
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                OfficeIMO.Markdown.MarkdownDocument.Parse("Body").ToWord(options));
+
+            Assert.Contains("MissingBody", exception.Message, StringComparison.Ordinal);
+        }
+
+        private static string? StyleOf(IEnumerable<Paragraph> paragraphs, string text) =>
+            Assert.Single(paragraphs, paragraph => paragraph.InnerText.Trim() == text).ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+    }
+}

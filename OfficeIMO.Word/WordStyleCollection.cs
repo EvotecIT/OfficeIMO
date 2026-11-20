@@ -55,7 +55,8 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
     /// </summary>
     public WordStyle GetOrAdd(WordParagraphStyles style) {
         if (style == WordParagraphStyles.Custom) throw new ArgumentException("Custom is a placeholder, not a style.", nameof(style));
-        return GetOrAddLibraryStyle(style.ToStringStyle());
+        // A localized template defines built-in styles under translated identifiers and the built-in name.
+        return GetOrAddLibraryStyle(_document.UseBuiltInStyle(style.ToStringStyle()));
     }
 
     /// <summary>
@@ -84,6 +85,7 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
             if (string.Equals(other.LinkedStyleId, styleId, StringComparison.Ordinal)) other.Element.LinkedStyle = null;
         }
         style.Element.Remove();
+        _document.InvalidateBuiltInStyleIndex();
 
         foreach (OpenXmlElement root in EnumerateContentRoots()) {
             foreach (OpenXmlElement reference in root.Descendants().Where(IsStyleReference).ToList()) {
@@ -156,6 +158,7 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
         if (type == StyleValues.Paragraph) style.NextParagraphStyle = new NextParagraphStyle { Val = styleId };
         if (type != StyleValues.Table) style.PrimaryStyle = new PrimaryStyle();
         styles.Append(style);
+        _document.InvalidateBuiltInStyleIndex();
         return new WordStyle(_document, style);
     }
 

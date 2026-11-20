@@ -83,6 +83,35 @@ public sealed partial class ConversionCmdletWorkflowTests {
     }
 
     [Fact]
+    public void MarkdownWordFactoryKeepsLocalizedTemplateStyles() {
+        string root = Directory.CreateTempSubdirectory("officeimo-markdown-template-styles-").FullName;
+        try {
+            string templatePath = Path.Combine(root, "template.docx"), outputPath = Path.Combine(root, "report.docx");
+            using (var template = WordDocument.Create(templatePath)) {
+                template.Styles.AddParagraphStyle("CorpsTexte", "Corps de texte");
+                template.Styles.Remove("Heading1");
+                template.Styles.AddParagraphStyle("Titre1", "heading 1");
+                template.AddParagraph("PLACEHOLDER").AddBookmark("Body");
+                template.Save();
+            }
+            var source = OfficeIMO.Markdown.MarkdownDocument.Parse("# Report\n\nBody evidence");
+            using var runspace = OpenRunspace();
+            runspace.SessionStateProxy.SetVariable("source", source); runspace.SessionStateProxy.SetVariable("templatePath", templatePath);
+            runspace.SessionStateProxy.SetVariable("outputPath", outputPath);
+            using var shell = PowerShell.Create(); shell.Runspace = runspace;
+            shell.AddScript("""
+                $options = New-OfficeMarkdownWordOptions -Template $templatePath -BookmarkName Body -PreferDocumentStyles -DefaultParagraphStyle 'Corps de texte'
+                Convert-OfficeDocument -Document $source -To Word -OutputPath $outputPath -Options $options -ErrorAction Stop | Out-Null
+                """);
+            shell.Invoke();
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            using var document = WordDocument.Load(outputPath);
+            Assert.Equal("Titre1", Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Report").StyleId);
+            Assert.Equal("CorpsTexte", Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Body evidence").StyleId);
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public void GoogleDocsFactoryFeedsOfflineBatchCompilationWithoutCreatingASession() {
         using var document = WordDocument.Create();
         document.AddParagraph("Offline Google batch evidence");

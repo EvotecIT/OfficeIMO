@@ -656,9 +656,12 @@ public static partial class WordOpenDocumentConversionExtensions {
     }
 
     private static int GetHeadingLevel(WordParagraphInfo paragraph) {
-        string value = paragraph.StyleId ?? paragraph.StyleName ?? string.Empty;
-        if (!value.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)) return 0;
-        return int.TryParse(value.Substring(7), out int level) ? Math.Max(1, Math.Min(9, level)) : 0;
+        // Inspection names built-in styles by their English identifier, also for localized identifiers such as
+        // Titre1; a style name can also be the built-in name itself.
+        string? builtInId = WordBuiltInStyleNames.IsBuiltInId(paragraph.StyleName) ? paragraph.StyleName
+            : WordBuiltInStyleNames.GetId(paragraph.StyleName) ??
+              (WordBuiltInStyleNames.IsBuiltInId(paragraph.StyleId) ? paragraph.StyleId : null);
+        return WordBuiltInStyleNames.GetHeadingLevel(builtInId);
     }
 
     private static WordParagraphStyles HeadingStyle(int level) {

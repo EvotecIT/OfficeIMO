@@ -59,6 +59,46 @@ before insertion. The receiver selects the default, first-page, or even-page
 story. Synchronous imports remain offline-only; use `AddHtmlAsync` for remote
 resources and cancellation.
 
+### Keep a template's styles
+
+By default the importer gives headings the built-in heading styles and turns
+inline CSS, stylesheets and `FontFamily` into direct paragraph and run
+formatting. To let a template decide how imported content looks:
+
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Html;
+
+using WordDocument document = WordDocument.Load("template.docx");
+document.AddHtml(
+    "<h1 style=\"font-family: Arial\">Report</h1><p style=\"color: red\">Body</p><p class=\"Note\">Note</p>",
+    new HtmlWordExportOptions {
+        PreferDocumentStyles = true,
+        DefaultParagraphStyleId = "Body Text",
+        IgnoreCssFormatting = true
+    });
+document.Save("report.docx");
+```
+
+- `DefaultParagraphStyleId` styles generated body paragraphs that get no
+  heading, list, quote, definition or class style. It takes a style identifier
+  or name. The document must define it, unless it is an OfficeIMO built-in
+  paragraph style, which is then added; otherwise conversion throws
+  `InvalidOperationException` before the document changes.
+- `PreferDocumentStyles` maps a CSS class to the document's paragraph style
+  with that identifier or name. Paragraphs inside a block quote keep a style of
+  their own.
+- `IgnoreCssFormatting` keeps only structural CSS (`display`, `visibility`,
+  `white-space`, page breaks, direction, list markers and sizes) and stops
+  writing `FontFamily` to runs. Bold, italic, code, highlighting and links
+  from HTML elements still apply.
+
+Built-in styles are found by their built-in name, so a localized template's
+heading, quote and caption styles (for example `Titre1` for `heading 1` or
+`Citation` for `Quote`) are reused rather than duplicated. A class style wins
+over the definition-list styles, and a block quote is indented directly only
+when neither the document's quote style nor a class style formats it.
+
 To save an editable report from an HTML file:
 
 ```csharp

@@ -162,7 +162,9 @@ namespace OfficeIMO.Word {
                 // its visible entries; both must exist for viewers that never update fields.
                 this._document.EnsureStyleDefinitionsInitialized();
                 WordTableOfContentStyles.EnsureDefined(this._document._wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart);
-                this._document.EnsureStyleDefinition("TOCHeading");
+                this._document.InvalidateBuiltInStyleIndex();
+                this._document.UseBuiltInStyle("TOCHeading");
+                this._document.LocalizeBuiltInStyleReferences(_sdtBlock);
                 this._document._generatedTableOfContent = this;
             }
 

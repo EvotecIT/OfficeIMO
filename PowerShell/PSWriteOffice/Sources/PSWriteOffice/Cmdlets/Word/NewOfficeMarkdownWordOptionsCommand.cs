@@ -84,6 +84,12 @@ public sealed class NewOfficeMarkdownWordOptionsCommand : OfficeCmdlet {
     /// <summary>MaxImageWidthPercentOfContent override; omission preserves the native default.</summary>
     [Parameter(ParameterSetName = "Default")]
     public double? MaxImageWidthPercentOfContent { get; set; }
+    /// <summary>Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style. With -PreferDocumentStyles, quoted paragraphs take the template's quote style instead when it has one.</summary>
+    [Parameter(ParameterSetName = "Default"), ValidateNotNullOrEmpty]
+    public string? DefaultParagraphStyle { get; set; }
+    /// <summary>Format block quotes with the template's quote style instead of a direct indent; nested levels add an indent to the style's own. Without a quote style in the template, block quotes keep the direct indent.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter PreferDocumentStyles { get; set; }
     /// <inheritdoc />
     protected override void ProcessRecord() {
         if (ReaderOptions != null && Profile.HasValue) throw new PSArgumentException("Specify either -ReaderOptions or -Profile.");
@@ -99,6 +105,8 @@ public sealed class NewOfficeMarkdownWordOptionsCommand : OfficeCmdlet {
         if (BoundSwitch(nameof(KeepPlaceholder)) is bool keep) options.ReplacePlaceholder = !keep;
         if (BoundSwitch(nameof(NoFrontMatter)) is bool noFrontMatter) options.RenderFrontMatter = !noFrontMatter;
         if (Font != null) options.FontFamily = Font;
+        if (DefaultParagraphStyle != null) options.DefaultParagraphStyleId = DefaultParagraphStyle;
+        if (BoundSwitch(nameof(PreferDocumentStyles)) is bool documentStyles) options.PreferDocumentStyles = documentStyles;
         if (BaseUri != null) options.BaseUri = BaseUri;
         if (BoundSwitch(nameof(AllowLocalImages)) is bool local) options.AllowLocalImages = local;
         foreach (var directory in AllowedImageDirectory ?? Array.Empty<string>()) options.AllowedImageDirectories.Add(SessionState.Path.GetUnresolvedProviderPathFromPSPath(directory));

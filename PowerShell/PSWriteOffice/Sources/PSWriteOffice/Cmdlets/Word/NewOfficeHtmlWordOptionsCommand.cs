@@ -41,6 +41,15 @@ public sealed class NewOfficeHtmlWordOptionsCommand : OfficeCmdlet {
     /// <summary>How HTML section tags map into Word.</summary>
     [Parameter]
     public WordHtmlSectionTagHandling SectionTagHandling { get; set; }
+    /// <summary>Paragraph style, by identifier or name, for generated body paragraphs without another style.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string? DefaultParagraphStyle { get; set; }
+    /// <summary>Map CSS classes to the document's paragraph styles and keep paragraph styles inside block quotes.</summary>
+    [Parameter]
+    public SwitchParameter PreferDocumentStyles { get; set; }
+    /// <summary>Ignore CSS and -Font formatting so the document's styles decide how text looks.</summary>
+    [Parameter]
+    public SwitchParameter IgnoreCssFormatting { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -56,6 +65,9 @@ public sealed class NewOfficeHtmlWordOptionsCommand : OfficeCmdlet {
         if (BoundSwitch(nameof(RenderPreAsTable)) is bool pre) options.RenderPreAsTable = pre;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(TableCaptionPosition))) options.TableCaptionPosition = TableCaptionPosition;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(SectionTagHandling))) options.SectionTagHandling = SectionTagHandling;
+        if (DefaultParagraphStyle != null) options.DefaultParagraphStyleId = DefaultParagraphStyle;
+        if (BoundSwitch(nameof(PreferDocumentStyles)) is bool documentStyles) options.PreferDocumentStyles = documentStyles;
+        if (BoundSwitch(nameof(IgnoreCssFormatting)) is bool ignoreCss) options.IgnoreCssFormatting = ignoreCss;
         WriteObject(options);
     }
 }

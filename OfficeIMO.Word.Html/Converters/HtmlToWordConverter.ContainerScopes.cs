@@ -5,14 +5,17 @@ using OfficeIMO.Internal;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private static WordParagraph AddParagraphInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private WordParagraph AddParagraphInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+            WordParagraph paragraph;
             if (cell != null) {
                 var paragraphs = cell.Paragraphs;
                 bool removeExisting = paragraphs.Count == 1 && IsReplaceableEmptyCellParagraph(paragraphs[0]);
-                return cell.AddParagraph("", removeExisting);
+                paragraph = cell.AddParagraph("", removeExisting);
+            } else {
+                paragraph = headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
             }
-
-            return headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            ApplyDefaultParagraphStyle(paragraph, cell);
+            return paragraph;
         }
 
         private static bool IsReplaceableEmptyCellParagraph(WordParagraph paragraph) =>

@@ -103,6 +103,7 @@ namespace OfficeIMO.Word {
                 RemoveIfAttached(paragraph);
                 content.Append(paragraph);
             }
+            _document.LocalizeBuiltInStyleReferences(content);
         }
 
     }

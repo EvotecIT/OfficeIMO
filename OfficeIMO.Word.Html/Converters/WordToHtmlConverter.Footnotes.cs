@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Html {
         /// and no fill. Other indented paragraphs, including headings, stay paragraphs with margins.
         /// </summary>
         private static bool IsBlockQuoteParagraph(WordParagraph paragraph, int headingLevel) {
-            string? styleId = paragraph.StyleId;
+            string? styleId = paragraph.BuiltInStyleId;
             if (!string.IsNullOrEmpty(styleId) &&
                 (string.Equals(styleId, "Quote", StringComparison.Ordinal) ||
                  string.Equals(styleId, "IntenseQuote", StringComparison.Ordinal))) {

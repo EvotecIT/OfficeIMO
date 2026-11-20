@@ -8751,6 +8751,24 @@
               "type": "WordHtmlSectionTagHandling",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "DefaultParagraphStyle",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PreferDocumentStyles",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "IgnoreCssFormatting",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -8915,6 +8933,18 @@
             {
               "name": "MaxImageWidthPercentOfContent",
               "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "DefaultParagraphStyle",
+              "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PreferDocumentStyles",
+              "type": "switch",
               "mandatory": false,
               "pipeline": "none"
             }

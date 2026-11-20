@@ -145,6 +145,10 @@ public partial class WordList : WordElement {
 
         var abstractNum = WordListStyles.GetStyle(style);
         abstractNum.AbstractNumberId = _abstractId;
+        // Heading numbering links levels to the document's own heading styles, also when they are localized.
+        foreach (ParagraphStyleIdInLevel link in abstractNum.Descendants<ParagraphStyleIdInLevel>()) {
+            if (link.Val?.Value is { } linkedStyleId) link.Val = _document.ResolveBuiltInStyleId(linkedStyleId);
+        }
         var abstractNumId = new AbstractNumId {
             Val = _abstractId
         };

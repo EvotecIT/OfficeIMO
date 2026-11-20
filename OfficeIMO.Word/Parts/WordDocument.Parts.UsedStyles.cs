@@ -78,6 +78,7 @@ public partial class WordDocument {
                 // Selecting a style for content must preserve both existing defaults and their absence.
                 definition.Default = null;
                 styles.Append(definition);
+                _document.InvalidateBuiltInStyleIndex();
                 _definitions?.Add(styleId, definition);
             }
 

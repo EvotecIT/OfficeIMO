@@ -11,7 +11,7 @@ internal partial class MarkdownToWordConverter {
             theme?.EffectiveSourceTheme is not { } source) return null;
         // Explicit block roles retain their own native typography and spacing.
         string? style = paragraph._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-        if (!string.IsNullOrEmpty(style) && style is not ("Normal" or "ListParagraph")) return null;
+        if (!string.IsNullOrEmpty(style) && paragraph.BuiltInStyleId is not ("Normal" or "ListParagraph")) return null;
         Style appearance = WordThemeDefaults.CreateTableTextStyle(source, WordDocument.IsThemeHeaderCell(cell));
         ParagraphProperties properties = paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         properties.SpacingBetweenLines ??= (SpacingBetweenLines)appearance.StyleParagraphProperties!.SpacingBetweenLines!.CloneNode(true);

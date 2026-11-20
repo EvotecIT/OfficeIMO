@@ -132995,6 +132995,18 @@ attachments and bookmarks change what readers see or what the file discloses, so
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DefaultParagraphStyle</maml:name>
+          <maml:description>
+            <maml:para>Paragraph style, by identifier or name, for generated body paragraphs without another style.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Font</maml:name>
           <maml:description>
             <maml:para>Font family for imported text.</maml:para>
@@ -133007,9 +133019,33 @@ attachments and bookmarks change what readers see or what the file discloses, so
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>IgnoreCssFormatting</maml:name>
+          <maml:description>
+            <maml:para>Ignore CSS and -Font formatting so the document's styles decide how text looks.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>IncludeListStyles</maml:name>
           <maml:description>
             <maml:para>Import list style information.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PreferDocumentStyles</maml:name>
+          <maml:description>
+            <maml:para>Map CSS classes to the document's paragraph styles and keep paragraph styles inside block quotes.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -133126,6 +133162,18 @@ attachments and bookmarks change what readers see or what the file discloses, so
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>DefaultParagraphStyle</maml:name>
+        <maml:description>
+          <maml:para>Paragraph style, by identifier or name, for generated body paragraphs without another style.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Font</maml:name>
         <maml:description>
           <maml:para>Font family for imported text.</maml:para>
@@ -133138,9 +133186,33 @@ attachments and bookmarks change what readers see or what the file discloses, so
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>IgnoreCssFormatting</maml:name>
+        <maml:description>
+          <maml:para>Ignore CSS and -Font formatting so the document's styles decide how text looks.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>IncludeListStyles</maml:name>
         <maml:description>
           <maml:para>Import list style information.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PreferDocumentStyles</maml:name>
+        <maml:description>
+          <maml:para>Map CSS classes to the document's paragraph styles and keep paragraph styles inside block quotes.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -136305,6 +136377,18 @@ attachments and bookmarks change what readers see or what the file discloses, so
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>DefaultParagraphStyle</maml:name>
+          <maml:description>
+            <maml:para>Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style. With -PreferDocumentStyles, quoted paragraphs take the template's quote style instead when it has one.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <dev:type>
+            <maml:name>String</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>FitImagesToContextWidth</maml:name>
           <maml:description>
             <maml:para>FitImagesToContextWidth override; omission preserves the native default.</maml:para>
@@ -136438,6 +136522,18 @@ attachments and bookmarks change what readers see or what the file discloses, so
           </command:parameterValueGroup>
           <dev:type>
             <maml:name>MarkdownInputNormalizationPreset</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>PreferDocumentStyles</maml:name>
+          <maml:description>
+            <maml:para>Format block quotes with the template's quote style instead of a direct indent; nested levels add an indent to the style's own. Without a quote style in the template, block quotes keep the direct indent.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -136596,6 +136692,18 @@ attachments and bookmarks change what readers see or what the file discloses, so
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>DefaultParagraphStyle</maml:name>
+        <maml:description>
+          <maml:para>Paragraph style, by identifier or name, for Markdown paragraphs outside lists. The template must define it unless it is a built-in style. With -PreferDocumentStyles, quoted paragraphs take the template's quote style instead when it has one.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <dev:type>
+          <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>FitImagesToContextWidth</maml:name>
         <maml:description>
           <maml:para>FitImagesToContextWidth override; omission preserves the native default.</maml:para>
@@ -136729,6 +136837,18 @@ attachments and bookmarks change what readers see or what the file discloses, so
         </command:parameterValueGroup>
         <dev:type>
           <maml:name>MarkdownInputNormalizationPreset</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>PreferDocumentStyles</maml:name>
+        <maml:description>
+          <maml:para>Format block quotes with the template's quote style instead of a direct indent; nested levels add an indent to the style's own. Without a quote style in the template, block quotes keep the direct indent.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

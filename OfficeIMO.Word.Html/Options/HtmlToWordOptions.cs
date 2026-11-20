@@ -79,9 +79,45 @@ namespace OfficeIMO.Word.Html {
         }
 
         /// <summary>
-        /// Optional font family applied to created runs during conversion.
+        /// Optional font family applied to created runs during conversion. When <see cref="IgnoreCssFormatting"/> is set,
+        /// it is not written to runs; a new document still uses it as its default font.
         /// </summary>
         public string? FontFamily { get; set; }
+
+        /// <summary>
+        /// Paragraph style, by identifier or name, for generated body paragraphs that get no other style: paragraphs that
+        /// are not headings, list items, block quotes with a quote style, definition terms or class-mapped paragraphs.
+        /// Paragraphs inside generated tables keep the table's formatting.
+        /// </summary>
+        /// <remarks>
+        /// The style must be a paragraph style the target document defines, or an OfficeIMO built-in paragraph style,
+        /// which is added to the document when used. Otherwise conversion throws <see cref="InvalidOperationException"/>
+        /// before the document is changed.
+        /// </remarks>
+        public string? DefaultParagraphStyleId { get; set; }
+
+        /// <summary>
+        /// Prefers the target document's own styles over the converter's semantic defaults.
+        /// </summary>
+        /// <remarks>
+        /// CSS class names also select a paragraph style the document defines with that identifier or name, and
+        /// paragraphs inside a block quote keep a style of their own instead of taking the quote style. Built-in
+        /// heading, quote and caption styles always resolve through their built-in names, so a localized template's
+        /// <c>Titre1</c> or <c>Citation</c> is reused whether or not this is set.
+        /// </remarks>
+        public bool PreferDocumentStyles { get; set; }
+
+        /// <summary>
+        /// Ignores formatting from inline <c>style</c> attributes, stylesheets and <see cref="FontFamily"/>, so generated
+        /// paragraphs and runs carry no direct font, size, color, spacing, indentation, alignment, border or shading and
+        /// the document's styles decide how text looks.
+        /// </summary>
+        /// <remarks>
+        /// CSS that changes structure still applies: <c>display</c>, <c>visibility</c>, <c>white-space</c>, page breaks,
+        /// text direction, list markers and element sizes. Formatting that HTML elements carry themselves, such as bold,
+        /// italic, code and highlighted text, and hyperlinks, is kept.
+        /// </remarks>
+        public bool IgnoreCssFormatting { get; set; }
 
         /// <summary>
         /// Character inserted before inline quoted text. Defaults to left double quotation mark.
@@ -436,6 +472,9 @@ namespace OfficeIMO.Word.Html {
                 FailOnLoss = FailOnLoss,
                 Theme = Theme,
                 FontFamily = FontFamily,
+                DefaultParagraphStyleId = DefaultParagraphStyleId,
+                PreferDocumentStyles = PreferDocumentStyles,
+                IgnoreCssFormatting = IgnoreCssFormatting,
                 QuotePrefix = QuotePrefix,
                 QuoteSuffix = QuoteSuffix,
                 DefaultPageSize = DefaultPageSize,

@@ -666,8 +666,8 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(font)) {
                     run.SetFontFamily(font!);
                 }
-            } else if (!string.IsNullOrEmpty(options.FontFamily)) {
-                var font = ResolveFontFamily(options.FontFamily);
+            } else if (GetRunFontFamilyOption(options) is { } optionFont) {
+                var font = ResolveFontFamily(optionFont);
                 if (!string.IsNullOrEmpty(font)) {
                     run.SetFontFamily(font!);
                 }

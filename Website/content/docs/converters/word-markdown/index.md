@@ -133,6 +133,31 @@ $options = New-OfficeMarkdownWordOptions -Template .\Templates\Runbook.dotx -Boo
 Convert-OfficeDocument -Path .\runbook.md -To Word -OutputPath .\runbook.docx -Options $options
 ```
 
+### Keep the template's styles
+
+Markdown inserted into a template uses the template's own heading styles, found by their built-in name, so a localized template's `Titre1` (French `heading 1`) is reused instead of gaining an English `Heading1`. `PreferDocumentStyles` also formats block quotes with the template's quote style instead of a direct indent, and `DefaultParagraphStyleId` styles paragraphs outside lists. The style, given by identifier or name, must exist in the template unless it is an OfficeIMO built-in paragraph style; otherwise the conversion throws `InvalidOperationException`.
+
+```csharp
+using OfficeIMO.Markdown;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
+
+using WordDocument template = WordDocument.Load("template.docx");
+var options = new MarkdownWordExportOptions {
+    Template = template,
+    BookmarkName = "Body",
+    PreferDocumentStyles = true,
+    DefaultParagraphStyleId = "Body Text"
+};
+using MarkdownDocument markdown = MarkdownDocument.Parse("# Report\n\nBody\n\n> Quoted", options.CreateReaderOptions());
+markdown.ToWord(options);
+template.Save();
+```
+
+```powershell
+$options = New-OfficeMarkdownWordOptions -Template .\Templates\Runbook.dotx -BookmarkName Body -PreferDocumentStyles -DefaultParagraphStyle 'Body Text'
+```
+
 ### CLI
 
 ```sh

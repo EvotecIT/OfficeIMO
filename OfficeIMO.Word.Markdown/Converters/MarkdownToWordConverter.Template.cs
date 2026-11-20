@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.Markdown {
 
             cancellationToken.ThrowIfCancellationRequested();
             options ??= new MarkdownWordExportOptions();
+            options.ResolveDocumentStyles(document);
             options.ApplyDefaults(document);
 
             var insertion = ResolveTemplateInsertion(document, options);

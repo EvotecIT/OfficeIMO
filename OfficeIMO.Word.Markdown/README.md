@@ -26,6 +26,34 @@ string markdown = model.ToMarkdown();
 using var fromMarkdown = MarkdownDocument.Parse("# Title\n\nBody").ToWord();
 ```
 
+## Insert into a template
+
+Set `Template` (or `TemplatePath`) and a bookmark or content control to insert
+Markdown into an existing document. Headings use the template's own heading
+styles, including localized ones such as `Titre1` for `heading 1`.
+`PreferDocumentStyles` also formats block quotes with the template's quote
+style, and `DefaultParagraphStyleId` styles paragraphs outside lists.
+The style, given by identifier or name, must exist in the template unless it is
+an OfficeIMO built-in paragraph style; otherwise conversion throws
+`InvalidOperationException`.
+
+```csharp
+using OfficeIMO.Markdown;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
+
+using WordDocument template = WordDocument.Load("template.docx");
+var options = new MarkdownWordExportOptions {
+    Template = template,
+    BookmarkName = "Body",
+    PreferDocumentStyles = true,
+    DefaultParagraphStyleId = "Body Text"
+};
+using MarkdownDocument markdown = MarkdownDocument.Parse("# Report\n\nBody\n\n> Quoted", options.CreateReaderOptions());
+markdown.ToWord(options);
+template.Save();
+```
+
 ## AST-first conversion
 
 ```csharp

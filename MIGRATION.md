@@ -10238,3 +10238,9 @@ Other output changes:
 - `<div align="center">` and `align="right"` also align child blocks with a set width, such as tables, as `text-align: -webkit-center` and `-webkit-right` do. Child blocks with their own horizontal margins keep them.
 
 Word output passes `text-align` from `body`, and from a `div` around a list, to the paragraphs and list items inside. RTF and PowerPoint table cells, and RTF paragraphs, resolve `text-align: start` and `end` against right-to-left direction instead of always using left and right.
+
+## Word built-in styles are found by name
+
+Word saves built-in styles under their English built-in name (`heading 1`, `Quote`, `toc 1`) but a translated identifier, such as `Titre1` and `Citation` in French or `berschrift1` in German. OfficeIMO now finds built-in styles by that name. `WordParagraph.Style` reads `Titre1` as `Heading1`, and setting a built-in style, `SetStyleId("Quote")`, `Styles.GetOrAdd`, lists, tables of contents, and HTML and Markdown imports reuse the template's definition instead of adding an English `Heading1` beside it. Word-to-HTML and Markdown export localized headings and quotes as headings and quotes, and PDF and OpenDocument export localized headings as headings. Code that compared `StyleId` with `"Heading1"` to find headings should read `Style` instead.
+
+HTML imported into Word now indents a block quote directly only when neither the document's quote style nor a CSS class style formats it, and a class style on `dt` or `dd` is no longer replaced by the definition-list styles. Remove workarounds that reapplied class styles or removed the quote indent after import. `HtmlWordExportOptions.DefaultParagraphStyleId`, `PreferDocumentStyles` and `IgnoreCssFormatting`, and `MarkdownWordExportOptions.DefaultParagraphStyleId` and `PreferDocumentStyles`, keep imported content on the target document's styles.
