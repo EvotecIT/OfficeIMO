@@ -18,8 +18,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         internal static byte[] WriteWorkbook(ExcelDocument document) {
             ArgumentNullException.ThrowIfNull(document);
 
-            byte[] workbookStream = BuildWorkbookStream(document);
-            return BuildCompoundFile(document, workbookStream);
+            return WithinWorkbookSizeLimit(int.MaxValue, () => BuildCompoundFile(document, BuildWorkbookStream(document)));
+        }
+
+        /// <summary>
+        /// Runs a complete XLS write. Without a smaller output limit set by the caller, the only limit a sub-writer can reach
+        /// is the in-memory one, so its output-limit error is reported as the BIFF8 size limit; a configured limit keeps its own error.
+        /// </summary>
+        internal static T WithinWorkbookSizeLimit<T>(long maximumBytes, Func<T> write) {
+            try {
+                return write();
+            } catch (InvalidDataException exception) when (maximumBytes >= int.MaxValue && OfficeOutputLimit.Is(exception)) {
+                throw CreateWorkbookTooLargeException(exception);
+            }
         }
 
         internal static bool TryWriteDirectTabularWorkbook(
@@ -44,11 +55,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             using (directPlan) {
                 ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
 
-                using (DirectTabularWorkbookStream workbookStream =
-                       BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan)) {
+                // The workbook stream is built in memory with no caller limit, so a limit reached here is the BIFF8 one.
+                using (DirectTabularWorkbookStream workbookStream = WithinWorkbookSizeLimit(int.MaxValue,
+                           () => BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan))) {
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
                     if (destination == null) {
-                        workbookBytes = BuildCompoundFile(document, workbookStream);
+                        workbookBytes = WithinWorkbookSizeLimit(int.MaxValue, () => BuildCompoundFile(document, workbookStream));
                     } else {
                         WriteDirectCompoundFile(document, workbookStream, destination);
                         workbookBytes = Array.Empty<byte>();
@@ -137,11 +149,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             var replacements = streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase);
             if (encryptAuxiliary != null) LegacyXlsCompoundEncryption.AddEncryptedAuxiliaryStreams(sourceCompoundFile, replacements, encryptAuxiliary);
-            try {
-                return OfficeCompoundFileWriter.Rewrite(sourceCompoundFile, replacements, maxOutputBytes: maximumBytes);
-            } catch (InvalidDataException exception) when (maximumBytes >= int.MaxValue && OfficeOutputLimit.Is(exception)) {
-                throw CreateWorkbookTooLargeException(exception);
-            }
+            return OfficeCompoundFileWriter.Rewrite(sourceCompoundFile, replacements, maxOutputBytes: maximumBytes);
         }
 
         private static string GetWorkbookStreamName(OfficeCompoundFile? sourceCompoundFile) {

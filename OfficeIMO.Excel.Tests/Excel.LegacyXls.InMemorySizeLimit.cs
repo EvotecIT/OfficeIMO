@@ -41,6 +41,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OutputLimitsFromXlsSubWritersReportTheBiff8LimitUnlessTheCallerSetALimit() {
+            // Sub-writers such as the shared-string table raise the shared output-limit error when they run out of room.
+            static byte[] SubWriterOutOfRoom() => throw OfficeOutputLimit.Create("Native XLS shared strings exceed the in-memory save limit.");
+
+            NotSupportedException biff8 = Assert.Throws<NotSupportedException>(() =>
+                LegacyXlsWriter.WithinWorkbookSizeLimit(int.MaxValue, SubWriterOutOfRoom));
+            Assert.Contains("2 GiB BIFF8 limit", biff8.Message, StringComparison.Ordinal);
+            Assert.True(OfficeOutputLimit.Is(biff8.InnerException!));
+
+            InvalidDataException configured = Assert.Throws<InvalidDataException>(() =>
+                LegacyXlsWriter.WithinWorkbookSizeLimit(1024 * 1024, SubWriterOutOfRoom));
+            Assert.True(OfficeOutputLimit.Is(configured));
+        }
+
+        [Fact]
         public void InMemoryCompoundFileRejectsAWorkbookThatCannotFitOneByteArray() {
             // The stream is within the 2 GiB compound limit, but the file around it is not within one byte array.
             var streams = new[] {
