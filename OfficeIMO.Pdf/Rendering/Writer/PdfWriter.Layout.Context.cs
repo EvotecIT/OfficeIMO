@@ -114,6 +114,9 @@ internal static partial class PdfWriter {
         }
 
         public LayoutResult Layout(IEnumerable<IPdfBlock> blocks) {
+            // Every text path of this layout, running content included, writes to the current page,
+            // so color glyphs take their images and opacity states from that page. Restored even when layout fails.
+            IColorGlyphPage? previousColorGlyphPage = ContentStreamBuilder.ExchangeColorGlyphPage(new PageColorGlyphs(() => currentPage));
             try {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlocks(blocks);
@@ -132,6 +135,8 @@ internal static partial class PdfWriter {
             } catch {
                 if (ownsPageContents) pageContents.Dispose();
                 throw;
+            } finally {
+                ContentStreamBuilder.ExchangeColorGlyphPage(previousColorGlyphPage);
             }
         }
 

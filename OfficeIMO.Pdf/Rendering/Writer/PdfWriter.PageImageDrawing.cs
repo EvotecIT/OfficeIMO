@@ -26,7 +26,7 @@ internal static partial class PdfWriter {
             sb.Append("/Artifact << /Type /Layout >> BDC\n");
         }
 
-        OfficeTransform imageTransform = new OfficeImageProjection(
+        OfficeTransform imageTransform = img.UnitSquareTransform ?? new OfficeImageProjection(
             new OfficeImagePlacement(img.X, img.Y, img.W, img.H),
             rotationDegrees: img.RotationAngle,
             rotationCenterX: img.RotationCenterX,

@@ -95,7 +95,7 @@ public class PdfEmojiSequenceTests {
     [InlineData(false, -1)]
     [InlineData(true, 1)]
     public void BitmapOnlyCheckShapesTheTextRenderingPaints(bool bitmapLigature, int reportedIndex) {
-        const string text = "​\U0001F3CB​‍♂";
+        const string text = "\u200B\U0001F3CB\u200B\u200D\u2642";
         int[] bitmapOnly = bitmapLigature
             ? new[] { ManagedTextShapingTestAssets.EmojiSequenceLigatures[0].Ligature }
             : new[] { ManagedTextShapingTestAssets.EmojiGlyph(0x1F3CB), ManagedTextShapingTestAssets.EmojiGlyph(0x2642) };

@@ -30,6 +30,7 @@ internal sealed partial class ContentStreamBuilder {
         internal bool _syntheticBold, _syntheticWeightScope;
         internal int _textObjectStart;
         internal OfficeColor _textEntryFillColor = OfficeColor.Black;
+        internal int _textEntryRenderingMode;
     }
 
     private TextState? _text;
