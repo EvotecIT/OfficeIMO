@@ -30,6 +30,11 @@ namespace OfficeIMO.Excel {
                 && ShouldRetryRawDateStyledNumericBinding(raw, binding)
                 && TryConvertNumericTextForBinding(raw.RawText!, binding, true, out object? number)) return number;
 
+            // A date the culture's calendar cannot represent keeps the cell's own text, as the other paths do.
+            if (value is DateTime date && binding.DestinationType == typeof(string)
+                && rawFallback is CellRaw dateRaw && !dateRaw.CustomValueHandled && dateRaw.RawText != null
+                && !ExcelCellValueText.FitsCalendar(date, culture)) return dateRaw.RawText;
+
             return binding.ConvertValue(value, culture);
         }
 
@@ -448,7 +453,8 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (binding.SetString != null && binding.BindingKind == TypedBindingKind.String) {
+                    if (binding.SetString != null && binding.BindingKind == TypedBindingKind.String
+                        && ExcelCellValueText.FitsCalendar(dateValue, _opt.Culture)) {
                         binding.SetString(target, dateValue.ToString(_opt.Culture));
                         return true;
                     }
@@ -811,8 +817,7 @@ namespace OfficeIMO.Excel {
             if (destinationType == typeof(string)) {
                 // A date the culture's calendar cannot represent, such as a time-only value before an Um Al Qura
                 // calendar's first date, keeps the cell text instead.
-                Calendar calendar = _opt.Culture.DateTimeFormat.Calendar;
-                if (value < calendar.MinSupportedDateTime || value > calendar.MaxSupportedDateTime) return false;
+                if (!ExcelCellValueText.FitsCalendar(value, _opt.Culture)) return false;
                 converted = value.ToString(_opt.Culture);
                 return true;
             }
@@ -939,7 +944,7 @@ namespace OfficeIMO.Excel {
         private static object? ConvertToDestinationType(object value, Type destType, CultureInfo culture) {
             try {
                 if (destType == typeof(string)) {
-                    return value as string ?? Convert.ToString(value, culture);
+                    return value as string ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : Convert.ToString(value, culture));
                 }
 
                 if (destType == typeof(bool)) {

@@ -260,12 +260,15 @@ namespace OfficeIMO.Excel.Tests {
             // Um Al Qura dates start in 1900, after the time-only base date of December 30, 1899.
             var culture = (CultureInfo)CultureInfo.GetCultureInfo("ar-SA").Clone();
             culture.DateTimeFormat.Calendar = new UmAlQuraCalendar();
-            string path = CreateSingleIsoDateCellWorkbook("10:30:00");
+            const int rows = 5000; // above the buffered limit, so the parallel row mapping is eligible
+            string path = CreateSingleIsoDateCellWorkbook("10:30:00", rows);
             try {
                 var options = new ExcelReaderOptions { Culture = culture };
                 using (var reader = ExcelDocumentReader.Open(path, options)) {
                     Assert.Equal("10:30:00", reader.GetSheet("Data").ReadObjects<IsoTextRow>("A1:A2").Single().Value);
                     Assert.Equal("10:30:00", reader.GetSheet("Data").ReadObjectsStream<IsoTextRow>("A1:A2").Single().Value);
+                    Assert.All(reader.GetSheet("Data").ReadObjects<IsoTextRow>("A1:A" + (rows + 1), ExcelExecutionMode.Parallel),
+                        row => Assert.Equal("10:30:00", row.Value));
                 }
 
                 using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options)) {
