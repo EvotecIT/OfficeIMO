@@ -41,12 +41,16 @@ public static partial class OfficeChartDrawingRenderer {
             var xs = new List<double>();
             var ys = new List<double>();
             IReadOnlyList<double>? seriesX = scatter ? series.XValues ?? sharedX : null;
-            for (int i = 0; i < series.Values.Count; i++) {
-                if (!TryGetSeriesValue(series, i, out double y)) continue;
-                double x = seriesX != null ? (i < seriesX.Count ? seriesX[i] : double.NaN) : i + 1D;
+            // Fits use the source samples, including values a logarithmic axis cannot draw.
+            IReadOnlyList<double> sampleY = series.SourcePointValues ?? series.Values;
+            IReadOnlyList<double>? sampleX = scatter ? series.SourcePointXValues ?? seriesX : null;
+            for (int i = 0; i < sampleY.Count; i++) {
+                double y = sampleY[i];
+                if (!IsFiniteChartValue(y)) continue;
+                double x = sampleX != null ? (i < sampleX.Count ? sampleX[i] : double.NaN) : i + 1D;
                 if (!IsFiniteChartValue(x)) continue;
-                xs.Add(sourceX != null ? sourceX(x) : x);
-                ys.Add(sourceY != null ? sourceY(y) : y);
+                xs.Add(x);
+                ys.Add(y);
             }
 
             if (xs.Count < 2) continue;

@@ -41,7 +41,8 @@ public static partial class OfficeChartDrawingRenderer {
             IReadOnlyList<double>? plottedX = xValues
                 ? (current.XValues ?? sharedX.Take(current.Values.Count).ToArray()).Select(xToPlot!).ToArray()
                 : current.XValues;
-            series.Add(current.WithPlottedValues(plotted, plottedX, values ? toSource : null, xValues ? xToSource : null));
+            series.Add(current.WithPlottedValues(plotted, plottedX, values ? toSource : null, xValues ? xToSource : null,
+                values ? current.Values : null, xValues ? current.XValues ?? sharedX.Take(current.Values.Count).ToArray() : null));
         }
 
         IReadOnlyList<double> stackTotals = transformValues && GetLogBase(layout, valueOnHorizontal).HasValue

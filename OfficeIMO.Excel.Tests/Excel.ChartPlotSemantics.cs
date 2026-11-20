@@ -139,6 +139,25 @@ public sealed class ExcelChartPlotSemanticsTests {
     }
 
     [Fact]
+    public void SnapshotLeavesCategoryLabelsEmptyWhenOnlyTheirColumnIsHidden() {
+        // Excel 16 draws the three visible values with empty category labels.
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        for (int index = 0; index < 3; index++) {
+            sheet.Cell(2 + index, 1).SetValue("Cat" + (index + 2));
+            sheet.Cell(7 + index, 4).SetValue(10 * (index + 7));
+        }
+        sheet.SetColumnHidden(1, true);
+        ExcelChart chart = sheet.AddChartFromRanges(OfficeChartType.ColumnClustered, new[] {
+            new ExcelChartSeriesRange("S1", "A2:A4", "D7:D9") }, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6 });
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+
+        Assert.Equal(new[] { "", "", "" }, snapshot.Data.Categories);
+        Assert.Equal(new[] { 70D, 80D, 90D }, snapshot.Data.Series.Single().Values);
+    }
+
+    [Fact]
     public void ChartWhoseEverySeriesIsHiddenHasNoSnapshot() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = Sheet(document);

@@ -94,7 +94,9 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (OfficeOpenXmlChartPlotSemantics.ReadBlankDisplay(chart) == OfficeIMO.Drawing.OfficeChartBlankDisplay.Zero &&
                     chart.PlotArea!.Descendants<C.Values>().Select(values => visible.TryGetValue(values, out int[]? offsets)
                         ? offsets.Length
-                        : (long?)values.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value ?? -1L).Distinct().Skip(1).Any())
+                        : (long?)values.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value ?? -1L)
+                        // A series whose value cells are all hidden is left out, so it needs no padding.
+                        .Where(length => length != 0L).Distinct().Skip(1).Any())
                     return Fail("Hidden cells leave chart series of different lengths, which a zero blank rule would draw.", out reason);
                 visibility = new SourceVisibility(visible);
                 return true;

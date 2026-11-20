@@ -36,6 +36,9 @@ public static partial class OfficeChartDrawingRenderer {
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         ArgumentNullException.ThrowIfNull(snapshot);
+        if ((IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind) || IsRadarChart(snapshot.ChartKind)) &&
+            (snapshot.Layout.PlotAreaLayout != null || snapshot.Layout.LegendLayout != null))
+            throw new NotSupportedException("Manual plot-area and legend layouts are not drawn on pie, doughnut and radar charts.");
         HashSet<(int Series, int Point)>? missingAreaPoints = GetMissingAreaPoints(snapshot);
         snapshot = ApplyBlankDisplay(snapshot);
         _renderPassHiddenLabels = GetLabelsOverMaximum(snapshot);
@@ -1141,7 +1144,7 @@ public static partial class OfficeChartDrawingRenderer {
         int barSeriesCount = Math.Max(1, slotCount);
         // With OOXML midCat the category axis puts each category on a tick mark: the first and
         // last categories sit on the plot edges and their bars are cut there, as in Office.
-        bool onTickMarks = UsesTickMarkCategoryPoints(snapshot, layout) && categories.Count > 1;
+        bool onTickMarks = UsesTickMarkCategoryPoints(snapshot, layout);
         int slotIntervals = onTickMarks ? categories.Count - 1 : categories.Count;
         OfficeDrawing barGeometry = onTickMarks ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         // Labels go above the clipped bars, which are added last.

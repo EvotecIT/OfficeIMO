@@ -171,14 +171,16 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static ValueRange GetPercentStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
+        // A stack spans only the side its values lie on, so an all-negative stack (including a positive
+        // stack plotted on a reversed axis) fills -100% to 0.
         PercentStackedTotals totals = BuildPercentStackedTotals(series, categoryCount);
+        bool positive = false, negative = false;
         for (int category = 0; category < categoryCount; category++) {
-            if (totals.Negative[category] > 0D) {
-                return new ValueRange(-1D, 1D).AsFixed();
-            }
+            positive |= totals.Positive[category] > 0D;
+            negative |= totals.Negative[category] > 0D;
         }
 
-        return new ValueRange(0D, 1D).AsFixed();
+        return (negative ? new ValueRange(-1D, positive ? 1D : 0D) : new ValueRange(0D, 1D)).AsFixed();
     }
 
     private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
@@ -653,8 +655,9 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     // OOXML midCat puts every category, bars included, on a tick mark; between centres them in slots.
+    // A single category has no tick-mark span, so it is centred, with its label, either way.
     private static bool UsesTickMarkCategoryPoints(OfficeChartSnapshot snapshot, OfficeChartLayout layout) =>
-        layout.CategoryPointsOnTickMarks;
+        layout.CategoryPointsOnTickMarks && snapshot.Data.Categories.Count > 1;
 
     private static ValueRange GetFiniteRange(IReadOnlyList<double> values) {
         bool any = false;

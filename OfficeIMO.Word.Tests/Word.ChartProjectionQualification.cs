@@ -177,6 +177,53 @@ public sealed class WordChartProjectionQualificationTests {
     }
 
     [Fact]
+    public void Snapshot_LeavesCategoryLabelsEmptyWhenTheirColumnIsHidden() {
+        using var document = WordDocument.Create();
+        var chart = AddChartWithTwoSeries(document);
+        // Excel draws the visible values under empty labels, not numbered categories.
+        EditEmbeddedWorksheet(chart, worksheet => {
+            var columns = worksheet.GetFirstChild<S.Columns>() ?? worksheet.InsertBefore(new S.Columns(), worksheet.GetFirstChild<S.SheetData>());
+            columns.Append(new S.Column { Min = 1U, Max = 1U, Hidden = true });
+        });
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+
+        Assert.Equal(new[] { "", "", "" }, snapshot.Data.Categories);
+        Assert.Equal(new[] { 3d, 4d, 5d }, snapshot.Data.Series[0].Values);
+    }
+
+    [Fact]
+    public void Snapshot_IgnoresAHiddenSeriesWhenZeroBlanksCompareSeriesLengths() {
+        using var document = WordDocument.Create();
+        var chart = AddChartWithTwoSeries(document);
+        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.GetFirstChild<C.DisplayBlanksAs>()!.Val = C.DisplayBlanksAsValues.Zero;
+        EditEmbeddedWorksheet(chart, worksheet => {
+            var columns = worksheet.GetFirstChild<S.Columns>() ?? worksheet.InsertBefore(new S.Columns(), worksheet.GetFirstChild<S.SheetData>());
+            columns.Append(new S.Column { Min = 2U, Max = 2U, Hidden = true });
+        });
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+
+        Assert.Equal(new[] { 6d, 7d, 8d }, Assert.Single(snapshot.Data.Series).Values);
+    }
+
+    [Fact]
+    public void LegacySnapshot_RejectsASeriesShortenedByHiddenCells() {
+        using var document = WordDocument.Create();
+        var chart = AddChartWithTwoSeries(document);
+        // The second series reads rows below the hidden one, so only the first loses a point.
+        C.Formula second = chart.ChartPart!.ChartSpace!.Descendants<C.Values>().ElementAt(1).Descendants<C.Formula>().Single();
+        second.Text = second.Text.Replace("$2:", "$6:").Replace("$4", "$8");
+        EditEmbeddedWorksheet(chart, worksheet => Row(worksheet, 3).Hidden = true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var shared));
+        Assert.True(double.IsNaN(shared.Data.Series[0].Values[2]));
+        // The legacy projection has no missing values, so it must not show the gap as zero.
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Fact]
     public void Snapshot_RejectsHiddenWorkbookCellsItCannotMatchToCachedPoints() {
         using var document = WordDocument.Create();
         var chart = AddChartWithTwoSeries(document);

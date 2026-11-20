@@ -75,13 +75,14 @@ namespace OfficeIMO.Excel {
                 }
                 if (sizes[index] is IReadOnlyList<double> bubbleSizes && bubbleSizes.Count != series[index].Count) return null;
             }
-            if (!changed) return data;
-
             OpenXmlCompositeElement first = seriesList[0];
             OpenXmlElement? categorySource = first is ScatterChartSeries or BubbleChartSeries
                 ? first.GetFirstChild<XValues>()
                 : first.GetFirstChild<CategoryAxisData>();
-            IReadOnlyList<string> categories = Select(data.Categories, VisibleOffsets(categorySource, data.Categories.Count));
+            int[]? categoryOffsets = VisibleOffsets(categorySource, data.Categories.Count);
+            // Hidden category cells change the labels even when every value cell is visible.
+            if (!changed && categoryOffsets == null) return data;
+            IReadOnlyList<string> categories = Select(data.Categories, categoryOffsets);
             int length = Math.Max(categories.Count, Enumerable.Range(0, series.Length)
                 .Where(index => xValues[index] == null && !hidden[index]).Select(index => series[index].Count).DefaultIfEmpty(0).Max());
             bool padsValues = false;

@@ -59,10 +59,17 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (labels.Count > categories.Count) {
                     categories = labels;
                     categoriesShortened = SourceVisibility.Filters(visibility, categorySource);
+                } else if (categories.Count == 0 && SourceVisibility.Filters(visibility, categorySource)) {
+                    // Every category cell is hidden: Office leaves the labels empty until a longer list is found.
+                    categoriesShortened = true;
                 }
                 maximumLength = Math.Max(maximumLength, Math.Max(values.Count, labels.Count));
             }
             if (maximumLength == 0) return null;
+            // A series shortened by hidden cells has no point past its end. Without missing values that position
+            // would read as zero, so such a chart is left to a caller that keeps missing values.
+            if (!keepMissingValues && populated.Any(item => item.Values.Count < maximumLength &&
+                    SourceVisibility.Filters(visibility, item.Element.GetFirstChild<C.Values>()))) return null;
             if (categories.Count < maximumLength) {
                 // Office labels the positions past a category range shortened by hidden cells with nothing.
                 categories = Enumerable.Range(0, maximumLength).Select(index => index < categories.Count ? categories[index] :

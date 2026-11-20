@@ -280,6 +280,53 @@ public sealed class DrawingChartPlotSemanticsTests {
     }
 
     [Fact]
+    public void ReversedPercentStackFillsThePlotFromZeroToOneHundredPercent() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false).WithReversedValueAxes(false, true);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnStacked100, layout, Series(new double[] { 1, 2, 3, 4, 5 }),
+            new OfficeSeries("Rest", new double[] { 5, 4, 3, 2, 1 }, null, OfficeColor.Parse("#00A0D9"), null, showMarkers: false));
+
+        string[] labels = Texts(drawing).Select(text => text.Text).ToArray();
+        Assert.Contains("100%", labels);
+        Assert.DoesNotContain(labels, label => label.StartsWith("-", StringComparison.Ordinal));
+        // Zero sits at the top of a reversed axis and the full stack reaches the bottom.
+        Assert.True(Text(drawing, "0%").Y < Text(drawing, "100%").Y);
+    }
+
+    [Fact]
+    public void MovingAverageOnALogarithmicAxisKeepsSamplesTheAxisCannotDraw() {
+        OfficeColor trend = OfficeColor.Parse("#00A0D9");
+        OfficeSeries series = Series(new double[] { 0, 100, 10, 100, 10 })
+            .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.MovingAverage, period: 2, color: trend));
+        OfficeDrawing drawing = Render(OfficeChartType.Line, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(null, 10D), series);
+
+        // Five samples give four period-2 averages, starting with (0 + 100) / 2 = 50.
+        OfficePoint[] points = Shapes(drawing).Where(shape => shape.Shape.StrokeColor == trend).SelectMany(PathPoints).ToArray();
+        Assert.Equal(4, points.Length);
+    }
+
+    [Fact]
+    public void SingleColumnOnTickMarksStaysUnderItsLabel() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false).WithCategoryPointsOnTickMarks(true);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "Only" }, new[] { Series(new double[] { 4 }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(300), layout: layout));
+
+        OfficeDrawingShape column = Assert.Single(SeriesFill(drawing));
+        OfficeDrawingText label = Text(drawing, "Only");
+        Assert.Equal(column.X + column.Shape.Width / 2D, label.X + label.Width / 2D, 0);
+    }
+
+    [Theory]
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Radar)]
+    public void ManualLayoutsOnRadialChartsAreRejected(OfficeChartType kind) {
+        var legend = new OfficeChartManualLayout(0.7D, 0.1D, 0.2D, 0.3D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
+            Render(kind, new OfficeChartLayout().WithManualLayouts(null, null, legend), Series(new double[] { 1, 2, 3, 4, 5 })));
+        Assert.Contains("radar", error.Message);
+    }
+
+    [Fact]
     public void BubbleSeriesOnALogarithmicAxisIsRejected() {
         OfficeSeries bubbles = OfficeSeries.CreateBubble("Sales", new double[] { 1, 2, 3, 4, 5 }, new double[] { 10, 100, 1000, 10, 100 },
             new double[] { 1, 2, 3, 4, 5 }, Ink);
