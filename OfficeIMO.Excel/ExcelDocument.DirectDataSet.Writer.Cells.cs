@@ -138,7 +138,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case DirectCellValueKind.TimeSpan:
                         if (value is TimeSpan timeSpan) {
-                            WriteRawValueCell(writer, timeSpan.TotalDays);
+                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeSpan));
                             return;
                         }
 
@@ -230,7 +230,7 @@ namespace OfficeIMO.Excel {
                         break;
                     case DirectCellValueKind.TimeOnly:
                         if (value is TimeOnly timeOnly) {
-                            WriteRawValueCell(writer, timeOnly.ToTimeSpan().TotalDays);
+                            WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeOnly.ToTimeSpan()));
                             return;
                         }
 
@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel {
                         WriteDateTimeOffsetCellValue(writer, dateTimeOffset, dateTimeOffsetWriteStrategy, dateSystem);
                         return;
                     case TimeSpan timeSpan:
-                        WriteRawValueCell(writer, timeSpan.TotalDays);
+                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeSpan));
                         return;
                     case double doubleValue:
                         WriteRawValueCell(writer, doubleValue);
@@ -309,7 +309,7 @@ namespace OfficeIMO.Excel {
                         WriteDateTimeSerialCell(writer, dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem);
                         return;
                     case TimeOnly timeOnly:
-                        WriteRawValueCell(writer, timeOnly.ToTimeSpan().TotalDays);
+                        WriteRawValueCell(writer, ExcelDateSystemConverter.ToSerial(timeOnly.ToTimeSpan()));
                         return;
 #endif
                     default:

@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Converts date cell text to a serial in the workbook's date system; a time of day is its fraction.</summary>
         internal static bool TryGetSerial(string? text, ExcelDateSystem dateSystem, DateTimeStyles styles, out double serial) {
             if (TryParseTimeOfDay(text, out TimeSpan time, out bool isTimeOfDay)) {
-                serial = time.TotalDays;
+                serial = ExcelDateSystemConverter.ToSerial(time);
                 return true;
             }
 

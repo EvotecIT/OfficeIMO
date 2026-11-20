@@ -327,7 +327,7 @@ namespace OfficeIMO.Excel {
                     return static (value, culture) => {
                         try {
                             if (value is DateTime dt) return dt;
-                            if (value is double oa) return DateTime.FromOADate(oa);
+                            if (value is double oa) return ExcelDateSystemConverter.FromOleAutomationSerial(oa);
                             if (DateTime.TryParse(Convert.ToString(value, culture), culture, DateTimeStyles.AssumeLocal, out var parsed)) return parsed;
                             return null;
                         } catch {
