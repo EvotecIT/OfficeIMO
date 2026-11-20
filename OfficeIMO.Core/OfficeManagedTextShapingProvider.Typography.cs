@@ -11,7 +11,6 @@ public sealed partial class OfficeManagedTextShapingProvider {
         fontDirected = false;
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Direction == OfficeTextDirection.TopToBottom || request.Text.Length == 0 || request.Text.Length > MaximumNormalizationInput ||
-            OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text) ||
             request.VariationCoordinatesForShaping.Count != 0) return null;
@@ -31,17 +30,18 @@ public sealed partial class OfficeManagedTextShapingProvider {
             if (tokens.Count == 0 || cached.Substitution != null && HasReversedLatinTypography(tokens, starts, levels, request)) return null;
             if (!ApplyTypographySubstitutions(cached.Substitution, font, tokens, request, starts, levels)) return null;
             MergeLigatureClusters(tokens, request.CancellationToken);
-            if (!FinalTypographyControlsAreBlank(request, font, reader, tokens)) return null;
+            if (!HideTypographyControls(request, font, reader, tokens)) return null;
             if (!OfficeOpenTypeMarkPositioning.TryGetAttachments(request.FontDataForShaping, tokens,
                 request.Language, request.FeatureSettings, request.CancellationToken, out OfficeOpenTypeMarkAttachment[] attachments)) return null;
             List<int> visual = ResolveTypographyVisualOrder(request, tokens, attachments, starts, levels, out int[] logicalClusters);
             OfficeOpenTypeGlyphPositioning[] positions;
             bool kerning = !request.FeatureSettings.TryGetValue("kern", out int kern) || kern != 0;
             bool cursive = !request.FeatureSettings.TryGetValue("curs", out int curs) || curs != 0;
+            bool distances = !request.FeatureSettings.TryGetValue("dist", out int dist) || dist != 0;
             var rightToLeft = new bool[tokens.Count];
             for (int index = 0; index < tokens.Count; index++)
                 rightToLeft[index] = (TypographyLevel(tokens[index].TextIndex, starts, levels) & 1) == 1;
-            var options = new OfficeOpenTypePositioningOptions(kerning, cursive, rightToLeft);
+            var options = new OfficeOpenTypePositioningOptions(kerning, cursive, rightToLeft, distances, attachments);
             if (cached.Substitution == null && !attachments.Any(item => item.IsMark) && kerning) {
                 // Preserve the established simple-font visual positioning route;
                 // source controls now remain explicit zero-advance glyphs.
@@ -147,8 +147,10 @@ public sealed partial class OfficeManagedTextShapingProvider {
         int cursor = 0, cursorY = 0;
         foreach (int index in visual) {
             request.CancellationToken.ThrowIfCancellationRequested();
-            if ((attachments[index].IsMark || OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar))
-                && (positions[index].XPlacement != 0 || positions[index].YPlacement != 0
+            // Positioning admits only placement on marks, from lookups after attachment.
+            bool control = OfficeManagedTextShaper.IsNonPaintingControl(tokens[index].Scalar);
+            if ((attachments[index].IsMark || control)
+                && (control && (positions[index].XPlacement != 0 || positions[index].YPlacement != 0)
                     || positions[index].XAdvance != 0 || positions[index].YAdvance != 0))
                 throw new InvalidDataException("A zero-advance mark cannot discard font positioning.");
             pen[index] = cursor; penY[index] = cursorY;
@@ -165,9 +167,9 @@ public sealed partial class OfficeManagedTextShapingProvider {
             int parent = attachment.ParentGlyphIndex;
             if (parent >= index) throw new InvalidDataException("A mark attachment must refer to an earlier logical glyph.");
             originX[index] = parent < 0 ? checked(pen[index] + positions[index].XPlacement)
-                : checked(originX[parent] + attachment.DeltaX);
+                : checked(originX[parent] + attachment.DeltaX + positions[index].XPlacement);
             originY[index] = parent < 0 ? checked(penY[index] + positions[index].YPlacement)
-                : checked(originY[parent] + attachment.DeltaY);
+                : checked(originY[parent] + attachment.DeltaY + positions[index].YPlacement);
         }
         var glyphs = new List<OfficeShapedGlyph>(tokens.Count); var clusters = new int[tokens.Count];
         foreach (int index in visual) {

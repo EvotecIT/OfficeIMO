@@ -43,7 +43,7 @@ internal static partial class PdfWriter {
             }
             PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,
@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             }
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,
@@ -171,7 +171,7 @@ internal static partial class PdfWriter {
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfTextShapingOptions renderOptions = PdfTextShapingOptions.ForRendering(
                 fontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,
@@ -209,7 +209,7 @@ internal static partial class PdfWriter {
                 : Array.Empty<PdfTextShapingDiagnostic>();
             PdfGlyphRun glyphRun = cffFontProgram.ShapeText(text, PdfTextShapingOptions.ForRendering(
                 cffFontProgram.FontName,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.EffectiveTextShapingLanguage,

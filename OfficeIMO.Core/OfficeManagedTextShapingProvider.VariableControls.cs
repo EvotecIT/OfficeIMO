@@ -14,7 +14,9 @@ public sealed partial class OfficeManagedTextShapingProvider {
             foreach (int scalar in scalars) {
                 request.CancellationToken.ThrowIfCancellationRequested();
                 if (scalar is >= 0x20 and <= 0x7E) continue;
-                if (scalar is 0x034F or 0x200C or 0x200D || !OfficeManagedTextShaper.IsNonPaintingControl(scalar)) return null;
+                // Variation selectors need cmap format 14 and GSUB on the selected instance.
+                if (scalar is 0x034F or 0x200C or 0x200D || OfficeTextElements.IsVariationSelector(scalar)
+                    || !OfficeManagedTextShaper.IsNonPaintingControl(scalar)) return null;
             }
             OfficeOpenTypeReader? reader = OfficeOpenTypeReader.TryCreate(request.FontDataForShaping);
             if (reader == null || !reader.TryGetTable("fvar", out _, out _)) return null;

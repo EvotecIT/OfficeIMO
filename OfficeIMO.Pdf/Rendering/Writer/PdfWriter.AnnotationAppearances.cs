@@ -115,12 +115,12 @@ internal static partial class PdfWriter {
 
         if (pageOptions.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, fontProgram, pageOptions.TextShapingModeSnapshot);
+            return CanWriteWithEmbeddedFont(text, fontProgram, pageOptions.TextShapingModeFor(text));
         }
 
         if (pageOptions.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, cffFontProgram, pageOptions.TextShapingModeSnapshot);
+            return CanWriteWithEmbeddedFont(text, cffFontProgram, pageOptions.TextShapingModeFor(text));
         }
 
         return PdfWinAnsiEncoding.CanEncode(text, out _);

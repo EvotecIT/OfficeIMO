@@ -204,8 +204,41 @@ internal static class OfficeTextElements {
         if (string.IsNullOrEmpty(value)) return false;
         for (int index = 0; index < value!.Length;) {
             int scalar = ReadScalar(value, ref index);
-            if (scalar >= 0xFE00 && scalar <= 0xFE0F ||
-                scalar >= 0xE0100 && scalar <= 0xE01EF) return true;
+            if (IsVariationSelector(scalar)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Determines whether a scalar is a Unicode variation selector (VS1 to VS256).</summary>
+    internal static bool IsVariationSelector(int scalar) =>
+        scalar >= 0xFE00 && scalar <= 0xFE0F || scalar >= 0xE0100 && scalar <= 0xE01EF;
+
+    /// <summary>
+    /// Detects UTS #51 sequence components that fonts combine through GSUB without any
+    /// control character: emoji modifiers (skin tones) and regional indicators (flags).
+    /// </summary>
+    internal static bool ContainsEmojiModifierOrRegionalIndicator(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalar = ReadScalar(value, ref index);
+            if (scalar >= 0x1F3FB && scalar <= 0x1F3FF || scalar >= 0x1F1E6 && scalar <= 0x1F1FF) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Detects the joiners ZWJ and ZWNJ and every other UTS #51 sequence component: variation
+    /// selectors, the combining enclosing keycap, emoji modifiers, regional indicators and tags.
+    /// Only the font's own substitutions can render these; scalar glyph output cannot.
+    /// </summary>
+    internal static bool ContainsJoinerOrEmojiSequence(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            if (value[index] < 0x200C) { index++; continue; }
+            int scalar = ReadScalar(value, ref index);
+            if (scalar is 0x200C or 0x200D or 0x20E3 || IsVariationSelector(scalar)
+                || scalar >= 0x1F3FB && scalar <= 0x1F3FF || scalar >= 0x1F1E6 && scalar <= 0x1F1FF
+                || scalar >= 0xE0020 && scalar <= 0xE007F) return true;
         }
         return false;
     }

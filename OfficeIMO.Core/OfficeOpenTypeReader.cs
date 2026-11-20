@@ -161,6 +161,9 @@ internal sealed class OfficeOpenTypeReader {
     internal int ReadMappedGlyph(string text, ref int index, out int scalar) =>
         OfficeOpenTypeCmap.ReadMappedGlyph(text, ref index, MapGlyph, MapVariationGlyph, out scalar);
 
+    /// <summary>Maps a base and variation selector through cmap format 14, or returns 0 when the font lists neither form.</summary>
+    internal int MapVariationSequenceGlyph(int scalar, int selector) => MapVariationGlyph(scalar, selector);
+
     private int MapVariationGlyph(int scalar, int selector) =>
         OfficeOpenTypeCmap.MapVariationSequence(
             _data,

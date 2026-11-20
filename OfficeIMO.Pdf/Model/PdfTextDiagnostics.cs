@@ -174,7 +174,7 @@ internal static partial class PdfTextDiagnostics {
         string location,
         int? runIndex,
         PdfEmbeddedFontFallbackSet? fallbackSet, PdfTextRun? shapingRun) {
-        PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
+        PdfTextShapingMode shapingMode = options.TextShapingModeFor(text);
 
         fallbackSet ??= options.EmbeddedFontFallbacksSnapshot;
 
@@ -248,7 +248,7 @@ internal static partial class PdfTextDiagnostics {
                         run.Bold,
                         run.Italic)
                     ?? options.EmbeddedFontFallbacksSnapshot;
-                PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
+                PdfTextShapingMode shapingMode = options.TextShapingModeFor(run.Text);
                 if (options.TryGetEffectiveRenderingProfileFallbacks(
                         run.FontFamily,
                         run.Bold,
@@ -842,6 +842,27 @@ internal static partial class PdfTextDiagnostics {
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfTrueTypeFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? shapingOptions = null) {
+        List<PdfTextEncodingDiagnostic> diagnostics = AnalyzeEmbeddedFontOutlineText(text, font, source, fontName, shapingMode, shapingOptions);
+        return AddUnpaintableColorGlyphDiagnostics(text, font, diagnostics,
+            start => CreateUnpaintableColorGlyphDiagnostic(start, char.ConvertToUtf32(text, start), source, fontName));
+    }
+
+    // A bitmap or SVG emoji glyph has no outline to embed. Report each such text element
+    // once, at its first scalar, unless that position already has a diagnostic.
+    private static List<PdfTextEncodingDiagnostic> AddUnpaintableColorGlyphDiagnostics(string text, PdfTrueTypeFontProgram font,
+        List<PdfTextEncodingDiagnostic> diagnostics, Func<int, PdfTextEncodingDiagnostic> create) {
+        if (!font.ContainsUnpaintableColorGlyph(text)) return diagnostics;
+        int start = 0;
+        foreach (string element in OfficeTextElements.Enumerate(text)) {
+            if (font.ContainsUnpaintableColorGlyph(element) && !diagnostics.Any(diagnostic => diagnostic.Index == start))
+                diagnostics.Add(create(start));
+            start += element.Length;
+        }
+        diagnostics.Sort((left, right) => left.Index.CompareTo(right.Index));
+        return diagnostics;
+    }
+
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontOutlineText(string text, PdfTrueTypeFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions) {
         PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode);
         if (TryAnalyzeCompleteManagedRun(text, font, descriptor, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete)) return complete;
         // The exact descriptor belongs only to the admitted complete-managed
@@ -901,7 +922,13 @@ internal static partial class PdfTextDiagnostics {
         return location + ".Run[" + runIndex.ToString(CultureInfo.InvariantCulture) + "]";
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions = null) {
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions = null) =>
+        AddUnpaintableColorGlyphDiagnostics(text, fontProgram,
+            AnalyzeEmbeddedFontOutlineText(text, fontProgram, source, location, runIndex, shapingMode, shapingOptions),
+            start => CreateUnpaintableColorGlyphDiagnostic(start, char.ConvertToUtf32(text, start), source, fontProgram.FontName)
+                .WithRunLocation(location, runIndex));
+
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontOutlineText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions) {
         string sourceText = text;
         text = PdfWriter.WithoutOptionalBreaks(text);
         PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontProgram.FontName, shapingMode);
@@ -1173,6 +1200,20 @@ internal static partial class PdfTextDiagnostics {
             isControlCharacter: false,
             code: "missing-embedded-font-glyph",
             messageFactory: diagnosticIndex => "Text contains character " + codePoint + rendered + " at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + " that is not covered by embedded TrueType font '" + fontName + "'. Configure a font that contains this glyph or split the run to a fallback font.");
+    }
+
+    private static PdfTextEncodingDiagnostic CreateUnpaintableColorGlyphDiagnostic(int index, int scalar, string source, string fontName) {
+        string codePoint = FormatCodePoint(scalar);
+        string display = GetDisplayText(scalar);
+        string rendered = string.IsNullOrEmpty(display) ? string.Empty : " '" + display + "'";
+        return new PdfTextEncodingDiagnostic(
+            source,
+            index,
+            codePoint,
+            display,
+            isControlCharacter: false,
+            code: "missing-embedded-font-glyph",
+            messageFactory: diagnosticIndex => "Text contains character " + codePoint + rendered + " at index " + diagnosticIndex.ToString(CultureInfo.InvariantCulture) + " whose glyph in embedded TrueType font '" + fontName + "' is a bitmap or SVG color image without an outline. PDF text paints glyph outlines only; use a font with outline or COLR glyphs, such as Segoe UI Emoji or Noto Emoji.");
     }
 
     private static PdfTextEncodingDiagnostic CreateEmbeddedCffFontDiagnostic(int index, int scalar, string source, string fontName) {

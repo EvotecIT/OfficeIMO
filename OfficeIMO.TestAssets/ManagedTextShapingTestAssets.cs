@@ -256,8 +256,9 @@ internal static partial class ManagedTextShapingTestAssets {
             variationEncoding: 5));
     }
 
-    internal static byte[] CreateFontWithNonDefaultVariationSequence(int scalar, int variationSelector) {
-        if (scalar < 0 || scalar > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(scalar));
+    /// <summary>Maps <paramref name="scalar"/> to glyph 1 and its variation sequence to the distinct glyph 2; a blank space is glyph 3.</summary>
+    internal static byte[] CreateFontWithNonDefaultVariationSequence(int scalar, int variationSelector, bool blankSpace = false) {
+        if (scalar < 0 || scalar > 0x10FFFF || blankSpace && scalar <= 0x20) throw new ArgumentOutOfRangeException(nameof(scalar));
         if (variationSelector < 0xFE00 || variationSelector > 0xFE0F) {
             throw new ArgumentOutOfRangeException(nameof(variationSelector));
         }
@@ -267,9 +268,11 @@ internal static partial class ManagedTextShapingTestAssets {
                 variationSelector,
                 nonDefaultGlyph: 2,
                 variationPlatform: 0,
-                variationEncoding: 5),
-            glyphCount: 3,
-            distinctSecondGlyph: true);
+                variationEncoding: 5,
+                spaceGlyph: blankSpace ? 3 : null),
+            glyphCount: blankSpace ? 4 : 3,
+            distinctSecondGlyph: true,
+            blankGlyphIds: blankSpace ? new[] { 3 } : null);
     }
 
     internal static byte[] CreateFontWithMistypedVariationSequenceRecord(int scalar, int variationSelector) =>
@@ -757,9 +760,10 @@ internal static partial class ManagedTextShapingTestAssets {
         int? nonDefaultGlyph,
         int variationPlatform,
         int variationEncoding,
-        int nonDefaultMappingCount = 1) {
+        int nonDefaultMappingCount = 1,
+        int? spaceGlyph = null) {
         const int cmapHeaderLength = 20;
-        const int format12Length = 28;
+        int format12Length = spaceGlyph.HasValue ? 40 : 28;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nonDefaultMappingCount);
         int format14Length = nonDefaultGlyph.HasValue ? checked(25 + nonDefaultMappingCount * 5) : 29;
         int format12 = cmapHeaderLength;
@@ -775,11 +779,18 @@ internal static partial class ManagedTextShapingTestAssets {
         WriteUInt32(data, 16, (uint)format14);
 
         WriteUInt16(data, format12, 12);
-        WriteUInt32(data, format12 + 4, format12Length);
-        WriteUInt32(data, format12 + 12, 1);
-        WriteUInt32(data, format12 + 16, checked((uint)scalar));
-        WriteUInt32(data, format12 + 20, checked((uint)scalar));
-        WriteUInt32(data, format12 + 24, 1);
+        WriteUInt32(data, format12 + 4, checked((uint)format12Length));
+        WriteUInt32(data, format12 + 12, spaceGlyph.HasValue ? 2U : 1U);
+        int group = format12 + 16;
+        if (spaceGlyph.HasValue) {
+            WriteUInt32(data, group, 0x20);
+            WriteUInt32(data, group + 4, 0x20);
+            WriteUInt32(data, group + 8, checked((uint)spaceGlyph.Value));
+            group += 12;
+        }
+        WriteUInt32(data, group, checked((uint)scalar));
+        WriteUInt32(data, group + 4, checked((uint)scalar));
+        WriteUInt32(data, group + 8, 1);
 
         WriteUInt16(data, format14, 14);
         WriteUInt32(data, format14 + 2, (uint)format14Length);

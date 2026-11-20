@@ -49,8 +49,11 @@ public sealed partial class OfficeManagedTextShapingProvider : IOfficeTextShapin
         // Cursive attachment moves base glyphs, so only the typography route can shape a run
         // in a font that selects it; the token route below would silently drop it.
         bool cursive = !allowDiagnosedFallback && RequiresCursiveAttachment(request);
+        // Emoji modifier and flag sequences are combined by the font's ccmp/liga lookups,
+        // which only the complete typography route applies to non-Latin scalars.
+        bool emojiSequence = !allowDiagnosedFallback && OfficeTextElements.ContainsEmojiModifierOrRegionalIndicator(request.Text);
         if (!allowDiagnosedFallback &&
-            (forcedDirection || controls || cursive || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
+            (forcedDirection || controls || cursive || emojiSequence || OfficeTextElements.ContainsJoiningScript(request.Text) || OfficeTextElements.ContainsCombiningMark(request.Text))) {
             OfficeTextShapingResult? typography = ShapeTypography(request, out bool fontDirected);
             if (typography != null) return typography;
             // A partial font-directed run cannot turn into an undiagnosed approximation.

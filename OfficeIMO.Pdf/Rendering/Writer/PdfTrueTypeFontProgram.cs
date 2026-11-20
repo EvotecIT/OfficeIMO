@@ -119,6 +119,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return 0D;
         }
 
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
         if (useFontUnitAdvances) return MeasureShapedTextWidth(text!, ShapeText(text!, options), fontSize,
             useFontUnitAdvances: true);
@@ -148,6 +149,32 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public int GlyphCount => _advanceWidths1000.Length;
 
     internal byte[] FontDataForInspection => _data;
+
+    private OfficeTrueTypeFont? _bitmapColorProgram;
+    private int _bitmapColorProgramState;
+
+    /// <summary>
+    /// Whether a text element maps to a CBDT, sbix or SVG color glyph without an outline. PDF text
+    /// paints outlines only, so such a glyph would leave a silent blank.
+    /// </summary>
+    internal bool ContainsUnpaintableColorGlyph(string text) {
+        if (Volatile.Read(ref _bitmapColorProgramState) == 0) {
+            OfficeTrueTypeFont? program = HasBitmapColorTable(_data) ? OfficeTrueTypeFont.TryLoad(_data) : null;
+            Interlocked.CompareExchange(ref _bitmapColorProgram, program, null);
+            Volatile.Write(ref _bitmapColorProgramState, 1);
+        }
+        return Volatile.Read(ref _bitmapColorProgram)?.ContainsUnpaintableColorGlyph(text) == true;
+    }
+
+    private static bool HasBitmapColorTable(byte[] data) {
+        if (data.Length < 12) return false;
+        int count = data[4] << 8 | data[5];
+        for (int index = 0; index < count && 12 + index * 16 + 4 <= data.Length; index++) {
+            string tag = System.Text.Encoding.ASCII.GetString(data, 12 + index * 16, 4);
+            if (tag is "CBDT" or "sbix" or "SVG ") return true;
+        }
+        return false;
+    }
 
     // Identifies the immutable program shared by every document fork, so per-program
     // caches survive ForkForDocument.
@@ -197,6 +224,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        options = options.ForText(text);
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
             ReplayGlyphRunUsage(cached);
