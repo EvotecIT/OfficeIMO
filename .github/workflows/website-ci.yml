@@ -32,7 +32,7 @@ jobs:
   website-build:
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.selected == 'true'
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@759e230720a3625f1e1cbf2927b998abeb6ab2d2
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@8dab7d1ed91a00ccb565021f9a08f18a78dcc8c3
     with:
       website_root: Website
       authenticate_public_github_data: true
@@ -46,7 +46,7 @@ jobs:
       # Three extra Linux jobs share the API docs block with this one.
       apidocs_shards: 4
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 759e230720a3625f1e1cbf2927b998abeb6ab2d2
+      powerforge_ref: 8dab7d1ed91a00ccb565021f9a08f18a78dcc8c3
       report_artifact_name: powerforge-website-reports
 
   website-build-manual:
@@ -58,7 +58,7 @@ jobs:
       actions: read
       contents: read
       packages: read
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@759e230720a3625f1e1cbf2927b998abeb6ab2d2
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@8dab7d1ed91a00ccb565021f9a08f18a78dcc8c3
     with:
       website_root: Website
       pipeline_config: Website/pipeline.json
@@ -70,7 +70,7 @@ jobs:
       # Three extra Linux jobs share the API docs block with this one.
       apidocs_shards: 4
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 759e230720a3625f1e1cbf2927b998abeb6ab2d2
+      powerforge_ref: 8dab7d1ed91a00ccb565021f9a08f18a78dcc8c3
       report_artifact_name: powerforge-website-reports
       pipeline_mode: ci
       credential_mode: standard
