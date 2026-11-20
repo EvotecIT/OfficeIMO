@@ -215,8 +215,6 @@ namespace OfficeIMO.Excel {
             OfficeChartAxisTickMark verticalAxisMinorTickMark = GetImageExportVerticalAxisMinorTickMark(plotArea, categoryAxis, valueAxis);
             OfficeChartAxisTickLabelPosition horizontalAxisTickLabelPosition = GetImageExportHorizontalAxisTickLabelPosition(plotArea, categoryAxis, valueAxis);
             OfficeChartAxisTickLabelPosition verticalAxisTickLabelPosition = GetImageExportVerticalAxisTickLabelPosition(plotArea, categoryAxis, valueAxis);
-            OfficeChartAxisCrossingPosition horizontalAxisCrossingPosition = GetImageExportHorizontalAxisCrossingPosition(plotArea, categoryAxis);
-            OfficeChartAxisCrossingPosition verticalAxisCrossingPosition = GetImageExportVerticalAxisCrossingPosition(plotArea, valueAxis);
             bool reverseCategoryAxis = GetImageExportReverseCategoryAxis(categoryAxis);
             bool categoryAxisOrientationSpecified = HasImageExportCategoryAxisOrientation(categoryAxis);
             double? legendFontSize = TryGetImageExportLegendFontSize(chart, out double resolvedLegendFontSize) ? resolvedLegendFontSize : null;
@@ -255,8 +253,6 @@ namespace OfficeIMO.Excel {
             bool hasAxisMinorTickMark = horizontalAxisMinorTickMark != OfficeChartAxisTickMark.None || verticalAxisMinorTickMark != OfficeChartAxisTickMark.None;
             bool hasAxisLabelVisibility = !showCategoryAxisLabels || !showValueAxisLabels;
             bool hasAxisLabelPosition = horizontalAxisTickLabelPosition != OfficeChartAxisTickLabelPosition.NextTo || verticalAxisTickLabelPosition != OfficeChartAxisTickLabelPosition.NextTo;
-            bool hasAxisCrossingPosition = horizontalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero ||
-                verticalAxisCrossingPosition != OfficeChartAxisCrossingPosition.AutoZero;
             bool hasCategoryAxisOrientation = categoryAxisOrientationSpecified;
             bool fillRadarSeries = GetImageExportFillRadarSeries(plotArea);
             bool hasRadarFillLayout = !fillRadarSeries;
@@ -292,13 +288,14 @@ namespace OfficeIMO.Excel {
                 hasAxisMinorTickMark ||
                 hasAxisLabelVisibility ||
                 hasAxisLabelPosition ||
-                hasAxisCrossingPosition ||
                 hasCategoryAxisOrientation ||
                 hasRadarFillLayout ||
                 hasScatterStyleLayout ||
                 hasTextFont;
             if (!hasLayout) {
-                return null;
+                // Blank cells and axis crossings still apply to an otherwise default layout.
+                OfficeChartLayout semantics = OfficeChartLayout.Default.WithPlotSemantics(chart, includeDisplayUnits: false);
+                return HasDefaultPlotSemantics(semantics) ? null : semantics;
             }
 
             bool showLegend = legend != null;
@@ -353,8 +350,6 @@ namespace OfficeIMO.Excel {
                 verticalAxisMinorTickMark: verticalAxisMinorTickMark,
                 horizontalAxisTickLabelPosition: horizontalAxisTickLabelPosition,
                 verticalAxisTickLabelPosition: verticalAxisTickLabelPosition,
-                horizontalAxisCrossingPosition: horizontalAxisCrossingPosition,
-                verticalAxisCrossingPosition: verticalAxisCrossingPosition,
                 reverseCategoryAxis: reverseCategoryAxis,
                 categoryAxisOrientationSpecified: categoryAxisOrientationSpecified,
                 fillRadarSeries: fillRadarSeries,
@@ -368,8 +363,14 @@ namespace OfficeIMO.Excel {
                 overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()))
                 .WithSecondaryValueAxis(secondaryValueAxis)
                 .WithDataLabelLeaderLines(IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()))
-                .WithCategoryGeometry(plotArea, _document.WorkbookPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                .WithCategoryGeometry(plotArea, _document.WorkbookPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme)
+                .WithPlotSemantics(chart, includeDisplayUnits: false);
         }
+
+        private static bool HasDefaultPlotSemantics(OfficeChartLayout layout) =>
+            layout.BlankDisplay == OfficeChartLayout.Default.BlankDisplay &&
+            layout.HorizontalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.HorizontalAxisCrossesAt == null &&
+            layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.VerticalAxisCrossesAt == null;
 
         private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
             var axis = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea);
@@ -1582,7 +1583,7 @@ namespace OfficeIMO.Excel {
                 return OfficeChartLegendPosition.Bottom;
             }
 
-            return OfficeChartLegendPosition.Right;
+            return value == C.LegendPositionValues.TopRight ? OfficeChartLegendPosition.TopRight : OfficeChartLegendPosition.Right;
         }
 
         private static OfficeChartDataLabelPosition MapDataLabelPosition(C.DataLabelPositionValues? position) {

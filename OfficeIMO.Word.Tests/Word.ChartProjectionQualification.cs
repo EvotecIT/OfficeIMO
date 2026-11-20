@@ -164,7 +164,6 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("trendline")]
     [InlineData("errorBars")]
     [InlineData("dropLines")]
-    [InlineData("sparse")]
     [InlineData("negative")]
     [InlineData("dateAxis")]
     [InlineData("labelFormat")]
@@ -190,13 +189,12 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("radialLeaderLines")]
     [InlineData("radialInsideEnd")]
     [InlineData("radialNoVary")]
-    [InlineData("autoZeroNegative")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
         using var document = WordDocument.Create();
         var kind = feature.StartsWith("radial", StringComparison.Ordinal) ? OfficeChartType.Pie :
             feature == "negative" || feature.StartsWith("bar", StringComparison.Ordinal) || feature == "seriesLines" ? OfficeChartType.ColumnClustered : OfficeChartType.Line;
         var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeSeries("Values", new[] { 3d, feature is "negative" or "autoZeroNegative" ? -4d : 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Revenue" });
+            new OfficeSeries("Values", new[] { 3d, feature == "negative" ? -4d : 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Revenue" });
         if (feature == "secondaryCategory") chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Values", new[] { 3d, -4d }),
             new OfficeSeries("Secondary", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
@@ -208,7 +206,6 @@ public sealed class WordChartProjectionQualificationTests {
         if (feature == "trendline") series.AddChild(new C.Trendline(new C.TrendlineType { Val = C.TrendlineValues.Linear }), true);
         else if (feature == "errorBars") series.AddChild(new C.ErrorBars(), true);
         else if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
-        else if (feature == "sparse") series.Descendants<C.NumericPoint>().Last().Remove();
         else if (feature == "negative") series.AddChild(new C.InvertIfNegative { Val = true }, true);
         else if (feature == "labelFormat") layer.AddChild(new C.DataLabels(new C.NumberingFormat { FormatCode = "m/d/yyyy", SourceLinked = false }, new C.ShowValue { Val = true }), true);
         else if (feature == "legendEntry") native.GetFirstChild<C.Legend>()!.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, new C.TextProperties(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 2400 })))), true);
