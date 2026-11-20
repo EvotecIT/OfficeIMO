@@ -105,7 +105,7 @@ public static partial class OfficeChartDrawingRenderer {
             return drawing;
         }
 
-        IReadOnlyList<OfficeSeries> legendSeries = GetPointColoredLegendSeries(snapshot) ?? GetRenderableLegendSeries(snapshot);
+        IReadOnlyList<OfficeSeries> legendSeries = GetPointColoredLegendSeries(snapshot) ?? GetRenderableLegendSeries(snapshot, style);
         double topLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
             ? GetSeriesLegendBandHeight(legendSeries, width - 16D, layout)
             : 0D;
@@ -1239,6 +1239,8 @@ public static partial class OfficeChartDrawingRenderer {
                     if (sourceValue != 0D && (value != 0D || x1 != x2)) {
                         AddStyledPointShape(barGeometry, OfficeShape.Rectangle(w, rowHeight), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
                     }
+                    if (!seriesPercentStacked) AddPointErrorBars(barGeometry, currentSeries, category, value, seriesStacked ? baseline : 0D,
+                        y + rowHeight / 2D, horizontal: true, point => ToPlotX(point, min, max, plotLeft, plotWidth), range);
 
                     AddHorizontalDataLabel(
                         barLabels,
@@ -1267,6 +1269,8 @@ public static partial class OfficeChartDrawingRenderer {
                     if (sourceValue != 0D && (value != 0D || y1 != y2)) {
                         AddStyledPointShape(barGeometry, OfficeShape.Rectangle(barWidth, h), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
                     }
+                    if (!seriesPercentStacked) AddPointErrorBars(barGeometry, currentSeries, category, value, seriesStacked ? baseline : 0D,
+                        x + barWidth / 2D, horizontal: false, point => ToPlotY(point, min, max, plotTop, plotHeight), range);
 
                     AddVerticalDataLabel(
                         barLabels,
@@ -1369,6 +1373,8 @@ public static partial class OfficeChartDrawingRenderer {
             .Where(group => IsPercentStackedAreaChart(group.Key))
             .ToDictionary(group => group.Key, group => BuildPercentStackedTotals(group.Value, categories.Count));
 
+        // Error bars sit above every area, so they are drawn once all areas are filled.
+        var errorBars = new List<Action>();
         foreach ((OfficeSeries currentSeries, int sourceSeriesIndex, OfficeChartType kind) in areaSeries) {
             bool currentStacked = IsStackedAreaChart(kind) || IsPercentStackedAreaChart(kind);
             bool currentPercentStacked = IsPercentStackedAreaChart(kind);
@@ -1407,6 +1413,13 @@ public static partial class OfficeChartDrawingRenderer {
                     ? baseline
                     : ToPlotY(baseline, range.Min, range.Max, plotTop, plotHeight)));
                 runCategoryIndices.Add(i);
+                if (!currentPercentStacked && currentSeries.ErrorBars != null) {
+                    OfficeSeries barSeries = currentSeries;
+                    int point = i;
+                    double barValue = value, offset = topValue - value;
+                    errorBars.Add(() => AddPointErrorBars(geometry, barSeries, point, barValue, offset, x, horizontal: false,
+                        item => ToPlotY(item, range.Min, range.Max, plotTop, plotHeight), range));
+                }
 
                 if (currentStacked) {
                     if (rawValue >= 0D) {
@@ -1422,6 +1435,7 @@ public static partial class OfficeChartDrawingRenderer {
             AddAreaRunDataLabels(labels, layout, style, categories, series, sourceSeriesIndex, runCategoryIndices, topPoints,
                 clipPlot ? plotBounds : (ChartPlotBounds?)null, clipPlot ? range : (ValueRange?)null);
         }
+        foreach (Action draw in errorBars) draw();
         if (clipPlot) AddClippedPlotGeometry(drawing, geometry, labels, plotBounds);
         else drawing.AddDrawing(labels, 0D, 0D);
     }
@@ -1616,10 +1630,22 @@ public static partial class OfficeChartDrawingRenderer {
         !IsScatterChart(snapshot.ChartKind) &&
         snapshot.Data.Series.Any(series => IsScatterChart(GetEffectiveSeriesKind(snapshot, series)));
 
-    private static IReadOnlyList<OfficeSeries> GetRenderableLegendSeries(OfficeChartSnapshot snapshot) =>
-        HasMixedScatterSeriesOnCategoryAxes(snapshot)
-            ? snapshot.Data.Series.Where(series => !IsScatterChart(GetEffectiveSeriesKind(snapshot, series))).ToList()
+    private static IReadOnlyList<OfficeSeries> GetRenderableLegendSeries(OfficeChartSnapshot snapshot, OfficeChartStyle style) {
+        IReadOnlyList<OfficeSeries> series = HasMixedScatterSeriesOnCategoryAxes(snapshot)
+            ? snapshot.Data.Series.Where(item => !IsScatterChart(GetEffectiveSeriesKind(snapshot, item))).ToList()
             : snapshot.Data.Series;
+        if (!series.Any(item => item.Trendline?.LegendName != null)) return series;
+        // Office lists trendlines after every series, keyed by a line in the trendline colour.
+        var entries = new List<OfficeSeries>(series);
+        for (int index = 0; index < snapshot.Data.Series.Count; index++) {
+            OfficeChartTrendline? trendline = snapshot.Data.Series[index].Trendline;
+            if (trendline?.LegendName == null || !series.Contains(snapshot.Data.Series[index])) continue;
+            entries.Add(new OfficeSeries(trendline.LegendName, Array.Empty<double>(), null,
+                trendline.Color ?? GetSeriesColor(style, snapshot.Data.Series, index), null, showMarkers: false,
+                renderKind: OfficeChartType.Line));
+        }
+        return entries;
+    }
 
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
         double plotTop, double plotWidth, double plotHeight, ChartPlotBounds clipBounds,
@@ -1706,6 +1732,12 @@ public static partial class OfficeChartDrawingRenderer {
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);
                 var point = new OfficePoint(x, y);
                 points.Add((point, i));
+                if (currentSeries.ErrorBars != null) {
+                    AddPointErrorBars(lineGeometry, currentSeries, i, yValue, 0D, x, horizontal: false,
+                        value => ToPlotY(value, yRange.Min, yRange.Max, plotTop, plotHeight), yRange);
+                    AddPointErrorBars(lineGeometry, currentSeries, i, xValue, 0D, y, horizontal: true,
+                        value => ToPlotX(value, xRange.Min, xRange.Max, plotLeft, plotWidth), xRange, xValues: true, spanValues: xValues);
+                }
                 if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                     lineSegment.Add(clipPlot ? new OfficePoint(xValue, yValue) : point);
                 }

@@ -287,7 +287,8 @@ public sealed partial class OfficeSeries {
             SeriesStyle = SeriesStyle,
             PointStyles = styles,
             PointExplosions = explosions,
-            Trendline = Trendline
+            Trendline = Trendline,
+            ErrorBars = ErrorBars
         };
     }
 
@@ -366,6 +367,15 @@ public sealed partial class OfficeSeries {
     public OfficeSeries WithTrendline(OfficeChartTrendline? trendline) {
         OfficeSeries copy = CopyWithPresentation(PointStyles, PointExplosions, ShowInLegend);
         copy.Trendline = trendline;
+        return copy;
+    }
+
+    /// <summary>Native error bars read from a chart; drawn by the static renderer.</summary>
+    internal IReadOnlyList<OfficeChartErrorBars>? ErrorBars { get; private set; }
+
+    internal OfficeSeries WithErrorBars(IReadOnlyList<OfficeChartErrorBars>? errorBars) {
+        OfficeSeries copy = CopyWithPresentation(PointStyles, PointExplosions, ShowInLegend);
+        copy.ErrorBars = errorBars == null || errorBars.Count == 0 ? null : errorBars;
         return copy;
     }
 

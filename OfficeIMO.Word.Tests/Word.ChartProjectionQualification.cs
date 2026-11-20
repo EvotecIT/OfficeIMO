@@ -324,8 +324,6 @@ public sealed class WordChartProjectionQualificationTests {
     }
 
     [Theory]
-    [InlineData("trendline")]
-    [InlineData("errorBars")]
     [InlineData("dropLines")]
     [InlineData("negative")]
     [InlineData("dateAxis")]
@@ -348,7 +346,6 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("barSeriesShape")]
     [InlineData("seriesLines")]
     [InlineData("userShapes")]
-    [InlineData("radialLeaderLines")]
     [InlineData("radialInsideEnd")]
     [InlineData("radialNoVary")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
@@ -365,9 +362,7 @@ public sealed class WordChartProjectionQualificationTests {
         var plot = native.PlotArea!;
         var layer = plot.ChildElements.OfType<OpenXmlCompositeElement>().First(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal));
         var series = layer.ChildElements.OfType<OpenXmlCompositeElement>().First(item => item.LocalName == "ser");
-        if (feature == "trendline") series.AddChild(new C.Trendline(new C.TrendlineType { Val = C.TrendlineValues.Linear }), true);
-        else if (feature == "errorBars") series.AddChild(new C.ErrorBars(), true);
-        else if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
+        if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
         else if (feature == "negative") series.AddChild(new C.InvertIfNegative { Val = true }, true);
         else if (feature == "legendEntry") native.GetFirstChild<C.Legend>()!.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, new C.TextProperties(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 2400 })))), true);
         else if (feature == "rotation") space.AddChild(new C.TextProperties(new A.BodyProperties { Rotation = 5400000 }, new A.ListStyle(), new A.Paragraph()), true);
@@ -404,7 +399,6 @@ public sealed class WordChartProjectionQualificationTests {
             shapes.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", chart.ChartPart.GetIdOfPart(drawingPart)));
             space.Append(shapes);
         }
-        else if (feature == "radialLeaderLines") layer.AddChild(new C.DataLabels(new C.DataLabelPosition { Val = C.DataLabelPositionValues.BestFit }, new C.ShowValue { Val = true }, new C.ShowLeaderLines { Val = true }), true);
         else if (feature == "radialOutside" || feature == "radialInsideEnd") layer.AddChild(new C.DataLabels(
             new C.DataLabelPosition { Val = feature == "radialOutside" ? C.DataLabelPositionValues.OutsideEnd : C.DataLabelPositionValues.InsideEnd },
             new C.ShowValue { Val = true }), true);

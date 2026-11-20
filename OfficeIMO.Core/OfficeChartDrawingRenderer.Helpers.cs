@@ -311,6 +311,16 @@ public static partial class OfficeChartDrawingRenderer {
 
                 xValues.Add(xValue);
                 yValues.Add(yValue);
+                AddErrorBarExtents(series[s], seriesXValues, i, xValue, xBars: true, xValues);
+                AddErrorBarExtents(series[s], series[s].Values, i, yValue, xBars: false, yValues);
+            }
+            // Office widens the x axis to show a trendline's forecasts.
+            if (series[s].Trendline is OfficeChartTrendline trendline && (trendline.Forward > 0D || trendline.Backward > 0D)) {
+                double[] seriesX = seriesXValues.Take(pointCount).Where(IsFiniteChartValue).ToArray();
+                if (seriesX.Length > 0) {
+                    xValues.Add(seriesX.Min() - trendline.Backward);
+                    xValues.Add(seriesX.Max() + trendline.Forward);
+                }
             }
         }
 
@@ -333,12 +343,31 @@ public static partial class OfficeChartDrawingRenderer {
         return new OfficePoint(centerX + Math.Cos(angle) * radius, centerY + Math.Sin(angle) * radius);
     }
 
+    // Office's automatic value axis scale also covers the reach of the series' error bars.
+    private static void AddErrorBarExtents(OfficeSeries series, IReadOnlyList<double> values, int index, double value, bool xBars,
+        List<double> extents) {
+        if (series.ErrorBars == null) return;
+        foreach (OfficeChartErrorBars bars in series.ErrorBars) {
+            if (bars.AlongCategoryAxis != xBars || !bars.TryGetSpan(values, index, value, out _, out double low, out double high)) continue;
+            extents.Add(low);
+            extents.Add(high);
+        }
+    }
+
     private static ValueRange GetFiniteSeriesRange(IReadOnlyList<OfficeSeries> series) {
         bool any = false;
         double min = 0D;
         double max = 0D;
         foreach (OfficeSeries item in series) {
-            foreach (double value in item.Values) {
+            IReadOnlyList<double> extents = item.Values;
+            if (item.ErrorBars != null) {
+                var withBars = new List<double>(item.Values);
+                for (int index = 0; index < item.Values.Count; index++)
+                    if (IsFiniteChartValue(item.Values[index]))
+                        AddErrorBarExtents(item, item.Values, index, item.Values[index], xBars: false, withBars);
+                extents = withBars;
+            }
+            foreach (double value in extents) {
                 if (double.IsNaN(value) || double.IsInfinity(value)) {
                     continue;
                 }

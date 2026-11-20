@@ -291,10 +291,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 .WithSeriesStyle(seriesPaint)
                 .WithPointStyles(styles);
             if (!forDataUpdate) {
-                data = data.WithTrendline(OfficeOpenXmlChartTrendlines.Read(element, scheme));
-                // The shared renderer has no error-bar geometry yet.
-                if (element.GetFirstChild<C.ErrorBars>() != null)
-                    OfficeOpenXmlChartFidelityScope.Approximate("Error bars cannot be projected.", "Error bars are left out.");
+                data = data.WithTrendline(OfficeOpenXmlChartTrendlines.Read(element, scheme, name))
+                    .WithErrorBars(OfficeOpenXmlChartErrorBars.Read(element, scheme, maximumPoints));
             }
             if (kind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
                 if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,

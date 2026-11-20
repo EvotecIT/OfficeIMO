@@ -70,7 +70,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
                 if (data == null) return null;
                 if (data.Series.Any(item => item.HasUnsupportedAppearance)) {
-                    if (!OfficeOpenXmlChartFidelityScope.AllowsApproximation) return null;
+                    if (!OfficeOpenXmlChartFidelityScope.AllowsApproximation)
+                        throw new NotSupportedException(data.Series.First(item => item.HasUnsupportedAppearance).UnsupportedAppearance);
                     // Best effort keeps the series' resolved colour and drops the formatting it cannot draw.
                     foreach (var item in data.Series.Where(item => item.HasUnsupportedAppearance))
                         OfficeOpenXmlChartFidelityScope.Record(item.UnsupportedAppearance!.TrimEnd('.') + "; it is drawn in its plain series colour.");

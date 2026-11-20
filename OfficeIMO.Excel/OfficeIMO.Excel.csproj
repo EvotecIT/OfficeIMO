@@ -47,6 +47,8 @@
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartFidelityScope.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartFidelityScope.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartTrendlines.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartTrendlines.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartErrorBars.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartErrorBars.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartCacheReader.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartCacheReader.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartSecondaryAxis.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartSecondaryAxis.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" Link="SharedSource\OpenXml\OfficeOpenXmlHiddenData.cs" />

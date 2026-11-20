@@ -30,6 +30,8 @@ public static partial class OfficeChartDrawingRenderer {
         var percentStackedTotalsByKind = stackedSeriesByKind
             .Where(group => IsPercentStackedLineChart(group.Key))
             .ToDictionary(group => group.Key, group => BuildPercentStackedTotals(group.Value, categories.Count));
+        // Error bars sit above every line, so they are drawn once all lines are drawn.
+        var errorBars = new List<Action>();
         foreach ((OfficeSeries currentSeries, int sourceSeriesIndex, OfficeChartType kind) in lineSeries) {
             bool currentStacked = IsStackedLineChart(kind) || IsPercentStackedLineChart(kind);
             bool currentPercentStacked = IsPercentStackedLineChart(kind);
@@ -56,6 +58,13 @@ public static partial class OfficeChartDrawingRenderer {
                     clipPlot ? plottedValue
                         : ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
                 plotted[i] = true;
+                if (!currentPercentStacked && currentSeries.ErrorBars != null) {
+                    OfficeSeries barSeries = currentSeries;
+                    int point = i;
+                    double barValue = value, offset = plottedValue - value, barX = points[i].X;
+                    errorBars.Add(() => AddPointErrorBars(geometry, barSeries, point, barValue, offset, barX, horizontal: false,
+                        item => ToPlotY(item, range.Min, range.Max, plotTop, plotHeight), range));
+                }
             }
 
             if (currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
@@ -134,6 +143,7 @@ public static partial class OfficeChartDrawingRenderer {
                 }
             }
         }
+        foreach (Action draw in errorBars) draw();
         if (clipPlot) AddClippedPlotGeometry(drawing, geometry, labels, plotBounds);
     }
 

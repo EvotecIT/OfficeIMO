@@ -63,8 +63,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         var hiddenPoints = new Dictionary<uint, HashSet<int>>();
         var labeledPoints = new Dictionary<uint, HashSet<int>>();
         bool everySeriesLabeled = true;
-        void Select(LabelLayout layout, bool radial, bool pie) {
-            Qualify(layout, radial, pie);
+        void Select(LabelLayout layout, bool radial) {
+            Qualify(layout, radial);
             if (selected == null) selected = layout;
             else if (!selected.SameAs(layout))
                 OfficeOpenXmlChartFidelityScope.Approximate("Different label layouts across chart layers cannot be projected together.",
@@ -73,7 +73,6 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         foreach (var layer in chart.PlotArea?.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) ?? Enumerable.Empty<OpenXmlCompositeElement>()) {
             bool radial = layer is C.PieChart or C.DoughnutChart;
-            bool pie = layer is C.PieChart;
             C.DataLabels? groupLabels = layer.GetFirstChild<C.DataLabels>();
             LabelLayout group = ReadLabelSet(chart, groupLabels, null, radial, scheme);
             C.DataLabel[] groupPoints = groupLabels?.Elements<C.DataLabel>().ToArray() ?? Array.Empty<C.DataLabel>();
@@ -84,7 +83,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 C.DataLabels? seriesLabels = series.GetFirstChild<C.DataLabels>();
                 LabelLayout effective = seriesLabels == null ? group : ReadLabelSet(chart, seriesLabels, group, radial, scheme);
                 if (effective.Visible) {
-                    Select(effective, radial, pie);
+                    Select(effective, radial);
                     labeledSeries.Add(key);
                 } else {
                     everySeriesLabeled = false;
@@ -109,7 +108,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     LabelLayout own = ReadLabelSet(chart, point, effective, radial, scheme);
                     if (own.Visible == effective.Visible) {
                         if (own.Visible) {
-                            Qualify(own, radial, pie);
+                            Qualify(own, radial);
                             if (!own.SameAs(effective))
                                 OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
                                     "A data label formatted on its own is drawn like the other labels of its series.");
@@ -119,7 +118,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     if (!own.Visible) {
                         Add(hiddenPoints, key, pointIndex);
                     } else {
-                        Select(own, radial, pie);
+                        Select(own, radial);
                         Add(labeledPoints, key, pointIndex);
                     }
                 }
@@ -142,18 +141,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             "Data labels taken from cell ranges are left out of the label text.");
 
     /// <summary>Checks a visible label set once every override has applied.</summary>
-    private static void Qualify(LabelLayout layout, bool radial, bool pie) {
+    private static void Qualify(LabelLayout layout, bool radial) {
         QualifyLeftOutParts(layout);
         if (radial && layout.Position is not OfficeChartDataLabelPosition.BestFit and not OfficeChartDataLabelPosition.OutsideEnd) {
             OfficeOpenXmlChartFidelityScope.Approximate("The native radial data label position cannot be projected.",
                 "Radial data labels in that position are drawn at the best-fit position inside their slices.");
             layout.Position = OfficeChartDataLabelPosition.BestFit;
         }
-        // Best-fit pie labels move outside, with leader lines, when they do not fit their slice; doughnut
-        // labels stay on the ring.
-        if (pie && layout.LeaderLines && layout.Position == OfficeChartDataLabelPosition.BestFit)
-            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
-                "Best-fit radial data labels with leader lines are drawn inside their slices.");
     }
 
     // Legend keys, bubble sizes and cell-range text in labels are left out of the drawn labels.
