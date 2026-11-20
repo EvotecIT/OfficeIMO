@@ -340,16 +340,6 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.Equal(column.X + column.Shape.Width / 2D, label.X + label.Width / 2D, 0);
     }
 
-    [Theory]
-    [InlineData(OfficeChartType.Pie)]
-    [InlineData(OfficeChartType.Radar)]
-    public void ManualLayoutsOnRadialChartsAreRejected(OfficeChartType kind) {
-        var legend = new OfficeChartManualLayout(0.7D, 0.1D, 0.2D, 0.3D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
-            Render(kind, new OfficeChartLayout().WithManualLayouts(null, null, legend), Series(new double[] { 1, 2, 3, 4, 5 })));
-        Assert.Contains("radar", error.Message);
-    }
-
     [Fact]
     public void BubbleSeriesOnALogarithmicAxisIsRejected() {
         OfficeSeries bubbles = OfficeSeries.CreateBubble("Sales", new double[] { 1, 2, 3, 4, 5 }, new double[] { 10, 100, 1000, 10, 100 },

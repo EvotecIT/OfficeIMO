@@ -36,9 +36,6 @@ public static partial class OfficeChartDrawingRenderer {
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         ArgumentNullException.ThrowIfNull(snapshot);
-        if ((IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind) || IsRadarChart(snapshot.ChartKind)) &&
-            (snapshot.Layout.PlotAreaLayout != null || snapshot.Layout.LegendLayout != null))
-            throw new NotSupportedException("Manual plot-area and legend layouts are not drawn on pie, doughnut and radar charts.");
         HashSet<(int Series, int Point)>? missingAreaPoints = GetMissingAreaPoints(snapshot);
         snapshot = ApplyBlankDisplay(snapshot);
         _renderPassHiddenLabels = GetLabelsOverMaximum(snapshot);
@@ -117,7 +114,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (IsRadarChart(snapshot.ChartKind)) {
-            AddRadarSeries(drawing, snapshot, width, height, contentTop + topLegendHeight, bottomLegendHeight, style, layout, legendSeries);
+            AddRadarSeries(drawing, snapshot, width, height, contentTop + topLegendHeight, topLegendHeight, bottomLegendHeight, style, layout, legendSeries);
             drawOverlayTitle?.Invoke();
             return drawing;
         }
@@ -1750,7 +1747,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddRadarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout,
+    private static void AddRadarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double topLegendHeight, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout,
         IReadOnlyList<OfficeSeries> legendSeries) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
@@ -1763,6 +1760,9 @@ public static partial class OfficeChartDrawingRenderer {
         GetRadialPlotGeometry(width, height, contentTop, bottomLegendHeight, legendWidth,
             leftLegend, 52D, 42D, out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
+        // An outer plot area also holds the category labels, the same room the automatic layout leaves for them.
+        PlaceRadialPlotArea(layout, width, height, layout.ShowCategoryAxisLabels ? 52D : 0D,
+            layout.ShowCategoryAxisLabels ? 42D : 0D, ref centerX, ref centerY, ref radius);
         ValueRange range = GetRadarValueRange(series);
 
         if (GetShowValueGridLines(style)) {
@@ -1891,7 +1891,10 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (layout.ShowCategoryAxisLabels) AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
-        if (layout.OverlayLegend) {
+        if (layout.LegendLayout is OfficeChartManualLayout legendLayout) {
+            AddPlacedSeriesLegend(drawing, legendSeries, legendLayout, width, height, contentTop - topLegendHeight, topLegendHeight,
+                bottomLegendHeight, legendWidth, contentTop + 12D, Math.Max(20D, contentHeight - 24D), style, layout, snapshot.ChartKind);
+        } else if (layout.OverlayLegend) {
             AddOverlaySeriesLegend(drawing, legendSeries, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, snapshot.ChartKind);
         } else {
             AddSeriesLegend(
@@ -1906,7 +1909,7 @@ public static partial class OfficeChartDrawingRenderer {
                 snapshot.ChartKind);
         }
 
-        if (!layout.OverlayLegend && bottomLegendHeight > 0D) {
+        if (!layout.OverlayLegend && bottomLegendHeight > 0D && layout.LegendLayout == null) {
             AddSeriesLegendBand(drawing, legendSeries, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, snapshot.ChartKind);
         }
     }
