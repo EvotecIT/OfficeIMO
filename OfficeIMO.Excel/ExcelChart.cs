@@ -50,12 +50,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Gets the chart data range when it is known.
+        /// Gets the chart data range when it is known, including the worksheet range a saved chart references.
         /// </summary>
         public ExcelChartDataRange? DataRange {
             get {
-                if (_dataRange != null) GetChartPart();
-                return _dataRange;
+                // Resolving the part also refreshes a range invalidated by a save.
+                ChartPart chartPart = GetChartPart();
+                return _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
             }
         }
 
@@ -148,12 +149,18 @@ namespace OfficeIMO.Excel {
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
         public bool TryGetSnapshot(out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(null, out snapshot);
+            TryGetSnapshotCore(null, out snapshot, out _);
 
         internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(geometry, out snapshot);
+            TryGetSnapshotCore(geometry, out snapshot, out _);
 
-        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot) {
+        /// <summary>Reads the snapshot and reports why a chart whose data resolved cannot be projected.</summary>
+        internal bool TryGetSnapshot(out ExcelChartInfo snapshot, out string? unsupportedReason) =>
+            TryGetSnapshotCore(null, out snapshot, out unsupportedReason);
+
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot,
+            out string? unsupportedReason) {
+            unsupportedReason = null;
             if (!TryGetData(out ExcelChartData data)) {
                 snapshot = null!;
                 return false;
@@ -184,6 +191,7 @@ namespace OfficeIMO.Excel {
             } catch (Exception exception) when (exception is ArgumentException || exception is FormatException ||
                 exception is OverflowException || exception is NotSupportedException) {
                 snapshot = null!;
+                unsupportedReason = exception is NotSupportedException ? exception.Message : exception.GetType().Name + ": " + exception.Message;
                 return false;
             }
         }

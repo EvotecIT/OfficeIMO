@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\OfficeIMO.TestAssets\ChartImageThemeFixture.cs" Link="Shared\ChartImageThemeFixture.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\RepositoryTestPaths.cs" Link="Shared\RepositoryTestPaths.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\Pdf\PdfOperatorSearchText.cs" Link="Pdf\PdfOperatorSearchText.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\Pdf\OfficeSvgPartDamage.cs" Link="Pdf\OfficeSvgPartDamage.cs" />

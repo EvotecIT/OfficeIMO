@@ -272,6 +272,26 @@ OfficeConversionReport report = book.SaveAsPdf("Orders.pdf");
 Console.WriteLine($"{report.ItemsWritten} pages, loss: {report.HasLoss}");
 ```
 
+## Chart images
+
+Render each worksheet chart on its own. Scheme colours and series without explicit colours resolve against the workbook theme:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+int number = 0;
+foreach (ExcelChart chart in book.Sheets.SelectMany(sheet => sheet.Charts)) {
+    OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { Scale = 2 });
+    File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
+    foreach (OfficeImageExportDiagnostic diagnostic in png.Diagnostics) Console.WriteLine(diagnostic.Message);
+}
+```
+
+`OfficeChartImageExportOptions` is shared with Word and PowerPoint charts; set `Format`, `Width` and `Height` on it, or leave the size unset to keep the chart's anchor size. `SaveAsImage(pathOrStream, options)` writes the image and returns an `OfficeConversionReport`. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason, and `TryGetOfficeSnapshot` checks first without throwing.
+
 ## Validate package signatures from a stream
 
 Pass the original XLSX/XLSM package stream and an explicit security provider.

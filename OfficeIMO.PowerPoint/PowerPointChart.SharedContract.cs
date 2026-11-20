@@ -129,30 +129,41 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Tries to expose the current chart through the shared dependency-free chart contract.</summary>
-        public bool TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) {
-            if (!TryGetSnapshot(out PowerPointChartSnapshot powerPointSnapshot)) {
+        public bool TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) =>
+            TryGetOfficeSnapshot(null, null, out snapshot, out _, out _);
+
+        /// <summary>Projects the chart at an optional logical extent (point units by default) and reports why an unsupported chart cannot be projected.</summary>
+        internal bool TryGetOfficeSnapshot(double? width, double? height, out OfficeChartSnapshot snapshot,
+            out string? failureReason, out string? projectionNotice) {
+            projectionNotice = null;
+            if (!TryGetSnapshot(out PowerPointChartSnapshot powerPointSnapshot, out failureReason)) {
                 snapshot = null!;
+                failureReason ??= "The chart could not be projected.";
                 return false;
             }
             if (powerPointSnapshot.Data.Series.Any(item => item.BubbleSizes != null &&
                 (item.XValues == null || item.BubbleSizes.Any(size =>
                     double.IsNaN(size) || double.IsInfinity(size) || size < 0D)))) {
                 snapshot = null!;
+                failureReason = "The bubble sizes are missing X values or are not finite non-negative numbers.";
                 return false;
             }
             snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
-                powerPointSnapshot.Width.ToPoints(), powerPointSnapshot.Height.ToPoints());
+                width ?? powerPointSnapshot.Width.ToPoints(), height ?? powerPointSnapshot.Height.ToPoints());
             if (GetChartPart().ChartSpace?.GetFirstChild<C.Chart>() is C.Chart nativeChart &&
                 OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(nativeChart,
                     snapshot.Data.Series, snapshot.ChartKind)) {
                 snapshot = null!;
+                failureReason = "The chart hides data labels above the axis maximum, which the shared chart renderer cannot reproduce.";
                 return false;
             }
             if (HasUnprojectedNativeAxisUnits(snapshot.Layout) ||
                 OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
                 snapshot = null!;
+                failureReason = "The chart axis units cannot be projected.";
                 return false;
             }
+            projectionNotice = powerPointSnapshot.ProjectionNotice;
             return true;
         }
 

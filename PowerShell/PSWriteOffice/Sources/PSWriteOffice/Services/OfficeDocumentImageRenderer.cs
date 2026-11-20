@@ -19,9 +19,18 @@ internal static class OfficeDocumentImageRenderer {
         string? range, string? chart, CancellationToken token) {
         var results = new List<OfficeImageExportResult>();
         switch (document) {
+            case WordDocument word when chart != null:
+                RenderCharts(word.Charts.Where(item => IsChart(item.Name, chart)).ToArray(), chart, "the Word document",
+                    (item, cancellation) => item.ToImage(ChartOptions(options.Word, format), cancellation), results, token, options.Word);
+                break;
             case WordDocument word:
                 if (pages != null) options.Word.PageSelection = pages.Selection;
                 word.ToImages(format, results.Add, options.Word, token);
+                break;
+            case PowerPointDocument slides when chart != null:
+                RenderCharts(slides.Slides.SelectMany(slide => slide.Charts).Where(item => IsChart(item.Name, chart)).ToArray(), chart,
+                    "the presentation slides", (item, cancellation) => item.ToImage(ChartOptions(options.PowerPoint, format), cancellation), results, token,
+                    options.PowerPoint);
                 break;
             case PowerPointDocument slides:
                 if (pages != null) options.PowerPoint.SlideNumbers = pages.Selection.Resolve(slides.Slides.Count);
@@ -64,5 +73,22 @@ internal static class OfficeDocumentImageRenderer {
             default: throw new PSArgumentException("The document has no native image exporter.");
         }
         return results.AsReadOnly();
+    }
+
+    /// <summary>Carries the shared settings captured for the document format into the chart image options.</summary>
+    private static OfficeChartImageExportOptions ChartOptions(OfficeImageExportOptions source, OfficeImageExportFormat format) {
+        OfficeChartImageExportOptions options = source.CopyImageExportOptionsTo(new OfficeChartImageExportOptions());
+        options.Format = format;
+        return options;
+    }
+
+    private static bool IsChart(string? name, string requested) => string.Equals(name, requested, StringComparison.OrdinalIgnoreCase);
+
+    private static void RenderCharts<TChart>(TChart[] charts, string requested, string location,
+        Func<TChart, CancellationToken, OfficeImageExportResult> render, List<OfficeImageExportResult> results,
+        CancellationToken token, OfficeImageExportOptions options) {
+        if (charts.Length == 0) throw new PSArgumentException("Chart '" + requested + "' does not exist in " + location + ".");
+        OfficeImageExportBatchProcessor.ForEachOrdered(charts, 1, (item, _, cancellation) => render(item, cancellation),
+            results.Add, token, options);
     }
 }

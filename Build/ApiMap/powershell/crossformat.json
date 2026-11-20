@@ -2608,7 +2608,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2690,7 +2690,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2772,7 +2772,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2861,7 +2861,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -2882,7 +2882,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3203,7 +3203,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3267,7 +3267,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3352,7 +3352,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3437,7 +3437,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3529,7 +3529,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -3550,7 +3550,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3883,7 +3883,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3944,7 +3944,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4019,7 +4019,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4094,7 +4094,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4176,7 +4176,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4197,7 +4197,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -4507,7 +4507,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -4574,7 +4574,7 @@
               "mandatory": true,
               "position": 1,
               "pipeline": "none",
-              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}, and a Word or PowerPoint chart uses {BaseName}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
             },
             {
               "name": "Format",
@@ -4985,7 +4985,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -5283,7 +5283,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -5548,7 +5548,7 @@
               "type": "string",
               "mandatory": true,
               "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
+              "note": "A chart name within -Sheet for Excel sources, or a chart name in a Word document or on PowerPoint slides (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
