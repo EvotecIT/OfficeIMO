@@ -5,10 +5,13 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 /// <summary>
 /// Compares complete in-memory HTML parsing, paged layout, and PDF serialization
-/// from one identical HTML document.
+/// from one identical HTML document. Chromium opens a fresh browser session before every iteration, which makes
+/// BenchmarkDotNet time one invocation per iteration; every library runs with that same job so the results compare
+/// as one configuration.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
+[InvocationCount(1)]
 public class PdfHtmlBenchmarks {
     private PdfBenchmarkScenario _scenario = null!;
     private string _html = null!;
