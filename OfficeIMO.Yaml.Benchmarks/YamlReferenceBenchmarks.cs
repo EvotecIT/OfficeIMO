@@ -94,13 +94,14 @@ public class YamlLoadTreeBenchmarks {
     [BenchmarkCategory("library:SharpYaml", "case:Default")]
     public long SharpYaml() => Run(YamlReferenceLibraries.SharpYaml);
 
+    /// <summary>OfficeIMO's tree alone; it reads scalar values on demand, so this lane leaves them unread.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
+    [BenchmarkCategory("library:OfficeIMO", "case:LazyValues")]
     public long OfficeIMOYaml() => Run(YamlReferenceLibraries.OfficeIMOYaml);
 
     /// <summary>Also reads every scalar value, which the reference trees materialize while loading.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:OfficeIMO", "case:WithValues")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOYamlWithValues() {
         long total = 0;
         foreach (string input in _inputs) total += YamlReferenceLibraries.OfficeIMOYaml.LoadTreeAndValues(input);
@@ -109,11 +110,11 @@ public class YamlLoadTreeBenchmarks {
 
     private void Setup(IYamlReferenceLibrary library) {
         _inputs = YamlWorkloads.Get(Workload);
-        // OfficeIMO's tree reads scalar values on demand; only its WithValues lane does the reference trees' work, so
-        // only that case is recorded as validated.
+        // OfficeIMO's tree reads scalar values on demand; only its Default lane, which also reads them, does the
+        // reference trees' work, so only that case is recorded as validated.
         YamlWorkloadValidation.Record(library, Workload, "tree covers every node event; loaded values match {other}",
             () => YamlWorkloadValidation.ValidateLoad(library, Workload, _inputs),
-            ReferenceEquals(library, YamlReferenceLibraries.OfficeIMOYaml) ? "WithValues" : "");
+            ReferenceEquals(library, YamlReferenceLibraries.OfficeIMOYaml) ? "Default" : "");
     }
 
     private long Run(IYamlReferenceLibrary library) {

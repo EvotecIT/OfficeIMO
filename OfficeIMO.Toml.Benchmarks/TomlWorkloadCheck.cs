@@ -65,8 +65,8 @@ public static class TomlWorkloadCheck {
 
     /// <summary>
     /// Every loader's model holds the same leaf values at the same paths. Tomlyn's model is the reference for the other
-    /// three and CsToml's for Tomlyn. OfficeIMO's undecoded lane is not recorded: it leaves values undecoded, so only
-    /// its WithValues lane does the reference loaders' work.
+    /// three and CsToml's for Tomlyn. OfficeIMO's LazyValues lane is not recorded: it leaves values undecoded, so only
+    /// its Default lane, which decodes every value, does the reference loaders' work.
     /// </summary>
     public static void RecordLoad(TomlWorkload workload) {
         string[] inputs = TomlWorkloads.Get(workload);
@@ -76,7 +76,7 @@ public static class TomlWorkloadCheck {
         List<string>[] officeIMO = inputs.Select(input => TomlContentCheck.LeavesOfficeIMO(TomlLibraries.LoadOfficeIMO(input))).ToArray();
         string detail = "Workload=" + workload + "; " + tomlyn.Sum(leaves => leaves.Count) + " leaf values with their table and array paths (hash " +
             TomlContentCheck.Hash(tomlyn.SelectMany(leaves => leaves)) + ")";
-        TomlContentCheck.Record("OfficeIMO", "WithValues", detail + " match Tomlyn's model", () => CompareEach(inputs, index => TomlContentCheck.Compare("leaves against Tomlyn", tomlyn[index], officeIMO[index])));
+        TomlContentCheck.Record("OfficeIMO", "Default", detail + " match Tomlyn's model", () => CompareEach(inputs, index => TomlContentCheck.Compare("leaves against Tomlyn", tomlyn[index], officeIMO[index])));
         TomlContentCheck.Record("Tomlet", "Default", detail + " match Tomlyn's model", () => CompareEach(inputs, index => TomlContentCheck.Compare("leaves against Tomlyn", tomlyn[index], tomlet[index])));
         TomlContentCheck.Record("CsToml", "Default", detail + " match Tomlyn's model", () => CompareEach(inputs, index => TomlContentCheck.Compare("leaves against Tomlyn", tomlyn[index], csToml[index])));
         TomlContentCheck.Record("Tomlyn", "Default", detail + " match CsToml's model", () => CompareEach(inputs, index => TomlContentCheck.Compare("leaves against CsToml", csToml[index], tomlyn[index])));
