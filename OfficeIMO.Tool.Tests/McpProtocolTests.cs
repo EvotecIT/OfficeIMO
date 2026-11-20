@@ -35,7 +35,7 @@ public sealed class McpProtocolTests {
             if (!usePackagedTool) arguments.Add(assemblyPath);
             arguments.AddRange(["mcp", "serve", "--stdio"]);
             if (acceptDownload) arguments.Add("--yes");
-            var transport = new StdioClientTransport(new StdioClientTransportOptions {
+            var serverOptions = new StdioClientTransportOptions {
                 Name = "officeimo-root-test",
                 Command = usePackagedTool ? packagedToolPath! : Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
                 Arguments = arguments,
@@ -43,11 +43,10 @@ public sealed class McpProtocolTests {
                 EnvironmentVariables = new Dictionary<string, string?> {
                     [AgentPathPolicy.AllowedRootsEnvironmentVariable] = allowedRoot
                 }
-            });
+            };
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await using McpClient client = await McpClient.CreateAsync(
-                transport,
-                cancellationToken: timeout.Token);
+            await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+            McpClient client = server.Client;
 
             CallToolResult allowed = await client.CallToolAsync(
                 "officeimo_inspect",
@@ -107,7 +106,7 @@ public sealed class McpProtocolTests {
         string? packagedToolPath = Environment.GetEnvironmentVariable(
             "OFFICEIMO_PACKAGED_TOOL_PATH");
         bool usePackagedTool = !string.IsNullOrWhiteSpace(packagedToolPath);
-        var transport = new StdioClientTransport(new StdioClientTransportOptions {
+        var serverOptions = new StdioClientTransportOptions {
             Name = "officeimo-test",
             Command = usePackagedTool ? packagedToolPath! : Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet",
             Arguments = usePackagedTool
@@ -117,11 +116,10 @@ public sealed class McpProtocolTests {
             EnvironmentVariables = new Dictionary<string, string?> {
                 [AgentPathPolicy.AllowedRootsEnvironmentVariable] = Path.GetDirectoryName(assemblyPath)
             }
-        });
+        };
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        await using McpClient client = await McpClient.CreateAsync(
-            transport,
-            cancellationToken: timeout.Token);
+        await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+        McpClient client = server.Client;
 
         var tools = await client.ListToolsAsync(cancellationToken: timeout.Token);
         Assert.Equal(

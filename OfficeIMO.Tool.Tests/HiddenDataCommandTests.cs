@@ -81,13 +81,14 @@ public sealed class HiddenDataCommandTests {
             Assert.Empty(OfficeProvenanceInspector.InspectFile(cleaned).Evidence);
             Assert.Equal(2, (await RunAsync("hidden-data", "remove", input, "--kinds", "everything")).ExitCode);
 
-            var transport = new StdioClientTransport(new() {
+            var serverOptions = new StdioClientTransportOptions {
                 Name = "officeimo-hidden-data-test", Command = "dotnet", Arguments = [typeof(OfficeImoToolApp).Assembly.Location, "mcp", "serve", "--stdio"],
                 WorkingDirectory = directory,
                 EnvironmentVariables = new Dictionary<string, string?> { [AgentPathPolicy.AllowedRootsEnvironmentVariable] = directory }
-            });
+            };
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            await using McpClient client = await McpClient.CreateAsync(transport, cancellationToken: timeout.Token);
+            await using McpTestServer server = await McpTestServer.StartAsync(serverOptions, timeout.Token);
+            McpClient client = server.Client;
             string mcpOutput = Path.Combine(directory, "mcp.docx");
             var arguments = new Dictionary<string, object?> { ["path"] = input, ["outputPath"] = mcpOutput, ["kinds"] = new[] { "default", "provenance" } };
             CallToolResult removed = await client.CallToolAsync("officeimo_remove_hidden_data", arguments, cancellationToken: timeout.Token);
