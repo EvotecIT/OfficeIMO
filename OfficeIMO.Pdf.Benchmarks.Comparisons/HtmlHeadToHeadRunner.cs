@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using HtmlTinkerX;
 using Microsoft.Playwright;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -36,6 +37,10 @@ internal static class HtmlHeadToHeadRunner {
         string[] documents = Directory.GetFiles(corpus, "*.html")
             .Where(path => selected == null || selected.Contains(Path.GetFileNameWithoutExtension(path)))
             .OrderBy(path => path, StringComparer.Ordinal).ToArray();
+
+        if (documents.Length > 0 && engines.Contains("Chromium", StringComparer.Ordinal)) {
+            await HtmlBrowser.EnsureInstalledAsync(HtmlBrowserEngine.Chromium);
+        }
 
         var records = new List<WorkerRecord>();
         string resultsPath = Path.Combine(output, "measurements.jsonl");
@@ -291,28 +296,23 @@ internal static class HtmlHeadToHeadRunner {
     /// <summary>Holds per-instance engine state: PeachPDF allows sequential generator reuse, not concurrent use.</summary>
     private sealed class Renderer : IAsyncDisposable {
         private readonly string _engine;
-        private readonly IPlaywright? _playwright;
-        private readonly IBrowser? _browser;
-        private readonly IPage? _page;
+        private readonly HtmlBrowserSession? _chromium;
         private readonly PdfGenerator? _peach;
 
-        private Renderer(string engine, IPlaywright? playwright, IBrowser? browser, IPage? page, PdfGenerator? peach) {
+        private Renderer(string engine, HtmlBrowserSession? chromium, PdfGenerator? peach) {
             _engine = engine;
-            _playwright = playwright;
-            _browser = browser;
-            _page = page;
+            _chromium = chromium;
             _peach = peach;
         }
 
         internal static async Task<Renderer> CreateAsync(string engine) {
             if (engine == "Chromium") {
-                IPlaywright playwright = await Playwright.CreateAsync();
-                IBrowser browser = await playwright.Chromium.LaunchAsync();
-                return new Renderer(engine, playwright, browser, await browser.NewPageAsync(), null);
+                HtmlBrowserSession chromium = await HtmlBrowser.OpenSessionAsync("about:blank", new HtmlBrowserLaunchOptions { LoadState = HtmlBrowserLoadState.Load });
+                return new Renderer(engine, chromium, null);
             }
             return engine switch {
-                "PeachPDF" => new Renderer(engine, null, null, null, new PdfGenerator()),
-                "OfficeIMO" or "PdfPecker" => new Renderer(engine, null, null, null, null),
+                "PeachPDF" => new Renderer(engine, null, new PdfGenerator()),
+                "OfficeIMO" or "PdfPecker" => new Renderer(engine, null, null),
                 _ => throw new ArgumentException("Unknown engine " + engine)
             };
         }
@@ -340,16 +340,13 @@ internal static class HtmlHeadToHeadRunner {
                         Accessibility = global::PdfPecker.PdfAccessibility.Tagged
                     }, CancellationToken.None);
                 default:
-                    await _page!.SetContentAsync(html, new PageSetContentOptions { WaitUntil = WaitUntilState.Load });
-                    return await _page.PdfAsync(new PagePdfOptions {
-                        Format = "A4", PrintBackground = true, PreferCSSPageSize = true, Tagged = true
-                    });
+                    await _chromium!.Page.SetContentAsync(html, new PageSetContentOptions { WaitUntil = WaitUntilState.Load });
+                    return await HtmlPdfComparisonRenderers.CaptureChromiumPageAsync(_chromium);
             }
         }
 
         public async ValueTask DisposeAsync() {
-            if (_browser != null) await _browser.CloseAsync();
-            _playwright?.Dispose();
+            if (_chromium != null) await _chromium.DisposeAsync();
         }
     }
 

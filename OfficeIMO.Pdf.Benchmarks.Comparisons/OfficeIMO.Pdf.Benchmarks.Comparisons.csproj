@@ -98,6 +98,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <!-- PDFsharp-MigraDoc resolves PKCS 8.0.1 here, which is affected by two security advisories. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="8.0.2" />
     <Compile Remove="**/*.cs" />
     <Compile Include="BenchmarkAffinityGuard.cs" />
     <Compile Include="ITextPdfGenerator.cs" />

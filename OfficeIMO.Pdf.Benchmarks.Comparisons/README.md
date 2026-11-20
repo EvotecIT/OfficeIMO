@@ -252,7 +252,7 @@ For a longer warmup and calibration of the same nine cases, run `pwsh Build/Run-
 
 Every engine runs with its default fonts and options, A4 and tagged output, in its own worker process. A timed first document includes browser start-up where there is one; cold runs report that first document and its peak RSS. Warm and parallel runs first warm up for 30 documents or 20 seconds, whichever comes first, so the just-in-time compiler has optimised a slow engine as fully as a fast one (`--warmup` and `--warmup-seconds` change this). Every timed render must return a complete PDF. The worker records wall and CPU time, allocation, peak RSS and parallel throughput. `html-head-to-head-stages` splits OfficeIMO's warm cost into parsing, layout alone and the full conversion; `ToPdf` writes the PDF while converting, so writing is part of that last stage. Fidelity is judged afterwards by one independent rasteriser: `pdftoppm` at 96 DPI against the Chromium page. The ink score is the mismatch on lightly blurred pages divided by the ink present on either page, so antialiasing does not dominate and blank margins do not flatter a result. Read the scores with the contact sheet: Chromium does not implement every CSS feature in the corpus, and a score only measures distance from Chromium.
 
-Requires Pillow plus `pdftoppm`, `pdftotext`, `pdfinfo`, `pdffonts` and `qpdf` on `PATH`, and the Playwright Chromium revision matching `Microsoft.Playwright`.
+Requires Pillow plus `pdftoppm`, `pdftotext`, `pdfinfo`, `pdffonts` and `qpdf` on `PATH`. When Chromium is selected, HtmlTinkerX installs the matching revision before timing starts.
 
 ```sh
 python3 OfficeIMO.Pdf.Benchmarks.Comparisons/HeadToHead/h2h.py corpus --out "$OUT/corpus" --peers "$PEER_CLONES"
