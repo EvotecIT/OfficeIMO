@@ -170,14 +170,10 @@ public partial class WordDocument {
         internal override bool TryGetStyleIdForBuiltInName(string builtInStyleId, out string? styleId) {
             styleId = null;
             if (!WordBuiltInStyleNames.TryGetName(builtInStyleId, out string name)) return false;
-            // The first style with the built-in name and the built-in style's type, as the loaded index picks it.
-            foreach (WordStyleDefinitionsReader.StyleDefinition definition in _catalog.FindDefinitionsByName(name)) {
-                if (definition.StyleId is { Length: > 0 } id && WordBuiltInStyleNames.Classify(id, definition.Name, definition.Type) == builtInStyleId) {
-                    styleId = id;
-                    return true;
-                }
-            }
-            return false;
+            // The first referenceable style with the built-in name and the built-in style's type, as the loaded index picks it.
+            styleId = _catalog.FindReferenceableByName(name, definition =>
+                WordBuiltInStyleNames.Classify(definition.StyleId, definition.Name, definition.Type) == builtInStyleId)?.StyleId;
+            return styleId != null;
         }
     }
 
@@ -188,6 +184,8 @@ public partial class WordDocument {
         internal BuiltInStyleIndex(Styles? styles) {
             Styles = styles;
             if (styles == null) return;
+            // The same filter as WordStyleCatalog.FindReferenceableByName: a style needs an identifier, and only the first
+            // definition of an identifier is the one content resolves to.
             foreach (Style style in styles.Elements<Style>()) {
                 string? id = style.StyleId?.Value;
                 if (string.IsNullOrEmpty(id) || _definitions.ContainsKey(id!)) continue;

@@ -162,6 +162,25 @@ internal sealed class WordStyleCatalog {
     }
 
     /// <summary>
+    /// The first style named <paramref name="name"/> that content can reference and <paramref name="accept"/> takes:
+    /// it has an identifier, and that identifier resolves back to this definition rather than to an earlier style that
+    /// holds the same identifier. Every name-based lookup goes through this filter, so malformed files with shared names,
+    /// shared identifiers or missing identifiers resolve the same way while the styles part is unloaded or loaded.
+    /// </summary>
+    internal StyleDefinition? FindReferenceableByName(string name, Func<StyleDefinition, bool> accept) {
+        foreach (StyleDefinition definition in FindDefinitionsByName(name)) {
+            if (string.IsNullOrEmpty(definition.StyleId) || !accept(definition)) continue;
+            if (_firstById != null) {
+                if (_firstById.TryGetValue(definition.StyleId!, out StyleDefinition? first) && ReferenceEquals(first, definition)) return definition;
+                continue;
+            }
+            Style? firstWithId = _loaded?.Elements<Style>().FirstOrDefault(style => string.Equals(style.StyleId?.Value, definition.StyleId, StringComparison.Ordinal));
+            if (firstWithId != null && ReferenceEquals(firstWithId, definition.Element)) return definition;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// The facts of every style whose <c>w:name</c> matches <paramref name="name"/>, in document order, so a caller
     /// that needs one type can take the first of that type even when a style of another type shares the name.
     /// </summary>

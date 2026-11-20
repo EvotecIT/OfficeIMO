@@ -236,13 +236,18 @@ namespace OfficeIMO.Tests {
             using (var output = new MemoryStream()) {
                 using (WordDocument source = WordDocument.Create(output)) {
                     source.Styles.Remove("Heading1");
-                    // A malformed file: a table style and a character style share the name of the localized heading.
+                    source.Styles.Remove("Heading2");
+                    // A malformed file: styles of another type share names, and identifiers, with the paragraph styles,
+                    // and a paragraph style has no identifier.
                     Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                     styles.Append(
                         new Style(new StyleName { Val = "heading 1" }) { Type = StyleValues.Table, StyleId = "HeadingTable" },
                         new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Character, StyleId = "BodyNoteRun" },
+                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Paragraph },
                         new Style(new StyleName { Val = "heading 1" }) { Type = StyleValues.Paragraph, StyleId = "Titre1" },
-                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Paragraph, StyleId = "BodyNote" });
+                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Paragraph, StyleId = "BodyNote" },
+                        new Style(new StyleName { Val = "heading 2" }) { Type = StyleValues.Table, StyleId = "Titre2" },
+                        new Style(new StyleName { Val = "heading 2" }) { Type = StyleValues.Paragraph, StyleId = "Titre2" });
                     source.AddParagraph("Overview").SetStyleId("Titre1");
                     source.Save();
                 }
@@ -255,6 +260,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Titre1", document.FindBuiltInStyleId("Heading1"));
             Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs.Single(paragraph => paragraph.Text == "Overview").Style);
             Assert.Equal("BodyNote", document.Styles.FindParagraphStyleId("Body note"));
+            // Titre2 resolves to the earlier table style, so no paragraph style stands for heading 2.
+            Assert.Null(document.FindBuiltInStyleId("Heading2"));
             Assert.Equal(loadStyles, document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.IsRootElementLoaded);
         }
 

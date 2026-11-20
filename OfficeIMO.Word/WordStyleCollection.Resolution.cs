@@ -6,8 +6,9 @@ public sealed partial class WordStyleCollection {
     internal string? FindParagraphStyleId(string styleIdOrName) {
         if (string.IsNullOrWhiteSpace(styleIdOrName)) return null;
         if (FindById(styleIdOrName) is { Type: WordStyleType.Paragraph } byId) return byId.StyleId;
-        // The first paragraph style with the name, even when a style of another type shares it.
-        return FindAllByName(styleIdOrName).FirstOrDefault(style => style.Type == WordStyleType.Paragraph)?.StyleId;
+        // The first referenceable paragraph style with the name, even when a style of another type shares it.
+        return WordStyleCatalog.For(_document).FindReferenceableByName(styleIdOrName, definition =>
+            string.IsNullOrEmpty(definition.Type) || string.Equals(definition.Type, "paragraph", StringComparison.Ordinal))?.StyleId;
     }
 
     /// <summary>
