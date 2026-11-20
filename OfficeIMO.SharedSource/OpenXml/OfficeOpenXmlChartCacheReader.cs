@@ -35,7 +35,8 @@ namespace OfficeIMO.OpenXml.Internal {
             return Array.Empty<string>();
         }
 
-        internal static IReadOnlyList<double> ReadCachedNumbers(OpenXmlElement? container, int maximumPoints) {
+        /// <summary>Reads a numeric cache. A point Office left out (an empty cell) becomes <paramref name="missingValue"/>.</summary>
+        internal static IReadOnlyList<double> ReadCachedNumbers(OpenXmlElement? container, int maximumPoints, double missingValue = 0D) {
             if (container == null) {
                 return Array.Empty<double>();
             }
@@ -60,7 +61,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
                 return 0D;
                 },
-                0D, maximumPoints);
+                missingValue, maximumPoints);
         }
 
         internal static IReadOnlyList<TValue> CreateIndexedCache<TPoint, TValue>(

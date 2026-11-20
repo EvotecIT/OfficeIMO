@@ -87,7 +87,9 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor legendTextColor = GetLegendTextColor(style);
         double rowHeight = layout.LegendRowHeight;
         double visibleRows = Math.Min(legendIndexes.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
-        double startY = y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
+        // A top-right legend (OOXML tr) starts at the top of its column instead of being centred on the plot.
+        double startY = layout.LegendPosition == OfficeChartLegendPosition.TopRight ? y :
+            y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
         AddLegendFrame(drawing, x - 2D, startY - 2D, width + 4D, visibleRows * rowHeight + 4D, style);
         for (int i = 0; i < legendIndexes.Count && i < visibleRows; i++) {
             int seriesIndex = legendIndexes[i];
@@ -114,7 +116,9 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor legendTextColor = GetLegendTextColor(style);
         double rowHeight = layout.LegendRowHeight;
         double visibleRows = Math.Min(legendIndexes.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
-        double startY = y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
+        // A top-right legend (OOXML tr) starts at the top of its column instead of being centred on the plot.
+        double startY = layout.LegendPosition == OfficeChartLegendPosition.TopRight ? y :
+            y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
         AddLegendFrame(drawing, x - 2D, startY - 2D, width + 4D, visibleRows * rowHeight + 4D, style);
         for (int i = 0; i < legendIndexes.Count && i < visibleRows; i++) {
             int categoryIndex = legendIndexes[i];
@@ -283,7 +287,8 @@ public static partial class OfficeChartDrawingRenderer {
     private static bool ShouldRenderLegendSide(OfficeChartLayout layout) =>
         layout.ShowLegend &&
         !layout.OverlayLegend &&
-        (layout.LegendPosition == OfficeChartLegendPosition.Left || layout.LegendPosition == OfficeChartLegendPosition.Right);
+        (layout.LegendPosition == OfficeChartLegendPosition.Left || layout.LegendPosition == OfficeChartLegendPosition.Right ||
+         layout.LegendPosition == OfficeChartLegendPosition.TopRight);
 
     private static double GetLegendBandHeight(IEnumerable<string?> labels, double chartWidth, OfficeChartLayout layout) {
         int count = labels.Count();
@@ -1223,7 +1228,7 @@ public static partial class OfficeChartDrawingRenderer {
         double barBottom,
         int seriesIndex,
         int pointIndex) {
-        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex) || IsDataLabelOverMaximum(value)) {
             return;
         }
 
@@ -1266,7 +1271,7 @@ public static partial class OfficeChartDrawingRenderer {
         double barBottom,
         int seriesIndex,
         int pointIndex) {
-        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex) || IsDataLabelOverMaximum(value)) {
             return;
         }
 
@@ -1308,7 +1313,7 @@ public static partial class OfficeChartDrawingRenderer {
         double y,
         int seriesIndex,
         int pointIndex) {
-        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex) || IsDataLabelOverMaximum(value)) {
             return;
         }
 
@@ -1376,6 +1381,11 @@ public static partial class OfficeChartDrawingRenderer {
     // Labels placed while one chart renders. Series may draw their labels into clipped
     // sub-drawings, so the registry belongs to the render pass rather than to one drawing.
     [ThreadStatic] private static List<ChartLabelBounds>? _renderPassLabels;
+
+    // The value-axis maximum above which this render pass hides data labels (OOXML showDLblsOverMax off), or null.
+    [ThreadStatic] private static double? _renderPassLabelMaximum;
+
+    private static bool IsDataLabelOverMaximum(double value) => _renderPassLabelMaximum is double maximum && value > maximum;
 
     private readonly struct ChartLabelBounds {
         internal ChartLabelBounds(double left, double top, double right, double bottom) {

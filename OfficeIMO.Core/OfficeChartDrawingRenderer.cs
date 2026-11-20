@@ -22,17 +22,21 @@ public static partial class OfficeChartDrawingRenderer {
     public static OfficeDrawing Render(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         List<ChartLabelBounds>? previousLabels = _renderPassLabels;
+        double? previousLabelMaximum = _renderPassLabelMaximum;
         _renderPassLabels = new List<ChartLabelBounds>();
+        _renderPassLabelMaximum = null;
         try {
             return RenderCore(snapshot, useMinimumCanvas, diagnostics);
         } finally {
             _renderPassLabels = previousLabels;
+            _renderPassLabelMaximum = previousLabelMaximum;
         }
     }
 
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         ArgumentNullException.ThrowIfNull(snapshot);
+        snapshot = ApplyBlankDisplay(snapshot);
         if (!IsPieChart(snapshot.ChartKind) && !IsDoughnutChart(snapshot.ChartKind) &&
             snapshot.Data.Series.Any(series => series.PointExplosions != null))
             throw new NotSupportedException("Point explosions require a pie or doughnut chart.");
@@ -103,18 +107,26 @@ public static partial class OfficeChartDrawingRenderer {
         bool showVerticalAxis = barChart ? layout.ShowCategoryAxisLine : layout.ShowValueAxisLine;
         bool showHorizontalAxisLabels = barChart ? layout.ShowValueAxisLabels : layout.ShowCategoryAxisLabels;
         bool showVerticalAxisLabels = barChart ? layout.ShowCategoryAxisLabels : layout.ShowValueAxisLabels;
-        bool horizontalAxisCrossesAtMaximum = !barChart && layout.HorizontalAxisCrossingPosition == OfficeChartAxisCrossingPosition.Maximum;
-        bool verticalAxisCrossesAtMaximum = !barChart && layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.Maximum;
-        bool horizontalAxisLabelsHigh = layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
-            (layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && horizontalAxisCrossesAtMaximum);
-        bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
-            (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
         SecondaryAxisRenderContext secondaryAxis = CreateSecondaryAxisRenderContext(
             snapshot, layout, barChart, barChart ? showHorizontalAxisLabels : showVerticalAxisLabels);
         bool hasSecondaryAxis = secondaryAxis.HasSeries;
         bool hasSecondaryAxisTitle = hasSecondaryAxis && layout.ShowValueAxis &&
             !string.IsNullOrWhiteSpace(layout.SecondaryValueAxis?.Title);
         ValueRange axisRange = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondaryAxis);
+        if (!layout.ShowDataLabelsOverMaximum && !hasSecondaryAxis) _renderPassLabelMaximum = axisRange.Max;
+        // Each axis sits where it crosses the perpendicular axis: 0 is the bottom or left plot edge, 1 the top or right.
+        AxisCrossings crossings = GetAxisCrossings(snapshot, layout, barChart, axisRange);
+        bool horizontalAxisCrossesAtMaximum = crossings.Horizontal >= 1D;
+        bool verticalAxisCrossesAtMaximum = crossings.Vertical >= 1D;
+        bool horizontalAxisLabelsHigh = layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
+            (layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && horizontalAxisCrossesAtMaximum);
+        bool verticalAxisLabelsHigh = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.High ||
+            (layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo && verticalAxisCrossesAtMaximum);
+        // "Next to axis" labels follow an axis that crosses inside the plot, as Office draws them beside a zero line.
+        bool horizontalAxisLabelsAtAxis = layout.HorizontalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo &&
+            crossings.Horizontal > 0D && crossings.Horizontal < 1D;
+        bool verticalAxisLabelsAtAxis = layout.VerticalAxisTickLabelPosition == OfficeChartAxisTickLabelPosition.NextTo &&
+            crossings.Vertical > 0D && crossings.Vertical < 1D;
         ValueRange secondaryAxisRange = secondaryAxis.Range;
         double? valueAxisMajorUnit = GetValueAxisMajorUnit(layout, horizontal: barChart);
         IReadOnlyList<double> valueAxisMajorTicks = GetValueAxisMajorTicks(axisRange, valueAxisMajorUnit);
@@ -148,11 +160,14 @@ public static partial class OfficeChartDrawingRenderer {
             secondaryHorizontalTitleHeight + horizontalAxisTopLabelHeight;
         double legendWidth = GetSeriesLegendWidth(legendSeries, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        double plotLeft = 8D + verticalAxisTitleBand + verticalAxisLabelBandWidth + (leftLegend ? legendWidth : 0D);
+        // Labels drawn beside an axis inside the plot need no band outside it.
+        double verticalAxisLabelBandReserve = showVerticalAxisLabels && verticalAxisLabelsAtAxis ? 0D : verticalAxisLabelBandWidth;
+        double plotLeft = 8D + verticalAxisTitleBand + verticalAxisLabelBandReserve + (leftLegend ? legendWidth : 0D);
         double plotRight = 12D + secondaryVerticalTitleBand + verticalAxisRightLabelWidth + (leftLegend ? 0D : legendWidth);
         double horizontalAxisTitleHeight = HasHorizontalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
         // Category labels need about 20 pt below the plot; a bottom legend follows them directly.
-        double plotBottom = (bottomLegendHeight > 0D ? 28D : 40D) + horizontalAxisTitleHeight + bottomLegendHeight;
+        double plotBottom = (bottomLegendHeight > 0D ? 28D : 40D) -
+            (showHorizontalAxisLabels && horizontalAxisLabelsAtAxis ? 20D : 0D) + horizontalAxisTitleHeight + bottomLegendHeight;
         double minimumPlotWidth = Math.Min(20D, width);
         double minimumPlotHeight = Math.Min(20D, height);
         if (plotLeft + plotRight > width - minimumPlotWidth) {
@@ -178,14 +193,22 @@ public static partial class OfficeChartDrawingRenderer {
         double numericPlotHeight = Math.Max(
             1D, plotHeight - verticalBubblePadding * 2D);
         double plotBottomY = plotTop + plotHeight;
-        double horizontalAxisY = horizontalAxisCrossesAtMaximum ? plotTop : plotBottomY;
+        double horizontalAxisY = crossings.Horizontal <= 0D ? plotBottomY : crossings.Horizontal >= 1D ? plotTop :
+            numericPlotTop + numericPlotHeight * (1D - crossings.Horizontal);
         double axisLabelLeft = (leftLegend ? legendWidth + 2D : 2D) + verticalAxisTitleBand;
         double verticalAxisTitleLeft = (leftLegend ? legendWidth : 0D) + 4D;
         double axisLabelWidth = Math.Max(12D, verticalAxisLabelBandWidth);
         double axisLabelRight = plotLeft + plotWidth + 4D;
         double axisLabelRightWidth = Math.Max(12D,
             hasSecondaryAxis ? secondaryAxisLabelBandWidth : verticalAxisLabelBandWidth);
-        double verticalAxisX = verticalAxisCrossesAtMaximum ? plotLeft + plotWidth : plotLeft;
+        double verticalAxisX = crossings.Vertical <= 0D ? plotLeft : crossings.Vertical >= 1D ? plotLeft + plotWidth :
+            numericPlotLeft + numericPlotWidth * crossings.Vertical;
+        if (verticalAxisLabelsAtAxis) {
+            axisLabelWidth = Math.Max(1D, Math.Min(axisLabelWidth, verticalAxisX - 8D));
+            axisLabelLeft = verticalAxisX - 6D - axisLabelWidth;
+        }
+        // Labels beside an axis inside the plot sit just past the axis line instead of past the plot edge.
+        double horizontalAxisLabelBaseY = horizontalAxisLabelsAtAxis ? horizontalAxisY : plotBottomY;
 
         if (style.PlotAreaBackgroundColor.HasValue || style.PlotAreaBorderColor.HasValue) {
             AddShape(
@@ -472,7 +495,7 @@ public static partial class OfficeChartDrawingRenderer {
                     drawing,
                     axisRange,
                     plotLeft,
-                    horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
+                    horizontalAxisLabelsHigh ? plotTop - 13D : horizontalAxisLabelBaseY + 4D,
                     plotWidth,
                     horizontalValueAxisLabelWidth,
                     horizontalAxisLabelsHigh,
@@ -514,7 +537,7 @@ public static partial class OfficeChartDrawingRenderer {
                         drawing,
                         scatterXRange,
                         numericPlotLeft,
-                        horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 4D,
+                        horizontalAxisLabelsHigh ? plotTop - 13D : horizontalAxisLabelBaseY + 4D,
                         numericPlotWidth,
                         horizontalValueAxisLabelWidth,
                         horizontalAxisLabelsHigh,
@@ -526,7 +549,7 @@ public static partial class OfficeChartDrawingRenderer {
                         drawing,
                         snapshot.Data.Categories,
                         plotLeft,
-                        horizontalAxisLabelsHigh ? plotTop - 13D : plotBottomY + 7D,
+                        horizontalAxisLabelsHigh ? plotTop - 13D : horizontalAxisLabelBaseY + 7D,
                         plotWidth,
                         style,
                         layout,
@@ -1122,6 +1145,8 @@ public static partial class OfficeChartDrawingRenderer {
                 ValueRange range = horizontal ? horizontalRange : verticalRange;
                 double min = range.Min;
                 double max = range.Max;
+                // Clustered bars grow from where the category axis crosses the value axis, as in Office.
+                if (!seriesStacked) baseline = GetClusteredBarBaseline(layout, horizontal, range);
                 int layoutSlot = seriesStacked
                     ? stackedSlots[seriesKind]
                     : clusteredSlots[sourceSeriesIndex];
@@ -1572,6 +1597,7 @@ public static partial class OfficeChartDrawingRenderer {
             var lineSegment = new List<OfficePoint>(pointCount);
             for (int i = 0; i < pointCount; i++) {
                 if (!TryGetSeriesValue(currentSeries, i, out double yValue)) {
+                    if (layout.BlankDisplay == OfficeChartBlankDisplay.Span) continue;
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                         AddScatterPlotLine(lineGeometry, lineSegment, currentSeries.SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle,
                             clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin);
@@ -1717,10 +1743,16 @@ public static partial class OfficeChartDrawingRenderer {
                 plotted[i] = true;
             }
 
+            OfficePoint[] outlinePoints = points;
+            if (!allPointsPlotted && layout.BlankDisplay == OfficeChartBlankDisplay.Span) {
+                CompactPlottedPoints(points, plotted, out outlinePoints, out _);
+                allPointsPlotted = outlinePoints.Length >= 3;
+            }
+
             if (allPointsPlotted && series[s].ConnectLine) {
                 AddPolygonShape(
                     drawing,
-                    points,
+                    outlinePoints,
                     layout.FillRadarSeries && series[s].SeriesStyle?.NoFill != true ? series[s].SeriesStyle?.FillColor ?? color : null,
                     series[s].SeriesStyle?.ShowOutline == false ? null : series[s].SeriesStyle?.OutlineColor ?? color,
                     strokeWidth,

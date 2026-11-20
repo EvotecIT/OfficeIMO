@@ -2,14 +2,17 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
-        internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartType defaultKind) {
+        /// <param name="data">The chart data to validate.</param>
+        /// <param name="defaultKind">The chart's default family.</param>
+        /// <param name="allowEmptyValues">Whether NaN series values (empty cells read from a native cache) are accepted.</param>
+        internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartType defaultKind, bool allowEmptyValues = false) {
             ArgumentNullException.ThrowIfNull(data);
             if (!Enum.IsDefined(typeof(OfficeChartType), defaultKind))
                 throw new ArgumentOutOfRangeException(nameof(defaultKind), "Chart kind is not supported.");
             if (data.Series.Any(series => series.RenderKind.HasValue && !Enum.IsDefined(typeof(OfficeChartType), series.RenderKind.Value) ||
                 !Enum.IsDefined(typeof(OfficeChartAxisGroup), series.AxisGroup)))
                 throw new ArgumentException("Series chart kinds and axis groups must be supported values.", nameof(data));
-            ValidateSharedWorkbookDimensionsAndValues(data, defaultKind);
+            ValidateSharedWorkbookDimensionsAndValues(data, defaultKind, allowEmptyValues);
             if (defaultKind == OfficeChartType.Scatter && data.Series.Count > SpreadsheetMaximumColumns / 2)
                 throw new ArgumentException("Scatter chart data exceeds the embedded worksheet column limit.", nameof(data));
             if (defaultKind == OfficeChartType.Bubble) {
@@ -80,7 +83,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void ValidateSharedWorkbookDimensionsAndValues(
-            OfficeChartData data, OfficeChartType defaultKind) {
+            OfficeChartData data, OfficeChartType defaultKind, bool allowEmptyValues) {
             const int maximumCellTextLength = 32767;
             long totalPoints = data.Series.Sum(series =>
                 (long)series.Values.Count);
@@ -95,7 +98,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (series.Name.Length > maximumCellTextLength - generatedHeaderLength) {
                     throw new ArgumentException("Chart series text exceeds the embedded worksheet cell limit, including generated headers.", nameof(data));
                 }
-                if (series.Values.Any(value => double.IsNaN(value)
+                if (series.Values.Any(value => double.IsNaN(value) && !allowEmptyValues
                         || double.IsInfinity(value))
                     || series.XValues?.Any(value => double.IsNaN(value)
                         || double.IsInfinity(value)) == true
