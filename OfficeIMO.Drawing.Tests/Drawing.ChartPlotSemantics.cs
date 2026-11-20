@@ -210,6 +210,60 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.Contains(Texts(drawing), text => text.Text == "100");
     }
 
+    [Fact]
+    public void StackedColumnsOnALogarithmicAxisAddValuesBeforeScaling() {
+        OfficeColor upper = OfficeColor.Parse("#00A0D9");
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true)
+            .WithLogarithmicValueAxes(null, 10D);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnStacked, layout, Series(new double[] { 1, 10, 10, 10, 10 }),
+            new OfficeSeries("Rest", new double[] { 9, 90, 90, 90, 90 }, null, upper, null, showMarkers: false));
+
+        // 10 and 10 + 90 are one and two powers above 1, so both segments of a stack are one power tall.
+        OfficeDrawingShape lower = SeriesFill(drawing).OrderBy(bar => bar.X).ElementAt(1);
+        OfficeDrawingShape top = Shapes(drawing).Where(shape => shape.Shape.FillColor == upper).OrderBy(bar => bar.X).ElementAt(1);
+        Assert.Equal(1D, top.Shape.Height / lower.Shape.Height, 2);
+        Assert.Equal(lower.Y, top.Y + top.Shape.Height, 3);
+        Assert.Contains(Texts(drawing), text => text.Text == "90");
+    }
+
+    [Theory]
+    [InlineData(OfficeChartType.ColumnStacked100, 10D, "100% stacked")]
+    [InlineData(OfficeChartType.ColumnStacked, -10D, "negative values")]
+    [InlineData(OfficeChartType.AreaStacked, 0.5D, "below 1")]
+    [InlineData(OfficeChartType.LineStacked, 0.5D, "below 1")]
+    public void StacksALogarithmicAxisCannotShowAreRejected(OfficeChartType kind, double firstValue, string reason) {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(null, 10D);
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
+            Render(kind, layout, Series(new[] { firstValue, 10, 10, 10, 10 }), Series(new double[] { 5, 5, 5, 5, 5 })));
+        Assert.Contains(reason, error.Message);
+    }
+
+    [Fact]
+    public void LinearTrendlineOnALogarithmicAxisIsFittedToTheSourceValues() {
+        OfficeColor trend = OfficeColor.Parse("#00A0D9");
+        OfficeSeries series = Series(new double[] { 10, 20, 30, 40, 50 })
+            .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Linear, displayRSquared: true, color: trend));
+        OfficeDrawing drawing = Render(OfficeChartType.Line, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(null, 10D), series);
+
+        // The values lie on a straight line, so the fit passes through every point and draws as a curve on the log axis.
+        OfficePoint[] data = SeriesInk(drawing).Where(shape => shape.Shape.Kind == OfficeShapeKind.Line)
+            .SelectMany(shape => shape.Shape.Points.Select(point => new OfficePoint(shape.X + point.X, shape.Y + point.Y)))
+            .GroupBy(point => Math.Round(point.X, 3)).Select(group => group.First()).ToArray();
+        OfficePoint[] curve = Shapes(drawing).Where(shape => shape.Shape.StrokeColor == trend).SelectMany(PathPoints).ToArray();
+        Assert.Equal(5, data.Length);
+        Assert.All(data, point => Assert.True(curve.Min(sample => Math.Abs(sample.X - point.X) + Math.Abs(sample.Y - point.Y)) < 0.5D));
+        Assert.Contains(Texts(drawing), text => text.Text == "R² = 1");
+    }
+
+    [Fact]
+    public void ExponentialTrendlineOnAReversedAxisIsFittedToTheSourceValues() {
+        OfficeSeries series = Series(new double[] { 2, 4, 8, 16, 32 })
+            .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Exponential, displayRSquared: true));
+        OfficeDrawing drawing = Render(OfficeChartType.Line, new OfficeChartLayout(showLegend: false).WithReversedValueAxes(false, true), series);
+
+        Assert.Contains(Texts(drawing), text => text.Text == "R² = 1");
+    }
+
     [Theory]
     [InlineData(OfficeChartType.ColumnClustered)]
     [InlineData(OfficeChartType.BarClustered)]
@@ -331,6 +385,10 @@ public sealed class DrawingChartPlotSemanticsTests {
 
     private static IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing drawing) => drawing.Shapes.Concat(
         drawing.Elements.OfType<OfficeDrawingGroup>().SelectMany(group => Shapes(group.Drawing)));
+
+    private static IEnumerable<OfficePoint> PathPoints(OfficeDrawingShape shape) => shape.Shape.PathCommands
+        .Where(command => command.Kind is OfficePathCommandKind.MoveTo or OfficePathCommandKind.LineTo)
+        .Select(command => new OfficePoint(shape.X + command.Point.X, shape.Y + command.Point.Y));
 
     private static IEnumerable<OfficeDrawingText> Texts(OfficeDrawing drawing) => drawing.Elements.OfType<OfficeDrawingText>().Concat(
         drawing.Elements.OfType<OfficeDrawingGroup>().SelectMany(group => Texts(group.Drawing)));

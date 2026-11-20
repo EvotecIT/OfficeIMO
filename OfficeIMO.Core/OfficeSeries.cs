@@ -312,6 +312,10 @@ public sealed partial class OfficeSeries {
     /// <inheritdoc cref="SourceValue"/>
     internal Func<double, double>? SourceXValue { get; private set; }
 
+    /// <summary>The source value of each point when the plotted values are steps between scaled running totals,
+    /// as for a stacked series on a logarithmic axis; null otherwise.</summary>
+    internal IReadOnlyList<double>? SourcePointValues { get; private set; }
+
     /// <summary>Returns a copy plotted on transformed axes, with the restatements its labels use.</summary>
     internal OfficeSeries WithPlottedValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues,
         Func<double, double>? sourceValue, Func<double, double>? sourceXValue) {
@@ -326,6 +330,13 @@ public sealed partial class OfficeSeries {
         };
         copy.SourceValue = sourceValue;
         copy.SourceXValue = sourceXValue;
+        return copy;
+    }
+
+    /// <summary>Returns a copy plotted as steps between scaled running totals, labelled with its source values.</summary>
+    internal OfficeSeries WithStackedSteps(IReadOnlyList<double> steps, IReadOnlyList<double> sourceValues) {
+        OfficeSeries copy = WithPlottedValues(steps, XValues, null, SourceXValue);
+        copy.SourcePointValues = sourceValues;
         return copy;
     }
 

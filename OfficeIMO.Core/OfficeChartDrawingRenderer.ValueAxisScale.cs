@@ -40,14 +40,64 @@ public static partial class OfficeChartDrawingRenderer {
             series.Add(current.WithPlottedValues(plotted, plottedX, values ? toSource : null, xValues ? xToSource : null));
         }
 
+        IReadOnlyList<double> stackTotals = transformValues && GetLogBase(layout, valueOnHorizontal).HasValue
+            ? RestackOnLogarithmicAxis(snapshot, series, toPlot!)
+            : Array.Empty<double>();
         OfficeChartLayout plottingLayout = layout;
         if (transformValues) plottingLayout = RestateAxis(plottingLayout, valueOnHorizontal, series.Where(item => item.SourceValue != null)
-            .SelectMany(item => item.Values));
+            .SelectMany(item => item.Values).Concat(stackTotals));
         if (transformX) plottingLayout = RestateAxis(plottingLayout, horizontal: true, series.Where(item => item.SourceXValue != null)
             .SelectMany(item => item.XValues!));
         return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, new OfficeChartData(snapshot.Data.Categories, series),
             snapshot.Width, snapshot.Height, snapshot.Style, plottingLayout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode,
             snapshot.RadialLayout);
+    }
+
+    // Office adds stacked values before it scales them. Each stacked series is replotted as the steps between its
+    // scaled running totals, so the renderer's own stacking puts every segment between the totals below and above
+    // it, and its labels keep the source values. Stacks start at 1, where a logarithmic axis has its zero, which
+    // needs non-negative values whose totals are 0 or at least 1; 100% stacks are not drawn on such an axis.
+    // Returns the scaled totals, which set the axis bounds.
+    private static IReadOnlyList<double> RestackOnLogarithmicAxis(OfficeChartSnapshot snapshot, List<OfficeSeries> series,
+        Func<double, double> toPlot) {
+        var totals = new List<double>();
+        var runningByKind = new Dictionary<OfficeChartType, double[]>();
+        int length = snapshot.Data.Series.Count == 0 ? 0 : snapshot.Data.Series.Max(item => item.Values.Count);
+        for (int index = 0; index < series.Count; index++) {
+            OfficeSeries plotted = series[index];
+            if (plotted.SourceValue == null) continue;
+            OfficeChartType kind = GetEffectiveSeriesKind(snapshot, plotted);
+            if (IsPercentStackedBarOrColumnChart(kind) || IsPercentStackedLineChart(kind) || IsPercentStackedAreaChart(kind))
+                throw new NotSupportedException("A 100% stacked series cannot be drawn on a logarithmic value axis.");
+            if (!IsStackedBarOrColumnChart(kind) && !IsStackedLineChart(kind) && !IsStackedAreaChart(kind)) continue;
+
+            IReadOnlyList<double> source = snapshot.Data.Series[index].Values;
+            if (!runningByKind.TryGetValue(kind, out double[]? running)) runningByKind[kind] = running = new double[length];
+            var steps = new double[source.Count];
+            for (int point = 0; point < source.Count; point++) {
+                double value = source[point];
+                if (!IsFiniteChartValue(value)) {
+                    steps[point] = double.NaN;
+                    continue;
+                }
+
+                if (value < 0D)
+                    throw new NotSupportedException("A stacked series with negative values cannot be drawn on a logarithmic value axis.");
+                double below = running[point];
+                double total = below + value;
+                if (total == 0D) continue;
+                if (total < 1D)
+                    throw new NotSupportedException("A stack whose total is below 1 cannot be drawn on a logarithmic value axis.");
+                double top = toPlot(total);
+                steps[point] = top - (below > 0D ? toPlot(below) : 0D);
+                running[point] = total;
+                totals.Add(top);
+            }
+
+            series[index] = plotted.WithStackedSteps(steps, source);
+        }
+
+        return totals;
     }
 
     private static bool HasScale(OfficeChartLayout layout, bool horizontal) =>

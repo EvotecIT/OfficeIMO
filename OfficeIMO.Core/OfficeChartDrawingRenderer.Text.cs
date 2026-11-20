@@ -787,8 +787,10 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeSeries series,
-        double value, double total, double? percentageRatio = null) {
-        if (series.SourceValue != null) value = series.SourceValue(value);
+        double value, double total, double? percentageRatio = null, int pointIndex = -1) {
+        if (series.SourcePointValues != null && pointIndex >= 0 && pointIndex < series.SourcePointValues.Count)
+            value = series.SourcePointValues[pointIndex];
+        else if (series.SourceValue != null) value = series.SourceValue(value);
         var parts = new List<string>(4);
         if (layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(series.Name)) {
             parts.Add(series.Name);
@@ -1236,7 +1238,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         // A bar grows away from its baseline, which an axis crossing can move off zero.
         bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
@@ -1282,7 +1284,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         // A bar grows away from its baseline, which an axis crossing can move off zero.
         bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
@@ -1326,7 +1328,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         if (string.IsNullOrWhiteSpace(label)) {
             return;
         }

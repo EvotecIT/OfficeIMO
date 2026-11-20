@@ -2,6 +2,8 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -114,6 +116,28 @@ public sealed class PowerPointChartPlotSemanticsTests {
 
         Assert.Equal((horizontalBase, verticalBase, reverseHorizontal, reverseVertical),
             (layout.HorizontalAxisLogBase, layout.VerticalAxisLogBase, layout.ReverseHorizontalValueAxis, layout.ReverseVerticalValueAxis));
+    }
+
+    [Theory]
+    [InlineData(10D, null)]
+    [InlineData(0.5D, "A stack whose total is below 1 cannot be drawn on a logarithmic value axis.")]
+    public void StackedColumnsOnALogarithmicAxisDrawOrReportWhyNot(double firstValue, string? reason) {
+        string group = "<c:barChart><c:barDir val=\"col\"/><c:grouping val=\"stacked\"/><c:varyColors val=\"0\"/>" +
+            Series(0, "A", firstValue, 10, 10) + Series(1, "B", 90, 90, 90) +
+            "<c:gapWidth val=\"150\"/><c:overlap val=\"100\"/><c:axId val=\"1\"/><c:axId val=\"2\"/></c:barChart>";
+        using PowerPointDocument presentation = LoadChart(Chart(group,
+            axes: Axes(valueScaling: "<c:logBase val=\"10\"/><c:orientation val=\"minMax\"/>")));
+
+        OfficeImageExportResult image = presentation.Slides[0].ToImage(OfficeImageExportFormat.Png);
+        PdfDocumentConversionResult pdf = presentation.ConvertToPdfWithEvidence();
+
+        if (reason == null) {
+            Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.Code == "unsupported-chart");
+            Assert.DoesNotContain(pdf.Warnings, warning => warning.Code == "unsupported-chart");
+        } else {
+            Assert.Contains(reason, Assert.Single(image.Diagnostics, diagnostic => diagnostic.Code == "unsupported-chart").Message);
+            Assert.Contains(reason, Assert.Single(pdf.Warnings, warning => warning.Code == "unsupported-chart").Message);
+        }
     }
 
     [Fact]
