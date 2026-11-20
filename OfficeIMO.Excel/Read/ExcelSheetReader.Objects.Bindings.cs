@@ -114,8 +114,7 @@ namespace OfficeIMO.Excel {
             private const int HeaderBindingCacheLimit = 64;
             private const int HeaderBindingCacheCharacterLimit = 65_536;
 
-            internal static readonly PropertyInfo[] WritableProperties = typeof(TTarget)
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            internal static readonly PropertyInfo[] WritableProperties = PublicInstanceProperties.Get(typeof(TTarget))
                 .Where(p => p.CanWrite)
                 .ToArray();
 
@@ -253,7 +252,8 @@ namespace OfficeIMO.Excel {
 
             private static Func<object, CultureInfo, object?> CreateConverter(Type destinationType) {
                 if (destinationType == typeof(string)) {
-                    return static (value, culture) => value as string ?? Convert.ToString(value, culture);
+                    return static (value, culture) => value as string
+                        ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : Convert.ToString(value, culture));
                 }
 
                 if (destinationType == typeof(bool)) {

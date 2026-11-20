@@ -15,7 +15,8 @@ namespace OfficeIMO.Excel {
                 return Array.Empty<ExcelMutationDiagnostic>();
             }
 
-            var diagnostics = new List<ExcelMutationDiagnostic>(maximumDiagnostics);
+            // The maximum is a caller cap, not an expected count; grow with the errors actually found.
+            var diagnostics = new List<ExcelMutationDiagnostic>();
             foreach (ValidationErrorInfo error in validator.Validate(_spreadSheetDocument, cancellationToken)) {
                 if (diagnostics.Count >= maximumDiagnostics) break;
                 diagnostics.Add(new ExcelMutationDiagnostic(

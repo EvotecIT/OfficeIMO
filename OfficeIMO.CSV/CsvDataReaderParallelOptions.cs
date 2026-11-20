@@ -15,7 +15,8 @@ public sealed class CsvDataReaderParallelOptions
 
     /// <summary>
     /// Gets or sets the number of rows in each worker batch.
-    /// A null value lets the reader choose its tuned bounded default.
+    /// A null value lets the reader choose its tuned bounded default. Larger values are
+    /// limited to 65,536 rows, because each batch reserves storage for its full row count.
     /// </summary>
     public int? BatchSize { get; set; }
 
@@ -36,5 +37,6 @@ public sealed class CsvDataReaderParallelOptions
         return MaxDegreeOfParallelism ?? Math.Min(4, Math.Max(1, Environment.ProcessorCount));
     }
 
-    internal int GetBatchSize(int sourceDefault) => BatchSize ?? sourceDefault;
+    internal int GetBatchSize(int sourceDefault) =>
+        Math.Min(BatchSize ?? sourceDefault, OfficeIMO.Data.ParallelRowMappingOptions.MaximumBatchSize);
 }

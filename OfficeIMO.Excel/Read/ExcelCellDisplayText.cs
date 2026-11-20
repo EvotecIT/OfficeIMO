@@ -69,12 +69,12 @@ namespace OfficeIMO.Excel {
         internal bool TryFormatIsoDate(string? raw, uint? styleIndex, out string text) {
             text = string.Empty;
             if (raw == null || !IsFormatted(styleIndex)
-                || !DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
+                || !ExcelIsoDateText.TryParseForDisplay(raw, _dateSystem, out DateTime date, out double serial)) {
                 return false;
             }
             ExcelNumberFormatPlan plan = _plans[styleIndex!.Value]!;
             string? formatted = ExcelNumberFormatDisplay.FormatDateTimeText(date, plan.NumberFormatId, plan.FormatCode,
-                ExcelDateSystemConverter.ToSerialForDisplay(date, _dateSystem), Provider);
+                serial, Provider);
             if (formatted == null) return false;
             text = formatted;
             return true;

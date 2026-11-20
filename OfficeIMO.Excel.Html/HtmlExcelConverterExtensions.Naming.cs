@@ -22,7 +22,7 @@ public static partial class HtmlExcelConverterExtensions {
         while (!usedNames.Add(candidate)) {
             string suffixText = " " + suffix.ToString(CultureInfo.InvariantCulture);
             int maxBaseLength = Math.Max(1, 31 - suffixText.Length);
-            candidate = baseName.Length > maxBaseLength ? baseName.Substring(0, maxBaseLength) + suffixText : baseName + suffixText;
+            candidate = ExcelSheetNameText.Truncate(baseName, maxBaseLength) + suffixText;
             suffix++;
         }
 
@@ -35,6 +35,6 @@ public static partial class HtmlExcelConverterExtensions {
             value = value.Replace(invalid, '-');
         }
 
-        return value.Length > 31 ? value.Substring(0, 31) : value;
+        return ExcelSheetNameText.Truncate(value, 31);
     }
 }

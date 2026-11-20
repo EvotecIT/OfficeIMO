@@ -331,6 +331,18 @@ namespace OfficeIMO.Excel {
                     && firstColumn > 0 && lastColumn >= firstColumn && lastColumn <= ExcelA1.MaxColumns;
             }
 
+            /// <summary>
+            /// The stored text of the current row's date cell (<c>t="d"</c>) at <paramref name="ordinal"/>, or null when the
+            /// cell is not a date cell or shows a formula instead of a stored value.
+            /// </summary>
+            internal string? GetStoredDateText(int ordinal) {
+                int cellIndex = _currentRowOffset + ordinal;
+                if ((Utf8CellKind)(_cellKinds![cellIndex] & CellKindMask) != Utf8CellKind.Date) return null;
+                if (_formulaLengths != null && _formulaLengths[cellIndex] >= 0 && !_options.UseCachedFormulaResult) return null;
+                int length = _valueLengths![cellIndex];
+                return length < 0 ? null : DecodeString(_valueStarts![cellIndex], length);
+            }
+
             internal bool IsCellPresent(int ordinal) {
                 EnsureNotDisposed();
                 return (Utf8CellKind)(_cellKinds![_currentRowOffset + ordinal] & CellKindMask) != Utf8CellKind.Missing;
@@ -423,7 +435,7 @@ namespace OfficeIMO.Excel {
                         string dateText = DecodeString(start, length);
                         objectValue = targetKind == XmlDataReaderTargetKind.String
                             ? dateText
-                            : DateTime.TryParse(dateText, _options.Culture, DateTimeStyles.AssumeLocal, out DateTime parsedDate)
+                            : ExcelIsoDateText.TryParse(dateText, _options.Culture, DateTimeStyles.AssumeLocal, out DateTime parsedDate)
                             ? parsedDate
                             : dateText;
                         return;

@@ -602,16 +602,16 @@ namespace OfficeIMO.Excel {
                     ApplyCapturedDirectOverlayNumber(cell, number);
                     break;
                 case float number:
-                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    ApplyCapturedDirectOverlayNumber(cell, InvariantNumberText.Get(number));
                     break;
                 case double number:
-                    ApplyCapturedDirectOverlayNumber(cell, number);
+                    ApplyCapturedDirectOverlayNumber(cell, InvariantNumberText.Get(number));
                     break;
                 case decimal number:
                     ApplyCapturedDirectOverlayNumber(cell, number);
                     break;
                 case DateTime dateTime:
-                    ApplyCapturedDirectOverlayNumber(cell, ExcelDateSystemConverter.ToSerial(dateTime, dateSystem));
+                    ApplyCapturedDirectOverlayNumber(cell, InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateTime, dateSystem)));
                     break;
                 default:
                     cell.CellValue = new CellValue(Utilities.ExcelSanitizer.EncodeXString(System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty));
@@ -620,8 +620,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyCapturedDirectOverlayNumber<T>(Cell cell, T value) where T : IFormattable {
-            cell.CellValue = new CellValue(value.ToString(null, CultureInfo.InvariantCulture));
+        private static void ApplyCapturedDirectOverlayNumber<T>(Cell cell, T value) where T : IFormattable =>
+            ApplyCapturedDirectOverlayNumber(cell, value.ToString(null, CultureInfo.InvariantCulture));
+
+        private static void ApplyCapturedDirectOverlayNumber(Cell cell, string text) {
+            cell.CellValue = new CellValue(text);
             cell.DataType = CellValues.Number;
         }
 

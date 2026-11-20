@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Excel {
     internal static class InvariantNumberText {
@@ -43,6 +44,11 @@ namespace OfficeIMO.Excel {
                 : value.ToString(CultureInfo.InvariantCulture);
         }
 
+        /// <summary>
+        /// The shortest invariant text that parses back to the identical double. .NET Framework's "R" can return text
+        /// that parses to a neighbouring double, so those targets check the text and widen it when needed. Negative zero
+        /// is written as 0, as Excel stores it; <see cref="GetExact(double)"/> keeps its sign.
+        /// </summary>
         internal static string Get(double value) {
             if (value >= int.MinValue && value <= int.MaxValue) {
                 int integer = (int)value;
@@ -51,9 +57,14 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+#if NETCOREAPP3_0_OR_GREATER
             return value.ToString("R", CultureInfo.InvariantCulture);
+#else
+            return OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
+#endif
         }
 
+        /// <inheritdoc cref="Get(double)"/>
         internal static string Get(float value) {
             if (value >= int.MinValue && value <= int.MaxValue) {
                 int integer = (int)value;
@@ -62,8 +73,19 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+#if NETCOREAPP3_0_OR_GREATER
             return value.ToString("R", CultureInfo.InvariantCulture);
+#else
+            return OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
+#endif
         }
+
+        /// <summary>
+        /// Like <see cref="Get(double)"/>, but negative zero keeps the sign the runtime's round-trip format gives it, for
+        /// values that are copied rather than stored as Excel cell values.
+        /// </summary>
+        internal static string GetExact(double value) =>
+            BitConverter.DoubleToInt64Bits(value) == long.MinValue ? value.ToString("R", CultureInfo.InvariantCulture) : Get(value);
 
         internal static bool TryGet(int value, out string text) {
             var cache = NonNegativeCache;

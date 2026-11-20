@@ -90,16 +90,18 @@ public sealed class OfficeCompoundFileContractTests {
     }
 
     [Fact]
-    public void VersionThreeWriterRejectsAStreamLargerThanItsDirectoryCanRepresent() {
-        var streams = new[] {
-            new OfficeCompoundStream("TooLarge", (long)uint.MaxValue + 1,
-                () => throw new InvalidOperationException("Preflight must reject before opening content."))
+    public void VersionThreeWriterRejectsAStreamOverTheTwoGibibyteFormatLimit() {
+        static OfficeCompoundStream[] Stream(long length) => new[] {
+            new OfficeCompoundStream("Large", length,
+                () => throw new InvalidOperationException("Preflight must not open content."))
         };
 
+        // 512-byte-sector files allow a stream of exactly 0x80000000 bytes and no more.
+        Assert.True(OfficeCompoundFileWriter.GetSerializedLength(Stream(0x80000000L)) > 0x80000000L);
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            OfficeCompoundFileWriter.GetSerializedLength(streams));
+            OfficeCompoundFileWriter.GetSerializedLength(Stream(0x80000001L)));
 
-        Assert.Contains("4 GiB", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("2 GiB", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

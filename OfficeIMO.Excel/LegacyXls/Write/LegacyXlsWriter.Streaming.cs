@@ -79,10 +79,11 @@ internal static partial class LegacyXlsWriter {
             var segments = new List<ArraySegment<byte>> { new(globalsBuffer, 0, checked((int)globals.Length)) };
             long position = globals.Length;
             for (int index = 0; index < _sheets.Count; index++) {
-                if (position > uint.MaxValue) throw new NotSupportedException("The native XLS workbook exceeds 4 GiB.");
+                if (position + _sheets[index].CellTableLength > OfficeCompoundFileWriter.MaximumVersion3StreamLength) ThrowWorkbookStreamTooLarge();
                 WriteUInt32(globalsBuffer, checked((int)boundSheets[index] + 4), checked((uint)position));
                 position = _sheets[index].AddSegments(segments, position);
             }
+            if (position > OfficeCompoundFileWriter.MaximumVersion3StreamLength) ThrowWorkbookStreamTooLarge();
             var streams = new List<OfficeCompoundStream>(1) { new(GetWorkbookStreamName(null), segments) };
             OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
             long length = OfficeCompoundFileWriter.GetSerializedLength(layout);
@@ -93,6 +94,8 @@ internal static partial class LegacyXlsWriter {
             }
             OfficeCompoundFileWriter.Write(destination, layout, rootClassId: null);
         }
+
+        private static void ThrowWorkbookStreamTooLarge() => throw CreateWorkbookTooLargeException();
 
         /// <summary>Disposes sheet buffers and releases the shared-string lease once.</summary>
         public void Dispose() {

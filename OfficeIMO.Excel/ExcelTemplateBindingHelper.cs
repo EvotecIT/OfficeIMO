@@ -37,11 +37,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            foreach (PropertyInfo property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public)) {
-                if (property.GetIndexParameters().Length != 0) {
-                    continue;
-                }
-
+            foreach (PropertyInfo property in PublicInstanceProperties.Get(type)) {
                 object? value;
                 try {
                     value = property.GetValue(source);

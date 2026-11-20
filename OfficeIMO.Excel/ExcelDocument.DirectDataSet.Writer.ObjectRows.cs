@@ -109,7 +109,10 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>Writes a text cell.</summary>
+            /// <exception cref="ArgumentException">The text exceeds Excel's limit; the row keeps its position and any selected cell style.</exception>
             public ExcelTabularRowWriter Write(string? value) {
+                // Reject before the cell starts so a caller that handles the error can continue the row.
+                if (value != null) CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
                 BeginCell();
                 if (_native != null) _native.WriteText(value ?? string.Empty);
                 else if (value == null) _writer.Write(" t=\"str\"><v/></c>");
@@ -171,6 +174,17 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes a cell using the runtime value type.</summary>
             public ExcelTabularRowWriter Write(object? value) {
                 if (_native != null) return WriteNativeValue(value);
+                if (value is string text) return Write(text);
+                if (value is byte[] bytes) return Write(System.Convert.ToBase64String(bytes));
+                if (value != null && value != DBNull.Value && DirectDataSetWorkbookWriter.WritesTextFallback(value)) {
+                    // Other types are written as their text; check its length before the cell starts.
+                    string fallback = value.ToString() ?? string.Empty;
+                    CoerceValueHelper.ValidateSharedStringLength(fallback, nameof(value));
+                    BeginCell();
+                    DirectDataSetWorkbookWriter.WriteInlineStringCell(_writer, fallback);
+                    return this;
+                }
+
                 BeginCell(value, useRuntimeStyle: true);
                 DirectDataSetWorkbookWriter.WriteCellValue(_writer, value, _dateTimeOffsetWriteStrategy, _dateSystem, _sharedStrings);
                 return this;

@@ -13,6 +13,10 @@ internal static partial class LegacyXlsWriter {
 
     internal static byte[] WriteEncryptedWorkbook(ExcelDocument document, string password, long maximumBytes, ExcelNativeCalculationPolicy calculation = default, ExcelSaveOptions? options = null) {
         ValidateEncryptionPassword(password);
+        return WithinWorkbookSizeLimit(maximumBytes, () => WriteEncryptedWorkbookCore(document, password, maximumBytes, calculation, options));
+    }
+
+    private static byte[] WriteEncryptedWorkbookCore(ExcelDocument document, string password, long maximumBytes, ExcelNativeCalculationPolicy calculation, ExcelSaveOptions? options) {
         if (document.LegacyXlsEncryptedSummaryEntries.Count != 0)
             return WriteCryptoApiWorkbook(document, password, maximumBytes, calculation, options);
         var salt = new byte[16]; var verifier = new byte[16];

@@ -399,6 +399,22 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            /// <summary>
+            /// Returns whether <see cref="WriteCellValue(TextWriter, object?, Func{DateTimeOffset, DateTime}, ExcelDateSystem, DirectSharedStringTable?)"/>
+            /// writes the value as its <see cref="object.ToString"/> text.
+            /// </summary>
+            internal static bool WritesTextFallback(object value) => value switch {
+                DBNull or DirectFormulaCellValue or DirectTypedCellValue or string or byte[] or bool or DateTime or DateTimeOffset
+                    or TimeSpan or double or float or decimal or sbyte or byte or short or ushort or int or uint or long or ulong => false,
+#if NET6_0_OR_GREATER
+                DateOnly or TimeOnly => false,
+#endif
+                _ => true
+            };
+
+            /// <summary>Writes text whose length the caller has already validated as an inline string cell.</summary>
+            internal static void WriteInlineStringCell(TextWriter writer, string text) => WriteStringCell(writer, text, validateLength: false);
+
             private static void WriteStringCell(TextWriter writer, string text, bool validateLength) {
                 if (validateLength) {
                     CoerceValueHelper.ValidateSharedStringLength(text, "value");

@@ -118,8 +118,7 @@ namespace OfficeIMO.Excel {
             string? formatCode = stylesheet != null ? GetNumberFormatCode(stylesheet, numberFormatId) : null;
             if (cell?.DataType?.Value == CellValues.Date
                 && !string.IsNullOrWhiteSpace(formatCode) && !string.Equals(formatCode, "General", StringComparison.OrdinalIgnoreCase)
-                && DateTime.TryParse(cell.CellValue?.Text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
-                double serial = ExcelDateSystemConverter.ToSerialForDisplay(date, _excelDocument.DateSystem);
+                && ExcelIsoDateText.TryParseForDisplay(cell.CellValue?.Text, _excelDocument.DateSystem, out DateTime date, out double serial)) {
                 return ExcelNumberFormatDisplay.FormatDateTimeText(date, numberFormatId, formatCode!, serial, provider)
                     ?? cell.CellValue!.Text;
             }

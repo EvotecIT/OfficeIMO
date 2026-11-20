@@ -166,11 +166,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             if (dataType == CellValues.Date) {
-                if (!DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
+                if (!ExcelIsoDateText.TryGetSerial(rawValue, document.DateSystem, DateTimeStyles.RoundtripKind, out double serial)) {
                     throw new NotSupportedException($"Native XLSB rewriting cannot encode date value '{rawValue}' at {ToAddress(row, column)}.");
                 }
 
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Number, ExcelDateSystemConverter.ToSerial(date, document.DateSystem));
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.Number, serial);
             }
 
             if ((dataType == CellValues.Number || dataType == null)
@@ -247,8 +247,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             if (dataType == CellValues.Date
-                && DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date)) {
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, ExcelDateSystemConverter.ToSerial(date, document.DateSystem), formulaPayload);
+                && ExcelIsoDateText.TryGetSerial(rawValue, document.DateSystem, DateTimeStyles.RoundtripKind, out double serial)) {
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, serial, formulaPayload);
             }
 
             if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {

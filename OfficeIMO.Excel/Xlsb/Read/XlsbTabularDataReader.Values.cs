@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] switch {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => GetCanonicalText(ordinal),
-                XlsbTabularValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
+                XlsbTabularValueKind.Number => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_numbers[ordinal], _options.Culture),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
                 XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom when !IsMissingCustomValue(_customValues[ordinal]) =>

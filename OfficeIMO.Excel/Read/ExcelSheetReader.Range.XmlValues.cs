@@ -187,7 +187,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellKind == XmlCellKind.Date && rawText != null) {
-                return DateTime.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
+                return ExcelIsoDateText.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
                     ? date
                     : rawText;
             }
@@ -365,7 +365,7 @@ namespace OfficeIMO.Excel {
                     value = BoxBoolean(rawText == "1");
                     return true;
                 case XmlCellKind.Date:
-                    value = DateTime.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
+                    value = ExcelIsoDateText.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
                         ? date
                         : rawText;
                     return true;

@@ -583,7 +583,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private string? CellToHeaderText(DecodedCell cell) =>
             cell.Kind switch {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
-                XlsbTabularValueKind.Number => cell.Number.ToString("R", _options.Culture),
+                XlsbTabularValueKind.Number => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(cell.Number, _options.Culture),
                 XlsbTabularValueKind.Boolean => cell.Boolean.ToString(),
                 XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(cell.Number, cell.Kind == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom => Convert.ToString(cell.CustomValue, _options.Culture),
@@ -616,7 +616,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             };
             string? rawText = cell.RawText ?? cell.Kind switch {
                 XlsbTabularValueKind.Number or XlsbTabularValueKind.Date or XlsbTabularValueKind.Time =>
-                    cell.Number.ToString("R", CultureInfo.InvariantCulture),
+                    InvariantNumberText.GetExact(cell.Number),
                 XlsbTabularValueKind.Boolean => cell.Boolean ? "1" : "0",
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => cell.Text,
                 _ => null
@@ -646,7 +646,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private string FormatDateOrSerial(double serial, bool calendarStyle) =>
             LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle)
                 ? value.ToString(_options.Culture)
-                : serial.ToString("R", _options.Culture);
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.Format(serial, _options.Culture);
 
         private DateTime ConvertDate(double serial, bool calendarStyle) {
             if (LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value, calendarStyle)) {

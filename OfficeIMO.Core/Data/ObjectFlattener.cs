@@ -784,11 +784,11 @@ namespace OfficeIMO.Data {
 
         [UnconditionalSuppressMessage(
             "Trimming",
-            "IL2075",
+            "IL2072",
             Justification = "Collection column mapping is an explicit property-name contract. NativeAOT callers preserve the mapped item model's public properties through the containing generic row model.")]
         private static CollectionMapAccessors CreateCollectionMapAccessors(CollectionMapAccessorKey key) {
-            var keyProperty = key.ItemType.GetProperty(key.KeyProperty);
-            var valueProperty = key.ItemType.GetProperty(key.ValueProperty);
+            var keyProperty = PublicInstanceProperties.Find(key.ItemType, key.KeyProperty);
+            var valueProperty = PublicInstanceProperties.Find(key.ItemType, key.ValueProperty);
             if (keyProperty == null || valueProperty == null ||
                 !IsReadableInstanceProperty(keyProperty) || !IsReadableInstanceProperty(valueProperty)) {
                 return CollectionMapAccessors.Missing;
@@ -801,10 +801,10 @@ namespace OfficeIMO.Data {
 
         [UnconditionalSuppressMessage(
             "Trimming",
-            "IL2070",
+            "IL2067",
             Justification = "The generic Flatten<T> and GetPaths(Type) entry points preserve public properties for the supplied row type. Reflection is limited to reading those public properties and does not generate code at runtime.")]
         private static ObjectFlattenerProperty[] CreateObjectFlattenerProperties(Type type) {
-            var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            var properties = PublicInstanceProperties.Get(type)
                 .Where(IsReadableInstanceProperty)
                 .OrderBy(GetMetadataOrder)
                 .ThenBy(p => p.Name, StringComparer.Ordinal)

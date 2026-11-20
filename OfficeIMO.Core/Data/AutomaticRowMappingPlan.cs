@@ -441,10 +441,8 @@ internal sealed partial class AutomaticRowMappingPlan<
         internal static readonly Dictionary<string, AutomaticPropertySetter[]> CanonicalAliases;
 
         static AutomaticMappingCache() {
-            AutomaticPropertySetter[] properties = typeof(T)
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(static property => property.GetIndexParameters().Length == 0
-                    && (property.SetMethod?.IsPublic == true || CanBindConstructorProperty(property)))
+            AutomaticPropertySetter[] properties = PublicInstanceProperties.Get(typeof(T))
+                .Where(static property => property.SetMethod?.IsPublic == true || CanBindConstructorProperty(property))
                 .Select(static property => new AutomaticPropertySetter(
                     property,
                     CreateAssignment(property),

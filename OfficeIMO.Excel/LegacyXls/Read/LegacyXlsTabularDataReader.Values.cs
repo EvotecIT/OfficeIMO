@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] switch {
                 ValueKind.Text or ValueKind.Error => _strings[ordinal]!,
-                ValueKind.Number or ValueKind.DatelessSerial => _numbers[ordinal].ToString("R", _options.Culture),
+                ValueKind.Number or ValueKind.DatelessSerial => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_numbers[ordinal], _options.Culture),
                 ValueKind.Boolean => _booleans[ordinal].ToString(),
                 ValueKind.Date => _dates[ordinal].ToString(_options.Culture),
                 _ => throw new InvalidCastException("The XLS cell is blank.")

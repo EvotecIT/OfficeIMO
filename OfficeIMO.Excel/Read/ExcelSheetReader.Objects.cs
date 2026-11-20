@@ -188,6 +188,10 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
+                if (ApplyRejectedDateCell(ClassifyDateCell(cell, binding), cell.RawText!, binding, result[rr])) {
+                    continue;
+                }
+
                 object? converted = cell.TypedValue is null ? null : TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
 
                 if (canCancel) {
@@ -231,6 +235,8 @@ namespace OfficeIMO.Excel {
                     headers[ordinal] = dbDataReader.GetName(ordinal);
                 }
                 TypedPropertyBinding<T>?[] bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
+                CultureInfo culture = _opt.Culture;
+                bool calendarLimitsCellDates = ExcelCellValueText.CalendarLimitsCellDates(culture);
 
                 result = dbDataReader.RowsAsParallelValues(
                     values => MapBufferedExcelValues(values, bindings),
@@ -239,7 +245,7 @@ namespace OfficeIMO.Excel {
                         BatchSize = 2048
                     },
                     ct,
-                    (source, values) => CaptureBufferedExcelValues(source, values, bindings)).ToList();
+                    (source, values) => CaptureBufferedExcelValues(source, values, bindings, culture, calendarLimitsCellDates)).ToList();
                 return true;
             } catch (NotSupportedException) {
                 result = [];
@@ -275,10 +281,20 @@ namespace OfficeIMO.Excel {
         }
 
         private static void CaptureBufferedExcelValues<T>(
-            DbDataReader reader, object?[] values, TypedPropertyBinding<T>?[] bindings) where T : new() {
+            DbDataReader reader, object?[] values, TypedPropertyBinding<T>?[] bindings,
+            CultureInfo culture, bool calendarLimitsCellDates) where T : new() {
             for (int ordinal = 0; ordinal < bindings.Length; ordinal++) {
                 TypedPropertyBinding<T>? binding = bindings[ordinal];
                 if (binding != null) {
+                    // Text bound to a date or time may be a rejected date cell; the cell-aware path decides.
+                    if (IsDateOrTimeDestination(binding.DestinationType) && !reader.IsDBNull(ordinal) && reader.GetValue(ordinal) is string) {
+                        throw new NotSupportedException("Text bound to a date or time is mapped by the cell-aware path.");
+                    }
+                    // A date the culture's calendar cannot show keeps its cell text, which only the cell-aware path has.
+                    if (binding.DestinationType == typeof(string) && calendarLimitsCellDates && !reader.IsDBNull(ordinal)
+                        && reader.GetValue(ordinal) is DateTime date && !ExcelCellValueText.FitsCalendar(date, culture)) {
+                        throw new NotSupportedException("A date outside the culture's calendar is mapped by the cell-aware path.");
+                    }
                     object? value = DataReaderMappingValue.Read(reader, ordinal, binding.DestinationType);
                     if ((value == null || value == DBNull.Value) && (reader is ExcelXmlRangeDataReader xml && !xml.IsCellPresent(ordinal)
                         || reader is ExcelRangeDataReader chunked && !chunked.IsCellPresent(ordinal))) {
@@ -291,6 +307,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static readonly object MissingTypedCell = new object();
+
+        private static bool IsDateOrTimeDestination(Type destinationType) {
+            Type type = Nullable.GetUnderlyingType(destinationType) ?? destinationType;
+            return type == typeof(DateTime) || type == typeof(DateTimeOffset)
+#if NET6_0_OR_GREATER
+                || type == typeof(DateOnly) || type == typeof(TimeOnly)
+#endif
+                ;
+        }
 
         private bool TryReadObjectsFromXmlMaterialized<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
@@ -428,6 +453,14 @@ namespace OfficeIMO.Excel {
                     if (_opt.TreatDatesUsingNumberFormat
                         && value is DateTime
                         && IsNumericBindingDestination(binding.BindingKind)) {
+                        result = [];
+                        return false;
+                    }
+
+                    // Text bound to a date or time may be a rejected date cell, and a date the culture's calendar cannot
+                    // show should keep its cell text; the cell-aware path decides both.
+                    if (value is string && IsDateOrTimeDestination(binding.DestinationType)
+                        || value is DateTime date && binding.DestinationType == typeof(string) && !ExcelCellValueText.FitsCalendar(date, _opt.Culture)) {
                         result = [];
                         return false;
                     }
