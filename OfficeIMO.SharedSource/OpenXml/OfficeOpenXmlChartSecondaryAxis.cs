@@ -28,15 +28,21 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             maximum: scaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
             majorUnit: axis.GetFirstChild<C.MajorUnit>()?.Val?.Value,
             minorUnit: axis.GetFirstChild<C.MinorUnit>()?.Val?.Value,
-            numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
-                axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null
-                    ? (resolveSourceLinkedFormat ??
-                        throw new NotSupportedException("The source-linked secondary axis has no qualified chart workbook."))()
-                    : axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
+            numberFormat: IsWorkbookLinked(axis) && resolveSourceLinkedFormat != null
+                    ? ResolveLinkedFormat(axis, resolveSourceLinkedFormat)
+                    : ReadDrawableNumberFormat(axis, "secondary axis"),
             majorTickMark: ReadTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
             minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value));
         string? title = ReadTitle(axis.GetFirstChild<C.Title>());
         return title == null ? layout : layout.WithTitle(title);
+    }
+
+    private static string? ResolveLinkedFormat(C.ValueAxis axis, Func<string> resolveSourceLinkedFormat) {
+        try {
+            return resolveSourceLinkedFormat();
+        } catch (NotSupportedException) {
+            return ReadDrawableNumberFormat(axis, "secondary axis");
+        }
     }
 
     internal static void Apply(C.Chart? chart, OfficeChartValueAxisLayout layout) {
@@ -72,7 +78,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             new C.Layout(), new C.Overlay { Val = false }), true);
     }
 
-    internal static void QualifyLinearProjection(C.PlotArea? plot, bool resolveSourceLinkedFormats = false) {
+    internal static void QualifyLinearProjection(C.PlotArea? plot) {
         var axis = Resolve(plot);
         if (axis == null) return;
         QualifyTitle(axis.GetFirstChild<C.Title>());
@@ -92,12 +98,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             primaryValueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None)
             throw new NotSupportedException("The primary and secondary value-axis visibility cannot be projected independently.");
         var scaling = axis.GetFirstChild<C.Scaling>();
-        bool linkedWorkbookFormat = resolveSourceLinkedFormats &&
-            axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
-            axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null;
-        if ((!linkedWorkbookFormat) &&
-                HasUnsupportedSharedAxisNumberFormat(axis) ||
-            scaling?.GetFirstChild<C.LogBase>() != null ||
+        // An axis format the renderer cannot reproduce is drawn as General by Read.
+        if (scaling?.GetFirstChild<C.LogBase>() != null ||
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
             axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
             throw new NotSupportedException("The secondary numeric axis requires an unsupported projection.");
@@ -106,46 +108,142 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
     internal static bool HasUnsupportedSharedAxisNumberFormat(OpenXmlCompositeElement axis) {
         C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
         // Source-linked formats can differ from formatCode only when a workbook is attached.
-        if (numbering?.SourceLinked?.Value == true &&
-            axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null) return true;
-        string? format = numbering?.FormatCode?.Value;
-        if (string.IsNullOrWhiteSpace(format) || string.Equals(format, "General", StringComparison.OrdinalIgnoreCase))
-            return false;
+        if (IsWorkbookLinked(axis)) return true;
+        return !IsDrawableNumberFormat(numbering?.FormatCode?.Value);
+    }
+
+    /// <summary>
+    /// Returns the number format the shared renderer draws for an axis or label set: its own code when the
+    /// renderer reproduces it, otherwise null (General) after recording the fallback.
+    /// </summary>
+    internal static string? ReadDrawableNumberFormat(OpenXmlCompositeElement owner, string role = "axis") {
+        string? format = owner.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+        // A linked value axis shows the plotted cells' format, which the value caches record.
+        if (IsWorkbookLinked(owner) && owner is C.ValueAxis axis) format = ReadCachedValueFormat(axis) ?? format;
+        // Category axes draw numeric categories as spreadsheet serial dates.
+        if (owner is C.CategoryAxis or C.DateAxis && IsDateFormat(format)) return format;
+        if (!IsDrawableNumberFormat(format)) {
+            OfficeOpenXmlChartFidelityScope.Record("The " + role + " number format '" + format + "' is drawn as General.");
+            return null;
+        }
+        // Office keeps a linked code in step with the plotted cells when it saves the chart.
+        if (IsWorkbookLinked(owner) && !IsGeneral(format))
+            OfficeOpenXmlChartFidelityScope.Record("The source-linked " + role + " number format uses the code cached in the chart, '" + format + "'.");
+        return format;
+    }
+
+    private static string? ReadCachedValueFormat(C.ValueAxis axis) {
+        uint? id = axis.AxisId?.Val?.Value;
+        if (!id.HasValue || axis.Parent is not C.PlotArea plot) return null;
+        return plot.ChildElements.OfType<OpenXmlCompositeElement>()
+            .Where(layer => layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+                layer.Elements<C.AxisId>().Any(reference => reference.Val?.Value == id))
+            .SelectMany(layer => layer.ChildElements.Where(series => series.LocalName == "ser"))
+            .Select(series => (series.GetFirstChild<C.Values>() ?? (OpenXmlElement?)series.GetFirstChild<C.YValues>())?
+                .Descendants<C.FormatCode>().FirstOrDefault()?.Text)
+            .FirstOrDefault(code => !string.IsNullOrWhiteSpace(code));
+    }
+
+    private static bool IsWorkbookLinked(OpenXmlCompositeElement owner) =>
+        owner.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
+        owner.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null;
+
+    private static bool IsGeneral(string? format) =>
+        string.IsNullOrWhiteSpace(format) || string.Equals(format, "General", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Whether the shared chart renderer reproduces a spreadsheet number format: digit placeholders,
+    /// grouping and scaling commas, percent, literals, up to four sections (a zero section may be
+    /// literal-only, text only in the fourth), colour tags and <c>[$symbol-locale]</c> currency tags.
+    /// Conditions, dates, fractions and exponents are not reproduced.
+    /// </summary>
+    internal static bool IsDrawableNumberFormat(string? format) {
+        if (IsGeneral(format)) return true;
 
         bool inQuotedLiteral = false;
         bool escaped = false;
         bool sectionHasPlaceholder = false;
+        int section = 0;
         for (int index = 0; index < format!.Length; index++) {
             char value = format[index];
             if (escaped) {
-                if (value == '%') return true;
+                if (value == '%') return false;
                 escaped = false;
                 continue;
             }
             if (value == '\\') { escaped = true; continue; }
             if (value == '"') { inQuotedLiteral = !inQuotedLiteral; continue; }
             if (inQuotedLiteral) {
-                if (value == '%') return true;
+                if (value == '%') return false;
+                continue;
+            }
+            if (value == '_' || value == '*') {
+                // Padding and fill take the next character, which never formats the value.
+                index++;
                 continue;
             }
             if (value == '0' || value == '#' || value == '?') {
+                if (section == 3) return false;
                 sectionHasPlaceholder = true;
                 continue;
             }
             if (value == ';') {
-                if (!sectionHasPlaceholder) return true;
+                if (section == 0 && !sectionHasPlaceholder) return false;
+                if (++section > 3) return false;
                 sectionHasPlaceholder = false;
                 continue;
             }
-            if (value == '/' || value == '@' || value == '[' || value == ']') return true;
+            if (value == '[') {
+                int close = format.IndexOf(']', index + 1);
+                if (close < 0 || !IsDrawableBracket(format.Substring(index + 1, close - index - 1))) return false;
+                index = close;
+                continue;
+            }
+            if (value == '@') {
+                if (section != 3) return false;
+                continue;
+            }
+            if (value == '/' || value == ']') return false;
             if (value != 'E' && value != 'e') continue;
             int next = index + 1;
             if (next < format.Length && (format[next] == '+' || format[next] == '-')) next++;
             if (next < format.Length && (format[next] == '0' || format[next] == '#' || format[next] == '?'))
-                return true;
+                return false;
         }
 
-        return inQuotedLiteral || escaped || !sectionHasPlaceholder;
+        return !inQuotedLiteral && !escaped && (section > 0 || sectionHasPlaceholder);
+    }
+
+    private static bool IsDateFormat(string? format) {
+        if (IsGeneral(format)) return false;
+        string section = format!.Split(';')[0];
+        bool inQuotedLiteral = false, hasDate = false;
+        for (int index = 0; index < section.Length; index++) {
+            char value = section[index];
+            if (value == '"') { inQuotedLiteral = !inQuotedLiteral; continue; }
+            if (inQuotedLiteral) continue;
+            if (value == '\\') { index++; continue; }
+            if (value == '[') {
+                int close = section.IndexOf(']', index + 1);
+                if (close < 0) return false;
+                index = close;
+                continue;
+            }
+            if (value is '0' or '#' or '?' or '%' or '@') return false;
+            if (char.ToLowerInvariant(value) is 'y' or 'm' or 'd' or 'h' or 's') hasDate = true;
+        }
+        return hasDate && !inQuotedLiteral;
+    }
+
+    private static readonly string[] FormatColorNames = { "Black", "Blue", "Cyan", "Green", "Magenta", "Red", "White", "Yellow" };
+
+    private static bool IsDrawableBracket(string content) {
+        // [$€-413] prints its currency symbol; [$-409] only names a locale.
+        if (content.StartsWith("$", StringComparison.Ordinal)) return true;
+        if (FormatColorNames.Any(name => string.Equals(content, name, StringComparison.OrdinalIgnoreCase))) return true;
+        return content.Length > 5 && content.StartsWith("Color", StringComparison.OrdinalIgnoreCase) &&
+            int.TryParse(content.Substring(5), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int index) &&
+            index >= 1 && index <= 56;
     }
 
     internal static void QualifyTitle(C.Title? title) {

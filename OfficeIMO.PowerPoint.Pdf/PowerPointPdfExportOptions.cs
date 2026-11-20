@@ -20,6 +20,14 @@ public sealed class PowerPointPdfExportOptions {
         /// <summary>Blocks output when conversion reports fidelity loss.</summary>
         public bool FailOnLoss { get; set; }
 
+        private global::OfficeIMO.OfficeChartRenderOptions _chartRendering = new global::OfficeIMO.OfficeChartRenderOptions();
+
+        /// <summary>How native charts are drawn, including what happens to formatting the chart renderer cannot reproduce exactly.</summary>
+        public global::OfficeIMO.OfficeChartRenderOptions ChartRendering {
+            get => _chartRendering;
+            set => _chartRendering = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
     /// <summary>Maximum bytes read from a single embedded picture or background.</summary>
     public int MaximumEmbeddedImageBytes { get; set; } = 64 * 1024 * 1024;
     /// <summary>Maximum aggregate embedded image bytes read during one conversion.</summary>
@@ -279,6 +287,7 @@ public sealed class PowerPointPdfExportOptions {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumEmbeddedImageBytes);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumTotalEmbeddedImageBytes);
         var clone = (PowerPointPdfExportOptions)MemberwiseClone();
+        clone._chartRendering = ChartRendering.Clone();
         clone._pdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
         clone.EmbeddedImageBytesRead = 0;
         clone.SelectedSlides = SelectedSlides == null ? null : new HashSet<PowerPointSlide>(SelectedSlides);

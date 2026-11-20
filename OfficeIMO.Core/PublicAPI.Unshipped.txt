@@ -832,3 +832,15 @@ const OfficeIMO.OfficeDiagnosticCodes.AccessibilityHiddenSheetContent = "accessi
 const OfficeIMO.OfficeDiagnosticCodes.AccessibilityLayoutTable = "accessibility-layout-table" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.AccessibilityMergedCells = "accessibility-merged-cells" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.AccessibilityMissingHeadings = "accessibility-missing-headings" -> string!
+OfficeIMO.Drawing.OfficeChartPointStyle.OutlineCap.get -> OfficeIMO.Drawing.OfficeStrokeLineCap?
+OfficeIMO.Drawing.OfficeChartPointStyle.WithOutlineCap(OfficeIMO.Drawing.OfficeStrokeLineCap? cap) -> OfficeIMO.Drawing.OfficeChartPointStyle!
+OfficeIMO.OfficeChartFidelity
+OfficeIMO.OfficeChartFidelity.BestEffort = 1 -> OfficeIMO.OfficeChartFidelity
+OfficeIMO.OfficeChartFidelity.Strict = 0 -> OfficeIMO.OfficeChartFidelity
+OfficeIMO.OfficeChartRenderOptions
+OfficeIMO.OfficeChartRenderOptions.Clone() -> OfficeIMO.OfficeChartRenderOptions!
+OfficeIMO.OfficeChartRenderOptions.Fidelity.get -> OfficeIMO.OfficeChartFidelity
+OfficeIMO.OfficeChartRenderOptions.Fidelity.set -> void
+OfficeIMO.OfficeChartRenderOptions.OfficeChartRenderOptions() -> void
+OfficeIMO.Drawing.OfficeImageExportOptions.ChartRendering.get -> OfficeIMO.OfficeChartRenderOptions!
+OfficeIMO.Drawing.OfficeImageExportOptions.ChartRendering.set -> void

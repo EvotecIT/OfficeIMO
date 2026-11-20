@@ -12,19 +12,32 @@ public partial class WordChart {
     /// Unqualified families, appearances and cached data return false without modifying the document.</remarks>
     /// <param name="snapshot">The cached chart data and supported presentation metadata.</param>
     /// <returns>True when a complete supported chart projection can be produced.</returns>
-    public bool TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) {
+    public bool TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) => TryGetOfficeSnapshot(out snapshot, out _);
+
+    /// <summary>Reads the chart into the shared contract and reports why a chart cannot be projected.</summary>
+    internal bool TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot, out string? failureReason) {
         snapshot = null!;
+        failureReason = null;
         try {
             var chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;
-            if (_chartPart == null || chart == null) return false;
+            if (_chartPart == null || chart == null) {
+                failureReason = "The chart part has no chart.";
+                return false;
+            }
             // A formula-linked title without a usable cache cannot be rendered
             // faithfully from the chart part alone.
-            if (OfficeOpenXmlChartTextReader.HasUncachedFormulaTitle(chart)) return false;
+            if (OfficeOpenXmlChartTextReader.HasUncachedFormulaTitle(chart)) {
+                failureReason = "The chart title is a formula without a cached value.";
+                return false;
+            }
             // The shared Drawing palette has no Word color-slot remapping metadata.
             // Preserve the native chart and report unsupported projection rather than
             // resolving theme slots through the unmapped document theme.
             if (HasNonIdentityColorSchemeMapping(_document.MainDocumentPartRoot.DocumentSettingsPart?.Settings?
-                .GetFirstChild<W.ColorSchemeMapping>())) return false;
+                .GetFirstChild<W.ColorSchemeMapping>())) {
+                failureReason = "The document remaps theme colour slots, which the shared chart palette cannot follow.";
+                return false;
+            }
             // Preserve the existing flat projection for single legacy 3-D groups. A rejected
             // 2-D projection must never fall back through a less strict legacy reader.
             var groups = chart.PlotArea?.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).Take(10001).ToArray();
@@ -39,22 +52,31 @@ public partial class WordChart {
             var scheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
             var data = OfficeOpenXmlChartSeriesReader.ReadPlot(_chartPart, chart, scheme, (int)MaxCachedChartPoints,
                 out var kind, out var bubbleScale, out var bubbleMode);
-            if (data == null) return false;
+            if (data == null) {
+                failureReason = "The chart groups, axes or cached data have no shared chart projection.";
+                return false;
+            }
             var textReader = new OfficeOpenXmlChartTextReader(_document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.FontScheme);
             if (!textReader.TryReadSharedTextStyle(chart, out var textStyle) ||
-                !textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var axisTitleFont)) return false;
+                !textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var axisTitleFont)) {
+                failureReason = "The chart text formatting cannot be projected.";
+                return false;
+            }
             OfficeChartData officeData = data.ToData();
             snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, officeData, global::OfficeIMO.OfficeLength.Points(GetWidthPoints()), global::OfficeIMO.OfficeLength.Points(GetHeightPoints()),
-                OfficeOpenXmlChartSeriesReader.ReadStyle(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
-                OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
+                OfficeOpenXmlChartSeriesReader.ReadStyleOrApproximate(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
+                OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme, data),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
             if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
                 snapshot = null!;
+                failureReason = "The chart axis units produce more ticks than the shared renderer draws.";
                 return false;
             }
             return true;
-        } catch {
+        } catch (Exception exception) {
             snapshot = null!;
+            failureReason = exception is NotSupportedException or InvalidDataException
+                ? exception.Message : exception.GetType().Name + ": " + exception.Message;
             return false;
         }
     }

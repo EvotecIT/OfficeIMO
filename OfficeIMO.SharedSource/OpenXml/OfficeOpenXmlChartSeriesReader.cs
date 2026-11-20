@@ -268,6 +268,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 strokeWidth: width.HasValue ? OfficeLength.Points(width.Value) : (OfficeLength?)null, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
                 .WithSeriesStyle(seriesPaint)
                 .WithPointStyles(styles);
+            if (!forDataUpdate) {
+                data = data.WithTrendline(OfficeOpenXmlChartTrendlines.Read(element, scheme));
+                // The shared renderer has no error-bar geometry yet.
+                if (element.GetFirstChild<C.ErrorBars>() != null)
+                    OfficeOpenXmlChartFidelityScope.Approximate("Error bars cannot be projected.", "Error bars are left out.");
+            }
             if (kind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
                 if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,
                     out int[]? explosions))
@@ -279,14 +285,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 element.GetFirstChild<C.Order>()?.Val?.Value, automaticColor);
         }
 
-        private static OfficeStrokeDashStyle? ReadDash(A.Outline? outline) => outline?.GetFirstChild<A.PresetDash>()?.Val?.InnerText switch {
-            null => null,
-            "solid" => OfficeStrokeDashStyle.Solid,
-            "dash" => OfficeStrokeDashStyle.Dash,
-            "dot" => OfficeStrokeDashStyle.Dot,
-            "dashDot" => OfficeStrokeDashStyle.DashDot,
-            "lgDashDotDot" => OfficeStrokeDashStyle.DashDotDot,
-            _ => null
-        };
+        private static OfficeStrokeDashStyle? ReadDash(A.Outline? outline) => OfficeOpenXmlChartTrendlines.ReadDash(outline);
     }
 }

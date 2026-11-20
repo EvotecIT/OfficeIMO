@@ -194,7 +194,9 @@ namespace OfficeIMO.Excel {
             }
             if (radialChart != null && visibleLabels.Skip(1).Any(labels =>
                 !string.Equals(labels.OuterXml, dataLabels?.OuterXml, StringComparison.Ordinal)))
-                throw new NotSupportedException("Different radial data-label layouts cannot be projected by one shared layout.");
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
+                    "Different radial data-label layouts cannot be projected by one shared layout.",
+                    "Radial data labels with different layouts per series are drawn with the first labelled series' layout.");
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.Title? title = chart.GetFirstChild<C.Title>();
             OfficeChartValueAxisLayout? secondaryValueAxis = ReadImageExportSecondaryValueAxis(plotArea);
@@ -378,8 +380,12 @@ namespace OfficeIMO.Excel {
             OfficeChartValueAxisLayout? native = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(
                 plotArea, () => numberFormat ?? "General");
             if (native == null) return null;
-            if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat))
-                throw new NotSupportedException("The secondary axis number format cannot be rendered.");
+            if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat)) {
+                // An axis format the renderer cannot reproduce falls back to General instead of dropping the chart.
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record(
+                    "The secondary axis number format '" + numberFormat + "' is drawn as General.");
+                numberFormat = null;
+            }
             var resolved = new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
                 native.MinorUnit, numberFormat, native.MajorTickMark,
                 native.MinorTickMark);
@@ -461,8 +467,12 @@ namespace OfficeIMO.Excel {
                     workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
                 if (series is C.PieChartSeries) {
                     if (!OfficeOpenXmlChartExplosions.TryRead(series, pointOverrides, valueCount,
-                        out int[]? explosions))
-                        throw new NotSupportedException("The native pie or doughnut point explosion cannot be rendered.");
+                        out int[]? explosions)) {
+                        OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
+                            "The native pie or doughnut point explosion cannot be rendered.",
+                            "Pie or doughnut slice explosions that cannot be reproduced are drawn without separation.");
+                        explosions = null;
+                    }
                     style.PointExplosions = explosions;
                 }
                 if (series.Parent is C.Line3DChart) {
@@ -549,7 +559,8 @@ namespace OfficeIMO.Excel {
             return new OfficeChartTrendline(type.Value, order, period,
                 displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
                 displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
-                color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept);
+                color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept)
+                .WithDashStyle(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDash(properties?.GetFirstChild<A.Outline>()));
         }
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {

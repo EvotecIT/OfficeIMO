@@ -68,7 +68,13 @@ namespace OfficeIMO.OpenXml.Internal {
                         layerKind, scheme, axisGroups.Read(layer), maximumPoints,
                         validatePlot: false, projectionBudget: projectionBudget);
                 }
-                if (data == null || data.Series.Any(item => item.HasUnsupportedAppearance)) return null;
+                if (data == null) return null;
+                if (data.Series.Any(item => item.HasUnsupportedAppearance)) {
+                    if (!OfficeOpenXmlChartFidelityScope.AllowsApproximation) return null;
+                    // Best effort keeps the series' resolved colour and drops the formatting it cannot draw.
+                    foreach (var item in data.Series.Where(item => item.HasUnsupportedAppearance))
+                        OfficeOpenXmlChartFidelityScope.Record(item.UnsupportedAppearance!.TrimEnd('.') + "; it is drawn in its plain series colour.");
+                }
                 if (layer is C.PieChart && data.Series.Count != 1) return null;
                 if (categories != null && !categories.SequenceEqual(data.Categories, StringComparer.Ordinal)) return null;
                 categories ??= data.Categories;
@@ -184,8 +190,12 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeChartType.LineStacked100 or OfficeChartType.AreaStacked100;
 
         private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {
-            if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.UpDownBars or C.SeriesLines ||
-                element is C.HighLowLines && layer is not C.LineChart and not C.StockChart)) return true;
+            // Series trendlines and error bars are read with their series.
+            if (layer.Descendants().Any(element => element is C.DropLines or C.UpDownBars or C.SeriesLines ||
+                element is C.HighLowLines && layer is not C.LineChart and not C.StockChart)) {
+                if (!OfficeOpenXmlChartFidelityScope.AllowsApproximation) return true;
+                OfficeOpenXmlChartFidelityScope.Record("Drop lines, up/down bars and series lines are left out.");
+            }
             if (layer is C.BarChart && layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")
                 .Any(series => series.Descendants<C.InvertIfNegative>().Any(invert => invert.Val?.Value != false) &&
                     series.GetFirstChild<C.Values>()?.Descendants<C.NumericValue>().Any(value =>
@@ -237,7 +247,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (secondary && horizontal) return false;
                 var expectedCategory = secondary ? C.AxisPositionValues.Top : horizontal ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
                 var expectedValue = secondary ? C.AxisPositionValues.Right : horizontal ? C.AxisPositionValues.Bottom : C.AxisPositionValues.Left;
-                if (category.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedCategory || value.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedValue) return false;
+                // Office writes the hidden secondary category axis of a combo chart at the bottom; its side is not drawn.
+                bool hiddenSecondaryCategory = secondary && IsDeletedAxis(category);
+                if (category.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedCategory && !hiddenSecondaryCategory ||
+                    value.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedValue) return false;
                 if (!secondary) {
                     uint? categoryId = category.GetFirstChild<C.AxisId>()?.Val?.Value;
                     uint? valueId = value.GetFirstChild<C.AxisId>()?.Val?.Value;

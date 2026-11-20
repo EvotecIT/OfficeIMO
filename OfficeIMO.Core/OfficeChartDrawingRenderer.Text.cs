@@ -844,10 +844,17 @@ public static partial class OfficeChartDrawingRenderer {
             return false;
         }
 
-        string format = SelectSignedNumberFormatSection(numberFormat, value);
+        string format = NormalizeNumberFormatSectionTokens(SelectSignedNumberFormatSection(numberFormat, value));
 
         if (format.Length == 0) {
             return false;
+        }
+
+        if (!HasNumberFormatDigitPlaceholder(format)) {
+            // A literal-only section, such as the dash Office writes for zero, replaces the value.
+            if (string.Equals(format, "General", StringComparison.OrdinalIgnoreCase)) return false;
+            formatted = NormalizeDataLabelFormatLiteral(format);
+            return true;
         }
 
         bool percent = format.IndexOf('%') >= 0;
@@ -900,6 +907,76 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         return TrimNumberFormatSection(numberFormat, 0, firstSeparator);
+    }
+
+    /// <summary>
+    /// Rewrites one format section into the subset the value formatter reads: colour tags are dropped
+    /// (labels keep their chart text colour), a <c>[$symbol-locale]</c> tag becomes its quoted symbol,
+    /// and padding (<c>_x</c>) and fill (<c>*x</c>) directives are removed.
+    /// </summary>
+    private static string NormalizeNumberFormatSectionTokens(string section) {
+        if (section.IndexOf('[') < 0 && section.IndexOf('_') < 0 && section.IndexOf('*') < 0) return section;
+        var builder = new System.Text.StringBuilder(section.Length);
+        bool inQuotedLiteral = false;
+        for (int i = 0; i < section.Length; i++) {
+            char c = section[i];
+            if (inQuotedLiteral) {
+                builder.Append(c);
+                if (c == '"') inQuotedLiteral = false;
+                continue;
+            }
+            if (c == '\\' && i + 1 < section.Length) {
+                builder.Append(c).Append(section[++i]);
+                continue;
+            }
+            if (c == '"') {
+                inQuotedLiteral = true;
+                builder.Append(c);
+                continue;
+            }
+            if (c == '_' || c == '*') {
+                i++;
+                continue;
+            }
+            if (c == '[') {
+                int close = section.IndexOf(']', i + 1);
+                if (close < 0) {
+                    builder.Append(c);
+                    continue;
+                }
+                string content = section.Substring(i + 1, close - i - 1);
+                if (content.StartsWith("$", StringComparison.Ordinal)) {
+                    int dash = content.IndexOf('-', 1);
+                    string symbol = (dash < 0 ? content.Substring(1) : content.Substring(1, dash - 1)).Replace("\"", string.Empty);
+                    if (symbol.Length > 0) builder.Append('"').Append(symbol).Append('"');
+                }
+                i = close;
+                continue;
+            }
+            builder.Append(c);
+        }
+        return builder.ToString();
+    }
+
+    private static bool HasNumberFormatDigitPlaceholder(string format) {
+        bool inQuotedLiteral = false;
+        bool escaped = false;
+        foreach (char c in format) {
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                inQuotedLiteral = !inQuotedLiteral;
+                continue;
+            }
+            if (!inQuotedLiteral && (c == '0' || c == '#' || c == '?')) return true;
+        }
+        return false;
     }
 
     private static string TrimNumberFormatSection(string numberFormat, int startIndex, int endIndex) {

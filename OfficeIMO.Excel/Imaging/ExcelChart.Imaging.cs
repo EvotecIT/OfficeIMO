@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!TryGetSnapshot(out ExcelChartInfo snapshot)) {
+            if (!TryGetSnapshot(options.ChartRendering.Fidelity, out ExcelChartInfo snapshot)) {
                 throw new InvalidOperationException(
                     "The chart data could not be resolved into a renderable snapshot.");
             }

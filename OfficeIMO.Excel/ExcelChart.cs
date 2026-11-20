@@ -151,9 +151,21 @@ namespace OfficeIMO.Excel {
             TryGetSnapshotCore(null, out snapshot);
 
         internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(geometry, out snapshot);
+            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot);
 
-        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot) {
+        /// <summary>Creates a rendering snapshot at the requested chart fidelity.</summary>
+        internal bool TryGetSnapshot(OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) =>
+            TryGetSnapshotCore(null, fidelity, out snapshot);
+
+        /// <summary>Creates a worksheet rendering snapshot at the requested chart fidelity.</summary>
+        internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) =>
+            TryGetSnapshotCore(geometry, fidelity, out snapshot);
+
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot) =>
+            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot);
+
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) {
+            using var scope = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Enter(fidelity);
             if (!TryGetData(out ExcelChartData data)) {
                 snapshot = null!;
                 return false;
@@ -162,8 +174,14 @@ namespace OfficeIMO.Excel {
             try {
                 (OfficeLength anchorWidth, OfficeLength anchorHeight) = GetAnchorSize(geometry);
                 var plot = GetChartPart().ChartSpace?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()?.PlotArea;
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot, resolveSourceLinkedFormats: true);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot);
                 var bubble = ReadBubbleImageSettings(plot, data);
+                OfficeChartStyle? style = CreateImageExportStyle(data.Categories.Count);
+                OfficeChartLayout? layout = CreateImageExportLayout();
+                IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = CreateImageExportDiagnostics().Concat(bubble.Diagnostics)
+                    .Concat(scope.Approximations.Select(approximation => new OfficeImageExportDiagnostic(
+                        OfficeImageExportDiagnosticSeverity.Warning, OfficeDiagnosticCodes.ChartApproximation, approximation,
+                        GetImageExportSource(), OfficeConversionLossKind.Approximation))).ToArray();
                 snapshot = new ExcelChartInfo(
                     Name,
                     Title,
@@ -175,9 +193,9 @@ namespace OfficeIMO.Excel {
                     GetAnchorOffset(horizontal: false),
                     anchorWidth,
                     anchorHeight,
-                    CreateImageExportStyle(data.Categories.Count),
-                    CreateImageExportLayout(),
-                    CreateImageExportDiagnostics().Concat(bubble.Diagnostics).ToArray(),
+                    style,
+                    layout,
+                    diagnostics,
                     RadialLayout, bubble.Scale, bubble.Mode, bubble.ShowNegative);
                 return true;
             } catch (Exception exception) when (exception is ArgumentException || exception is FormatException ||

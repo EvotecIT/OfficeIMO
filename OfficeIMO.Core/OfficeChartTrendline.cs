@@ -58,4 +58,15 @@ public sealed class OfficeChartTrendline {
 
     /// <summary>Optional fixed y-intercept.</summary>
     public double? Intercept { get; }
+
+    // The native dash pattern read from a chart; only the static renderer draws it.
+    internal OfficeStrokeDashStyle? DashStyle { get; private set; }
+
+    internal OfficeChartTrendline WithDashStyle(OfficeStrokeDashStyle? dashStyle) {
+        if (dashStyle.HasValue && !Enum.IsDefined(typeof(OfficeStrokeDashStyle), dashStyle.Value))
+            throw new ArgumentOutOfRangeException(nameof(dashStyle));
+        var copy = (OfficeChartTrendline)MemberwiseClone();
+        copy.DashStyle = dashStyle;
+        return copy;
+    }
 }

@@ -6,24 +6,44 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
+        /// <summary>
+        /// Reads the native chart appearance. In best-effort projections a chart whose surfaces or text
+        /// cannot be read keeps <paramref name="textStyle"/> (or the default style) and reports why.
+        /// </summary>
+        internal static OfficeChartStyle ReadStyleOrApproximate(DocumentFormat.OpenXml.Packaging.ChartPart chartPart, C.Chart chart,
+            OfficeChartType kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null, int radialPointCount = 0) {
+            int checkpoint = OfficeOpenXmlChartFidelityScope.Checkpoint;
+            try {
+                return ReadStyle(chartPart, chart, kind, scheme, textStyle, radialPointCount);
+            } catch (NotSupportedException exception) when (OfficeOpenXmlChartFidelityScope.AllowsApproximation) {
+                OfficeOpenXmlChartFidelityScope.RollBack(checkpoint);
+                OfficeOpenXmlChartFidelityScope.Record("The chart surfaces and text are drawn with default formatting: " + exception.Message);
+                return textStyle ?? OfficeChartStyle.Default;
+            }
+        }
+
         internal static OfficeChartStyle ReadStyle(DocumentFormat.OpenXml.Packaging.ChartPart chartPart, C.Chart chart, OfficeChartType kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null,
             int radialPointCount = 0) {
             OpenXmlElement? colorMap = OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
             if (chart.Parent?.GetFirstChild<C.RoundedCorners>()?.Val?.Value == true)
-                throw new NotSupportedException("Rounded native chart frames cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("Rounded native chart frames cannot be projected.",
+                    "The rounded chart frame is drawn with square corners.");
             if (chart.GetFirstChild<C.Legend>()?.Elements<C.LegendEntry>().Any(entry => entry.GetFirstChild<C.TextProperties>() != null) == true)
-                throw new NotSupportedException("Per-entry legend text formatting cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("Per-entry legend text formatting cannot be projected.",
+                    "Legend entries with their own text formatting use the legend's text formatting.");
             foreach (C.Title title in chart.Descendants<C.Title>()) {
                 if (title.GetFirstChild<C.ChartShapeProperties>() is not C.ChartShapeProperties titleShape) continue;
                 if (!titleShape.HasChildren && !titleShape.HasAttributes) continue;
                 Surface titleSurface = ReadSurface(titleShape, scheme, colorMap);
                 if (!titleSurface.NoFill || !titleSurface.NoOutline || titleSurface.Fill.HasValue || titleSurface.Stroke.HasValue)
-                    throw new NotSupportedException("The title shape appearance cannot be projected.");
+                    OfficeOpenXmlChartFidelityScope.Approximate("The title shape appearance cannot be projected.",
+                        "A title's fill or border is left out.");
             }
             var legendShape = chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.ChartShapeProperties>();
             var legendSurface = ReadSurface(legendShape, scheme, colorMap);
             if (legendSurface.Dash is OfficeStrokeDashStyle legendDash && legendDash != OfficeStrokeDashStyle.Solid)
-                throw new NotSupportedException("The legend border dash cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("The legend border dash cannot be projected.",
+                    "The dashed legend border is drawn solid.");
             bool allowMultiline = kind == OfficeChartType.Bubble;
             var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme, allowMultiline);
             var defaultText = ReadNativeText(chart, chart, scheme, allowMultiline);
@@ -103,24 +123,34 @@ namespace OfficeIMO.OpenXml.Internal {
             // An empty effect list, as Office writes on most chart surfaces, draws nothing.
             if (properties.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.Outline &&
                 !(child is A.EffectList && !child.HasChildren)))
-                throw new NotSupportedException("The chart surface has an unsupported fill or effect.");
+                OfficeOpenXmlChartFidelityScope.Approximate("The chart surface has an unsupported fill or effect.",
+                    "A chart surface fill or effect the renderer cannot draw is left out.");
             var outline = properties.GetFirstChild<A.Outline>();
-            if (outline?.CapType != null || outline?.Alignment != null || outline?.CompoundLineType != null)
-                throw new NotSupportedException("The chart outline attributes cannot be projected.");
-            if (outline?.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.PresetDash) == true)
-                throw new NotSupportedException("The chart surface has an unsupported outline.");
+            // Office writes cap="flat" cmpd="sng" algn="ctr" and a round join on every chart surface.
+            // Those defaults draw exactly; caps and joins only touch frame corners and axis-line ends,
+            // which stay within a fraction of the hairline width at chart scale.
+            if (outline?.CompoundLineType?.Value is A.CompoundLineValues compound && compound != A.CompoundLineValues.Single)
+                OfficeOpenXmlChartFidelityScope.Approximate("The chart outline attributes cannot be projected.",
+                    "A compound chart outline is drawn as a single line.");
+            if (outline?.Alignment?.Value is A.PenAlignmentValues alignment && alignment != A.PenAlignmentValues.Center)
+                OfficeOpenXmlChartFidelityScope.Approximate("The chart outline attributes cannot be projected.",
+                    "An inset chart outline is drawn centred on its edge.");
+            if (outline?.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.PresetDash &&
+                    child is not A.Round && child is not A.LineJoinBevel && !(child is A.Miter miter && !miter.HasChildren)) == true)
+                OfficeOpenXmlChartFidelityScope.Approximate("The chart surface has an unsupported outline.",
+                    "A chart outline fill or line end the renderer cannot draw is drawn as a plain line.");
             if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(properties.GetFirstChild<A.SolidFill>()) ||
                 OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(outline?.GetFirstChild<A.SolidFill>()))
-                throw new NotSupportedException("The chart surface has an unsupported colour transform.");
-            if (outline?.GetFirstChild<A.NoFill>() == null &&
-                (outline?.GetFirstChild<A.Round>() != null || outline?.GetFirstChild<A.Bevel>() != null || outline?.GetFirstChild<A.Miter>() != null))
-                throw new NotSupportedException("The chart surface outline join cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("The chart surface has an unsupported colour transform.",
+                    "A chart surface colour transform the renderer cannot apply is ignored.");
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme, colorMap: colorMap);
             OfficeColor? stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme, colorMap: colorMap);
             if (properties.GetFirstChild<A.SolidFill>() != null && !fill.HasValue || outline?.GetFirstChild<A.SolidFill>() != null && !stroke.HasValue)
-                throw new NotSupportedException("The chart surface colour cannot be resolved.");
+                OfficeOpenXmlChartFidelityScope.Approximate("The chart surface colour cannot be resolved.",
+                    "A chart surface colour that cannot be resolved is drawn with the default chart colour.");
             if (outline != null && outline.GetFirstChild<A.NoFill>() == null && !stroke.HasValue)
-                throw new NotSupportedException("The chart surface outline colour cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("The chart surface outline colour cannot be projected.",
+                    "A chart surface outline colour that cannot be resolved is drawn with the default chart colour.");
             double? width = outline?.Width?.Value is int emus ? emus / 12700d : null;
             if (width.HasValue && (width < 0 || width > OfficeChartStyleBounds.MaximumLineWidthPoints))
                 throw new NotSupportedException("The chart outline width is outside the supported range.");

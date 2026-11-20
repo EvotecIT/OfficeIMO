@@ -73,7 +73,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (points.Count < 2) continue;
             OfficeColor color = trendline.Color ?? GetSeriesColor(style, snapshot.Data.Series, seriesIndex);
-            AddTrendlinePath(geometry, points, color, trendline.Width?.ToPoints() ?? 1.5D);
+            AddTrendlinePath(geometry, points, color, trendline.Width?.ToPoints() ?? 1.5D, trendline.DashStyle ?? OfficeStrokeDashStyle.Solid);
 
             var parts = new List<string>(2);
             if (trendline.DisplayEquation && equation != null) parts.Add(equation);
@@ -111,7 +111,8 @@ public static partial class OfficeChartDrawingRenderer {
         return first + (last - first) * (categoryNumber - 1D) / (categoryCount - 1D);
     }
 
-    private static void AddTrendlinePath(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double width) {
+    private static void AddTrendlinePath(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double width,
+        OfficeStrokeDashStyle dashStyle) {
         // Keep the path inside the drawing; the plot clip hides whatever lies beyond the axes.
         var clamped = points.Select(point => new OfficePoint(
             Math.Max(0D, Math.Min(drawing.Width, point.X)),
@@ -120,7 +121,7 @@ public static partial class OfficeChartDrawingRenderer {
         double top = clamped.Min(point => point.Y);
         var commands = new List<OfficePathCommand>(clamped.Count) { OfficePathCommand.MoveTo(clamped[0].X - left, clamped[0].Y - top) };
         for (int i = 1; i < clamped.Count; i++) commands.Add(OfficePathCommand.LineTo(clamped[i].X - left, clamped[i].Y - top));
-        AddShape(drawing, OfficeShape.Path(commands), left, top, null, color, width, OfficeStrokeDashStyle.Solid);
+        AddShape(drawing, OfficeShape.Path(commands), left, top, null, color, width, dashStyle);
     }
 
     private static bool TryFitTrendline(OfficeChartTrendline trendline, IReadOnlyList<double> xs, IReadOnlyList<double> ys,

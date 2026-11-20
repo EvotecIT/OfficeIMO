@@ -24,7 +24,15 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            if (!TryCreateNativeWordChartSnapshot(chart, out OfficeChartSnapshot? snapshot, out string? warning)) {
+            OfficeChartSnapshot? snapshot;
+            string? warning;
+            IReadOnlyList<string> approximations;
+            using (var fidelity = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Enter(options?.ChartRendering.Fidelity ?? OfficeChartFidelity.Strict)) {
+                bool projected = TryCreateNativeWordChartSnapshot(chart, out snapshot, out warning);
+                approximations = projected ? fidelity.Approximations.ToArray() : Array.Empty<string>();
+                if (!projected) snapshot = null;
+            }
+            if (snapshot == null) {
                 if (options != null) {
                     AddNativeExportWarning(
                         options,
@@ -37,6 +45,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (options != null) {
+                foreach (string approximation in approximations)
+                    AddNativeExportWarning(options, OfficeDiagnosticCodes.ChartApproximation, source, approximation);
                 var nativeGroups = chart.ChartPart?.ChartSpace?.GetFirstChild<Chart>()?.PlotArea?.ChildElements;
                 bool emittedProjection = false;
                 if (nativeGroups != null) {
