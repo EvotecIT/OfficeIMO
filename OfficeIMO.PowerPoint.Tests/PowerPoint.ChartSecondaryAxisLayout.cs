@@ -24,7 +24,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Fact]
-    public void CacheOnlySourceLinkedPrimaryFormatMustBeRenderable() {
+    public void CacheOnlySourceLinkedPrimaryFormatFallsBackToGeneralWhenNotRenderable() {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
@@ -34,16 +34,18 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         C.NumberingFormat format = space.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!;
         format.SourceLinked = true;
         format.FormatCode = "0.0";
-        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var drawn));
+        Assert.Equal("0.0", drawn.Layout.VerticalAxisNumberFormat);
 
-        format.FormatCode = "[Red]0";
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        format.FormatCode = "[<1]0.0;0";
+        Assert.True(chart.TryGetOfficeSnapshot(out var fallback));
+        Assert.Null(fallback.Layout.VerticalAxisNumberFormat);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void PrimarySourceLinkedAxisRejectsInheritedWorkbookStyles(bool columnStyle) {
+    public void PrimarySourceLinkedAxisWithWorkbookStylesUsesTheCachedCellFormat(bool columnStyle) {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
@@ -77,11 +79,12 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         }
         bytes.Position = 0;
         package.FeedData(bytes);
-        // The cached values carry the styled cell format, so the axis needs the workbook projection.
+        // The cached values carry the styled cell format, which a linked axis displays.
         foreach (C.FormatCode code in part.ChartSpace.Descendants<C.Values>().SelectMany(values => values.Descendants<C.FormatCode>()))
             code.Text = "#,##0.00";
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("#,##0.00", snapshot.Layout.VerticalAxisNumberFormat);
     }
 
     [Fact]
@@ -91,13 +94,14 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
-        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[Red]0";
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[<1]0.0;0";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Null(snapshot.Layout.VerticalAxisNumberFormat);
         chart.UpdateData(new OfficeChartData(new[] { "A" },
             new[] { new OfficeSeries("Values", new[] { 24d }) }));
-        Assert.Equal("[Red]0", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+        Assert.Equal("[<1]0.0;0", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
     }
 
     [Theory]
@@ -165,7 +169,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void UnsupportedNumericAxisFormatIsNotProjected(bool secondaryAxis) {
+    public void UnsupportedNumericAxisFormatIsDrawnAsGeneral(bool secondaryAxis) {
         using var presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] {
@@ -177,9 +181,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(item => item.AxisPosition!.Val!.Value ==
                 (secondaryAxis ? C.AxisPositionValues.Right : C.AxisPositionValues.Left));
-        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[Red]0";
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[<1]0.0;0";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Null(secondaryAxis ? snapshot.Layout.SecondaryValueAxis!.NumberFormat : snapshot.Layout.VerticalAxisNumberFormat);
     }
 
     [Theory]

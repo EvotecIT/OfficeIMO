@@ -136,6 +136,29 @@ public sealed class ExcelChartExplodedSlicesTests {
         Assert.Equal((uint)401, native.GetFirstChild<C.Explosion>()!.Val!.Value);
     }
 
+    [Fact]
+    public void UnsupportedNativeExplosion_BestEffortExportDrawsTheChartAndReportsTheApproximation() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
+        document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.PieChartSeries>().Single().AddChild(new C.Explosion { Val = 401U }, true);
+
+        Assert.Throws<InvalidOperationException>(() => chart.ToImage(OfficeImageExportFormat.Png));
+        OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png,
+            new ExcelImageExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
+        OfficeIMO.Pdf.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(
+            new ExcelPdfExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
+
+        Assert.NotEmpty(image.Bytes);
+        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.DoesNotContain(pdf.Warnings, warning => warning.Code == "worksheet-chart");
+        Assert.Contains(pdf.Warnings, warning => warning.Code == OfficeDiagnosticCodes.ChartApproximation);
+    }
+
     [Theory]
     [InlineData(OfficeChartType.Pie)]
     [InlineData(OfficeChartType.Doughnut)]

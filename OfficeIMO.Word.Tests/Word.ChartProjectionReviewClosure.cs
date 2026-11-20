@@ -85,7 +85,7 @@ public sealed class WordChartProjectionReviewClosureTests {
     [InlineData("plot")]
     [InlineData("axis")]
     [InlineData("grid")]
-    public void Snapshot_RejectsUnrepresentedSurfaceLineJoins(string surface) {
+    public void Snapshot_DrawsSurfaceOutlinesWithLineJoins(string surface) {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartType.Line,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3D, 4D }) }));
         var native = chart.ChartPart!.ChartSpace!;
@@ -99,6 +99,6 @@ public sealed class WordChartProjectionReviewClosureTests {
         var outline = new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "123456" }), new A.Round());
         if (surface is "chart" or "plot") owner.AddChild(new C.ShapeProperties(outline), true);
         else owner.AddChild(new C.ChartShapeProperties(outline), true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
     }
 }

@@ -167,7 +167,6 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("sparse")]
     [InlineData("negative")]
     [InlineData("dateAxis")]
-    [InlineData("labelFormat")]
     [InlineData("legendEntry")]
     [InlineData("rotation")]
     [InlineData("labelSkip")]
@@ -210,7 +209,6 @@ public sealed class WordChartProjectionQualificationTests {
         else if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
         else if (feature == "sparse") series.Descendants<C.NumericPoint>().Last().Remove();
         else if (feature == "negative") series.AddChild(new C.InvertIfNegative { Val = true }, true);
-        else if (feature == "labelFormat") layer.AddChild(new C.DataLabels(new C.NumberingFormat { FormatCode = "m/d/yyyy", SourceLinked = false }, new C.ShowValue { Val = true }), true);
         else if (feature == "legendEntry") native.GetFirstChild<C.Legend>()!.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, new C.TextProperties(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 2400 })))), true);
         else if (feature == "rotation") space.AddChild(new C.TextProperties(new A.BodyProperties { Rotation = 5400000 }, new A.ListStyle(), new A.Paragraph()), true);
         else if (feature == "labelSkip") plot.GetFirstChild<C.CategoryAxis>()!.AddChild(new C.TickLabelSkip { Val = 2 }, true);
