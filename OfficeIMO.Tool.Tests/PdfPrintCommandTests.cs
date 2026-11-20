@@ -76,14 +76,18 @@ public sealed class PdfPrintCommandTests {
     }
 
     [Theory]
-    [InlineData("reader", PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint, true)] // printing allowed, copying denied
-    [InlineData("wrong", PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint, false)]
-    [InlineData("reader", PdfStandardPermissions.CopyContents, false)] // printing denied
-    public async Task PlanAndPrintAdmitSourcePasswordsOnlyFromTheEnvironment(string password, PdfStandardPermissions permissions, bool admitted) {
+    [InlineData(true, PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint, true)] // printing allowed, copying denied
+    [InlineData(false, PdfStandardPermissions.Print | PdfStandardPermissions.HighQualityPrint, false)]
+    [InlineData(true, PdfStandardPermissions.CopyContents, false)] // printing denied
+    public async Task PlanAndPrintAdmitSourcePasswordsOnlyFromTheEnvironment(bool correctPassword, PdfStandardPermissions permissions, bool admitted) {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-print-locked-" + Guid.NewGuid().ToString("N") + ".pdf");
         string variable = "OFFICEIMO_PRINT_TEST_" + Guid.NewGuid().ToString("N");
+        // The plan output names the input file, so the password must be text no path can contain; a word such as
+        // "reader" also matches a temporary folder that happens to include it.
+        string userPassword = "synthetic-user-" + Guid.NewGuid().ToString("N");
+        string password = correctPassword ? userPassword : "synthetic-wrong-" + Guid.NewGuid().ToString("N");
         byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Protected content")).ToBytes();
-        File.WriteAllBytes(path, PdfDocument.Load(plain).Security.Encrypt(new("reader") { OwnerPassword = "owner", AllowedPermissions = permissions }).Pdf);
+        File.WriteAllBytes(path, PdfDocument.Load(plain).Security.Encrypt(new(userPassword) { OwnerPassword = "synthetic-owner-" + Guid.NewGuid().ToString("N"), AllowedPermissions = permissions }).Pdf);
         Environment.SetEnvironmentVariable(variable, password);
         try {
             using var planOutput = new StringWriter();
