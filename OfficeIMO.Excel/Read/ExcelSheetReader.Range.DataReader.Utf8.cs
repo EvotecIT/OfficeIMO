@@ -331,6 +331,10 @@ namespace OfficeIMO.Excel {
                     && firstColumn > 0 && lastColumn >= firstColumn && lastColumn <= ExcelA1.MaxColumns;
             }
 
+            /// <summary>Whether the current row's cell at <paramref name="ordinal"/> is a date cell (<c>t="d"</c>).</summary>
+            internal bool IsDateCell(int ordinal) =>
+                (Utf8CellKind)(_cellKinds![_currentRowOffset + ordinal] & CellKindMask) == Utf8CellKind.Date;
+
             internal bool IsCellPresent(int ordinal) {
                 EnsureNotDisposed();
                 return (Utf8CellKind)(_cellKinds![_currentRowOffset + ordinal] & CellKindMask) != Utf8CellKind.Missing;

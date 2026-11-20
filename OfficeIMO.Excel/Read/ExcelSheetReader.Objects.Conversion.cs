@@ -106,8 +106,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (typeHint == CellValues.Date && rawText != null) {
-                if (ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)
-                    && ReturnBindingConversion(TryConvertDateTimeForBinding(dt, binding, out converted), binding, converted)) {
+                if (!ExcelIsoDateText.TryParse(rawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
+                    return TryConvertRejectedDateCellText(rawText, binding, out converted);
+                }
+
+                if (ReturnBindingConversion(TryConvertDateTimeForBinding(dt, binding, out converted), binding, converted)) {
                     return true;
                 }
 
@@ -161,6 +164,7 @@ namespace OfficeIMO.Excel {
                 return converted is not null || binding.IsNullable;
             }
 
+            if (IsRejectedDateCell(raw)) return false;
             raw = ConvertRaw(raw);
             object? typedValue = raw.TypedValue;
             if (typedValue is null) {
@@ -170,6 +174,27 @@ namespace OfficeIMO.Excel {
             converted = TryChangeType(typedValue, binding, _opt.Culture, raw);
             return converted is not null || binding.IsNullable;
         }
+
+        /// <summary>
+        /// A date cell (<c>t="d"</c>) whose text is not a valid ISO 8601 date or time is not a date. A string destination
+        /// keeps its text; any other destination stays unset rather than letting a general parser guess a value, such as
+        /// today's date for <c>10:30:00.</c>.
+        /// </summary>
+        private static bool TryConvertRejectedDateCellText<TTarget>(string rawText, TypedPropertyBinding<TTarget> binding, out object? converted) {
+            converted = binding.DestinationType == typeof(string) ? rawText : null;
+            return converted is not null;
+        }
+
+        /// <inheritdoc cref="TryConvertRejectedDateCellText{TTarget}(string, TypedPropertyBinding{TTarget}, out object?)"/>
+        private static bool TrySetRejectedDateCellText<TTarget>(string rawText, TypedPropertyBinding<TTarget> binding, TTarget target) {
+            if (!TryConvertRejectedDateCellText(rawText, binding, out object? converted)) return false;
+            binding.SetValue(target, converted);
+            return true;
+        }
+
+        private bool IsRejectedDateCell(CellRaw raw) =>
+            raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null
+            && !ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out _);
 
         private static bool ReturnBindingConversion<TTarget>(
             bool convertedByFastPath,
@@ -215,8 +240,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
-                if (ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)
-                    && TryConvertDateTimeForBinding(dt, binding, out converted)) {
+                if (!ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dt)) {
+                    return TryConvertRejectedDateCellText(raw.RawText, binding, out converted);
+                }
+
+                if (TryConvertDateTimeForBinding(dt, binding, out converted)) {
                     return true;
                 }
 
@@ -257,6 +285,7 @@ namespace OfficeIMO.Excel {
                 return converted is not null || binding.IsNullable;
             }
 
+            if (IsRejectedDateCell(raw)) return false;
             raw = ConvertRaw(raw);
             object? typedValue = raw.TypedValue;
             if (typedValue is null) {
@@ -355,8 +384,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Date && raw.RawText != null) {
-                if (binding.SetDateTime != null
-                    && ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
+                if (!ExcelIsoDateText.TryParse(raw.RawText, _opt.Culture, DateTimeStyles.AssumeLocal, out var dateValue)) {
+                    return TrySetRejectedDateCellText(raw.RawText, binding, target);
+                }
+
+                if (binding.SetDateTime != null) {
                     binding.SetDateTime(target, dateValue);
                     return true;
                 }

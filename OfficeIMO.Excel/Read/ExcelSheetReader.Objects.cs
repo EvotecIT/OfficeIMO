@@ -188,7 +188,9 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                object? converted = cell.TypedValue is null ? null : TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
+                object? converted = cell.TypedValue is null ? null
+                    : IsRejectedDateCell(cell) ? (TryConvertRejectedDateCellText(cell.RawText!, binding, out object? text) ? text : null)
+                    : TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
 
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();
@@ -279,6 +281,10 @@ namespace OfficeIMO.Excel {
             for (int ordinal = 0; ordinal < bindings.Length; ordinal++) {
                 TypedPropertyBinding<T>? binding = bindings[ordinal];
                 if (binding != null) {
+                    // Text bound to a date or time may be a rejected date cell; the cell-aware path decides.
+                    if (IsDateOrTimeDestination(binding.DestinationType) && !reader.IsDBNull(ordinal) && reader.GetValue(ordinal) is string) {
+                        throw new NotSupportedException("Text bound to a date or time is mapped by the cell-aware path.");
+                    }
                     object? value = DataReaderMappingValue.Read(reader, ordinal, binding.DestinationType);
                     if ((value == null || value == DBNull.Value) && (reader is ExcelXmlRangeDataReader xml && !xml.IsCellPresent(ordinal)
                         || reader is ExcelRangeDataReader chunked && !chunked.IsCellPresent(ordinal))) {
@@ -291,6 +297,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static readonly object MissingTypedCell = new object();
+
+        private static bool IsDateOrTimeDestination(Type destinationType) {
+            Type type = Nullable.GetUnderlyingType(destinationType) ?? destinationType;
+            return type == typeof(DateTime) || type == typeof(DateTimeOffset)
+#if NET6_0_OR_GREATER
+                || type == typeof(DateOnly) || type == typeof(TimeOnly)
+#endif
+                ;
+        }
 
         private bool TryReadObjectsFromXmlMaterialized<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
             string a1Range,
@@ -428,6 +443,12 @@ namespace OfficeIMO.Excel {
                     if (_opt.TreatDatesUsingNumberFormat
                         && value is DateTime
                         && IsNumericBindingDestination(binding.BindingKind)) {
+                        result = [];
+                        return false;
+                    }
+
+                    // Text bound to a date or time may be a rejected date cell; the cell-aware path decides.
+                    if (value is string && IsDateOrTimeDestination(binding.DestinationType)) {
                         result = [];
                         return false;
                     }

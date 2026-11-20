@@ -155,6 +155,42 @@ namespace OfficeIMO.Excel.Tests {
             }
         }
 
+        public sealed class IsoDateRow {
+            public DateTime? Value { get; set; }
+        }
+
+        [Theory]
+        [InlineData("10:30:00.")]
+        [InlineData("10:30:00+garbage")]
+        public void RejectedIsoDateCellsBindAsTextOnly(string text) {
+            string path = CreateSingleIsoDateCellWorkbook(text);
+            try {
+                using var reader = ExcelDocumentReader.Open(path);
+                ExcelSheetReader sheet = reader.GetSheet("Data");
+                Assert.Null(sheet.ReadObjects<IsoDateRow>("A1:A2").Single().Value);
+                Assert.Null(sheet.ReadObjectsStream<IsoDateRow>("A1:A2").Single().Value);
+                Assert.Equal(text, sheet.ReadObjects<IsoTextRow>("A1:A2").Single().Value);
+                Assert.Equal(text, sheet.ReadObjectsStream<IsoTextRow>("A1:A2").Single().Value);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void RejectedIsoDateCellsBindAsTextOnlyInParallelReads() {
+            const int rows = 5000; // above the buffered limit, so the parallel row mapping is eligible
+            string path = CreateSingleIsoDateCellWorkbook("10:30:00.", rows);
+            try {
+                using var reader = ExcelDocumentReader.Open(path);
+                ExcelSheetReader sheet = reader.GetSheet("Data");
+                string range = "A1:A" + (rows + 1);
+                Assert.All(sheet.ReadObjects<IsoDateRow>(range, ExcelExecutionMode.Parallel), row => Assert.Null(row.Value));
+                Assert.All(sheet.ReadObjects<IsoTextRow>(range, ExcelExecutionMode.Parallel), row => Assert.Equal("10:30:00.", row.Value));
+            } finally {
+                File.Delete(path);
+            }
+        }
+
         [Fact]
         public void StringBindingsKeepTimeOnlyTextOutsideTheCultureCalendar() {
             // Um Al Qura dates start in 1900, after the time-only base date of December 30, 1899.
@@ -179,14 +215,15 @@ namespace OfficeIMO.Excel.Tests {
             }
         }
 
-        private static string CreateSingleIsoDateCellWorkbook(string text) {
+        private static string CreateSingleIsoDateCellWorkbook(string text, int rows = 1) {
             string path = CreateCompactFastPathWorkbook();
             try {
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(
                     "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-                    + "<dimension ref=\"A1:A2\"/><sheetData>"
+                    + "<dimension ref=\"A1:A" + (rows + 1) + "\"/><sheetData>"
                     + "<row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Value</t></is></c></row>"
-                    + "<row r=\"2\"><c r=\"A2\" s=\"1\" t=\"d\"><v>" + text + "</v></c></row>"
+                    + string.Concat(Enumerable.Range(2, rows).Select(row =>
+                        "<row r=\"" + row + "\"><c r=\"A" + row + "\" s=\"1\" t=\"d\"><v>" + text + "</v></c></row>"))
                     + "</sheetData></worksheet>"));
                 ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(
                     "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
