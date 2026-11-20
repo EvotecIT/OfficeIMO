@@ -114,6 +114,10 @@ public sealed class NewOfficeExcelImageOptionsCommand : PSCmdlet {
     [Parameter(ParameterSetName = "Default")]
     public SwitchParameter SplitWorksheetsByManualPageBreaks { get; set; }
 
+    /// <summary>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public OfficeChartFidelity? ChartFidelity { get; set; }
+
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var options = new ExcelImageExportOptions();
@@ -139,6 +143,7 @@ public sealed class NewOfficeExcelImageOptionsCommand : PSCmdlet {
         if (MyInvocation.BoundParameters.ContainsKey(nameof(IncludeHiddenSheets))) options.IncludeHiddenSheets = IncludeHiddenSheets;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(UseWorksheetPrintAreas))) options.UsePrintArea = UseWorksheetPrintAreas;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(SplitWorksheetsByManualPageBreaks))) options.SplitByManualPageBreaks = SplitWorksheetsByManualPageBreaks;
+        if (ChartFidelity.HasValue) options.ChartRendering.Fidelity = ChartFidelity.Value;
         WriteObject(options);
     }
 

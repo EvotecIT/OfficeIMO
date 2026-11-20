@@ -457,6 +457,25 @@ colour selection. The [image export capability matrix](../Docs/officeimo.image-e
 tracks the exact chart appearance boundary.
 PDF export uses the native chart style unless `PowerPointPdfExportOptions.ChartStyle` supplies an override.
 
+Charts made by PowerPoint, Excel or Word draw with their default formatting, including round line caps,
+series and point data labels, trendlines, and number formats with colour, zero and currency sections; a number
+format the renderer cannot reproduce is drawn as General with a `chart-approximation` warning. Other formatting the
+renderer cannot draw exactly makes `ToImage` and PDF export skip the chart with `unsupported-chart`. Set
+`ChartRendering.Fidelity = OfficeChartFidelity.BestEffort` on `PowerPointImageExportOptions` or `PowerPointPdfExportOptions`
+to draw the closest approximation instead; each approximation is reported as a `chart-approximation` warning, so a
+caller can still reject the result:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint;
+
+OfficeImageExportResult preview = presentation.Slides[0].ToImage(new PowerPointImageExportOptions {
+    ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort }
+});
+bool approximated = preview.Diagnostics.Any(diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
+```
+
 ```csharp
 using OfficeIMO.PowerPoint;
 using OfficeIMO;
