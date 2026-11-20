@@ -43,29 +43,50 @@ public sealed class DrawingManagedTypographyCompositionTests {
     }
 
     [Theory]
-    [InlineData(1, false)]
-    [InlineData(2, false)]
     [InlineData(4, false)]
     [InlineData(8, false)]
-    [InlineData(1, true)]
-    [InlineData(2, true)]
     [InlineData(4, true)]
     [InlineData(8, true)]
-    public void MarkPositioningCannotSilentlyDiscardSingleOrPairAdjustments(int field, bool pair) {
+    public void MarkPositioningCannotSilentlyDiscardSingleOrPairAdvanceAdjustments(int field, bool pair) {
         byte[] data = ManagedTextShapingTestAssets.CreateMarkCompositionFont(field, pair);
 
         Assert.Null(Shape(data, "A\u0301"));
         Assert.IsType<OfficeTextShapingResult>(Shape(data, "A\u0301", OfficeTextFeatureSettings.Default.With("kern", 0)));
     }
 
+    // GPOS lookups apply in LookupList order: a placement after the attachment moves the
+    // anchored mark, and an attachment after a placement positions the mark afresh.
+    [Theory]
+    [InlineData(1, false, "kern")]
+    [InlineData(2, false, "kern")]
+    [InlineData(1, true, "kern")]
+    [InlineData(2, true, "kern")]
+    [InlineData(1, false, "dist")]
+    [InlineData(2, false, "dist")]
+    public void MarkPlacementComposesWithAttachmentInLookupOrder(int field, bool pair, string feature) {
+        OfficeShapedGlyph anchored = Assert.IsType<OfficeTextShapingResult>(
+            Shape(ManagedTextShapingTestAssets.CreateMarkCompositionFont(), "A\u0301")).Glyphs[1];
+
+        OfficeShapedGlyph after = Assert.IsType<OfficeTextShapingResult>(Shape(
+            ManagedTextShapingTestAssets.CreateMarkCompositionFont(field, pair, extraFeature: feature), "A\u0301")).Glyphs[1];
+        OfficeShapedGlyph before = Assert.IsType<OfficeTextShapingResult>(Shape(
+            ManagedTextShapingTestAssets.CreateMarkCompositionFont(field, pair, extraFeature: feature, adjustmentBeforeAttachment: true),
+            "A\u0301")).Glyphs[1];
+
+        Assert.Equal(anchored.OffsetX + (field == 1 ? 77 : 0), after.OffsetX);
+        Assert.Equal(anchored.OffsetY + (field == 2 ? 77 : 0), after.OffsetY);
+        Assert.Equal((anchored.OffsetX, anchored.OffsetY), (before.OffsetX, before.OffsetY));
+        Assert.Equal(0, after.AdvanceWidth);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void SelectedUnsupportedPositioningFeaturesDecline(bool required) {
-        byte[] data = ManagedTextShapingTestAssets.CreateMarkCompositionFont(1, extraFeature: "dist", requiredExtraFeature: required);
+        byte[] data = ManagedTextShapingTestAssets.CreateMarkCompositionFont(1, extraFeature: "abvm", requiredExtraFeature: required);
 
         Assert.Null(Shape(data, "A\u0301", required ? OfficeTextFeatureSettings.Default
-            : OfficeTextFeatureSettings.Default.With("dist", 1)));
+            : OfficeTextFeatureSettings.Default.With("abvm", 1)));
     }
 
     private static OfficeTextShapingResult? Shape(byte[] data, string text, OfficeTextFeatureSettings? features = null) {

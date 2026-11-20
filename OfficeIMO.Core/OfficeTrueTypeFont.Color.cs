@@ -24,12 +24,15 @@ public sealed partial class OfficeTrueTypeFont {
         if (!_hasUnreadColorTable) return false;
         for (int index = 0; index < text.Length;) {
             int glyph = ReadMappedGlyph(text, ref index, out int scalar);
-            if (glyph > 0 && _colorGlyphs?.HasColorGlyph(glyph) != true
-                && !char.IsWhiteSpace(char.ConvertFromUtf32(scalar), 0)
-                && HasEmptyOutline((ushort)glyph)) return true;
+            if (!char.IsWhiteSpace(char.ConvertFromUtf32(scalar), 0) && IsUnpaintableColorGlyph(glyph)) return true;
         }
         return false;
     }
+
+    /// <summary>Whether a glyph, such as a shaped ligature, has only bitmap, SVG or unreadable color artwork.</summary>
+    internal bool IsUnpaintableColorGlyph(int glyph) =>
+        _hasUnreadColorTable && glyph > 0 && glyph < _numGlyphs && _colorGlyphs?.HasColorGlyph(glyph) != true
+        && HasEmptyOutline((ushort)glyph);
 
     private bool HasEmptyOutline(ushort glyph) {
         int start = GlyphOffset(glyph);

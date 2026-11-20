@@ -224,6 +224,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             return 0D;
         }
 
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
         if (useFontUnitAdvances) return MeasureFontUnitAdvanceWidth1000(ShapeText(text!, options)) * fontSize / 1000D;
         int advance = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode == PdfTextShapingMode.OpenTypeLigatures &&
@@ -246,6 +247,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        options = options.ForText(text);
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
             IReadOnlyList<PdfGlyphInfo> cachedGlyphs = cached.Glyphs;

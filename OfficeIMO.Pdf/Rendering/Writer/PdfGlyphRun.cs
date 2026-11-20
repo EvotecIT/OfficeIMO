@@ -290,6 +290,22 @@ internal readonly struct PdfTextShapingOptions {
 
     public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) =>
         new PdfTextShapingOptions(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true, reportControlCharacters: true, source: source, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider);
+
+    /// <summary>
+    /// Built-in Latin ligatures cannot write an emoji sequence: its ZWJ, keycap, modifier, flag and
+    /// presentation components only combine through the font's default GSUB and GPOS. Such text uses
+    /// the font's OpenType shaping, as <see cref="PdfTextShapingMode.OpenTypeLigatures"/> does.
+    /// </summary>
+    internal static PdfTextShapingMode EffectiveShapingMode(PdfTextShapingMode shapingMode, string? text) =>
+        shapingMode == PdfTextShapingMode.LatinLigatures && OfficeTextElements.ContainsJoinerOrEmojiSequence(text)
+            ? PdfTextShapingMode.OpenTypeLigatures : shapingMode;
+
+    internal PdfTextShapingOptions ForText(string text) {
+        PdfTextShapingMode mode = EffectiveShapingMode(ShapingMode, text);
+        return mode == ShapingMode ? this : new PdfTextShapingOptions(RecordGlyphUsage, ThrowOnMissingGlyph, SkipLayoutControls,
+            ReportControlCharacters, Source, FontName, mode, ShapingProvider, ProviderShapedTextRecorder, Language,
+            FeatureSettings, Direction, PreservesPaintedGlyphs);
+    }
 }
 
 internal interface IPdfTextShaper {

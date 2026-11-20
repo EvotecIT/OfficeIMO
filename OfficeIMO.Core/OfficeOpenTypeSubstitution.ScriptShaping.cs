@@ -38,7 +38,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             foreach (ArabicFeatureLookup lookup in lookups) {
                 context.Charge();
                 ApplyArabicLookup(result, lookup, context.Filter, joining, context,
-                    cancellationToken, ref context.Operations);
+                    cancellationToken, ref context.Operations, script == "arab");
             }
             glyphs.Clear(); glyphs.AddRange(result);
             return true;
@@ -157,15 +157,18 @@ internal sealed partial class OfficeOpenTypeSubstitution {
 
     private void ApplyArabicLookup(List<GlyphToken> glyphs, ArabicFeatureLookup feature,
         OfficeOpenTypeGlyphFilter filter, string?[] joining, ScriptShapingContext context,
-        CancellationToken cancellationToken, ref int operations) {
+        CancellationToken cancellationToken, ref int operations, bool arabic) {
         // Normalized glyphs can share an original grapheme's TextIndex. Split on
         // the retained scalar before filtering so ignored marks cannot migrate
         // across its barrier when they are restored into the substituted run.
+        // Outside Arabic joining, ZWJ is an ordinary GSUB input: emoji ZWJ sequences
+        // (UTS #51) list it as a ligature component, and a ligature that does not
+        // list it still cannot match across its glyph. ZWNJ always separates.
         bool controls = false;
         foreach (GlyphToken token in glyphs) {
             cancellationToken.ThrowIfCancellationRequested();
             ChargeOperations(ref operations, 1);
-            if (IsJoiningControl(token.Scalar)) { controls = true; break; }
+            if (IsSegmentingControl(token.Scalar, arabic)) { controls = true; break; }
         }
         if (!controls) {
             ApplyArabicLookupWithoutControls(glyphs, feature, filter, joining, context,
@@ -177,7 +180,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         for (int index = 0; index <= glyphs.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             ChargeOperations(ref operations, 1);
-            if (index < glyphs.Count && !IsJoiningControl(glyphs[index].Scalar)) continue;
+            if (index < glyphs.Count && !IsSegmentingControl(glyphs[index].Scalar, arabic)) continue;
             if (index > start) {
                 List<GlyphToken> segment = glyphs.GetRange(start, index - start);
                 ApplyArabicLookupWithoutControls(segment, feature, filter, joining, context,
@@ -194,6 +197,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private static bool IsJoiningControl(int scalar) => scalar is 0x200C or 0x200D;
+
+    private static bool IsSegmentingControl(int scalar, bool arabic) => arabic ? IsJoiningControl(scalar) : scalar == 0x200C;
 
     private void ApplyArabicLookupWithoutControls(List<GlyphToken> glyphs, ArabicFeatureLookup feature,
         OfficeOpenTypeGlyphFilter filter, string?[] joining, ScriptShapingContext context,
@@ -212,7 +217,10 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         foreach (GlyphToken original in glyphs) {
             cancellationToken.ThrowIfCancellationRequested();
             GlyphToken token = original.WithLookupOrder(lookupOrder++, lookupIdentity);
-            if (filter.IsIgnored(token, flags, set, charge)) ignored.Add(token);
+            // Variation selectors are default ignorable and select glyphs through cmap
+            // format 14, so fonts omit them from ligature inputs: a fully-qualified emoji
+            // sequence (UTS #51) matches the same ligature as its unqualified form.
+            if (OfficeTextElements.IsVariationSelector(token.Scalar) || filter.IsIgnored(token, flags, set, charge)) ignored.Add(token);
             else included.Add(token);
         }
         operations = filterOperations;

@@ -2,9 +2,10 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Describes an attachment without assuming a logical run's eventual visual pen direction.</summary>
 internal readonly struct OfficeOpenTypeMarkAttachment {
-    internal OfficeOpenTypeMarkAttachment(int parentGlyphIndex, int deltaX, int deltaY, bool isMark, bool isFontDirectedNoOp = false) {
+    internal OfficeOpenTypeMarkAttachment(int parentGlyphIndex, int deltaX, int deltaY, bool isMark, bool isFontDirectedNoOp = false,
+        int attachmentLookup = -1) {
         ParentGlyphIndex = parentGlyphIndex; DeltaX = deltaX; DeltaY = deltaY; IsMark = isMark;
-        IsFontDirectedNoOp = isFontDirectedNoOp;
+        IsFontDirectedNoOp = isFontDirectedNoOp; AttachmentLookup = attachmentLookup;
     }
     internal int ParentGlyphIndex { get; }
     internal int DeltaX { get; }
@@ -12,6 +13,8 @@ internal readonly struct OfficeOpenTypeMarkAttachment {
     internal bool IsMark { get; }
     /// <summary>The font selected a supported mark lookup, but supplied no applicable parent anchor.</summary>
     internal bool IsFontDirectedNoOp { get; }
+    /// <summary>GPOS LookupList index of the attachment that placed this mark, or -1.</summary>
+    internal int AttachmentLookup { get; }
 }
 
 /// <summary>Bounded static GPOS mark-to-base, mark-to-ligature and mark-to-mark attachment reader.</summary>
@@ -166,7 +169,7 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
                 if (settings.TryGetValue(requiredTag, out int requiredSetting) && requiredSetting == 0)
                     throw new InvalidDataException("Disabling a required GPOS feature cannot preserve its layout contract.");
             }
-            bool supported = Tag(record, "kern") || Tag(record, "curs") || Tag(record, "mark") || Tag(record, "mkmk");
+            bool supported = Tag(record, "kern") || Tag(record, "dist") || Tag(record, "curs") || Tag(record, "mark") || Tag(record, "mkmk");
             if (!supported) {
                 string tag = new(new[] { (char)_data[record], (char)_data[record + 1],
                     (char)_data[record + 2], (char)_data[record + 3] });
