@@ -8,6 +8,17 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+/// <summary>
+/// Runs the loopback HTTP tests after the parallel collections. The CPU-heavy codec tests can keep the
+/// .NET Framework thread pool busy for seconds, which would hold back both the loopback server and the
+/// HTTP client and turn a load deadline into a scheduling race.
+/// </summary>
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class DrawingRemoteImageCollection {
+    public const string Name = "Drawing remote image loopback";
+}
+
+[Collection(DrawingRemoteImageCollection.Name)]
 public sealed class DrawingRemoteImageTests {
     [Fact]
     public async Task LoadAsyncReturnsNormalizedImageDataWithDefensiveOutputs() {
