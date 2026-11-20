@@ -305,6 +305,44 @@ public sealed partial class OfficeSeries {
         };
     }
 
+    /// <summary>Restates a plotted value or X value as the source value for labels when the renderer drew this
+    /// series on a logarithmic or reversed axis; null when the plotted values are the source values.</summary>
+    internal Func<double, double>? SourceValue { get; private set; }
+
+    /// <inheritdoc cref="SourceValue"/>
+    internal Func<double, double>? SourceXValue { get; private set; }
+
+    /// <summary>Returns a copy plotted on transformed axes, with the restatements its labels use.</summary>
+    internal OfficeSeries WithPlottedValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues,
+        Func<double, double>? sourceValue, Func<double, double>? sourceXValue) {
+        var copy = new OfficeSeries(Name, values, xValues, BubbleSizes, Color, PointColors,
+            ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            _markerVisibilitySpecified = this._markerVisibilitySpecified,
+            SeriesStyle = SeriesStyle,
+            PointStyles = PointStyles,
+            PointExplosions = PointExplosions,
+            Trendline = Trendline
+        };
+        copy.SourceValue = sourceValue;
+        copy.SourceXValue = sourceXValue;
+        return copy;
+    }
+
+    /// <summary>Returns a copy with replacement point colours, keeping values and appearance.</summary>
+    internal OfficeSeries WithPointColors(IReadOnlyList<OfficeColor?> pointColors) {
+        if (pointColors.Count != Values.Count) throw new ArgumentException("Point colours must match the series length.", nameof(pointColors));
+        return new OfficeSeries(Name, Values, XValues, BubbleSizes, Color, pointColors,
+            ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            _markerVisibilitySpecified = this._markerVisibilitySpecified,
+            SeriesStyle = SeriesStyle,
+            PointStyles = PointStyles,
+            PointExplosions = PointExplosions,
+            Trendline = Trendline
+        };
+    }
+
     /// <summary>Optional trendline fitted to this series.</summary>
     public OfficeChartTrendline? Trendline { get; private set; }
 

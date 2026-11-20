@@ -25,7 +25,7 @@ public static partial class OfficeChartDrawingRenderer {
 
         int count = snapshot.Data.Categories.Count;
         if (count == 0) return;
-        bool pointsAtEdges = IsLineChart(snapshot.ChartKind) || IsAreaChart(snapshot.ChartKind);
+        bool pointsAtEdges = IsLineChart(snapshot.ChartKind) || IsAreaChart(snapshot.ChartKind) || UsesTickMarkCategoryPoints(snapshot, layout);
         int intervals = pointsAtEdges ? count - 1 : count;
         if (intervals <= 0) return;
         int first = minor ? (pointsAtEdges ? 0 : 1) : (pointsAtEdges ? 1 : 0);
@@ -77,14 +77,14 @@ public static partial class OfficeChartDrawingRenderer {
         double? displayUnitDivisor = horizontalValueAxis ? layout.HorizontalAxisDisplayUnitDivisor : layout.VerticalAxisDisplayUnitDivisor;
         double widest = 0D;
         for (int i = 0; i < valueTicks.Count; i++) {
-            string label = FormatAxisValue(valueTicks[i], layout, percentDefault, numberFormat, displayUnitDivisor);
+            string label = FormatAxisValue(GetAxisSourceValue(valueTicks[i], layout, horizontalValueAxis), layout, percentDefault, numberFormat, displayUnitDivisor);
             widest = Math.Max(widest, MeasureAxisLabelWidth(label, layout));
         }
 
         if (valueTicks.Count == 0) {
             widest = Math.Max(
-                MeasureAxisLabelWidth(FormatAxisValue(valueRange.Min, layout, percentDefault, numberFormat, displayUnitDivisor), layout),
-                MeasureAxisLabelWidth(FormatAxisValue(valueRange.Max, layout, percentDefault, numberFormat, displayUnitDivisor), layout));
+                MeasureAxisLabelWidth(FormatAxisValue(GetAxisSourceValue(valueRange.Min, layout, horizontalValueAxis), layout, percentDefault, numberFormat, displayUnitDivisor), layout),
+                MeasureAxisLabelWidth(FormatAxisValue(GetAxisSourceValue(valueRange.Max, layout, horizontalValueAxis), layout, percentDefault, numberFormat, displayUnitDivisor), layout));
         }
 
         return ClampAxisLabelWidth(widest + AxisLabelHorizontalPadding);

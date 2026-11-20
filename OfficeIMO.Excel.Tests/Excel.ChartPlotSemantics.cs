@@ -72,6 +72,40 @@ public sealed class ExcelChartPlotSemanticsTests {
         Assert.Equal(new[] { 120D, double.NaN, 160D }, snapshot.Data.Series.Single().Values);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SnapshotLeavesOutHiddenRowsWhenThePlotShowsVisibleCellsOnly(bool visibleOnly) {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = Sheet(document);
+        sheet.Cell(3, 2).SetValue(140);
+        sheet.SetRowHidden(3, true);
+        ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
+        ChartPart part = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
+        part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotVisibleOnly!.Val = visibleOnly;
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+
+        Assert.Equal(visibleOnly ? new[] { "Jan", "Mar" } : new[] { "Jan", "Feb", "Mar" }, snapshot.Data.Categories);
+        Assert.Equal(visibleOnly ? new[] { 120D, 160D } : new[] { 120D, 140D, 160D }, snapshot.Data.Series.Single().Values);
+    }
+
+    [Fact]
+    public void SnapshotDrawsLogarithmicAndReversedValueAxes() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = Sheet(document);
+        ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
+        ChartPart part = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
+        C.Scaling scaling = part.ChartSpace!.Descendants<C.ValueAxis>().Single().Scaling!;
+        scaling.PrependChild(new C.LogBase { Val = 10 });
+        scaling.GetFirstChild<C.Orientation>()!.Val = C.OrientationValues.MaxMin;
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+
+        Assert.Equal(10D, snapshot.Layout!.VerticalAxisLogBase);
+        Assert.True(snapshot.Layout.ReverseVerticalValueAxis);
+    }
+
     private static ExcelSheet Sheet(ExcelDocument document) {
         ExcelSheet sheet = document.AddSheet("Data");
         sheet.Cell(1, 1).SetValue("Month");

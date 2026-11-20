@@ -197,6 +197,125 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.DoesNotContain(Texts(drawing), text => text.Text == "4000" || text.Text == "4,000");
     }
 
+    [Fact]
+    public void LogarithmicValueAxisSpacesPowersEvenlyAndSkipsNonPositiveValues() {
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered,
+            new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(null, 10D), Series(new double[] { 10, 100, 1000, 0, 1 }));
+
+        double[] heights = SeriesFill(drawing).OrderBy(bar => bar.X).Select(bar => bar.Shape.Height).ToArray();
+        // 10, 100 and 1000 rise one, two and three powers above 1; 0 has no bar and 1 has no height.
+        Assert.Equal(3, heights.Length);
+        Assert.Equal(2D, heights[1] / heights[0], 2);
+        Assert.Equal(3D, heights[2] / heights[0], 2);
+        Assert.Contains(Texts(drawing), text => text.Text == "100");
+    }
+
+    [Theory]
+    [InlineData(OfficeChartType.ColumnClustered)]
+    [InlineData(OfficeChartType.BarClustered)]
+    public void ReversedValueAxisPutsTheMinimumAtTheFarEnd(OfficeChartType kind) {
+        bool horizontalBars = kind == OfficeChartType.BarClustered;
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false)
+            .WithReversedValueAxes(horizontal: horizontalBars, vertical: !horizontalBars);
+        OfficeDrawing drawing = Render(kind, layout, Series(new double[] { 10, 20, 30, 40, 50 }));
+
+        OfficeDrawingText zero = Text(drawing, "0");
+        OfficeDrawingText fifty = Text(drawing, "50");
+        OfficeDrawingShape longest = SeriesFill(drawing).OrderByDescending(bar => horizontalBars ? bar.Shape.Width : bar.Shape.Height).First();
+        if (horizontalBars) {
+            // Zero is on the right and bars grow leftwards from it.
+            Assert.True(zero.X > fifty.X);
+            Assert.InRange(longest.X + longest.Shape.Width, zero.X, zero.X + zero.Width);
+        } else {
+            // Zero is at the top and columns hang down from it.
+            Assert.True(zero.Y < fifty.Y);
+            Assert.InRange(longest.Y, zero.Y, zero.Y + zero.Height);
+        }
+    }
+
+    [Fact]
+    public void ManualLayoutsPlaceThePlotTitleAndLegend() {
+        var plot = new OfficeChartManualLayout(0.3D, 0.3D, 0.4D, 0.4D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge,
+            target: OfficeChartLayoutTarget.Inner);
+        var title = new OfficeChartManualLayout(0.05D, 0.85D, xMode: OfficeChartLayoutMode.Edge, yMode: OfficeChartLayoutMode.Edge);
+        var legend = new OfficeChartManualLayout(0.8D, 0.05D, 0.15D, 0.2D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeChartLayout layout = new OfficeChartLayout().WithManualLayouts(plot, title, legend);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", "Placed", OfficeChartType.ColumnClustered,
+            new OfficeChartData(Categories, new[] { Series(new double[] { 1, 2, 3, 4, 5 }) }),
+            global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(300), layout: layout));
+
+        Assert.All(SeriesFill(drawing).Where(bar => bar.Shape.Width > 12D), bar => {
+            Assert.InRange(bar.X, 150D, 350D);
+            Assert.InRange(bar.Y + bar.Shape.Height, 90D, 210.5D);
+        });
+        OfficeDrawingText titleText = Text(drawing, "Placed");
+        Assert.InRange(titleText.X, 24D, 26D);
+        Assert.InRange(titleText.Y, 254D, 256D);
+        OfficeDrawingText legendText = Text(drawing, "Sales");
+        Assert.InRange(legendText.X, 400D, 430D);
+        Assert.InRange(legendText.Y, 15D, 60D);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void VaryColorsByPointColoursASingleSeriesAndListsCategories(int seriesCount) {
+        OfficeSeries[] series = Enumerable.Range(0, seriesCount)
+            .Select(index => new OfficeSeries("S" + index, new double[] { 1, 2, 3, 4, 5 })).ToArray();
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered,
+            new OfficeChartLayout().WithVaryColorsByPoint(true), series);
+
+        int distinctFills = Shapes(drawing).Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.Height > 0D &&
+            shape.Shape.Width > 12D && shape.Shape.Width < 60D && shape.Shape.FillColor.HasValue).Select(shape => shape.Shape.FillColor).Distinct().Count();
+        if (seriesCount == 1) {
+            Assert.True(distinctFills >= Categories.Length, $"Only {distinctFills} colours for {Categories.Length} points.");
+            Assert.Equal(2, Texts(drawing).Count(text => text.Text == "Mar"));
+        } else {
+            Assert.DoesNotContain(Texts(drawing), text => text.Text == "Mar" && text.X > 400D);
+            Assert.Contains(Texts(drawing), text => text.Text == "S1");
+        }
+    }
+
+    [Theory]
+    [InlineData(OfficeChartType.ColumnClustered)]
+    [InlineData(OfficeChartType.BarClustered)]
+    public void BarsOnTickMarksCentreOnTheCategoryTicksAndClipAtThePlotEdge(OfficeChartType kind) {
+        bool horizontalBars = kind == OfficeChartType.BarClustered;
+        OfficeDrawing drawing = Render(kind, new OfficeChartLayout(showLegend: false).WithCategoryPointsOnTickMarks(true),
+            Series(new double[] { 10, 20, 30, 40, 50 }));
+
+        OfficeDrawingShape[] bars = SeriesFill(drawing).ToArray();
+        double Center(OfficeDrawingShape bar) => horizontalBars ? bar.Y + bar.Shape.Height / 2D : bar.X + bar.Shape.Width / 2D;
+        double LabelCenter(string name) {
+            OfficeDrawingText label = Text(drawing, name);
+            return horizontalBars ? label.Y + label.Height / 2D : label.X + label.Width / 2D;
+        }
+        // The first and last categories sit on the plot edges, so their bars are half outside and clipped;
+        // the others are centred on their tick marks.
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingGroup>(), group => SeriesFill(group.Drawing).Count() == bars.Length);
+        Assert.Contains(bars, bar => Math.Abs(Center(bar) - LabelCenter("Jan")) < 1D);
+        Assert.Contains(bars, bar => Math.Abs(Center(bar) - LabelCenter("Apr")) < 1D);
+    }
+
+    [Fact]
+    public void StackedAndScatterLabelsBeyondAnExplicitMaximumAreHidden() {
+        OfficeChartLayout stackedLayout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true,
+            verticalAxisMinimum: 0D, verticalAxisMaximum: 30D).WithDataLabelsOverMaximum(false);
+        OfficeDrawing stacked = Render(OfficeChartType.ColumnStacked, stackedLayout,
+            new OfficeSeries("Low", new double[] { 11, 12, 13, 14, 15 }), new OfficeSeries("High", new double[] { 21, 22, 3, 4, 5 }));
+        // 13 + 3 and the other short stacks stay below 30; 11 + 21 and 12 + 22 go beyond it.
+        Assert.DoesNotContain(Texts(stacked), text => text.Text is "21" or "22");
+        Assert.Contains(Texts(stacked), text => text.Text == "3");
+        Assert.Contains(Texts(stacked), text => text.Text == "11");
+
+        OfficeChartLayout scatterLayout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true,
+            horizontalAxisMinimum: 0D, horizontalAxisMaximum: 3D).WithDataLabelsOverMaximum(false);
+        OfficeDrawing scatter = Render(OfficeChartType.Scatter, scatterLayout,
+            new OfficeSeries("Points", new double[] { 7.3, 8.3, 9.3, 6.3, 5.3 }, new double[] { 1, 2, 3, 4, 5 }));
+        Assert.Contains(Texts(scatter), text => text.Text == "9.3");
+        Assert.DoesNotContain(Texts(scatter), text => text.Text is "6.3" or "5.3");
+    }
+
     private static OfficeSeries Series(double[] values, bool numericX = false) =>
         new OfficeSeries("Sales", values, numericX ? values.Select((_, index) => index + 1D) : null, Ink, null, showMarkers: false);
 

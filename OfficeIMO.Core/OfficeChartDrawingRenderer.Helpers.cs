@@ -634,11 +634,9 @@ public static partial class OfficeChartDrawingRenderer {
         return GetCategoryPointX(plotLeft, step, categoryIndex, categoryCount, layout);
     }
 
-    // A column plot uses category slots, so its line and area companions pass
-    // through the same slot centers, including on a reversed axis.
+    // OOXML midCat puts every category, bars included, on a tick mark; between centres them in slots.
     private static bool UsesTickMarkCategoryPoints(OfficeChartSnapshot snapshot, OfficeChartLayout layout) =>
-        layout.CategoryPointsOnTickMarks &&
-        !snapshot.Data.Series.Any(series => IsColumnChart(GetEffectiveSeriesKind(snapshot, series)));
+        layout.CategoryPointsOnTickMarks;
 
     private static ValueRange GetFiniteRange(IReadOnlyList<double> values) {
         bool any = false;

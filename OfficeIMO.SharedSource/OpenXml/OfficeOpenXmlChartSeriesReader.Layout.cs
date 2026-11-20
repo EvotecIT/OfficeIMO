@@ -7,13 +7,10 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartType kind, OfficeChartData data, string? axisTitleFont = null, A.ColorScheme? scheme = null) {
-            if (chart.PlotArea?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                chart.PlotArea?.Descendants<C.Title>().Any(title =>
+            if (chart.PlotArea?.Descendants<C.Title>().Any(title =>
                     title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                     title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false) == true)
-                throw new NotSupportedException("Manual layouts and overlaid axis titles cannot be projected.");
+                throw new NotSupportedException("Manual axis-title layouts and overlaid axis titles cannot be projected.");
             var labels = ReadLabels(chart, scheme);
             var defaultText = ReadNativeText(chart, chart, scheme);
             var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
@@ -60,10 +57,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
             }
             foreach (var axis in new[] { horizontal, vertical }.Where(axis => axis != null)) {
-                if (axis!.GetFirstChild<C.Scaling>()?.GetFirstChild<C.LogBase>() != null)
-                    throw new NotSupportedException("Logarithmic chart axes cannot be projected.");
-                if (axis is C.ValueAxis && axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin)
-                    throw new NotSupportedException("Reversed numeric chart axes cannot be projected.");
                 if (axis is C.ValueAxis numericAxis && HasUnsupportedSharedAxisNumberFormat(numericAxis))
                     throw new NotSupportedException("The native numeric axis format cannot be projected.");
             }

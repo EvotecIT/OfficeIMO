@@ -181,14 +181,11 @@ public sealed class WordChartPresentationQualificationTests {
     [InlineData("titleShape")]
     [InlineData("legendShape")]
     [InlineData("axisTitleLayout")]
-    [InlineData("vary")]
     public void Snapshot_RejectsUnrepresentedPresentation(string feature) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.ColumnClustered);
         var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
-        var bars = native.PlotArea!.GetFirstChild<C.BarChart>()!;
-        if (feature == "vary") bars.GetFirstChild<C.VaryColors>()!.Val = true;
-        else if (feature == "axisTitleLayout") {
+        if (feature == "axisTitleLayout") {
             var title = new C.Title(new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text("Axis"))))),
                 new C.Layout(new C.ManualLayout(new C.Left { Val = .3 })));
             native.PlotArea.GetFirstChild<C.ValueAxis>()!.AddChild(title, true);
@@ -486,6 +483,32 @@ public sealed class WordChartPresentationQualificationTests {
 
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(new[] { double.NaN, double.NaN }, snapshot.Data.Series[1].Values);
+    }
+
+    [Fact]
+    public void Snapshot_ProjectsLogarithmicAxesAndManualPlotLayout() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartType.ColumnClustered);
+        var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.PlotArea!.GetFirstChild<C.ValueAxis>()!.Scaling!.PrependChild(new C.LogBase { Val = 10 });
+        native.PlotArea.RemoveAllChildren<C.Layout>();
+        native.PlotArea.PrependChild(new C.Layout(new C.ManualLayout(new C.LeftMode { Val = C.LayoutModeValues.Edge },
+            new C.TopMode { Val = C.LayoutModeValues.Edge }, new C.Left { Val = 0.2 }, new C.Top { Val = 0.2 })));
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(10D, snapshot.Layout.VerticalAxisLogBase);
+        Assert.Equal(0.2D, snapshot.Layout.PlotAreaLayout!.X);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Revenue")]
+    public void Charts_DeleteTheAutomaticTitleOnlyWhenWrittenWithoutATitle(string? title) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = title });
+
+        Assert.Equal(title == null, chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.AutoTitleDeleted!.Val!.Value);
     }
 
     private static WordChart Create(WordDocument document, OfficeChartType kind) => document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Chart" });

@@ -150,13 +150,7 @@ namespace OfficeIMO.PowerPoint {
             }
             snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
                 width ?? powerPointSnapshot.Width.ToPoints(), height ?? powerPointSnapshot.Height.ToPoints());
-            if (GetChartPart().ChartSpace?.GetFirstChild<C.Chart>() is C.Chart nativeChart &&
-                OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(nativeChart,
-                    snapshot.Data.Series, snapshot.ChartKind)) {
-                snapshot = null!;
-                failureReason = "The chart hides data labels above the axis maximum, which the shared chart renderer cannot reproduce.";
-                return false;
-            }
+
             if (HasUnprojectedNativeAxisUnits(snapshot.Layout) ||
                 OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
                 snapshot = null!;

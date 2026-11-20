@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
             chartSpace.Append(new C.RoundedCorners { Val = false });
 
             C.Chart chart = new();
-            chart.Append(new C.AutoTitleDeleted { Val = false });
+            chart.Append(new C.AutoTitleDeleted { Val = true });
 
             C.PlotArea plotArea = new();
             plotArea.Append(new C.Layout());
@@ -96,7 +96,7 @@ namespace OfficeIMO.PowerPoint {
             chartSpace.Append(new C.RoundedCorners { Val = false });
 
             C.Chart chart = new();
-            chart.Append(new C.AutoTitleDeleted { Val = false });
+            chart.Append(new C.AutoTitleDeleted { Val = true });
 
             C.PlotArea plotArea = new();
             plotArea.Append(new C.Layout());

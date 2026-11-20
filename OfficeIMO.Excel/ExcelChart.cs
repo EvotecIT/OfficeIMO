@@ -126,6 +126,9 @@ namespace OfficeIMO.Excel {
                 ExcelChartData? chartData = range == null
                     ? ExcelChartUtils.TryReadChartData(chartPart, sheet)
                     : ExcelChartUtils.TryReadChartData(sheet, range, keepBlankCells: true);
+                if (chartData != null && range != null && PlotsVisibleCellsOnly(chartPart)) {
+                    chartData = ExcelChartUtils.RemoveHiddenCells(sheet, range, chartData);
+                }
                 if (chartData == null) {
                     data = null!;
                     return false;
@@ -144,6 +147,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
         }
+
+        // Office plots only visible cells unless c:plotVisOnly is explicitly off.
+        private static bool PlotsVisibleCellsOnly(ChartPart chartPart) =>
+            chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotVisibleOnly>()?.Val?.Value != false;
 
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.

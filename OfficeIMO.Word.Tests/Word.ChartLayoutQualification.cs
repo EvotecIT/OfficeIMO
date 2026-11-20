@@ -9,26 +9,6 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartLayoutQualificationTests {
     [Fact]
-    public void SuppressedLabelsUseLowestMatchingAxisMaximum() {
-        using var document = WordDocument.Create();
-        WordChart chart = Create(document, OfficeChartType.ColumnClustered);
-        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
-        C.PlotArea plot = native.PlotArea!;
-        C.ValueAxis axis = plot.Elements<C.ValueAxis>().Single();
-        axis.Scaling!.AddChild(new C.MaxAxisValue { Val = 100 }, true);
-        plot.GetFirstChild<C.BarChart>()!.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
-        native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = false;
-        var series = new[] { new OfficeSeries("Values", new[] { 2d, 5d }) };
-        Assert.False(OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(native, series, OfficeChartType.ColumnClustered));
-
-        var extra = (C.ValueAxis)axis.CloneNode(true);
-        extra.AxisId!.Val = 9999U;
-        extra.Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val = 1.5;
-        plot.Append(extra);
-        Assert.True(OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(native, series, OfficeChartType.ColumnClustered));
-    }
-
-    [Fact]
     public void Snapshot_RejectsRadarAxisUnitsThatTheRendererCannotDraw() {
         using var document = WordDocument.Create();
         WordChart chart = Create(document, OfficeChartType.Radar);
@@ -38,7 +18,7 @@ public sealed class WordChartLayoutQualificationTests {
     }
 
     [Fact]
-    public void Snapshot_RejectsSuppressedLabelsBeyondExplicitValueMaximum() {
+    public void Snapshot_ProjectsLabelsHiddenBeyondExplicitValueMaximum() {
         using var document = WordDocument.Create();
         WordChart chart = Create(document, OfficeChartType.ColumnClustered);
         C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
@@ -50,27 +30,8 @@ public sealed class WordChartLayoutQualificationTests {
         native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = true;
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = false;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
-    }
-
-    [Theory]
-    [InlineData(OfficeChartType.ColumnStacked, 6d, 6d, 10d, false)]
-    [InlineData(OfficeChartType.ColumnStacked100, 30d, 70d, 1d, true)]
-    public void Snapshot_UsesPlottedStackPositionForSuppressedLabels(
-        OfficeChartType kind, double first, double second, double maximum, bool projectable) {
-        using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
-            new OfficeSeries("First", new[] { first, first }),
-            new OfficeSeries("Second", new[] { second, second })
-        }), new OfficeIMO.Word.WordChartOptions { Title = "Chart" });
-        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
-        C.ValueAxis axis = native.PlotArea!.Elements<C.ValueAxis>().Single();
-        axis.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
-        axis.Scaling.AddChild(new C.MaxAxisValue { Val = maximum }, true);
-        native.PlotArea.GetFirstChild<C.BarChart>()!
-            .AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
-        native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = false;
-        Assert.Equal(projectable, chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.False(snapshot.Layout.ShowDataLabelsOverMaximum);
     }
 
     [Fact]
@@ -121,26 +82,14 @@ public sealed class WordChartLayoutQualificationTests {
     [InlineData(OfficeChartType.Line, 0)]
     [InlineData(OfficeChartType.Scatter, 0)]
     [InlineData(OfficeChartType.Scatter, 1)]
-    public void Snapshot_RejectsUnrepresentedReversedNumericAxis(OfficeChartType kind, int index) {
+    public void Snapshot_ProjectsReversedNumericAxis(OfficeChartType kind, int index) {
         using var document = WordDocument.Create();
         var chart = Create(document, kind);
         var axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().ElementAt(index);
         axis.Scaling!.GetFirstChild<C.Orientation>()!.Val = C.OrientationValues.MaxMin;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
-    }
-
-    [Theory]
-    [InlineData("plot")]
-    [InlineData("title")]
-    [InlineData("legend")]
-    public void Snapshot_RejectsUnrepresentedManualLayout(string target) {
-        using var document = WordDocument.Create();
-        var chart = Create(document, OfficeChartType.Line);
-        var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
-        OpenXmlCompositeElement owner = target == "plot" ? native.PlotArea! : target == "legend" ? native.GetFirstChild<C.Legend>()! : native.GetFirstChild<C.Title>()!;
-        owner.RemoveAllChildren<C.Layout>();
-        owner.AddChild(new C.Layout(new C.ManualLayout(new C.Left { Val = 0.2 }, new C.Top { Val = 0.2 })), true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        bool horizontal = kind == OfficeChartType.Scatter && index == 0;
+        Assert.True(horizontal ? snapshot.Layout.ReverseHorizontalValueAxis : snapshot.Layout.ReverseVerticalValueAxis);
     }
 
     private static WordChart Create(WordDocument document, OfficeChartType kind) =>

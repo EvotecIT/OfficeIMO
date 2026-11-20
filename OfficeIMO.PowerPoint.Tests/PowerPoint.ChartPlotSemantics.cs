@@ -87,6 +87,93 @@ public sealed class PowerPointChartPlotSemanticsTests {
         Assert.Equal(OfficeChartLegendPosition.TopRight, Snapshot(presentation).Layout.LegendPosition);
     }
 
+    // Checked against Excel 16: with no c:title, a one-series chart is titled by its series name only
+    // when c:autoTitleDeleted is present and off; a missing element or a second series gives no title.
+    [Theory]
+    [InlineData(1, "<c:autoTitleDeleted val=\"0\"/>", "Revenue")]
+    [InlineData(1, "", null)]
+    [InlineData(2, "<c:autoTitleDeleted val=\"0\"/>", null)]
+    public void ChartWithoutTitleElementShowsWhatExcelShows(int seriesCount, string autoTitleDeleted, string? expected) {
+        string series = Series(0, "Revenue", 3, 4, 5) + (seriesCount > 1 ? Series(1, "Cost", 1, 2, 3) : string.Empty);
+        using PowerPointDocument presentation = LoadChart(Chart(BarGroup(series), before: autoTitleDeleted));
+
+        Assert.Equal(expected, Snapshot(presentation).Title);
+    }
+
+    [Theory]
+    [InlineData("col", "<c:logBase val=\"10\"/><c:orientation val=\"minMax\"/>", null, 10D, false, false)]
+    [InlineData("col", "<c:orientation val=\"maxMin\"/>", null, null, false, true)]
+    [InlineData("bar", "<c:logBase val=\"2\"/><c:orientation val=\"maxMin\"/>", 2D, null, true, false)]
+    public void ValueAxisScalesReachThePhysicalAxis(string direction, string scaling, double? horizontalBase, double? verticalBase,
+        bool reverseHorizontal, bool reverseVertical) {
+        bool bars = direction == "bar";
+        using PowerPointDocument presentation = LoadChart(Chart(BarGroup(Series(0, "Sales", 3, 40, 500), direction),
+            axes: Axes(categoryPosition: bars ? "l" : "b", valuePosition: bars ? "b" : "l", valueScaling: scaling)));
+
+        OfficeChartLayout layout = Snapshot(presentation).Layout;
+
+        Assert.Equal((horizontalBase, verticalBase, reverseHorizontal, reverseVertical),
+            (layout.HorizontalAxisLogBase, layout.VerticalAxisLogBase, layout.ReverseHorizontalValueAxis, layout.ReverseVerticalValueAxis));
+    }
+
+    [Fact]
+    public void ManualLayoutsReachTheLayout() {
+        const string plot = "<c:layout><c:manualLayout><c:layoutTarget val=\"inner\"/><c:xMode val=\"edge\"/><c:yMode val=\"edge\"/>" +
+            "<c:x val=\"0.2\"/><c:y val=\"0.25\"/><c:w val=\"0.5\"/><c:h val=\"0.6\"/></c:manualLayout></c:layout>";
+        const string legend = "<c:legend><c:legendPos val=\"r\"/><c:layout><c:manualLayout><c:x val=\"0.05\"/><c:y val=\"-0.1\"/>" +
+            "</c:manualLayout></c:layout><c:overlay val=\"0\"/></c:legend>";
+        using PowerPointDocument presentation = LoadChart(Chart(BarGroup(Series(0, "A", 1, 2, 3) + Series(1, "B", 2, 3, 4)),
+            plotLayout: plot, legend: legend));
+
+        OfficeChartLayout layout = Snapshot(presentation).Layout;
+
+        OfficeChartManualLayout placedPlot = Assert.IsType<OfficeChartManualLayout>(layout.PlotAreaLayout);
+        Assert.Equal((0.2D, 0.25D, (double?)0.5D, (double?)0.6D, OfficeChartLayoutMode.Edge, OfficeChartLayoutTarget.Inner),
+            (placedPlot.X, placedPlot.Y, placedPlot.Width, placedPlot.Height, placedPlot.XMode, placedPlot.Target));
+        OfficeChartManualLayout placedLegend = Assert.IsType<OfficeChartManualLayout>(layout.LegendLayout);
+        Assert.Equal((0.05D, -0.1D, OfficeChartLayoutMode.Factor, (double?)null),
+            (placedLegend.X, placedLegend.Y, placedLegend.XMode, placedLegend.Width));
+        Assert.Null(layout.TitleLayout);
+    }
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    public void VaryColorsAppliesToASingleSeries(int seriesCount, bool expected) {
+        string series = Series(0, "A", 1, 2, 3) + (seriesCount > 1 ? Series(1, "B", 2, 3, 4) : string.Empty);
+        using PowerPointDocument presentation = LoadChart(Chart(BarGroup(series, varyColors: true)));
+
+        OfficeChartSnapshot snapshot = Snapshot(presentation);
+
+        Assert.Equal(expected, snapshot.Layout.VaryColorsByPoint);
+        if (expected) Assert.Equal(3, Enumerable.Range(0, 3).Select(snapshot.Style.GetSeriesColor).Distinct().Count());
+    }
+
+    [Fact]
+    public void LabelsBeyondAnExplicitMaximumNoLongerBlockTheSnapshot() {
+        string group = "<c:barChart><c:barDir val=\"col\"/><c:grouping val=\"clustered\"/><c:varyColors val=\"0\"/>" + Series(0, "A", 5, 50, 20) +
+            "<c:dLbls><c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/><c:showCatName val=\"0\"/><c:showSerName val=\"0\"/>" +
+            "<c:showPercent val=\"0\"/><c:showBubbleSize val=\"0\"/></c:dLbls><c:gapWidth val=\"150\"/><c:axId val=\"1\"/><c:axId val=\"2\"/></c:barChart>";
+        using PowerPointDocument presentation = LoadChart(Chart(group,
+            axes: Axes(valueScaling: "<c:orientation val=\"minMax\"/><c:max val=\"30\"/><c:min val=\"0\"/>"),
+            after: "<c:dispBlanksAs val=\"gap\"/><c:showDLblsOverMax val=\"0\"/>"));
+
+        Assert.False(Snapshot(presentation).Layout.ShowDataLabelsOverMaximum);
+    }
+
+    [Fact]
+    public void ChartsWrittenWithoutATitleDeleteTheAutomaticTitle() {
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Revenue", new[] { 1D }) }));
+        DocumentFormat.OpenXml.Drawing.Charts.Chart native = presentation.Slides.Single().SlidePart.ChartParts.Single()
+            .ChartSpace!.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()!;
+
+        Assert.True(native.AutoTitleDeleted?.Val?.Value);
+        chart.SetTitle("Revenue by quarter");
+        Assert.False(native.AutoTitleDeleted?.Val?.Value);
+    }
+
     private static OfficeChartSnapshot Snapshot(PowerPointDocument presentation) {
         Assert.True(presentation.Slides[0].Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         return snapshot;
@@ -112,23 +199,23 @@ public sealed class PowerPointChartPlotSemanticsTests {
         return PowerPointDocument.Load(stream);
     }
 
-    private static string Chart(string group, string before = "<c:autoTitleDeleted val=\"1\"/>", string? axes = null,
+    private static string Chart(string group, string before = "<c:autoTitleDeleted val=\"1\"/>", string? axes = null, string plotLayout = "<c:layout/>",
         string legend = "<c:legend><c:legendPos val=\"r\"/><c:overlay val=\"0\"/></c:legend>", string after = "<c:dispBlanksAs val=\"gap\"/>",
         string? language = null) =>
         "<c:chartSpace xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" " +
         "xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">" +
         (language == null ? string.Empty : "<c:lang val=\"" + language + "\"/>") +
-        "<c:chart>" + before + "<c:plotArea><c:layout/>" + group + (axes ?? Axes()) + "</c:plotArea>" + legend +
+        "<c:chart>" + before + "<c:plotArea>" + plotLayout + group + (axes ?? Axes()) + "</c:plotArea>" + legend +
         "<c:plotVisOnly val=\"1\"/>" + after + "</c:chart></c:chartSpace>";
 
     private static string Axes(string categoryPosition = "b", string valuePosition = "l",
         string categoryCrossing = "<c:crosses val=\"autoZero\"/>", string valueCrossing = "<c:crosses val=\"autoZero\"/>",
-        string valueExtra = "") =>
+        string valueExtra = "", string valueScaling = "<c:orientation val=\"minMax\"/>") =>
         "<c:catAx><c:axId val=\"1\"/><c:scaling><c:orientation val=\"minMax\"/></c:scaling><c:delete val=\"0\"/>" +
         "<c:axPos val=\"" + categoryPosition + "\"/><c:majorTickMark val=\"out\"/><c:minorTickMark val=\"none\"/>" +
         "<c:tickLblPos val=\"nextTo\"/><c:crossAx val=\"2\"/>" + categoryCrossing + "<c:auto val=\"1\"/>" +
         "<c:lblAlgn val=\"ctr\"/><c:lblOffset val=\"100\"/><c:noMultiLvlLbl val=\"0\"/></c:catAx>" +
-        "<c:valAx><c:axId val=\"2\"/><c:scaling><c:orientation val=\"minMax\"/></c:scaling><c:delete val=\"0\"/>" +
+        "<c:valAx><c:axId val=\"2\"/><c:scaling>" + valueScaling + "</c:scaling><c:delete val=\"0\"/>" +
         "<c:axPos val=\"" + valuePosition + "\"/><c:numFmt formatCode=\"General\" sourceLinked=\"1\"/>" +
         "<c:majorTickMark val=\"out\"/><c:minorTickMark val=\"none\"/><c:tickLblPos val=\"nextTo\"/><c:crossAx val=\"1\"/>" +
         valueCrossing + "<c:crossBetween val=\"between\"/>" + valueExtra + "</c:valAx>";
@@ -137,8 +224,8 @@ public sealed class PowerPointChartPlotSemanticsTests {
         "<c:lineChart><c:grouping val=\"standard\"/><c:varyColors val=\"0\"/>" + series +
         "<c:marker val=\"1\"/><c:axId val=\"1\"/><c:axId val=\"2\"/></c:lineChart>";
 
-    private static string BarGroup(string series, string direction = "col") =>
-        "<c:barChart><c:barDir val=\"" + direction + "\"/><c:grouping val=\"clustered\"/><c:varyColors val=\"0\"/>" + series +
+    private static string BarGroup(string series, string direction = "col", bool varyColors = false) =>
+        "<c:barChart><c:barDir val=\"" + direction + "\"/><c:grouping val=\"clustered\"/><c:varyColors val=\"" + (varyColors ? "1" : "0") + "\"/>" + series +
         "<c:gapWidth val=\"150\"/><c:axId val=\"1\"/><c:axId val=\"2\"/></c:barChart>";
 
     // A null value is an empty cell: Office leaves its point out of the cache.

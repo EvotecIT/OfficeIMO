@@ -54,8 +54,9 @@ namespace OfficeIMO.OpenXml.Internal {
             var valueGrid = ReadSurface(valueMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
             var categoryMinorGrid = ReadSurface(categoryMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
             var valueMinorGrid = ReadSurface(valueMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
-            C.PieChartSeries? radialSeries = kind is OfficeChartType.Pie or OfficeChartType.Doughnut
-                ? plot?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
+            OpenXmlCompositeElement? radialSeries = kind is OfficeChartType.Pie or OfficeChartType.Doughnut
+                ? plot?.Descendants<C.PieChartSeries>().FirstOrDefault()
+                : OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(plot);
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(chartPart, radialSeries, radialPointCount, scheme);
             return new OfficeChartStyle(palette: radialPalette,

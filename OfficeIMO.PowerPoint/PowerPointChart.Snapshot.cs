@@ -482,6 +482,12 @@ namespace OfficeIMO.PowerPoint {
                         GetChartPart(), radialSeries, data.Categories.Count, colorScheme,
                         requireQualifiedPalette: true);
                 if (palette != null) style = style.WithPalette(palette);
+            } else if (!forDataUpdate &&
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(chart.PlotArea) is OpenXmlCompositeElement variedSeries) {
+                // A single series that varies colours by point uses Office's per-point palette, like a pie.
+                OfficeColor[]? palette = OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ReadRadialPalette(
+                    GetChartPart(), variedSeries, data.Categories.Count, colorScheme);
+                if (palette != null) style = style.WithPalette(palette);
             }
             return new PowerPointChartSnapshot(
                 Name ?? string.Empty,
@@ -640,10 +646,7 @@ namespace OfficeIMO.PowerPoint {
             C.ValueAxis? verticalScaleAxis = verticalNumericAxis ?? (!horizontalValue ? primaryValueAxis : null);
             var horizontalScale = horizontalScaleAxis?.GetFirstChild<C.Scaling>();
             var verticalScale = verticalScaleAxis?.GetFirstChild<C.Scaling>();
-            if (!forDataUpdate && new[] { primaryScale, horizontalScale, verticalScale }.Any(scale =>
-                    scale?.GetFirstChild<C.LogBase>() != null ||
-                    scale?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin))
-                throw new NotSupportedException("The numeric axes cannot be projected on a linear forward scale.");
+
             if (primaryValueAxis != null) {
                 if (horizontalValue) horizontalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis, forDataUpdate);
                 else verticalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis, forDataUpdate);

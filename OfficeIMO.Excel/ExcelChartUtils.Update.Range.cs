@@ -363,6 +363,44 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>Removes the categories and series whose rows or columns are hidden, as Office plots a chart
+        /// that shows visible cells only (c:plotVisOnly).</summary>
+        internal static ExcelChartData RemoveHiddenCells(ExcelSheet sheet, ExcelChartDataRange range, ExcelChartData data) {
+            // Only rows and columns marked hidden are read, so malformed or numerous plain row records cost nothing.
+            DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
+            var hiddenRows = new HashSet<int>();
+            foreach (var row in worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()?.Elements<DocumentFormat.OpenXml.Spreadsheet.Row>() ?? Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Row>()) {
+                if (row.Hidden?.Value == true && uint.TryParse(row.RowIndex?.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out uint index) && index <= int.MaxValue)
+                    hiddenRows.Add((int)index);
+            }
+            var hiddenColumns = new HashSet<int>();
+            foreach (var column in worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>()?.Elements<DocumentFormat.OpenXml.Spreadsheet.Column>() ?? Enumerable.Empty<DocumentFormat.OpenXml.Spreadsheet.Column>()) {
+                if (column.Hidden?.Value != true ||
+                    !uint.TryParse(column.Min?.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out uint first) ||
+                    !uint.TryParse(column.Max?.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out uint last)) continue;
+                for (uint index = Math.Max(1U, first); index <= Math.Min(last, 16384U); index++) hiddenColumns.Add((int)index);
+            }
+            if (hiddenRows.Count == 0 && hiddenColumns.Count == 0) return data;
+            bool vertical = range.Orientation == ExcelChartDataOrientation.Vertical;
+            bool CategoryVisible(int index) => vertical
+                ? !hiddenRows.Contains(range.CategoryStartRow + index)
+                : !hiddenColumns.Contains(range.CategoryStartColumn + index);
+            bool SeriesVisible(int index) => vertical
+                ? !hiddenColumns.Contains(range.SeriesStartColumn + index)
+                : !hiddenRows.Contains(range.SeriesStartRow + index);
+            int[] categories = Enumerable.Range(0, data.Categories.Count).Where(CategoryVisible).ToArray();
+            var series = new List<ExcelChartSeries>();
+            for (int s = 0; s < data.Series.Count; s++) {
+                if (!SeriesVisible(s)) continue;
+                ExcelChartSeries current = data.Series[s];
+                series.Add(new ExcelChartSeries(current.Name, categories.Where(index => index < current.Values.Count)
+                    .Select(index => current.Values[index])));
+            }
+            // A chart whose every category or series is hidden plots nothing; keep the data rather than an empty chart.
+            if (categories.Length == 0 || series.Count == 0) return data;
+            return new ExcelChartData(categories.Select(index => data.Categories[index]), series);
+        }
+
         internal static ExcelChartData? TryReadChartData(ChartPart chartPart, ExcelSheet contextSheet) =>
             TryReadChartDataCore(chartPart, contextSheet, new ChartDataPointBudget());
 
