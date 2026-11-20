@@ -1110,19 +1110,84 @@ showing numbers.
 <!-- officeimo-excel-benchmark-table:start -->
 #### XLS 65K typed reading
 
-_No published windows net10.0 run yet._
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+Workload: Case=Default
+
+| Case | OfficeIMO | Sylvan.Data.Excel | ExcelReader.NET | OneDocument.Spreadsheets | ExcelDataReader |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| XLS 65K typed reading | **26.3 ms** | 29.2 ms (1.11×) | 31.3 ms (1.19×) | 39.0 ms (1.48×) | 130 ms (5.0×) |
+
+- **OfficeIMO and Sylvan.Data.Excel are about as fast** (similar allocations · 1 case)
+- **OfficeIMO is 1.19× faster than ExcelReader.NET** (OfficeIMO allocates 7.7× more · 1 case)
+- **OfficeIMO is 1.48× faster than OneDocument.Spreadsheets** (OfficeIMO allocates 10× less · 1 case)
+- **OfficeIMO is 5.0× faster than ExcelDataReader** (OfficeIMO allocates 503× less · 1 case)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
 
 #### XLSB 65K typed reading
 
-_No published windows net10.0 run yet._
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+| Case | OfficeIMO | ExcelReader.NET | Sylvan.Data.Excel | Excel-PRIME | OneDocument.Spreadsheets | ExcelDataReader |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Default | **30.4 ms** | 32.1 ms (1.06×) | 35.3 ms (1.16×) | 98.5 ms (3.2×) | 54.9 ms (1.81×) | 151 ms (5.0×) |
+| TypedStyles | — | — | — | **106 ms** | — | — |
+| Prefetch | — | **22.6 ms** | — | — | — | — |
+| SinglePass | **19.4 ms** | — | — | — | — | — |
+
+- **OfficeIMO and ExcelReader.NET are about as fast** (OfficeIMO allocates 8.1× more · 1 case)
+- **OfficeIMO is 1.16× faster than Sylvan.Data.Excel** (OfficeIMO allocates 2.6× less · 1 case)
+- **OfficeIMO is 3.2× faster than Excel-PRIME** (OfficeIMO allocates 589× less · 1 case)
+- **OfficeIMO is 1.81× faster than OneDocument.Spreadsheets** (OfficeIMO allocates 5.5× less · 1 case)
+- **OfficeIMO is 5.0× faster than ExcelDataReader** (OfficeIMO allocates 556× less · 1 case)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
 
 #### XLSX 65K typed reading
 
-_No published windows net10.0 run yet._
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+| Case | OfficeIMO | ExcelReader.NET | Excel-PRIME | OneDocument.Spreadsheets | Sylvan.Data.Excel | HypeLab.IO.Excel | XLibur | ExcelDataReader | MiniExcel | ClosedXML |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Default | **40.6 ms** | 56.5 ms (1.39×) | 347 ms (8.6×) | 182 ms (4.5×) | 209 ms (5.2×) | 388 ms (9.6×) | 415 ms (10×) | 562 ms (14×) | 662 ms (16×) | 1.82 s (45×) |
+| TypedStyles | — | — | **343 ms** | — | — | — | — | — | — | — |
+| InternStrings | — | **64.7 ms** | — | — | — | — | — | — | — | — |
+| Memory | **37.0 ms** | 53.6 ms (1.45×) | — | — | — | — | — | — | — | — |
+| Prefetch | **38.4 ms** | 40.8 ms (1.06×) | — | — | — | — | — | — | — | — |
+| DefaultNumbers | **46.6 ms** | — | — | — | — | — | — | — | — | — |
+| DefaultNumbers_Prefetch | **46.4 ms** | — | — | — | — | — | — | — | — | — |
+| Loaded | **77.2 ms** | — | — | — | — | — | — | — | — | — |
+| SinglePass | **26.5 ms** | — | — | — | — | — | — | — | — | — |
+
+- **OfficeIMO is 1.29× faster than ExcelReader.NET** (OfficeIMO allocates 8.1× more · geometric mean of 3 cases)
+- **OfficeIMO is 8.6× faster than Excel-PRIME** (OfficeIMO allocates 249× less · 1 case)
+- **OfficeIMO is 4.5× faster than OneDocument.Spreadsheets** (OfficeIMO allocates 6.7× less · 1 case)
+- **OfficeIMO is 5.2× faster than Sylvan.Data.Excel** (OfficeIMO allocates 6.4× less · 1 case)
+- **OfficeIMO is 9.6× faster than HypeLab.IO.Excel** (OfficeIMO allocates 845× less · 1 case)
+- **OfficeIMO is 10× faster than XLibur** (OfficeIMO allocates 995× less · 1 case)
+- **OfficeIMO is 14× faster than ExcelDataReader** (OfficeIMO allocates 1895× less · 1 case)
+- **OfficeIMO is 16× faster than MiniExcel** (OfficeIMO allocates 8655× less · 1 case)
+- **OfficeIMO is 45× faster than ClosedXML** (OfficeIMO allocates 7196× less · 1 case)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
 
 #### XLSX data-reader writing
 
-_No published windows net10.0 run yet._
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+Workload: RowCount=25000 · Case=Default
+
+| Case | OfficeIMO | SpreadCheetah | LargeXlsx | Sylvan.Data.Excel | OneDocument.Spreadsheets |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| XLSX data-reader writing | **16.9 ms** | 20.1 ms (1.18×) | 23.9 ms (1.41×) | 28.6 ms (1.69×) | 33.9 ms (2.0×) |
+
+- **OfficeIMO is 1.18× faster than SpreadCheetah** (OfficeIMO allocates 1.15× more · 1 case)
+- **OfficeIMO is 1.41× faster than LargeXlsx** (OfficeIMO allocates 1.14× more · 1 case)
+- **OfficeIMO is 1.69× faster than Sylvan.Data.Excel** (OfficeIMO allocates 1.17× less · 1 case)
+- **OfficeIMO is 2.0× faster than OneDocument.Spreadsheets** (OfficeIMO allocates 1.39× less · 1 case)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
 <!-- officeimo-excel-benchmark-table:end -->
 
 EPPlus 8 is licensed under PolyForm Noncommercial unless you buy a commercial

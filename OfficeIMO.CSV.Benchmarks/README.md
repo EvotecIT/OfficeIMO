@@ -274,11 +274,41 @@ showing numbers.
 <!-- officeimo-csv-benchmark-table:start -->
 #### CSV data-reader writing
 
-_No published windows net10.0 run yet._
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+Workload: RowCount=25000
+
+| Case | OfficeIMO | Sylvan.Data.Csv |
+| --- | ---: | ---: |
+| Shape Mixed · Case WriteDataReader | **5.80 ms** | 6.36 ms (1.10×) |
+| Shape Multiline · Case WriteDataReader | **7.05 ms** | 7.40 ms (1.05×) |
+| Shape Quoted · Case WriteDataReader | 8.12 ms (1.06×) | **7.67 ms** |
+| Shape Mixed · Case WriteDataReaderParallel | **6.61 ms** | — |
+| Shape Multiline · Case WriteDataReaderParallel | **7.47 ms** | — |
+| Shape Quoted · Case WriteDataReaderParallel | **9.22 ms** | — |
+
+- **OfficeIMO and Sylvan.Data.Csv are about as fast** (similar allocations · geometric mean of 3 cases)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
 
 #### CSV 65K typed reading
 
-_No published windows net10.0 run yet._
+Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 threads) · Windows 11 (10.0.26300.9974) · .NET 10.0.15
+
+Workload: Case=Default
+
+| Case | OfficeIMO | Sep | ExcelReader.NET | Sylvan.Data.Csv | Dataplat.Dbatools.Csv | LumenWorks | CsvHelper |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| CSV 65K typed reading | **15.6 ms** | 22.0 ms (1.41×) | 24.6 ms (1.58×) | 27.6 ms (1.76×) | 35.2 ms (2.3×) | 41.6 ms (2.7×) | 53.0 ms (3.4×) |
+
+- **OfficeIMO is 1.41× faster than Sep** (similar allocations · 1 case)
+- **OfficeIMO is 1.58× faster than ExcelReader.NET** (OfficeIMO allocates 1.04× less · 1 case)
+- **OfficeIMO is 1.76× faster than Sylvan.Data.Csv** (OfficeIMO allocates 1.04× less · 1 case)
+- **OfficeIMO is 2.3× faster than Dataplat.Dbatools.Csv** (OfficeIMO allocates 1.05× less · 1 case)
+- **OfficeIMO is 2.7× faster than LumenWorks** (OfficeIMO allocates 1.05× less · 1 case)
+- **OfficeIMO is 3.4× faster than CsvHelper** (OfficeIMO allocates 1.04× less · 1 case)
+- Times are medians; results whose confidence intervals overlap are reported as even.
+- Runner: BenchmarkDotNet · median · 5 warmups · 15 iterations · 1 launch · sequential
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Dated four-reader CSV snapshot (2026-08-31)
