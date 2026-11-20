@@ -46,9 +46,9 @@ public sealed partial class OfficeManagedTextShapingProvider {
                 // Preserve the established simple-font visual positioning route;
                 // source controls now remain explicit zero-advance glyphs.
                 if (!TryPositionVisualTypography(font, tokens, visual, request, out positions)) return null;
-                // That route reads pair kerning only. A font with cursive attachment
-                // takes the logical GPOS route, which owns curs alongside kern.
-                if (cursive && cached.HasCursiveFeature
+                // That route reads pair kerning only. A font with cursive attachment or
+                // distances takes the logical GPOS route, which owns curs and dist alongside kern.
+                if ((cursive && cached.HasCursiveFeature || distances && cached.HasDistancesFeature)
                     && !TryPositionTypography(font, tokens, request, out positions, options)) return null;
             } else if (!TryPositionTypography(font, tokens, request, out positions, options)) return null;
             return CompleteTypography(request, reader, tokens, attachments, positions, logicalClusters, visual,
@@ -194,9 +194,11 @@ public sealed partial class OfficeManagedTextShapingProvider {
             Font = LoadShapingFont(request);
             Substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
             HasCursiveFeature = Reader != null && OfficeOpenTypeLayoutFeatures.HasFeature(Reader, "GPOS", "curs");
+            HasDistancesFeature = Reader != null && OfficeOpenTypeLayoutFeatures.HasFeature(Reader, "GPOS", "dist");
         }
         internal OfficeOpenTypeReader? Reader { get; }
         internal bool HasCursiveFeature { get; }
+        internal bool HasDistancesFeature { get; }
         internal IOfficeFontProgram? Font { get; }
         internal OfficeOpenTypeSubstitution? Substitution { get; }
     }

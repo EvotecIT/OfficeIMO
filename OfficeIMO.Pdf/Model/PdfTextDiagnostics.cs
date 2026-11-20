@@ -842,23 +842,29 @@ internal static partial class PdfTextDiagnostics {
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfTrueTypeFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? shapingOptions = null) {
+        // Rendering resolves the shaping mode per text; the preflight checks the same route.
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
+        shapingOptions = shapingOptions?.ForText(text);
         List<PdfTextEncodingDiagnostic> diagnostics = AnalyzeEmbeddedFontOutlineText(text, font, source, fontName, shapingMode, shapingOptions);
         return AddUnpaintableColorGlyphDiagnostics(text, font, diagnostics,
+            shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode),
             start => CreateUnpaintableColorGlyphDiagnostic(start, char.ConvertToUtf32(text, start), source, fontName));
     }
 
-    // A bitmap or SVG emoji glyph has no outline to embed. Report each such text element
-    // once, at its first scalar, unless that position already has a diagnostic.
+    // A bitmap or SVG emoji glyph has no outline to embed. Check the glyphs the shaped run
+    // paints, so a ligature decides for its whole sequence, and report each at the source
+    // position it covers unless that position already has a diagnostic.
     private static List<PdfTextEncodingDiagnostic> AddUnpaintableColorGlyphDiagnostics(string text, PdfTrueTypeFontProgram font,
-        List<PdfTextEncodingDiagnostic> diagnostics, Func<int, PdfTextEncodingDiagnostic> create) {
-        if (!font.ContainsUnpaintableColorGlyph(text)) return diagnostics;
-        int start = 0;
-        foreach (string element in OfficeTextElements.Enumerate(text)) {
-            if (font.ContainsUnpaintableColorGlyph(element) && !diagnostics.Any(diagnostic => diagnostic.Index == start))
-                diagnostics.Add(create(start));
-            start += element.Length;
+        List<PdfTextEncodingDiagnostic> diagnostics, PdfTextShapingOptions shaping, Func<int, PdfTextEncodingDiagnostic> create) {
+        if (!font.HasBitmapColorGlyphs) return diagnostics;
+        var reported = new HashSet<int>(diagnostics.Select(static diagnostic => diagnostic.Index));
+        bool added = false;
+        foreach (PdfGlyphInfo glyph in font.ShapeText(text, shaping).Glyphs) {
+            if (glyph.TextIndex >= text.Length || !font.IsUnpaintableColorGlyph(glyph.GlyphId) || !reported.Add(glyph.TextIndex)) continue;
+            diagnostics.Add(create(glyph.TextIndex));
+            added = true;
         }
-        diagnostics.Sort((left, right) => left.Index.CompareTo(right.Index));
+        if (added) diagnostics.Sort((left, right) => left.Index.CompareTo(right.Index));
         return diagnostics;
     }
 
@@ -886,6 +892,8 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontTextCore(string text, PdfOpenTypeCffFontProgram font, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, PdfTextShapingOptions? shapingOptions = null) {
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
+        shapingOptions = shapingOptions?.ForText(text);
         PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontName, shapingMode);
         if (TryAnalyzeCompleteManagedRun(text, font, descriptor, string.Empty, null, out List<PdfTextEncodingDiagnostic> complete)) return complete;
         var diagnostics = new List<PdfTextEncodingDiagnostic>();
@@ -922,11 +930,15 @@ internal static partial class PdfTextDiagnostics {
         return location + ".Run[" + runIndex.ToString(CultureInfo.InvariantCulture) + "]";
     }
 
-    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions = null) =>
-        AddUnpaintableColorGlyphDiagnostics(text, fontProgram,
+    private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions = null) {
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
+        shapingOptions = shapingOptions?.ForText(text);
+        return AddUnpaintableColorGlyphDiagnostics(text, fontProgram,
             AnalyzeEmbeddedFontOutlineText(text, fontProgram, source, location, runIndex, shapingMode, shapingOptions),
+            shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontProgram.FontName, shapingMode),
             start => CreateUnpaintableColorGlyphDiagnostic(start, char.ConvertToUtf32(text, start), source, fontProgram.FontName)
                 .WithRunLocation(location, runIndex));
+    }
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontOutlineText(string text, PdfTrueTypeFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions) {
         string sourceText = text;
@@ -969,6 +981,8 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static List<PdfTextEncodingDiagnostic> AnalyzeEmbeddedFontText(string text, PdfOpenTypeCffFontProgram fontProgram, string source, string location, int? runIndex, PdfTextShapingMode shapingMode, PdfTextShapingOptions? shapingOptions = null) {
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
+        shapingOptions = shapingOptions?.ForText(text);
         string sourceText = text;
         text = PdfWriter.WithoutOptionalBreaks(text);
         PdfTextShapingOptions descriptor = shapingOptions ?? PdfTextShapingOptions.ForDiagnostics(source, fontProgram.FontName, shapingMode);

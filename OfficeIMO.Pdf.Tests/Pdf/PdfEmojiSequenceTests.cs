@@ -66,6 +66,43 @@ public class PdfEmojiSequenceTests {
         Assert.Throws<PdfTextEncodingPreflightException>(() => document.ToBytes());
     }
 
+    // The painted glyph decides: an outlined ligature over bitmap-only components is paintable,
+    // and a bitmap-only ligature over outlined components is not.
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void BitmapOnlyCheckUsesThePaintedLigatureGlyph(bool bitmapLigature, bool reported) {
+        int[] bitmapOnly = bitmapLigature
+            ? new[] { ManagedTextShapingTestAssets.EmojiSequenceLigatures[0].Ligature }
+            : new[] { ManagedTextShapingTestAssets.EmojiGlyph(0x1F3CB), ManagedTextShapingTestAssets.EmojiGlyph(0x2642) };
+        PdfCreateOptions options = new PdfCreateOptions().RegisterNamedFontFamily(
+            new PdfEmbeddedFontFamily(Family, ManagedTextShapingTestAssets.CreateEmojiSequenceFont(bitmapOnly)));
+        PdfDocument document = PdfDocument.Create(doc => doc.Page(page => page.Content(content =>
+            content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal(LiftingWeightsMale, fontFamily: Family) })))), options);
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        if (!reported) {
+            Assert.Empty(diagnostics);
+            return;
+        }
+        Assert.Equal(0, Assert.Single(diagnostics).Index);
+    }
+
+    // Built-in Latin ligatures hand joiner text to OpenType shaping, which writes the blank
+    // space glyph for a ZWJ the font does not map; the preflight checks that same route.
+    [Fact]
+    public void LatinLigaturePreflightAdmitsJoinerTextThatRenderingShapes() {
+        const string text = "A\u200DA";
+        PdfCreateOptions options = new PdfCreateOptions { TextShapingMode = PdfTextShapingMode.LatinLigatures }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Joiner", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(true, (int)'A')));
+        PdfDocument document = PdfDocument.Create(doc => doc.Page(page => page.Content(content =>
+            content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal(text, fontFamily: "Joiner") })))), options);
+
+        Assert.Empty(document.AnalyzeTextEncoding());
+        Assert.Equal(text, PdfReadDocument.Open(document.ToBytes()).ExtractText().Trim());
+    }
+
     [Fact]
     public void SegoeUiEmojiZwjSequenceSavesAndExtractsExactly() {
         var options = new PdfCreateOptions { IncludeStandardFontToUnicodeMaps = true };

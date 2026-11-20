@@ -150,20 +150,33 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal byte[] FontDataForInspection => _data;
 
-    private OfficeTrueTypeFont? _bitmapColorProgram;
-    private int _bitmapColorProgramState;
+    private BitmapColorGlyphs? _bitmapColorGlyphs;
 
     /// <summary>
-    /// Whether a text element maps to a CBDT, sbix or SVG color glyph without an outline. PDF text
-    /// paints outlines only, so such a glyph would leave a silent blank.
+    /// Whether a painted glyph is a CBDT, sbix or SVG color image without an outline. PDF text paints
+    /// outlines only, so such a glyph would leave a silent blank. The blank glyphs that whitespace and
+    /// nonpainting controls map to are intentional and excluded.
     /// </summary>
-    internal bool ContainsUnpaintableColorGlyph(string text) {
-        if (Volatile.Read(ref _bitmapColorProgramState) == 0) {
-            OfficeTrueTypeFont? program = HasBitmapColorTable(_data) ? OfficeTrueTypeFont.TryLoad(_data) : null;
-            Interlocked.CompareExchange(ref _bitmapColorProgram, program, null);
-            Volatile.Write(ref _bitmapColorProgramState, 1);
+    internal bool IsUnpaintableColorGlyph(int glyphId) {
+        BitmapColorGlyphs glyphs = LazyInitializer.EnsureInitialized(ref _bitmapColorGlyphs, () => new BitmapColorGlyphs(this))!;
+        return glyphs.Program != null && !glyphs.BlankGlyphs!.Contains(glyphId) && glyphs.Program.IsUnpaintableColorGlyph(glyphId);
+    }
+
+    internal bool HasBitmapColorGlyphs =>
+        LazyInitializer.EnsureInitialized(ref _bitmapColorGlyphs, () => new BitmapColorGlyphs(this))!.Program != null;
+
+    private sealed class BitmapColorGlyphs {
+        internal BitmapColorGlyphs(PdfTrueTypeFontProgram font) {
+            Program = HasBitmapColorTable(font._data) ? OfficeTrueTypeFont.TryLoad(font._data) : null;
+            if (Program == null) return;
+            BlankGlyphs = new HashSet<int>();
+            foreach (KeyValuePair<int, int> mapping in font._cmap) {
+                if (mapping.Value > 0 && (OfficeManagedTextShaper.IsNonPaintingControl(mapping.Key)
+                    || mapping.Key <= char.MaxValue && char.IsWhiteSpace((char)mapping.Key))) BlankGlyphs.Add(mapping.Value);
+            }
         }
-        return Volatile.Read(ref _bitmapColorProgram)?.ContainsUnpaintableColorGlyph(text) == true;
+        internal OfficeTrueTypeFont? Program { get; }
+        internal HashSet<int>? BlankGlyphs { get; }
     }
 
     private static bool HasBitmapColorTable(byte[] data) {

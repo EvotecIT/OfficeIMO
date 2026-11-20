@@ -28,28 +28,34 @@ internal static partial class ManagedTextShapingTestAssets {
     /// variation-selector glyphs are inked with nonzero advances, so painting any of them is observable.
     /// The space glyph is blank.
     /// </summary>
-    internal static byte[] CreateEmojiSequenceFont() {
-        int Glyph(int scalar) => Array.IndexOf(EmojiFixtureScalars, scalar) + 1;
+    /// <param name="bitmapOnlyGlyphs">Glyphs given an empty outline in a font that also carries a CBDT table, as bitmap emoji fonts do.</param>
+    internal static byte[] CreateEmojiSequenceFont(IReadOnlyCollection<int>? bitmapOnlyGlyphs = null) {
         int glyphCount = EmojiFirstLigatureGlyph + EmojiSequenceLigatures.Length;
         var advances = new Dictionary<int, ushort>();
         for (int glyph = 1; glyph < glyphCount; glyph++) advances[glyph] = EmojiAdvance;
-        advances[Glyph(0x20)] = 250;
-        foreach (int letter in new[] { (int)'#', 'A', 'f', 'i' }) advances[Glyph(letter)] = 500;
+        advances[EmojiGlyph(0x20)] = 250;
+        foreach (int letter in new[] { (int)'#', 'A', 'f', 'i' }) advances[EmojiGlyph(letter)] = 500;
         foreach (int control in new[] { 0x200C, 0x200D, 0xFE0E, 0xFE0F, 0xE0062, 0xE0065, 0xE0067, 0xE006E, 0xE007F })
-            advances[Glyph(control)] = 600;
+            advances[EmojiGlyph(control)] = 600;
         var ligatures = new List<(ushort[] Components, ushort Ligature)>();
         foreach ((string text, int ligature) in EmojiSequenceLigatures) {
             var components = new List<ushort>();
             for (int index = 0; index < text.Length; index++) {
                 int scalar = char.ConvertToUtf32(text, index);
                 if (scalar > 0xFFFF) index++;
-                components.Add(checked((ushort)Glyph(scalar)));
+                components.Add(checked((ushort)EmojiGlyph(scalar)));
             }
             ligatures.Add((components.ToArray(), checked((ushort)ligature)));
         }
+        var blanks = new List<int> { EmojiGlyph(0x20) };
+        if (bitmapOnlyGlyphs != null) blanks.AddRange(bitmapOnlyGlyphs);
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(EmojiFixtureScalars), glyphCount: glyphCount,
-            gsub: CreateLigatureSetGsub("ccmp", ligatures), glyphAdvances: advances, blankGlyphIds: new[] { Glyph(0x20) });
+            gsub: CreateLigatureSetGsub("ccmp", ligatures), glyphAdvances: advances, blankGlyphIds: blanks,
+            additionalTables: bitmapOnlyGlyphs == null ? null : new[] { ("CBDT", new byte[8]) });
     }
+
+    /// <summary>The fixture glyph a scalar maps to.</summary>
+    internal static int EmojiGlyph(int scalar) => Array.IndexOf(EmojiFixtureScalars, scalar) + 1;
 
     /// <summary>One feature with one LigatureSubstFormat1 lookup, registered for DFLT and latn.</summary>
     private static byte[] CreateLigatureSetGsub(string featureTag, IReadOnlyList<(ushort[] Components, ushort Ligature)> ligatures) {

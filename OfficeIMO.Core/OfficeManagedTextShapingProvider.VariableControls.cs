@@ -27,7 +27,8 @@ public sealed partial class OfficeManagedTextShapingProvider {
             }
             if (LoadShapingFont(request) is not OfficeTrueTypeFont font) return null;
             byte[] levels = ResolveTypographyLevels(request, scalars, out int paragraphLevel);
-            if (!TryMapTypographyTokens(request, font, reader, scalars, starts, levels, out var tokens)) return null;
+            if (!TryMapTypographyTokens(request, font, reader, scalars, starts, levels, out var tokens)
+                || !HideTypographyControls(request, font, reader, tokens)) return null;
             var attachments = new OfficeOpenTypeMarkAttachment[tokens.Count];
             for (int index = 0; index < attachments.Length; index++)
                 attachments[index] = new OfficeOpenTypeMarkAttachment(-1, 0, 0, false);
