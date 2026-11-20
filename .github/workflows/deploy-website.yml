@@ -78,7 +78,7 @@ jobs:
       packages: read
       pages: write
       id-token: write
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@ef4c12c192f3e010ee6a097a5b4238a5bb9ef125
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@3ae63d59af0954407e5a04c99dfd3ba699f0206c
     with:
       website_root: Website
       # Match PR validation for cold API-reference social-card generation.
@@ -95,7 +95,7 @@ jobs:
       # Three extra Linux jobs share the API docs block with the build job.
       apidocs_shards: 4
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: ef4c12c192f3e010ee6a097a5b4238a5bb9ef125
+      powerforge_ref: 3ae63d59af0954407e5a04c99dfd3ba699f0206c
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
