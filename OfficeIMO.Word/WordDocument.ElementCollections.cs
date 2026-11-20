@@ -257,9 +257,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordChart> Charts {
             get {
-                return ParagraphsCharts
-                    .SelectMany(p => p.EnumerateCharts())
-                    .ToList();
+                Body? body = _document?.Body;
+                return body == null ? new List<WordChart>() : CollectCharts(body.ChildElements);
             }
         }
 

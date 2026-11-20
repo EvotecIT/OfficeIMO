@@ -221,7 +221,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordChart> Charts {
             get {
-                return Paragraphs.SelectMany(p => p.EnumerateCharts()).ToList();
+                return _document.CollectCharts(GetSectionBodyChildren());
             }
         }
 

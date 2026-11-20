@@ -68,6 +68,74 @@ public sealed class WordChartEnumerationTests {
         Assert.Equal(new[] { "Body A", "Body B", "Header A", "Header B" }, loaded.AllCharts.Select(chart => chart.Title));
     }
 
+    [Fact]
+    public void ChartCollectionsReadOnlyTheSelectedAlternateContentBranch() {
+        using var bytes = new MemoryStream();
+        using (var document = WordDocument.Create()) {
+            AddChart(document.AddParagraph(), "Body choice");
+            AddChart(document.AddParagraph(), "Body fallback");
+            WrapLastTwoChartParagraphsInAlternateContent(document._document.Body!);
+            WordHeader header = document.Sections[0].PageSetup.Header!;
+            AddChart(header.AddParagraph(), "Header choice");
+            AddChart(header.AddParagraph(), "Header fallback");
+            WrapLastTwoChartParagraphsInAlternateContent(document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!);
+            document.Save(bytes);
+        }
+
+        using var loaded = WordDocument.Load(new MemoryStream(bytes.ToArray()));
+        Assert.Equal(new[] { "Body fallback" }, loaded.Charts.Select(chart => chart.Title));
+        Assert.Equal(new[] { "Body fallback" }, loaded.Sections[0].Charts.Select(chart => chart.Title));
+        Assert.Equal(new[] { "Body fallback", "Header fallback" }, loaded.AllCharts.Select(chart => chart.Title));
+    }
+
+    [Fact]
+    public void ChartCollectionsIncludeChartsInContentControls() {
+        using var bytes = new MemoryStream();
+        using (var document = WordDocument.Create()) {
+            AddChart(document.AddParagraph(), "Inline");
+            WrapChartRunInSdtRun(LastChartParagraph(document._document.Body!));
+            AddChart(document.AddParagraph(), "Block");
+            Paragraph block = LastChartParagraph(document._document.Body!);
+            var sdtBlock = new SdtBlock(new SdtProperties(new SdtId { Val = 2 }), new SdtContentBlock());
+            block.InsertBeforeSelf(sdtBlock);
+            block.Remove();
+            sdtBlock.SdtContentBlock!.Append(block);
+            AddChart(document.Sections[0].PageSetup.Header!.AddParagraph(), "Header inline");
+            WrapChartRunInSdtRun(LastChartParagraph(document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!));
+            document.Save(bytes);
+        }
+
+        using var loaded = WordDocument.Load(new MemoryStream(bytes.ToArray()));
+        Assert.Equal(new[] { "Inline", "Block" }, loaded.Charts.Select(chart => chart.Title));
+        Assert.Equal(new[] { "Inline", "Block" }, loaded.Sections[0].Charts.Select(chart => chart.Title));
+        Assert.Equal(new[] { "Inline", "Block", "Header inline" }, loaded.AllCharts.Select(chart => chart.Title));
+    }
+
+    private static Paragraph LastChartParagraph(OpenXmlElement root) =>
+        root.Descendants<Paragraph>().Last(paragraph => paragraph.Descendants<WordDrawing>().Any());
+
+    /// <summary>Puts the second-to-last chart paragraph in a choice OfficeIMO cannot read and the last in the fallback.</summary>
+    private static void WrapLastTwoChartParagraphsInAlternateContent(OpenXmlElement root) {
+        Paragraph[] paragraphs = root.Descendants<Paragraph>().Where(paragraph => paragraph.Descendants<WordDrawing>().Any()).ToArray();
+        Paragraph choiceParagraph = paragraphs[paragraphs.Length - 2], fallbackParagraph = paragraphs[paragraphs.Length - 1];
+        var choice = new AlternateContentChoice { Requires = "unknown" };
+        choice.AddNamespaceDeclaration("unknown", "urn:officeimo:tests:unknown");
+        var alternateContent = new AlternateContent();
+        choiceParagraph.InsertBeforeSelf(alternateContent);
+        choiceParagraph.Remove();
+        fallbackParagraph.Remove();
+        choice.Append(choiceParagraph);
+        alternateContent.Append(choice, new AlternateContentFallback(fallbackParagraph));
+    }
+
+    private static void WrapChartRunInSdtRun(Paragraph paragraph) {
+        Run run = paragraph.Elements<Run>().Single(candidate => candidate.Elements<WordDrawing>().Any());
+        var sdtRun = new SdtRun(new SdtProperties(new SdtId { Val = 1 }), new SdtContentRun());
+        run.InsertBeforeSelf(sdtRun);
+        run.Remove();
+        sdtRun.SdtContentRun!.Append(run);
+    }
+
     /// <summary>Moves the last chart drawing into the previous chart's run, leaving one run that holds both.</summary>
     private static void MergeLastTwoChartRuns(OpenXmlElement root) {
         Run[] runs = root.Descendants<Run>().Where(run => run.Elements<WordDrawing>().Any()).ToArray();
