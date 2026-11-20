@@ -178,6 +178,17 @@ public sealed class DrawingChartPlotSemanticsTests {
     }
 
     [Fact]
+    public void ZeroStackMembersAreJudgedAtTheirStackTop() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true,
+            verticalAxisMinimum: 0D, verticalAxisMaximum: 30D).WithDataLabelsOverMaximum(false);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnStacked, layout,
+            new OfficeSeries("Low", new double[] { 40, 40, 40, 40, 10 }), new OfficeSeries("None", new double[] { 0, 0, 0, 0, 0 }));
+
+        // Four zeros sit on stacks topping out at 40, beyond the maximum; the last sits at 10. The other "0" is the axis label.
+        Assert.Equal(2, Texts(drawing).Count(text => text.Text == "0"));
+    }
+
+    [Fact]
     public void RadarAxisLabelsUseDisplayUnits() {
         OfficeChartLayout layout = new OfficeChartLayout(showLegend: false).WithAxisDisplayUnits(null, null, 1000D, "Thousands");
         OfficeDrawing drawing = Render(OfficeChartType.Radar, layout, Series(new double[] { 1000, 2000, 3000, 4000, 4000 }));

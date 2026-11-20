@@ -49,9 +49,10 @@ public static partial class OfficeChartDrawingRenderer {
                 }
                 double positive = 0D, negative = 0D;
                 foreach (int member in stack.Value) {
-                    if (!TryGetSeriesValue(series[member], point, out double value) || value == 0D) continue;
+                    if (!TryGetSeriesValue(series[member], point, out double value)) continue;
                     double top;
-                    if (value > 0D) {
+                    // A zero sits at the top of the positive stack, where its label is drawn.
+                    if (value >= 0D) {
                         positive += value;
                         top = percent ? positive / positiveTotal : positive;
                     } else {
