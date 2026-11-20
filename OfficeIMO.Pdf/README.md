@@ -65,7 +65,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 Embedded fonts follow their OS/2 `fsType` licence, read the least restrictive way when several permissions are set. A font that forbids embedding or allows only bitmaps is never embedded: writing a document that uses it as a registered font family throws `NotSupportedException`, and an installed fallback face like that is skipped. A font that forbids subsetting is embedded whole.
 
-Color emoji fonts keep their color. Text in a run with COLR glyphs (Segoe UI Emoji) or CBDT/sbix PNG glyphs (Noto Color Emoji, Apple Color Emoji) is written as invisible, searchable text, and each glyph's color layers or image are painted at the same position, so extraction and `ActualText` return the exact source. Translucent palette colors are painted opaque and COLR v1 gradients as solid layers. SVG glyphs, and PNG glyphs in text watermarks, are reported by the text encoding preflight.
+Color emoji fonts keep their color. Text in a run with COLR glyphs (Segoe UI Emoji) or CBDT/sbix PNG glyphs (Noto Color Emoji, Apple Color Emoji) is written as invisible, searchable text, and each glyph's color layers or image are painted at the same position, so extraction and `ActualText` return the exact source. The artwork follows the text's rotation and skew, including in text watermarks, and translucent palette colors keep their alpha. COLR v1 gradients are painted as solid layers, and SVG glyphs are reported by the text encoding preflight.
 
 ### Read text and tables
 

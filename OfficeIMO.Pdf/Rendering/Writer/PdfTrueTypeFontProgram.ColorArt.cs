@@ -94,16 +94,13 @@ internal sealed partial class PdfTrueTypeFontProgram {
     }
 
     /// <summary>
-    /// Whether a painted glyph has no artwork the writer can draw: SVG or unreadable color data, or a PNG
-    /// glyph in text written outside the page, such as a watermark Form. PDF text paints outlines only, so
-    /// such a glyph would leave a silent blank. The blank glyphs of whitespace and nonpainting controls are
-    /// intentional and excluded.
+    /// Whether a painted glyph has no artwork the writer can draw, such as an SVG or unreadable color glyph.
+    /// PDF text paints outlines only, so such a glyph would leave a silent blank. The blank glyphs of
+    /// whitespace and nonpainting controls are intentional and excluded.
     /// </summary>
     internal bool IsUnpaintableColorGlyph(int glyphId) {
         ColorGlyphSource source = _colorGlyphSource.Value;
-        if (source.Program == null || source.BlankGlyphs!.Contains(glyphId)) return false;
-        return source.Program.IsUnpaintableColorGlyph(glyphId)
-            || ContentStreamBuilder.BitmapGlyphPlacementSuppressed && source.Program.IsBitmapColorGlyph(glyphId);
+        return source.Program != null && !source.BlankGlyphs!.Contains(glyphId) && source.Program.IsUnpaintableColorGlyph(glyphId);
     }
 
     /// <summary>Whether the font has color artwork that the preflight must inspect glyph by glyph.</summary>

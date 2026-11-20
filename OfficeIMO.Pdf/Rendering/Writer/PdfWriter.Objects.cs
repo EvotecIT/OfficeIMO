@@ -566,6 +566,8 @@ internal static partial class PdfWriter {
         public double ClipY { get; set; }
         public double ClipHeight { get; set; }
         public PdfImageSourceCrop? SourceCrop { get; set; }
+        /// <summary>When set, maps the image's unit square directly, such as a PNG glyph through its text matrix.</summary>
+        public OfficeTransform? UnitSquareTransform { get; set; }
         public bool IsBackgroundDecoration { get; set; }
         public bool IsInlineDecoration { get; set; }
         public bool IsDecorativeArtifact => IsBackgroundDecoration || IsInlineDecoration;

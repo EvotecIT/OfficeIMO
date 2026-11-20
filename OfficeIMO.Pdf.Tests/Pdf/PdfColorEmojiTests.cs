@@ -64,23 +64,61 @@ public class PdfColorEmojiTests {
         Assert.True(CountPixels(pdf).Red > 0, "The PNG glyph is painted.");
     }
 
-    // A watermark is drawn into a Form, which has no page to place a PNG on: the preflight reports
-    // it, while the same glyph in the page body is admitted.
-    [Fact]
-    public void PngGlyphInAWatermarkIsReportedInsteadOfWrittenBlank() {
-        PdfCreateOptions options = CreateOptions("cbdt");
-        options.TextWatermark = new PdfTextWatermark(Text) { Font = PdfStandardFont.Helvetica, Bold = false };
-        PdfDocument document = PdfDocument.Create(doc => doc.Page(page => page.Content(content =>
-            content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal(Text) })))), options);
+    // A rotated text matrix carries the PNG with it: the 0.8 em square keeps its area, and turned by
+    // 45 degrees its bounding box grows by the square root of two. A text watermark is rotated text.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PngGlyphInRotatedWatermarkTextIsPaintedAsARotatedSquare(bool sbix) {
+        byte[] pdf = Save(sbix ? "sbix" : "cbdt", (content, _) => content.AddParagraph(paragraph =>
+            paragraph.AddRuns(new[] { PdfTextRun.Normal("Body", standardFont: PdfStandardFont.Courier) })),
+            options => options.TextWatermark = new PdfTextWatermark("\U0001F600") {
+                Font = PdfStandardFont.Helvetica, Bold = false, Opacity = 1D, RotationAngle = 45D, FontSize = OfficeLength.Points(FontSize)
+            });
 
-        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
-        // Each watermark variant that shows this text reports it.
-        Assert.Equal(new[] { 0, 2 }, diagnostics.Select(diagnostic => diagnostic.Index).Distinct());
-        Assert.All(diagnostics, diagnostic => Assert.Contains("PdfTextWatermark", diagnostic.Location, StringComparison.Ordinal));
+        Pixels pixels = CountPixels(pdf);
+        double side = 0.8D * FontSize;
+        Assert.InRange(pixels.Red, side * side * 0.9D, side * side * 1.1D);
+        Assert.InRange(pixels.RedWidth, side * Math.Sqrt(2D) - 3D, side * Math.Sqrt(2D) + 3D);
+        Assert.InRange(pixels.RedHeight, side * Math.Sqrt(2D) - 3D, side * Math.Sqrt(2D) + 3D);
     }
 
-    private static byte[] Save(string kind, Action<PdfContentBuilder, PdfPageBuilder> build) {
+    // Synthetic oblique shears the text matrix by one third, and the PNG with it: the image's unit
+    // square maps to a 0.8 em square whose top edge moves right by a third of its height.
+    [Fact]
+    public void PngGlyphInSyntheticObliqueTextIsShearedWithTheText() {
+        byte[] pdf = Save("cbdt", (content, _) => content.AddParagraph(paragraph =>
+            paragraph.AddRuns(new[] { PdfTextRun.Italicized("\U0001F600", fontFamily: Family) })));
+
+        System.Text.RegularExpressions.Match draw = System.Text.RegularExpressions.Regex.Match(ContentText(pdf),
+            @"(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) -?[\d.]+ -?[\d.]+ cm\s+/Im\d+ Do");
+        Assert.True(draw.Success, "The PNG glyph is drawn as an image.");
+        double[] matrix = Enumerable.Range(1, 4).Select(group => double.Parse(draw.Groups[group].Value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        double side = 0.8D * FontSize;
+        Assert.Equal(side, matrix[0], 2);
+        Assert.Equal(0D, matrix[1], 2);
+        // The text matrix is written with the shear rounded to 0.333.
+        Assert.InRange(matrix[2], side / 3D - 0.05D, side / 3D + 0.05D);
+        Assert.Equal(side, matrix[3], 2);
+    }
+
+    // A translucent palette color is painted through an ExtGState fill alpha, one state per alpha value.
+    [Fact]
+    public void TranslucentPaletteColorIsPaintedWithItsAlphaThroughOneSharedState() {
+        byte[] pdf = Save("half-red", (content, _) => content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal(Text) })));
+
+        Pixels pixels = CountPixels(pdf);
+        Assert.Equal(0, pixels.Red);
+        Assert.True(pixels.HalfRed > 0, "The half-transparent red layer blends with the white page.");
+        string[] states = System.Text.RegularExpressions.Regex.Matches(ContentText(pdf), @"/(GS\d+) gs")
+            .Cast<System.Text.RegularExpressions.Match>().Select(match => match.Groups[1].Value).ToArray();
+        Assert.Equal(2, states.Length);
+        Assert.Single(states.Distinct());
+    }
+
+    private static byte[] Save(string kind, Action<PdfContentBuilder, PdfPageBuilder> build, Action<PdfCreateOptions>? configure = null) {
         PdfCreateOptions options = CreateOptions(kind);
+        configure?.Invoke(options);
         PdfDocument document = PdfDocument.Create(doc => doc.Page(page => page.Content(content => build(content, page))), options);
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
         Assert.True(diagnostics.Count == 0, string.Join(Environment.NewLine, diagnostics.Select(diagnostic => diagnostic.Message)));
@@ -92,6 +130,8 @@ public class PdfColorEmojiTests {
         byte[] font = kind switch {
             "colr" => ManagedTextShapingTestAssets.CreateColorFont(0x1F600),
             "large-palette" => ManagedTextShapingTestAssets.CreateColorFontWithPaletteSize(0x1F600, 5000),
+            // Half-transparent red under a fully transparent blue layer.
+            "half-red" => ManagedTextShapingTestAssets.CreateColorFontWithPaletteSize(0x1F600, 2, redAlpha: 128, blueAlpha: 0),
             "cbdt" => ManagedTextShapingTestAssets.CreateBitmapColorFont(0x1F600, sbix: false),
             _ => ManagedTextShapingTestAssets.CreateBitmapColorFont(0x1F600, sbix: true)
         };
@@ -106,11 +146,11 @@ public class PdfColorEmojiTests {
 
     private static string ContentText(byte[] pdf) => Encoding.GetEncoding(28591).GetString(pdf);
 
-    private readonly record struct Pixels(int Red, int Blue, int RedWidth, int RedHeight);
+    private readonly record struct Pixels(int Red, int Blue, int HalfRed, int RedWidth, int RedHeight);
 
     private static Pixels CountPixels(byte[] pdf) {
         OfficeRasterImage image = OfficeRasterImageDecoder.Decode(PdfPageImageRenderer.RenderPageAsPng(pdf, 1, 1D));
-        int red = 0, blue = 0, left = int.MaxValue, right = -1, top = int.MaxValue, bottom = -1;
+        int red = 0, blue = 0, halfRed = 0, left = int.MaxValue, right = -1, top = int.MaxValue, bottom = -1;
         for (int y = 0; y < image.Height; y++) {
             for (int x = 0; x < image.Width; x++) {
                 OfficeColor color = image.GetPixel(x, y);
@@ -120,9 +160,11 @@ public class PdfColorEmojiTests {
                     top = Math.Min(top, y); bottom = Math.Max(bottom, y);
                 } else if (color.B > 200 && color.R < 60 && color.G < 60) {
                     blue++;
+                } else if (color.R > 200 && color.G is > 90 and < 170 && color.B is > 90 and < 170) {
+                    halfRed++;
                 }
             }
         }
-        return new Pixels(red, blue, red == 0 ? 0 : right - left + 1, red == 0 ? 0 : bottom - top + 1);
+        return new Pixels(red, blue, halfRed, red == 0 ? 0 : right - left + 1, red == 0 ? 0 : bottom - top + 1);
     }
 }

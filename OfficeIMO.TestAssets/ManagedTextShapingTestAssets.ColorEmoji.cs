@@ -91,9 +91,9 @@ internal static partial class ManagedTextShapingTestAssets {
 
     /// <summary>
     /// A COLR v0 glyph (red then blue layers) whose CPAL palette has <paramref name="paletteEntries"/> entries,
-    /// as Segoe UI Emoji uses tens of thousands of entries in one palette.
+    /// as Segoe UI Emoji uses tens of thousands of entries in one palette. Either layer's palette entry can be translucent.
     /// </summary>
-    internal static byte[] CreateColorFontWithPaletteSize(int scalar, int paletteEntries) {
+    internal static byte[] CreateColorFontWithPaletteSize(int scalar, int paletteEntries, byte redAlpha = 255, byte blueAlpha = 255) {
         var cpal = new byte[12 + 2 + paletteEntries * 4];
         WriteUInt16(cpal, 0, 0);
         WriteUInt16(cpal, 2, checked((ushort)paletteEntries));
@@ -102,8 +102,8 @@ internal static partial class ManagedTextShapingTestAssets {
         WriteUInt32(cpal, 8, 14);
         WriteUInt16(cpal, 12, 0);
         for (int entry = 0; entry < paletteEntries; entry++) {
-            if (entry == 0) WriteBgra(cpal, 14, 255, 0, 0, 255);
-            else if (entry == 1) WriteBgra(cpal, 18, 0, 0, 255, 255);
+            if (entry == 0) WriteBgra(cpal, 14, 255, 0, 0, redAlpha);
+            else if (entry == 1) WriteBgra(cpal, 18, 0, 0, 255, blueAlpha);
             else WriteBgra(cpal, 14 + entry * 4, 128, 128, 128, 255);
         }
         return CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 4, distinctSecondGlyph: true,

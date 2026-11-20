@@ -706,6 +706,29 @@ internal static partial class PdfWriter {
                 headerFooterTotalPages,
                 totalPages);
 
+            // Header, footer and watermark text is page content. Build it before this page's images and
+            // opacity states get their objects, so its color glyphs take resources from this page.
+            string? headerText = null, footerText = null, watermarkText = null;
+            bool watermarkGroup = UsesTextWatermarkGroup(pageOpts, textWatermark, watermarkFontAlias);
+            IColorGlyphPage? previousColorGlyphPage = ContentStreamBuilder.ExchangeColorGlyphPage(new PageColorGlyphs(page));
+            try {
+                if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber))
+                    headerText = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
+                if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber))
+                    footerText = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
+                if (textWatermark != null && textWatermark.Opacity > 0D && !string.IsNullOrEmpty(watermarkFontAlias)) {
+                    // A group composes its own opacity; otherwise the watermark's opacity state also scales translucent layers.
+                    string? graphicsStateName = watermarkGroup ? null : textWatermarkGraphicsStateName;
+                    var content = new StringBuilder();
+                    using (ContentStreamBuilder.ScaleColorGlyphAlpha(graphicsStateName == null ? 1D : textWatermark.Opacity)) {
+                        AppendTextWatermark(content, pageOpts, textWatermark, watermarkFontAlias!, pageFontResources, graphicsStateName);
+                    }
+                    watermarkText = content.ToString();
+                }
+            } finally {
+                ContentStreamBuilder.ExchangeColorGlyphPage(previousColorGlyphPage);
+            }
+
             var fontResources = new List<(string Name, int Id)>();
             foreach (var kvp in pageFontResources.OrderBy(kvp => kvp.Value, StringComparer.Ordinal)) {
                 fontResources.Add((kvp.Value, EnsureFont(kvp.Key, pageOpts)));
@@ -735,20 +758,6 @@ internal static partial class PdfWriter {
                     ? GetPrintColorTransform(pageOpts)
                     : null;
                 AddShadingResources(objects, page.Shadings, shadingColorTransform, graphicsStates, xobjects, shadings, cancellationToken);
-            }
-
-            // Simple header and footer text is page content. Build it before this page's images get their
-            // objects, so PNG color glyphs in it become images of this page like those in the layout.
-            string? headerText = null, footerText = null;
-            var previousBitmapGlyphSink = ContentStreamBuilder.ExchangeBitmapGlyphSink(
-                (image, x, y, width, height) => PlaceBitmapGlyph(page, image, x, y, width, height));
-            try {
-                if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber))
-                    headerText = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
-                if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber))
-                    footerText = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
-            } finally {
-                ContentStreamBuilder.ExchangeBitmapGlyphSink(previousBitmapGlyphSink);
             }
 
             // Content stream (append image draw commands at end)
@@ -877,9 +886,11 @@ internal static partial class PdfWriter {
             PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                 ? GetPrintColorTransform(pageOpts)
                 : null;
-            string? textWatermarkXObject = CreateTextWatermarkGroup(objects, pageOpts, textWatermark,
-                watermarkFontAlias, pageFontResources, fontResources, xobjects, pageColorTransform, cancellationToken);
-            string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo, textWatermarkXObject);
+            if (watermarkText != null) watermarkText = ReplaceInlineImageDrawTokens(watermarkText, page.Images);
+            string? textWatermarkXObject = watermarkGroup && watermarkText != null
+                ? CreateTextWatermarkGroup(objects, pageOpts, watermarkText, fontResources, xobjects, graphicsStates, pageColorTransform, cancellationToken)
+                : null;
+            string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, watermarkGroup ? null : watermarkText, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo, textWatermarkXObject);
             bool flattenVisualAnnotations = opts.FlattenVisualAnnotations;
 
             byte[] contentBytes;
@@ -1762,7 +1773,7 @@ internal static partial class PdfWriter {
         return false;
     }
 
-    private static string BuildPageBackground(LayoutResult.Page page, PdfCreateOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts, string? textWatermarkXObject) {
+    private static string BuildPageBackground(LayoutResult.Page page, PdfCreateOptions options, string pageBackgroundShapeContent, string? watermarkText, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts, string? textWatermarkXObject) {
         var sb = new StringBuilder();
         if (options.BackgroundColor.HasValue) {
             var backgroundColor = new StringBuilder();
@@ -1783,16 +1794,14 @@ internal static partial class PdfWriter {
             }
         }
 
-        if (watermark != null && watermark.Opacity > 0D && !string.IsNullOrEmpty(watermarkFontAlias)) {
+        if (textWatermarkXObject != null) {
             var watermarkContent = new StringBuilder();
-            if (textWatermarkXObject != null) {
-                var content = new ContentStreamBuilder(watermarkContent).SaveState();
-                if (!string.IsNullOrEmpty(textWatermarkGraphicsStateName)) content.GraphicsState(textWatermarkGraphicsStateName!);
-                content.XObject(textWatermarkXObject).RestoreState();
-            } else {
-                AppendTextWatermark(watermarkContent, options, watermark, watermarkFontAlias!, fontResources, textWatermarkGraphicsStateName);
-            }
+            var content = new ContentStreamBuilder(watermarkContent).SaveState();
+            if (!string.IsNullOrEmpty(textWatermarkGraphicsStateName)) content.GraphicsState(textWatermarkGraphicsStateName!);
+            content.XObject(textWatermarkXObject).RestoreState();
             sb.Append(WrapArtifactContent(watermarkContent.ToString(), markDecorativeArtifacts));
+        } else if (watermarkText != null) {
+            sb.Append(WrapArtifactContent(watermarkText, markDecorativeArtifacts));
         }
 
         if (pageBorder != null && pageBorder.Opacity > 0D) {

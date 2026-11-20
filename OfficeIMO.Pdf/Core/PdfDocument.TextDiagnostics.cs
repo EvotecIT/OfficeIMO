@@ -431,10 +431,7 @@ public sealed partial class PdfDocument {
         }
 
         PdfStandardFont watermarkFont = PdfStandardFontMapper.GetStyledFont(watermark.Font, watermark.Bold, watermark.Italic);
-        // A watermark is drawn into a Form, where a PNG color glyph has no page to become an image of.
-        using (ContentStreamBuilder.WithoutBitmapGlyphPlacement()) {
-            AddText(diagnostics, watermark.Text, options, watermarkFont, source, AppendLocation(locationPrefix, source));
-        }
+        AddText(diagnostics, watermark.Text, options, watermarkFont, source, AppendLocation(locationPrefix, source));
     }
 
     private static void AnalyzePageTextForVariant(PdfCreateOptions options, int pageNumber, List<PdfTextEncodingDiagnostic> diagnostics, HashSet<string> seenPageText, string locationPrefix, System.Threading.CancellationToken cancellationToken) {

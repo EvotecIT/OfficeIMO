@@ -42,6 +42,15 @@ internal sealed class PdfColorGlyphArt {
     private static string Number(double value) => Math.Round(value, 2).ToString("0.##", CultureInfo.InvariantCulture);
 }
 
+/// <summary>The page that content is written for: it gives PNG color glyphs and translucent layers their resources.</summary>
+internal interface IColorGlyphPage {
+    /// <summary>Registers a PNG glyph drawn through the given image unit-square transform and returns the token that draws it.</summary>
+    string? PlaceImage(OfficeBitmapGlyphImage image, OfficeTransform unitSquare);
+
+    /// <summary>Returns the name of an ExtGState with this fill and stroke alpha, shared by every use of that alpha.</summary>
+    string? AlphaState(double alpha);
+}
+
 internal sealed partial class ContentStreamBuilder {
     private readonly struct DeferredGlyphArt {
         internal DeferredGlyphArt(double a, double b, double c, double d, double e, double f, PdfColorGlyphArt art, OfficeColor fill) {
@@ -57,37 +66,34 @@ internal sealed partial class ContentStreamBuilder {
         internal OfficeColor Fill { get; }
     }
 
-    // The layout context that owns the page being written places PNG glyphs as page images and returns
-    // the content-stream token that draws them. Outside a layout (watermark and appearance Forms) there is
-    // no sink, and the preflight reports PNG glyphs instead of leaving a silent blank.
-    [ThreadStatic] private static Func<OfficeBitmapGlyphImage, double, double, double, double, string?>? _bitmapGlyphSink;
+    // The page being written. The layout context and page assembly install it around page content.
+    // Without one (annotation appearances), PNG glyphs stay ordinary text and translucent layers paint opaque.
+    [ThreadStatic] private static IColorGlyphPage? _colorGlyphPage;
+    // 1 minus the opacity the enclosing content already applies, such as a translucent watermark's,
+    // stored as the complement so the thread-static default means fully opaque.
+    [ThreadStatic] private static double _colorGlyphAlphaComplement;
 
-    [ThreadStatic] private static int _bitmapGlyphPlacementSuppressed;
-
-    /// <summary>Whether text being checked will be written where PNG glyphs cannot become page images.</summary>
-    internal static bool BitmapGlyphPlacementSuppressed => _bitmapGlyphPlacementSuppressed > 0;
-
-    /// <summary>Marks the text checked in this scope as written outside the page, such as a watermark Form.</summary>
-    internal static IDisposable WithoutBitmapGlyphPlacement() {
-        _bitmapGlyphPlacementSuppressed++;
-        return new PlacementScope();
-    }
-
-    private sealed class PlacementScope : IDisposable {
-        private bool _disposed;
-        public void Dispose() {
-            if (_disposed) return;
-            _disposed = true;
-            _bitmapGlyphPlacementSuppressed--;
-        }
-    }
-
-    /// <summary>Installs the PNG glyph sink for this thread and returns the previous one, for the caller to restore.</summary>
-    internal static Func<OfficeBitmapGlyphImage, double, double, double, double, string?>? ExchangeBitmapGlyphSink(
-        Func<OfficeBitmapGlyphImage, double, double, double, double, string?>? sink) {
-        var previous = _bitmapGlyphSink;
-        _bitmapGlyphSink = sink;
+    /// <summary>Installs the page for this thread and returns the previous one, for the caller to restore.</summary>
+    internal static IColorGlyphPage? ExchangeColorGlyphPage(IColorGlyphPage? page) {
+        IColorGlyphPage? previous = _colorGlyphPage;
+        _colorGlyphPage = page;
         return previous;
+    }
+
+    /// <summary>
+    /// Scales translucent layer alpha by the opacity an enclosing graphics state already applies. An ExtGState
+    /// <c>ca</c> replaces the current alpha rather than multiplying it, so a layer must carry the product.
+    /// </summary>
+    internal static IDisposable ScaleColorGlyphAlpha(double opacity) {
+        double previous = _colorGlyphAlphaComplement;
+        _colorGlyphAlphaComplement = 1D - Math.Max(0D, Math.Min(1D, opacity));
+        return new AlphaScope(previous);
+    }
+
+    private sealed class AlphaScope : IDisposable {
+        private readonly double _previous;
+        internal AlphaScope(double previous) => _previous = previous;
+        public void Dispose() => _colorGlyphAlphaComplement = _previous;
     }
 
     private List<DeferredGlyphArt>? _deferredGlyphArt;
@@ -101,9 +107,9 @@ internal sealed partial class ContentStreamBuilder {
             || command.IsScalarBidi || command.IsolatedRightToLeft || command.SimpleFontKerning != null) return false;
         IReadOnlyList<PdfGlyphInfo>? glyphs = command.PositionedGlyphs ?? command.VisualGlyphs;
         if (glyphs == null || glyphs.Count != arts.Count || glyphs.Count != command.GlyphCount) return false;
+        // A PNG glyph needs a page to become an image of; without one the run keeps its ordinary glyphs.
         for (int index = 0; index < arts.Count; index++)
-            // Page images are placed upright: a rotated run keeps its ordinary glyphs.
-            if (arts[index]?.Bitmap != null && (_bitmapGlyphSink == null || T._textB != 0D || T._textA <= 0D || T._textD <= 0D)) return false;
+            if (arts[index]?.Bitmap != null && _colorGlyphPage == null) return false;
         double scale = T._textScale, pen = 0D;
         // Tracking is written as a TJ adjustment after each boundary glyph, as AppendPositionedGlyphs does.
         double tracking = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)
@@ -134,13 +140,11 @@ internal sealed partial class ContentStreamBuilder {
         if (_deferredGlyphArt == null || _deferredGlyphArt.Count == 0) return;
         foreach (DeferredGlyphArt item in _deferredGlyphArt) {
             if (item.Art.Bitmap is { } bitmap) {
-                double x0 = item.A * bitmap.Left + item.C * bitmap.Bottom + item.E;
-                double y0 = item.B * bitmap.Left + item.D * bitmap.Bottom + item.F;
-                // Upright placement at the glyph origin; synthetic oblique shears only the outline glyphs.
-                if (item.B == 0D && item.A > 0D && item.D > 0D) {
-                    string? token = _bitmapGlyphSink?.Invoke(bitmap, x0, y0, item.A * bitmap.Width, item.D * bitmap.Height);
-                    if (token != null) _sb.Append(token);
-                }
+                // The image's unit square through its glyph box and the full glyph matrix: rotation, skew and scale.
+                var unitSquare = new OfficeTransform(item.A * bitmap.Width, item.B * bitmap.Width, item.C * bitmap.Height, item.D * bitmap.Height,
+                    item.A * bitmap.Left + item.C * bitmap.Bottom + item.E, item.B * bitmap.Left + item.D * bitmap.Bottom + item.F);
+                string? token = _colorGlyphPage?.PlaceImage(bitmap, unitSquare);
+                if (token != null) _sb.Append(token);
                 continue;
             }
             // Font units scale by size/unitsPerEm (about 0.005 to 0.05); keep that factor exact.
@@ -149,10 +153,13 @@ internal sealed partial class ContentStreamBuilder {
                 .Append(PdfNumberFormatter.Precise(item.E)).Append(' ').Append(PdfNumberFormatter.Precise(item.F)).Append(" cm\n");
             foreach (PdfColorGlyphLayer layer in item.Art.Layers) {
                 OfficeColor color = layer.Foreground ? item.Fill : layer.Color;
-                // Translucent palette entries are rare in emoji fonts; paint them opaque rather than drop them.
                 if (color.A == 0 || layer.Path.Length == 0) continue;
+                string? alphaState = color.A < 255
+                    ? _colorGlyphPage?.AlphaState(color.A / 255D * (1D - _colorGlyphAlphaComplement)) : null;
+                if (alphaState != null) _sb.Append("q\n/").Append(alphaState).Append(" gs\n");
                 _sb.Append(F(color.R / 255D)).Append(' ').Append(F(color.G / 255D)).Append(' ').Append(F(color.B / 255D)).Append(" rg\n")
                     .Append(layer.Path).Append("f\n");
+                if (alphaState != null) _sb.Append("Q\n");
             }
             _sb.Append("Q\n");
         }
