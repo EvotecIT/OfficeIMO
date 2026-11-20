@@ -16,7 +16,14 @@ internal static partial class ManagedTextShapingTestAssets {
         /// <summary>The largest of two strikes has no record for glyph 1; the smaller one has its PNG.</summary>
         MissingFromLargestStrike,
         /// <summary>Glyph 1 has an outline whose bounding box starts at <see cref="SbixOutlineOrigin"/>.</summary>
-        OutlineOrigin
+        OutlineOrigin,
+        /// <summary>U+1F600 to U+1F602 map to glyphs 1 to 3: glyph 3 is a <c>dupe</c> of glyph 2, which is a <c>dupe</c> of glyph 1.</summary>
+        DuplicateChain,
+        /// <summary>
+        /// A 10 ppem strike has glyph 1's PNG only (400 units); a 5 ppem strike has its own glyph 1 PNG (800 units)
+        /// and glyph 2, mapped to U+1F601, as a <c>dupe</c> of glyph 1.
+        /// </summary>
+        DuplicateInSmallerStrike
     }
 
     /// <summary>
@@ -59,6 +66,24 @@ internal static partial class ManagedTextShapingTestAssets {
                 return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { 0x1F600, 0x1F601 }), includeTrailingMetric: true, glyphCount: 3,
                     blankGlyphIds: new[] { 1, 2 }, additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(3, (ppem, glyphs)))) });
             }
+            case SbixVariant.DuplicateChain: {
+                byte[] toFirst = new byte[2], toSecond = new byte[2];
+                WriteUInt16(toFirst, 0, 1);
+                WriteUInt16(toSecond, 0, 2);
+                var glyphs = new Dictionary<int, (short, short, string, byte[])> {
+                    [1] = (0, 0, "png ", png), [2] = (0, 0, "dupe", toFirst), [3] = (0, 0, "dupe", toSecond)
+                };
+                return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { 0x1F600, 0x1F601, 0x1F602 }), includeTrailingMetric: true, glyphCount: 4,
+                    blankGlyphIds: new[] { 1, 2, 3 }, additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(4, (ppem, glyphs)))) });
+            }
+            case SbixVariant.DuplicateInSmallerStrike: {
+                byte[] toFirst = new byte[2];
+                WriteUInt16(toFirst, 0, 1);
+                var small = new Dictionary<int, (short, short, string, byte[])> { [1] = (0, 0, "png ", png), [2] = (0, 0, "dupe", toFirst) };
+                return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { 0x1F600, 0x1F601 }), includeTrailingMetric: true, glyphCount: 3,
+                    blankGlyphIds: new[] { 1, 2 }, additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(3,
+                        (ppem * 2, new Dictionary<int, (short, short, string, byte[])> { [1] = (0, 0, "png ", png) }), (ppem, small)))) });
+            }
             case SbixVariant.MissingFromLargestStrike:
                 return CreateFontFromCmap(CreateFormat12Cmap(new[] { 0x1F600 }), includeTrailingMetric: true, glyphCount: 2, blankGlyphIds: new[] { 1 },
                     additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(2,
@@ -70,6 +95,20 @@ internal static partial class ManagedTextShapingTestAssets {
                     glyphBottoms: new Dictionary<int, int> { [1] = SbixOutlineOrigin.Bottom },
                     additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(2, (ppem, glyph1)))) });
         }
+    }
+
+    /// <summary>
+    /// An sbix font whose glyphs 1 to <paramref name="count"/> each have their own red PNG record, mapped from
+    /// U+1F600 onwards.
+    /// </summary>
+    internal static byte[] CreateManyGlyphSbixFont(int count) {
+        byte[] png = CreateRedPng();
+        var glyphs = new Dictionary<int, (short, short, string, byte[])>();
+        for (int glyph = 1; glyph <= count; glyph++) glyphs[glyph] = (0, 0, "png ", png);
+        int[] scalars = Enumerable.Range(0x1F600, count).ToArray();
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(scalars), includeTrailingMetric: true, glyphCount: count + 1,
+            blankGlyphIds: Enumerable.Range(1, count).ToArray(),
+            additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(count + 1, (BitmapColorFontPpem * 4 / 80, glyphs)))) });
     }
 
     // A 4x4 solid red PNG: strikes scale it to the requested glyph size.

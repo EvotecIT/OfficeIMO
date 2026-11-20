@@ -59,6 +59,49 @@ public sealed class DrawingColorEmojiGlyphTests {
         Assert.Same(original, shared);
     }
 
+    // A chain of duplicates resolves from any glyph in it, whichever is asked first.
+    [Fact]
+    public void SbixDuplicateChainResolvesFromEveryGlyph() {
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateSbixVariantFont(ManagedTextShapingTestAssets.SbixVariant.DuplicateChain))!;
+        int Glyph(int scalar) { Assert.True(font.TryGetGlyphMetrics(scalar, out int glyph, out _)); return glyph; }
+
+        Assert.True(font.TryGetBitmapGlyph(Glyph(0x1F602), out OfficeBitmapGlyphImage? last));
+        Assert.True(font.TryGetBitmapGlyph(Glyph(0x1F601), out OfficeBitmapGlyphImage? middle));
+        Assert.True(font.TryGetBitmapGlyph(Glyph(0x1F600), out OfficeBitmapGlyphImage? first));
+
+        Assert.Same(first, middle);
+        Assert.Same(first, last);
+    }
+
+    // A duplicate resolves within the strike that holds it, so its artwork keeps that strike's size.
+    [Fact]
+    public void SbixDuplicateResolvesWithinItsOwnStrike() {
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateSbixVariantFont(ManagedTextShapingTestAssets.SbixVariant.DuplicateInSmallerStrike))!;
+        Assert.True(font.TryGetGlyphMetrics(0x1F600, out int target, out _));
+        Assert.True(font.TryGetGlyphMetrics(0x1F601, out int duplicate, out _));
+
+        Assert.True(font.TryGetBitmapGlyph(target, out OfficeBitmapGlyphImage? large));
+        Assert.True(font.TryGetBitmapGlyph(duplicate, out OfficeBitmapGlyphImage? small));
+
+        Assert.Equal(400D, large!.Width);
+        Assert.Equal(800D, small!.Width);
+    }
+
+    // The raster canvas keeps decoded PNG glyphs within its entry budget, dropping the least recently used.
+    [Fact]
+    public void RasterCanvasBoundsItsDecodedGlyphImages() {
+        int count = OfficeRasterCanvas.MaximumCachedColorGlyphImages + 10;
+        var fonts = new OfficeFontFaceCollection().Add("Many emoji", ManagedTextShapingTestAssets.CreateManyGlyphSbixFont(count));
+        var canvas = new OfficeRasterCanvas(new OfficeRasterImage(400, 60, OfficeColor.White), null, fonts);
+
+        for (int index = 0; index < count; index++) {
+            canvas.DrawText(char.ConvertFromUtf32(0x1F600 + index), 0D, 0D, 400D, 60D, OfficeColor.Black, 20D, fontFamily: "Many emoji");
+        }
+
+        Assert.Equal(OfficeRasterCanvas.MaximumCachedColorGlyphImages, canvas.CachedColorGlyphImageCount);
+        Assert.InRange(canvas.CachedColorGlyphImageBytes, 1L, OfficeRasterCanvas.MaximumCachedColorGlyphPixelBytes);
+    }
+
     // Strikes need not cover every glyph: a glyph missing from the largest strike comes from the next one.
     [Fact]
     public void SbixGlyphMissingFromTheLargestStrikeComesFromASmallerOne() {

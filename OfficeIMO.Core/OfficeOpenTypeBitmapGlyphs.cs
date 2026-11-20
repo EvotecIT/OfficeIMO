@@ -25,6 +25,7 @@ internal sealed class OfficeOpenTypeBitmapGlyphs {
     private const int MaximumImageBytes = 16 * 1024 * 1024;
     private const int MaximumCachedGlyphs = 4096;
     private const long MaximumCachedBytes = 64L * 1024 * 1024;
+    private const int MaximumDuplicateHops = 8;
     private static readonly byte[] PngSignature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
     private readonly OfficeOpenTypeReader _reader;
@@ -37,6 +38,8 @@ internal sealed class OfficeOpenTypeBitmapGlyphs {
     // An sbix bitmap of a glyph with an outline is placed from the outline's (xMin, yMin).
     private readonly Func<int, (int XMin, int YMin)?> _outlineOrigin;
     private readonly Dictionary<int, OfficeBitmapGlyphImage?> _cache = new();
+    // One image per sbix PNG record, shared by every glyph whose duplicate chain reaches it.
+    private readonly Dictionary<int, OfficeBitmapGlyphImage> _recordImages = new();
     private long _cachedBytes;
 
     private OfficeOpenTypeBitmapGlyphs(OfficeOpenTypeReader reader, int unitsPerEm, Func<int, (int XMin, int YMin)?> outlineOrigin) {
@@ -70,46 +73,31 @@ internal sealed class OfficeOpenTypeBitmapGlyphs {
 
     /// <summary>Returns the PNG image of a glyph from the largest strike that has it, or false when none does.</summary>
     internal bool TryGetImage(int glyphId, out OfficeBitmapGlyphImage? image) {
-        image = GetImage(glyphId, allowDuplicate: true);
-        return image != null;
-    }
-
-    // Cached per glyph; an sbix duplicate shares its target's image, and the cache is bounded by
-    // both glyph count and retained PNG bytes.
-    private OfficeBitmapGlyphImage? GetImage(int glyphId, bool allowDuplicate) {
         lock (_cache) {
-            if (_cache.TryGetValue(glyphId, out OfficeBitmapGlyphImage? cached)) return cached;
+            if (_cache.TryGetValue(glyphId, out image)) return image != null;
         }
-        OfficeBitmapGlyphImage? image;
-        bool shared = false;
+        OfficeBitmapGlyphImage? cbdt = null;
         try {
-            if (glyphId <= 0 || glyphId >= _glyphCount) {
-                image = null;
-            } else {
-                image = ReadCbdt(glyphId);
-                if (image == null) {
-                    int duplicate = FindSbixDuplicate(glyphId);
-                    if (duplicate > 0) {
-                        image = allowDuplicate ? GetImage(duplicate, allowDuplicate: false) : null;
-                        shared = true;
-                    } else {
-                        image = ReadSbix(glyphId);
-                    }
-                }
-            }
+            if (glyphId <= 0 || glyphId >= _glyphCount) image = null;
+            else image = (cbdt = ReadCbdt(glyphId)) ?? ReadSbix(glyphId);
         } catch (Exception exception) when (IsMalformed(exception)) {
             image = null;
         }
         lock (_cache) {
-            long bytes = shared || image == null ? 0L : image.Png.Length;
-            if (_cache.Count >= MaximumCachedGlyphs || _cachedBytes + bytes > MaximumCachedBytes) {
-                _cache.Clear();
-                _cachedBytes = 0L;
-            }
+            // sbix PNG records count their bytes when stored; CBDT images count here.
+            long bytes = cbdt?.Png.Length ?? 0L;
+            if (_cache.Count >= MaximumCachedGlyphs || _cachedBytes + bytes > MaximumCachedBytes) ClearCaches();
             _cache[glyphId] = image;
             _cachedBytes += bytes;
         }
-        return image;
+        return image != null;
+    }
+
+    // Callers hold the cache lock.
+    private void ClearCaches() {
+        _cache.Clear();
+        _recordImages.Clear();
+        _cachedBytes = 0L;
     }
 
     private int[] SelectBitmapSizes() {
@@ -275,31 +263,48 @@ internal sealed class OfficeOpenTypeBitmapGlyphs {
         return true;
     }
 
-    // The glyph an sbix 'dupe' record of the largest strike that has the glyph points at, or 0.
-    private int FindSbixDuplicate(int glyphId) {
-        foreach (int strike in _sbixStrikes) {
-            if (!TryGetSbixRecord(strike, glyphId, out int start, out int end, out uint type)) continue;
-            if (type != 0x64757065) return 0; // 'dupe'
-            int target = U16(start + 8, end);
-            return target != glyphId && target > 0 && target < _glyphCount ? target : 0;
-        }
-        return 0;
-    }
-
+    // The largest strike that holds a record for the glyph decides: a 'dupe' chain is followed within that
+    // strike, so the artwork keeps its ppem. Only when the chain ends without a PNG there are smaller strikes tried.
     private OfficeBitmapGlyphImage? ReadSbix(int glyphId) {
         foreach (int strike in _sbixStrikes) {
-            if (!TryGetSbixRecord(strike, glyphId, out int start, out int end, out uint type) || type != 0x706E6720) continue; // 'png '
-            short originX = unchecked((short)U16(start, end)), originY = unchecked((short)U16(start + 2, end));
-            byte[]? png = CopyPng(start + 8, end - start - 8);
-            if (png == null || png.Length < 24) continue;
-            int width = (int)ReadBigEndian32(png, 16), height = (int)ReadBigEndian32(png, 20);
-            if (width <= 0 || height <= 0) continue;
-            double scale = (double)_unitsPerEm / U16(strike, _sbixEnd);
-            // Offsets are strike pixels from the outline's bounding-box origin, or from the pen origin without an outline.
-            (int XMin, int YMin) origin = _outlineOrigin(glyphId) ?? (0, 0);
-            return new OfficeBitmapGlyphImage(png, origin.XMin + originX * scale, origin.YMin + originY * scale, width * scale, height * scale);
+            int current = glyphId;
+            for (int hop = 0; hop <= MaximumDuplicateHops; hop++) {
+                if (!TryGetSbixRecord(strike, current, out int start, out int end, out uint type)) break;
+                if (type == 0x706E6720) { // 'png '
+                    OfficeBitmapGlyphImage? image = ReadSbixPng(strike, current, start, end);
+                    if (image != null) return image;
+                    break;
+                }
+                if (type != 0x64757065) break; // 'dupe'
+                int target = U16(start + 8, end);
+                if (target <= 0 || target >= _glyphCount || target == current) break;
+                current = target;
+            }
         }
         return null;
+    }
+
+    // One shared image per PNG record; placement uses the outline of the glyph that owns the record.
+    private OfficeBitmapGlyphImage? ReadSbixPng(int strike, int glyphId, int start, int end) {
+        lock (_cache) {
+            if (_recordImages.TryGetValue(start, out OfficeBitmapGlyphImage? shared)) return shared;
+        }
+        short originX = unchecked((short)U16(start, end)), originY = unchecked((short)U16(start + 2, end));
+        byte[]? png = CopyPng(start + 8, end - start - 8);
+        if (png == null || png.Length < 24) return null;
+        int width = (int)ReadBigEndian32(png, 16), height = (int)ReadBigEndian32(png, 20);
+        if (width <= 0 || height <= 0) return null;
+        double scale = (double)_unitsPerEm / U16(strike, _sbixEnd);
+        // Offsets are strike pixels from the outline's bounding-box origin, or from the pen origin without an outline.
+        (int XMin, int YMin) origin = _outlineOrigin(glyphId) ?? (0, 0);
+        var image = new OfficeBitmapGlyphImage(png, origin.XMin + originX * scale, origin.YMin + originY * scale, width * scale, height * scale);
+        lock (_cache) {
+            if (_recordImages.TryGetValue(start, out OfficeBitmapGlyphImage? raced)) return raced;
+            if (_cachedBytes + png.Length > MaximumCachedBytes) ClearCaches();
+            _recordImages[start] = image;
+            _cachedBytes += png.Length;
+        }
+        return image;
     }
 
     private byte[]? CopyPng(int start, int length) {
