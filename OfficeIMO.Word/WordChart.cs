@@ -388,42 +388,69 @@ namespace OfficeIMO.Word {
             return title;
         }
 
-        internal void UpdateAxisTitles() {
-            if (_chart != null) {
-                var plot = _chart.PlotArea;
-                if (plot != null) {
-                    var catAxis = plot.GetFirstChild<CategoryAxis>();
-                    if (catAxis != null) {
-                        var existing = catAxis.GetFirstChild<Title>();
-                        existing?.Remove();
-                        if (!string.IsNullOrEmpty(_xAxisTitle)) {
-                            var pos = catAxis.GetFirstChild<AxisPosition>();
-                            var title = AddAxisTitle(_xAxisTitle ?? string.Empty);
-                            if (pos != null) {
-                                catAxis.InsertAfter(title, pos);
-                            } else {
-                                catAxis.InsertAt(title, 0);
-                            }
-                        }
-                    }
+        /// <summary>Applies the axis titles set on this instance without discarding titles it has not set.</summary>
+        /// <param name="restyleExisting">Applies the current axis-title font, size and color to saved titles in place.</param>
+        internal void UpdateAxisTitles(bool restyleExisting = false) {
+            var plot = _chart?.PlotArea;
+            if (plot == null) return;
+            var catAxis = plot.GetFirstChild<CategoryAxis>();
+            if (catAxis != null) UpdateAxisTitle(catAxis, _xAxisTitle, restyleExisting);
+            var valAxis = plot.GetFirstChild<ValueAxis>();
+            if (valAxis != null) UpdateAxisTitle(valAxis, _yAxisTitle, restyleExisting);
+        }
 
-                    var valAxis = plot.GetFirstChild<ValueAxis>();
-                    if (valAxis != null) {
-                        var existing = valAxis.GetFirstChild<Title>();
-                        existing?.Remove();
-                        if (!string.IsNullOrEmpty(_yAxisTitle)) {
-                            OpenXmlElement? refNode = valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement
-                                ?? valAxis.GetFirstChild<AxisPosition>();
-                            var title = AddAxisTitle(_yAxisTitle ?? string.Empty);
-                            if (refNode != null) {
-                                valAxis.InsertAfter(title, refNode);
-                            } else {
-                                valAxis.InsertAt(title, 0);
-                            }
-                        }
-                    }
+        private void UpdateAxisTitle(OpenXmlCompositeElement axis, string? assignedTitle, bool restyleExisting) {
+            var existing = axis.GetFirstChild<Title>();
+            if (assignedTitle == null) {
+                // A title this instance has not assigned belongs to the saved chart: keep its text, paragraphs,
+                // layout and run formatting, and change only the font, size and color when asked to.
+                if (restyleExisting && existing != null) RestyleAxisTitle(existing);
+                return;
+            }
+            existing?.Remove();
+            if (assignedTitle.Length == 0) return;
+            // AddChild places the title in schema order, after any major and minor gridlines.
+            axis.AddChild(AddAxisTitle(assignedTitle));
+        }
+
+        private void RestyleAxisTitle(Title title) {
+            // Rich text carries its own paragraphs. A title that shows a cell reference or its cache is
+            // formatted through c:txPr, which is created when the saved title has none.
+            OpenXmlCompositeElement textBody = (OpenXmlCompositeElement?)title.ChartText?.RichText ?? GetOrCreateTitleTextProperties(title);
+            if (!textBody.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>().Any()) {
+                textBody.AppendChild(new DocumentFormat.OpenXml.Drawing.Paragraph(new DocumentFormat.OpenXml.Drawing.EndParagraphRunProperties()));
+            }
+            foreach (var paragraph in textBody.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>().ToList()) {
+                var paragraphProperties = paragraph.ParagraphProperties ?? paragraph.PrependChild(new DocumentFormat.OpenXml.Drawing.ParagraphProperties());
+                var defaults = paragraphProperties.GetFirstChild<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>()
+                    ?? paragraphProperties.AppendChild(new DocumentFormat.OpenXml.Drawing.DefaultRunProperties());
+                ApplyAxisTitleFormat(defaults);
+                foreach (var run in paragraph.Elements<DocumentFormat.OpenXml.Drawing.Run>()) {
+                    ApplyAxisTitleFormat(run.RunProperties ?? run.PrependChild(new DocumentFormat.OpenXml.Drawing.RunProperties()));
+                }
+                foreach (var field in paragraph.Elements<DocumentFormat.OpenXml.Drawing.Field>()) {
+                    ApplyAxisTitleFormat(field.RunProperties ?? field.PrependChild(new DocumentFormat.OpenXml.Drawing.RunProperties()));
                 }
             }
+        }
+
+        private static TextProperties GetOrCreateTitleTextProperties(Title title) {
+            var properties = title.GetFirstChild<TextProperties>();
+            if (properties != null) return properties;
+            properties = new TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(), new DocumentFormat.OpenXml.Drawing.ListStyle());
+            title.AddChild(properties);
+            return properties;
+        }
+
+        private void ApplyAxisTitleFormat(DocumentFormat.OpenXml.Drawing.TextCharacterPropertiesType properties) {
+            properties.FontSize = _axisTitleFontSize;
+            foreach (var fill in properties.ChildElements.Where(child => child is DocumentFormat.OpenXml.Drawing.SolidFill or
+                DocumentFormat.OpenXml.Drawing.NoFill or DocumentFormat.OpenXml.Drawing.GradientFill or
+                DocumentFormat.OpenXml.Drawing.PatternFill or DocumentFormat.OpenXml.Drawing.BlipFill or
+                DocumentFormat.OpenXml.Drawing.GroupFill).ToList()) fill.Remove();
+            properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()?.Remove();
+            properties.AddChild(CreateChartFill(_axisTitleColor));
+            properties.AddChild(new DocumentFormat.OpenXml.Drawing.LatinFont { Typeface = _axisTitleFontName });
         }
 
         internal Values AddValuesAxisData<T>(List<T> dataList) {

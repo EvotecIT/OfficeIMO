@@ -50,12 +50,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Gets the chart data range when it is known.
+        /// Gets the chart data range when it is known, including the worksheet range a saved chart references.
         /// </summary>
         public ExcelChartDataRange? DataRange {
             get {
-                if (_dataRange != null) GetChartPart();
-                return _dataRange;
+                // Resolving the part also refreshes a range invalidated by a save.
+                ChartPart chartPart = GetChartPart();
+                return _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
             }
         }
 
@@ -148,23 +149,29 @@ namespace OfficeIMO.Excel {
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
         public bool TryGetSnapshot(out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(null, out snapshot);
+            TryGetSnapshotCore(null, out snapshot, out _);
 
         internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot);
+            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot, out _);
 
         /// <summary>Creates a rendering snapshot at the requested chart fidelity.</summary>
         internal bool TryGetSnapshot(OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(null, fidelity, out snapshot);
+            TryGetSnapshotCore(null, fidelity, out snapshot, out _);
 
         /// <summary>Creates a worksheet rendering snapshot at the requested chart fidelity.</summary>
         internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(geometry, fidelity, out snapshot);
+            TryGetSnapshotCore(geometry, fidelity, out snapshot, out _);
 
-        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot);
+        /// <summary>Reads the snapshot at the requested chart fidelity and reports why a chart whose data resolved cannot be projected.</summary>
+        internal bool TryGetSnapshot(OfficeChartFidelity fidelity, out ExcelChartInfo snapshot, out string? unsupportedReason) =>
+            TryGetSnapshotCore(null, fidelity, out snapshot, out unsupportedReason);
 
-        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) {
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot, out string? unsupportedReason) =>
+            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot, out unsupportedReason);
+
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, OfficeChartFidelity fidelity, out ExcelChartInfo snapshot,
+            out string? unsupportedReason) {
+            unsupportedReason = null;
             using var scope = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Enter(fidelity);
             if (!TryGetData(out ExcelChartData data)) {
                 snapshot = null!;
@@ -202,6 +209,7 @@ namespace OfficeIMO.Excel {
             } catch (Exception exception) when (exception is ArgumentException || exception is FormatException ||
                 exception is OverflowException || exception is NotSupportedException) {
                 snapshot = null!;
+                unsupportedReason = exception is NotSupportedException ? exception.Message : exception.GetType().Name + ": " + exception.Message;
                 return false;
             }
         }

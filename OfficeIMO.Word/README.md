@@ -85,6 +85,29 @@ document.Save();
 record Week(string Label, int Planned, int Complete);
 ```
 
+### Chart images
+
+Render each native chart on its own, without the page around it. Scheme colours and series without explicit colours resolve against the document's theme, taking its accents in series order the way Word does:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Load("report.docx");
+int number = 0;
+foreach (WordChart chart in document.Charts) {
+    OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { TargetDpi = 192 });
+    File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
+}
+
+document.Charts[0].SaveAsImage("first.svg", new OfficeChartImageExportOptions {
+    Format = OfficeImageExportFormat.Svg, Width = OfficeLength.Inches(6), Height = OfficeLength.Inches(3.5)
+});
+```
+
+`OfficeChartImageExportOptions` is the same type for Word, Excel and PowerPoint charts. Without `Width` and `Height` the chart keeps its frame size. The result carries the encoded `Bytes`, `Format`, `Width`, `Height` and rendering `Diagnostics`; `SaveAsImage` returns an `OfficeConversionReport`. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason, and `TryGetOfficeSnapshot(out snapshot)` checks first without throwing. Both work for charts in loaded documents as well as charts built in the same session.
+
 ## Headers, footers and images
 
 ```csharp

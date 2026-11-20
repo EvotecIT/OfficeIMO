@@ -585,3 +585,7 @@ OfficeIMO.Excel.ExcelChart.SetAltText(string! description, string? title = null)
 OfficeIMO.Excel.ExcelImage.IsDecorative.get -> bool
 OfficeIMO.Excel.ExcelLoadOptions.AllowPrivateNetworkAddresses.get -> bool
 OfficeIMO.Excel.ExcelLoadOptions.AllowPrivateNetworkAddresses.set -> void
+OfficeIMO.Excel.ExcelChart.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelChart.SaveAsImage(string! path, OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Drawing.OfficeChartImageExportOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
+OfficeIMO.Excel.ExcelChart.TryGetOfficeSnapshot(out OfficeIMO.Drawing.OfficeChartSnapshot! snapshot) -> bool

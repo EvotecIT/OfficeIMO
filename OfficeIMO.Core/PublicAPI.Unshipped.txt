@@ -844,6 +844,12 @@ OfficeIMO.OfficeChartRenderOptions.Fidelity.set -> void
 OfficeIMO.OfficeChartRenderOptions.OfficeChartRenderOptions() -> void
 OfficeIMO.Drawing.OfficeImageExportOptions.ChartRendering.get -> OfficeIMO.OfficeChartRenderOptions!
 OfficeIMO.Drawing.OfficeImageExportOptions.ChartRendering.set -> void
+OfficeIMO.Drawing.OfficeChartImageExportOptions
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Height.set -> void
+OfficeIMO.Drawing.OfficeChartImageExportOptions.OfficeChartImageExportOptions() -> void
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Width.set -> void
 OfficeIMO.Drawing.OfficeChartBlankDisplay
 OfficeIMO.Drawing.OfficeChartBlankDisplay.Gap = 1 -> OfficeIMO.Drawing.OfficeChartBlankDisplay
 OfficeIMO.Drawing.OfficeChartBlankDisplay.Span = 0 -> OfficeIMO.Drawing.OfficeChartBlankDisplay

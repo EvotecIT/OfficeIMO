@@ -71008,7 +71008,7 @@ nesting accepted (the engine default is 256).</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -71520,7 +71520,7 @@ nesting accepted (the engine default is 256).</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -71996,7 +71996,7 @@ nesting accepted (the engine default is 256).</maml:para>
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -72240,7 +72240,7 @@ nesting accepted (the engine default is 256).</maml:para>
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Chart</maml:name>
         <maml:description>
-          <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+          <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -78244,7 +78244,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -78816,7 +78816,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -79412,7 +79412,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -79984,7 +79984,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -80544,7 +80544,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -81104,7 +81104,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>Chart</maml:name>
           <maml:description>
-            <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+            <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -81542,7 +81542,7 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>Chart</maml:name>
         <maml:description>
-          <maml:para>A chart name in the selected Excel sheets; excludes Range and Page.</maml:para>
+          <maml:para>A chart name in the selected Excel sheets, a Word document or PowerPoint slides; excludes Range and Page.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>

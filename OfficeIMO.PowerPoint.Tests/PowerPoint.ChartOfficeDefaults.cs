@@ -129,6 +129,24 @@ public sealed class PowerPointChartOfficeDefaultsTests {
     }
 
     [Fact]
+    public void SingleChartImageHonoursTheChartFidelity() {
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty)
+            .Replace("<c:roundedCorners val=\"0\"/>", "<c:roundedCorners val=\"1\"/>");
+        using MemoryStream stream = CreateDeck(chart);
+        using PowerPointDocument presentation = PowerPointDocument.Load(stream);
+        PowerPointChart native = presentation.Slides[0].Charts.Single();
+
+        Assert.Throws<NotSupportedException>(() => native.ToImage(new OfficeChartImageExportOptions { Format = OfficeImageExportFormat.Svg }));
+        OfficeImageExportResult image = native.ToImage(new OfficeChartImageExportOptions {
+            Format = OfficeImageExportFormat.Svg,
+            ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort }
+        });
+
+        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
+            diagnostic.Message == "The rounded chart frame is drawn with square corners.");
+    }
+
+    [Fact]
     public void UnresolvedWorkbookLinkedAxisFormatIsReported() {
         string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty)
             .Replace("sourceLinked=\"0\"", "sourceLinked=\"1\"").Replace("<c:formatCode>General</c:formatCode>", "<c:formatCode>0.0</c:formatCode>")
