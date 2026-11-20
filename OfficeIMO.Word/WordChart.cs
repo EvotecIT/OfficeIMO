@@ -388,42 +388,43 @@ namespace OfficeIMO.Word {
             return title;
         }
 
-        internal void UpdateAxisTitles() {
-            if (_chart != null) {
-                var plot = _chart.PlotArea;
-                if (plot != null) {
-                    var catAxis = plot.GetFirstChild<CategoryAxis>();
-                    if (catAxis != null) {
-                        var existing = catAxis.GetFirstChild<Title>();
-                        existing?.Remove();
-                        if (!string.IsNullOrEmpty(_xAxisTitle)) {
-                            var pos = catAxis.GetFirstChild<AxisPosition>();
-                            var title = AddAxisTitle(_xAxisTitle ?? string.Empty);
-                            if (pos != null) {
-                                catAxis.InsertAfter(title, pos);
-                            } else {
-                                catAxis.InsertAt(title, 0);
-                            }
-                        }
-                    }
-
-                    var valAxis = plot.GetFirstChild<ValueAxis>();
-                    if (valAxis != null) {
-                        var existing = valAxis.GetFirstChild<Title>();
-                        existing?.Remove();
-                        if (!string.IsNullOrEmpty(_yAxisTitle)) {
-                            OpenXmlElement? refNode = valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement
-                                ?? valAxis.GetFirstChild<AxisPosition>();
-                            var title = AddAxisTitle(_yAxisTitle ?? string.Empty);
-                            if (refNode != null) {
-                                valAxis.InsertAfter(title, refNode);
-                            } else {
-                                valAxis.InsertAt(title, 0);
-                            }
-                        }
-                    }
-                }
+        /// <summary>Applies the axis titles set on this instance without discarding titles it has not set.</summary>
+        /// <param name="reformatExisting">Rebuilds saved literal titles with the current axis-title formatting.</param>
+        internal void UpdateAxisTitles(bool reformatExisting = false) {
+            var plot = _chart?.PlotArea;
+            if (plot == null) return;
+            var catAxis = plot.GetFirstChild<CategoryAxis>();
+            if (catAxis != null) {
+                UpdateAxisTitle(catAxis, _xAxisTitle, reformatExisting, catAxis.GetFirstChild<AxisPosition>());
             }
+            var valAxis = plot.GetFirstChild<ValueAxis>();
+            if (valAxis != null) {
+                UpdateAxisTitle(valAxis, _yAxisTitle, reformatExisting,
+                    valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement ?? valAxis.GetFirstChild<AxisPosition>());
+            }
+        }
+
+        private void UpdateAxisTitle(OpenXmlCompositeElement axis, string? assignedTitle, bool reformatExisting, OpenXmlElement? anchor) {
+            var existing = axis.GetFirstChild<Title>();
+            // A title this instance has not assigned belongs to the saved chart. Keep it, or rebuild
+            // its literal text with the new formatting when axis-title formatting changes.
+            string? text = assignedTitle ?? (reformatExisting ? ReadLiteralTitleText(existing) : null);
+            if (assignedTitle == null && text == null) return;
+            existing?.Remove();
+            if (string.IsNullOrEmpty(text)) return;
+            var title = AddAxisTitle(text!);
+            if (anchor != null) {
+                axis.InsertAfter(title, anchor);
+            } else {
+                axis.InsertAt(title, 0);
+            }
+        }
+
+        private static string? ReadLiteralTitleText(Title? title) {
+            var rich = title?.ChartText?.RichText;
+            if (rich == null) return null;
+            string text = string.Concat(rich.Descendants<DocumentFormat.OpenXml.Drawing.Text>().Select(item => item.Text));
+            return text.Length == 0 ? null : text;
         }
 
         internal Values AddValuesAxisData<T>(List<T> dataList) {

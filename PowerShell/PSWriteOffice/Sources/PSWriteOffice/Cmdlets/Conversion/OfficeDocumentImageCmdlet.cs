@@ -41,7 +41,7 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
     public abstract OfficeSheetSelector[]? Sheet { get; set; }
     /// <summary>A1 range within the selected Excel sheets.</summary>
     public abstract string? Range { get; set; }
-    /// <summary>Chart name within the selected Excel sheets. Cannot be combined with Range.</summary>
+    /// <summary>Chart name within the selected Excel sheets, a Word document or PowerPoint slides. Cannot be combined with Range.</summary>
     public abstract string? Chart { get; set; }
     /// <summary>Target image resolution in dots per inch; omitted values retain native options.</summary>
     [Parameter]
@@ -111,8 +111,10 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
         bool single = ImageOutputPath != null;
         if (single && _sources.Count != 1) throw new PSArgumentException("OutputPath requires exactly one input and one image; use OutputDirectory for a batch.");
         var formats = _sources.Select(source => source.Format).Distinct().ToArray();
-        if ((Sheet != null || Range != null || Chart != null) && formats.Any(format => format != OfficeDocumentFormat.Excel))
-            throw new PSArgumentException("Sheet, Range and Chart require Excel sources.");
+        if ((Sheet != null || Range != null) && formats.Any(format => format != OfficeDocumentFormat.Excel))
+            throw new PSArgumentException("Sheet and Range require Excel sources.");
+        if (Chart != null && formats.Any(format => format is not (OfficeDocumentFormat.Excel or OfficeDocumentFormat.Word or OfficeDocumentFormat.PowerPoint)))
+            throw new PSArgumentException("Chart requires Excel, Word or PowerPoint sources.");
         if (Page != null && formats.Contains(OfficeDocumentFormat.Excel)) throw new PSArgumentException("Use Sheet to select Excel worksheets.");
         bool hasPassword = MyInvocation.BoundParameters.ContainsKey(nameof(Password));
         if (hasPassword && (_sources.Any(source => source.Document != null || source.Text != null)
@@ -186,9 +188,12 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
                 token.ThrowIfCancellationRequested();
                 OfficeImageExportResult image = images[index];
                 if (request.Save) {
+                    string number = (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
                     string suffix = source.Format == OfficeDocumentFormat.Excel && (request.Range != null || request.Chart != null)
-                        ? OfficePortableFileName.SanitizeBaseName((image.Source ?? image.Name ?? (index + 1).ToString()).Replace('!', '-'))
-                        : (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        ? OfficePortableFileName.SanitizeBaseName((image.Source ?? image.Name ?? number).Replace('!', '-'))
+                        : request.Chart != null
+                            ? OfficePortableFileName.SanitizeBaseName(images.Count == 1 ? image.Name ?? number : (image.Name ?? "Chart") + "-" + number)
+                            : number;
                     string path = request.OutputPath ?? System.IO.Path.Combine(request.OutputDirectory!, baseName + "-" + suffix + request.Encoding.GetFileExtension());
                     image = image.Save(path, request.NoClobber ? OfficeImageExportFileConflictPolicy.FailIfExists : OfficeImageExportFileConflictPolicy.Replace);
                 }

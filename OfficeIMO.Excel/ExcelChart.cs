@@ -50,12 +50,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Gets the chart data range when it is known.
+        /// Gets the chart data range when it is known, including the worksheet range a saved chart references.
         /// </summary>
         public ExcelChartDataRange? DataRange {
             get {
-                if (_dataRange != null) GetChartPart();
-                return _dataRange;
+                // Resolving the part also refreshes a range invalidated by a save.
+                ChartPart chartPart = GetChartPart();
+                return _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
             }
         }
 

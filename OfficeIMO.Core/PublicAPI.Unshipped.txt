@@ -832,3 +832,9 @@ const OfficeIMO.OfficeDiagnosticCodes.AccessibilityHiddenSheetContent = "accessi
 const OfficeIMO.OfficeDiagnosticCodes.AccessibilityLayoutTable = "accessibility-layout-table" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.AccessibilityMergedCells = "accessibility-merged-cells" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.AccessibilityMissingHeadings = "accessibility-missing-headings" -> string!
+OfficeIMO.Drawing.OfficeChartImageExportOptions
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Height.set -> void
+OfficeIMO.Drawing.OfficeChartImageExportOptions.OfficeChartImageExportOptions() -> void
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Drawing.OfficeChartImageExportOptions.Width.set -> void

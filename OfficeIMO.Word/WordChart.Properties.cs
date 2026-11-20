@@ -178,16 +178,35 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_chartPart == null) return;
-                var roundedCorners = ChartSpaceRoot.GetFirstChild<RoundedCorners>();
+                var space = ChartSpaceRoot;
+                var roundedCorners = space.GetFirstChild<RoundedCorners>();
                 if (roundedCorners == null) {
-                    roundedCorners = new RoundedCorners() { Val = value };
+                    roundedCorners = new RoundedCorners();
+                    // c:roundedCorners follows c:date1904 and c:lang in the chart-space sequence.
+                    OpenXmlElement? previous = (OpenXmlElement?)space.GetFirstChild<EditingLanguage>() ?? space.GetFirstChild<Date1904>();
+                    if (previous != null) {
+                        space.InsertAfter(roundedCorners, previous);
+                    } else {
+                        space.InsertAt(roundedCorners, 0);
+                    }
                 }
                 roundedCorners.Val = value;
 
             }
         }
 
-        private List<string> Categories { get; set; } = new();
+        private List<string>? _categories;
+
+        /// <summary>Categories used by series added later; a saved chart starts with its first series' categories.</summary>
+        private List<string> Categories {
+            get => _categories ??= ReadSavedCategories();
+            set => _categories = value;
+        }
+
+        private List<string> ReadSavedCategories() {
+            var categories = _chart?.PlotArea?.Descendants<CategoryAxisData>().FirstOrDefault();
+            return categories == null ? new List<string>() : ReadCachedStrings(categories).ToList();
+        }
 
         /// <summary>
         /// Holds the title of the chart until we can add it to the chart
@@ -204,11 +223,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? Title {
             get {
-                if (_chart?.Title != null) {
-                    var text = _chart.Title.Descendants<DocumentFormat.OpenXml.Drawing.Text>().FirstOrDefault();
-                    if (text != null) {
-                        return text.Text;
-                    }
+                string? saved = _chart != null ? ReadTitle(_chart) : null;
+                if (saved != null) {
+                    return saved;
                 }
                 if (!string.IsNullOrEmpty(PrivateTitle)) {
                     return PrivateTitle;
