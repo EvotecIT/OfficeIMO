@@ -114,6 +114,9 @@ internal static partial class PdfWriter {
         }
 
         public LayoutResult Layout(IEnumerable<IPdfBlock> blocks) {
+            // Every text path of this layout, running content included, writes to the current page,
+            // so PNG color glyphs become images of that page. Restored even when layout fails.
+            var previousBitmapGlyphSink = ContentStreamBuilder.ExchangeBitmapGlyphSink(PlaceCurrentPageBitmapGlyph);
             try {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlocks(blocks);
@@ -132,8 +135,13 @@ internal static partial class PdfWriter {
             } catch {
                 if (ownsPageContents) pageContents.Dispose();
                 throw;
+            } finally {
+                ContentStreamBuilder.ExchangeBitmapGlyphSink(previousBitmapGlyphSink);
             }
         }
+
+        private string? PlaceCurrentPageBitmapGlyph(OfficeIMO.Drawing.OfficeBitmapGlyphImage image, double x, double y, double width, double height) =>
+            currentPage == null ? null : PlaceBitmapGlyph(currentPage, image, x, y, width, height);
 
         public void Dispose() {
             if (ownsPageContents && !pageContentsTransferred) pageContents.Dispose();

@@ -274,6 +274,7 @@ internal sealed partial class ContentStreamBuilder {
         T._showEnd = -1;
         InvalidateTextStateCache();
         _sb.Append("ET\n");
+        FlushDeferredGlyphArt();
         if (T._syntheticWeightScope) {
             _sb.Append("Q\n");
             _paintFillColor = T._textEntryFillColor;
@@ -420,6 +421,7 @@ internal sealed partial class ContentStreamBuilder {
         }
 
         SyncTextState();
+        _textRenderingMode = mode;
         _sb.Append(mode.ToString(CultureInfo.InvariantCulture)).Append(" Tr\n");
         OwnWrite();
         return this;
@@ -447,6 +449,9 @@ internal sealed partial class ContentStreamBuilder {
         }
 
         SyncTextState();
+        int renderingMode = _textRenderingMode;
+        bool paintArt = TryQueueColorGlyphArt(command, fontSize, currentTextRise);
+        if (paintArt) TextRenderingMode(3);
         if (!suppressActualText && command.IsScalarBidi && command.LogicalGlyphs is { } scalarGlyphs && command.ActualText is { } scalarText) {
             if (TryWriteScalarBidiGlyphs(scalarGlyphs, scalarText, command, fontSize, currentTextRise)) return this;
         }
@@ -454,6 +459,7 @@ internal sealed partial class ContentStreamBuilder {
             if (command.IsolatedRightToLeft) T._showEnd = -1;
             WriteLogicalGlyphs(logicalGlyphs, command, fontSize, currentTextRise);
             if (command.IsolatedRightToLeft) T._showEnd = -1;
+            if (paintArt) TextRenderingMode(renderingMode);
             return this;
         }
 
@@ -495,6 +501,7 @@ internal sealed partial class ContentStreamBuilder {
             _sb.Append("EMC\n");
             OwnWrite();
         }
+        if (paintArt) TextRenderingMode(renderingMode);
 
         if (command.AdvanceWidth1000.HasValue) {
             double trackingAdvance = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D)

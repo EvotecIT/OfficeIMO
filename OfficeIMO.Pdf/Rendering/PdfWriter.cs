@@ -737,6 +737,20 @@ internal static partial class PdfWriter {
                 AddShadingResources(objects, page.Shadings, shadingColorTransform, graphicsStates, xobjects, shadings, cancellationToken);
             }
 
+            // Simple header and footer text is page content. Build it before this page's images get their
+            // objects, so PNG color glyphs in it become images of this page like those in the layout.
+            string? headerText = null, footerText = null;
+            var previousBitmapGlyphSink = ContentStreamBuilder.ExchangeBitmapGlyphSink(
+                (image, x, y, width, height) => PlaceBitmapGlyph(page, image, x, y, width, height));
+            try {
+                if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber))
+                    headerText = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
+                if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber))
+                    footerText = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
+            } finally {
+                ContentStreamBuilder.ExchangeBitmapGlyphSink(previousBitmapGlyphSink);
+            }
+
             // Content stream (append image draw commands at end)
             AddHeaderFooterImages(
                 page,
@@ -907,9 +921,8 @@ internal static partial class PdfWriter {
             } else {
                 string pageLayoutContent = layout.ReadContent(page.Content);
                 string contentStr = pageBackgroundContent + WrapArtifactContent(headerFooterShapeContent, markInfo, "/Type /Pagination");
-                if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
-                    string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources, pageNamedFontResources);
-                    contentStr += WrapArtifactContent(headerContent, markInfo, "/Type /Pagination /Subtype /Header");
+                if (headerText != null) {
+                    contentStr += WrapArtifactContent(ReplaceInlineImageDrawTokens(headerText, page.Images), markInfo, "/Type /Pagination /Subtype /Header");
                 }
                 string pageContent = ReplaceInlineImageDrawTokens(pageLayoutContent, page.Images);
                 contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
@@ -931,9 +944,8 @@ internal static partial class PdfWriter {
 
                     contentStr += sbImgs.ToString();
                 }
-                if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
-                    string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!, pageFontResources, pageNamedFontResources);
-                    contentStr += WrapArtifactContent(footer, markInfo, "/Type /Pagination /Subtype /Footer");
+                if (footerText != null) {
+                    contentStr += WrapArtifactContent(ReplaceInlineImageDrawTokens(footerText, page.Images), markInfo, "/Type /Pagination /Subtype /Footer");
                 }
                 contentStr += foregroundImages.ToString();
                 if (flattenVisualAnnotations) {

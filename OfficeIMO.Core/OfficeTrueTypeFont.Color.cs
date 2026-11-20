@@ -6,8 +6,21 @@ internal sealed class OfficeColorGlyphContours {
         Color = color;
     }
 
+    /// <summary>A CBDT or sbix PNG glyph placed in output coordinates, y down; it has no contours.</summary>
+    internal OfficeColorGlyphContours(OfficeBitmapGlyphImage bitmap, double left, double top, double width, double height) {
+        Contours = new List<List<OfficePoint>>();
+        Color = OfficeColor.FromRgba(0, 0, 0, 0);
+        Bitmap = bitmap;
+        BitmapLeft = left; BitmapTop = top; BitmapWidth = width; BitmapHeight = height;
+    }
+
     internal List<List<OfficePoint>> Contours { get; }
     internal OfficeColor Color { get; }
+    internal OfficeBitmapGlyphImage? Bitmap { get; }
+    internal double BitmapLeft { get; }
+    internal double BitmapTop { get; }
+    internal double BitmapWidth { get; }
+    internal double BitmapHeight { get; }
 }
 
 public sealed partial class OfficeTrueTypeFont {
@@ -15,6 +28,29 @@ public sealed partial class OfficeTrueTypeFont {
     internal bool HasColorGlyphs => _colorGlyphs != null;
 
     private readonly bool _hasUnreadColorTable;
+
+    /// <summary>Whether the font has CBDT, sbix, SVG or unparsed COLR data.</summary>
+    internal bool HasUnreadColorTable => _hasUnreadColorTable;
+    private readonly OfficeOpenTypeBitmapGlyphs? _bitmapGlyphs;
+
+    /// <summary>Whether this program has CBDT or sbix PNG glyphs.</summary>
+    internal bool HasBitmapGlyphs => _bitmapGlyphs != null;
+
+    /// <summary>Returns the PNG artwork of a CBDT or sbix glyph in font units, or false when it has none.</summary>
+    internal bool TryGetBitmapGlyph(int glyphId, out OfficeBitmapGlyphImage? image) {
+        image = null;
+        return _bitmapGlyphs != null && _bitmapGlyphs.TryGetImage(glyphId, out image);
+    }
+
+    /// <summary>Whether a glyph is painted from COLR layers or a readable PNG rather than its plain outline.</summary>
+    internal bool IsPaintedColorGlyph(int glyphId) =>
+        _colorGlyphs?.HasColorGlyph(glyphId) == true || _bitmapGlyphs?.TryGetImage(glyphId, out _) == true;
+
+    /// <summary>Whether a glyph has a readable CBDT or sbix PNG and no COLR layers.</summary>
+    internal bool IsBitmapColorGlyph(int glyphId) =>
+        _colorGlyphs?.HasColorGlyph(glyphId) != true && _bitmapGlyphs?.TryGetImage(glyphId, out _) == true;
+
+    private bool HasPaintedColorGlyphs => _colorGlyphs != null || _bitmapGlyphs != null;
 
     /// <summary>
     /// Whether a mapped glyph depends on a bitmap, SVG or unreadable color table: its outline is
@@ -29,9 +65,9 @@ public sealed partial class OfficeTrueTypeFont {
         return false;
     }
 
-    /// <summary>Whether a glyph, such as a shaped ligature, has only bitmap, SVG or unreadable color artwork.</summary>
+    /// <summary>Whether a glyph, such as a shaped ligature, has only SVG or unreadable color artwork.</summary>
     internal bool IsUnpaintableColorGlyph(int glyph) =>
-        _hasUnreadColorTable && glyph > 0 && glyph < _numGlyphs && _colorGlyphs?.HasColorGlyph(glyph) != true
+        _hasUnreadColorTable && glyph > 0 && glyph < _numGlyphs && !IsPaintedColorGlyph(glyph)
         && HasEmptyOutline((ushort)glyph);
 
     private bool HasEmptyOutline(ushort glyph) {
@@ -50,7 +86,7 @@ public sealed partial class OfficeTrueTypeFont {
         CancellationToken cancellationToken,
         out List<OfficeColorGlyphContours> paintedLayers) {
         paintedLayers = new List<OfficeColorGlyphContours>();
-        if (_colorGlyphs == null || string.IsNullOrEmpty(text)) return false;
+        if (!HasPaintedColorGlyphs || string.IsNullOrEmpty(text)) return false;
 
         var glyphs = new List<(ushort Glyph, int Scalar)>();
         var indexes = new List<int>();
@@ -64,7 +100,7 @@ public sealed partial class OfficeTrueTypeFont {
                 glyphs.Add((checked((ushort)glyph), scalar));
             }
         }
-        if (glyphs.Count == 0 || !glyphs.Exists(item => _colorGlyphs.HasColorGlyph(item.Glyph))) return false;
+        if (glyphs.Count == 0 || !glyphs.Exists(item => IsPaintedColorGlyph(item.Glyph))) return false;
 
         var glyphIds = new List<int>(glyphs.Count);
         var scalars = new List<int>(glyphs.Count);
@@ -103,9 +139,9 @@ public sealed partial class OfficeTrueTypeFont {
         CancellationToken cancellationToken,
         out List<OfficeColorGlyphContours> paintedLayers) {
         paintedLayers = new List<OfficeColorGlyphContours>();
-        if (_colorGlyphs == null) return false;
+        if (!HasPaintedColorGlyphs) return false;
         ShapedTextRun run = CreateShapedTextRun(text, shapingResult, cancellationToken: cancellationToken);
-        if (!Array.Exists(run._glyphs, glyph => _colorGlyphs.HasColorGlyph(glyph.GlyphId))) return false;
+        if (!Array.Exists(run._glyphs, glyph => IsPaintedColorGlyph(glyph.GlyphId))) return false;
         return TryGetPositionedColorContours(run._glyphs, run.Direction, x, y, fontSize, palette, foreground, maximumPointCount, cancellationToken, out paintedLayers);
     }
 
@@ -122,7 +158,7 @@ public sealed partial class OfficeTrueTypeFont {
         out List<OfficeColorGlyphContours> paintedLayers,
         bool[]? synthesizedSpaces = null) {
         paintedLayers = new List<OfficeColorGlyphContours>();
-        if (_colorGlyphs == null || glyphs.Length == 0) return false;
+        if (!HasPaintedColorGlyphs || glyphs.Length == 0) return false;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPointCount);
 
         double scale = ScaleFor(fontSize);
@@ -138,8 +174,10 @@ public sealed partial class OfficeTrueTypeFont {
                 IReadOnlyList<OfficeColorGlyphLayer> layers;
                 if (OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index)) {
                     layers = Array.Empty<OfficeColorGlyphLayer>();
-                } else if (!_colorGlyphs.TryGetLayers(glyph.GlyphId, palette, foreground, out layers)) {
-                    layers = new[] { new OfficeColorGlyphLayer(glyph.GlyphId, foreground) };
+                } else if (!TryGetColorLayers(glyph.GlyphId, palette, foreground, out layers)) {
+                    layers = AddBitmapGlyph(paintedLayers, glyph.GlyphId, scale, glyphX, glyphBaseline)
+                        ? Array.Empty<OfficeColorGlyphLayer>()
+                        : new[] { new OfficeColorGlyphLayer(glyph.GlyphId, foreground) };
                 }
                 foreach (OfficeColorGlyphLayer layer in layers) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -179,8 +217,10 @@ public sealed partial class OfficeTrueTypeFont {
             IReadOnlyList<OfficeColorGlyphLayer> layers;
             if (OfficeMissingSpaceMetrics.IsSynthesized(synthesizedSpaces, index)) {
                 layers = Array.Empty<OfficeColorGlyphLayer>();
-            } else if (!_colorGlyphs.TryGetLayers(glyph.GlyphId, palette, foreground, out layers)) {
-                layers = new[] { new OfficeColorGlyphLayer(glyph.GlyphId, foreground) };
+            } else if (!TryGetColorLayers(glyph.GlyphId, palette, foreground, out layers)) {
+                layers = AddBitmapGlyph(paintedLayers, glyph.GlyphId, scale, glyphX, glyphBaseline)
+                    ? Array.Empty<OfficeColorGlyphLayer>()
+                    : new[] { new OfficeColorGlyphLayer(glyph.GlyphId, foreground) };
             }
             foreach (OfficeColorGlyphLayer layer in layers) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -198,6 +238,54 @@ public sealed partial class OfficeTrueTypeFont {
             if (!negativeDirection) cursor += glyph.AdvanceWidth * scale + (glyph.TrackingBoundary ? tracking : 0D);
         }
         return paintedLayers.Count > 0;
+    }
+
+    /// <summary>
+    /// Returns a glyph's color layers as outlines in font units, y up, with the glyph origin at 0,0.
+    /// Layers that use the text color are flagged so a consumer can substitute its own fill.
+    /// </summary>
+    internal bool TryGetGlyphColorLayers(int glyphId, OfficeColor foreground, int maximumPointCount,
+        CancellationToken cancellationToken, out List<(List<List<OfficePoint>> Contours, OfficeColor Color, bool Foreground)> layers) {
+        layers = new List<(List<List<OfficePoint>> Contours, OfficeColor Color, bool Foreground)>();
+        if (_colorGlyphs == null || glyphId <= 0 || glyphId >= _numGlyphs
+            || !_colorGlyphs.TryGetLayers(glyphId, null, foreground, out IReadOnlyList<OfficeColorGlyphLayer> resolved)) return false;
+        int pointCount = 0;
+        OfficeTrueTypeVariations.WorkBudget? variationBudget = _variations?.CreateWorkBudget();
+        foreach (OfficeColorGlyphLayer layer in resolved) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (layer.Color.A == 0) continue;
+            var placement = new FontTransform(1D, 0D, 0D, 1D, 0D, 0D);
+            if (layer.Transform is LayerTransform transform)
+                placement = placement.Compose(transform.Xx, transform.Xy, transform.Yx, transform.Yy, transform.Dx, transform.Dy);
+            List<List<OfficePoint>> contours = ReadGlyphContours(checked((ushort)layer.GlyphId), placement, 0, variationBudget,
+                maximumPointCount, ref pointCount, cancellationToken, attachmentPoints: null);
+            if (contours.Count > 0) layers.Add((contours, layer.Color, layer.IsForeground));
+        }
+        return layers.Count > 0;
+    }
+
+    /// <summary>Returns a glyph's plain outline in font units, y up, with the glyph origin at 0,0.</summary>
+    internal bool TryGetGlyphOutline(int glyphId, int maximumPointCount, CancellationToken cancellationToken,
+        out List<List<OfficePoint>> contours) {
+        contours = new List<List<OfficePoint>>();
+        if (glyphId <= 0 || glyphId >= _numGlyphs) return false;
+        int pointCount = 0;
+        contours = ReadGlyphContours(checked((ushort)glyphId), new FontTransform(1D, 0D, 0D, 1D, 0D, 0D), 0,
+            _variations?.CreateWorkBudget(), maximumPointCount, ref pointCount, cancellationToken, attachmentPoints: null);
+        return contours.Count > 0;
+    }
+
+    private bool TryGetColorLayers(int glyphId, string? palette, OfficeColor foreground, out IReadOnlyList<OfficeColorGlyphLayer> layers) {
+        layers = Array.Empty<OfficeColorGlyphLayer>();
+        return _colorGlyphs != null && _colorGlyphs.TryGetLayers(glyphId, palette, foreground, out layers);
+    }
+
+    // Output coordinates are y down with the baseline at glyphBaseline; the PNG box is in font units, y up.
+    private bool AddBitmapGlyph(List<OfficeColorGlyphContours> paintedLayers, int glyphId, double scale, double glyphX, double glyphBaseline) {
+        if (!TryGetBitmapGlyph(glyphId, out OfficeBitmapGlyphImage? image) || image == null) return false;
+        paintedLayers.Add(new OfficeColorGlyphContours(image, glyphX + image.Left * scale,
+            glyphBaseline - (image.Bottom + image.Height) * scale, image.Width * scale, image.Height * scale));
+        return true;
     }
 
     private static FontTransform LayerPlacement(OfficeColorGlyphLayer layer, double scale, double glyphX, double glyphBaseline) {

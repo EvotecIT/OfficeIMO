@@ -773,6 +773,19 @@ internal static partial class PdfWriter {
         textMarkedContentOpen = true;
     }
 
+    // A PNG color glyph becomes a decorative page image; its text stays in the invisible, extractable run.
+    private static string? PlaceBitmapGlyph(LayoutResult.Page page, OfficeBitmapGlyphImage image, double x, double y, double width, double height) {
+        OfficeImageInfo info = OfficeImageReader.Identify(image.Png);
+        if (info.Format != OfficeImageFormat.Png || info.Width <= 0 || info.Height <= 0 || width <= 0D || height <= 0D) return null;
+        var pageImage = new PageImage {
+            Data = image.Png, Info = info, X = x, Y = y, W = width, H = height,
+            IsInlineDecoration = true, Interpolate = true
+        };
+        page.Images.Add(pageImage);
+        pageImage.InlineDrawToken = AllocateInlineImageDrawToken(page);
+        return pageImage.InlineDrawToken;
+    }
+
     private static ContentStreamBuilder BeginRichTextObject(StringBuilder sb, double leading, double wordSpacing, string fontRes,
         double fontSize, bool syntheticOblique, bool syntheticBold, global::OfficeIMO.OfficeColor? color, double textRise) {
         ContentStreamBuilder content = new ContentStreamBuilder(sb)
