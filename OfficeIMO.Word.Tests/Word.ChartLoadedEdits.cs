@@ -12,16 +12,35 @@ public sealed class WordChartLoadedEditTests {
             var chart = CreateBarChart(document);
             chart.SetXAxisTitle("Quarter");
             chart.SetYAxisTitle("Revenue");
+            var plot = chart.ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single();
+            plot.GetFirstChild<C.CategoryAxis>()!.AddChild(new C.MajorGridlines(), true);
+            plot.GetFirstChild<C.ValueAxis>()!.AddChild(new C.MinorGridlines(), true);
+            var savedTitle = plot.GetFirstChild<C.ValueAxis>()!.GetFirstChild<C.Title>()!;
+            var rich = savedTitle.ChartText!.RichText!;
+            var run = rich.Descendants<A.Run>().Single();
+            (run.RunProperties ?? run.PrependChild(new A.RunProperties())).Bold = true;
+            rich.Append(new A.Paragraph(new A.Run(new A.Text("(EUR)"))));
         });
         WordChart chart = Assert.Single(reloaded.Charts);
 
         chart.SetXAxisTitle("Period");
-        Assert.Equal(("Period", "Revenue"), ReadAxisTitles(chart));
+        Assert.Equal(("Period", "Revenue(EUR)"), ReadAxisTitles(chart));
+        var categoryAxis = chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single();
+        Assert.True(categoryAxis.ChildElements.ToList().IndexOf(categoryAxis.GetFirstChild<C.Title>()!) >
+            categoryAxis.ChildElements.ToList().IndexOf(categoryAxis.GetFirstChild<C.MajorGridlines>()!));
 
         chart.SetAxisTitleFormat("Arial", OfficeLength.Points(14), OfficeColor.Parse("#C0392B"));
-        Assert.Equal(("Period", "Revenue"), ReadAxisTitles(chart));
-        var valueTitle = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single().GetFirstChild<C.Title>()!;
-        Assert.Equal("Arial", valueTitle.Descendants<A.LatinFont>().Single().Typeface!.Value);
+        Assert.Equal(("Period", "Revenue(EUR)"), ReadAxisTitles(chart));
+        var valueTitle = chart.ChartPart.ChartSpace.Descendants<C.ValueAxis>().Single().GetFirstChild<C.Title>()!;
+        Assert.Equal(2, valueTitle.ChartText!.RichText!.Elements<A.Paragraph>().Count());
+        var runs = valueTitle.Descendants<A.Run>().ToList();
+        Assert.True(runs[0].RunProperties!.Bold!.Value);
+        Assert.All(runs, item => {
+            Assert.Equal("Arial", item.RunProperties!.GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+            Assert.Equal(1400, item.RunProperties.FontSize!.Value);
+            Assert.Equal("C0392B", item.RunProperties.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+        });
+        Assert.Empty(reloaded.ValidateDocument());
     }
 
     [Fact]

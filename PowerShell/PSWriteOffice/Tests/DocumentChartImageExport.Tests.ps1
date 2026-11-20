@@ -29,6 +29,25 @@ Describe 'Word and PowerPoint chart image export' {
         [System.IO.Path]::GetFileName($result.SavedPath) | Should -Be 'report-Revenue chart.png'
     }
 
+    It 'keeps a numbered file for each Word chart that shares a long name' {
+        $path = Join-Path $TestDrive 'long.docx'
+        $name = 'Revenue ' + ('x' * 130)
+        $document = [OfficeIMO.Word.WordDocument]::Create($path)
+        try {
+            foreach ($index in 1..2) {
+                $chart = $document.AddChart([OfficeIMO.OfficeChartType]::ColumnClustered, (New-ChartData))
+                $chart.Name = $name
+            }
+            $document.Save()
+        } finally { $document.Dispose() }
+
+        $results = @(Export-OfficeDocumentImage -Path $path -Chart $name -OutputDirectory (Join-Path $TestDrive 'long'))
+
+        $results.Count | Should -Be 2
+        @($results.SavedPath | Select-Object -Unique).Count | Should -Be 2
+        [System.IO.Path]::GetFileNameWithoutExtension($results[1].SavedPath) | Should -BeLike '*-2'
+    }
+
     It 'returns a named PowerPoint chart as an SVG image and rejects an unknown chart name' {
         $path = Join-Path $TestDrive 'deck.pptx'
         $deck = [OfficeIMO.PowerPoint.PowerPointDocument]::Create($path, $null)

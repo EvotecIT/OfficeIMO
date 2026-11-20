@@ -63,6 +63,36 @@ public sealed class WordChartImageExportTests {
     }
 
     [Fact]
+    public void SvgTextAsPathsOutlinesChartTextWithTheSuppliedFont() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" },
+            new[] { new OfficeSeries("Value", new[] { 1D }) }), new OfficeChartOptions { Title = "AB" });
+        string Render(bool paths) {
+            var options = new OfficeChartImageExportOptions { Format = OfficeImageExportFormat.Svg, SvgTextAsPaths = paths };
+            byte[] font = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont('A', 'B');
+            options.Fonts.Add("Aptos", font).Add("Aptos", font, OfficeFontStyle.Bold);
+            return Encoding.UTF8.GetString(chart.ToImage(options).Bytes);
+        }
+        static bool HasTitleText(string svg) => System.Xml.Linq.XElement.Parse(svg).Descendants()
+            .Any(element => element.Name.LocalName == "text" && element.Value == "AB");
+
+        Assert.True(HasTitleText(Render(paths: false)));
+        Assert.False(HasTitleText(Render(paths: true)));
+    }
+
+    [Fact]
+    public void FlattenedThreeDimensionalChartReportsTheApproximation() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart("Volume");
+        chart.AddCategories(new List<string> { "a", "b" });
+        chart.AddBar3D("Series", new List<int> { 1, 2 }, OfficeColor.Parse("#4472C4"));
+
+        OfficeImageExportResult image = chart.ToImage();
+        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartFlattened &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
     public void UnsupportedChartReportsWhyItCannotBeRendered() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" },

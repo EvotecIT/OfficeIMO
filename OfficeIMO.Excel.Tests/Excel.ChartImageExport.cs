@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
@@ -32,6 +33,24 @@ public sealed class ExcelChartImageExportTests {
         });
         Assert.Equal(OfficeImageExportFormat.Svg, svg.Format);
         Assert.Equal((384, 240), (svg.Width, svg.Height));
+    }
+
+    [Fact]
+    public void UnsupportedProjectionReportsItsReason() {
+        using var book = ExcelDocument.Create();
+        var sheet = book.AddSheet("Results");
+        var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeSeries("Count", new[] { 100D }),
+            new OfficeSeries("Ratio", new[] { 1D }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
+        sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right)
+            .Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+
+        var error = Assert.Throws<NotSupportedException>(() => chart.ToImage(new OfficeChartImageExportOptions()));
+        Assert.Contains("secondary numeric axis", error.Message);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]

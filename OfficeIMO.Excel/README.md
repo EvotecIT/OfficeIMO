@@ -282,9 +282,10 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 
 using var book = ExcelDocument.Load("Orders.xlsx");
+int number = 0;
 foreach (ExcelChart chart in book.Sheets.SelectMany(sheet => sheet.Charts)) {
     OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { Scale = 2 });
-    File.WriteAllBytes(chart.Name + ".png", png.Bytes);
+    File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
     foreach (OfficeImageExportDiagnostic diagnostic in png.Diagnostics) Console.WriteLine(diagnostic.Message);
 }
 ```

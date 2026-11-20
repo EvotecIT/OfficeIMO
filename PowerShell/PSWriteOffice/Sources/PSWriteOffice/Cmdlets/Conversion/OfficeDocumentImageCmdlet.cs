@@ -192,7 +192,9 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
                     string suffix = source.Format == OfficeDocumentFormat.Excel && (request.Range != null || request.Chart != null)
                         ? OfficePortableFileName.SanitizeBaseName((image.Source ?? image.Name ?? number).Replace('!', '-'))
                         : request.Chart != null
-                            ? OfficePortableFileName.SanitizeBaseName(images.Count == 1 ? image.Name ?? number : (image.Name ?? "Chart") + "-" + number)
+                            ? images.Count == 1
+                                ? OfficePortableFileName.SanitizeBaseName(image.Name ?? number)
+                                : OfficePortableFileName.SanitizeBaseName(image.Name ?? "Chart", 119 - number.Length) + "-" + number
                             : number;
                     string path = request.OutputPath ?? System.IO.Path.Combine(request.OutputDirectory!, baseName + "-" + suffix + request.Encoding.GetFileExtension());
                     image = image.Save(path, request.NoClobber ? OfficeImageExportFileConflictPolicy.FailIfExists : OfficeImageExportFileConflictPolicy.Replace);

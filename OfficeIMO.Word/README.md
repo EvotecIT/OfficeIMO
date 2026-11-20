@@ -95,9 +95,10 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 
 using var document = WordDocument.Load("report.docx");
+int number = 0;
 foreach (WordChart chart in document.Charts) {
     OfficeImageExportResult png = chart.ToImage(new OfficeChartImageExportOptions { TargetDpi = 192 });
-    File.WriteAllBytes((chart.Name ?? "chart") + ".png", png.Bytes);
+    File.WriteAllBytes($"chart-{++number}.png", png.Bytes);
 }
 
 document.Charts[0].SaveAsImage("first.svg", new OfficeChartImageExportOptions {

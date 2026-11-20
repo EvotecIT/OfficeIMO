@@ -82,7 +82,10 @@ namespace OfficeIMO.Excel {
 
         private OfficeChartSnapshot CreateRenderSnapshot(double? width, double? height,
             List<OfficeImageExportDiagnostic> diagnostics, out ExcelChartInfo info) {
-            if (!TryGetSnapshot(out info)) {
+            if (!TryGetSnapshot(out info, out string? unsupportedReason)) {
+                if (unsupportedReason != null) {
+                    throw new NotSupportedException(OfficeChartImageExporter.UnsupportedChartMessage + unsupportedReason);
+                }
                 throw new InvalidOperationException(
                     "The chart data could not be resolved into a renderable snapshot.");
             }

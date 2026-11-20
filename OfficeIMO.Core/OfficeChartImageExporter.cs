@@ -70,6 +70,7 @@ internal static class OfficeChartImageExporter {
 
         if (format == OfficeImageExportFormat.Svg) {
             var svgDrawing = new OfficeDrawing(drawing.Width, drawing.Height);
+            svgDrawing.SvgTextAsPaths = options.SvgTextAsPaths;
             OfficeShape background = OfficeShape.Rectangle(drawing.Width, drawing.Height);
             background.FillColor = options.BackgroundColor;
             background.StrokeWidth = 0D;

@@ -13,13 +13,14 @@ public partial class WordChart {
     /// <param name="snapshot">The cached chart data and supported presentation metadata.</param>
     /// <returns>True when a complete supported chart projection can be produced.</returns>
     public bool TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot) =>
-        TryGetOfficeSnapshot(null, null, out snapshot, out _);
+        TryGetOfficeSnapshot(null, null, out snapshot, out _, out _);
 
-    /// <summary>Reads the chart at an optional logical extent (point units by default) and reports why an unsupported chart cannot be projected.</summary>
+    /// <summary>Reads the chart at an optional logical extent (point units by default) and reports why an unsupported chart cannot be projected, or which approximation (such as a three-dimensional chart drawn flat) a supported one uses.</summary>
     internal bool TryGetOfficeSnapshot(double? width, double? height, out OfficeChartSnapshot snapshot,
-        out string? failureReason) {
+        out string? failureReason, out string? projectionNotice) {
         snapshot = null!;
         failureReason = null;
+        projectionNotice = null;
         try {
             var chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;
             if (_chartPart == null || chart == null) return Fail("The chart part is missing or has no chart.", out failureReason);
@@ -42,6 +43,7 @@ public partial class WordChart {
                 snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title, legacyKind,
                     new OfficeChartData(legacy.Data.Categories, legacy.Data.Series.Select(series => series.ToOfficeSeries()).ToArray()),
                     global::OfficeIMO.OfficeLength.Points(width ?? legacy.WidthPoints), global::OfficeIMO.OfficeLength.Points(height ?? legacy.HeightPoints), style: null, layout: null, radialLayout: legacy.RadialLayout);
+                projectionNotice = "The three-dimensional " + groups[0].LocalName.Replace("3DChart", string.Empty) + " chart is drawn as a flat two-dimensional chart.";
                 return true;
             }
             var scheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;

@@ -172,8 +172,9 @@ Console.WriteLine($"{pdf.ItemsWritten} slides, loss: {pdf.HasLoss}");
 
 File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage().Bytes);
 
+int number = 0;
 foreach (PowerPointChart chart in deck.Slides.SelectMany(slide => slide.Charts)) {
-    chart.SaveAsImage(chart.Name + ".svg", new OfficeIMO.Drawing.OfficeChartImageExportOptions {
+    chart.SaveAsImage($"Regions-chart-{++number}.svg", new OfficeIMO.Drawing.OfficeChartImageExportOptions {
         Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg });
 }
 ```

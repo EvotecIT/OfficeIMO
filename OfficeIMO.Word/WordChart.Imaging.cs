@@ -35,10 +35,18 @@ public partial class WordChart {
 
     private OfficeChartImageSource CreateImageSource() {
         string name = Name is { Length: > 0 } drawingName ? drawingName : "Chart";
-        return new OfficeChartImageSource("Word", name, "Word chart '" + name + "'",
+        string source = "Word chart '" + name + "'";
+        return new OfficeChartImageSource("Word", name, source,
             OfficeLength.Points(GetWidthPoints()), OfficeLength.Points(GetHeightPoints()),
-            (width, height, _) => TryGetOfficeSnapshot(width, height, out OfficeChartSnapshot snapshot, out string? reason)
-                ? snapshot
-                : throw new NotSupportedException(OfficeChartImageExporter.UnsupportedChartMessage + (reason ?? "the chart could not be projected.")));
+            (width, height, diagnostics) => {
+                if (!TryGetOfficeSnapshot(width, height, out OfficeChartSnapshot snapshot, out string? reason, out string? projectionNotice)) {
+                    throw new NotSupportedException(OfficeChartImageExporter.UnsupportedChartMessage + (reason ?? "the chart could not be projected."));
+                }
+                if (projectionNotice != null) {
+                    diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                        OfficeDiagnosticCodes.ChartFlattened, projectionNotice, source, OfficeConversionLossKind.Approximation));
+                }
+                return snapshot;
+            });
     }
 }

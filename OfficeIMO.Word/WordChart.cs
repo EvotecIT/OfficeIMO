@@ -389,42 +389,54 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>Applies the axis titles set on this instance without discarding titles it has not set.</summary>
-        /// <param name="reformatExisting">Rebuilds saved literal titles with the current axis-title formatting.</param>
-        internal void UpdateAxisTitles(bool reformatExisting = false) {
+        /// <param name="restyleExisting">Applies the current axis-title font, size and color to saved titles in place.</param>
+        internal void UpdateAxisTitles(bool restyleExisting = false) {
             var plot = _chart?.PlotArea;
             if (plot == null) return;
             var catAxis = plot.GetFirstChild<CategoryAxis>();
-            if (catAxis != null) {
-                UpdateAxisTitle(catAxis, _xAxisTitle, reformatExisting, catAxis.GetFirstChild<AxisPosition>());
-            }
+            if (catAxis != null) UpdateAxisTitle(catAxis, _xAxisTitle, restyleExisting);
             var valAxis = plot.GetFirstChild<ValueAxis>();
-            if (valAxis != null) {
-                UpdateAxisTitle(valAxis, _yAxisTitle, reformatExisting,
-                    valAxis.GetFirstChild<MajorGridlines>() as OpenXmlElement ?? valAxis.GetFirstChild<AxisPosition>());
-            }
+            if (valAxis != null) UpdateAxisTitle(valAxis, _yAxisTitle, restyleExisting);
         }
 
-        private void UpdateAxisTitle(OpenXmlCompositeElement axis, string? assignedTitle, bool reformatExisting, OpenXmlElement? anchor) {
+        private void UpdateAxisTitle(OpenXmlCompositeElement axis, string? assignedTitle, bool restyleExisting) {
             var existing = axis.GetFirstChild<Title>();
-            // A title this instance has not assigned belongs to the saved chart. Keep it, or rebuild
-            // its literal text with the new formatting when axis-title formatting changes.
-            string? text = assignedTitle ?? (reformatExisting ? ReadLiteralTitleText(existing) : null);
-            if (assignedTitle == null && text == null) return;
+            if (assignedTitle == null) {
+                // A title this instance has not assigned belongs to the saved chart: keep its text, paragraphs,
+                // layout and run formatting, and change only the font, size and color when asked to.
+                if (restyleExisting && existing != null) RestyleAxisTitle(existing);
+                return;
+            }
             existing?.Remove();
-            if (string.IsNullOrEmpty(text)) return;
-            var title = AddAxisTitle(text!);
-            if (anchor != null) {
-                axis.InsertAfter(title, anchor);
-            } else {
-                axis.InsertAt(title, 0);
+            if (assignedTitle.Length == 0) return;
+            // AddChild places the title in schema order, after any major and minor gridlines.
+            axis.AddChild(AddAxisTitle(assignedTitle));
+        }
+
+        private void RestyleAxisTitle(Title title) {
+            var paragraphs = title.ChartText?.RichText?.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>()
+                ?? title.GetFirstChild<TextProperties>()?.Elements<DocumentFormat.OpenXml.Drawing.Paragraph>()
+                ?? Enumerable.Empty<DocumentFormat.OpenXml.Drawing.Paragraph>();
+            foreach (var paragraph in paragraphs.ToList()) {
+                var paragraphProperties = paragraph.ParagraphProperties ?? paragraph.PrependChild(new DocumentFormat.OpenXml.Drawing.ParagraphProperties());
+                var defaults = paragraphProperties.GetFirstChild<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>()
+                    ?? paragraphProperties.AppendChild(new DocumentFormat.OpenXml.Drawing.DefaultRunProperties());
+                ApplyAxisTitleFormat(defaults);
+                foreach (var run in paragraph.Elements<DocumentFormat.OpenXml.Drawing.Run>()) {
+                    ApplyAxisTitleFormat(run.RunProperties ?? run.PrependChild(new DocumentFormat.OpenXml.Drawing.RunProperties()));
+                }
             }
         }
 
-        private static string? ReadLiteralTitleText(Title? title) {
-            var rich = title?.ChartText?.RichText;
-            if (rich == null) return null;
-            string text = string.Concat(rich.Descendants<DocumentFormat.OpenXml.Drawing.Text>().Select(item => item.Text));
-            return text.Length == 0 ? null : text;
+        private void ApplyAxisTitleFormat(DocumentFormat.OpenXml.Drawing.TextCharacterPropertiesType properties) {
+            properties.FontSize = _axisTitleFontSize;
+            foreach (var fill in properties.ChildElements.Where(child => child is DocumentFormat.OpenXml.Drawing.SolidFill or
+                DocumentFormat.OpenXml.Drawing.NoFill or DocumentFormat.OpenXml.Drawing.GradientFill or
+                DocumentFormat.OpenXml.Drawing.PatternFill or DocumentFormat.OpenXml.Drawing.BlipFill or
+                DocumentFormat.OpenXml.Drawing.GroupFill).ToList()) fill.Remove();
+            properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()?.Remove();
+            properties.AddChild(CreateChartFill(_axisTitleColor));
+            properties.AddChild(new DocumentFormat.OpenXml.Drawing.LatinFont { Typeface = _axisTitleFontName });
         }
 
         internal Values AddValuesAxisData<T>(List<T> dataList) {
