@@ -189,9 +189,9 @@ public static partial class OfficeChartDrawingRenderer {
         return GetLegendBandHeight(legendIndexes.Select(index => categories[index]), chartWidth, layout);
     }
 
-    // An automatic band shows up to two rows; a placed band shows as many as its height holds.
+    // A placed band (one with a height) is drawn where its manual layout puts it, even over the plot.
     private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered, double? placedHeight = null) {
-        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+        if ((placedHeight.HasValue ? !layout.ShowLegend : !ShouldRenderLegendBand(layout)) || width < 48D) {
             return;
         }
 
@@ -211,8 +211,12 @@ public static partial class OfficeChartDrawingRenderer {
             legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList(),
             legendIndexes.Select(index => series[index].SeriesStyle).ToList(),
             legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList(),
-            placedHeight is double height ? Math.Max(1, (int)Math.Floor((height - 4D) / layout.LegendRowHeight)) : 2);
+            GetLegendBandRows(placedHeight, layout));
     }
+
+    // An automatic band shows up to two rows; a placed band shows as many as its height holds.
+    private static int GetLegendBandRows(double? placedHeight, OfficeChartLayout layout) =>
+        placedHeight is double height ? Math.Max(1, (int)Math.Floor((height - 4D) / layout.LegendRowHeight)) : 2;
 
     // Line series are keyed by a short stroke rather than a filled square, as in Office.
     private static bool UsesLineLegendSwatch(OfficeSeries series, OfficeChartType chartKind) {
@@ -242,8 +246,8 @@ public static partial class OfficeChartDrawingRenderer {
         return indexes;
     }
 
-    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null) {
-        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, double? placedHeight = null) {
+        if ((placedHeight.HasValue ? !layout.ShowLegend : !ShouldRenderLegendBand(layout)) || width < 48D) {
             return;
         }
 
@@ -261,7 +265,8 @@ public static partial class OfficeChartDrawingRenderer {
             style,
             layout,
             legendIndexes.Select(index => (OfficeColor?)GetPointColor(style, pointColors, index)).ToList(),
-            pointStyles == null ? null : legendIndexes.Select(index => GetPointStyle(pointStyles, index)).ToList());
+            pointStyles == null ? null : legendIndexes.Select(index => GetPointStyle(pointStyles, index)).ToList(),
+            maximumRows: GetLegendBandRows(placedHeight, layout));
     }
 
     private static List<int> GetCategoryLegendIndexes(IReadOnlyList<string> categories, OfficeChartLayout layout) {

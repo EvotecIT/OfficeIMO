@@ -433,6 +433,17 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.InRange(legendText.Y, 15D, 60D);
     }
 
+    [Fact]
+    public void PlacedBandLegendIsDrawnWhenItOverlaysThePlot() {
+        var legend = new OfficeChartManualLayout(0.3D, 0.8D, 0.4D, 0.1D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeChartLayout layout = new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom, overlayLegend: true)
+            .WithManualLayouts(null, null, legend);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, layout, Series(new double[] { 1, 2, 3, 4, 5 }));
+
+        OfficeDrawingText legendText = Text(drawing, "Sales");
+        Assert.InRange(legendText.Y, 230D, 275D);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

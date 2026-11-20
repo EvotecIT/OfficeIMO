@@ -24,7 +24,7 @@ public static partial class OfficeChartDrawingRenderer {
         PlacedLegend placed = ResolvePlacedLegend(legendLayout, layout, width, height, contentTop, topLegendHeight,
             bottomLegendHeight, legendWidth, plotTop, plotHeight);
         if (placed.Band) {
-            AddCategoryLegendBand(drawing, categories, placed.Left, placed.Top, placed.Width, style, layout, pointColors, pointStyles);
+            AddCategoryLegendBand(drawing, categories, placed.Left, placed.Top, placed.Width, style, layout, pointColors, pointStyles, placed.Height);
         } else {
             AddCategoryLegend(drawing, categories, placed.Left, placed.Top, placed.Width, placed.Height, style, layout, pointColors, pointStyles);
         }
