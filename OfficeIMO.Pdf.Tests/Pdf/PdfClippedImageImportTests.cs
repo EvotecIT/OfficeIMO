@@ -40,6 +40,32 @@ public sealed class PdfClippedImageImportTests {
         AssertEveryTargetCarriesOneImage(logical, ImageSize, ImageSize, Red, Blue);
     }
 
+    // An image matrix with shear covers a parallelogram. A 40 pt square sheared right by half its height
+    // spans a 60 x 40 pt box but paints 1600 pt², half red and half blue; a clip keeps its share.
+    [Theory]
+    [InlineData("40 0 20 40 30 30", null, 1600, 60, 40)]          // sheared
+    [InlineData("40 0 20 40 30 30", "0 0 160 50", 800, 50, 20)]   // sheared, clipped to the lower half
+    [InlineData("0 40 -40 0 100 30", null, 1600, 40, 40)]         // rotated a quarter turn
+    public void RenderedImageCoversItsTransformedParallelogram(string matrix, string? clip, int area, int width, int height) {
+        OfficeRasterImage page = OfficeRasterImageDecoder.Decode(PdfPageImageRenderer.RenderPageAsPng(CreateSplitImagePdf(clip, matrix), 1, 1D));
+
+        int red = 0, blue = 0, left = int.MaxValue, right = -1, top = int.MaxValue, bottom = -1;
+        for (int y = 0; y < page.Height; y++) {
+            for (int x = 0; x < page.Width; x++) {
+                OfficeColor color = page.GetPixel(x, y);
+                bool isRed = color.R > 200 && color.G < 60 && color.B < 60, isBlue = color.B > 200 && color.R < 60 && color.G < 60;
+                if (!isRed && !isBlue) continue;
+                if (isRed) red++; else blue++;
+                left = Math.Min(left, x); right = Math.Max(right, x); top = Math.Min(top, y); bottom = Math.Max(bottom, y);
+            }
+        }
+
+        Assert.InRange(red + blue, area * 0.93D, area * 1.07D);
+        Assert.InRange(red, (red + blue) * 0.4D, (red + blue) * 0.6D);
+        Assert.InRange(right - left + 1, width - 2, width + 2);
+        Assert.InRange(bottom - top + 1, height - 2, height + 2);
+    }
+
     [Theory]
     [InlineData("20 30 40 40", ImageSize / 2)] // the left half of the placement: the red source columns
     [InlineData("20 30 8 40", 1)]              // exactly one source pixel wide

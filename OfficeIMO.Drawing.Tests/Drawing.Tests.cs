@@ -1403,7 +1403,8 @@ public partial class DrawingTests {
         Assert.Contains("<polygon points=\"0,20 30,0 60,20\"", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1458,7 +1459,8 @@ public partial class DrawingTests {
         Assert.Contains("stroke-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-dasharray=\"8 4\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-linecap=\"round\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1626,7 +1628,8 @@ public partial class DrawingTests {
         Assert.Contains("<path d=\"M0 0Q30 0 60 20L0 20Z\"", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]

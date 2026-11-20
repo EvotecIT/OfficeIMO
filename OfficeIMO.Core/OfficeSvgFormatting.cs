@@ -380,12 +380,17 @@ public static partial class OfficeSvgFormatting {
     /// <returns>SVG matrix transform value.</returns>
     public static string FormatMatrixTransform(OfficeTransform transform, double placementX = 0D, double placementY = 0D) =>
         "matrix(" +
-        FormatNumber(transform.M11) + " " +
-        FormatNumber(transform.M12) + " " +
-        FormatNumber(transform.M21) + " " +
-        FormatNumber(transform.M22) + " " +
-        FormatNumber(transform.OffsetX + placementX) + " " +
-        FormatNumber(transform.OffsetY + placementY) + ")";
+        FormatMatrixNumber(transform.M11) + " " +
+        FormatMatrixNumber(transform.M12) + " " +
+        FormatMatrixNumber(transform.M21) + " " +
+        FormatMatrixNumber(transform.M22) + " " +
+        FormatMatrixNumber(transform.OffsetX + placementX) + " " +
+        FormatMatrixNumber(transform.OffsetY + placementY) + ")";
+
+    // Matrix coefficients scale whatever they transform: an image normalized to its pixel size has coefficients
+    // around 0.01 that three decimals would distort, so they round-trip exactly.
+    private static string FormatMatrixNumber(double value) =>
+        System.Math.Abs(value) < 1E-12 ? "0" : FormatPreciseNumber(value);
 
     /// <summary>
     /// Appends an SVG matrix transform attribute using shared invariant numeric formatting.
