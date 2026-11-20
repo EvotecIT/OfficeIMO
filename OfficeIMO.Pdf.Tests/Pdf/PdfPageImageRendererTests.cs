@@ -161,8 +161,9 @@ public partial class PdfPageImageRendererTests {
         Assert.Empty(drawing.Elements.OfType<OfficeDrawingShape>());
     }
 
+    // A sheared image keeps its full matrix: it is painted as a group carrying the shear, not stretched to its bounds.
     [Fact]
-    public void RenderPage_PreservesAxisAlignedFallbackForShearedOrdinaryImage() {
+    public void RenderPage_PaintsShearedOrdinaryImageThroughItsFullMatrix() {
         string image = BuildStreamObject(5, "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", "x");
         byte[] pdf = BuildSingleStreamPdf(
             "q 100 20 0 100 10 10 cm /Im1 Do Q",
@@ -171,7 +172,10 @@ public partial class PdfPageImageRendererTests {
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
-        Assert.Single(drawing.Images);
+        Assert.Empty(drawing.Images);
+        OfficeDrawingEffectGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        Assert.Single(group.InnerDrawing.Images);
+        Assert.Equal((100D, -20D, 0D, 100D), (group.Transform.M11, group.Transform.M12, group.Transform.M21, group.Transform.M22));
     }
 
     [Fact]

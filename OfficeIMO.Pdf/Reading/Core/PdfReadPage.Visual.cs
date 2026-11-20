@@ -3370,6 +3370,10 @@ public sealed partial class PdfReadPage {
             return;
         }
 
+        if (!placement.RequireExactProjection && TryAddShearedImagePlacement(drawing, pageHeight, placement, image, cancellationToken)) {
+            return;
+        }
+
         if (!TryCreateImageProjection(
                 placement,
                 pageHeight,
@@ -3393,6 +3397,37 @@ public sealed partial class PdfReadPage {
         }
 
         drawing.AddImageSharedWithInterpolation(drawingBytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
+    }
+
+    // An image projection expresses rotation and flips only. A sheared image matrix is painted as a
+    // group carrying the full affine, so the image covers its parallelogram rather than the bounding box.
+    private static bool TryAddShearedImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement,
+        PdfExtractedImage image, CancellationToken cancellationToken) {
+        if (IsPlainAxisAlignedImagePlacement(placement) || !image.IsImageFile || image.Width <= 0 || image.Height <= 0 ||
+            TryCreateTransformedImageProjection(placement, pageHeight, drawing.Width, drawing.Height, out _)) return false;
+        // The image unit square in drawing space: row 0 at the top, with the page's y axis flipped.
+        var unitSquare = new OfficeTransform(placement.A, -placement.B, -placement.C, placement.D,
+            placement.C + placement.E, pageHeight - placement.D - placement.F);
+        if (!unitSquare.TryInvert(out _)) return false;
+
+        var inner = new OfficeDrawing(image.Width, image.Height);
+        inner.AddImageSharedWithInterpolation(image.GetDrawingBytes(cancellationToken), image.MimeType,
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, image.Width, image.Height)), image.Interpolate,
+            opacity: placement.ImageOpacity ?? 1D);
+        OfficeTransform transform = OfficeTransform.Scale(1D / image.Width, 1D / image.Height).Then(unitSquare);
+        if (!placement.ClipPath.HasValue) {
+            drawing.AddEffectDrawing(inner, transform);
+            return true;
+        }
+
+        PdfPageClipPath clip = placement.ClipPath.Value;
+        if (clip.Width <= 0D || clip.Height <= 0D || !TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out clip)) return true;
+        OfficeClipPath? clipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
+        if (clipPath == null) return false;
+        var host = new OfficeDrawing(Math.Max(0.01D, clipPath.Width), Math.Max(0.01D, clipPath.Height));
+        host.AddEffectDrawing(inner, transform.Then(OfficeTransform.Translate(-clip.X, -clip.Y)));
+        drawing.AddClippedDrawing(host, clip.X, clip.Y, clipPath);
+        return true;
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection, byte[] drawingBytes) {
