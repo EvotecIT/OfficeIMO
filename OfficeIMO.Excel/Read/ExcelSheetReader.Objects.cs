@@ -188,9 +188,11 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                object? converted = cell.TypedValue is null ? null
-                    : IsRejectedDateCell(cell) ? (TryConvertRejectedDateCellText(cell.RawText!, binding, out object? text) ? text : null)
-                    : TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
+                if (ApplyRejectedDateCell(ClassifyDateCell(cell, binding), cell.RawText!, binding, result[rr])) {
+                    continue;
+                }
+
+                object? converted = cell.TypedValue is null ? null : TryChangeType(cell.TypedValue, binding, _opt.Culture, cell);
 
                 if (canCancel) {
                     ct.ThrowIfCancellationRequested();

@@ -191,6 +191,70 @@ namespace OfficeIMO.Excel.Tests {
             }
         }
 
+        public sealed class IsoDatePresetRow {
+            public DateTime? Value { get; set; } = new DateTime(2000, 1, 1);
+        }
+
+        [Fact]
+        public void RejectedIsoDateCellsKeepTheDestinationsExistingValue() {
+            const int rows = 5000; // above the buffered limit, so the parallel row mapping is eligible
+            var preset = new DateTime(2000, 1, 1);
+            string path = CreateSingleIsoDateCellWorkbook("10:30:00.", rows);
+            try {
+                using var reader = ExcelDocumentReader.Open(path);
+                ExcelSheetReader sheet = reader.GetSheet("Data");
+                Assert.Equal(preset, sheet.ReadObjects<IsoDatePresetRow>("A1:A2").Single().Value);
+                Assert.Equal(preset, sheet.ReadObjectsStream<IsoDatePresetRow>("A1:A2").Single().Value);
+                Assert.All(sheet.ReadObjects<IsoDatePresetRow>("A1:A" + (rows + 1), ExcelExecutionMode.Parallel),
+                    row => Assert.Equal(preset, row.Value));
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void CustomConvertersStillMapRejectedIsoDateCells(bool typeConverter) {
+            const int rows = 5000; // above the buffered limit, so the parallel row mapping is eligible
+            var replacement = new DateTime(2001, 2, 3);
+            string path = CreateSingleIsoDateCellWorkbook("10:30:00.", rows);
+            try {
+                var options = typeConverter
+                    ? new ExcelReaderOptions {
+                        TypeConverter = (value, type, _) => value is "10:30:00." && type == typeof(DateTime) ? (true, replacement) : (false, null)
+                    }
+                    : new ExcelReaderOptions {
+                        CellValueConverter = context => context.RawText == "10:30:00." ? new ExcelCellValue(replacement) : default
+                    };
+                using var reader = ExcelDocumentReader.Open(path, options);
+                ExcelSheetReader sheet = reader.GetSheet("Data");
+                Assert.Equal(replacement, sheet.ReadObjects<IsoDateRow>("A1:A2").Single().Value);
+                Assert.All(sheet.ReadObjects<IsoDateRow>("A1:A" + (rows + 1), ExcelExecutionMode.Parallel),
+                    row => Assert.Equal(replacement, row.Value));
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void DisplayTextOfAValidIsoDateCellIsNotTreatedAsRejected() {
+            // Display-text mode reads the date cell as its formatted text, which is not the stored ISO text.
+            string path = CreateSingleIsoDateCellWorkbook("2024-03-05", numberFormatId: 14);
+            try {
+                var culture = CultureInfo.GetCultureInfo("en-US");
+                ExcelReaderOptions options;
+                using (var document = ExcelDocument.Load(path)) {
+                    options = ExcelCellDisplayText.Apply(document, new ExcelReaderOptions { Culture = culture }, culture);
+                }
+
+                using var reader = ExcelDocumentReader.Open(path, options);
+                Assert.Equal(new DateTime(2024, 3, 5), reader.GetSheet("Data").ReadObjects<IsoDateRow>("A1:A2").Single().Value);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
         [Fact]
         public void StringBindingsKeepTimeOnlyTextOutsideTheCultureCalendar() {
             // Um Al Qura dates start in 1900, after the time-only base date of December 30, 1899.
@@ -215,7 +279,7 @@ namespace OfficeIMO.Excel.Tests {
             }
         }
 
-        private static string CreateSingleIsoDateCellWorkbook(string text, int rows = 1) {
+        private static string CreateSingleIsoDateCellWorkbook(string text, int rows = 1, int numberFormatId = 21) {
             string path = CreateCompactFastPathWorkbook();
             try {
                 ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(
@@ -229,7 +293,7 @@ namespace OfficeIMO.Excel.Tests {
                     "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
                     + "<fonts count=\"1\"><font/></fonts><fills count=\"1\"><fill/></fills><borders count=\"1\"><border/></borders>"
                     + "<cellStyleXfs count=\"1\"><xf/></cellStyleXfs>"
-                    + "<cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"21\" applyNumberFormat=\"1\"/></cellXfs></styleSheet>"));
+                    + "<cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"" + numberFormatId + "\" applyNumberFormat=\"1\"/></cellXfs></styleSheet>"));
                 return path;
             } catch {
                 File.Delete(path);

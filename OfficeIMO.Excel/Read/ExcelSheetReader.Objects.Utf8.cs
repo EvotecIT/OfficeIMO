@@ -176,9 +176,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (objectValue is string dateText && source.IsDateCell(columnOffset)) {
-                // A valid ISO date arrives as a DateTime, so this text was rejected; only text destinations take it.
-                TrySetRejectedDateCellText(dateText, binding, target);
+            // The decision uses the stored text: with display text on, a valid date arrives here as formatted text.
+            if (objectValue is string && source.GetStoredDateText(columnOffset) is { } storedDateText
+                && ApplyRejectedDateCell(ClassifyDateCell(storedDateText, binding), storedDateText, binding, target)) {
                 return;
             }
 
