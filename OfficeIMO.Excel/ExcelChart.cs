@@ -126,9 +126,6 @@ namespace OfficeIMO.Excel {
                 ExcelChartData? chartData = range == null
                     ? ExcelChartUtils.TryReadChartData(chartPart, sheet)
                     : ExcelChartUtils.TryReadChartData(sheet, range, keepBlankCells: true);
-                if (chartData != null && range != null && PlotsVisibleCellsOnly(chartPart)) {
-                    chartData = ExcelChartUtils.RemoveHiddenCells(sheet, range, chartData);
-                }
                 if (chartData == null) {
                     data = null!;
                     return false;
@@ -136,7 +133,17 @@ namespace OfficeIMO.Excel {
 
                 chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
                 chartData = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, chartData, sheet);
+                bool[]? hiddenSeries = null;
+                if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSourceVisibility.PlotsVisibleCellsOnly(
+                        chartPart.ChartSpace?.GetFirstChild<C.Chart>())) {
+                    chartData = ExcelChartUtils.SelectVisiblePoints(chartPart, sheet, chartData, out hiddenSeries);
+                    if (chartData == null) {
+                        data = null!;
+                        return false;
+                    }
+                }
                 chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot);
+                chartData = ExcelChartUtils.RemoveSeries(chartData, hiddenSeries);
                 if (range != null) {
                     _dataRange = range;
                 }
@@ -147,10 +154,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
         }
-
-        // Office plots only visible cells unless c:plotVisOnly is explicitly off.
-        private static bool PlotsVisibleCellsOnly(ChartPart chartPart) =>
-            chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotVisibleOnly>()?.Val?.Value != false;
 
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
