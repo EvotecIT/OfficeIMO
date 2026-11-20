@@ -74,6 +74,37 @@ public partial class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_PaintsOnlyTheTrueIntersectionOfADeepChainOfNonConvexClips() {
+        // Twelve U-shaped clips, each notching a different 10 x 100 strip out of the page's top half.
+        var content = new StringBuilder();
+        for (int k = 0; k < 12; k++) {
+            int left = 10 + (18 * k);
+            content.Append(FormattableString.Invariant(
+                $"0 0 m 240 0 l 240 200 l {left + 10} 200 l {left + 10} 100 l {left} 100 l {left} 200 l 0 200 l h W n\n"));
+        }
+        byte[] pdf = BuildSingleStreamPdf(content + "1 0 0 rg 0 0 240 200 re f");
+
+        OfficeRasterImage page = OfficeRasterImageDecoder.Decode(PdfPageImageRenderer.RenderPageAsPng(pdf, 1, 1D));
+
+        Assert.Equal(OfficeColor.White, page.GetPixel(15, 50));
+        Assert.Equal(OfficeColor.White, page.GetPixel(213, 50));
+        Assert.Equal(OfficeColor.Red, page.GetPixel(24, 50));
+        Assert.Equal(OfficeColor.Red, page.GetPixel(213, 150));
+        Assert.Equal((240 * 200) - (12 * 10 * 100), CountNonWhitePixels(page));
+    }
+
+    [Fact]
+    public void WrittenPdf_KeepsTheIntersectionOfTwoNonConvexClips() {
+        byte[] source = BuildSingleStreamPdf(LowerLeftLClip + UpperRightLClip + "1 0 0 rg 0 0 240 200 re f");
+        OfficeDrawing drawing = PdfReadDocument.Open(source).Pages[0].ToDrawing();
+
+        byte[] written = PdfDocument.Create().Drawing(drawing).ToBytes();
+
+        OfficeRasterImage page = OfficeRasterImageDecoder.Decode(PdfPageImageRenderer.RenderPageAsPng(written, 1, 1D));
+        Assert.InRange(CountPixels(page, IsRed), 3000, 3400);
+    }
+
+    [Fact]
     public void RenderPageAsSvg_ExpressesTheIntersectionOfTwoNonConvexClips() {
         byte[] pdf = BuildSingleStreamPdf(LowerLeftLClip + UpperRightLClip + "1 0 0 rg 0 0 240 200 re f");
 
@@ -98,6 +129,18 @@ public partial class PdfPageImageRendererTests {
             id = clipPath.Groups[1].Value;
         }
         return contents.ToArray();
+    }
+
+    private static bool IsRed(OfficeColor color) => color.R > 200 && color.G < 80 && color.B < 80;
+
+    private static int CountPixels(OfficeRasterImage image, Func<OfficeColor, bool> predicate) {
+        int count = 0;
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                if (predicate(image.GetPixel(x, y))) count++;
+            }
+        }
+        return count;
     }
 
     private static int CountNonWhitePixels(OfficeRasterImage image) =>

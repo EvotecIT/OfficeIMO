@@ -4,10 +4,9 @@ namespace OfficeIMO.Pdf;
 
 // Clip intersections that geometry cannot resolve stay exact for rendering: the primary geometry
 // (rectangle or Commands) is a superset, and renderers also clip by each of these paths.
+// Every path enters through IntersectPathWithPath, which charges its flattened vertices to the
+// page's clipping budget, so a chain of any depth stays exact and its total size stays bounded.
 internal readonly partial struct PdfPageClipPath {
-    // Further intersections beyond this count are dropped, leaving a rendered superset.
-    internal const int MaximumRenderingIntersections = 8;
-
     private PdfPageClipPath WithoutRenderingIntersections() {
         if (_renderingIntersections == null) return this;
         if (_rectangularPrimary) {
@@ -35,13 +34,6 @@ internal readonly partial struct PdfPageClipPath {
         }
 
         bool isExact = _isPrimaryExact;
-        if (intersections.Length > MaximumRenderingIntersections) {
-            var bounded = new PdfPageClipPath[MaximumRenderingIntersections];
-            Array.Copy(intersections, bounded, bounded.Length);
-            intersections = bounded;
-            isExact = false;
-        }
-
         if (!IsRectangle) {
             return new PdfPageClipPath(
                 X,
@@ -82,24 +74,33 @@ internal readonly partial struct PdfPageClipPath {
         if (second == null && third == null) return first;
         if (first == null && third == null) return second;
         if (first == null && second == null) return third;
+        if (ReferenceEquals(first, second) && third == null) return first;
 
         var combined = new List<PdfPageClipPath>(count);
-        AddDistinctRenderingIntersections(combined, first);
-        AddDistinctRenderingIntersections(combined, second);
-        AddDistinctRenderingIntersections(combined, third);
+        var seen = new HashSet<IReadOnlyList<OfficePathCommand>>(CommandListReferenceComparer.Instance);
+        AddDistinctRenderingIntersections(combined, seen, first);
+        AddDistinctRenderingIntersections(combined, seen, second);
+        AddDistinctRenderingIntersections(combined, seen, third);
         return combined.ToArray();
     }
 
-    private static void AddDistinctRenderingIntersections(List<PdfPageClipPath> combined, PdfPageClipPath[]? intersections) {
+    // Linear in the chain length. Paths sharing a command list are the same page-space clip,
+    // because Translate and WithBounds build new command lists.
+    private static void AddDistinctRenderingIntersections(
+        List<PdfPageClipPath> combined,
+        HashSet<IReadOnlyList<OfficePathCommand>> seen,
+        PdfPageClipPath[]? intersections) {
         if (intersections == null) return;
         for (int i = 0; i < intersections.Length; i++) {
-            bool duplicate = false;
-            for (int existing = 0; existing < combined.Count && !duplicate; existing++) {
-                duplicate = combined[existing].IsIdenticalTo(intersections[i]);
-            }
-
-            if (!duplicate) combined.Add(intersections[i]);
+            PdfPageClipPath intersection = intersections[i];
+            if (intersection.IsRectangle || seen.Add(intersection.Commands)) combined.Add(intersection);
         }
+    }
+
+    private sealed class CommandListReferenceComparer : IEqualityComparer<IReadOnlyList<OfficePathCommand>> {
+        internal static readonly CommandListReferenceComparer Instance = new CommandListReferenceComparer();
+        public bool Equals(IReadOnlyList<OfficePathCommand>? x, IReadOnlyList<OfficePathCommand>? y) => ReferenceEquals(x, y);
+        public int GetHashCode(IReadOnlyList<OfficePathCommand> obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 
     private OfficeClipPath AddOfficeClipIntersections(OfficeClipPath primary, double primitiveX, double primitiveY) {

@@ -131,7 +131,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             ? context.PushTransform(ToMatrix(shape.Transform.Value))
             : null;
         IDisposable? clip = shape.ClipPath is not null
-            ? context.PushGeometryClip(CreateClipGeometry(shape.ClipPath))
+            ? PushClip(context, shape.ClipPath)
             : null;
         try {
             IBrush? fill = CreateBrush(shape.FillColor, shape.FillOpacity);
@@ -276,7 +276,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
         IDisposable? transform = group.FrameTransform.HasValue
             ? context.PushTransform(ToMatrix(group.FrameTransform.Value.CreateDestinationTransform()))
             : null;
-        using IDisposable clip = context.PushGeometryClip(CreateClipGeometry(group.ClipPath));
+        using IDisposable clip = PushClip(context, group.ClipPath);
         using IDisposable content = context.PushTransform(Matrix.CreateTranslation(group.ContentOffsetX, group.ContentOffsetY));
         try {
             RenderDrawing(context, group.Drawing);
@@ -371,6 +371,27 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
         }
         if (figureOpen) context.EndFigure(false);
         return geometry;
+    }
+
+    // Nested geometry clips intersect, so each intersection keeps its own fill rule.
+    private static IDisposable PushClip(DrawingContext context, OfficeClipPath clip) {
+        IDisposable primary = context.PushGeometryClip(CreateClipGeometry(clip));
+        if (clip.Intersections.Count == 0) return primary;
+        var pushed = new IDisposable[clip.Intersections.Count + 1];
+        pushed[0] = primary;
+        for (int i = 0; i < clip.Intersections.Count; i++) {
+            pushed[i + 1] = context.PushGeometryClip(CreateClipGeometry(clip.Intersections[i]));
+        }
+
+        return new ClipStack(pushed);
+    }
+
+    private sealed class ClipStack : IDisposable {
+        private readonly IDisposable[] _pushed;
+        internal ClipStack(IDisposable[] pushed) => _pushed = pushed;
+        public void Dispose() {
+            for (int i = _pushed.Length - 1; i >= 0; i--) _pushed[i].Dispose();
+        }
     }
 
     private static Geometry CreateClipGeometry(OfficeClipPath clip) => clip.Kind switch {
