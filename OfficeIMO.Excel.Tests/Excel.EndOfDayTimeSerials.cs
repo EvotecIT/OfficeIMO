@@ -147,9 +147,52 @@ namespace OfficeIMO.Tests {
         [InlineData(45356.99999999999, false, 2024, 3, 5)]
         [InlineData(0.9999999999988426, true, 1904, 1, 1)]
         [InlineData(43894.99999999999, true, 2024, 3, 5)]
+        [InlineData(0.9999999999999999, true, 1904, 1, 1)]
+        [InlineData(100.99999999999999, true, 1904, 4, 10)]
         public void SerialsJustBeforeMidnightReadOnTheirOwnDay(double serial, bool date1904, int year, int month, int day) {
             ExcelDateSystem dateSystem = date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
             Assert.Equal(new DateTime(year, month, day) + LastMillisecondOfDay, ExcelDateSystemConverter.FromSerial(serial, dateSystem));
+        }
+
+        // Adding the 1904 offset to these serials directly rounds them up to the next whole day.
+        [Theory]
+        [InlineData(ExcelFileFormat.Xlsx)]
+        [InlineData(ExcelFileFormat.Xlsb)]
+        [InlineData(ExcelFileFormat.Xls)]
+        public void SerialsJustBeforeMidnightKeepTheirDayThroughThe1904Offset(ExcelFileFormat format) {
+            string source = Path.Combine(_directoryWithFiles, "EndOfDay1904-source.xlsx");
+            string path = Path.Combine(_directoryWithFiles, "EndOfDay1904." + format.ToString().ToLowerInvariant());
+            double[] serials = { 0.9999999999999999, 100.99999999999999 };
+            DateTime[] expected = { new DateTime(1904, 1, 1) + LastMillisecondOfDay, new DateTime(1904, 4, 10) + LastMillisecondOfDay };
+            using (var document = ExcelDocument.Create(source)) {
+                document.DateSystem = ExcelDateSystem.NineteenFour;
+                ExcelSheet sheet = document.AddSheet("Times");
+                sheet.Cell(1, 1).SetValue("When");
+                for (int row = 0; row < serials.Length; row++) {
+                    sheet.Cell(row + 2, 1).SetValue(serials[row]).SetNumberFormat("yyyy-mm-dd hh:mm:ss");
+                }
+                document.Save(path, new ExcelSaveOptions { Format = format });
+            }
+
+            using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path)) {
+                foreach (DateTime value in expected) {
+                    Assert.True(reader.Read());
+                    Assert.Equal(value, reader.GetDateTime(0));
+                }
+            }
+
+            // Moving the workbook to the 1900 date system keeps each cell on its day.
+            using var rebased = new MemoryStream();
+            using (var document = ExcelDocument.Load(path)) {
+                document.DateSystem = ExcelDateSystem.NineteenHundred;
+                document.Save(rebased, new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
+            }
+
+            rebased.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(rebased, false);
+            Cell[] cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!.Descendants<Cell>()
+                .Where(cell => cell.CellReference?.Value is "A2" or "A3").ToArray();
+            Assert.Equal(new[] { 1462d, 1562d }, cells.Select(cell => Math.Floor(double.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture))));
         }
     }
 }

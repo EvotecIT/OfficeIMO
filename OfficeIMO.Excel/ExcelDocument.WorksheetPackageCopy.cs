@@ -345,7 +345,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                cell.CellValue = new CellValue(InvariantNumberText.Get(serial + offset));
+                cell.CellValue = new CellValue(InvariantNumberText.Get(ExcelDateSystemConverter.ShiftSerialDays(serial, offset)));
             }
         }
 

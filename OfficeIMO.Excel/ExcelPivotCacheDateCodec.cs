@@ -6,8 +6,9 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal static class ExcelPivotCacheDateCodec {
         internal static DateTime FromSerial(double serial, ExcelDateSystem system) => ExcelDateSystemConverter.FromOleAutomationSerial(
-            system == ExcelDateSystem.NineteenFour ? serial + ExcelDateSystemConverter.Date1904OffsetDays : serial);
-        internal static double ToSerial(DateTime date, ExcelDateSystem system) => date.ToOADate()
-            - (system == ExcelDateSystem.NineteenFour ? ExcelDateSystemConverter.Date1904OffsetDays : 0d);
+            system == ExcelDateSystem.NineteenFour ? ExcelDateSystemConverter.ShiftSerialDays(serial, ExcelDateSystemConverter.Date1904OffsetDays) : serial);
+        internal static double ToSerial(DateTime date, ExcelDateSystem system) => system == ExcelDateSystem.NineteenFour
+            ? ExcelDateSystemConverter.ShiftSerialDays(date.ToOADate(), -ExcelDateSystemConverter.Date1904OffsetDays)
+            : date.ToOADate();
     }
 }

@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
                 return ToMillisecondSerial(FloorToMilliseconds(value.Ticks - Early1900Epoch.Ticks));
             // ToOADate truncates to the millisecond, which keeps the time on the value's day.
             double serial = value.ToOADate();
-            return dateSystem == ExcelDateSystem.NineteenFour ? serial - Date1904OffsetDays : serial;
+            return dateSystem == ExcelDateSystem.NineteenFour ? ShiftSerialDays(serial, -Date1904OffsetDays) : serial;
         }
 
         /// <summary>
@@ -38,7 +38,23 @@ namespace OfficeIMO.Excel {
         public static DateTime FromSerial(double serial, ExcelDateSystem dateSystem) {
             if (dateSystem == ExcelDateSystem.NineteenHundred && serial < 60d)
                 return FromLinearSerial(Early1900Epoch, serial);
-            return FromOleAutomationSerial(dateSystem == ExcelDateSystem.NineteenFour ? serial + Date1904OffsetDays : serial);
+            return FromOleAutomationSerial(dateSystem == ExcelDateSystem.NineteenFour ? ShiftSerialDays(serial, Date1904OffsetDays) : serial);
+        }
+
+        /// <summary>
+        /// Moves a serial by whole days without changing its time. Adding the days directly can round a fraction just
+        /// below one up into the next day, because the larger result has fewer fractional bits; the result then keeps
+        /// the largest serial still on the shifted day.
+        /// </summary>
+        internal static double ShiftSerialDays(double serial, double days) {
+            if (double.IsNaN(serial) || double.IsInfinity(serial)) return serial + days;
+            double whole = Math.Floor(serial);
+            double shiftedWhole = whole + days;
+            double shifted = shiftedWhole + (serial - whole);
+            if (shifted < shiftedWhole + 1d) return shifted;
+            double nextDay = shiftedWhole + 1d;
+            if (nextDay == 0d) return -double.Epsilon;
+            return BitConverter.Int64BitsToDouble(BitConverter.DoubleToInt64Bits(nextDay) + (nextDay > 0d ? -1L : 1L));
         }
 
         /// <summary>
