@@ -19,7 +19,7 @@ namespace OfficeIMO.OpenXml.Internal {
             // The classic c:style number only supplies automatic colours, which the series reader
             // resolves. Office does not consult the cs:chartStyle and cs:colorStyle parts when it
             // renders a chart; they only seed later restyling in the Office UI.
-            if (HasUnsupportedBubbleSourceVisibility(part, chart)) return null;
+            if (!TryReadSourceVisibility(part, chart, out SourceVisibility? visibility, out _)) return null;
             var axisGroups = OfficeOpenXmlChartAxisGroups.Create(plot);
             if (!HasSupportedProjectionAxisGroups(layers, axisGroups)) return null;
             var barGeometry = layers.OfType<C.BarChart>().Select(bars => (
@@ -56,17 +56,17 @@ namespace OfficeIMO.OpenXml.Internal {
                         ? OfficeChartBubbleSizeMode.Width : OfficeChartBubbleSizeMode.Area;
                     if (bubbleScale > 300) return null;
                     data = ReadBubbles(bubble.Elements<C.BubbleChartSeries>(), scheme, maximumPoints,
-                        validatePlot: false, projectionBudget: projectionBudget);
+                        validatePlot: false, projectionBudget: projectionBudget, visibility: visibility);
                 } else if (layer is C.ScatterChart scatter) {
                     if (layers.Count != 1) return null;
                     data = ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, maximumPoints,
-                        validatePlot: false, projectionBudget: projectionBudget, keepMissingValues: true);
+                        validatePlot: false, projectionBudget: projectionBudget, keepMissingValues: true, visibility: visibility);
                 } else {
                     if (layers.Count > 1 && (layer is C.PieChart || layer is C.DoughnutChart || layer is C.RadarChart)) return null;
                     if (layer is C.RadarChart radar && radar.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled) return null;
                     data = ReadCategories(layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser"),
                         layerKind, scheme, axisGroups.Read(layer), maximumPoints,
-                        validatePlot: false, projectionBudget: projectionBudget, keepMissingValues: true);
+                        validatePlot: false, projectionBudget: projectionBudget, keepMissingValues: true, visibility: visibility);
                 }
                 if (data == null || data.Series.Any(item => item.HasUnsupportedAppearance)) return null;
                 if (layer is C.PieChart && data.Series.Count != 1) return null;
