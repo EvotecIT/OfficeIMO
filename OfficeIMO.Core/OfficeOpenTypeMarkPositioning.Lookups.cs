@@ -31,7 +31,11 @@ internal sealed partial class OfficeOpenTypeMarkPositioning {
             if (!result[index].IsMark || !activeScripts.Contains(scripts[index])
                 || _filter.IsIgnored(tokens[index], flags, markSet, Charge)) continue;
             foreach ((int effectiveType, int subtable) in subtables) {
-                if (TryAttach(tokens, result, interpretedMarks, index, effectiveType, subtable, flags, markSet)) break;
+                if (!TryAttach(tokens, result, interpretedMarks, index, effectiveType, subtable, flags, markSet)) continue;
+                OfficeOpenTypeMarkAttachment attached = result[index];
+                result[index] = new OfficeOpenTypeMarkAttachment(attached.ParentGlyphIndex, attached.DeltaX, attached.DeltaY,
+                    attached.IsMark, attached.IsFontDirectedNoOp, lookupIndex);
+                break;
             }
         }
     }

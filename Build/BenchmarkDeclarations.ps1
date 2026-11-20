@@ -13,6 +13,12 @@ $script:BenchmarkMethodIdentityOverrides = @{
     'markdownparse|Markdig_ParseSemanticComparison_CommonMark' = 'Markdig|ParseSemantic_CommonMark'
     'ziptraverse|Platform' = 'System.IO.Compression|Default'
     'tomlloadsave|TomlynSyntax' = 'Tomlyn|Default'
+    # OfficeIMO reads YAML and TOML values on demand. Its lane that also reads every value does the reference loaders'
+    # work and shares their Default case; the lane that leaves values unread is its own case.
+    'yamlload|OfficeIMOYaml' = 'OfficeIMO|LazyValues'
+    'yamlload|OfficeIMOYamlWithValues' = 'OfficeIMO|Default'
+    'tomlload|OfficeIMOToml' = 'OfficeIMO|LazyValues'
+    'tomlload|OfficeIMOTomlWithValues' = 'OfficeIMO|Default'
     'yamlserialize|YamlDotNet' = 'YamlDotNet|Reflection'
     'yamldeserialize|YamlDotNet' = 'YamlDotNet|Reflection'
     'wordcreate|OpenXmlSdkEquivalent' = 'Open XML SDK|Default'

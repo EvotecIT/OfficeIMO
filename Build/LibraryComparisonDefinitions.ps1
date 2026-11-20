@@ -473,7 +473,7 @@ function Get-LibraryComparisonDefinitions {
                 }
             )
         }
-        # VYaml resolves the plain scalar 'infinity' in one corpus file as a float, so setup rejects its ManySmallFiles load.
+        # VYaml resolves the plain scalar 'infinity' in one corpus file as a float, so the benchmark's lane filter leaves its ManySmallFiles load out.
         yamlload = [pscustomobject]@{
             Area = 'yaml'
             Title = 'YAML load to model'

@@ -77,7 +77,7 @@ public class TomlLoadBenchmarks {
 
     /// <summary>OfficeIMO decodes values on first read; this lane leaves them undecoded.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
+    [BenchmarkCategory("library:OfficeIMO", "case:LazyValues")]
     public int OfficeIMOToml() {
         int total = 0;
         foreach (string input in _inputs) total += TomlLibraries.LoadOfficeIMO(input).Root.Count;
@@ -86,7 +86,7 @@ public class TomlLoadBenchmarks {
 
     /// <summary>Also decodes every value, which the reference loaders do while loading.</summary>
     [Benchmark]
-    [BenchmarkCategory("library:OfficeIMO", "case:WithValues")]
+    [BenchmarkCategory("library:OfficeIMO", "case:Default")]
     public long OfficeIMOTomlWithValues() {
         long total = 0;
         foreach (string input in _inputs) total += TomlLibraries.CountOfficeIMO(TomlLibraries.LoadOfficeIMO(input).Root);

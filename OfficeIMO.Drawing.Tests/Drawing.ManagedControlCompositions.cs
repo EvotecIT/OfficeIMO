@@ -113,6 +113,36 @@ public sealed class DrawingManagedControlCompositionTests {
         Assert.Equal(0, Assert.Single(result.Glyphs, glyph => glyph.GlyphId == 1).AdvanceWidth);
     }
 
+    // The control's own cmap glyph is inked; only the blank space may be painted for it.
+    [Fact]
+    public void NominalVariableRouteWritesTheBlankGlyphForAnInkedControl() {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(0x200E, blankSpace: true, variable: true);
+
+        OfficeTextShapingResult result = ShapeControlRun(data, "A\u200EA", OfficeTextFeatureSettings.Default);
+
+        OfficeShapedGlyph control = Assert.Single(result.Glyphs, glyph => glyph.TextIndex == 1);
+        Assert.Equal(1, control.GlyphId);
+        Assert.Equal(0, control.AdvanceWidth);
+    }
+
+    [Theory]
+    [InlineData(true, 600)]
+    [InlineData(false, 500)]
+    public void SimpleFontRouteAppliesDefaultDistances(bool enabled, int advance) {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(0x200E, blankSpace: true, distanceAdvance: 100);
+
+        OfficeTextShapingResult result = ShapeControlRun(data, "A\u200EA",
+            enabled ? OfficeTextFeatureSettings.Default : OfficeTextFeatureSettings.Default.With("dist", 0));
+
+        Assert.Equal(new[] { advance, 0, advance }, result.Glyphs.Select(glyph => glyph.AdvanceWidth ?? -1));
+    }
+
+    private static OfficeTextShapingResult ShapeControlRun(byte[] data, string text, OfficeTextFeatureSettings features) {
+        IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Control route", data).Faces).Program;
+        return Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
+            text, "Control route", data, false, font.UnitsPerEm, OfficeTextDirection.LeftToRight, "en", featureSettings: features)));
+    }
+
     private static byte[] TrackedControls() => ManagedTextShapingTestAssets.AddTrackingTable(
         ManagedTextShapingTestAssets.CreateControlAdmissionFont(0x202E, blankSpace: true),
         ManagedTextShapingTestAssets.CreateTrackingTable(new[] { 10D, 20D }, new[] { -1D, 1D },

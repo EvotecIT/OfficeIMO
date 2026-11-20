@@ -485,7 +485,8 @@ namespace OfficeIMO.PowerPoint {
             }
             return new PowerPointChartSnapshot(
                 Name ?? string.Empty,
-                ReadTitle(chart),
+                ReadTitle(chart) ?? (forDataUpdate ? null :
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(chart)),
                 kind,
                 data,
                 Width,
@@ -510,7 +511,9 @@ namespace OfficeIMO.PowerPoint {
                         ? OfficeChartLegendPosition.Top
                         : nativePosition == C.LegendPositionValues.Bottom
                             ? OfficeChartLegendPosition.Bottom
-                            : OfficeChartLegendPosition.Right;
+                            : nativePosition == C.LegendPositionValues.TopRight
+                                ? OfficeChartLegendPosition.TopRight
+                                : OfficeChartLegendPosition.Right;
             bool overlay = legend?.GetFirstChild<C.Overlay>() is C.Overlay item &&
                 item.Val?.Value != false;
             bool overlayTitle =
@@ -712,8 +715,6 @@ namespace OfficeIMO.PowerPoint {
                 showValueAxisLabels: !HasHiddenTickLabels(logicalValueAxis),
                 horizontalAxisTickLabelPosition: ReadAxisTickLabelPosition(physicalHorizontalAxis),
                 verticalAxisTickLabelPosition: ReadAxisTickLabelPosition(physicalVerticalAxis),
-                horizontalAxisCrossingPosition: ReadAxisCrossing(physicalVerticalAxis),
-                verticalAxisCrossingPosition: ReadAxisCrossing(physicalHorizontalAxis),
                 reverseCategoryAxis: logicalCategoryAxis is C.CategoryAxis or C.DateAxis &&
                     logicalCategoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value ==
                         C.OrientationValues.MaxMin,
@@ -727,7 +728,8 @@ namespace OfficeIMO.PowerPoint {
                         () => OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
                             .ResolveSourceLinkedGeneral(GetChartPart())))
                 .WithDataLabelLeaderLines(radialLabels?.LeaderLines == true)
-                .WithCategoryGeometry(plotArea, GetOwnerColorScheme());
+                .WithCategoryGeometry(plotArea, GetOwnerColorScheme())
+                .WithPlotSemantics(chart);
         }
 
         private static OfficeChartAxisTickMark ReadAxisTickMark(
@@ -753,14 +755,6 @@ namespace OfficeIMO.PowerPoint {
             if (value == C.TickLabelPositionValues.Low) return OfficeChartAxisTickLabelPosition.Low;
             if (value == C.TickLabelPositionValues.None) return OfficeChartAxisTickLabelPosition.None;
             return OfficeChartAxisTickLabelPosition.NextTo;
-        }
-
-        private static OfficeChartAxisCrossingPosition ReadAxisCrossing(
-            OpenXmlCompositeElement? axis) {
-            C.CrossesValues? value = axis?.GetFirstChild<C.Crosses>()?.Val?.Value;
-            if (value == C.CrossesValues.Maximum) return OfficeChartAxisCrossingPosition.Maximum;
-            if (value == C.CrossesValues.Minimum) return OfficeChartAxisCrossingPosition.Minimum;
-            return OfficeChartAxisCrossingPosition.AutoZero;
         }
 
         private static string? ReadAxisTitle(OpenXmlCompositeElement axis) =>
@@ -834,7 +828,8 @@ namespace OfficeIMO.PowerPoint {
             ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadCategories(seriesElements,
                 PowerPointChartSnapshotMapper.MapKind(chartKind ?? PowerPointChartSnapshotKind.ClusteredColumn),
                 colorScheme, axisGroup, PowerPointUtils.MaximumSharedChartPoints, validatePlot, projectionBudget,
-                maximumPointOverrides: PowerPointUtils.MaximumSharedChartPoints, forDataUpdate: forDataUpdate), chartKind);
+                maximumPointOverrides: PowerPointUtils.MaximumSharedChartPoints, forDataUpdate: forDataUpdate,
+                keepMissingValues: !forDataUpdate), chartKind);
 
         private static PowerPointChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements,
             A.ColorScheme? colorScheme = null, bool validatePlot = true,
@@ -842,7 +837,8 @@ namespace OfficeIMO.PowerPoint {
             bool forDataUpdate = false) =>
             ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadScatter(seriesElements,
                 colorScheme, PowerPointUtils.MaximumSharedChartPoints, validatePlot, projectionBudget,
-                maximumPointOverrides: PowerPointUtils.MaximumSharedChartPoints, forDataUpdate: forDataUpdate), PowerPointChartSnapshotKind.Scatter);
+                maximumPointOverrides: PowerPointUtils.MaximumSharedChartPoints, forDataUpdate: forDataUpdate,
+                keepMissingValues: !forDataUpdate), PowerPointChartSnapshotKind.Scatter);
 
         private static PowerPointChartData? ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.Result? source,
             PowerPointChartSnapshotKind? kind) => source == null ? null : new PowerPointChartData(source.Categories,

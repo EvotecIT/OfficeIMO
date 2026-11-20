@@ -114,22 +114,6 @@ namespace OfficeIMO.Excel {
             return GetImageExportAxisTickLabelPosition(categoryAxis);
         }
 
-        private static OfficeChartAxisCrossingPosition GetImageExportVerticalAxisCrossingPosition(C.PlotArea plotArea, OpenXmlCompositeElement? valueAxis) {
-            if (HasHorizontalBarChart(plotArea)) {
-                return OfficeChartAxisCrossingPosition.AutoZero;
-            }
-
-            return GetImageExportAxisCrossingPosition(valueAxis);
-        }
-
-        private static OfficeChartAxisCrossingPosition GetImageExportHorizontalAxisCrossingPosition(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis) {
-            if (HasHorizontalBarChart(plotArea)) {
-                return OfficeChartAxisCrossingPosition.AutoZero;
-            }
-
-            return GetImageExportAxisCrossingPosition(categoryAxis);
-        }
-
         private static bool GetImageExportReverseCategoryAxis(OpenXmlCompositeElement? categoryAxis) =>
             (categoryAxis is C.CategoryAxis || categoryAxis is C.DateAxis) &&
             categoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin;
@@ -184,38 +168,8 @@ namespace OfficeIMO.Excel {
                 : OfficeChartAxisTickLabelPosition.NextTo;
         }
 
-        private static OfficeChartAxisCrossingPosition GetImageExportAxisCrossingPosition(OpenXmlCompositeElement? axis) {
-            C.CrossesValues? value = axis?.GetFirstChild<C.Crosses>()?.Val?.Value;
-            return value == C.CrossesValues.Maximum
-                ? OfficeChartAxisCrossingPosition.Maximum
-                : OfficeChartAxisCrossingPosition.AutoZero;
-        }
-
-        private static (double? Divisor, string? Label) GetImageExportAxisDisplayUnit(OpenXmlCompositeElement? axis) {
-            C.DisplayUnits? displayUnits = axis?.GetFirstChild<C.DisplayUnits>();
-            if (displayUnits == null) {
-                return default;
-            }
-
-            C.BuiltInUnit? builtIn = displayUnits.GetFirstChild<C.BuiltInUnit>();
-            string? builtInUnit = builtIn?.Val?.InnerText ?? builtIn?.Val?.Value.ToString() ?? builtIn?.InnerText;
-            double? divisor = builtInUnit == null
-                ? displayUnits.GetFirstChild<C.CustomDisplayUnit>()?.Val?.Value
-                : GetImageExportBuiltInDisplayUnitDivisor(builtInUnit);
-            if (!divisor.HasValue || divisor.Value <= 0D || double.IsNaN(divisor.Value) || double.IsInfinity(divisor.Value)) {
-                return default;
-            }
-
-            C.DisplayUnitsLabel? displayUnitsLabel = displayUnits.GetFirstChild<C.DisplayUnitsLabel>();
-            string? label = displayUnitsLabel?.GetFirstChild<C.ChartText>()?.InnerText;
-            if (displayUnitsLabel != null && string.IsNullOrWhiteSpace(label)) {
-                label = builtInUnit == null
-                    ? divisor.Value.ToString("0.##", CultureInfo.InvariantCulture)
-                    : GetImageExportBuiltInDisplayUnitLabel(builtInUnit);
-            }
-
-            return (divisor.Value, string.IsNullOrWhiteSpace(label) ? null : label!.Trim());
-        }
+        private static (double? Divisor, string? Label) GetImageExportAxisDisplayUnit(OpenXmlCompositeElement? axis) =>
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.ReadDisplayUnits(axis);
 
         private static (double? Minimum, double? Maximum, double? MajorUnit, double? MinorUnit) GetImageExportAxisScale(OpenXmlCompositeElement? axis) {
             C.Scaling? scaling = axis?.GetFirstChild<C.Scaling>();
@@ -239,40 +193,6 @@ namespace OfficeIMO.Excel {
             result = default;
             return false;
         }
-
-        private static double? GetImageExportBuiltInDisplayUnitDivisor(string builtInUnit) =>
-            NormalizeImageExportBuiltInDisplayUnit(builtInUnit) switch {
-                "hundreds" => 100D,
-                "thousands" => 1_000D,
-                "tenthousands" => 10_000D,
-                "hundredthousands" => 100_000D,
-                "millions" => 1_000_000D,
-                "tenmillions" => 10_000_000D,
-                "hundredmillions" => 100_000_000D,
-                "billions" => 1_000_000_000D,
-                "trillions" => 1_000_000_000_000D,
-                _ => null
-            };
-
-        private static string GetImageExportBuiltInDisplayUnitLabel(string builtInUnit) =>
-            NormalizeImageExportBuiltInDisplayUnit(builtInUnit) switch {
-                "hundreds" => "Hundreds",
-                "thousands" => "Thousands",
-                "tenthousands" => "Ten Thousands",
-                "hundredthousands" => "Hundred Thousands",
-                "millions" => "Millions",
-                "tenmillions" => "Ten Millions",
-                "hundredmillions" => "Hundred Millions",
-                "billions" => "Billions",
-                "trillions" => "Trillions",
-                _ => builtInUnit
-            };
-
-        private static string NormalizeImageExportBuiltInDisplayUnit(string builtInUnit) =>
-            builtInUnit.Replace(" ", string.Empty)
-                .Replace("-", string.Empty)
-                .Replace("_", string.Empty)
-                .ToLowerInvariant();
 
         private bool HasUnsupportedImageExportAxisNumberFormat(C.ChartSpace chartSpace) {
             foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {

@@ -313,11 +313,14 @@ namespace OfficeIMO.Excel {
                 .ToList();
         }
 
-        internal static ExcelChartData? TryReadChartData(ExcelSheet sheet, ExcelChartDataRange range) {
+        /// <param name="sheet">The worksheet holding the range.</param>
+        /// <param name="range">The chart's source range.</param>
+        /// <param name="keepBlankCells">Whether an empty value cell becomes NaN (missing) instead of zero, as a plotted chart needs.</param>
+        internal static ExcelChartData? TryReadChartData(ExcelSheet sheet, ExcelChartDataRange range, bool keepBlankCells = false) {
             try {
                 if (range.CategoryCount <= 0 || range.SeriesCount <= 0 ||
                     (long)range.CategoryCount + ((long)range.CategoryCount * range.SeriesCount) > MaxChartDataPoints) return null;
-                if (sheet.Document.TryReadDeferredTabularChartData(sheet, range, out ExcelChartData? deferred)) return deferred;
+                if (sheet.Document.TryReadDeferredTabularChartData(sheet, range, out ExcelChartData? deferred, keepBlankCells)) return deferred;
                 var categories = new List<string>(range.CategoryCount);
                 for (int i = 0; i < range.CategoryCount; i++) {
                     int row = range.Orientation == ExcelChartDataOrientation.Vertical ? range.CategoryStartRow + i : range.CategoryStartRow;
@@ -348,7 +351,7 @@ namespace OfficeIMO.Excel {
                             && double.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var val)) {
                             values.Add(val);
                         } else {
-                            values.Add(0d);
+                            values.Add(keepBlankCells && string.IsNullOrWhiteSpace(raw) ? double.NaN : 0d);
                         }
                     }
                     series.Add(new ExcelChartSeries(name, values));
@@ -408,7 +411,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    TryReadReferencedNumberValues(contextSheet, valuesReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? referencedValues);
+                    TryReadReferencedPlotValues(contextSheet, valuesReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? referencedValues);
                     IReadOnlyList<double>? cachedValues = null;
                     if (referencedValues == null ||
                         xValues != null && referencedValues.Count != xValues.Count) {
@@ -648,7 +651,7 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<double>? yValues = data.Series[index].Values;
                 if (yValues.Count != xValues.Count) {
                     NumberReference? yReference = scatterSeries.GetFirstChild<YValues>()?.GetFirstChild<NumberReference>();
-                    TryReadReferencedNumberValues(contextSheet, yReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? referencedYValues);
+                    TryReadReferencedPlotValues(contextSheet, yReference?.Formula?.Text, pointBudget, out IReadOnlyList<double>? referencedYValues);
                     IReadOnlyList<double>? cachedYValues = null;
                     if (referencedYValues == null || referencedYValues.Count != xValues.Count) {
                         TryReadCachedNumberValues(yReference, pointBudget, out cachedYValues);
@@ -797,7 +800,15 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) {
+        private static bool TryReadReferencedNumberValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) =>
+            TryReadReferencedNumbers(contextSheet, formula, pointBudget, 0D, out values);
+
+        // Plotted values keep an empty cell as missing (NaN) so the chart's blank-cell rule decides how it is drawn.
+        private static bool TryReadReferencedPlotValues(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget, out IReadOnlyList<double>? values) =>
+            TryReadReferencedNumbers(contextSheet, formula, pointBudget, double.NaN, out values);
+
+        private static bool TryReadReferencedNumbers(ExcelSheet contextSheet, string? formula, ChartDataPointBudget pointBudget,
+            double blankValue, out IReadOnlyList<double>? values) {
             values = null;
             if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
                 !TryParseRange(range, out int r1, out int c1, out int r2, out int c2)) {
@@ -824,7 +835,7 @@ namespace OfficeIMO.Excel {
                     consumedSourceReads++;
                     if (!sheet.TryGetCellText(row, column, out string? raw) ||
                         string.IsNullOrWhiteSpace(raw)) {
-                        numericValues.Add(0D);
+                        numericValues.Add(blankValue);
                         continue;
                     }
 

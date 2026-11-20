@@ -271,12 +271,16 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
 #if NET10_0_OR_GREATER
-    // ExcelReader.NET writes CSV to streams only, with typed row writes.
+    // ExcelReader.NET writes CSV to streams only, with typed row writes. It ends rows with CRLF unless told otherwise,
+    // so it is given the same Environment.NewLine as the other writers.
+    private static readonly ExcelReader.Core.Writer.Csv.CsvWriterOptions ExcelReaderOptions = new() {
+        NewLine = NewLine == "\n" ? ExcelReader.Core.Writer.Csv.CsvNewLine.LineFeed : ExcelReader.Core.Writer.Csv.CsvNewLine.CarriageReturnLineFeed
+    };
 
     [Benchmark]
     [BenchmarkCategory("library:ExcelReader.NET", "case:ObjectsUtf8")]
     public int ExcelReaderNet_ObjectsUtf8() {
-        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(ResetStream(), leaveOpen: true))
+        using (ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(ResetStream(), leaveOpen: true, ExcelReaderOptions))
         using (var csv = workbook.AddSheet("Data")) {
             using (ExcelReaderNetCsvRowWriter header = csv.StartRow()) {
                 foreach (string name in Source.Headers) header.Write(name);
@@ -307,7 +311,7 @@ public class CsvWriteComparisonBenchmarks : CsvWriteBenchmarkBase {
     }
 
     private void WriteExcelReaderReader(IDataReader reader) {
-        using ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(ResetStream(), leaveOpen: true);
+        using ExcelReaderNetCsvWriter workbook = ExcelReaderNetCsvWriter.Create(ResetStream(), leaveOpen: true, ExcelReaderOptions);
         using var csv = workbook.AddSheet("Data");
         using (ExcelReaderNetCsvRowWriter header = csv.StartRow()) {
             foreach (string name in Source.Headers) header.Write(name);

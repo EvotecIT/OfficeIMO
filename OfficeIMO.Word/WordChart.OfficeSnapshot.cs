@@ -40,7 +40,7 @@ public partial class WordChart {
             if (groups?.Length > 10000) return Fail("The chart has too many chart groups.", out failureReason);
             if (groups?.Length == 1 && groups[0] is C.Bar3DChart or C.Line3DChart or C.Area3DChart or C.Pie3DChart) {
                 if (!TryGetSnapshot(out var legacy) || !OfficeOpenXmlChartSeriesReader.TryReadKind(groups[0], out var legacyKind)) return Fail("The three-dimensional chart has no flat projection.", out failureReason);
-                snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title, legacyKind,
+                snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title ?? OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(chart), legacyKind,
                     new OfficeChartData(legacy.Data.Categories, legacy.Data.Series.Select(series => series.ToOfficeSeries()).ToArray()),
                     global::OfficeIMO.OfficeLength.Points(width ?? legacy.WidthPoints), global::OfficeIMO.OfficeLength.Points(height ?? legacy.HeightPoints), style: null, layout: null, radialLayout: legacy.RadialLayout);
                 projectionNotice = "The three-dimensional " + groups[0].LocalName.Replace("3DChart", string.Empty) + " chart is drawn as a flat two-dimensional chart.";
@@ -54,7 +54,7 @@ public partial class WordChart {
             if (!textReader.TryReadSharedTextStyle(chart, out var textStyle) ||
                 !textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var axisTitleFont)) return Fail("The chart text formatting cannot be projected.", out failureReason);
             OfficeChartData officeData = data.ToData();
-            snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, officeData, global::OfficeIMO.OfficeLength.Points(renderWidth), global::OfficeIMO.OfficeLength.Points(renderHeight),
+            snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart) ?? OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(chart), kind, officeData, global::OfficeIMO.OfficeLength.Points(renderWidth), global::OfficeIMO.OfficeLength.Points(renderHeight),
                 OfficeOpenXmlChartSeriesReader.ReadStyle(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
                 OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));

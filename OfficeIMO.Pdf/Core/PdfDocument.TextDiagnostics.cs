@@ -691,7 +691,7 @@ public sealed partial class PdfDocument {
 
     private static bool ShouldDeferProviderCoveredTextShapingDiagnostics(
         PdfCreateOptions options, PdfStandardFont font, string text, PdfTextRun? run = null) {
-        if (options.TextShapingProviderSnapshot == null && options.TextShapingModeSnapshot != PdfTextShapingMode.OpenTypeLigatures) {
+        if (options.TextShapingProviderSnapshot == null && options.TextShapingModeFor(text) != PdfTextShapingMode.OpenTypeLigatures) {
             return false;
         }
 
@@ -713,7 +713,7 @@ public sealed partial class PdfDocument {
             return false;
         }
 
-        PdfTextFallbackPlan plan = fallbackSet.PlanText(text, shapingMode: options.TextShapingModeSnapshot);
+        PdfTextFallbackPlan plan = fallbackSet.PlanText(text, shapingMode: options.TextShapingModeFor(text));
         if (!plan.IsFullyCovered) {
             return false;
         }

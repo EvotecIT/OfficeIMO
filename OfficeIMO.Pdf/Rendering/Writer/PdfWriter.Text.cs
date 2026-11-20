@@ -87,14 +87,14 @@ internal static partial class PdfWriter {
             options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace namedFace)) {
             if (options.TryGetNamedFontProgram(namedFace, out PdfTrueTypeFontProgram? namedFontProgram) &&
                 namedFontProgram != null) {
-                return CanWriteWithEmbeddedFont(text, namedFontProgram, options.TextShapingModeSnapshot,
+                return CanWriteWithEmbeddedFont(text, namedFontProgram, options.TextShapingModeFor(text),
                     CreateSelectedManagedCoverageOptions(options, namedFontProgram.FontName, run,
                         options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
 
             if (options.TryGetNamedOpenTypeCffFontProgram(namedFace, out PdfOpenTypeCffFontProgram? namedCffFontProgram) &&
                 namedCffFontProgram != null) {
-                return CanWriteWithEmbeddedFont(text, namedCffFontProgram, options.TextShapingModeSnapshot,
+                return CanWriteWithEmbeddedFont(text, namedCffFontProgram, options.TextShapingModeFor(text),
                     CreateSelectedManagedCoverageOptions(options, namedCffFontProgram.FontName, run,
                         options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, fontProgram, options.TextShapingModeSnapshot,
+            return CanWriteWithEmbeddedFont(text, fontProgram, options.TextShapingModeFor(text),
                 CreateSelectedManagedCoverageOptions(options, fontProgram.FontName, run,
                     options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
@@ -116,7 +116,7 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, cffFontProgram, options.TextShapingModeSnapshot,
+            return CanWriteWithEmbeddedFont(text, cffFontProgram, options.TextShapingModeFor(text),
                 CreateSelectedManagedCoverageOptions(options, cffFontProgram.FontName, run,
                     options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }

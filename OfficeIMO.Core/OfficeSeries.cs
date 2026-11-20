@@ -291,6 +291,20 @@ public sealed partial class OfficeSeries {
         };
     }
 
+    /// <summary>Returns a copy whose values replace the current ones point for point, keeping its appearance.</summary>
+    internal OfficeSeries WithValues(IReadOnlyList<double> values) {
+        if (values.Count != Values.Count) throw new ArgumentException("Replacement values must match the series length.", nameof(values));
+        return new OfficeSeries(Name, values, XValues, BubbleSizes, Color, PointColors,
+            ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            _markerVisibilitySpecified = this._markerVisibilitySpecified,
+            SeriesStyle = SeriesStyle,
+            PointStyles = PointStyles,
+            PointExplosions = PointExplosions,
+            Trendline = Trendline
+        };
+    }
+
     /// <summary>Optional trendline fitted to this series.</summary>
     public OfficeChartTrendline? Trendline { get; private set; }
 

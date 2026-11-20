@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
             if (direction == OfficeIMO.Drawing.OfficeTextDirection.Auto && !namedTrueType.HasTracking)
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
-                namedTrueType.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
+                namedTrueType.FontName, options.TextShapingModeFor(text), options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             return namedTrueType.MeasureShapedTextWidth(text, namedTrueType.ShapeText(text, shapingOptions), effectiveFontSize, fontMetricScale, options.UseFontUnitTextLayout);
         }
@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
             if (direction == OfficeIMO.Drawing.OfficeTextDirection.Auto)
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
-                namedCff.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
+                namedCff.FontName, options.TextShapingModeFor(text), options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             PdfGlyphRun run = namedCff.ShapeText(text, shapingOptions);
             return (options.UseFontUnitTextLayout ? namedCff.MeasureFontUnitAdvanceWidth1000(run) : run.TotalAdvanceWidth1000) * effectiveFontSize / 1000D;
@@ -106,7 +106,7 @@ internal static partial class PdfWriter {
             if (direction == OfficeIMO.Drawing.OfficeTextDirection.Auto && !standardTrueType.HasTracking)
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
-                standardTrueType.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
+                standardTrueType.FontName, options.TextShapingModeFor(text), options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             return standardTrueType.MeasureShapedTextWidth(text, standardTrueType.ShapeText(text, shapingOptions), effectiveFontSize, fontMetricScale, options.UseFontUnitTextLayout);
         }
@@ -115,7 +115,7 @@ internal static partial class PdfWriter {
             if (direction == OfficeIMO.Drawing.OfficeTextDirection.Auto)
                 return MeasureRichText(text, font, namedFont, fontSize, baseline, options, featureSettings);
             shapingOptions = PdfTextShapingOptions.ForRendering(
-                standardCff.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
+                standardCff.FontName, options.TextShapingModeFor(text), options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate, options.EffectiveTextShapingLanguage, featureSettings, direction);
             PdfGlyphRun run = standardCff.ShapeText(text, shapingOptions);
             return (options.UseFontUnitTextLayout ? standardCff.MeasureFontUnitAdvanceWidth1000(run) : run.TotalAdvanceWidth1000) * effectiveFontSize / 1000D;

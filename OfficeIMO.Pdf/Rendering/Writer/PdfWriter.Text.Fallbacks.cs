@@ -345,7 +345,7 @@ internal static partial class PdfWriter {
                 return CanWriteWithEmbeddedFont(
                     textElement,
                     namedFontProgram,
-                    options.TextShapingModeSnapshot,
+                    options.TextShapingModeFor(text),
                     CreateSelectedManagedCoverageOptions(options, namedFontProgram.FontName, run,
                         options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
@@ -355,7 +355,7 @@ internal static partial class PdfWriter {
                 return CanWriteWithEmbeddedFont(
                     textElement,
                     namedCffFontProgram,
-                    options.TextShapingModeSnapshot,
+                    options.TextShapingModeFor(text),
                     CreateSelectedManagedCoverageOptions(options, namedCffFontProgram.FontName, run,
                         options.ShouldPreferSelectedCallerFamily(run.FontFamily)));
             }
@@ -367,7 +367,7 @@ internal static partial class PdfWriter {
             return CanWriteWithEmbeddedFont(
                 textElement,
                 fontProgram,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 CreateSelectedManagedCoverageOptions(options, fontProgram.FontName, run,
                     options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }
@@ -378,7 +378,7 @@ internal static partial class PdfWriter {
             return CanWriteWithEmbeddedFont(
                 textElement,
                 cffFontProgram,
-                options.TextShapingModeSnapshot,
+                options.TextShapingModeFor(text),
                 CreateSelectedManagedCoverageOptions(options, cffFontProgram.FontName, run,
                     options.HasCallerOwnedEmbeddedFontFamily(fontForRun)));
         }

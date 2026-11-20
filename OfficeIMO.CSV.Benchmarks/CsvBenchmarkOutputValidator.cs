@@ -120,8 +120,8 @@ internal static class CsvBenchmarkOutputValidator
         }
 
         // Read the same text again with an independent parser, so a writer is never checked only by the reader of
-        // the library under test. Sylvan.Data.Csv accepts single-character delimiters.
-        if (delimiter.Length == 1)
+        // the library under test. Sylvan.Data.Csv accepts single-character ASCII delimiters only.
+        if (delimiter.Length == 1 && delimiter[0] < 128)
         {
             ValidateWithSylvan(method, csvText, expectedHeaders, expectedRowCount, expectedTextRows, expectedObjectRows, delimiter[0]);
         }

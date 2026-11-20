@@ -8,7 +8,12 @@ namespace OfficeIMO.Excel {
         /// does not write every row into the worksheet first. Each value reads as the text its worksheet cell would hold.
         /// Returns false for anything else, and the caller reads the cells.
         /// </summary>
-        internal bool TryReadDeferredTabularChartData(ExcelSheet sheet, ExcelChartDataRange range, out ExcelChartData? data) {
+        /// <param name="sheet">The worksheet holding the range.</param>
+        /// <param name="range">The chart's source range.</param>
+        /// <param name="data">The chart data read from the deferred rows.</param>
+        /// <param name="keepBlankCells">Whether an empty value cell becomes NaN (missing) instead of zero.</param>
+        internal bool TryReadDeferredTabularChartData(ExcelSheet sheet, ExcelChartDataRange range, out ExcelChartData? data,
+            bool keepBlankCells = false) {
             data = null;
             if (range.Orientation != ExcelChartDataOrientation.Vertical
                 || !string.Equals(range.SheetName, sheet.Name, StringComparison.Ordinal)) {
@@ -36,7 +41,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                series.Add(new ExcelChartSeries(name, raw.Select(ParseChartNumber)));
+                series.Add(new ExcelChartSeries(name, raw.Select(text => keepBlankCells && string.IsNullOrWhiteSpace(text) ? double.NaN : ParseChartNumber(text))));
             }
 
             data = new ExcelChartData(categories.Select(text => text ?? string.Empty), series);

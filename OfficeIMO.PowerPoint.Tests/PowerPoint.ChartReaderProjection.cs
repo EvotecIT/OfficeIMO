@@ -146,7 +146,7 @@ public sealed class PowerPointChartReaderProjectionTests {
         foreach (var point in cache.Elements<C.NumericPoint>().Skip(1).ToArray()) point.Remove();
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(new[] { "A", "B", "C" }, snapshot.Data.Categories);
-        Assert.Equal(new[] { 1d, 0d, 0d }, snapshot.Data.Series[0].Values);
+        Assert.Equal(new[] { 1d, double.NaN, double.NaN }, snapshot.Data.Series[0].Values);
         Assert.Equal(new[] { 4d, 5d, 6d }, snapshot.Data.Series[1].Values);
     }
 

@@ -72,8 +72,16 @@ try {
         $sources = @($emptySource)
     }
     New-Item -ItemType Directory -Path (Split-Path -Parent $Path) -Force | Out-Null
-    Merge-BenchmarkEvidenceCatalog -SourcePath @($sources) -Path $Path -DeclarationPath $declarationPath `
+    $merged = Merge-BenchmarkEvidenceCatalog -SourcePath @($sources) -Path $Path -DeclarationPath $declarationPath `
         -ResultPathPrefix $resultPathPrefix -Policy ([PowerForge.BenchmarkPublishPolicy]::CreateDefault())
+    # The catalog folder holds only the results of its current lanes. Files of replaced runs stay in Git history and
+    # in the bundles that recorded them; the superseded history keeps their dates and hashes.
+    $catalogDirectory = Split-Path -Parent $Path
+    $current = @($merged.Entries | ForEach-Object { [System.IO.Path]::GetFileName([string] $_.ArtifactRelativePath) })
+    Get-ChildItem -LiteralPath $catalogDirectory -File -Filter '*.json' |
+        Where-Object { $_.Name -match '\.[0-9a-f]{64}\.json$' -and $_.Name -notin $current } |
+        Remove-Item -ErrorAction Stop
+    $merged
 } finally {
     if (Test-Path -LiteralPath $temporaryDirectory) {
         Remove-Item -LiteralPath $temporaryDirectory -Recurse -ErrorAction Stop

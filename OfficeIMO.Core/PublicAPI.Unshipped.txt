@@ -838,3 +838,15 @@ OfficeIMO.Drawing.OfficeChartImageExportOptions.Height.set -> void
 OfficeIMO.Drawing.OfficeChartImageExportOptions.OfficeChartImageExportOptions() -> void
 OfficeIMO.Drawing.OfficeChartImageExportOptions.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Drawing.OfficeChartImageExportOptions.Width.set -> void
+OfficeIMO.Drawing.OfficeChartBlankDisplay
+OfficeIMO.Drawing.OfficeChartBlankDisplay.Gap = 1 -> OfficeIMO.Drawing.OfficeChartBlankDisplay
+OfficeIMO.Drawing.OfficeChartBlankDisplay.Span = 0 -> OfficeIMO.Drawing.OfficeChartBlankDisplay
+OfficeIMO.Drawing.OfficeChartBlankDisplay.Zero = 2 -> OfficeIMO.Drawing.OfficeChartBlankDisplay
+OfficeIMO.Drawing.OfficeChartLayout.BlankDisplay.get -> OfficeIMO.Drawing.OfficeChartBlankDisplay
+OfficeIMO.Drawing.OfficeChartLayout.HorizontalAxisCrossesAt.get -> double?
+OfficeIMO.Drawing.OfficeChartLayout.VerticalAxisCrossesAt.get -> double?
+OfficeIMO.Drawing.OfficeChartLayout.WithAxisCrossings(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition horizontalPosition, double? horizontalCrossesAt, OfficeIMO.Drawing.OfficeChartAxisCrossingPosition verticalPosition, double? verticalCrossesAt) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayout.WithAxisDisplayUnits(double? horizontalDivisor, string? horizontalLabel, double? verticalDivisor, string? verticalLabel) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayout.WithBlankDisplay(OfficeIMO.Drawing.OfficeChartBlankDisplay blankDisplay) -> OfficeIMO.Drawing.OfficeChartLayout!
+OfficeIMO.Drawing.OfficeChartLayout.ShowDataLabelsOverMaximum.get -> bool
+OfficeIMO.Drawing.OfficeChartLayout.WithDataLabelsOverMaximum(bool show) -> OfficeIMO.Drawing.OfficeChartLayout!

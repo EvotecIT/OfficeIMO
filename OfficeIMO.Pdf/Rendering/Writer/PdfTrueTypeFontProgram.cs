@@ -119,6 +119,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
             return 0D;
         }
 
+        shapingMode = PdfTextShapingOptions.EffectiveShapingMode(shapingMode, text);
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
         if (useFontUnitAdvances) return MeasureShapedTextWidth(text!, ShapeText(text!, options), fontSize,
             useFontUnitAdvances: true);
@@ -148,6 +149,45 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public int GlyphCount => _advanceWidths1000.Length;
 
     internal byte[] FontDataForInspection => _data;
+
+    private BitmapColorGlyphs? _bitmapColorGlyphs;
+
+    /// <summary>
+    /// Whether a painted glyph is a CBDT, sbix or SVG color image without an outline. PDF text paints
+    /// outlines only, so such a glyph would leave a silent blank. The blank glyphs that whitespace and
+    /// nonpainting controls map to are intentional and excluded.
+    /// </summary>
+    internal bool IsUnpaintableColorGlyph(int glyphId) {
+        BitmapColorGlyphs glyphs = LazyInitializer.EnsureInitialized(ref _bitmapColorGlyphs, () => new BitmapColorGlyphs(this))!;
+        return glyphs.Program != null && !glyphs.BlankGlyphs!.Contains(glyphId) && glyphs.Program.IsUnpaintableColorGlyph(glyphId);
+    }
+
+    internal bool HasBitmapColorGlyphs =>
+        LazyInitializer.EnsureInitialized(ref _bitmapColorGlyphs, () => new BitmapColorGlyphs(this))!.Program != null;
+
+    private sealed class BitmapColorGlyphs {
+        internal BitmapColorGlyphs(PdfTrueTypeFontProgram font) {
+            Program = HasBitmapColorTable(font._data) ? OfficeTrueTypeFont.TryLoad(font._data) : null;
+            if (Program == null) return;
+            BlankGlyphs = new HashSet<int>();
+            foreach (KeyValuePair<int, int> mapping in font._cmap) {
+                if (mapping.Value > 0 && (OfficeManagedTextShaper.IsNonPaintingControl(mapping.Key)
+                    || mapping.Key <= char.MaxValue && char.IsWhiteSpace((char)mapping.Key))) BlankGlyphs.Add(mapping.Value);
+            }
+        }
+        internal OfficeTrueTypeFont? Program { get; }
+        internal HashSet<int>? BlankGlyphs { get; }
+    }
+
+    private static bool HasBitmapColorTable(byte[] data) {
+        if (data.Length < 12) return false;
+        int count = data[4] << 8 | data[5];
+        for (int index = 0; index < count && 12 + index * 16 + 4 <= data.Length; index++) {
+            string tag = System.Text.Encoding.ASCII.GetString(data, 12 + index * 16, 4);
+            if (tag is "CBDT" or "sbix" or "SVG ") return true;
+        }
+        return false;
+    }
 
     // Identifies the immutable program shared by every document fork, so per-program
     // caches survive ForkForDocument.
@@ -197,6 +237,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        options = options.ForText(text);
         bool cacheable = PdfShortTextCache<PdfGlyphRun>.IsEligible(text, options);
         if (cacheable && _shortGlyphRuns.TryGet(text, options, out PdfGlyphRun cached)) {
             ReplayGlyphRunUsage(cached);

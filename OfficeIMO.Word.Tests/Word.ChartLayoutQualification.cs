@@ -133,18 +133,13 @@ public sealed class WordChartLayoutQualificationTests {
     [InlineData("plot")]
     [InlineData("title")]
     [InlineData("legend")]
-    [InlineData("topRight")]
-    public void Snapshot_RejectsUnrepresentedManualLayoutAndLegendPlacement(string target) {
+    public void Snapshot_RejectsUnrepresentedManualLayout(string target) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.Line);
         var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
-        if (target == "topRight") {
-            native.GetFirstChild<C.Legend>()!.LegendPosition!.Val = C.LegendPositionValues.TopRight;
-        } else {
-            OpenXmlCompositeElement owner = target == "plot" ? native.PlotArea! : target == "legend" ? native.GetFirstChild<C.Legend>()! : native.GetFirstChild<C.Title>()!;
-            owner.RemoveAllChildren<C.Layout>();
-            owner.AddChild(new C.Layout(new C.ManualLayout(new C.Left { Val = 0.2 }, new C.Top { Val = 0.2 })), true);
-        }
+        OpenXmlCompositeElement owner = target == "plot" ? native.PlotArea! : target == "legend" ? native.GetFirstChild<C.Legend>()! : native.GetFirstChild<C.Title>()!;
+        owner.RemoveAllChildren<C.Layout>();
+        owner.AddChild(new C.Layout(new C.ManualLayout(new C.Left { Val = 0.2 }, new C.Top { Val = 0.2 })), true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
