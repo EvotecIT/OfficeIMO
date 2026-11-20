@@ -228,6 +228,30 @@ public sealed class WordChartProjectionQualificationTests {
     }
 
     [Fact]
+    public void SourceVisibility_IgnoresTheCategoriesOfAHiddenSeriesWhenZeroBlanksCompareLengths() {
+        using var document = WordDocument.Create();
+        var chart = AddChartWithTwoSeries(document);
+        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.GetFirstChild<C.DisplayBlanksAs>()!.Val = C.DisplayBlanksAsValues.Zero;
+        // The first series, whose values are hidden, labels a fourth category the remaining series never reaches.
+        C.CategoryAxisData first = native.Descendants<C.BarChartSeries>().First().GetFirstChild<C.CategoryAxisData>()!;
+        C.Formula formula = first.Descendants<C.Formula>().Single();
+        formula.Text = formula.Text.Replace("$4", "$5");
+        C.StringCache cache = first.Descendants<C.StringCache>().Single();
+        cache.GetFirstChild<C.PointCount>()!.Val = 4U;
+        cache.Append(new C.StringPoint(new C.NumericValue("D")) { Index = 3U });
+        EditEmbeddedWorksheet(chart, worksheet => {
+            var columns = worksheet.GetFirstChild<S.Columns>() ?? worksheet.InsertBefore(new S.Columns(), worksheet.GetFirstChild<S.SheetData>());
+            columns.Append(new S.Column { Min = 2U, Max = 2U, Hidden = true });
+        });
+
+        // The hidden-cell projection accepts it: nothing it keeps needs padding. (The flat Word projection still
+        // declines series whose category caches differ, which is a separate rule.)
+        Assert.True(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.TryReadSourceVisibility(
+            chart.ChartPart!, native, out _, out string? reason), reason);
+    }
+
+    [Fact]
     public void LegacySnapshot_RejectsASeriesShortenedByHiddenCells() {
         using var document = WordDocument.Create();
         var chart = AddChartWithTwoSeries(document);

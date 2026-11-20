@@ -75,14 +75,26 @@ namespace OfficeIMO.Excel {
                 }
                 if (sizes[index] is IReadOnlyList<double> bubbleSizes && bubbleSizes.Count != series[index].Count) return null;
             }
-            OpenXmlCompositeElement first = seriesList[0];
-            OpenXmlElement? categorySource = first is ScatterChartSeries or BubbleChartSeries
-                ? first.GetFirstChild<XValues>()
-                : first.GetFirstChild<CategoryAxisData>();
-            int[]? categoryOffsets = VisibleOffsets(categorySource, data.Categories.Count);
+            static OpenXmlElement? CategorySource(OpenXmlCompositeElement element) => element is ScatterChartSeries or BubbleChartSeries
+                ? element.GetFirstChild<XValues>()
+                : element.GetFirstChild<CategoryAxisData>();
+            static string? CategoryFormula(OpenXmlElement? source) => source?.GetFirstChild<NumberReference>()?.Formula?.Text ??
+                source?.GetFirstChild<StringReference>()?.Formula?.Text;
+            // Office takes the labels from the first series it still plots. The data holds the first series'
+            // labels; another series with its own label cells is read from its cached labels.
+            int labelSeries = Math.Max(0, Array.IndexOf(hidden, false));
+            OpenXmlElement? categorySource = CategorySource(seriesList[labelSeries]);
+            IReadOnlyList<string> sourceCategories = data.Categories;
+            if (labelSeries > 0 && !string.Equals(CategoryFormula(categorySource), CategoryFormula(CategorySource(seriesList[0])),
+                    StringComparison.OrdinalIgnoreCase)) {
+                IReadOnlyList<string>? cached = ReadCachedLabels(categorySource);
+                if (cached == null) return null;
+                sourceCategories = cached;
+            }
+            int[]? categoryOffsets = VisibleOffsets(categorySource, sourceCategories.Count);
             // Hidden category cells change the labels even when every value cell is visible.
             if (!changed && categoryOffsets == null) return data;
-            IReadOnlyList<string> categories = Select(data.Categories, categoryOffsets);
+            IReadOnlyList<string> categories = Select(sourceCategories, categoryOffsets);
             int length = Math.Max(categories.Count, Enumerable.Range(0, series.Length)
                 .Where(index => xValues[index] == null && !hidden[index]).Select(index => series[index].Count).DefaultIfEmpty(0).Max());
             bool padsValues = false;
@@ -102,6 +114,20 @@ namespace OfficeIMO.Excel {
             if (categories.Count < length) categories = categories.Concat(Enumerable.Repeat(string.Empty, length - categories.Count)).ToArray();
             hiddenSeries = hidden.Any(item => item) ? hidden : null;
             return new ExcelChartData(categories, visibleSeries);
+        }
+
+        // The cached labels of a category or X range, in point order; null when the cache does not cover every point.
+        private static IReadOnlyList<string>? ReadCachedLabels(OpenXmlElement? source) {
+            OpenXmlElement? cache = source?.Descendants().FirstOrDefault(element => element is StringCache or NumberingCache);
+            uint? count = cache?.GetFirstChild<PointCount>()?.Val?.Value;
+            if (cache == null || count == null || count.Value > 1_000_000U) return null;
+            var labels = new string?[count.Value];
+            foreach (OpenXmlElement point in cache.ChildElements.Where(element => element is StringPoint or NumericPoint)) {
+                uint? index = (point as StringPoint)?.Index?.Value ?? (point as NumericPoint)?.Index?.Value;
+                if (index == null || index.Value >= count.Value) return null;
+                labels[index.Value] = point.GetFirstChild<NumericValue>()?.Text ?? string.Empty;
+            }
+            return labels.Any(label => label == null) ? null : labels.Select(label => label!).ToArray();
         }
 
         /// <summary>Drops the series <see cref="SelectVisiblePoints"/> found hidden, after formatting has been matched to them.</summary>

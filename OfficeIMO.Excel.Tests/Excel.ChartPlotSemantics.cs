@@ -158,6 +158,35 @@ public sealed class ExcelChartPlotSemanticsTests {
     }
 
     [Fact]
+    public void SnapshotTakesCategoryLabelsFromTheFirstSeriesStillPlotted() {
+        // With the first series hidden, Excel 16 labels the axis from the next series' own category cells.
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Data");
+        string[] months = { "Jan", "Feb", "Mar" }, letters = { "X", "Y", "Z" };
+        for (int index = 0; index < 3; index++) {
+            sheet.Cell(2 + index, 1).SetValue(months[index]);
+            sheet.Cell(2 + index, 2).SetValue(10 * (index + 1));
+            sheet.Cell(6 + index, 1).SetValue(letters[index]);
+            sheet.Cell(6 + index, 3).SetValue(100 * (index + 1));
+        }
+        sheet.SetColumnHidden(2, true);
+        ExcelChart chart = sheet.AddChartFromRanges(OfficeChartType.ColumnClustered, new[] {
+            new ExcelChartSeriesRange("S1", "A2:A4", "B2:B4"), new ExcelChartSeriesRange("S2", "A2:A4", "C6:C8") },
+            new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6 });
+        // Office files can give each series its own category cells; point the second series at X, Y and Z.
+        C.CategoryAxisData second = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts).ChartSpace!
+            .Descendants<C.BarChartSeries>().ElementAt(1).GetFirstChild<C.CategoryAxisData>()!;
+        second.Descendants<C.Formula>().Single().Text = "Data!$A$6:$A$8";
+        C.StringPoint[] points = second.Descendants<C.StringPoint>().OrderBy(point => point.Index!.Value).ToArray();
+        for (int index = 0; index < points.Length; index++) points[index].NumericValue!.Text = letters[index];
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
+
+        Assert.Equal(letters, snapshot.Data.Categories);
+        Assert.Equal(new[] { 100D, 200D, 300D }, Assert.Single(snapshot.Data.Series).Values);
+    }
+
+    [Fact]
     public void ChartWhoseEverySeriesIsHiddenHasNoSnapshot() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = Sheet(document);

@@ -95,11 +95,13 @@ namespace OfficeIMO.OpenXml.Internal {
                     long Length(OpenXmlElement source) => visible.TryGetValue(source, out int[]? offsets)
                         ? offsets.Length
                         : (long?)source.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value ?? 0L;
-                    // A series whose value cells are all hidden is left out, so it needs no padding; the others are
-                    // padded to the longest series or category list the projection keeps.
-                    long[] retained = chart.PlotArea!.Descendants<C.Values>().Select(Length).Where(length => length != 0L).ToArray();
-                    long projected = retained.Concat(chart.PlotArea.Descendants<C.CategoryAxisData>().Select(Length)).DefaultIfEmpty(0L).Max();
-                    if (retained.Any(length => length < projected))
+                    // A series whose value cells are all hidden is left out with its categories, so it needs no
+                    // padding and sets no length; the others are padded to the longest series or category list kept.
+                    var kept = chart.PlotArea!.Descendants<C.Values>()
+                        .Select(values => (Values: Length(values), Categories: values.Parent?.GetFirstChild<C.CategoryAxisData>() is C.CategoryAxisData categories ? Length(categories) : 0L))
+                        .Where(item => item.Values != 0L).ToArray();
+                    long projected = kept.Select(item => Math.Max(item.Values, item.Categories)).DefaultIfEmpty(0L).Max();
+                    if (kept.Any(item => item.Values < projected))
                         return Fail("Hidden cells leave chart series shorter than the chart, which a zero blank rule would draw.", out reason);
                 }
                 visibility = new SourceVisibility(visible);
