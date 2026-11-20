@@ -25,12 +25,15 @@ internal static class YamlWorkloadValidation {
         }
     }
 
-    /// <summary>The tree has one node per scalar, collection and alias event, and loads the same values as the other library.</summary>
-    public static void ValidateLoad(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs) {
+    /// <summary>
+    /// The tree has one node per scalar, collection and alias event, and loads the same values as the other library.
+    /// <paramref name="load"/> is the timed load when it differs from <see cref="IYamlReferenceLibrary.LoadTree"/>.
+    /// </summary>
+    public static void ValidateLoad(IYamlReferenceLibrary library, YamlWorkload workload, string[] inputs, Func<string, int>? load = null) {
         IYamlReferenceLibrary other = Other(library);
         foreach (string input in Distinct(inputs)) {
             byte[] bytes = Utf8.GetBytes(input);
-            int nodes = library.LoadTree(input);
+            int nodes = load != null ? load(input) : library.LoadTree(input);
             int expected = library.Conformance.Parse(bytes).Count(e => e.Kind is YamlTestEventKind.Scalar or YamlTestEventKind.Alias or YamlTestEventKind.MappingStart or YamlTestEventKind.SequenceStart);
             Require(nodes >= expected, library, workload, "loaded " + nodes + " nodes for " + expected + " node events");
             string? difference = YamlJsonEquivalence.FindDifference(other.Conformance.Load(bytes), library.Conformance.Load(bytes));

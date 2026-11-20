@@ -1312,7 +1312,7 @@
       ],
       "cases": [
         "Default",
-        "WithValues"
+        "LazyValues"
       ],
       "cells": [
         {
@@ -1322,7 +1322,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "SmallConfig"
@@ -1335,7 +1335,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "KubernetesStream"
@@ -1348,7 +1348,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "DeepNesting"
@@ -1361,7 +1361,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "BlockScalars"
@@ -1374,7 +1374,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "FlowHeavy"
@@ -1387,7 +1387,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "AnchorHeavy"
@@ -1422,7 +1422,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "ManySmallFiles"
@@ -2312,7 +2312,7 @@
       ],
       "cases": [
         "Default",
-        "WithValues"
+        "LazyValues"
       ],
       "cells": [
         {
@@ -2322,7 +2322,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "SmallConfig"
@@ -2335,7 +2335,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "CargoWorkspace"
@@ -2348,7 +2348,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "LockFile"
@@ -2361,7 +2361,7 @@
           }
         },
         {
-          "case": "WithValues",
+          "case": "LazyValues",
           "library": "OfficeIMO",
           "parameters": {
             "Workload": "Corpus"

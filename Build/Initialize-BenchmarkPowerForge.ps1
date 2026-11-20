@@ -38,15 +38,24 @@ if ([string]::IsNullOrWhiteSpace($PowerForgeRoot)) {
     }
     $PowerForgeRoot = Join-Path $cacheRoot "PowerForge/benchmark-sources/$($pin.ref)"
     if (-not (Test-Path -LiteralPath $PowerForgeRoot)) {
-        New-Item -ItemType Directory -Path $PowerForgeRoot -Force | Out-Null
-        & git -C $PowerForgeRoot init --quiet
-        if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the pinned PowerForge source cache.' }
-        & git -C $PowerForgeRoot remote add origin $pin.repository
-        if ($LASTEXITCODE -ne 0) { throw 'Could not configure the pinned PowerForge source remote.' }
-        & git -C $PowerForgeRoot fetch --depth 1 origin $pin.ref
-        if ($LASTEXITCODE -ne 0) { throw 'Could not fetch the pinned PowerForge source revision.' }
-        & git -C $PowerForgeRoot checkout --detach --quiet FETCH_HEAD
-        if ($LASTEXITCODE -ne 0) { throw 'Could not check out the pinned PowerForge source revision.' }
+        try {
+            New-Item -ItemType Directory -Path $PowerForgeRoot -Force | Out-Null
+            & git -C $PowerForgeRoot init --quiet
+            if ($LASTEXITCODE -ne 0) { throw 'Could not initialize the pinned PowerForge source cache.' }
+            # PowerForge has test corpus paths beyond the Windows MAX_PATH limit; without long paths the checkout is incomplete.
+            & git -C $PowerForgeRoot config core.longpaths true
+            if ($LASTEXITCODE -ne 0) { throw 'Could not enable long paths for the pinned PowerForge source cache.' }
+            & git -C $PowerForgeRoot remote add origin $pin.repository
+            if ($LASTEXITCODE -ne 0) { throw 'Could not configure the pinned PowerForge source remote.' }
+            & git -C $PowerForgeRoot fetch --depth 1 origin $pin.ref
+            if ($LASTEXITCODE -ne 0) { throw 'Could not fetch the pinned PowerForge source revision.' }
+            & git -C $PowerForgeRoot checkout --detach --quiet FETCH_HEAD
+            if ($LASTEXITCODE -ne 0) { throw 'Could not check out the pinned PowerForge source revision.' }
+        } catch {
+            # A half-initialized automatic cache would make every retry skip initialization; start over next time.
+            Remove-Item -LiteralPath $PowerForgeRoot -Recurse -Force -ErrorAction SilentlyContinue
+            throw
+        }
     }
 }
 $head = & git -C $PowerForgeRoot rev-parse HEAD

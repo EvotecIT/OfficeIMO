@@ -6,6 +6,7 @@ using BenchmarkDotNet.Exporters.Json;
 
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+using BenchmarkDotNet.Reports;
 using System.Globalization;
 using System.Text.Json;
 
@@ -631,9 +632,12 @@ if (benchmarkPriority != null) {
     BenchmarkProcessorAffinity.ApplyPriority(benchmarkPriority);
 }
 var (benchmarkArgs, affinityMasks) = ExtractAffinityMasks(priorityArgs);
+// Parameter values are recorded at full length so they match the declared axis values (the default style shortens
+// values longer than 20 characters, such as ContinuedSharedString).
 var benchmarkConfig = ManualConfig
     .Create(DefaultConfig.Instance)
-    .AddExporter(JsonExporter.Full);
+    .AddExporter(JsonExporter.Full)
+    .WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(64));
 benchmarkConfig.AddRestrictedLibraryFilter();
 for (int index = 0; index < affinityMasks.Length; index++) {
     IntPtr affinity = affinityMasks[index];
