@@ -305,6 +305,30 @@ public sealed class DrawingChartPlotSemanticsTests {
     }
 
     [Fact]
+    public void ScatterTrendlineOnALogarithmicXAxisIsDrawnAcrossTheDrawableSamples() {
+        OfficeColor trend = OfficeColor.Parse("#00A0D9");
+        OfficeSeries series = new OfficeSeries("Sales", new double[] { 1, 2, 3, 4, 5 }, new double[] { 0, 1, 10, 100, 1000 }, Ink, null,
+            showMarkers: true).WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Linear, color: trend));
+        OfficeDrawing drawing = Render(OfficeChartType.Scatter, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(10D, null), series);
+
+        // The 0 is fitted but cannot be drawn, so the curve runs from 1 to 1000.
+        Assert.True(Shapes(drawing).Where(shape => shape.Shape.StrokeColor == trend).SelectMany(PathPoints).Count() > 2);
+    }
+
+    [Fact]
+    public void ScatterWithoutOwnXValuesPairsCategoriesTheSameOnAReversedAxis() {
+        OfficeDrawing Draw(OfficeChartLayout layout) => OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Scatter,
+            new OfficeChartData(new[] { "1", "2", "3" }, new[] { new OfficeSeries("Sales", new double[] { 5, 6, 7, 8, 9 }, null, Ink, null, showMarkers: true) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(300), layout: layout));
+        var linear = new OfficeChartLayout(showLegend: false);
+
+        // Points past the three categories have no X on either axis.
+        OfficeDrawing reversed = Draw(linear.WithReversedValueAxes(true, false));
+        Assert.NotEmpty(SeriesFill(reversed));
+        Assert.Equal(SeriesFill(Draw(linear)).Count(), SeriesFill(reversed).Count());
+    }
+
+    [Fact]
     public void SingleColumnOnTickMarksStaysUnderItsLabel() {
         OfficeChartLayout layout = new OfficeChartLayout(showLegend: false).WithCategoryPointsOnTickMarks(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.ColumnClustered,

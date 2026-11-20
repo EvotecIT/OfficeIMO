@@ -81,8 +81,11 @@ public static partial class OfficeChartDrawingRenderer {
             } else {
                 if (!TryFitTrendline(trendline, xs, ys, out Func<double, double>? model, out equation, out rSquared)) continue;
                 // Samples are spaced evenly along the drawn axis, so a curve on a logarithmic X axis stays smooth.
-                double first = xs.Min();
-                double last = xs.Max();
+                // Samples a logarithmic X axis cannot draw are fitted but do not bound the drawn curve.
+                double[] drawable = plotX != null ? xs.Where(value => IsFiniteChartValue(plotX(value))).ToArray() : xs.ToArray();
+                if (drawable.Length < 2) continue;
+                double first = drawable.Min();
+                double last = drawable.Max();
                 double plottedFirst = plotX != null ? plotX(first) : first;
                 double plottedLast = plotX != null ? plotX(last) : last;
                 for (int i = 0; i <= TrendlineSamples; i++) {

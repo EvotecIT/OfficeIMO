@@ -91,13 +91,17 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (visible.Count == 0) return true;
                 // Leaving cells out of one series shortens it, and Office draws no point past its end. The flat
                 // projection pads shorter series with missing values, which only a zero blank rule would draw.
-                if (OfficeOpenXmlChartPlotSemantics.ReadBlankDisplay(chart) == OfficeIMO.Drawing.OfficeChartBlankDisplay.Zero &&
-                    chart.PlotArea!.Descendants<C.Values>().Select(values => visible.TryGetValue(values, out int[]? offsets)
+                if (OfficeOpenXmlChartPlotSemantics.ReadBlankDisplay(chart) == OfficeIMO.Drawing.OfficeChartBlankDisplay.Zero) {
+                    long Length(OpenXmlElement source) => visible.TryGetValue(source, out int[]? offsets)
                         ? offsets.Length
-                        : (long?)values.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value ?? -1L)
-                        // A series whose value cells are all hidden is left out, so it needs no padding.
-                        .Where(length => length != 0L).Distinct().Skip(1).Any())
-                    return Fail("Hidden cells leave chart series of different lengths, which a zero blank rule would draw.", out reason);
+                        : (long?)source.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value ?? 0L;
+                    // A series whose value cells are all hidden is left out, so it needs no padding; the others are
+                    // padded to the longest series or category list the projection keeps.
+                    long[] retained = chart.PlotArea!.Descendants<C.Values>().Select(Length).Where(length => length != 0L).ToArray();
+                    long projected = retained.Concat(chart.PlotArea.Descendants<C.CategoryAxisData>().Select(Length)).DefaultIfEmpty(0L).Max();
+                    if (retained.Any(length => length < projected))
+                        return Fail("Hidden cells leave chart series shorter than the chart, which a zero blank rule would draw.", out reason);
+                }
                 visibility = new SourceVisibility(visible);
                 return true;
             } catch (Exception exception) {

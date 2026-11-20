@@ -38,11 +38,13 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             IReadOnlyList<double> plotted = values ? current.Values.Select(toPlot!).ToArray() : current.Values;
-            IReadOnlyList<double>? plottedX = xValues
-                ? (current.XValues ?? sharedX.Take(current.Values.Count).ToArray()).Select(xToPlot!).ToArray()
-                : current.XValues;
+            // Without its own X values a point takes its category's X, and a point past the categories has none,
+            // as on a linear axis.
+            IReadOnlyList<double>? sourceX = xValues ? current.XValues ?? Enumerable.Range(0, current.Values.Count)
+                .Select(index => index < sharedX.Count ? sharedX[index] : double.NaN).ToArray() : null;
+            IReadOnlyList<double>? plottedX = xValues ? sourceX!.Select(xToPlot!).ToArray() : current.XValues;
             series.Add(current.WithPlottedValues(plotted, plottedX, values ? toSource : null, xValues ? xToSource : null,
-                values ? current.Values : null, xValues ? current.XValues ?? sharedX.Take(current.Values.Count).ToArray() : null));
+                values ? current.Values : null, sourceX));
         }
 
         IReadOnlyList<double> stackTotals = transformValues && GetLogBase(layout, valueOnHorizontal).HasValue

@@ -209,6 +209,25 @@ public sealed class WordChartProjectionQualificationTests {
     }
 
     [Fact]
+    public void Snapshot_RejectsZeroBlanksWhenASeriesIsShorterThanItsCategories() {
+        using var document = WordDocument.Create();
+        var chart = AddChartWithTwoSeries(document);
+        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.GetFirstChild<C.DisplayBlanksAs>()!.Val = C.DisplayBlanksAsValues.Zero;
+        // The categories read rows that stay visible, so they keep three labels while the remaining series has two.
+        foreach (C.Formula categories in native.Descendants<C.CategoryAxisData>().SelectMany(data => data.Descendants<C.Formula>()))
+            categories.Text = categories.Text.Replace("$2:", "$6:").Replace("$4", "$8");
+        EditEmbeddedWorksheet(chart, worksheet => {
+            var columns = worksheet.GetFirstChild<S.Columns>() ?? worksheet.InsertBefore(new S.Columns(), worksheet.GetFirstChild<S.SheetData>());
+            columns.Append(new S.Column { Min = 2U, Max = 2U, Hidden = true });
+            Row(worksheet, 3).Hidden = true;
+        });
+
+        // The zero blank rule would draw the missing third point as zero.
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void LegacySnapshot_RejectsASeriesShortenedByHiddenCells() {
         using var document = WordDocument.Create();
         var chart = AddChartWithTwoSeries(document);
