@@ -173,13 +173,13 @@ Console.WriteLine($"{pdf.ItemsWritten} slides, loss: {pdf.HasLoss}");
 File.WriteAllBytes("Regions-1.png", deck.Slides[0].ToImage().Bytes);
 
 int number = 0;
-foreach (PowerPointChart chart in deck.Slides.SelectMany(slide => slide.Charts)) {
+foreach (PowerPointChart chart in deck.Slides.SelectMany(slide => slide.AllCharts)) {
     chart.SaveAsImage($"Regions-chart-{++number}.svg", new OfficeIMO.Drawing.OfficeChartImageExportOptions {
         Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg });
 }
 ```
 
-`chart.ToImage(options)` and `SaveAsImage` render one chart without the rest of the slide, with the same `OfficeChartImageExportOptions` used for Word and Excel charts. The chart keeps its frame size unless `Width` and `Height` are set, colours resolve against the theme of the chart's slide, and the result carries the rendering diagnostics. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason.
+`slide.AllCharts` includes charts inside groups; `slide.Charts` lists only the charts placed directly on the slide. `chart.ToImage(options)` and `SaveAsImage` render one chart without the rest of the slide, with the same `OfficeChartImageExportOptions` used for Word and Excel charts. The chart keeps its frame size unless `Width` and `Height` are set, colours resolve against the theme of the chart's slide, and the result carries the rendering diagnostics. A chart the shared renderer cannot draw throws `NotSupportedException` with the reason.
 
 ## Validate package signatures from a stream
 

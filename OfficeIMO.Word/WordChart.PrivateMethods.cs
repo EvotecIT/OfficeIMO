@@ -266,25 +266,8 @@ namespace OfficeIMO.Word {
                 // since the title may have changed, we need to update it
                 UpdateTitle();
                 UpdateAxisTitles();
-            } else if ((_chart.PlotArea ??= new PlotArea()).GetFirstChild<BarChart>() == null) {
-                var plot = _chart.PlotArea;
-                var lineChart = plot.GetFirstChild<LineChart>();
-                if (lineChart != null) {
-                    var ids = lineChart.Elements<AxisId>().ToList();
-                    if (ids.Count >= 2 && ids[0].Val != null && ids[1].Val != null) {
-                        var barChart = CreateBarChart(ids[0].Val!, ids[1].Val!);
-                        var catAxis = plot.GetFirstChild<CategoryAxis>();
-                        if (catAxis != null) {
-                            plot.InsertBefore(barChart, catAxis);
-                        } else {
-                            plot!.Append(barChart);
-                        }
-                    } else {
-                        _chart = GenerateChartBar(_chart);
-                    }
-                } else {
-                    _chart = GenerateChartBar(_chart);
-                }
+            } else {
+                AttachCategoryGroup<BarChart>((catAxisId, valAxisId) => CreateBarChart(catAxisId, valAxisId), GenerateChartBar);
             }
         }
 
@@ -298,7 +281,45 @@ namespace OfficeIMO.Word {
                 // since the title may have changed, we need to update it
                 UpdateTitle();
                 UpdateAxisTitles();
+            } else {
+                AttachCategoryGroup<AreaChart>(CreateAreaChart, GenerateAreaChart);
             }
+        }
+
+        /// <summary>
+        /// Adds a bar, line or area group to an existing chart on the category and value axes of the
+        /// chart's existing bar, line or area group, so loaded charts accept the same combinations as new ones.
+        /// </summary>
+        private void AttachCategoryGroup<TGroup>(Func<UInt32Value, UInt32Value, TGroup> create, Func<Chart, Chart> generate)
+            where TGroup : OpenXmlCompositeElement {
+            var plot = _chart!.PlotArea ??= new PlotArea();
+            if (plot.GetFirstChild<TGroup>() != null) return;
+            OpenXmlCompositeElement? shared = (OpenXmlCompositeElement?)plot.GetFirstChild<BarChart>()
+                ?? (OpenXmlCompositeElement?)plot.GetFirstChild<LineChart>() ?? plot.GetFirstChild<AreaChart>();
+            var ids = shared?.Elements<AxisId>().ToList();
+            if (ids is { Count: >= 2 } && ids[0].Val != null && ids[1].Val != null) {
+                var group = create(ids[0].Val!, ids[1].Val!);
+                var firstAxis = plot.ChildElements.FirstOrDefault(element =>
+                    element is CategoryAxis or ValueAxis or DateAxis or SeriesAxis);
+                if (firstAxis != null) {
+                    plot.InsertBefore(group, firstAxis);
+                } else {
+                    plot.Append(group);
+                }
+                return;
+            }
+            RejectOtherChartGroup<TGroup>(typeof(TGroup).Name.Replace("Chart", string.Empty).ToLowerInvariant());
+            _chart = generate(_chart);
+        }
+
+        /// <summary>Rejects a series kind that cannot share the plot area with the chart's existing group.</summary>
+        private void RejectOtherChartGroup<TGroup>(string kind) where TGroup : OpenXmlCompositeElement {
+            var plot = _chart?.PlotArea;
+            if (plot == null || plot.GetFirstChild<TGroup>() != null) return;
+            var existing = plot.ChildElements.FirstOrDefault(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal));
+            if (existing == null) return;
+            throw new NotSupportedException("A " + kind + " series cannot be added to a chart that already has a " +
+                existing.LocalName.Replace("Chart", string.Empty) + " chart group. Bar, line and area series can be combined on shared axes.");
         }
 
         private void EnsureChartExistsLine() {
@@ -311,25 +332,8 @@ namespace OfficeIMO.Word {
                 // since the title may have changed, we need to update it
                 UpdateTitle();
                 UpdateAxisTitles();
-            } else if ((_chart.PlotArea ??= new PlotArea()).GetFirstChild<LineChart>() == null) {
-                var plot = _chart.PlotArea;
-                var barChart = plot.GetFirstChild<BarChart>();
-                if (barChart != null) {
-                    var ids = barChart.Elements<AxisId>().ToList();
-                    if (ids.Count >= 2 && ids[0].Val != null && ids[1].Val != null) {
-                        var lineChart = CreateLineChart(ids[0].Val!, ids[1].Val!);
-                        var catAxis = plot.GetFirstChild<CategoryAxis>();
-                        if (catAxis != null) {
-                            plot.InsertBefore(lineChart, catAxis);
-                        } else {
-                            plot!.Append(lineChart);
-                        }
-                    } else {
-                        _chart = GenerateLineChart(_chart);
-                    }
-                } else {
-                    _chart = GenerateLineChart(_chart);
-                }
+            } else {
+                AttachCategoryGroup<LineChart>(CreateLineChart, GenerateLineChart);
             }
         }
 
@@ -883,6 +887,8 @@ namespace OfficeIMO.Word {
                 EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
+            } else {
+                RejectOtherChartGroup<ScatterChart>("scatter");
             }
         }
 
@@ -894,6 +900,8 @@ namespace OfficeIMO.Word {
                 EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
+            } else {
+                RejectOtherChartGroup<RadarChart>("radar");
             }
         }
 
@@ -905,6 +913,8 @@ namespace OfficeIMO.Word {
                 EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
+            } else {
+                RejectOtherChartGroup<Area3DChart>("3-D area");
             }
         }
 
@@ -916,6 +926,8 @@ namespace OfficeIMO.Word {
                 EnsureFramelessChartArea();
                 UpdateTitle();
                 UpdateAxisTitles();
+            } else {
+                RejectOtherChartGroup<Bar3DChart>("3-D bar");
             }
         }
 
@@ -926,6 +938,8 @@ namespace OfficeIMO.Word {
                 _chartPart?.ChartSpace?.Append(_chart);
                 EnsureFramelessChartArea();
                 UpdateTitle();
+            } else {
+                RejectOtherChartGroup<Pie3DChart>("3-D pie");
             }
         }
 
@@ -936,6 +950,8 @@ namespace OfficeIMO.Word {
                 _chartPart?.ChartSpace?.Append(_chart);
                 EnsureFramelessChartArea();
                 UpdateTitle();
+            } else {
+                RejectOtherChartGroup<Line3DChart>("3-D line");
             }
         }
     }
