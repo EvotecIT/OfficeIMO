@@ -206,6 +206,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains("> Noted", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
         }
 
+        [Theory]
+        [MemberData(nameof(Cultures))]
+        public void LocalizedBuiltInStyles_AreClassifiedWithoutLoadingTheStylesPart(string heading1, string heading2, string title, string quote, string toc1) {
+            byte[] package;
+            using (WordDocument template = LoadLocalizedTemplate(heading1, heading2, title, quote, toc1)) {
+                template.AddParagraph("Overview").SetStyleId(heading1);
+                template.AddParagraph("Quoted").SetStyleId(quote);
+                using var output = new MemoryStream();
+                template.Save(output);
+                package = output.ToArray();
+            }
+            using var input = new MemoryStream(package, writable: false);
+            using WordDocument document = WordDocument.Load(input, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+
+            Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs.Single(paragraph => paragraph.Text == "Overview").Style);
+            Assert.Equal("Quote", document.Paragraphs.Single(paragraph => paragraph.Text == "Quoted").BuiltInStyleId);
+            Assert.Equal(heading2, document.FindBuiltInStyleId("Heading2"));
+            Assert.Null(document.FindBuiltInStyleId("Hyperlink"));
+
+            Assert.False(document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.IsRootElementLoaded);
+        }
+
         [Fact]
         public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
             using var stream = new MemoryStream();

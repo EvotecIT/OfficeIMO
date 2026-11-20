@@ -141,6 +141,14 @@ internal sealed class WordStyleCatalog {
         return _loaded?.Elements<Style>().FirstOrDefault(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.Ordinal));
     }
 
+    /// <summary>The facts of the first style with <paramref name="styleId"/>, whatever its type.</summary>
+    internal StyleDefinition? FindDefinitionById(string? styleId) {
+        if (string.IsNullOrEmpty(styleId)) return null;
+        if (_firstById != null) return _firstById.TryGetValue(styleId!, out StyleDefinition? definition) ? definition : null;
+        Style? style = _loaded?.Elements<Style>().FirstOrDefault(candidate => string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal));
+        return style == null ? null : new StyleDefinition(style);
+    }
+
     /// <summary>
     /// The facts of the first style whose <c>w:name</c> matches <paramref name="name"/>, both trimmed and ignoring case.
     /// Built-in style identifiers are localized in some documents while their names stay English.
