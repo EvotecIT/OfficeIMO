@@ -190,6 +190,28 @@ namespace OfficeIMO.Tests {
             return (long)(numerator >> (scale + 1));
         }
 
+        public static IEnumerable<object[]> DatesBeforeSerialZero() {
+            foreach (bool date1904 in new[] { false, true }) {
+                DateTime serialZero = date1904 ? new DateTime(1904, 1, 1) : new DateTime(1899, 12, 31);
+                yield return new object[] { date1904, serialZero.AddTicks(-1) };
+                yield return new object[] { date1904, new DateTime(1899, 12, 30).AddTicks(-1) };
+                yield return new object[] { date1904, new DateTime(1800, 1, 1, 6, 0, 0).AddTicks(-1) };
+            }
+        }
+
+        // Dates before serial 0 extend the epoch backwards in both systems; the time floors to the millisecond, so a
+        // tick before midnight stays on its own day instead of truncating toward the epoch.
+        [Theory]
+        [MemberData(nameof(DatesBeforeSerialZero))]
+        public void DatesBeforeSerialZeroRoundTripOnTheirOwnDay(bool date1904, DateTime value) {
+            ExcelDateSystem dateSystem = date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
+            DateTime expected = new DateTime(value.Ticks - value.Ticks % TimeSpan.TicksPerMillisecond);
+            double serial = ExcelDateSystemConverter.ToSerial(value, dateSystem);
+            Assert.True(serial < 0, $"Serial {serial} should be negative.");
+            Assert.Equal(expected, ExcelDateSystemConverter.FromSerial(serial, dateSystem));
+            Assert.Equal(expected, ExcelPivotCacheDateCodec.FromSerial(ExcelPivotCacheDateCodec.ToSerial(value, dateSystem), dateSystem));
+        }
+
         // Adding the 1904 offset to these serials directly rounds them up to the next whole day.
         [Theory]
         [InlineData(ExcelFileFormat.Xlsx)]

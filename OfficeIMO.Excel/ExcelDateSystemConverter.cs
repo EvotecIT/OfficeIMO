@@ -23,35 +23,47 @@ namespace OfficeIMO.Excel {
         public const double Date1904OffsetDays = 1462d;
 
         /// <summary>
-        /// Converts a date to the serial value used by the selected Excel date system.
+        /// Converts a date to the serial value used by the selected Excel date system. Dates before serial 0,
+        /// December 31, 1899 in the 1900 system and January 1, 1904 in the 1904 system, extend the epoch backwards
+        /// as negative serials in both systems. Excel shows those cells as <c>####</c>; OfficeIMO reads them back
+        /// as the same date.
         /// </summary>
         public static double ToSerial(DateTime value, ExcelDateSystem dateSystem) {
             if (dateSystem == ExcelDateSystem.NineteenHundred && value < new DateTime(1900, 3, 1))
                 return ToMillisecondSerial(FloorToMilliseconds(value.Ticks - Early1900Epoch.Ticks));
             DateTime epoch = dateSystem == ExcelDateSystem.NineteenFour ? Epoch1904 : OleAutomationEpoch;
-            if (value >= OleAutomationEpoch) return ToMillisecondSerial(FloorToMilliseconds(value.Ticks - epoch.Ticks));
-            // Earlier dates keep the OLE Automation encoding, whose negative serials hold the time as a positive fraction.
-            long milliseconds = OleAutomationMilliseconds(value);
-            return ToMillisecondSerial(dateSystem == ExcelDateSystem.NineteenFour
-                ? milliseconds - (long)Date1904OffsetDays * MillisecondsPerDay
-                : milliseconds);
+            return ToMillisecondSerial(FloorToMilliseconds(value.Ticks - epoch.Ticks));
+        }
+
+        /// <summary>
+        /// Converts a date to an OLE Automation serial shifted to the date system, as pivot caches store dates. Dates
+        /// before December 30, 1899 use the OLE Automation encoding, whose negative serials hold the time as a positive
+        /// fraction. The time is floored to the millisecond, so it never moves to a later day.
+        /// </summary>
+        internal static double ToOleAutomationSerial(DateTime value, ExcelDateSystem dateSystem) {
+            long milliseconds = value >= OleAutomationEpoch
+                ? FloorToMilliseconds(value.Ticks - OleAutomationEpoch.Ticks)
+                : OleAutomationMilliseconds(value);
+            if (dateSystem == ExcelDateSystem.NineteenFour) milliseconds -= (long)Date1904OffsetDays * MillisecondsPerDay;
+            return ToMillisecondSerial(milliseconds);
         }
 
         /// <summary>
         /// Converts an Excel serial value from the selected date system to a date.
         /// In the 1900 system, serial 60 denotes Excel's fictitious February 29 and
         /// maps to February 28 because <see cref="DateTime"/> cannot represent it.
-        /// Negative 1900-system serials extend the December 31, 1899 epoch backwards,
-        /// with fractional values representing elapsed portions of a day.
+        /// Negative serials extend the epoch backwards in both systems, December 31, 1899
+        /// or January 1, 1904, with fractional values representing elapsed portions of a day.
         /// </summary>
         public static DateTime FromSerial(double serial, ExcelDateSystem dateSystem) {
-            if (dateSystem == ExcelDateSystem.NineteenHundred && serial < 60d)
-                return FromLinearSerial(Early1900Epoch, serial);
-            return FromOleAutomationSerial(serial, dateSystem);
+            if (dateSystem == ExcelDateSystem.NineteenFour) return FromLinearSerial(Epoch1904, serial);
+            if (serial < 60d) return FromLinearSerial(Early1900Epoch, serial);
+            return FromOleAutomationSerial(serial);
         }
 
         /// <summary>
-        /// Converts a serial in either date system as an OLE Automation date, without the 1900 system's early-date rule.
+        /// Converts a pivot-cache serial, an OLE Automation date shifted to the date system. Unlike worksheet serials,
+        /// these use the OLE Automation encoding before December 30, 1899.
         /// </summary>
         internal static DateTime FromOleAutomationSerial(double serial, ExcelDateSystem dateSystem) {
             if (dateSystem == ExcelDateSystem.NineteenHundred) return FromOleAutomationSerial(serial);
@@ -134,9 +146,12 @@ namespace OfficeIMO.Excel {
             return product < half;
         }
 
-        /// <summary>The OLE Automation date of <paramref name="value"/> in milliseconds, as <see cref="DateTime.ToOADate"/> encodes it.</summary>
+        /// <summary>
+        /// The OLE Automation date of a date before the epoch in milliseconds, encoded as <see cref="DateTime.ToOADate"/>
+        /// does but from the floored millisecond, so the time stays on its day.
+        /// </summary>
         private static long OleAutomationMilliseconds(DateTime value) {
-            long milliseconds = (value.Ticks - OleAutomationEpoch.Ticks) / TimeSpan.TicksPerMillisecond;
+            long milliseconds = FloorToMilliseconds(value.Ticks - OleAutomationEpoch.Ticks);
             if (milliseconds < 0) {
                 long fraction = milliseconds % MillisecondsPerDay;
                 if (fraction != 0) milliseconds -= (MillisecondsPerDay + fraction) * 2;

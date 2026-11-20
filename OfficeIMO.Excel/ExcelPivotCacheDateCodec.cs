@@ -7,9 +7,7 @@ namespace OfficeIMO.Excel {
     internal static class ExcelPivotCacheDateCodec {
         internal static DateTime FromSerial(double serial, ExcelDateSystem system) =>
             ExcelDateSystemConverter.FromOleAutomationSerial(serial, system);
-        // The 1900 converter differs only before March 1900, which pivot caches encode as OLE Automation dates.
-        internal static double ToSerial(DateTime date, ExcelDateSystem system) => system == ExcelDateSystem.NineteenFour
-            ? ExcelDateSystemConverter.ToSerial(date, system)
-            : date.ToOADate();
+        internal static double ToSerial(DateTime date, ExcelDateSystem system) =>
+            ExcelDateSystemConverter.ToOleAutomationSerial(date, system);
     }
 }
