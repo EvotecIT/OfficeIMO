@@ -228,6 +228,36 @@ namespace OfficeIMO.Tests {
             Assert.False(document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.IsRootElementLoaded);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BuiltInNameLookupsSkipEarlierStylesOfAnotherType(bool loadStyles) {
+            byte[] package;
+            using (var output = new MemoryStream()) {
+                using (WordDocument source = WordDocument.Create(output)) {
+                    source.Styles.Remove("Heading1");
+                    // A malformed file: a table style and a character style share the name of the localized heading.
+                    Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    styles.Append(
+                        new Style(new StyleName { Val = "heading 1" }) { Type = StyleValues.Table, StyleId = "HeadingTable" },
+                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Character, StyleId = "BodyNoteRun" },
+                        new Style(new StyleName { Val = "heading 1" }) { Type = StyleValues.Paragraph, StyleId = "Titre1" },
+                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Paragraph, StyleId = "BodyNote" });
+                    source.AddParagraph("Overview").SetStyleId("Titre1");
+                    source.Save();
+                }
+                package = output.ToArray();
+            }
+            using var input = new MemoryStream(package, writable: false);
+            using WordDocument document = WordDocument.Load(input, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            if (loadStyles) _ = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles;
+
+            Assert.Equal("Titre1", document.FindBuiltInStyleId("Heading1"));
+            Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs.Single(paragraph => paragraph.Text == "Overview").Style);
+            Assert.Equal("BodyNote", document.Styles.FindParagraphStyleId("Body note"));
+            Assert.Equal(loadStyles, document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.IsRootElementLoaded);
+        }
+
         [Fact]
         public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
             using var stream = new MemoryStream();

@@ -161,6 +161,29 @@ internal sealed class WordStyleCatalog {
         return style == null ? null : new StyleDefinition(style);
     }
 
+    /// <summary>
+    /// The facts of every style whose <c>w:name</c> matches <paramref name="name"/>, in document order, so a caller
+    /// that needs one type can take the first of that type even when a style of another type shares the name.
+    /// </summary>
+    internal IEnumerable<StyleDefinition> FindDefinitionsByName(string name) {
+        string trimmed = name.Trim();
+        if (_streamed != null) {
+            if (_firstByName == null || !_firstByName.TryGetValue(trimmed, out StyleDefinition? first)) yield break;
+            yield return first;
+            // Later styles with the same name are rare, so only a caller that skips the first one pays for the scan.
+            bool afterFirst = false;
+            foreach (StyleDefinition definition in _streamed.Styles) {
+                if (ReferenceEquals(definition, first)) { afterFirst = true; continue; }
+                if (afterFirst && string.Equals(definition.Name?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)) yield return definition;
+            }
+            yield break;
+        }
+        if (_loaded == null) yield break;
+        foreach (Style style in _loaded.Elements<Style>()) {
+            if (string.Equals(style.StyleName?.Val?.Value?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase)) yield return new StyleDefinition(style);
+        }
+    }
+
     /// <summary>The facts of the first style with <paramref name="styleId"/> that has no type or <paramref name="type"/>.</summary>
     internal StyleDefinition? FindDefinition(string? styleId, StyleValues type) {
         if (string.IsNullOrEmpty(styleId)) return null;

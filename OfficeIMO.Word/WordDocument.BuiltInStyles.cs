@@ -170,11 +170,14 @@ public partial class WordDocument {
         internal override bool TryGetStyleIdForBuiltInName(string builtInStyleId, out string? styleId) {
             styleId = null;
             if (!WordBuiltInStyleNames.TryGetName(builtInStyleId, out string name)) return false;
-            WordStyleDefinitionsReader.StyleDefinition? definition = _catalog.FindDefinitionByName(name);
-            if (definition?.StyleId is not { Length: > 0 } id ||
-                WordBuiltInStyleNames.Classify(id, definition.Name, definition.Type) != builtInStyleId) return false;
-            styleId = id;
-            return true;
+            // The first style with the built-in name and the built-in style's type, as the loaded index picks it.
+            foreach (WordStyleDefinitionsReader.StyleDefinition definition in _catalog.FindDefinitionsByName(name)) {
+                if (definition.StyleId is { Length: > 0 } id && WordBuiltInStyleNames.Classify(id, definition.Name, definition.Type) == builtInStyleId) {
+                    styleId = id;
+                    return true;
+                }
+            }
+            return false;
         }
     }
 

@@ -126,6 +126,15 @@ public sealed partial class WordStyleCollection : IEnumerable<WordStyle> {
         return style == null ? null : new WordStyle(_document, style);
     }
 
+    /// <summary>Every style named <paramref name="name"/>, in document order. Names ignore case.</summary>
+    internal IEnumerable<WordStyle> FindAllByName(string name) {
+        string trimmed = name.Trim();
+        IEnumerable<Style> styles = ReadOnlyCatalog is { } catalog
+            ? catalog.FindDefinitionsByName(trimmed).Select(definition => definition.Element)
+            : Definitions.Where(definition => string.Equals(definition.StyleName?.Val?.Value?.Trim(), trimmed, StringComparison.OrdinalIgnoreCase));
+        return styles.Select(style => new WordStyle(_document, style));
+    }
+
     internal WordStyle? FindByName(string name) {
         string trimmed = name.Trim();
         Style? style = ReadOnlyCatalog is { } catalog
