@@ -98,20 +98,38 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
+    // Percentage labels divide source values, so the total adds source values even when the series are
+    // plotted on a logarithmic or reversed axis.
     private static double GetDataLabelCategoryTotal(IReadOnlyList<OfficeSeries> series, int categoryIndex) {
-        double total = GetPositiveCategoryTotal(series, categoryIndex);
+        double total = 0D;
+        for (int s = 0; s < series.Count; s++) {
+            if (TryGetSourceSeriesValue(series[s], categoryIndex, out double value) && value > 0D) total += value;
+        }
+
         if (total > 0D) {
             return total;
         }
 
         for (int s = 0; s < series.Count; s++) {
-            if (TryGetSeriesValue(series[s], categoryIndex, out double value)) {
+            if (TryGetSourceSeriesValue(series[s], categoryIndex, out double value)) {
                 total += Math.Abs(value);
             }
         }
 
         return total;
     }
+
+    // A point's source value: the value itself, or what a logarithmic or reversed axis plotted it from.
+    private static bool TryGetSourceSeriesValue(OfficeSeries series, int index, out double value) {
+        if (!TryGetSeriesValue(series, index, out value)) return false;
+        value = GetSourceSeriesValue(series, index, value);
+        return IsFiniteChartValue(value);
+    }
+
+    private static double GetSourceSeriesValue(OfficeSeries series, int index, double plotted) =>
+        series.SourcePointValues != null && index >= 0 && index < series.SourcePointValues.Count
+            ? series.SourcePointValues[index]
+            : series.SourceValue != null ? series.SourceValue(plotted) : plotted;
 
     private readonly struct PercentStackedTotals {
         internal PercentStackedTotals(double[] positive, double[] negative) {

@@ -82,7 +82,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
                 .Select(entry => entry.GetFirstChild<C.Index>()?.Val?.Value)
                 .Where(value => value.HasValue).Select(value => value!.Value) ?? Enumerable.Empty<uint>());
-            bool categoryLegend = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut;
+            bool categoryLegend = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut ||
+                OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(chart.PlotArea) != null;
             series = series.Select((item, index) => new Series(item.SourceIndex,
                 item.Data.WithLegendVisibility(legend != null && (categoryLegend ||
                     !hidden.Contains((uint)index))), item.UnsupportedAppearance, item.SourceOrder,

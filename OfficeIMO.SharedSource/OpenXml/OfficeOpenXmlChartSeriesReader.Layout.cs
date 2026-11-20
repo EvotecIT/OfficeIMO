@@ -22,8 +22,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 position == C.LegendPositionValues.Bottom ? OfficeChartLegendPosition.Bottom :
                 position == C.LegendPositionValues.Top ? OfficeChartLegendPosition.Top :
                 position == C.LegendPositionValues.TopRight ? OfficeChartLegendPosition.TopRight : OfficeChartLegendPosition.Right;
+            // Pie and doughnut legends, and those of a single series coloured by point, list categories.
             bool radial = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut;
-            var hidden = radial ? legend?.Elements<C.LegendEntry>().Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
+            bool categoryLegend = radial || OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(chart.PlotArea) != null;
+            var hidden = categoryLegend ? legend?.Elements<C.LegendEntry>().Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
                 .Select(entry => entry.GetFirstChild<C.Index>()?.Val?.Value).Where(value => value.HasValue && value.Value <= int.MaxValue)
                 .Select(value => (int)value!.Value).ToArray() : null;
             var plot = chart.PlotArea;

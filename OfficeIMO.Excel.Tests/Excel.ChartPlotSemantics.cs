@@ -139,6 +139,17 @@ public sealed class ExcelChartPlotSemanticsTests {
     }
 
     [Fact]
+    public void ChartWhoseEverySeriesIsHiddenHasNoSnapshot() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = Sheet(document);
+        ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
+        sheet.SetColumnHidden(2, true);
+
+        // Excel plots nothing, so the hidden values must not come back as a chart.
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Fact]
     public void SnapshotLeavesOutRowsWithoutRecordsWhenTheSheetHidesRowsByDefault() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = Sheet(document);

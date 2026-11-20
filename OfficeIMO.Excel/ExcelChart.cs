@@ -144,6 +144,11 @@ namespace OfficeIMO.Excel {
                 }
                 chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot);
                 chartData = ExcelChartUtils.RemoveSeries(chartData, hiddenSeries);
+                // With every series hidden Excel plots nothing, which no snapshot can stand for.
+                if (chartData.Series.Count == 0) {
+                    data = null!;
+                    return false;
+                }
                 if (range != null) {
                     _dataRange = range;
                 }

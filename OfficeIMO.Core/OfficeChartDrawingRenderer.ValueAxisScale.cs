@@ -26,8 +26,12 @@ public static partial class OfficeChartDrawingRenderer {
         foreach (OfficeSeries current in snapshot.Data.Series) {
             bool secondary = current.AxisGroup == OfficeChartAxisGroup.Secondary;
             bool bubble = current.BubbleSizes != null;
-            bool values = toPlot != null && !secondary && !(bubble && GetLogBase(layout, valueOnHorizontal).HasValue);
-            bool xValues = xToPlot != null && !(bubble && layout.HorizontalAxisLogBase.HasValue);
+            // Bubble sizes are measured against the plotted values, so bubbles are not drawn on a logarithmic axis.
+            if (bubble && ((toPlot != null && !secondary && GetLogBase(layout, valueOnHorizontal).HasValue) ||
+                    (xToPlot != null && layout.HorizontalAxisLogBase.HasValue)))
+                throw new NotSupportedException("A bubble series cannot be drawn on a logarithmic axis.");
+            bool values = toPlot != null && !secondary;
+            bool xValues = xToPlot != null;
             if (!values && !xValues) {
                 series.Add(current);
                 continue;
@@ -92,6 +96,8 @@ public static partial class OfficeChartDrawingRenderer {
                 steps[point] = top - (below > 0D ? toPlot(below) : 0D);
                 running[point] = total;
                 totals.Add(top);
+                // The bottom of the stack, at 1, stays on the axis so the lowest segments are not cut off.
+                if (below == 0D) totals.Add(0D);
             }
 
             series[index] = plotted.WithStackedSteps(steps, source);

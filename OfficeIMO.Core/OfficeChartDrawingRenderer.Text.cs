@@ -189,7 +189,8 @@ public static partial class OfficeChartDrawingRenderer {
         return GetLegendBandHeight(legendIndexes.Select(index => categories[index]), chartWidth, layout);
     }
 
-    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered) {
+    // An automatic band shows up to two rows; a placed band shows as many as its height holds.
+    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered, double? placedHeight = null) {
         if (!ShouldRenderLegendBand(layout) || width < 48D) {
             return;
         }
@@ -209,7 +210,8 @@ public static partial class OfficeChartDrawingRenderer {
             layout,
             legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList(),
             legendIndexes.Select(index => series[index].SeriesStyle).ToList(),
-            legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList());
+            legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList(),
+            placedHeight is double height ? Math.Max(1, (int)Math.Floor((height - 4D) / layout.LegendRowHeight)) : 2);
     }
 
     // Line series are keyed by a short stroke rather than a filled square, as in Office.
@@ -301,14 +303,14 @@ public static partial class OfficeChartDrawingRenderer {
         return rows * layout.LegendRowHeight + 4D;
     }
 
-    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, IReadOnlyList<bool>? lineSwatches = null) {
+    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, IReadOnlyList<bool>? lineSwatches = null, int maximumRows = 2) {
         List<string?> labelList = labels.ToList();
         if (labelList.Count == 0) {
             return;
         }
 
         int columns = GetLegendBandColumns(labelList, width, layout);
-        int visibleCount = Math.Min(labelList.Count, columns * 2);
+        int visibleCount = (int)Math.Min(labelList.Count, (long)columns * maximumRows);
         // Entries sit together at their measured width instead of spreading across the chart:
         // a top legend starts at the left edge under the title, a bottom legend is centred.
         double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
@@ -788,9 +790,7 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeSeries series,
         double value, double total, double? percentageRatio = null, int pointIndex = -1) {
-        if (series.SourcePointValues != null && pointIndex >= 0 && pointIndex < series.SourcePointValues.Count)
-            value = series.SourcePointValues[pointIndex];
-        else if (series.SourceValue != null) value = series.SourceValue(value);
+        value = GetSourceSeriesValue(series, pointIndex, value);
         var parts = new List<string>(4);
         if (layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(series.Name)) {
             parts.Add(series.Name);

@@ -16,7 +16,8 @@ public static partial class OfficeChartDrawingRenderer {
             ValueRange range = ApplyValueAxisScale(GetScatterPointRanges(series, xValues).XRange, layout, horizontal: true);
             IReadOnlyList<double> majorTicks = GetValueAxisMajorTicks(range, GetValueAxisMajorUnit(layout, horizontal: true));
             IReadOnlyList<double> ticks = minor
-                ? GetValueAxisMinorTicks(range, GetValueAxisMinorUnit(layout, horizontal: true), majorTicks)
+                ? GetLogarithmicMinorTicks(layout, horizontal: true, range) ??
+                    GetValueAxisMinorTicks(range, GetValueAxisMinorUnit(layout, horizontal: true), majorTicks)
                 : majorTicks;
             AddVerticalValueGridLines(drawing, plotLeft, plotTop, plotWidth, plotHeight,
                 range, ticks, color, lineWidth, dashStyle);

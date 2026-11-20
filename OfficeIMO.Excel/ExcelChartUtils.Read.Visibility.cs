@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// the categories with empty labels. A series whose value cells are all hidden plots nothing: it stays in
         /// the returned data, so per-series formatting still lines up with the chart XML, and is listed in
         /// <paramref name="hiddenSeries"/> for <see cref="RemoveSeries"/>. A chart whose every series is hidden
-        /// keeps its data rather than becoming empty.</remarks>
+        /// plots nothing, so all of them are listed.</remarks>
         /// <returns>The visible data, or null when a zero blank rule would draw the padding.</returns>
         internal static ExcelChartData? SelectVisiblePoints(ChartPart chartPart, ExcelSheet contextSheet, ExcelChartData data,
             out bool[]? hiddenSeries) {
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel {
                 }
                 if (sizes[index] is IReadOnlyList<double> bubbleSizes && bubbleSizes.Count != series[index].Count) return null;
             }
-            if (!changed || hidden.All(item => item)) return data;
+            if (!changed) return data;
 
             OpenXmlCompositeElement first = seriesList[0];
             OpenXmlElement? categorySource = first is ScatterChartSeries or BubbleChartSeries

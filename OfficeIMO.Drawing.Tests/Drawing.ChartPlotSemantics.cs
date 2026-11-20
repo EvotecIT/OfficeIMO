@@ -226,6 +226,68 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.Contains(Texts(drawing), text => text.Text == "90");
     }
 
+    [Fact]
+    public void StackedColumnsOnALogarithmicAxisKeepTheirLowestSegmentsAndPercentages() {
+        OfficeColor upper = OfficeColor.Parse("#00A0D9");
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelPercentages: true)
+            .WithLogarithmicValueAxes(null, 10D);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnStacked, layout, Series(new double[] { 10, 10, 10, 10, 10 }),
+            new OfficeSeries("Rest", new double[] { 90, 90, 90, 90, 90 }, null, upper, null, showMarkers: false));
+
+        // The axis reaches down to 1, where stacks start, so the 10s keep their power of height.
+        OfficeDrawingShape lower = SeriesFill(drawing).First();
+        OfficeDrawingShape top = Shapes(drawing).First(shape => shape.Shape.FillColor == upper);
+        Assert.Equal(1D, top.Shape.Height / lower.Shape.Height, 2);
+        Assert.Contains(Texts(drawing), text => text.Text == "10%");
+        Assert.Contains(Texts(drawing), text => text.Text == "90%");
+    }
+
+    [Fact]
+    public void ColumnOfOneOnALogarithmicAxisIsDrawnWhenTheAxisCrossesBelowIt() {
+        OfficeChartLayout layout = new OfficeChartLayout(showLegend: false, verticalAxisMinimum: 0.1D)
+            .WithLogarithmicValueAxes(null, 10D)
+            .WithAxisCrossings(OfficeChartAxisCrossingPosition.Minimum, null, OfficeChartAxisCrossingPosition.AutoZero, null);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, layout, Series(new double[] { 1, 10, 100, 1000, 1000 }));
+
+        double[] heights = SeriesFill(drawing).OrderBy(bar => bar.X).Select(bar => bar.Shape.Height).ToArray();
+        // From 0.1, the 1 is one power tall and the 10 two.
+        Assert.Equal(5, heights.Length);
+        Assert.Equal(2D, heights[1] / heights[0], 2);
+    }
+
+    [Fact]
+    public void PointColouredRadarAndColumnLegendsListTheVisibleCategories() {
+        var layout = new OfficeChartLayout(hiddenCategoryLegendIndexes: new[] { 1 }).WithVaryColorsByPoint(true);
+        OfficeDrawing radar = Render(OfficeChartType.Radar, layout, Series(new double[] { 1, 2, 3, 4, 5 }));
+        OfficeDrawing columns = Render(OfficeChartType.ColumnClustered, layout, Series(new double[] { 1, 2, 3, 4, 5 }));
+
+        foreach (OfficeDrawing drawing in new[] { radar, columns }) {
+            Assert.DoesNotContain(Texts(drawing), text => text.Text == "Sales");
+            Assert.Contains(Texts(drawing), text => text.Text == "May" && text.X > 400D);
+            Assert.DoesNotContain(Texts(drawing), text => text.Text == "Feb" && text.X > 400D);
+        }
+    }
+
+    [Fact]
+    public void PlacedBandLegendShowsAsManyRowsAsItsHeightHolds() {
+        string[] names = Enumerable.Range(1, 12).Select(index => "Series " + index).ToArray();
+        var legend = new OfficeChartManualLayout(0.05D, 0.05D, 0.3D, 0.6D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeChartLayout layout = new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Top).WithManualLayouts(null, null, legend);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, layout,
+            names.Select(name => new OfficeSeries(name, new double[] { 1, 2, 3, 4, 5 })).ToArray());
+
+        Assert.All(names, name => Assert.Contains(Texts(drawing), text => text.Text == name));
+    }
+
+    [Fact]
+    public void BubbleSeriesOnALogarithmicAxisIsRejected() {
+        OfficeSeries bubbles = OfficeSeries.CreateBubble("Sales", new double[] { 1, 2, 3, 4, 5 }, new double[] { 10, 100, 1000, 10, 100 },
+            new double[] { 1, 2, 3, 4, 5 }, Ink);
+        NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
+            Render(OfficeChartType.Bubble, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(null, 10D), bubbles));
+        Assert.Contains("bubble series", error.Message);
+    }
+
     [Theory]
     [InlineData(OfficeChartType.ColumnStacked100, 10D, "100% stacked")]
     [InlineData(OfficeChartType.ColumnStacked, -10D, "negative values")]

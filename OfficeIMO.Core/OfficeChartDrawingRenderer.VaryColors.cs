@@ -28,7 +28,9 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeSeries? series = GetPointColoredSeries(snapshot);
         if (series == null) return null;
         var entries = new List<OfficeSeries>(snapshot.Data.Categories.Count);
+        IReadOnlyCollection<int>? hidden = snapshot.Layout.HiddenCategoryLegendIndexes;
         for (int i = 0; i < snapshot.Data.Categories.Count && i < series.Values.Count; i++) {
+            if (hidden?.Contains(i) == true) continue;
             OfficeColor color = GetPointStyle(series, i)?.FillColor ??
                 GetPointColor(series.PointColors, i, GetSeriesColor(snapshot.Style, i));
             entries.Add(new OfficeSeries(snapshot.Data.Categories[i], new[] { 0D }, null, color, null,

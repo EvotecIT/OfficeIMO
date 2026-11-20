@@ -25,7 +25,7 @@ public static partial class OfficeChartDrawingRenderer {
         (double left, double placedWidth) = legendLayout.Resolve(horizontal: true, width, automaticLeft, automaticWidth);
         (double top, double placedHeight) = legendLayout.Resolve(horizontal: false, height, automaticTop, automaticHeight);
         if (band) {
-            AddSeriesLegendBand(drawing, legendSeries, left, top, placedWidth, style, layout, chartKind);
+            AddSeriesLegendBand(drawing, legendSeries, left, top, placedWidth, style, layout, chartKind, placedHeight);
         } else {
             AddSeriesLegend(drawing, legendSeries, left, top, placedWidth, placedHeight, style, layout, chartKind);
         }
