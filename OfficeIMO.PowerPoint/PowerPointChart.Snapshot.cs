@@ -493,19 +493,12 @@ namespace OfficeIMO.PowerPoint {
                     style, data.Categories.Count);
             // Single-group category charts project their native surfaces and axis styling too, so a chart area
             // written without fill on a dark slide is not drawn as a white panel. Formatting the shared contract
-            // cannot express keeps the text-only style instead of dropping the chart.
+            // cannot express skips the chart in strict projections; best-effort projections keep the text-only style
+            // and report it.
             if (!forDataUpdate && kind is not (PowerPointChartSnapshotKind.Radar or PowerPointChartSnapshotKind.Pie or
-                    PowerPointChartSnapshotKind.Doughnut or PowerPointChartSnapshotKind.Bubble or PowerPointChartSnapshotKind.Scatter)) {
-                int checkpoint = OfficeOpenXmlChartFidelityScope.Checkpoint;
-                try {
-                    style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
-                        GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme, style);
-                } catch (NotSupportedException exception) {
-                    OfficeOpenXmlChartFidelityScope.RollBack(checkpoint);
-                    if (OfficeOpenXmlChartFidelityScope.AllowsApproximation)
-                        OfficeOpenXmlChartFidelityScope.Record("The chart surfaces are drawn with default formatting: " + exception.Message);
-                }
-            }
+                    PowerPointChartSnapshotKind.Doughnut or PowerPointChartSnapshotKind.Bubble or PowerPointChartSnapshotKind.Scatter))
+                style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyleOrApproximate(
+                    GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme, style);
             if (!forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
@@ -816,6 +809,7 @@ namespace OfficeIMO.PowerPoint {
                             .ResolveSourceLinkedGeneral(part);
                     } catch (NotSupportedException) {
                         // The cells carry formats; the chart caches the code Office last displayed.
+                        OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.RecordLinkedFormatFallback("axis");
                     }
                 }
             }

@@ -21,10 +21,11 @@ namespace OfficeIMO.OpenXml.Internal {
             labels.ResolveSelection(source?.Series.Select(series => series.SourceIndex).ToArray() ??
                     Enumerable.Range(0, data.Series.Count).Select(index => (uint)index).ToArray(),
                 out int[]? labeledSeries, out var labeledPoints, out var hiddenLabelPoints);
-            var defaultText = ReadNativeText(chart, chart, scheme);
-            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
-            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
-            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
+            var defaultText = ReadTextOrApproximate(() => ReadNativeText(chart, chart, scheme), "chart");
+            var legendText = ReadTextOrApproximate(() => ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme), "legend");
+            var axisText = ReadTextOrApproximate(() => ReadUniformNativeText(chart, TextAxes(chart), scheme), "axis label");
+            var axisTitleText = ReadTextOrApproximate(() => ReadUniformNativeText(chart,
+                TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme), "axis title");
             var legend = chart.GetFirstChild<C.Legend>();
             var position = legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
             var sharedPosition = position == C.LegendPositionValues.Left ? OfficeChartLegendPosition.Left :
@@ -189,6 +190,21 @@ namespace OfficeIMO.OpenXml.Internal {
             return !properties.HasAttributes && outline != null &&
                 properties.ChildElements.All(child => child is A.Outline || child is A.NoFill || child is A.EffectList && !child.HasChildren) &&
                 outline.ChildElements.Count == 1 && outline.GetFirstChild<A.NoFill>() != null;
+        }
+
+        /// <summary>
+        /// Reads chart text formatting. Strict projections reject text the renderer cannot reproduce; best-effort
+        /// projections draw that text with the default formatting and report it.
+        /// </summary>
+        private static NativeText ReadTextOrApproximate(Func<NativeText> read, string role) {
+            int checkpoint = OfficeOpenXmlChartFidelityScope.Checkpoint;
+            try {
+                return read();
+            } catch (NotSupportedException exception) when (OfficeOpenXmlChartFidelityScope.AllowsApproximation) {
+                OfficeOpenXmlChartFidelityScope.RollBack(checkpoint);
+                OfficeOpenXmlChartFidelityScope.Record("The " + role + " text is drawn with default formatting: " + exception.Message);
+                return default;
+            }
         }
 
         private static string? ReadLayoutTitle(OpenXmlCompositeElement? axis) {

@@ -159,6 +159,29 @@ public sealed class ExcelChartExplodedSlicesTests {
         Assert.Contains(pdf.Warnings, warning => warning.Code == OfficeDiagnosticCodes.ChartApproximation);
     }
 
+    [Fact]
+    public void TrendlineDashTheRendererCannotDraw_StrictSkipsAndBestEffortReportsIt() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d, 5d })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
+        C.LineChartSeries series = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.LineChartSeries>().Single();
+        series.InsertBefore(new C.Trendline(
+                new C.ChartShapeProperties(new DocumentFormat.OpenXml.Drawing.Outline(
+                    new DocumentFormat.OpenXml.Drawing.PresetDash { Val = DocumentFormat.OpenXml.Drawing.PresetLineDashValues.SystemDot })),
+                new C.TrendlineType { Val = C.TrendlineValues.Linear }),
+            series.GetFirstChild<C.CategoryAxisData>());
+
+        Assert.Throws<InvalidOperationException>(() => chart.ToImage(OfficeImageExportFormat.Png));
+        OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png,
+            new ExcelImageExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
+
+        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
+            diagnostic.Message.IndexOf("'sysDot' dash pattern", StringComparison.Ordinal) >= 0);
+    }
+
     [Theory]
     [InlineData(OfficeChartType.Pie)]
     [InlineData(OfficeChartType.Doughnut)]

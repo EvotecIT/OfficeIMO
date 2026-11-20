@@ -1176,14 +1176,12 @@ namespace OfficeIMO.Tests {
                 C.NumberingFormat numberingFormat =
                     axis.GetFirstChild<C.NumberingFormat>()!;
                 string? originalFormat = numberingFormat.FormatCode?.Value;
+                // Spreadsheet formats draw through the cell formatter; an invalid code does not.
+                numberingFormat.FormatCode = "0.0\"x";
+                Assert.False(chart.TryGetOfficeSnapshot(out _));
+
                 numberingFormat.FormatCode = "0.00E+00";
-                Assert.False(chart.TryGetOfficeSnapshot(out _));
-
-                numberingFormat.FormatCode = "m/d/yyyy";
-                Assert.False(chart.TryGetOfficeSnapshot(out _));
-
-                numberingFormat.FormatCode = "# ?/?";
-                Assert.False(chart.TryGetOfficeSnapshot(out _));
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
 
                 numberingFormat.FormatCode = "\"E+00\"0.0x";
                 Assert.True(chart.TryGetOfficeSnapshot(out _));

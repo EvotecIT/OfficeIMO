@@ -54,10 +54,11 @@ public static partial class OfficeChartDrawingRenderer {
             if (trendline.Type == OfficeChartTrendlineType.MovingAverage) {
                 int period = trendline.Period ?? 2;
                 points = new List<OfficePoint>();
-                for (int i = period - 1; i < ys.Count; i++) {
-                    double average = 0D;
-                    for (int j = i - period + 1; j <= i; j++) average += ys[j];
-                    points.Add(new OfficePoint(toPixelX(xs[i]), toPixelY(average / period)));
+                double sum = 0D;
+                for (int i = 0; i < ys.Count; i++) {
+                    sum += ys[i];
+                    if (i >= period) sum -= ys[i - period];
+                    if (i >= period - 1) points.Add(new OfficePoint(toPixelX(xs[i]), toPixelY(sum / period)));
                 }
             } else {
                 if (!TryFitTrendline(trendline, xs, ys, out Func<double, double>? model, out equation, out rSquared)) continue;
@@ -73,7 +74,8 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (points.Count < 2) continue;
             OfficeColor color = trendline.Color ?? GetSeriesColor(style, snapshot.Data.Series, seriesIndex);
-            AddTrendlinePath(geometry, points, color, trendline.Width?.ToPoints() ?? 1.5D, trendline.DashStyle ?? OfficeStrokeDashStyle.Solid);
+            if (!trendline.HidesLine)
+                AddTrendlinePath(geometry, points, color, trendline.Width?.ToPoints() ?? 1.5D, trendline.DashStyle ?? OfficeStrokeDashStyle.Solid);
 
             var parts = new List<string>(2);
             if (trendline.DisplayEquation && equation != null) parts.Add(equation);

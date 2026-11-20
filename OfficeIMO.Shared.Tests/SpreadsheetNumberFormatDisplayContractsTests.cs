@@ -28,4 +28,12 @@ public class SpreadsheetNumberFormatDisplayContractsTests {
     public void TextSectionRetainsUnknownSyntaxAndQuotedPlaceholders(string format, string expected) {
         Assert.Equal(expected, SpreadsheetNumberFormatDisplay.FormatTextValue("abc", format));
     }
+
+    [Theory]
+    [InlineData(0d, "-")]
+    [InlineData(2d, "2.00")]
+    public void AccountingZeroSectionPrintsItsDashWithoutDigits(double value, string expected) {
+        Assert.Equal(expected, SpreadsheetNumberFormatDisplay.FormatNumericValue(
+            value, "0.00;-0.00;_(* \"-\"??_)", CultureInfo.InvariantCulture).Trim());
+    }
 }

@@ -117,8 +117,10 @@ namespace OfficeIMO.Word.Pdf {
                 .Where(IsNativeWordChartElement)
                 .ToList();
             // The shared reader owns qualified legend-frame appearance, including its native
-            // fill and outline. Keep the PDF chart on that same projection when it is styled.
+            // fill and outline. Keep the PDF chart on that same projection when it is styled. Error bars and
+            // trendlines are drawn, or reported, only by the shared reader.
             if (allChartElements.Count > 1 || allChartElements.Any(element => element is BubbleChart) ||
+                plotArea.Descendants().Any(element => element is ErrorBars or Trendline) ||
                 HasMaterialNativeLegendFrame(openXmlChart) ||
                 (plotArea.GetFirstChild<DataTable>() == null &&
                  (HasNativeExplicitValueAxisScale(plotArea) || HasMaterialNativeChartAreaShape(chartPart?.ChartSpace)))) {

@@ -156,10 +156,19 @@ public sealed class WordChartPresentationQualificationTests {
     [InlineData("[>=100]0;0")]
     [InlineData(@"0\%")]
     [InlineData("0\"%\"")]
-    public void Snapshot_DrawsUnrepresentedAxisFormatsAsGeneral(string format) {
+    public void Snapshot_KeepsSpreadsheetAxisFormats(string format) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.Line);
         chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = format;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(format, snapshot.Layout.VerticalAxisNumberFormat);
+    }
+
+    [Fact]
+    public void Snapshot_DrawsInvalidAxisFormatAsGeneral() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartType.Line);
+        chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = "0.0\"x";
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Null(snapshot.Layout.VerticalAxisNumberFormat);
     }
@@ -215,7 +224,6 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Theory]
-    [InlineData("point")]
     [InlineData("legendKey")]
     [InlineData("bubbleSize")]
     public void Snapshot_RejectsVisibleLabelsWithoutGlobalValueFlags(string label) {
@@ -226,7 +234,6 @@ public sealed class WordChartPresentationQualificationTests {
             : Create(document, OfficeChartType.Pie);
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.DataLabels labels = label switch {
-            "point" => new C.DataLabels(new C.DataLabel(new C.Index { Val = 0 }, new C.ShowValue { Val = true })),
             "legendKey" => new C.DataLabels(new C.ShowLegendKey { Val = true }),
             _ => new C.DataLabels(new C.ShowBubbleSize { Val = true })
         };
@@ -374,7 +381,7 @@ public sealed class WordChartPresentationQualificationTests {
     [InlineData("# ?/?")]
     [InlineData("0.00E+00")]
     [InlineData("[>=100]0;0")]
-    public void Snapshot_DrawsUnrepresentedNumericCategoryFormatsAsGeneral(string format) {
+    public void Snapshot_KeepsSpreadsheetNumericCategoryFormats(string format) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartType.Line);
         var native = chart.ChartPart!.ChartSpace!;
@@ -384,7 +391,7 @@ public sealed class WordChartPresentationQualificationTests {
             new C.NumericPoint(new C.NumericValue("1")) { Index = 0 }, new C.NumericPoint(new C.NumericValue("2")) { Index = 1 }));
         native.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = format;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
-        Assert.Null(snapshot.Layout.CategoryAxisNumberFormat);
+        Assert.Equal(format, snapshot.Layout.CategoryAxisNumberFormat);
     }
 
     [Theory]

@@ -69,4 +69,13 @@ public sealed class OfficeChartTrendline {
         copy.DashStyle = dashStyle;
         return copy;
     }
+
+    // A native trendline whose line has no fill still shows its equation and R-squared labels.
+    internal bool HidesLine { get; private set; }
+
+    internal OfficeChartTrendline WithHiddenLine() {
+        var copy = (OfficeChartTrendline)MemberwiseClone();
+        copy.HidesLine = true;
+        return copy;
+    }
 }

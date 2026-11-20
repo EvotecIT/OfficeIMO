@@ -119,7 +119,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
     }
 
     [Fact]
-    public void DataUpdatePreservesUnprojectedRadialPointLabels() {
+    public void DataUpdatePreservesGroupPointLabels() {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -133,7 +133,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
         labels.AddChild(new C.DataLabel(new C.Index { Val = 0U },
             new C.ShowValue { Val = false }), true);
         native.AddChild(labels, true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
         chart.UpdateData(new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Status", new[] { 5d, 6d })
         }));

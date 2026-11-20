@@ -61,7 +61,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         var hiddenPoints = new Dictionary<uint, HashSet<int>>();
         var labeledPoints = new Dictionary<uint, HashSet<int>>();
         bool everySeriesLabeled = true;
-        void Select(LabelLayout layout) {
+        void Select(LabelLayout layout, bool radial, bool pie) {
+            Qualify(layout, radial, pie);
             if (selected == null) selected = layout;
             else if (!selected.SameAs(layout))
                 OfficeOpenXmlChartFidelityScope.Approximate("Different label layouts across chart layers cannot be projected together.",
@@ -70,11 +71,10 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         foreach (var layer in chart.PlotArea?.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) ?? Enumerable.Empty<OpenXmlCompositeElement>()) {
             bool radial = layer is C.PieChart or C.DoughnutChart;
+            bool pie = layer is C.PieChart;
             C.DataLabels? groupLabels = layer.GetFirstChild<C.DataLabels>();
             LabelLayout group = ReadLabelSet(chart, groupLabels, null, radial, scheme);
-            if (groupLabels?.Elements<C.DataLabel>().Any() == true)
-                OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
-                    "Point labels set on a whole chart group are drawn like the group's other labels.");
+            C.DataLabel[] groupPoints = groupLabels?.Elements<C.DataLabel>().ToArray() ?? Array.Empty<C.DataLabel>();
             int position = 0;
             foreach (OpenXmlCompositeElement series in layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser")) {
                 uint key = series.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)position;
@@ -82,15 +82,20 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 C.DataLabels? seriesLabels = series.GetFirstChild<C.DataLabels>();
                 LabelLayout effective = seriesLabels == null ? group : ReadLabelSet(chart, seriesLabels, group, radial, scheme);
                 if (effective.Visible) {
-                    Select(effective);
+                    Select(effective, radial, pie);
                     labeledSeries.Add(key);
                 } else {
                     everySeriesLabeled = false;
                 }
-                foreach (C.DataLabel point in seriesLabels?.Elements<C.DataLabel>() ?? Enumerable.Empty<C.DataLabel>()) {
-                    if (point.Index?.Val?.Value is not uint pointIndex || pointIndex > int.MaxValue) continue;
+                // Group point entries apply to every series; the series' own entries for a point replace them.
+                var points = new Dictionary<uint, C.DataLabel>();
+                foreach (C.DataLabel point in groupPoints.Concat(seriesLabels?.Elements<C.DataLabel>() ?? Enumerable.Empty<C.DataLabel>()))
+                    if (point.Index?.Val?.Value is uint pointIndex && pointIndex <= int.MaxValue) points[pointIndex] = point;
+                foreach (KeyValuePair<uint, C.DataLabel> entry in points) {
+                    C.DataLabel point = entry.Value;
+                    int pointIndex = (int)entry.Key;
                     if (point.GetFirstChild<C.Delete>() is C.Delete deleted && deleted.Val?.Value != false) {
-                        if (effective.Visible) Add(hiddenPoints, key, (int)pointIndex);
+                        if (effective.Visible) Add(hiddenPoints, key, pointIndex);
                         continue;
                     }
                     if (point.GetFirstChild<C.ChartText>() != null ||
@@ -99,16 +104,19 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                             "A data label with its own text or position is drawn as a standard label.");
                     LabelLayout own = ReadLabelSet(chart, point, effective, radial, scheme);
                     if (own.Visible == effective.Visible) {
-                        if (own.Visible && !own.SameAs(effective))
-                            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
-                                "A data label formatted on its own is drawn like the other labels of its series.");
+                        if (own.Visible) {
+                            Qualify(own, radial, pie);
+                            if (!own.SameAs(effective))
+                                OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
+                                    "A data label formatted on its own is drawn like the other labels of its series.");
+                        }
                         continue;
                     }
                     if (!own.Visible) {
-                        Add(hiddenPoints, key, (int)pointIndex);
+                        Add(hiddenPoints, key, pointIndex);
                     } else {
-                        Select(own);
-                        Add(labeledPoints, key, (int)pointIndex);
+                        Select(own, radial, pie);
+                        Add(labeledPoints, key, pointIndex);
                     }
                 }
             }
@@ -125,7 +133,24 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         points.Add(point);
     }
 
-    /// <summary>Reads one <c>c:dLbls</c> or <c>c:dLbl</c>; elements it omits come from <paramref name="inherited"/>.</summary>
+    /// <summary>Checks the position a visible label set ends up with, after every override has applied.</summary>
+    private static void Qualify(LabelLayout layout, bool radial, bool pie) {
+        if (radial && layout.Position is not OfficeChartDataLabelPosition.BestFit and not OfficeChartDataLabelPosition.OutsideEnd) {
+            OfficeOpenXmlChartFidelityScope.Approximate("The native radial data label position cannot be projected.",
+                "Radial data labels in that position are drawn at the best-fit position inside their slices.");
+            layout.Position = OfficeChartDataLabelPosition.BestFit;
+        }
+        // Best-fit pie labels move outside, with leader lines, when they do not fit their slice; doughnut
+        // labels stay on the ring.
+        if (pie && layout.LeaderLines && layout.Position == OfficeChartDataLabelPosition.BestFit)
+            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
+                "Best-fit radial data labels with leader lines are drawn inside their slices.");
+    }
+
+    /// <summary>
+    /// Reads one <c>c:dLbls</c> or <c>c:dLbl</c>; elements it omits come from <paramref name="inherited"/>. A hidden
+    /// set keeps its position, format and text, so a point that shows its label inherits them.
+    /// </summary>
     private static LabelLayout ReadLabelSet(C.Chart chart, OpenXmlCompositeElement? labels, LabelLayout? inherited, bool radial,
         A.ColorScheme? scheme) {
         if (labels == null) return inherited ?? new LabelLayout();
@@ -162,28 +187,20 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         if (Flag<C.ShowBubbleSize>(labels, null))
             OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
                 "Bubble sizes in data labels are left out.");
-        if (!current.Visible) {
-            current.Separator = null;
-            current.NumberFormat = null;
-            current.Position = OfficeChartDataLabelPosition.BestFit;
-            current.LeaderLines = false;
-            return current;
+        if (current.Visible || labels.GetFirstChild<C.TextProperties>() != null) {
+            int checkpoint = OfficeOpenXmlChartFidelityScope.Checkpoint;
+            try {
+                ReadLabelText(chart, labels, scheme, current);
+            } catch (NotSupportedException exception) when (OfficeOpenXmlChartFidelityScope.AllowsApproximation) {
+                OfficeOpenXmlChartFidelityScope.RollBack(checkpoint);
+                OfficeOpenXmlChartFidelityScope.Record("The data label text is drawn with its inherited formatting: " + exception.Message);
+            }
         }
-        if (radial && current.Position is not OfficeChartDataLabelPosition.BestFit and not OfficeChartDataLabelPosition.OutsideEnd) {
-            OfficeOpenXmlChartFidelityScope.Approximate("The native radial data label position cannot be projected.",
-                "Radial data labels in that position are drawn at the best-fit position inside their slices.");
-            current.Position = OfficeChartDataLabelPosition.BestFit;
-        }
-        // Best-fit pie labels move outside, with leader lines, when they do not fit their slice; doughnut
-        // labels stay on the ring.
-        if (current.LeaderLines && current.Position == OfficeChartDataLabelPosition.BestFit && labels.Ancestors<C.PieChart>().Any())
-            OfficeOpenXmlChartFidelityScope.Approximate("The native data label overrides cannot be projected.",
-                "Best-fit radial data labels with leader lines are drawn inside their slices.");
-        ReadLabelText(chart, labels, scheme, current);
         if (labels.GetFirstChild<C.NumberingFormat>() is C.NumberingFormat numbering)
             current.NumberFormat = numbering.SourceLinked?.Value == true
                 ? ReadSourceLinkedLabelFormat(labels)
                 : OfficeOpenXmlChartSecondaryAxis.ReadDrawableNumberFormat(labels, "data label");
+        if (!current.Visible) return current;
         foreach (var child in labels.ChildElements) {
             if (child is C.Index or C.Delete or C.Layout or C.ChartText or C.TextProperties or C.ShowValue or C.ShowCategoryName or
                 C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or C.ShowBubbleSize or C.ShowLeaderLines or C.Separator or
@@ -222,16 +239,29 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return OfficeChartDataLabelPosition.BestFit;
     }
 
+    // Label text comes from the label's text properties only; a custom rich-text label is drawn as a standard one.
+    // A label that names some text properties keeps the rest from its group or series.
     private static void ReadLabelText(C.Chart chart, OpenXmlCompositeElement labels, A.ColorScheme? scheme, LabelLayout current) {
-        // Labels without their own text properties keep the text their group or series set.
-        if (labels.GetFirstChild<C.TextProperties>() == null && (current.FontSize.HasValue || current.FontFamily != null ||
-                current.FontStyle.HasValue || current.TextColor.HasValue)) return;
+        C.TextProperties? properties = labels.GetFirstChild<C.TextProperties>();
+        bool inherits = current.FontSize.HasValue || current.FontFamily != null || current.FontStyle.HasValue || current.TextColor.HasValue;
+        if (properties == null && inherits) return;
         ChartPart? chartPart = (chart.Parent as C.ChartSpace)?.OpenXmlPart as ChartPart;
-        NativeText text = ReadNativeText(chart, labels, scheme);
-        NativeText styled = chartPart == null ? default : ReadChartStyleLabelText(chartPart, scheme);
-        if (labels.GetFirstChild<C.TextProperties>() is C.TextProperties properties &&
-            chartPart?.GetPartsOfType<ChartStylePart>().Any() == true) {
-            OpenXmlElement? colorMap = OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
+        OpenXmlElement? colorMap = chartPart == null ? null : OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
+        if (inherits) {
+            NativeText parent = new NativeText(current.FontSize, current.FontStyle, current.TextColor, current.FontFamily);
+            NativeText own = ReadTextPropertyDefaults(parent, properties, scheme, colorMap);
+            current.FontSize = own.Size;
+            current.FontFamily = own.Family;
+            current.FontStyle = own.Style;
+            current.TextColor = own.Color;
+            return;
+        }
+        NativeText chartText = ReadTextPropertyDefaults(default, chart.Parent?.GetFirstChild<C.TextProperties>(), scheme, colorMap);
+        NativeText text = ReadTextPropertyDefaults(chartText, properties, scheme, colorMap);
+        // A hidden label set only passes its text on to points that show their labels; the chart style's
+        // label text applies to labels that are drawn.
+        NativeText styled = chartPart == null || !current.Visible ? default : ReadChartStyleLabelText(chartPart, scheme);
+        if (current.Visible && properties != null && chartPart?.GetPartsOfType<ChartStylePart>().Any() == true) {
             NativeText explicitText = ReadTextPropertyDefaults(default, properties, scheme, colorMap);
             NativeText inheritedText = ReadTextPropertyDefaults(styled, properties, scheme, colorMap);
             if (styled.Size.HasValue && !explicitText.Size.HasValue ||
@@ -242,10 +272,10 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 OfficeOpenXmlChartFidelityScope.Approximate("Styled chart data-label text inheritance cannot be projected.",
                     "Data label text inherited from the chart style is drawn with the label's own text settings.");
         }
-        current.FontSize = text.Size ?? styled.Size ?? current.FontSize;
-        current.FontFamily = text.Family ?? styled.Family ?? current.FontFamily;
-        current.FontStyle = text.Style ?? styled.Style ?? current.FontStyle;
-        current.TextColor = text.Color ?? styled.Color ?? current.TextColor;
+        current.FontSize = text.Size ?? styled.Size;
+        current.FontFamily = text.Family ?? styled.Family;
+        current.FontStyle = text.Style ?? styled.Style;
+        current.TextColor = text.Color ?? styled.Color;
     }
 
     private static string? ReadSourceLinkedLabelFormat(OpenXmlCompositeElement labels) {

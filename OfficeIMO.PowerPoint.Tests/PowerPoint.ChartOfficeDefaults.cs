@@ -6,6 +6,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests;
@@ -43,6 +44,8 @@ public sealed class PowerPointChartOfficeDefaultsTests {
     [InlineData("#,##0;-#,##0;\\-", ">-<")]
     [InlineData("\\$#,##0;[Red]\\(\\$#,##0\\);\\-", "$4")]
     [InlineData("[$€-413] #,##0", "€ 4")]
+    [InlineData("0\";kg\";(0);\"-\"", ">2;kg<")]
+    [InlineData("[>=45000]yyyy-mm-dd;\"early\"", ">early<")]
     public void OfficeAxisNumberFormatsAreDrawn(string format, string expectedText) {
         string svg = RenderSvg(CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty, format),
             OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
@@ -53,8 +56,8 @@ public sealed class PowerPointChartOfficeDefaultsTests {
     }
 
     [Fact]
-    public void UnsupportedAxisNumberFormatIsDrawnAsGeneralWithADiagnostic() {
-        string svg = RenderSvg(CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty, "[<1]0.0;#,##0"),
+    public void InvalidAxisNumberFormatIsDrawnAsGeneralWithADiagnostic() {
+        string svg = RenderSvg(CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty, "#,##0\"x"),
             OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
 
         AssertDrawn(diagnostics);
@@ -110,6 +113,161 @@ public sealed class PowerPointChartOfficeDefaultsTests {
         Assert.DoesNotContain(bestEffort.Warnings, warning => warning.Code == "unsupported-chart");
         Assert.Contains(bestEffort.Warnings, warning => warning.Code == OfficeDiagnosticCodes.ChartApproximation);
     }
+
+    [Fact]
+    public void StrictSkipsAChartWhoseSurfacesCannotBeDrawnAndBestEffortReportsThem() {
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty)
+            .Replace("<c:roundedCorners val=\"0\"/>", "<c:roundedCorners val=\"1\"/>");
+
+        RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> strict);
+        RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> bestEffort);
+
+        Assert.Contains(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart);
+        AssertDrawn(bestEffort);
+        Assert.Contains(bestEffort, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
+            diagnostic.Message == "The rounded chart frame is drawn with square corners.");
+    }
+
+    [Fact]
+    public void UnresolvedWorkbookLinkedAxisFormatIsReported() {
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty)
+            .Replace("sourceLinked=\"0\"", "sourceLinked=\"1\"").Replace("<c:formatCode>General</c:formatCode>", "<c:formatCode>0.0</c:formatCode>")
+            .Replace("</c:chartSpace>", "<c:externalData r:id=\"rIdMissing\"><c:autoUpdate val=\"0\"/></c:externalData></c:chartSpace>");
+
+        RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
+            diagnostic.Message.IndexOf("could not be resolved", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
+    public void SeriesLabelPositionOverridesTheGroupPositionBeforeItIsChecked() {
+        string seriesLabels = "<c:dLbls><c:dLblPos val=\"outEnd\"/><c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbls>";
+        string plot = "<c:pieChart><c:varyColors val=\"1\"/><c:ser><c:idx val=\"0\"/><c:order val=\"0\"/>" + SeriesName() + seriesLabels +
+            Categories() + Values() + "</c:ser><c:dLbls><c:dLblPos val=\"inEnd\"/><c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbls>" +
+            "<c:firstSliceAng val=\"0\"/></c:pieChart>";
+
+        string svg = RenderSvg(ChartSpace(plot, ExcelChartArea), OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains(">4.3<", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PointLabelDeletedOnTheChartGroupStaysHidden() {
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty)
+            .Replace("<c:gapWidth", "<c:dLbls><c:dLbl><c:idx val=\"0\"/><c:delete val=\"1\"/></c:dLbl><c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbls><c:gapWidth");
+
+        string svg = RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains(">2.5<", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain(">4.3<", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BestEffortDrawsAPointWithMixedCustomTextAsAStandardLabel() {
+        string labels = SeriesLabels.Replace("<c:dLbls>", "<c:dLbls><c:dLbl><c:idx val=\"1\"/><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p>" +
+            "<a:r><a:rPr lang=\"en-US\" b=\"1\"/><a:t>Bold</a:t></a:r><a:r><a:rPr lang=\"en-US\" b=\"0\"/><a:t> plain</a:t></a:r></a:p></c:rich></c:tx>" +
+            "<c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbl>");
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", labels);
+
+        string svg = RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
+            diagnostic.Message == "A data label with its own text or position is drawn as a standard label.");
+        Assert.Contains(">2.5<", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PointLabelKeepsTheFormatOfAHiddenGroup() {
+        string seriesLabels = "<c:dLbls><c:dLbl><c:idx val=\"0\"/><c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbl>" +
+            "<c:showLegendKey val=\"0\"/><c:showVal val=\"0\"/></c:dLbls>";
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", seriesLabels)
+            .Replace("<c:gapWidth", "<c:dLbls><c:numFmt formatCode=\"0.00\" sourceLinked=\"0\"/><c:dLblPos val=\"outEnd\"/><c:showLegendKey val=\"0\"/><c:showVal val=\"0\"/></c:dLbls><c:gapWidth");
+
+        string svg = RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains(">4.30<", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain(">2.50<", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SeriesLabelTextKeepsTheGroupColourWhenItOnlySetsTheSize() {
+        string seriesLabels = "<c:dLbls>" + TextProperties("<a:defRPr sz=\"1200\"/>") + "<c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbls>";
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>",
+                "<c:spPr><a:solidFill><a:schemeClr val=\"accent1\"/></a:solidFill></c:spPr><c:invertIfNegative val=\"0\"/>" + seriesLabels)
+            .Replace("<c:gapWidth", "<c:dLbls>" + TextProperties("<a:defRPr><a:solidFill><a:srgbClr val=\"C00000\"/></a:solidFill></a:defRPr>") +
+                "<c:showLegendKey val=\"0\"/><c:showVal val=\"1\"/></c:dLbls><c:gapWidth")
+            .Replace("</c:chart>" + ExcelChartArea, "</c:chart>" + ExcelChartArea +
+                TextProperties("<a:defRPr><a:solidFill><a:srgbClr val=\"0070C0\"/></a:solidFill></a:defRPr>"));
+
+        string svg = RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains("c00000", svg.ToLowerInvariant(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MovingAverageLongerThanDrawingMlAllowsIsNotDrawn() {
+        string chart = CategoryChart("lineChart", "<c:grouping val=\"standard\"/>", Accent1Line + "<c:marker><c:symbol val=\"none\"/></c:marker>" +
+            "<c:trendline><c:trendlineType val=\"movingAvg\"/><c:period val=\"300\"/><c:dispRSqr val=\"0\"/><c:dispEq val=\"0\"/></c:trendline>");
+
+        RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> strict);
+        RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> bestEffort);
+
+        Assert.Contains(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart &&
+            diagnostic.Message.IndexOf("trendline type", StringComparison.Ordinal) >= 0);
+        AssertDrawn(bestEffort);
+        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "A trendline the renderer cannot fit is left out.");
+    }
+
+    [Fact]
+    public void TrendlineWithoutALineOrLegendEntryDrawsOnlyItsEquation() {
+        string series = Accent1Line + "<c:marker><c:symbol val=\"none\"/></c:marker>";
+        string trendline = "<c:trendline><c:spPr><a:ln><a:noFill/></a:ln></c:spPr><c:trendlineType val=\"linear\"/><c:dispRSqr val=\"0\"/><c:dispEq val=\"1\"/></c:trendline>";
+        string Chart(string formatting) => CategoryChart("lineChart", "<c:grouping val=\"standard\"/>", formatting)
+            .Replace("<c:legendPos val=\"b\"/>", "<c:legendPos val=\"b\"/><c:legendEntry><c:idx val=\"1\"/><c:delete val=\"1\"/></c:legendEntry>");
+
+        string without = RenderSvg(Chart(series), OfficeChartFidelity.Strict, out _);
+        string svg = RenderSvg(Chart(series + trendline), OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
+        Assert.Contains("y = ", svg, StringComparison.Ordinal);
+        Assert.Equal(CountPaths(without), CountPaths(svg));
+    }
+
+    [Fact]
+    public void BestEffortKeepsBubblesWhoseErrorBarsCannotBeDrawn() {
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        PowerPointSlide slide = presentation.AddSlide();
+        slide.AddChart(OfficeChartType.Bubble, new OfficeChartData(new[] { "A", "B" }, new[] {
+            OfficeSeries.CreateBubble("Values", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 6d })
+        }));
+        C.BubbleChartSeries series = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
+        series.InsertBefore(new C.ErrorBars(new C.ErrorDirection { Val = C.ErrorBarDirectionValues.Y },
+            new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.StandardError },
+            new C.NoEndCap { Val = false }), series.GetFirstChild<C.XValues>());
+
+        IReadOnlyList<OfficeImageExportDiagnostic> Render(OfficeChartFidelity fidelity) => slide.ToImage(new PowerPointImageExportOptions {
+            Format = OfficeImageExportFormat.Svg,
+            ChartRendering = { Fidelity = fidelity }
+        }).Diagnostics;
+
+        Assert.Contains(Render(OfficeChartFidelity.Strict), diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart);
+        IReadOnlyList<OfficeImageExportDiagnostic> bestEffort = Render(OfficeChartFidelity.BestEffort);
+        AssertDrawn(bestEffort);
+        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Error bars are left out.");
+    }
+
+    private static int CountPaths(string svg) => System.Text.RegularExpressions.Regex.Matches(svg, "<path").Count;
+
+    private static string TextProperties(string runProperties) =>
+        "<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr>" + runProperties + "</a:pPr><a:endParaRPr lang=\"en-US\"/></a:p></c:txPr>";
 
     private static void AssertDrawn(IReadOnlyList<OfficeImageExportDiagnostic> diagnostics) =>
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart);

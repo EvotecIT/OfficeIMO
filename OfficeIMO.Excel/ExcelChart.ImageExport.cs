@@ -551,16 +551,23 @@ namespace OfficeIMO.Excel {
             int? period = trendline.GetFirstChild<C.Period>()?.Val?.Value is uint averagePeriod && averagePeriod <= int.MaxValue ? (int)averagePeriod : null;
             if (type == OfficeChartTrendlineType.Polynomial && order is null or < 2 or > 6) return null;
             if (type == OfficeChartTrendlineType.MovingAverage && period is null or < 2) return null;
+            if (period > OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.MaximumPeriod) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate("The native trendline type cannot be projected.",
+                    "A trendline the renderer cannot fit is left out.");
+                return null;
+            }
             C.ChartShapeProperties? properties = trendline.GetFirstChild<C.ChartShapeProperties>();
+            A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? color = TryGetSolidLine(properties, workbookPart, out OfficeColor line) ? line : null;
             double? width = TryGetLineWidth(properties, out double lineWidth) && lineWidth > 0D ? lineWidth : null;
             double? intercept = trendline.GetFirstChild<C.Intercept>()?.Val?.Value is double fixedIntercept && !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept)
                 ? fixedIntercept : null;
-            return new OfficeChartTrendline(type.Value, order, period,
+            var result = new OfficeChartTrendline(type.Value, order, period,
                 displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
                 displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
                 color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept)
-                .WithDashStyle(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDash(properties?.GetFirstChild<A.Outline>()));
+                .WithDashStyle(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDashOrApproximate(outline));
+            return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.HidesLine(outline) ? result.WithHiddenLine() : result;
         }
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {

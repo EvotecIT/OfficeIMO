@@ -37,7 +37,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.True(chart.TryGetOfficeSnapshot(out var drawn));
         Assert.Equal("0.0", drawn.Layout.VerticalAxisNumberFormat);
 
-        format.FormatCode = "[<1]0.0;0";
+        format.FormatCode = "0.0\"x";
         Assert.True(chart.TryGetOfficeSnapshot(out var fallback));
         Assert.Null(fallback.Layout.VerticalAxisNumberFormat);
     }
@@ -94,14 +94,14 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
-        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[<1]0.0;0";
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "0.0\"x";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
 
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Null(snapshot.Layout.VerticalAxisNumberFormat);
         chart.UpdateData(new OfficeChartData(new[] { "A" },
             new[] { new OfficeSeries("Values", new[] { 24d }) }));
-        Assert.Equal("[<1]0.0;0", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+        Assert.Equal("0.0\"x", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
     }
 
     [Theory]
@@ -181,7 +181,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(item => item.AxisPosition!.Val!.Value ==
                 (secondaryAxis ? C.AxisPositionValues.Right : C.AxisPositionValues.Left));
-        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[<1]0.0;0";
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "0.0\"x";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Null(secondaryAxis ? snapshot.Layout.SecondaryValueAxis!.NumberFormat : snapshot.Layout.VerticalAxisNumberFormat);

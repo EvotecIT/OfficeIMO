@@ -31,7 +31,9 @@ namespace OfficeIMO.Spreadsheet {
             }
 
             if (IsZeroValue(value) && HasOnlyOptionalDigitPlaceholders(normalized)) {
-                return string.Empty;
+                // Optional digits show nothing for zero, but the section's literals still print, such as the
+                // dash of the accounting zero section _(* "-"??_).
+                return ApplyNumericAffixes(normalized, string.Empty);
             }
 
             if (TryFormatFraction(value, normalized, selectedSection, out string fractionText)) {

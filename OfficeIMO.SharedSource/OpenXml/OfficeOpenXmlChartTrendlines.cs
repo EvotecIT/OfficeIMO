@@ -7,6 +7,9 @@ namespace OfficeIMO.OpenXml.Internal;
 
 /// <summary>Reads native series trendlines and line dash presets into the shared chart contract.</summary>
 internal static class OfficeOpenXmlChartTrendlines {
+    /// <summary>The largest moving-average period DrawingML allows.</summary>
+    internal const int MaximumPeriod = 255;
+
     /// <summary>Reads the first trendline of a series, reporting what the shared renderer leaves out.</summary>
     internal static OfficeChartTrendline? Read(OpenXmlCompositeElement series, A.ColorScheme? scheme) {
         C.Trendline[] trendlines = series.Elements<C.Trendline>().Take(2).ToArray();
@@ -27,7 +30,7 @@ internal static class OfficeOpenXmlChartTrendlines {
         int? order = trendline.GetFirstChild<C.PolynomialOrder>()?.Val?.Value is byte polynomialOrder ? polynomialOrder : null;
         int? period = trendline.GetFirstChild<C.Period>()?.Val?.Value is uint averagePeriod && averagePeriod <= int.MaxValue ? (int)averagePeriod : null;
         if (type == null || type == OfficeChartTrendlineType.Polynomial && order is null or < 2 or > 6 ||
-            type == OfficeChartTrendlineType.MovingAverage && period is null or < 2) {
+            type == OfficeChartTrendlineType.MovingAverage && period is null or < 2 or > MaximumPeriod) {
             OfficeOpenXmlChartFidelityScope.Approximate("The native trendline type cannot be projected.",
                 "A trendline the renderer cannot fit is left out.");
             return null;
@@ -45,9 +48,7 @@ internal static class OfficeOpenXmlChartTrendlines {
             (label.GetFirstChild<C.ChartText>() != null || label.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null))
             OfficeOpenXmlChartFidelityScope.Approximate("Custom trendline labels cannot be projected.",
                 "A trendline label with its own text or position is drawn in the standard place.");
-        // Office lists each trendline in the legend unless that entry is deleted.
-        C.Legend? legend = series.Ancestors<C.Chart>().FirstOrDefault()?.GetFirstChild<C.Legend>();
-        if (legend != null)
+        if (HasLegendEntry(series))
             OfficeOpenXmlChartFidelityScope.Approximate("Trendline legend entries cannot be projected.",
                 "Trendline entries are left out of the legend.");
         C.ChartShapeProperties? properties = trendline.GetFirstChild<C.ChartShapeProperties>();
@@ -55,16 +56,37 @@ internal static class OfficeOpenXmlChartTrendlines {
         OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
         OfficeLength? width = outline?.Width?.Value is int emus && emus > 0 && emus / 12700D <= OfficeChartStyleBounds.MaximumLineWidthPoints
             ? OfficeLength.Emus(emus) : null;
+        double? intercept = trendline.GetFirstChild<C.Intercept>()?.Val?.Value is double fixedIntercept &&
+            !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept) ? fixedIntercept : null;
+        var result = new OfficeChartTrendline(type.Value, order, period,
+            displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
+            displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
+            color: color, width: width, intercept: intercept).WithDashStyle(ReadDashOrApproximate(outline));
+        return HidesLine(outline) ? result.WithHiddenLine() : result;
+    }
+
+    /// <summary>True when the trendline's outline has no fill, so only its labels show.</summary>
+    internal static bool HidesLine(A.Outline? outline) => outline?.GetFirstChild<A.NoFill>() != null;
+
+    // Office lists each trendline in the legend after every series, unless that entry is deleted.
+    private static bool HasLegendEntry(OpenXmlCompositeElement series) {
+        C.Chart? chart = series.Ancestors<C.Chart>().FirstOrDefault();
+        C.Legend? legend = chart?.GetFirstChild<C.Legend>();
+        if (legend == null || chart?.PlotArea == null) return false;
+        OpenXmlElement[] allSeries = chart.PlotArea.Descendants().Where(element => element.LocalName == "ser").ToArray();
+        int ordinal = allSeries.TakeWhile(item => !ReferenceEquals(item, series)).Count(item => item.ChildElements.OfType<C.Trendline>().Any());
+        uint entry = (uint)(allSeries.Length + ordinal);
+        return !legend.Elements<C.LegendEntry>().Any(item => item.GetFirstChild<C.Index>()?.Val?.Value == entry &&
+            item.GetFirstChild<C.Delete>() is C.Delete deleted && deleted.Val?.Value != false);
+    }
+
+    /// <summary>Reads the trendline dash, reporting a preset the renderer cannot draw.</summary>
+    internal static OfficeStrokeDashStyle? ReadDashOrApproximate(A.Outline? outline) {
         OfficeStrokeDashStyle? dash = ReadDash(outline);
         if (outline?.GetFirstChild<A.PresetDash>() != null && !dash.HasValue)
             OfficeOpenXmlChartFidelityScope.Approximate("The trendline dash pattern cannot be projected.",
                 "A trendline dash pattern the renderer cannot draw is drawn solid.");
-        double? intercept = trendline.GetFirstChild<C.Intercept>()?.Val?.Value is double fixedIntercept &&
-            !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept) ? fixedIntercept : null;
-        return new OfficeChartTrendline(type.Value, order, period,
-            displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
-            displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
-            color: color, width: width, intercept: intercept).WithDashStyle(dash);
+        return dash;
     }
 
     /// <summary>
