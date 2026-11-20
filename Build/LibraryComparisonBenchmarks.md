@@ -154,9 +154,12 @@ and every result beside it, to the publishing checkout and merge:
 
 The destination is always an input, so a later subset keeps the other lanes. A
 newer run of a lane replaces it and the earlier run stays in the catalog's
-superseded history with its date and hash; result files are content-addressed,
-so none is overwritten. PowerForge verifies every result against its hash and
-re-evaluates every lane against the declarations and the publish policy. With
+superseded history with its date, libraries and hash. Result files are
+content-addressed and compact: each case is stored once with its samples as arrays,
+rounded to six significant digits. The merge removes the files of replaced runs from
+the catalog folder, so it holds only the results of current lanes. PowerForge
+verifies every result against its hash and re-evaluates every lane against the
+declarations and the publish policy. With
 no sources and no catalog, the merge writes a catalog of declarations only.
 Catalogs from earlier schemas are rejected; record fresh runs instead.
 

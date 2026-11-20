@@ -1132,9 +1132,9 @@ Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 thr
 | Case | OfficeIMO | ExcelReader.NET | Sylvan.Data.Excel | Excel-PRIME | OneDocument.Spreadsheets | ExcelDataReader |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Default | **30.4 ms** | 32.1 ms (1.06×) | 35.3 ms (1.16×) | 98.5 ms (3.2×) | 54.9 ms (1.81×) | 151 ms (5.0×) |
-| TypedStyles | — | — | — | **106 ms** | — | — |
 | Prefetch | — | **22.6 ms** | — | — | — | — |
 | SinglePass | **19.4 ms** | — | — | — | — | — |
+| TypedStyles | — | — | — | **106 ms** | — | — |
 
 - **OfficeIMO and ExcelReader.NET are about as fast** (OfficeIMO allocates 8.1× more · 1 case)
 - **OfficeIMO is 1.16× faster than Sylvan.Data.Excel** (OfficeIMO allocates 2.6× less · 1 case)
@@ -1151,14 +1151,14 @@ Windows · net10.0 · Standard run · 2026-11-19 · AMD Ryzen 9 9950X3D2 (32 thr
 | Case | OfficeIMO | ExcelReader.NET | Excel-PRIME | OneDocument.Spreadsheets | Sylvan.Data.Excel | HypeLab.IO.Excel | XLibur | ExcelDataReader | MiniExcel | ClosedXML |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Default | **40.6 ms** | 56.5 ms (1.39×) | 347 ms (8.6×) | 182 ms (4.5×) | 209 ms (5.2×) | 388 ms (9.6×) | 415 ms (10×) | 562 ms (14×) | 662 ms (16×) | 1.82 s (45×) |
-| TypedStyles | — | — | **343 ms** | — | — | — | — | — | — | — |
-| InternStrings | — | **64.7 ms** | — | — | — | — | — | — | — | — |
-| Memory | **37.0 ms** | 53.6 ms (1.45×) | — | — | — | — | — | — | — | — |
-| Prefetch | **38.4 ms** | 40.8 ms (1.06×) | — | — | — | — | — | — | — | — |
 | DefaultNumbers | **46.6 ms** | — | — | — | — | — | — | — | — | — |
 | DefaultNumbers_Prefetch | **46.4 ms** | — | — | — | — | — | — | — | — | — |
+| InternStrings | — | **64.7 ms** | — | — | — | — | — | — | — | — |
 | Loaded | **77.2 ms** | — | — | — | — | — | — | — | — | — |
+| Memory | **37.0 ms** | 53.6 ms (1.45×) | — | — | — | — | — | — | — | — |
+| Prefetch | **38.4 ms** | 40.8 ms (1.06×) | — | — | — | — | — | — | — | — |
 | SinglePass | **26.5 ms** | — | — | — | — | — | — | — | — | — |
+| TypedStyles | — | — | **343 ms** | — | — | — | — | — | — | — |
 
 - **OfficeIMO is 1.29× faster than ExcelReader.NET** (OfficeIMO allocates 8.1× more · geometric mean of 3 cases)
 - **OfficeIMO is 8.6× faster than Excel-PRIME** (OfficeIMO allocates 249× less · 1 case)
