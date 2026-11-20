@@ -123,7 +123,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _mathGlyphData = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int glyphMathOffset)
             ? OfficeOpenTypeMathGlyphs.TryRead(data, glyphMathOffset, tableLengths["MATH"], _numGlyphs) : null;
         _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
-        _bitmapGlyphs = reader == null ? null : OfficeOpenTypeBitmapGlyphs.TryCreate(reader, _unitsPerEm);
+        _bitmapGlyphs = reader == null ? null : OfficeOpenTypeBitmapGlyphs.TryCreate(reader, _unitsPerEm, GetOutlineOrigin);
         _hasUnreadColorTable = tables.ContainsKey("sbix") || tables.ContainsKey("CBDT") || tables.ContainsKey("SVG ")
             || tables.ContainsKey("COLR") && _colorGlyphs == null;
         _variations = variationModel != null && variationModel.IsVariable

@@ -57,7 +57,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
             OfficeTrueTypeFont program = Program!;
             string path = program.TryGetGlyphOutline(glyphId, MaximumColorGlyphPoints, default, out List<List<OfficePoint>> contours)
                 ? PdfColorGlyphArt.ToPathOperators(contours) : string.Empty;
-            return new PdfColorGlyphArt(program.UnitsPerEm, new[] { new PdfColorGlyphLayer(path, OfficeColor.Black, foreground: true) });
+            return new PdfColorGlyphArt(program.UnitsPerEm, new[] { new PdfColorGlyphLayer(path, OfficeColor.Black, foreground: true) },
+                isPlainOutline: true);
         }
 
         private static bool HasAnyTable(byte[] data, params string[] tags) {

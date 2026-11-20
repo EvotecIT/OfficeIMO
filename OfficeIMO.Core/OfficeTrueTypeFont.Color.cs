@@ -6,9 +6,12 @@ internal sealed class OfficeColorGlyphContours {
         Color = color;
     }
 
-    /// <summary>A CBDT or sbix PNG glyph placed in output coordinates, y down; it has no contours.</summary>
+    /// <summary>A CBDT or sbix PNG glyph placed in output coordinates, y down; its only contour is its box.</summary>
     internal OfficeColorGlyphContours(OfficeBitmapGlyphImage bitmap, double left, double top, double width, double height) {
-        Contours = new List<List<OfficePoint>>();
+        // The box as one contour, so the transforms applied to glyph contours also move the image.
+        Contours = new List<List<OfficePoint>> {
+            new List<OfficePoint> { new(left, top), new(left + width, top), new(left + width, top + height), new(left, top + height) }
+        };
         Color = OfficeColor.FromRgba(0, 0, 0, 0);
         Bitmap = bitmap;
         BitmapLeft = left; BitmapTop = top; BitmapWidth = width; BitmapHeight = height;
@@ -69,6 +72,13 @@ public sealed partial class OfficeTrueTypeFont {
     internal bool IsUnpaintableColorGlyph(int glyph) =>
         _hasUnreadColorTable && glyph > 0 && glyph < _numGlyphs && !IsPaintedColorGlyph(glyph)
         && HasEmptyOutline((ushort)glyph);
+
+    // The (xMin, yMin) of a glyph's outline bounding box, or null when it has no outline.
+    private (int XMin, int YMin)? GetOutlineOrigin(int glyph) {
+        if (glyph <= 0 || glyph >= _numGlyphs || HasEmptyOutline((ushort)glyph)) return null;
+        int header = _glyf + GlyphOffset((ushort)glyph);
+        return (unchecked((short)ReadUInt16(_data, header + 2)), unchecked((short)ReadUInt16(_data, header + 4)));
+    }
 
     private bool HasEmptyOutline(ushort glyph) {
         int start = GlyphOffset(glyph);
@@ -242,7 +252,7 @@ public sealed partial class OfficeTrueTypeFont {
 
     /// <summary>
     /// Returns a glyph's color layers as outlines in font units, y up, with the glyph origin at 0,0.
-    /// Layers that use the text color are flagged so a consumer can substitute its own fill.
+    /// Layers that use the text color are flagged so a consumer can substitute its own fill; their color carries the paint alpha.
     /// </summary>
     internal bool TryGetGlyphColorLayers(int glyphId, OfficeColor foreground, int maximumPointCount,
         CancellationToken cancellationToken, out List<(List<List<OfficePoint>> Contours, OfficeColor Color, bool Foreground)> layers) {
@@ -261,7 +271,8 @@ public sealed partial class OfficeTrueTypeFont {
                 maximumPointCount, ref pointCount, cancellationToken, attachmentPoints: null);
             if (contours.Count > 0) layers.Add((contours, layer.Color, layer.IsForeground));
         }
-        return layers.Count > 0;
+        // A glyph whose layers are all transparent is still COLR artwork: it paints nothing, not its base outline.
+        return true;
     }
 
     /// <summary>Returns a glyph's plain outline in font units, y up, with the glyph origin at 0,0.</summary>

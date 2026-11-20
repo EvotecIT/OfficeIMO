@@ -18,11 +18,13 @@ internal readonly struct PdfColorGlyphLayer {
 
 /// <summary>Painted artwork of one glyph in a run that contains color glyphs: COLR layers, a PNG bitmap or the plain outline.</summary>
 internal sealed class PdfColorGlyphArt {
-    internal PdfColorGlyphArt(int unitsPerEm, IReadOnlyList<PdfColorGlyphLayer> layers, OfficeBitmapGlyphImage? bitmap = null) {
-        UnitsPerEm = unitsPerEm; Layers = layers; Bitmap = bitmap;
+    internal PdfColorGlyphArt(int unitsPerEm, IReadOnlyList<PdfColorGlyphLayer> layers, OfficeBitmapGlyphImage? bitmap = null, bool isPlainOutline = false) {
+        UnitsPerEm = unitsPerEm; Layers = layers; Bitmap = bitmap; IsPlainOutline = isPlainOutline;
     }
 
     internal int UnitsPerEm { get; }
+    /// <summary>Whether this is an ordinary glyph's outline in a run that also has color glyphs.</summary>
+    internal bool IsPlainOutline { get; }
     internal IReadOnlyList<PdfColorGlyphLayer> Layers { get; }
     internal OfficeBitmapGlyphImage? Bitmap { get; }
 
@@ -53,9 +55,12 @@ internal interface IColorGlyphPage {
 
 internal sealed partial class ContentStreamBuilder {
     private readonly struct DeferredGlyphArt {
-        internal DeferredGlyphArt(double a, double b, double c, double d, double e, double f, PdfColorGlyphArt art, OfficeColor fill) {
-            A = a; B = b; C = c; D = d; E = e; F = f; Art = art; Fill = fill;
+        internal DeferredGlyphArt(double a, double b, double c, double d, double e, double f, PdfColorGlyphArt art, OfficeColor fill,
+            double syntheticBoldStroke) {
+            A = a; B = b; C = c; D = d; E = e; F = f; Art = art; Fill = fill; SyntheticBoldStroke = syntheticBoldStroke;
         }
+        /// <summary>The synthetic-bold stroke width in glyph units, or 0 when the run is not synthetic bold.</summary>
+        internal double SyntheticBoldStroke { get; }
         internal double A { get; }
         internal double B { get; }
         internal double C { get; }
@@ -103,8 +108,8 @@ internal sealed partial class ContentStreamBuilder {
     // and ActualText, and every glyph's artwork is painted after the text object at the same pen.
     private bool TryQueueColorGlyphArt(PdfTextShowCommand command, double fontSize, double textRise) {
         IReadOnlyList<PdfColorGlyphArt?>? arts = command.ColorArt;
-        if (arts == null || !T._positionKnown || _textRenderingMode is 3 or 7
-            || command.IsScalarBidi || command.IsolatedRightToLeft || command.SimpleFontKerning != null) return false;
+        // Bidi runs are written in segments, but their visual glyphs and advances still give each pen position.
+        if (arts == null || !T._positionKnown || _textRenderingMode is 3 or 7 || command.SimpleFontKerning != null) return false;
         IReadOnlyList<PdfGlyphInfo>? glyphs = command.PositionedGlyphs ?? command.VisualGlyphs;
         if (glyphs == null || glyphs.Count != arts.Count || glyphs.Count != command.GlyphCount) return false;
         // A PNG glyph needs a page to become an image of; without one the run keeps its ordinary glyphs.
@@ -127,7 +132,7 @@ internal sealed partial class ContentStreamBuilder {
                 _deferredGlyphArt.Add(new DeferredGlyphArt(
                     ga * T._textA, ga * T._textB, gd * T._textC, gd * T._textD,
                     x * T._textA + y * T._textC + T._textE, x * T._textB + y * T._textD + T._textF,
-                    art, _paintFillColor));
+                    art, _paintFillColor, T._syntheticBold ? SyntheticBoldStrokeWidth(fontSize) / unit : 0D));
             }
             pen += glyph.AdvanceWidth1000 * fontSize / 1000D + T._textCharacterSpacing
                 + command.GetJustificationAdvance(index) / scale
@@ -135,6 +140,9 @@ internal sealed partial class ContentStreamBuilder {
         }
         return true;
     }
+
+    private StringBuilder AppendRgb(OfficeColor color) =>
+        _sb.Append(F(color.R / 255D)).Append(' ').Append(F(color.G / 255D)).Append(' ').Append(F(color.B / 255D));
 
     private void FlushDeferredGlyphArt() {
         if (_deferredGlyphArt == null || _deferredGlyphArt.Count == 0) return;
@@ -152,14 +160,23 @@ internal sealed partial class ContentStreamBuilder {
                 .Append(PdfNumberFormatter.Precise(item.C)).Append(' ').Append(PdfNumberFormatter.Precise(item.D)).Append(' ')
                 .Append(PdfNumberFormatter.Precise(item.E)).Append(' ').Append(PdfNumberFormatter.Precise(item.F)).Append(" cm\n");
             foreach (PdfColorGlyphLayer layer in item.Art.Layers) {
-                OfficeColor color = layer.Foreground ? item.Fill : layer.Color;
+                // A text-color layer keeps its own paint alpha on top of the text fill's.
+                OfficeColor color = layer.Foreground
+                    ? OfficeColor.FromRgba(item.Fill.R, item.Fill.G, item.Fill.B, (byte)Math.Round(item.Fill.A * layer.Color.A / 255D))
+                    : layer.Color;
                 if (color.A == 0 || layer.Path.Length == 0) continue;
                 string? alphaState = color.A < 255
                     ? _colorGlyphPage?.AlphaState(color.A / 255D * (1D - _colorGlyphAlphaComplement)) : null;
-                if (alphaState != null) _sb.Append("q\n/").Append(alphaState).Append(" gs\n");
-                _sb.Append(F(color.R / 255D)).Append(' ').Append(F(color.G / 255D)).Append(' ').Append(F(color.B / 255D)).Append(" rg\n")
-                    .Append(layer.Path).Append("f\n");
-                if (alphaState != null) _sb.Append("Q\n");
+                // An ordinary glyph in a synthetic-bold run is filled and stroked like the text it replaces.
+                bool stroke = item.Art.IsPlainOutline && item.SyntheticBoldStroke > 0D;
+                if (alphaState != null || stroke) _sb.Append("q\n");
+                if (alphaState != null) _sb.Append('/').Append(alphaState).Append(" gs\n");
+                AppendRgb(color).Append(" rg\n");
+                if (stroke) {
+                    AppendRgb(color).Append(" RG\n").Append(PdfNumberFormatter.Precise(item.SyntheticBoldStroke)).Append(" w\n1 j\n[] 0 d\n");
+                }
+                _sb.Append(layer.Path).Append(stroke ? "B\n" : "f\n");
+                if (alphaState != null || stroke) _sb.Append("Q\n");
             }
             _sb.Append("Q\n");
         }

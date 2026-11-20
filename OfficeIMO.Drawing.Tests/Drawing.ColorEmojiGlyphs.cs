@@ -45,4 +45,63 @@ public sealed class DrawingColorEmojiGlyphTests {
             out List<OfficeColorGlyphContours> layers));
         Assert.Equal(new[] { OfficeColor.FromRgba(255, 0, 0, 255), OfficeColor.FromRgba(0, 0, 255, 255) }, layers.Select(layer => layer.Color));
     }
+
+    // A duplicate record shares its target's artwork instead of copying the PNG again.
+    [Fact]
+    public void SbixDuplicateSharesItsTargetsPng() {
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateSbixVariantFont(ManagedTextShapingTestAssets.SbixVariant.Duplicate))!;
+        Assert.True(font.TryGetGlyphMetrics(0x1F601, out int duplicate, out _));
+        Assert.True(font.TryGetGlyphMetrics(0x1F600, out int target, out _));
+
+        Assert.True(font.TryGetBitmapGlyph(duplicate, out OfficeBitmapGlyphImage? shared));
+        Assert.True(font.TryGetBitmapGlyph(target, out OfficeBitmapGlyphImage? original));
+
+        Assert.Same(original, shared);
+    }
+
+    // Strikes need not cover every glyph: a glyph missing from the largest strike comes from the next one.
+    [Fact]
+    public void SbixGlyphMissingFromTheLargestStrikeComesFromASmallerOne() {
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateSbixVariantFont(ManagedTextShapingTestAssets.SbixVariant.MissingFromLargestStrike))!;
+        Assert.True(font.TryGetGlyphMetrics(0x1F600, out int glyph, out _));
+
+        Assert.True(font.TryGetBitmapGlyph(glyph, out OfficeBitmapGlyphImage? image));
+        Assert.Equal((800D, 800D), (image!.Width, image.Height));
+    }
+
+    // sbix origin offsets are measured from the outline's bounding-box origin when the glyph has an outline.
+    [Fact]
+    public void SbixBitmapOfAnOutlinedGlyphStartsAtTheOutlineOrigin() {
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateSbixVariantFont(ManagedTextShapingTestAssets.SbixVariant.OutlineOrigin))!;
+        Assert.True(font.TryGetGlyphMetrics(0x1F600, out int glyph, out _));
+
+        Assert.True(font.TryGetBitmapGlyph(glyph, out OfficeBitmapGlyphImage? image));
+        Assert.Equal((ManagedTextShapingTestAssets.SbixOutlineOrigin.Left, ManagedTextShapingTestAssets.SbixOutlineOrigin.Bottom),
+            ((int)image!.Left, (int)image.Bottom));
+    }
+
+    // Raster text draws PNG color glyphs, as the HTML and PDF routes do.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RasterCanvasDrawsPngColorGlyphs(bool sbix) {
+        var fonts = new OfficeFontFaceCollection().Add("Bitmap emoji", ManagedTextShapingTestAssets.CreateBitmapColorFont(0x1F600, sbix));
+        var image = new OfficeRasterImage(300, 150, OfficeColor.White);
+        var canvas = new OfficeRasterCanvas(image, null, fonts);
+
+        canvas.DrawText("\U0001F600\U0001F600", 10D, 10D, 280D, 130D, OfficeColor.Black, 60D, fontFamily: "Bitmap emoji");
+
+        int red = 0, left = int.MaxValue, right = -1;
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor color = image.GetPixel(x, y);
+                if (color.R <= 200 || color.G >= 60 || color.B >= 60) continue;
+                red++; left = Math.Min(left, x); right = Math.Max(right, x);
+            }
+        }
+        Assert.True(red > 0, "The PNG glyphs are drawn.");
+        // Two 48 px squares (0.8 em at 60 px) one 30 px advance apart: 78 px wide, their union 3744 px.
+        Assert.InRange(red, 3744 * 0.93D, 3744 * 1.07D);
+        Assert.InRange(right - left + 1, 76, 80);
+    }
 }

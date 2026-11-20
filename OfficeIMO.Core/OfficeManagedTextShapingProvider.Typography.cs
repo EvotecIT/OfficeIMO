@@ -37,7 +37,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
             if (!OfficeOpenTypeMarkPositioning.TryGetAttachments(request.FontDataForShaping, tokens,
                 request.Language, request.FeatureSettings, request.CancellationToken, out OfficeOpenTypeMarkAttachment[] attachments)) return null;
             List<int> visual = ResolveTypographyVisualOrder(request, tokens, attachments, starts, levels, out int[] logicalClusters);
-            if (variable) return CompleteNominalTypography(request, tokens, attachments, logicalClusters, visual,
+            if (variable) return CompleteNominalTypography(request, font, tokens, attachments, logicalClusters, visual,
                 (paragraphLevel & 1) == 1 ? OfficeTextDirection.RightToLeft : OfficeTextDirection.LeftToRight);
             OfficeOpenTypeGlyphPositioning[] positions;
             bool kerning = !request.FeatureSettings.TryGetValue("kern", out int kern) || kern != 0;
@@ -194,12 +194,29 @@ public sealed partial class OfficeManagedTextShapingProvider {
     }
 
     // Variable-font results keep each painted glyph's nominal advance for the selected instance;
-    // retained controls and unattached marks have zero advance, as on the static route.
-    private static OfficeTextShapingResult CompleteNominalTypography(OfficeTextShapingRequest request,
+    // retained controls and unattached marks have zero advance, as on the static route. Without GPOS,
+    // enabled kerning is the legacy kern table's pair adjustments, which do not vary.
+    private static OfficeTextShapingResult CompleteNominalTypography(OfficeTextShapingRequest request, IOfficeFontProgram font,
         List<OfficeOpenTypeSubstitution.GlyphToken> tokens, OfficeOpenTypeMarkAttachment[] attachments,
         int[] logicalClusters, List<int> visual, OfficeTextDirection direction) {
         var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
         var clusters = new int[tokens.Count];
+        var adjustments = new int[tokens.Count];
+        bool kerning = !request.FeatureSettings.TryGetValue("kern", out int kern) || kern != 0;
+        if (kerning) {
+            var glyphIds = new int[visual.Count];
+            var scalars = new int[visual.Count];
+            for (int index = 0; index < visual.Count; index++) {
+                glyphIds[index] = tokens[visual[index]].GlyphId;
+                scalars[index] = tokens[visual[index]].Scalar;
+            }
+            OfficeOpenTypeGlyphPositioning[] positions = PositionGlyphRun(font, glyphIds, scalars, request.CancellationToken);
+            for (int index = 0; index < visual.Count && index < positions.Length; index++) {
+                OfficeOpenTypeSubstitution.GlyphToken token = tokens[visual[index]];
+                if (!attachments[visual[index]].IsMark && !OfficeManagedTextShaper.IsNonPaintingControl(token.Scalar))
+                    adjustments[index] = positions[index].XAdvance;
+            }
+        }
         foreach (int index in visual) {
             request.CancellationToken.ThrowIfCancellationRequested();
             OfficeOpenTypeSubstitution.GlyphToken token = tokens[index];
@@ -214,7 +231,7 @@ public sealed partial class OfficeManagedTextShapingProvider {
                     : OfficeShapedGlyph.CreatePositionedUsingNominalAdvance(token.GlyphId, token.UnicodeText, token.TextIndex, 0, 0));
             }
         }
-        return new OfficeTextShapingResult(glyphs, advanceAdjustments: null, direction, clusters);
+        return new OfficeTextShapingResult(glyphs, adjustments, direction, clusters);
     }
 
     private sealed class TypographyFont {

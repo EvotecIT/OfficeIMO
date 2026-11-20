@@ -260,6 +260,7 @@ internal sealed partial class ContentStreamBuilder {
     public ContentStreamBuilder BeginText() {
         T._textObjectStart = _sb.Length;
         T._textEntryFillColor = _paintFillColor;
+        T._textEntryRenderingMode = _textRenderingMode;
         ResetTrackedTextMatrix();
         InvalidateTextStateCache();
         T._showEnd = -1;
@@ -278,6 +279,8 @@ internal sealed partial class ContentStreamBuilder {
         if (T._syntheticWeightScope) {
             _sb.Append("Q\n");
             _paintFillColor = T._textEntryFillColor;
+            // Q also restores every text rendering mode set inside the scoped text object.
+            _textRenderingMode = T._textEntryRenderingMode;
             T._syntheticWeightScope = false;
         }
         T._syntheticBold = false;
@@ -453,7 +456,10 @@ internal sealed partial class ContentStreamBuilder {
         bool paintArt = TryQueueColorGlyphArt(command, fontSize, currentTextRise);
         if (paintArt) TextRenderingMode(3);
         if (!suppressActualText && command.IsScalarBidi && command.LogicalGlyphs is { } scalarGlyphs && command.ActualText is { } scalarText) {
-            if (TryWriteScalarBidiGlyphs(scalarGlyphs, scalarText, command, fontSize, currentTextRise)) return this;
+            if (TryWriteScalarBidiGlyphs(scalarGlyphs, scalarText, command, fontSize, currentTextRise)) {
+                if (paintArt) TextRenderingMode(renderingMode);
+                return this;
+            }
         }
         if (!suppressActualText && !command.IsScalarBidi && command.LogicalGlyphs is { } logicalGlyphs) {
             if (command.IsolatedRightToLeft) T._showEnd = -1;

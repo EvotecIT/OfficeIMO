@@ -137,6 +137,20 @@ public sealed class DrawingManagedControlCompositionTests {
         Assert.Equal(new[] { advance, 0, advance }, result.Glyphs.Select(glyph => glyph.AdvanceWidth ?? -1));
     }
 
+    // Without GPOS, a variable font's substitution route still applies its legacy kern table, unless kerning is off.
+    [Theory]
+    [InlineData(true, -120)]
+    [InlineData(false, 0)]
+    public void VariableSubstitutionRouteKeepsLegacyPairKerning(bool kerning, int adjustment) {
+        byte[] data = ManagedTextShapingTestAssets.CreateControlAdmissionFont(0x200D, blankSpace: true, withKerning: true, variable: true);
+
+        OfficeTextShapingResult result = ShapeControlRun(data, "AV\u200D",
+            kerning ? OfficeTextFeatureSettings.Default : OfficeTextFeatureSettings.Default.With("kern", 0));
+
+        int first = result.Glyphs.ToList().FindIndex(glyph => glyph.TextIndex == 0);
+        Assert.Equal(adjustment, result.GetAdvanceAdjustment(first));
+    }
+
     private static OfficeTextShapingResult ShapeControlRun(byte[] data, string text, OfficeTextFeatureSettings features) {
         IOfficeFontProgram font = Assert.Single(new OfficeFontFaceCollection().Add("Control route", data).Faces).Program;
         return Assert.IsType<OfficeTextShapingResult>(OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(

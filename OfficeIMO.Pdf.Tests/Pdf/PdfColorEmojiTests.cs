@@ -116,6 +116,73 @@ public class PdfColorEmojiTests {
         Assert.Single(states.Distinct());
     }
 
+    // A text-color layer with paint alpha keeps that alpha over the opaque text fill.
+    [Fact]
+    public void TextColorLayerKeepsItsPaintAlpha() {
+        byte[] pdf = Save("half-foreground", (content, _) => content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal("\U0001F600") })));
+
+        Pixels pixels = CountPixels(pdf);
+        Assert.Equal(0, pixels.Dark);
+        Assert.True(pixels.Gray > 0, "The half-transparent text-color layer blends with the white page.");
+    }
+
+    // COLR artwork whose layers are all transparent paints nothing; the inked base outline stays hidden.
+    [Fact]
+    public void TransparentColrArtworkPaintsNothing() {
+        byte[] pdf = Save("transparent", (content, _) => content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal(Text) })));
+
+        Assert.Equal(Text, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Pixels pixels = CountPixels(pdf);
+        Assert.Equal(0, pixels.Dark + pixels.Red + pixels.Blue);
+    }
+
+    // A bidi run is written in segments; its color glyphs are still painted at their visual positions.
+    [Fact]
+    public void ColorGlyphInAMixedDirectionRunIsPainted() {
+        const string text = "\u05D0\U0001F600";
+        byte[] pdf = Save("cbdt-hebrew", (content, _) => content.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Normal(text) })));
+
+        Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        // Two 0.8 em squares one 0.5 em advance apart: their union, without the overlap.
+        double side = 0.8D * FontSize, overlap = side - 0.5D * FontSize;
+        double union = 2D * side * side - overlap * side;
+        Assert.InRange(CountPixels(pdf).Red, union * 0.93D, union * 1.07D);
+    }
+
+    // Ordinary glyphs in a synthetic-bold run with a color glyph keep their synthetic stroke.
+    [Fact]
+    public void SyntheticBoldLettersBesideAColorGlyphKeepTheirWeight() {
+        const string sequence = "\U0001F3CB\u200D\u2642";
+        int Dark(Func<string, PdfTextRun> run, string text) =>
+            CountPixels(Save("red-sequence", (content, _) => content.AddParagraph(paragraph => paragraph.AddRuns(new[] { run(text) })))).Dark;
+
+        int boldAlone = Dark(text => PdfTextRun.Bolded(text, fontFamily: Family), "A");
+        int regularAlone = Dark(text => PdfTextRun.Normal(text, fontFamily: Family), "A");
+        int boldBesideColor = Dark(text => PdfTextRun.Bolded(text, fontFamily: Family), "A" + sequence);
+
+        Assert.True(boldAlone > regularAlone * 1.05D, "Synthetic bold widens the letter.");
+        Assert.InRange(boldBesideColor, boldAlone * 0.97D, boldAlone * 1.03D);
+    }
+
+    // The synthetic-weight scope's Q restores the rendering mode set inside it; a later color run in the
+    // same builder must return to fill, not to the scoped fill-and-stroke mode.
+    [Fact]
+    public void ColorRunAfterASyntheticBoldTextObjectRestoresFillRendering() {
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateColorFont(0x1F600), "Color");
+        PdfGlyphRun run = font.ShapeText("\U0001F600", PdfTextShapingOptions.ForRendering(font.FontName, PdfTextShapingMode.OpenTypeLigatures));
+        PdfTextShowCommand command = font.ToTextShowCommand("\U0001F600", run);
+        var content = new StringBuilder();
+        var builder = new ContentStreamBuilder(content);
+
+        builder.BeginText().TextMatrix(0D, 0D).Font("F1", 12D, syntheticBold: true).ShowText(command, 12D).EndText();
+        int second = content.Length;
+        builder.BeginText().TextMatrix(0D, 20D).Font("F1", 12D).ShowText(command, 12D).EndText();
+
+        string colorRun = content.ToString(second, content.Length - second);
+        Assert.Contains("3 Tr", colorRun, StringComparison.Ordinal);
+        Assert.DoesNotContain("2 Tr", colorRun, StringComparison.Ordinal);
+    }
+
     private static byte[] Save(string kind, Action<PdfContentBuilder, PdfPageBuilder> build, Action<PdfCreateOptions>? configure = null) {
         PdfCreateOptions options = CreateOptions(kind);
         configure?.Invoke(options);
@@ -132,6 +199,11 @@ public class PdfColorEmojiTests {
             "large-palette" => ManagedTextShapingTestAssets.CreateColorFontWithPaletteSize(0x1F600, 5000),
             // Half-transparent red under a fully transparent blue layer.
             "half-red" => ManagedTextShapingTestAssets.CreateColorFontWithPaletteSize(0x1F600, 2, redAlpha: 128, blueAlpha: 0),
+            // Both layers fully transparent over an inked base outline.
+            "transparent" => ManagedTextShapingTestAssets.CreateColorFontWithPaletteSize(0x1F600, 2, redAlpha: 0, blueAlpha: 0),
+            "half-foreground" => ManagedTextShapingTestAssets.CreateHalfAlphaForegroundColrFont(0x1F600),
+            "cbdt-hebrew" => ManagedTextShapingTestAssets.CreateBitmapColorFont(0x1F600, sbix: false, sameGlyphScalars: new[] { 0x05D0 }),
+            "red-sequence" => ManagedTextShapingTestAssets.CreateEmojiSequenceFont(redFirstLigature: true),
             "cbdt" => ManagedTextShapingTestAssets.CreateBitmapColorFont(0x1F600, sbix: false),
             _ => ManagedTextShapingTestAssets.CreateBitmapColorFont(0x1F600, sbix: true)
         };
@@ -146,11 +218,11 @@ public class PdfColorEmojiTests {
 
     private static string ContentText(byte[] pdf) => Encoding.GetEncoding(28591).GetString(pdf);
 
-    private readonly record struct Pixels(int Red, int Blue, int HalfRed, int RedWidth, int RedHeight);
+    private readonly record struct Pixels(int Red, int Blue, int HalfRed, int RedWidth, int RedHeight, int Dark, int Gray);
 
     private static Pixels CountPixels(byte[] pdf) {
         OfficeRasterImage image = OfficeRasterImageDecoder.Decode(PdfPageImageRenderer.RenderPageAsPng(pdf, 1, 1D));
-        int red = 0, blue = 0, halfRed = 0, left = int.MaxValue, right = -1, top = int.MaxValue, bottom = -1;
+        int red = 0, blue = 0, halfRed = 0, dark = 0, gray = 0, left = int.MaxValue, right = -1, top = int.MaxValue, bottom = -1;
         for (int y = 0; y < image.Height; y++) {
             for (int x = 0; x < image.Width; x++) {
                 OfficeColor color = image.GetPixel(x, y);
@@ -162,9 +234,13 @@ public class PdfColorEmojiTests {
                     blue++;
                 } else if (color.R > 200 && color.G is > 90 and < 170 && color.B is > 90 and < 170) {
                     halfRed++;
+                } else if (color.R < 80 && color.G < 80 && color.B < 80) {
+                    dark++;
+                } else if (color.R is > 90 and < 190 && Math.Abs(color.R - color.G) < 20 && Math.Abs(color.G - color.B) < 30) {
+                    gray++;
                 }
             }
         }
-        return new Pixels(red, blue, halfRed, red == 0 ? 0 : right - left + 1, red == 0 ? 0 : bottom - top + 1);
+        return new Pixels(red, blue, halfRed, red == 0 ? 0 : right - left + 1, red == 0 ? 0 : bottom - top + 1, dark, gray);
     }
 }

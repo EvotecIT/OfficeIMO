@@ -43,6 +43,18 @@ public sealed class HtmlPdfColorEmojiTests {
         Assert.Equal(1, CountInkSegmentsOnTheDensestRow(pdf));
     }
 
+    // Glyph artwork keeps source paint order: a letter after a PNG glyph and overlapping it stays on top.
+    [Fact]
+    public void LetterAfterAPngGlyphIsPaintedOverIt() {
+        byte[] font = ManagedTextShapingTestAssets.CreateBitmapColorFont(0x1F600, sbix: false, overlappingLetter: 'A');
+
+        int alone = CountDark(ConvertHtml(font, "A"));
+        int overlapping = CountDark(ConvertHtml(font, "\U0001F600A"));
+
+        Assert.True(alone > 0, "The letter is painted.");
+        Assert.InRange(overlapping, alone * 0.9D, alone * 1.1D);
+    }
+
     [Fact]
     public void MarkdownPngGlyphIsPaintedWithItsText() {
         // Markdown text uses the default standard font; the fixture stands in for it, without fallbacks.
@@ -76,6 +88,18 @@ public sealed class HtmlPdfColorEmojiTests {
             }
         }
         return red;
+    }
+
+    private static int CountDark(byte[] pdf) {
+        OfficeRasterImage image = Render(pdf);
+        int dark = 0;
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor color = image.GetPixel(x, y);
+                if (color.R < 80 && color.G < 80 && color.B < 80) dark++;
+            }
+        }
+        return dark;
     }
 
     private static int CountInkSegmentsOnTheDensestRow(byte[] pdf) {
