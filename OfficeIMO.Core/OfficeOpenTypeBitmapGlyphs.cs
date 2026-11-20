@@ -271,9 +271,12 @@ internal sealed class OfficeOpenTypeBitmapGlyphs {
             for (int hop = 0; hop <= MaximumDuplicateHops; hop++) {
                 if (!TryGetSbixRecord(strike, current, out int start, out int end, out uint type)) break;
                 if (type == 0x706E6720) { // 'png '
-                    OfficeBitmapGlyphImage? image = ReadSbixPng(strike, current, start, end);
-                    if (image != null) return image;
-                    break;
+                    OfficeBitmapGlyphImage? record = ReadSbixPng(strike, start, end);
+                    if (record == null) break;
+                    // The PNG is shared; placement starts from the requested glyph's own outline, if it has one.
+                    (int XMin, int YMin)? origin = _outlineOrigin(glyphId);
+                    return origin is not { } outline ? record
+                        : new OfficeBitmapGlyphImage(record.Png, record.Left + outline.XMin, record.Bottom + outline.YMin, record.Width, record.Height);
                 }
                 if (type != 0x64757065) break; // 'dupe'
                 int target = U16(start + 8, end);
@@ -284,8 +287,8 @@ internal sealed class OfficeOpenTypeBitmapGlyphs {
         return null;
     }
 
-    // One shared image per PNG record; placement uses the outline of the glyph that owns the record.
-    private OfficeBitmapGlyphImage? ReadSbixPng(int strike, int glyphId, int start, int end) {
+    // One shared image per PNG record, placed from the pen origin; callers add a glyph's outline origin.
+    private OfficeBitmapGlyphImage? ReadSbixPng(int strike, int start, int end) {
         lock (_cache) {
             if (_recordImages.TryGetValue(start, out OfficeBitmapGlyphImage? shared)) return shared;
         }
@@ -296,8 +299,7 @@ internal sealed class OfficeOpenTypeBitmapGlyphs {
         if (width <= 0 || height <= 0) return null;
         double scale = (double)_unitsPerEm / U16(strike, _sbixEnd);
         // Offsets are strike pixels from the outline's bounding-box origin, or from the pen origin without an outline.
-        (int XMin, int YMin) origin = _outlineOrigin(glyphId) ?? (0, 0);
-        var image = new OfficeBitmapGlyphImage(png, origin.XMin + originX * scale, origin.YMin + originY * scale, width * scale, height * scale);
+        var image = new OfficeBitmapGlyphImage(png, originX * scale, originY * scale, width * scale, height * scale);
         lock (_cache) {
             if (_recordImages.TryGetValue(start, out OfficeBitmapGlyphImage? raced)) return raced;
             if (_cachedBytes + png.Length > MaximumCachedBytes) ClearCaches();

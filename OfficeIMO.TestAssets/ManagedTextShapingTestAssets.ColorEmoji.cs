@@ -23,8 +23,16 @@ internal static partial class ManagedTextShapingTestAssets {
         /// A 10 ppem strike has glyph 1's PNG only (400 units); a 5 ppem strike has its own glyph 1 PNG (800 units)
         /// and glyph 2, mapped to U+1F601, as a <c>dupe</c> of glyph 1.
         /// </summary>
-        DuplicateInSmallerStrike
+        DuplicateInSmallerStrike,
+        /// <summary>
+        /// Glyph 2, mapped to U+1F601, is a <c>dupe</c> of glyph 1; glyph 1's outline starts at <see cref="SbixOutlineOrigin"/>
+        /// and glyph 2's at <see cref="SbixDuplicateOutlineOrigin"/>.
+        /// </summary>
+        DuplicateWithOwnOutline
     }
+
+    /// <summary>The outline origin of the duplicate glyph in <see cref="SbixVariant.DuplicateWithOwnOutline"/>.</summary>
+    internal static readonly (int Left, int Bottom) SbixDuplicateOutlineOrigin = (300, 20);
 
     /// <summary>
     /// One glyph whose only artwork is a solid red PNG, stored the way Noto Color Emoji (CBDT/CBLC, image format 17)
@@ -83,6 +91,16 @@ internal static partial class ManagedTextShapingTestAssets {
                 return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { 0x1F600, 0x1F601 }), includeTrailingMetric: true, glyphCount: 3,
                     blankGlyphIds: new[] { 1, 2 }, additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(3,
                         (ppem * 2, new Dictionary<int, (short, short, string, byte[])> { [1] = (0, 0, "png ", png) }), (ppem, small)))) });
+            }
+            case SbixVariant.DuplicateWithOwnOutline: {
+                byte[] toFirst = new byte[2];
+                WriteUInt16(toFirst, 0, 1);
+                var glyphs = new Dictionary<int, (short, short, string, byte[])> { [1] = (0, 0, "png ", png), [2] = (0, 0, "dupe", toFirst) };
+                return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { 0x1F600, 0x1F601 }), includeTrailingMetric: true, glyphCount: 3,
+                    glyphHeights: new Dictionary<int, int> { [1] = 700, [2] = 700 },
+                    glyphLefts: new Dictionary<int, int> { [1] = SbixOutlineOrigin.Left, [2] = SbixDuplicateOutlineOrigin.Left },
+                    glyphBottoms: new Dictionary<int, int> { [1] = SbixOutlineOrigin.Bottom, [2] = SbixDuplicateOutlineOrigin.Bottom },
+                    additionalTables: new[] { ("sbix", PadToFourBytes(CreateSbixStrikes(3, (ppem, glyphs)))) });
             }
             case SbixVariant.MissingFromLargestStrike:
                 return CreateFontFromCmap(CreateFormat12Cmap(new[] { 0x1F600 }), includeTrailingMetric: true, glyphCount: 2, blankGlyphIds: new[] { 1 },

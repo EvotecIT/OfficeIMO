@@ -46,7 +46,7 @@ public sealed class DrawingColorEmojiGlyphTests {
         Assert.Equal(new[] { OfficeColor.FromRgba(255, 0, 0, 255), OfficeColor.FromRgba(0, 0, 255, 255) }, layers.Select(layer => layer.Color));
     }
 
-    // A duplicate record shares its target's artwork instead of copying the PNG again.
+    // A duplicate record shares its target's PNG instead of copying it again.
     [Fact]
     public void SbixDuplicateSharesItsTargetsPng() {
         OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateSbixVariantFont(ManagedTextShapingTestAssets.SbixVariant.Duplicate))!;
@@ -56,7 +56,7 @@ public sealed class DrawingColorEmojiGlyphTests {
         Assert.True(font.TryGetBitmapGlyph(duplicate, out OfficeBitmapGlyphImage? shared));
         Assert.True(font.TryGetBitmapGlyph(target, out OfficeBitmapGlyphImage? original));
 
-        Assert.Same(original, shared);
+        Assert.Same(original!.Png, shared!.Png);
     }
 
     // A chain of duplicates resolves from any glyph in it, whichever is asked first.
@@ -69,8 +69,25 @@ public sealed class DrawingColorEmojiGlyphTests {
         Assert.True(font.TryGetBitmapGlyph(Glyph(0x1F601), out OfficeBitmapGlyphImage? middle));
         Assert.True(font.TryGetBitmapGlyph(Glyph(0x1F600), out OfficeBitmapGlyphImage? first));
 
-        Assert.Same(first, middle);
-        Assert.Same(first, last);
+        Assert.Same(first!.Png, middle!.Png);
+        Assert.Same(first.Png, last!.Png);
+    }
+
+    // A duplicate shares its target's PNG but is placed from its own outline's bounding-box origin.
+    [Fact]
+    public void SbixDuplicateIsPlacedFromItsOwnOutline() {
+        OfficeTrueTypeFont font = OfficeTrueTypeFont.TryLoad(ManagedTextShapingTestAssets.CreateSbixVariantFont(ManagedTextShapingTestAssets.SbixVariant.DuplicateWithOwnOutline))!;
+        Assert.True(font.TryGetGlyphMetrics(0x1F600, out int target, out _));
+        Assert.True(font.TryGetGlyphMetrics(0x1F601, out int duplicate, out _));
+
+        Assert.True(font.TryGetBitmapGlyph(duplicate, out OfficeBitmapGlyphImage? copy));
+        Assert.True(font.TryGetBitmapGlyph(target, out OfficeBitmapGlyphImage? original));
+
+        Assert.Same(original!.Png, copy!.Png);
+        Assert.Equal((ManagedTextShapingTestAssets.SbixOutlineOrigin.Left, ManagedTextShapingTestAssets.SbixOutlineOrigin.Bottom),
+            ((int)original.Left, (int)original.Bottom));
+        Assert.Equal((ManagedTextShapingTestAssets.SbixDuplicateOutlineOrigin.Left, ManagedTextShapingTestAssets.SbixDuplicateOutlineOrigin.Bottom),
+            ((int)copy.Left, (int)copy.Bottom));
     }
 
     // A duplicate resolves within the strike that holds it, so its artwork keeps that strike's size.
