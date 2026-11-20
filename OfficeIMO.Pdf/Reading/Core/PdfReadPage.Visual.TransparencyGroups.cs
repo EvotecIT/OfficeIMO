@@ -290,13 +290,7 @@ public sealed partial class PdfReadPage {
                     !image.IsImageFile ||
                     !IsSupportedType3Image(placement, image, resources, pageContentBudget) ||
                     image.HasUnresolvedTransparencyMask ||
-                    !TryCreateImageProjection(
-                        placement,
-                        localPageHeight,
-                        localPageWidth,
-                        localPageHeight,
-                        out _,
-                        allowAxisAlignedFallback: false)) {
+                    !CanDrawImagePlacementExactly(placement, localPageHeight, localPageWidth, localPageHeight)) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
                 }

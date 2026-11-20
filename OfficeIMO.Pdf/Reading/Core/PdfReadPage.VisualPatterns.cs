@@ -498,13 +498,7 @@ public sealed partial class PdfReadPage {
                 : _ => type3GlyphBudget.RecordFailure(),
             type3ImageVisitor: (placement, image, effect) => {
                 if (requireSupportedType3Content &&
-                    !TryCreateImageProjection(
-                        placement,
-                        height,
-                        width,
-                        height,
-                        out _,
-                        allowAxisAlignedFallback: false)) {
+                    !CanDrawImagePlacementExactly(placement, height, width, height)) {
                     type3GlyphBudget.RecordFailure();
                     return;
                 }
@@ -601,7 +595,7 @@ public sealed partial class PdfReadPage {
                 PdfExtractedImage? image = GetImageForPlacement(resources, placements[i], colorizeImageMasks: true, pageContentBudget);
                 if (requireSupportedType3Content &&
                     (rejectImageContent || image == null || !IsSupportedType3Image(placements[i], image!, resources, pageContentBudget) || image!.HasUnresolvedTransparencyMask ||
-                     !TryCreateImageProjection(placements[i], height, width, height, out _, allowAxisAlignedFallback: false))) {
+                     !CanDrawImagePlacementExactly(placements[i], height, width, height))) {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }
