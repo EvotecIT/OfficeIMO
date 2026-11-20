@@ -16,11 +16,11 @@ public partial class WordDocument {
         if (GetUnparsedDefaultPackageStyles() is { } defaults) {
             return defaults.Dependencies.ContainsKey(builtInStyleId) ? builtInStyleId : null;
         }
-        BuiltInStyleIndex index = GetBuiltInStyleIndex();
-        if (index.IdByBuiltInId.TryGetValue(builtInStyleId, out string? styleId)) return styleId;
+        BuiltInStyleLookup lookup = GetBuiltInStyleLookup();
+        if (lookup.TryGetStyleIdForBuiltInName(builtInStyleId, out string? styleId)) return styleId;
         // A definition under the English identifier counts only when it has the built-in style's type.
-        return index.Definitions.TryGetValue(builtInStyleId, out var definition) &&
-            WordBuiltInStyleNames.Classify(builtInStyleId, null, definition.Type) != null ? builtInStyleId : null;
+        return lookup.TryGetDefinition(builtInStyleId, out _, out string? type) &&
+            WordBuiltInStyleNames.Classify(builtInStyleId, null, type) != null ? builtInStyleId : null;
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ public partial class WordDocument {
     /// </summary>
     internal string UseStyleId(string styleId) {
         if (WordBuiltInStyleNames.IsBuiltInId(styleId) && GetUnparsedDefaultPackageStyles() == null &&
-            !GetBuiltInStyleIndex().Definitions.ContainsKey(styleId)) {
+            !GetBuiltInStyleLookup().TryGetDefinition(styleId, out _, out _)) {
             return UseBuiltInStyle(styleId);
         }
         EnsureStyleDefinition(styleId);
@@ -63,9 +63,8 @@ public partial class WordDocument {
         if (GetUnparsedDefaultPackageStyles() != null) {
             return WordBuiltInStyleNames.IsBuiltInId(styleId) ? styleId : null;
         }
-        BuiltInStyleIndex index = GetBuiltInStyleIndex();
-        if (index.Definitions.TryGetValue(styleId!, out var definition)) {
-            return WordBuiltInStyleNames.Classify(styleId, definition.Name, definition.Type);
+        if (GetBuiltInStyleLookup().TryGetDefinition(styleId!, out string? name, out string? type)) {
+            return WordBuiltInStyleNames.Classify(styleId, name, type);
         }
         return WordBuiltInStyleNames.IsBuiltInId(styleId) ? styleId : null;
     }
@@ -102,11 +101,11 @@ public partial class WordDocument {
     /// </summary>
     internal void LocalizeBuiltInStyleReferences(DocumentFormat.OpenXml.OpenXmlElement root) {
         if (GetUnparsedDefaultPackageStyles() != null) return;
-        BuiltInStyleIndex index = GetBuiltInStyleIndex();
+        BuiltInStyleLookup lookup = GetBuiltInStyleLookup();
         foreach (ParagraphStyleId reference in root.Descendants<ParagraphStyleId>()) {
             // A reference to an identifier the document defines, such as an English Quote, is kept as written.
             if (reference.Val?.Value is { } styleId && WordBuiltInStyleNames.IsBuiltInId(styleId) &&
-                !index.Definitions.ContainsKey(styleId) &&
+                !lookup.TryGetDefinition(styleId, out _, out _) &&
                 FindBuiltInStyleId(styleId) is { } localized && !string.Equals(localized, styleId, StringComparison.Ordinal)) {
                 reference.Val = localized;
             }
@@ -127,46 +126,94 @@ public partial class WordDocument {
     /// <summary>Drops the built-in style index after a style is added, removed or renamed.</summary>
     internal void InvalidateBuiltInStyleIndex() => _builtInStyleIndex = null;
 
-    private BuiltInStyleIndex GetBuiltInStyleIndex() {
+    private BuiltInStyleLookup GetBuiltInStyleLookup() {
         StyleDefinitionsPart? part = _wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart;
+        // While the styles part is unloaded, the shared style catalog answers from its identifier and name indexes,
+        // so reading and inspecting a document never loads the styles DOM.
+        if (part != null && !part.IsRootElementLoaded) {
+            WordStyleCatalog catalog = WordStyleCatalog.For(this);
+            if (catalog.IsStreamed) return new CatalogLookup(catalog);
+        }
         // Once the raw package is handed out, edits to the styles DOM can't be observed, so the index is not reused.
         BuiltInStyleIndex? index = _openXmlDocumentAccessed ? null : _builtInStyleIndex;
-        // Reading a document classifies styles from the part's XML, so inspection does not load the styles DOM.
-        if (part != null && !part.IsRootElementLoaded) {
-            if (index != null && ReferenceEquals(index.Source, part)) return index;
-            if (WordStyleDefinitionsReader.TryRead(part) is { } streamed) {
-                index = new BuiltInStyleIndex(part, streamed.Styles.Select(style => (style.StyleId, style.Name, style.Type)));
-                _builtInStyleIndex = index;
-                return index;
-            }
-        }
         Styles? styles = part?.Styles;
-        // Adding, removing and renaming styles through OfficeIMO invalidates the index; a replaced part rebuilds it.
-        if (index != null && ReferenceEquals(index.Source, styles)) return index;
-        index = new BuiltInStyleIndex(styles, styles?.Elements<Style>().Select(style =>
-            (style.StyleId?.Value, style.StyleName?.Val?.Value, WordBuiltInStyleNames.StyleType(style))));
+        // Over the loaded DOM the catalog scans every style per lookup, and paragraph styles are classified for every
+        // paragraph, so a small index is kept. Adding, removing and renaming styles through OfficeIMO invalidates it,
+        // and a replaced part rebuilds it.
+        if (index != null && ReferenceEquals(index.Styles, styles)) return index;
+        index = new BuiltInStyleIndex(styles);
         _builtInStyleIndex = index;
         return index;
     }
 
-    private sealed class BuiltInStyleIndex {
-        internal BuiltInStyleIndex(object? source, IEnumerable<(string? Id, string? Name, string? Type)>? styles) {
-            Source = source;
+    /// <summary>The style facts built-in style resolution needs: definitions by identifier and by built-in name.</summary>
+    private abstract class BuiltInStyleLookup {
+        /// <summary>The name and <c>w:type</c> of the first definition with this identifier.</summary>
+        internal abstract bool TryGetDefinition(string styleId, out string? name, out string? type);
+
+        /// <summary>The identifier of the first definition named after this built-in style, with the built-in style's type.</summary>
+        internal abstract bool TryGetStyleIdForBuiltInName(string builtInStyleId, out string? styleId);
+    }
+
+    private sealed class CatalogLookup : BuiltInStyleLookup {
+        private readonly WordStyleCatalog _catalog;
+
+        internal CatalogLookup(WordStyleCatalog catalog) => _catalog = catalog;
+
+        internal override bool TryGetDefinition(string styleId, out string? name, out string? type) {
+            WordStyleDefinitionsReader.StyleDefinition? definition = _catalog.FindDefinitionById(styleId);
+            name = definition?.Name;
+            type = definition?.Type;
+            return definition != null;
+        }
+
+        internal override bool TryGetStyleIdForBuiltInName(string builtInStyleId, out string? styleId) {
+            styleId = null;
+            if (!WordBuiltInStyleNames.TryGetName(builtInStyleId, out string name)) return false;
+            // The first referenceable style with the built-in name and the built-in style's type, as the loaded index picks it.
+            styleId = _catalog.FindReferenceableByName(name, definition =>
+                WordBuiltInStyleNames.Classify(definition.StyleId, definition.Name, definition.Type) == builtInStyleId)?.StyleId;
+            return styleId != null;
+        }
+    }
+
+    private sealed class BuiltInStyleIndex : BuiltInStyleLookup {
+        private readonly Dictionary<string, (string? Name, string? Type)> _definitions = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _idByBuiltInId = new(StringComparer.Ordinal);
+
+        internal BuiltInStyleIndex(Styles? styles) {
+            Styles = styles;
             if (styles == null) return;
-            foreach ((string? id, string? name, string? type) in styles) {
-                if (string.IsNullOrEmpty(id) || Definitions.ContainsKey(id!)) continue;
-                Definitions.Add(id!, (name, type));
+            // The same filter as WordStyleCatalog.FindReferenceableByName: a style needs an identifier, and only the first
+            // definition of an identifier is the one content resolves to.
+            foreach (Style style in styles.Elements<Style>()) {
+                string? id = style.StyleId?.Value;
+                if (string.IsNullOrEmpty(id) || _definitions.ContainsKey(id!)) continue;
+                string? name = style.StyleName?.Val?.Value;
+                string? type = WordBuiltInStyleNames.StyleType(style);
+                _definitions.Add(id!, (name, type));
                 // Word itself keeps the first definition of a name; a style of another type never stands in.
                 if (WordBuiltInStyleNames.GetId(name) is { } builtInId &&
-                    WordBuiltInStyleNames.Classify(id, name, type) == builtInId && !IdByBuiltInId.ContainsKey(builtInId)) {
-                    IdByBuiltInId.Add(builtInId, id!);
+                    WordBuiltInStyleNames.Classify(id, name, type) == builtInId && !_idByBuiltInId.ContainsKey(builtInId)) {
+                    _idByBuiltInId.Add(builtInId, id!);
                 }
             }
         }
 
-        /// <summary>The style part read as XML, or the loaded styles DOM.</summary>
-        internal object? Source { get; }
-        internal Dictionary<string, (string? Name, string? Type)> Definitions { get; } = new(StringComparer.Ordinal);
-        internal Dictionary<string, string> IdByBuiltInId { get; } = new(StringComparer.Ordinal);
+        /// <summary>The loaded styles DOM the index was built from.</summary>
+        internal Styles? Styles { get; }
+
+        internal override bool TryGetDefinition(string styleId, out string? name, out string? type) {
+            bool found = _definitions.TryGetValue(styleId, out (string? Name, string? Type) definition);
+            name = definition.Name;
+            type = definition.Type;
+            return found;
+        }
+
+        internal override bool TryGetStyleIdForBuiltInName(string builtInStyleId, out string? styleId) {
+            bool found = _idByBuiltInId.TryGetValue(builtInStyleId, out string? id);
+            styleId = id;
+            return found;
+        }
     }
 }

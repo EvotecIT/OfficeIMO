@@ -206,6 +206,65 @@ namespace OfficeIMO.Tests {
             Assert.Contains("> Noted", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
         }
 
+        [Theory]
+        [MemberData(nameof(Cultures))]
+        public void LocalizedBuiltInStyles_AreClassifiedWithoutLoadingTheStylesPart(string heading1, string heading2, string title, string quote, string toc1) {
+            byte[] package;
+            using (WordDocument template = LoadLocalizedTemplate(heading1, heading2, title, quote, toc1)) {
+                template.AddParagraph("Overview").SetStyleId(heading1);
+                template.AddParagraph("Quoted").SetStyleId(quote);
+                using var output = new MemoryStream();
+                template.Save(output);
+                package = output.ToArray();
+            }
+            using var input = new MemoryStream(package, writable: false);
+            using WordDocument document = WordDocument.Load(input, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+
+            Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs.Single(paragraph => paragraph.Text == "Overview").Style);
+            Assert.Equal("Quote", document.Paragraphs.Single(paragraph => paragraph.Text == "Quoted").BuiltInStyleId);
+            Assert.Equal(heading2, document.FindBuiltInStyleId("Heading2"));
+            Assert.Null(document.FindBuiltInStyleId("Hyperlink"));
+
+            Assert.False(document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.IsRootElementLoaded);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void BuiltInNameLookupsSkipEarlierStylesOfAnotherType(bool loadStyles) {
+            byte[] package;
+            using (var output = new MemoryStream()) {
+                using (WordDocument source = WordDocument.Create(output)) {
+                    source.Styles.Remove("Heading1");
+                    source.Styles.Remove("Heading2");
+                    // A malformed file: styles of another type share names, and identifiers, with the paragraph styles,
+                    // and a paragraph style has no identifier.
+                    Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    styles.Append(
+                        new Style(new StyleName { Val = "heading 1" }) { Type = StyleValues.Table, StyleId = "HeadingTable" },
+                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Character, StyleId = "BodyNoteRun" },
+                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Paragraph },
+                        new Style(new StyleName { Val = "heading 1" }) { Type = StyleValues.Paragraph, StyleId = "Titre1" },
+                        new Style(new StyleName { Val = "Body note" }) { Type = StyleValues.Paragraph, StyleId = "BodyNote" },
+                        new Style(new StyleName { Val = "heading 2" }) { Type = StyleValues.Table, StyleId = "Titre2" },
+                        new Style(new StyleName { Val = "heading 2" }) { Type = StyleValues.Paragraph, StyleId = "Titre2" });
+                    source.AddParagraph("Overview").SetStyleId("Titre1");
+                    source.Save();
+                }
+                package = output.ToArray();
+            }
+            using var input = new MemoryStream(package, writable: false);
+            using WordDocument document = WordDocument.Load(input, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            if (loadStyles) _ = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles;
+
+            Assert.Equal("Titre1", document.FindBuiltInStyleId("Heading1"));
+            Assert.Equal(WordParagraphStyles.Heading1, document.Paragraphs.Single(paragraph => paragraph.Text == "Overview").Style);
+            Assert.Equal("BodyNote", document.Styles.FindParagraphStyleId("Body note"));
+            // Titre2 resolves to the earlier table style, so no paragraph style stands for heading 2.
+            Assert.Null(document.FindBuiltInStyleId("Heading2"));
+            Assert.Equal(loadStyles, document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.IsRootElementLoaded);
+        }
+
         [Fact]
         public void TableOfContentsKeepsEntriesInTocPrefixedStylesWithoutBuiltInNames() {
             using var stream = new MemoryStream();

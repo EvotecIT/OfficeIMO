@@ -5,8 +5,10 @@ public sealed partial class WordStyleCollection {
     /// <returns>The style identifier, or <see langword="null"/> when the document defines no such paragraph style.</returns>
     internal string? FindParagraphStyleId(string styleIdOrName) {
         if (string.IsNullOrWhiteSpace(styleIdOrName)) return null;
-        WordStyle? style = Get(styleIdOrName);
-        return style?.Type == WordStyleType.Paragraph ? style.StyleId : null;
+        if (FindById(styleIdOrName) is { Type: WordStyleType.Paragraph } byId) return byId.StyleId;
+        // The first referenceable paragraph style with the name, even when a style of another type shares it.
+        return WordStyleCatalog.For(_document).FindReferenceableByName(styleIdOrName, definition =>
+            string.IsNullOrEmpty(definition.Type) || string.Equals(definition.Type, "paragraph", StringComparison.Ordinal))?.StyleId;
     }
 
     /// <summary>
