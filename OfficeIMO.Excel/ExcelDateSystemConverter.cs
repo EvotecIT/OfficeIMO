@@ -15,6 +15,9 @@ namespace OfficeIMO.Excel {
         private static readonly DateTime Early1900Epoch = new DateTime(1899, 12, 31);
         private static readonly DateTime OleAutomationEpoch = new DateTime(1899, 12, 30);
         private static readonly DateTime Epoch1904 = new DateTime(1904, 1, 1);
+        // DateTime.ToOADate and FromOADate accept dates from January 1, 100, OLE Automation date -657434.
+        private static readonly DateTime OleAutomationMinimum = new DateTime(100, 1, 1);
+        private const double OleAutomationMinimumSerial = -657435d;
         private const long MillisecondsPerDay = 86_400_000L;
         private const double MaximumDateTimeDays = 3_652_059d;
         /// <summary>
@@ -40,7 +43,10 @@ namespace OfficeIMO.Excel {
         /// before December 30, 1899 use the OLE Automation encoding, whose negative serials hold the time as a positive
         /// fraction. The time is floored to the millisecond, so it never moves to a later day.
         /// </summary>
+        /// <exception cref="OverflowException">The date is before January 1, 100, as from <see cref="DateTime.ToOADate"/>.</exception>
         internal static double ToOleAutomationSerial(DateTime value, ExcelDateSystem dateSystem) {
+            // Throws the OverflowException ToOADate gives for dates its paired decoder cannot read back.
+            if (value < OleAutomationMinimum) _ = value.ToOADate();
             long milliseconds = value >= OleAutomationEpoch
                 ? FloorToMilliseconds(value.Ticks - OleAutomationEpoch.Ticks)
                 : OleAutomationMilliseconds(value);
@@ -98,15 +104,17 @@ namespace OfficeIMO.Excel {
         internal static DateTime FromElapsedSerial(double serial) => FromLinearSerial(OleAutomationEpoch, serial);
 
         /// <summary>
-        /// Converts an OLE Automation date as <see cref="DateTime.FromOADate"/> does, without rounding the time into
-        /// the next day.
+        /// Converts an OLE Automation date with the range <see cref="DateTime.FromOADate"/> accepts, rounding its time
+        /// from the serial's own fraction like every other serial and never into the next day.
         /// </summary>
         internal static DateTime FromOleAutomationSerial(double value) {
             if (value >= 0d) return FromLinearSerial(OleAutomationEpoch, value);
+            // Throws the ArgumentException FromOADate gives below its range, and for NaN.
+            if (!(value > OleAutomationMinimumSerial)) return DateTime.FromOADate(value);
             // A negative OLE Automation date counts whole days back from the epoch and adds its fraction as a time.
-            DateTime date = DateTime.FromOADate(value);
-            DateTime day = OleAutomationEpoch.AddDays(Math.Truncate(value));
-            return date >= day && date < day.AddDays(1) ? date : day.AddTicks(TimeSpan.TicksPerDay - TimeSpan.TicksPerMillisecond);
+            double wholeDays = Math.Truncate(value);
+            long milliseconds = RoundFractionToMilliseconds(wholeDays - value);
+            return OleAutomationEpoch.AddTicks((long)wholeDays * TimeSpan.TicksPerDay + milliseconds * TimeSpan.TicksPerMillisecond);
         }
 
         private static DateTime FromLinearSerial(DateTime epoch, double serial) {
@@ -191,17 +199,11 @@ namespace OfficeIMO.Excel {
             // Retain the public converter's range checks and epoch semantics. Typed
             // reads keep their established DateTime contract; display keeps raw precision.
             _ = FromSerial(serial, dateSystem);
-            if (dateSystem == ExcelDateSystem.NineteenHundred && serial < 60d) {
-                return Early1900Epoch.AddTicks((long)Math.Round(serial * TimeSpan.TicksPerDay));
-            }
-            double whole = Math.Truncate(serial);
-            double fraction = serial - whole;
-            if (dateSystem == ExcelDateSystem.NineteenFour) whole += Date1904OffsetDays;
-            // An integral epoch shift can change the sign of an OA serial. Normalize
-            // before applying OA's absolute time-of-day rule for negative serials.
-            if (whole > 0 && fraction < 0) { whole--; fraction++; }
-            else if (whole < 0 && fraction > 0) { whole++; fraction--; }
-            long ticks = (long)Math.Round(Math.Abs(fraction) * TimeSpan.TicksPerDay);
+            // Worksheet serials count linearly from their epoch in both systems, as FromSerial does.
+            DateTime epoch = dateSystem == ExcelDateSystem.NineteenFour ? Epoch1904
+                : serial < 60d ? Early1900Epoch : OleAutomationEpoch;
+            double whole = Math.Floor(serial);
+            long ticks = (long)Math.Round((serial - whole) * TimeSpan.TicksPerDay);
             // DateTime-authored millisecond boundaries can land a few ticks below
             // the intended clock value when encoded in a double day serial. Recover
             // only boundaries within half one representable serial step; retain
@@ -211,7 +213,7 @@ namespace OfficeIMO.Excel {
             double tolerance = (next - magnitude) * TimeSpan.TicksPerDay / 2;
             long millisecondTicks = (long)Math.Round(ticks / (double)TimeSpan.TicksPerMillisecond) * TimeSpan.TicksPerMillisecond;
             if (Math.Abs(ticks - millisecondTicks) <= tolerance) ticks = millisecondTicks;
-            return DateTime.FromOADate(whole).AddTicks(ticks);
+            return epoch.AddTicks((long)whole * TimeSpan.TicksPerDay + ticks);
         }
     }
 }

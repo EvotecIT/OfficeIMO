@@ -212,6 +212,36 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expected, ExcelPivotCacheDateCodec.FromSerial(ExcelPivotCacheDateCodec.ToSerial(value, dateSystem), dateSystem));
         }
 
+        // Pivot caches store OLE Automation dates; dates their decoder cannot read are rejected as ToOADate rejects them.
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void PivotCacheDatesShareTheOleAutomationRange(bool date1904) {
+            ExcelDateSystem dateSystem = date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
+            Assert.Throws<OverflowException>(() => ExcelPivotCacheDateCodec.ToSerial(new DateTime(99, 12, 31, 23, 59, 59), dateSystem));
+            var first = new DateTime(100, 1, 1, 6, 30, 0);
+            Assert.Equal(first, ExcelPivotCacheDateCodec.FromSerial(ExcelPivotCacheDateCodec.ToSerial(first, dateSystem), dateSystem));
+        }
+
+        // A negative OLE Automation serial rounds its time from its own fraction, like every other serial: this one is
+        // 2.49999... ms after midnight of December 29, 1899, which FromOADate's whole-value rounding made 3 ms.
+        [Fact]
+        public void NegativeOleAutomationSerialsRoundFromTheirOwnFraction() {
+            Assert.Equal(new DateTime(1899, 12, 29, 0, 0, 0, 2),
+                ExcelPivotCacheDateCodec.FromSerial(-1.0000000289351851, ExcelDateSystem.NineteenHundred));
+        }
+
+        // Displayed fractional seconds and typed reads agree on dates before serial 0 in the 1904 system.
+        [Fact]
+        public void Negative1904SerialsDisplayTheSameDateTheyReadAs() {
+            using var document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "Negative1904Display.xlsx"));
+            document.DateSystem = ExcelDateSystem.NineteenFour;
+            ExcelSheet sheet = document.AddSheet("Dates");
+            sheet.Cell(1, 1).SetValue(-1500.25).SetNumberFormat("yyyy-mm-dd hh:mm:ss.000");
+            Assert.Equal(new DateTime(1899, 11, 21, 18, 0, 0), ExcelDateSystemConverter.FromSerial(-1500.25, ExcelDateSystem.NineteenFour));
+            Assert.Equal("1899-11-21 18:00:00.000", sheet.Cell(1, 1).GetFormattedText(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
         // Adding the 1904 offset to these serials directly rounds them up to the next whole day.
         [Theory]
         [InlineData(ExcelFileFormat.Xlsx)]
