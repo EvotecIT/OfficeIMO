@@ -146,6 +146,13 @@ internal static class OfficeRoundTripText
     internal static bool TryParse(string? text, NumberStyles style, IFormatProvider? provider, out float value) =>
         OfficeRoundTripNumberText.TryParse(text, style, provider, out value);
 
+    /// <summary>
+    /// Parses a double like <see cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>, but treats
+    /// text that reads as infinity or NaN as not a number, for values a file format stores only as finite numbers.
+    /// </summary>
+    internal static bool TryParseFinite(string? text, NumberStyles style, IFormatProvider? provider, out double value) =>
+        OfficeRoundTripNumberText.TryParseFinite(text, style, provider, out value);
+
 #if NETCOREAPP
     /// <inheritdoc cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>
     internal static bool TryParse(ReadOnlySpan<char> text, NumberStyles style, IFormatProvider? provider, out double value) =>

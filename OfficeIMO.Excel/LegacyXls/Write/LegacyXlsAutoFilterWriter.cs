@@ -651,7 +651,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static bool TryParseInvariantDouble(string value, out double number) {
-            return OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number);
+            // An Xnum is finite and has no negative zero; other text stays a string criterion.
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(value, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
+                return false;
+            }
+            if (number == 0D) {
+                number = 0D;
+            }
+            return true;
         }
 
         private static bool IsProjectedNonBlankCondition(CustomFilter condition) {

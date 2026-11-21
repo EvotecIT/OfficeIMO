@@ -251,7 +251,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, serial, formulaPayload);
             }
 
-            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
                 return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, number, formulaPayload);
             }
 

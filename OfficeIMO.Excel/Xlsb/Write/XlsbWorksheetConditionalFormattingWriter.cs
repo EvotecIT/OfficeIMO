@@ -333,7 +333,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 formula = EncodeValueObjectFormula(context, text!);
             } else if (type is 1 or 4 or 5) {
                 if (string.IsNullOrEmpty(text)) throw Refuse(sheetName, $"a '{value.Type!.InnerText}' value object without a value");
-                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
+                if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(text, NumberStyles.Float, CultureInfo.InvariantCulture, out number)) {
                     formula = EncodeValueObjectFormula(context, text!);
                 } else if (type != 1 && (number < 0D || number > 100D)) {
                     throw Refuse(sheetName, $"a percent value object of {text}; XLSB allows 0 to 100");

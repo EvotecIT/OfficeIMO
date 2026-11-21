@@ -52,6 +52,17 @@ internal static partial class OfficeRoundTripNumberText {
 #endif
     }
 
+    /// <summary>
+    /// Parses a double like <see cref="TryParse(string, NumberStyles, IFormatProvider, out double)"/>, but treats
+    /// text that reads as infinity or NaN (an overflow such as <c>1e400</c>, or a spelled-out <c>NaN</c>) as not a
+    /// number, for values that a file format can store only as finite numbers.
+    /// </summary>
+    internal static bool TryParseFinite(string? text, NumberStyles style, IFormatProvider? provider, out double value) {
+        if (TryParse(text, style, provider, out value) && !double.IsNaN(value) && !double.IsInfinity(value)) return true;
+        value = 0D;
+        return false;
+    }
+
 #if NETCOREAPP3_0_OR_GREATER
     // The runtime parser is correct here; these let span call sites share the same owner.
     internal static bool TryParse(ReadOnlySpan<char> text, NumberStyles style, IFormatProvider? provider, out double value) =>

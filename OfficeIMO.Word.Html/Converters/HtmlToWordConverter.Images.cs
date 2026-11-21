@@ -346,7 +346,7 @@ namespace OfficeIMO.Word.Html {
             if (trimmed.EndsWith("px", StringComparison.Ordinal)) {
                 trimmed = trimmed.Substring(0, trimmed.Length - 2);
             }
-            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(trimmed, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
                 return result > 0 ? result : null;
             }
             return null;
@@ -369,7 +369,7 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(trimmed.Substring(0, trimmed.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) || percent <= 0) {
+            if (!OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(trimmed.Substring(0, trimmed.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) || percent <= 0) {
                 return null;
             }
 

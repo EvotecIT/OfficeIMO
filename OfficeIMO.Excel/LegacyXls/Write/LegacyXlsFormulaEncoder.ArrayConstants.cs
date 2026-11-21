@@ -452,7 +452,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
-            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+            // A SerNum holds an Xnum: finite, with no negative zero.
+            if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                if (number == 0D) {
+                    number = 0D;
+                }
                 stream.WriteByte(0x01);
                 byte[] numberBytes = BitConverter.GetBytes(number);
                 stream.Write(numberBytes, 0, numberBytes.Length);
