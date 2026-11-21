@@ -629,7 +629,7 @@ internal static partial class PdfWriter {
                 invisibleFootnoteAnchors ??= new List<(List<RichSeg> Line, RichSeg Anchor, RichSeg? SpaceStyle)>();
                 invisibleFootnoteAnchors.Add((lines[lines.Count - 1], new RichSeg(string.Empty, bold, italic, underline, strike,
                     color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, 0D,
-                    namedFont: currentRunNamedFont, footnoteReference: run.FootnoteReference), null));
+                    namedFont: currentRunNamedFont, footnoteReference: run.FootnoteReference, baselineShift: run.BaselineShift), null));
             }
             currentRunDecorationTextRise += ResolveFontLineAlignmentRise(fontForRun, currentRunNamedFont,
                 currentRunDecorationFontSize, options, lineSpacing);
@@ -646,7 +646,7 @@ internal static partial class PdfWriter {
                 lines[lines.Count - 1].Add(new RichSeg(string.Empty, bold, italic, false, false,
                     null, null, null, null, null, fontForRun, runFontSize, baseline, 0D,
                     namedFont: currentRunNamedFont, contributesLineBoxDescent: currentRunContributesDescent,
-                    isLineBoxStrut: true, formField: run.FormField));
+                    isLineBoxStrut: true, formField: run.FormField, baselineShift: run.BaselineShift));
                 RegisterLineHeight(runFontSize);
                 continue;
             }

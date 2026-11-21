@@ -61,14 +61,14 @@ internal static partial class PdfWriter {
                     leadingAdvance: fragment.Advance, leadingSpaceIsExpandable: source.LeadingSpaceIsExpandable,
                     namedFont: source.NamedFont, leadingIsTab: source.LeadingIsTab,
                     leadingTabAlignment: source.LeadingTabAlignment, leadingSpaceCount: fragment.Count,
-                    leadingIsOrdinarySpace: source.LeadingIsOrdinarySpace));
+                    leadingIsOrdinarySpace: source.LeadingIsOrdinarySpace, baselineShift: source.BaselineShift));
             }
         } else if (pendingAdvance != 0D || pendingCount > 0 || pendingTab) {
             candidate.Add(new RichSeg(string.Empty, false, false, false, false, null, null, null, null, null,
                 token.Font, token.FontSize, token.Baseline, 0D, leadingSpace: true,
                 leadingAdvance: pendingAdvance, leadingSpaceIsExpandable: pendingExpandable,
                 leadingIsTab: pendingTab, leadingTabAlignment: tabAlignment, leadingSpaceCount: pendingCount,
-                leadingIsOrdinarySpace: pendingOrdinarySpace));
+                leadingIsOrdinarySpace: pendingOrdinarySpace, baselineShift: token.BaselineShift));
         }
         candidate.Add(token);
         if (continuation != null) candidate.AddRange(continuation);

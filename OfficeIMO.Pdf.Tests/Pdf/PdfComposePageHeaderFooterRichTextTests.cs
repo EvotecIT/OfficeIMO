@@ -181,6 +181,28 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(3D, shifted.StartBaseLine.Y - letters.Single(letter => letter.Value == "x").StartBaseLine.Y, 2);
         }
 
+        // Positioned text, such as an imported checkbox glyph, measures an imported script run at its offset.
+        [Theory]
+        [InlineData(PdfTextBaseline.Superscript, 3D)]
+        [InlineData(PdfTextBaseline.Subscript, -0.5D)]
+        public void PositionedImportedScriptRunMeasuresAtItsFontOffset(PdfTextBaseline baseline, double offset) {
+            byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(
+                ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -500, 0, 500, Enumerable.Range(32, 95).ToArray()),
+                subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+            var options = new PdfCreateOptions { UseFontUnitTextLayout = true }
+                .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
+            PdfTextRun script = baseline == PdfTextBaseline.Superscript
+                ? PdfTextRun.Superscript("2", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName)
+                : PdfTextRun.Subscript("2", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: ManagedTextShapingTestAssets.FamilyName);
+            PdfTextRun plain = new PdfTextRun("2").SetFontSize(global::OfficeIMO.OfficeLength.Points(6)).SetFontFamily(ManagedTextShapingTestAssets.FamilyName);
+
+            PdfWriter.PositionedTextBoxMeasurement shifted = PdfWriter.MeasurePositionedTextBox(script, options)!;
+            PdfWriter.PositionedTextBoxMeasurement level = PdfWriter.MeasurePositionedTextBox(plain, options)!;
+            Assert.Equal(level.Width, shifted.Width, 3);
+            Assert.Equal(level.Ascent + offset, shifted.Ascent, 3);
+            Assert.Equal(level.Descent - offset, shifted.Descent, 3);
+        }
+
         // A script run's geometry follows the run as it is now, even after an earlier render.
         [Fact]
         public void ImportedScriptRunFollowsAChangedFontSize() {
