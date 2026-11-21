@@ -10,8 +10,8 @@ namespace OfficeIMO;
 /// in their exact spelling. Elsewhere plain decimal text is parsed here: a single exact operation when the digits and
 /// the power of ten are small enough, the Eisel-Lemire algorithm (Daniel Lemire, "Number Parsing at a Gigabyte per
 /// Second", 2021) for up to 19 significant digits, and exact big-integer arithmetic when neither settles the result.
-/// Other forms go to .NET Framework's parser: currency symbols, parentheses, and text read with currency allowed in a
-/// culture whose currency separators differ from its number separators.
+/// Other forms go to .NET Framework's parser: currency symbols, parentheses, and text read with currency allowed that
+/// contains a currency separator differing from the culture's number separator.
 /// </summary>
 internal static partial class OfficeRoundTripNumberText {
     /// <summary>Parses a double as .NET Core's <see cref="double.TryParse(string, NumberStyles, IFormatProvider, out double)"/> does.</summary>
@@ -219,6 +219,13 @@ internal static partial class OfficeRoundTripNumberText {
             }
             return true;
         }
+
+        internal bool Contains(string value) {
+            for (int index = 0; index + value.Length <= Length; index++) {
+                if (StartsWith(index, value)) return true;
+            }
+            return false;
+        }
     }
 
     /// <summary>A plain decimal number found in a text: sign, up to 19 leading significant digits and a power of ten.</summary>
@@ -236,11 +243,11 @@ internal static partial class OfficeRoundTripNumberText {
 
         internal static bool TryScan(TextSource text, NumberStyles style, NumberFormatInfo format, out DecimalText result) {
             result = default;
-            // With currency allowed, the runtime also takes the currency separators, ahead of the number ones. When a
-            // culture's two pairs differ, that text is left to the runtime parser.
+            // With currency allowed, the runtime also takes the currency separators, ahead of the number ones. Text that
+            // contains a currency separator differing from its number counterpart is left to the runtime parser.
             if ((style & NumberStyles.AllowCurrencySymbol) != 0
-                && (format.CurrencyDecimalSeparator != format.NumberDecimalSeparator
-                    || format.CurrencyGroupSeparator != format.NumberGroupSeparator)) {
+                && ((format.CurrencyDecimalSeparator != format.NumberDecimalSeparator && text.Contains(format.CurrencyDecimalSeparator))
+                    || (format.CurrencyGroupSeparator != format.NumberGroupSeparator && text.Contains(format.CurrencyGroupSeparator)))) {
                 return false;
             }
             int index = 0, length = text.Length;

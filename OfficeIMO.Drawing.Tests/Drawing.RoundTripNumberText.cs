@@ -135,6 +135,8 @@ public sealed class DrawingRoundTripNumberTextTests {
         Assert.Equal(1.234D, withCurrency);
         Assert.True(OfficeRoundTripText.TryParse("1,234", NumberStyles.Float | NumberStyles.AllowThousands, format, out double withoutCurrency));
         Assert.Equal(1234D, withoutCurrency);
+        Assert.True(OfficeRoundTripText.TryParse("1e400", NumberStyles.Any, format, out double overflow));
+        Assert.Equal(double.PositiveInfinity, overflow);
     }
 
     [Fact]
