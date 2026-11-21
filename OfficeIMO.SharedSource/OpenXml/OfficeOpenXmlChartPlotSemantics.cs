@@ -7,14 +7,20 @@ namespace OfficeIMO.OpenXml.Internal;
 
 /// <summary>Reads chart-wide plotting rules that every native chart adapter projects the same way.</summary>
 internal static class OfficeOpenXmlChartPlotSemantics {
-    /// <summary>Applies the chart's blank-cell rule, the physical axis crossings and the value-axis display units.</summary>
+    /// <summary>Applies the chart's blank-cell rule, manual layouts, colour variation, the physical axis
+    /// crossings and scales, and the value-axis display units.</summary>
     internal static OfficeChartLayout WithPlotSemantics(this OfficeChartLayout layout, C.Chart? chart, bool includeDisplayUnits = true) {
         if (chart == null) return layout;
         layout = layout.WithBlankDisplay(ReadBlankDisplay(chart));
         C.ShowDataLabelsOverMaximum? overMaximum = chart.GetFirstChild<C.ShowDataLabelsOverMaximum>();
         layout = layout.WithDataLabelsOverMaximum(overMaximum == null || overMaximum.Val?.Value != false);
+        layout = layout.WithManualLayouts(ReadManualLayout(chart.PlotArea), ReadManualLayout(chart.GetFirstChild<C.Title>()),
+            ReadManualLayout(chart.GetFirstChild<C.Legend>()));
+        layout = layout.WithVaryColorsByPoint(GetPointColoredSeries(chart.PlotArea) != null);
         if (!TryGetPhysicalAxes(chart.PlotArea, out OpenXmlCompositeElement? horizontal, out OpenXmlCompositeElement? vertical))
             return layout;
+        layout = layout.WithLogarithmicValueAxes(ReadLogBase(horizontal), ReadLogBase(vertical))
+            .WithReversedValueAxes(IsReversedValueAxis(horizontal), IsReversedValueAxis(vertical));
         // An axis's c:crosses or c:crossesAt places that axis on the perpendicular one: a category axis with
         // crosses="autoZero" runs along the value axis's zero line, and a value axis with crosses="max" sits after
         // the last category.
@@ -29,7 +35,8 @@ internal static class OfficeOpenXmlChartPlotSemantics {
     /// <summary>The placeholder Office shows for an automatic title it cannot take from a series name, in English.</summary>
     internal const string AutomaticTitlePlaceholder = "Chart Title";
 
-    /// <summary>Resolves the text Office draws for a c:title that has no text of its own.</summary>
+    /// <summary>Resolves the text Office draws for a c:title that has no text of its own, or for a chart with no
+    /// c:title whose c:autoTitleDeleted is off.</summary>
     /// <remarks>Office titles a chart with one series by that series' name. Otherwise it shows a placeholder in the
     /// user interface language; the placeholder is returned only when the chart's c:lang is English or absent, so a
     /// chart in another language is not given English text. Returns null when the chart has no such title, when its
@@ -38,9 +45,13 @@ internal static class OfficeOpenXmlChartPlotSemantics {
     /// <param name="singleSeriesName">The series name a caller resolved from current source cells, used in place of the cached name.</param>
     internal static string? ReadAutomaticTitle(C.Chart chart, string? singleSeriesName = null) {
         C.Title? title = chart.GetFirstChild<C.Title>();
-        if (title == null || title.GetFirstChild<C.ChartText>() != null) return null;
+        if (title?.GetFirstChild<C.ChartText>() != null) return null;
         C.AutoTitleDeleted? deleted = chart.GetFirstChild<C.AutoTitleDeleted>();
         if (deleted != null && deleted.Val?.Value != false) return null;
+        // Without a c:title element Excel still titles a one-series chart with the series name when
+        // c:autoTitleDeleted is present and off; with the element missing, or several series, it shows no title.
+        bool implicitTitle = title == null;
+        if (implicitTitle && deleted == null) return null;
         OpenXmlCompositeElement[] series = chart.PlotArea?.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(layer => layer.LocalName.EndsWith("Chart", StringComparison.Ordinal))
             .SelectMany(layer => layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser"))
@@ -51,6 +62,7 @@ internal static class OfficeOpenXmlChartPlotSemantics {
             if (!string.IsNullOrWhiteSpace(name)) return name!.Trim();
         }
 
+        if (implicitTitle) return null;
         string? language = (chart.Parent as C.ChartSpace)?.GetFirstChild<C.EditingLanguage>()?.Val?.Value;
         return string.IsNullOrWhiteSpace(language) || language!.StartsWith("en", StringComparison.OrdinalIgnoreCase)
             ? AutomaticTitlePlaceholder : null;
@@ -65,6 +77,55 @@ internal static class OfficeOpenXmlChartPlotSemantics {
             .FirstOrDefault(item => (item.Index?.Value ?? 0U) == 0U);
         return point?.NumericValue?.Text;
     }
+
+    /// <summary>Returns the only series of a chart whose group sets c:varyColors, so Office colours its points
+    /// individually; null for radial charts (which always vary), area charts and charts with several series.</summary>
+    internal static OpenXmlCompositeElement? GetPointColoredSeries(C.PlotArea? plot) {
+        if (plot == null) return null;
+        OpenXmlCompositeElement[] series = plot.ChildElements.OfType<OpenXmlCompositeElement>()
+            .Where(layer => layer.LocalName.EndsWith("Chart", StringComparison.Ordinal))
+            .SelectMany(layer => layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser"))
+            .Take(2).ToArray();
+        if (series.Length != 1 || series[0].Parent is not (C.BarChart or C.Bar3DChart or C.LineChart or C.Line3DChart or
+                C.RadarChart or C.ScatterChart)) return null;
+        C.VaryColors? vary = series[0].Parent!.GetFirstChild<C.VaryColors>();
+        return vary != null && vary.Val?.Value != false ? series[0] : null;
+    }
+
+    // c:layout/c:manualLayout. A missing mode is factor and a missing target is outer, as the schema defaults.
+    private static OfficeChartManualLayout? ReadManualLayout(OpenXmlCompositeElement? owner) {
+        C.ManualLayout? manual = owner?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>();
+        if (manual == null) return null;
+        double? x = manual.GetFirstChild<C.Left>()?.Val?.Value;
+        double? y = manual.GetFirstChild<C.Top>()?.Val?.Value;
+        double? width = manual.GetFirstChild<C.Width>()?.Val?.Value;
+        double? height = manual.GetFirstChild<C.Height>()?.Val?.Value;
+        if (!x.HasValue && !y.HasValue && !width.HasValue && !height.HasValue) return null;
+        OfficeChartLayoutMode xMode = ReadMode(manual.GetFirstChild<C.LeftMode>()?.Val?.Value);
+        OfficeChartLayoutMode yMode = ReadMode(manual.GetFirstChild<C.TopMode>()?.Val?.Value);
+        try {
+            return new OfficeChartManualLayout(x ?? 0D, y ?? 0D, width, height,
+                x.HasValue ? xMode : OfficeChartLayoutMode.Factor, y.HasValue ? yMode : OfficeChartLayoutMode.Factor,
+                ReadMode(manual.GetFirstChild<C.WidthMode>()?.Val?.Value), ReadMode(manual.GetFirstChild<C.HeightMode>()?.Val?.Value),
+                manual.GetFirstChild<C.LayoutTarget>()?.Val?.Value == C.LayoutTargetValues.Inner
+                    ? OfficeChartLayoutTarget.Inner : OfficeChartLayoutTarget.Outer);
+        } catch (ArgumentOutOfRangeException) {
+            // Office ignores a layout far outside the chart and places the element automatically.
+            return null;
+        }
+    }
+
+    private static OfficeChartLayoutMode ReadMode(C.LayoutModeValues? value) =>
+        value == C.LayoutModeValues.Edge ? OfficeChartLayoutMode.Edge : OfficeChartLayoutMode.Factor;
+
+    private static double? ReadLogBase(OpenXmlCompositeElement? axis) {
+        if (axis is not C.ValueAxis) return null;
+        double? value = axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.LogBase>()?.Val?.Value;
+        return value is double logBase && logBase >= 2D && logBase <= 1000D ? logBase : null;
+    }
+
+    private static bool IsReversedValueAxis(OpenXmlCompositeElement? axis) =>
+        axis is C.ValueAxis && axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin;
 
     /// <summary>Reads c:dispBlanksAs. Office treats a missing element or value as gaps.</summary>
     internal static OfficeChartBlankDisplay ReadBlankDisplay(C.Chart chart) {

@@ -1067,7 +1067,7 @@ cells keep the chart's blank-cell setting (gaps, connected lines or zero), and a
 shows the single series name, or Office's English "Chart Title" placeholder for an English chart with
 several series. Nonstandard axis arrangements,
 title shape fills or unsupported legend fills,
-manual title layouts, unsupported numeric formats, and nondefault bar spacing
+manual axis-title layouts, unsupported numeric formats, and nondefault bar spacing
 require a richer projection and return false. Analytical overlays, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
 multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,

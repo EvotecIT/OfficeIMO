@@ -305,6 +305,60 @@ public sealed partial class OfficeSeries {
         };
     }
 
+    /// <summary>Restates a plotted value or X value as the source value for labels when the renderer drew this
+    /// series on a logarithmic or reversed axis; null when the plotted values are the source values.</summary>
+    internal Func<double, double>? SourceValue { get; private set; }
+
+    /// <inheritdoc cref="SourceValue"/>
+    internal Func<double, double>? SourceXValue { get; private set; }
+
+    /// <summary>The source value of each point when the values are plotted on a transformed axis, including points a
+    /// logarithmic axis cannot draw; null when the plotted values are the source values.</summary>
+    internal IReadOnlyList<double>? SourcePointValues { get; private set; }
+
+    /// <summary>The source X value of each point when the X values are plotted on a transformed axis.</summary>
+    internal IReadOnlyList<double>? SourcePointXValues { get; private set; }
+
+    /// <summary>Returns a copy plotted on transformed axes, with the restatements its labels use and the source
+    /// samples its trendline is fitted to.</summary>
+    internal OfficeSeries WithPlottedValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues,
+        Func<double, double>? sourceValue, Func<double, double>? sourceXValue,
+        IReadOnlyList<double>? sourceValues = null, IReadOnlyList<double>? sourceXValues = null) {
+        var copy = new OfficeSeries(Name, values, xValues, BubbleSizes, Color, PointColors,
+            ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            _markerVisibilitySpecified = this._markerVisibilitySpecified,
+            SeriesStyle = SeriesStyle,
+            PointStyles = PointStyles,
+            PointExplosions = PointExplosions,
+            Trendline = Trendline
+        };
+        copy.SourceValue = sourceValue;
+        copy.SourceXValue = sourceXValue;
+        copy.SourcePointValues = sourceValues;
+        copy.SourcePointXValues = sourceXValues;
+        return copy;
+    }
+
+    /// <summary>Returns a copy plotted as steps between scaled running totals, labelled with its source values.</summary>
+    internal OfficeSeries WithStackedSteps(IReadOnlyList<double> steps, IReadOnlyList<double> sourceValues) {
+        return WithPlottedValues(steps, XValues, null, SourceXValue, sourceValues, SourcePointXValues);
+    }
+
+    /// <summary>Returns a copy with replacement point colours, keeping values and appearance.</summary>
+    internal OfficeSeries WithPointColors(IReadOnlyList<OfficeColor?> pointColors) {
+        if (pointColors.Count != Values.Count) throw new ArgumentException("Point colours must match the series length.", nameof(pointColors));
+        return new OfficeSeries(Name, Values, XValues, BubbleSizes, Color, pointColors,
+            ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            _markerVisibilitySpecified = this._markerVisibilitySpecified,
+            SeriesStyle = SeriesStyle,
+            PointStyles = PointStyles,
+            PointExplosions = PointExplosions,
+            Trendline = Trendline
+        };
+    }
+
     /// <summary>Optional trendline fitted to this series.</summary>
     public OfficeChartTrendline? Trendline { get; private set; }
 

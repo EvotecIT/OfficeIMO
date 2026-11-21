@@ -133,7 +133,22 @@ namespace OfficeIMO.Excel {
 
                 chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
                 chartData = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, chartData, sheet);
+                bool[]? hiddenSeries = null;
+                if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSourceVisibility.PlotsVisibleCellsOnly(
+                        chartPart.ChartSpace?.GetFirstChild<C.Chart>())) {
+                    chartData = ExcelChartUtils.SelectVisiblePoints(chartPart, sheet, chartData, out hiddenSeries);
+                    if (chartData == null) {
+                        data = null!;
+                        return false;
+                    }
+                }
                 chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot);
+                chartData = ExcelChartUtils.RemoveSeries(chartData, hiddenSeries);
+                // With every series hidden Excel plots nothing, which no snapshot can stand for.
+                if (chartData.Series.Count == 0) {
+                    data = null!;
+                    return false;
+                }
                 if (range != null) {
                     _dataRange = range;
                 }

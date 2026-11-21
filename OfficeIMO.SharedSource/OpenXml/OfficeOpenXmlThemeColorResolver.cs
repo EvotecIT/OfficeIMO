@@ -22,15 +22,17 @@ internal static class OfficeOpenXmlThemeColorResolver {
     internal static OfficeColor[]? ReadRadialPalette(ChartPart chartPart, OpenXmlCompositeElement series,
         int pointCount, A.ColorScheme? scheme, bool requireQualifiedPalette = false,
         bool useSpreadsheetDefaultTheme = false) {
+        bool radial = series.Parent is C.PieChart or C.DoughnutChart or C.Pie3DChart or C.OfPieChart;
+        // A single bar, line, radar or scatter series with c:varyColors takes the same per-point colours.
         if (pointCount < 1 ||
-            series.Parent is not C.PieChart and not C.DoughnutChart and not C.Pie3DChart and not C.OfPieChart ||
-            series.Parent.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
+            !radial && !ReferenceEquals(OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(series.Parent?.Parent as C.PlotArea), series) ||
+            series.Parent!.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
             varyColors.Val?.Value == false)
             return null;
         // Point fills take precedence over the theme palette in every static renderer.
         // An unsupported inherited palette is immaterial when every rendered ring has
         // an explicit appearance for every category.
-        if (AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
+        if (radial && AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
         OfficeColor[]? colors = scheme == null && !useSpreadsheetDefaultTheme ? null :
             OfficeOpenXmlChartAutomaticColors.ResolvePoints(chartPart.ChartSpace, pointCount, scheme,
                 useSpreadsheetDefaultTheme);

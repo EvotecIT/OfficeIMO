@@ -189,7 +189,8 @@ public static partial class OfficeChartDrawingRenderer {
         return GetLegendBandHeight(legendIndexes.Select(index => categories[index]), chartWidth, layout);
     }
 
-    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered) {
+    // An automatic band shows up to two rows; a placed band shows as many as its height holds.
+    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered, double? placedHeight = null) {
         if (!ShouldRenderLegendBand(layout) || width < 48D) {
             return;
         }
@@ -209,7 +210,8 @@ public static partial class OfficeChartDrawingRenderer {
             layout,
             legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList(),
             legendIndexes.Select(index => series[index].SeriesStyle).ToList(),
-            legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList());
+            legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList(),
+            placedHeight is double height ? Math.Max(1, (int)Math.Floor((height - 4D) / layout.LegendRowHeight)) : 2);
     }
 
     // Line series are keyed by a short stroke rather than a filled square, as in Office.
@@ -301,14 +303,14 @@ public static partial class OfficeChartDrawingRenderer {
         return rows * layout.LegendRowHeight + 4D;
     }
 
-    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, IReadOnlyList<bool>? lineSwatches = null) {
+    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, IReadOnlyList<bool>? lineSwatches = null, int maximumRows = 2) {
         List<string?> labelList = labels.ToList();
         if (labelList.Count == 0) {
             return;
         }
 
         int columns = GetLegendBandColumns(labelList, width, layout);
-        int visibleCount = Math.Min(labelList.Count, columns * 2);
+        int visibleCount = (int)Math.Min(labelList.Count, (long)columns * maximumRows);
         // Entries sit together at their measured width instead of spreading across the chart:
         // a top legend starts at the left edge under the title, a bottom legend is centred.
         double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
@@ -416,7 +418,8 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         int stride = Math.Max(1, (int)Math.Ceiling(categories.Count / (double)layout.MaximumHorizontalCategoryAxisLabels));
-        double slot = plotHeight / categories.Count;
+        bool onTickMarks = layout.CategoryPointsOnTickMarks && categories.Count > 1;
+        double slot = plotHeight / (onTickMarks ? categories.Count - 1 : categories.Count);
         if (layout.PreventLabelOverlap) {
             stride = EnsureLabelStride(stride, slot, 10D + 2D);
         }
@@ -428,7 +431,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             int categorySlot = GetHorizontalBarCategorySlotIndex(i, categories.Count, layout);
-            double centerY = plotTop + slot * categorySlot + slot / 2D;
+            double centerY = plotTop + slot * categorySlot + (onTickMarks ? 0D : slot / 2D);
             double labelHeight = GetAxisLabelBoxHeight(layout);
             AddChartText(drawing, label, labelLeft, centerY - labelHeight / 2D, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
@@ -440,7 +443,7 @@ public static partial class OfficeChartDrawingRenderer {
             double tick = ticks[i];
             double labelHeight = GetAxisLabelBoxHeight(layout);
             double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight) - labelHeight / 2D;
-            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor), labelLeft, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            AddChartText(drawing, FormatAxisValue(GetAxisSourceValue(tick, layout, horizontal: false), layout, percentDefault, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor), labelLeft, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
 
         // The units label sits just clear of the top tick label.
@@ -462,7 +465,7 @@ public static partial class OfficeChartDrawingRenderer {
                 : tick >= range.Max
                     ? Math.Max(0D, x - labelWidth + 2D)
                     : Math.Max(0D, x - labelWidth / 2D);
-            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), textLeft, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            AddChartText(drawing, FormatAxisValue(GetAxisSourceValue(tick, layout, horizontal: true), layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), textLeft, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
 
         AddAxisDisplayUnitLabel(drawing, layout.HorizontalAxisDisplayUnitLabel, plotLeft + plotWidth - 58D, labelsAbovePlot ? labelY - 11D : labelY + 11D, 58D, style, layout, OfficeTextAlignment.Right);
@@ -786,7 +789,8 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeSeries series,
-        double value, double total, double? percentageRatio = null) {
+        double value, double total, double? percentageRatio = null, int pointIndex = -1) {
+        value = GetSourceSeriesValue(series, pointIndex, value);
         var parts = new List<string>(4);
         if (layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(series.Name)) {
             parts.Add(series.Name);
@@ -1234,7 +1238,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         // A bar grows away from its baseline, which an axis crossing can move off zero.
         bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
@@ -1280,7 +1284,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         // A bar grows away from its baseline, which an axis crossing can move off zero.
         bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
@@ -1324,7 +1328,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         if (string.IsNullOrWhiteSpace(label)) {
             return;
         }
