@@ -43,36 +43,44 @@ namespace OfficeIMO.Word {
             get {
                 SdtContentBlock? content = _sdtBlock.SdtContentBlock;
                 if (content == null || _document.Settings.UpdateFieldsOnOpen) return false;
-                bool pageReferences = false;
-                // A complex field's instruction can be split across runs; classify it once it is complete.
-                var open = new Stack<System.Text.StringBuilder?>();
-                foreach (OpenXmlElement element in content.Descendants()) {
-                    if (element is FieldChar { Dirty.Value: true } || element is SimpleField { Dirty.Value: true }) return false;
-                    switch (element) {
-                        case SimpleField simple:
-                            pageReferences |= IsPageReference(simple.Instruction?.Value);
-                            break;
-                        case FieldChar { FieldCharType.Value: var type }:
-                            if (type == FieldCharValues.Begin) {
-                                open.Push(new System.Text.StringBuilder());
-                            } else if (open.Count > 0 && (type == FieldCharValues.Separate || type == FieldCharValues.End)) {
-                                System.Text.StringBuilder? instruction = open.Pop();
-                                if (instruction != null) pageReferences |= IsPageReference(instruction.ToString());
-                                // After the separator the field result follows; its instruction is already classified.
-                                if (type == FieldCharValues.Separate) open.Push(null);
-                            }
-                            break;
-                        case FieldCode code when open.Count > 0:
-                            open.Peek()?.Append(code.Text);
-                            break;
-                    }
+                if (content.Descendants().Any(element => element is FieldChar { Dirty.Value: true } || element is SimpleField { Dirty.Value: true })) {
+                    return false;
                 }
-                return pageReferences;
-
-                static bool IsPageReference(string? instruction) => !string.IsNullOrWhiteSpace(instruction) &&
-                    WordFieldInventory.ParseInstruction(instruction!).FieldType == WordFieldType.PageRef;
+                return EnumerateFieldInstructions(content).Any(instruction => GetFieldType(instruction.Instruction) == WordFieldType.PageRef);
             }
         }
+
+        /// <summary>
+        /// The complete instruction of every field under <paramref name="root"/>, in document order, with the element that
+        /// starts the field: a simple field, or the begin character of a complex field. A complex field's instruction can be
+        /// split across runs, so it is returned once its separator or end is reached.
+        /// </summary>
+        private static IEnumerable<(OpenXmlElement Start, string Instruction)> EnumerateFieldInstructions(OpenXmlElement root) {
+            var open = new Stack<(FieldChar Begin, System.Text.StringBuilder? Instruction)>();
+            foreach (OpenXmlElement element in root.Descendants()) {
+                switch (element) {
+                    case SimpleField simple:
+                        yield return (simple, simple.Instruction?.Value ?? string.Empty);
+                        break;
+                    case FieldChar { FieldCharType.Value: var type } fieldChar:
+                        if (type == FieldCharValues.Begin) {
+                            open.Push((fieldChar, new System.Text.StringBuilder()));
+                        } else if (open.Count > 0 && (type == FieldCharValues.Separate || type == FieldCharValues.End)) {
+                            (FieldChar begin, System.Text.StringBuilder? instruction) = open.Pop();
+                            if (instruction != null) yield return (begin, instruction.ToString());
+                            // After the separator the field result follows; its instruction is already returned.
+                            if (type == FieldCharValues.Separate) open.Push((begin, null));
+                        }
+                        break;
+                    case FieldCode code when open.Count > 0:
+                        open.Peek().Instruction?.Append(code.Text);
+                        break;
+                }
+            }
+        }
+
+        private static WordFieldType? GetFieldType(string instruction) =>
+            string.IsNullOrWhiteSpace(instruction) ? null : WordFieldInventory.ParseInstruction(instruction).FieldType;
 
         /// <summary>
         /// Gets the template style used to create this table of contents.

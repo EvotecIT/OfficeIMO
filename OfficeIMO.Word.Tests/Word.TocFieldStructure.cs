@@ -27,9 +27,20 @@ namespace OfficeIMO.Tests {
             Assert.True(errors.Count == 0, FormatValidationErrors(errors));
         }
 
-        [Fact]
-        public void Test_TocWithoutTitleGainsNoTitleWhenRegenerated() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_TocWithoutTitleGainsNoTitleWhenRegenerated(bool splitTocKeyword) {
             using WordDocument document = LoadTocFixture(TocFieldEndParagraphFixture);
+            if (splitTocKeyword) {
+                // Word can split an instruction across runs, even inside the TOC keyword.
+                FieldCode code = document.TableOfContent!.SdtBlock.Descendants<FieldCode>()
+                    .First(code => code.Text.TrimStart().StartsWith("TOC", StringComparison.Ordinal));
+                int keyword = code.Text.IndexOf("TOC", StringComparison.Ordinal);
+                code.Parent!.InsertAfterSelf(new Run(new FieldCode(code.Text.Substring(keyword + 1)) { Space = SpaceProcessingModeValues.Preserve }));
+                code.Text = code.Text.Substring(0, keyword + 1);
+                code.Space = SpaceProcessingModeValues.Preserve;
+            }
 
             document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true }.WithPdfLayoutPagination());
 

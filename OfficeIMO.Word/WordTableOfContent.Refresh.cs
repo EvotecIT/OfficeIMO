@@ -364,20 +364,16 @@ namespace OfficeIMO.Word {
 
             // A title comes before the generated list. Paragraphs from the table's own field onwards, such as a separate
             // paragraph holding the field end, belong to the old result. A title may hold other fields.
+            OpenXmlElement? generatedField = EnumerateFieldInstructions(content)
+                .Where(field => GetFieldType(field.Instruction) is WordFieldType.TOC or WordFieldType.Index)
+                .Select(field => field.Start).FirstOrDefault();
             foreach (Paragraph paragraph in content.ChildElements.OfType<Paragraph>()) {
-                if (StartsGeneratedField(paragraph)) return null;
+                if (generatedField != null && (paragraph == generatedField || paragraph.Descendants().Contains(generatedField))) return null;
                 if (!IsGeneratedResultParagraph(paragraph)) return paragraph;
             }
 
             return null;
         }
-
-        private static bool StartsGeneratedField(Paragraph paragraph) =>
-            paragraph.Descendants<SimpleField>().Any(field => IsGeneratedFieldInstruction(field.Instruction?.Value)) ||
-            paragraph.Descendants<FieldCode>().Any(code => IsGeneratedFieldInstruction(code.Text));
-
-        private static bool IsGeneratedFieldInstruction(string? instruction) =>
-            instruction != null && Regex.IsMatch(instruction, @"^\s*(TOC|INDEX)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static bool IsGeneratedResultParagraph(Paragraph paragraph) {
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
