@@ -1035,7 +1035,7 @@ public partial class DrawingTests {
     [Fact]
     public void ContainerInspectorReportsApngTimingAndSelectionSemantics() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.Lime));
-        byte[] apng = CreateTwoFrameApng(png);
+        byte[] apng = CreateTwoFrameApng(png, secondDelayNumerator: 1, secondDelayDenominator: 3);
 
         Assert.True(OfficeRasterContainerInspector.TryInspect(apng, out OfficeRasterContainerInfo? container));
         Assert.NotNull(container);
@@ -1043,6 +1043,8 @@ public partial class DrawingTests {
         Assert.True(container.IsAnimated);
         Assert.False(container.IsMultiPage);
         Assert.Equal(TimeSpan.FromMilliseconds(10), container.Frames[0].Duration);
+        // A third of a second keeps its sub-millisecond ticks on every framework.
+        Assert.Equal(TimeSpan.FromTicks(3_333_333), container.Frames[1].Duration);
         Assert.True(container.Frames[0].IsDefaultImage);
         Assert.False(container.Frames[1].IsDefaultImage);
     }
@@ -1403,7 +1405,7 @@ public partial class DrawingTests {
         throw new InvalidDataException("WebP chunk was not found.");
     }
 
-    private static byte[] CreateTwoFrameApng(byte[] png) {
+    private static byte[] CreateTwoFrameApng(byte[] png, ushort secondDelayNumerator = 1, ushort secondDelayDenominator = 0) {
         int idatOffset = FindPngChunk(png, "IDAT");
         int idatLength = ReadBigEndianInt32(png, idatOffset);
         int idatEnd = idatOffset + 12 + idatLength;
@@ -1411,6 +1413,10 @@ public partial class DrawingTests {
         WriteBigEndianInt32(animationControl, 0, 2);
         byte[] firstFrameControl = CreateFrameControl(sequence: 0);
         byte[] secondFrameControl = CreateFrameControl(sequence: 1);
+        secondFrameControl[20] = (byte)(secondDelayNumerator >> 8);
+        secondFrameControl[21] = (byte)secondDelayNumerator;
+        secondFrameControl[22] = (byte)(secondDelayDenominator >> 8);
+        secondFrameControl[23] = (byte)secondDelayDenominator;
         byte[] secondFrameData = new byte[idatLength + 4];
         WriteBigEndianInt32(secondFrameData, 0, 2);
         Buffer.BlockCopy(png, idatOffset + 8, secondFrameData, 4, idatLength);

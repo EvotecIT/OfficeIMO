@@ -446,6 +446,37 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void ResolvesIanaTimeZoneIdsWithoutEmbeddedRules() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:iana@example.com\r\n" +
+            "DTSTART;TZID=Europe/Warsaw:20260801T100000\r\nDTEND;TZID=America/New_York:20260801T100000\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.FromHours(2)), read.Document.Appointment!.Start);
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.FromHours(-4)), read.Document.Appointment.End);
+        Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED");
+    }
+
+    [Theory]
+    [InlineData("America/New_York")]
+    [InlineData("Eastern Standard Time")]
+    public void RepeatedLocalTimesInSystemZonesResolveToTheFirstOccurrence(string timeZoneId) {
+        // 01:30 happens twice on 2026-11-01 in New York; RFC 5545 takes the first, daylight-time occurrence.
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:fall-back@example.com\r\n" +
+            "DTSTART;TZID=" + timeZoneId + ":20261101T013000\r\nDTEND;TZID=" + timeZoneId + ":20270314T023000\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
+
+        Assert.Equal(new DateTimeOffset(2026, 11, 1, 1, 30, 0, TimeSpan.FromHours(-4)), read.Document.Appointment!.Start);
+        // 02:30 does not exist on 2027-03-14; it keeps the offset from before the gap.
+        Assert.Equal(new DateTimeOffset(2027, 3, 14, 2, 30, 0, TimeSpan.FromHours(-5)), read.Document.Appointment.End);
+    }
+
+    [Fact]
     public void MarksEndRelativeAlarmsIncompleteForStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +

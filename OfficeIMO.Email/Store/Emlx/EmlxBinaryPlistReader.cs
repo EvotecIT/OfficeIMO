@@ -84,7 +84,7 @@ internal sealed class EmlxBinaryPlistReader {
                     BitConverter.ToSingle(BitConverter.GetBytes(unchecked((uint)bits)), 0);
                 if (double.IsNaN(number) || double.IsInfinity(number)) throw Invalid("A binary plist number is not finite.");
                 if (marker == 0x33) {
-                    try { value = new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero).AddSeconds(number); }
+                    try { value = OfficeIMO.Internal.OfficeRuntimeCompatibility.AddSeconds(new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero), number); }
                     catch (ArgumentOutOfRangeException) { throw Invalid("A binary plist date is outside the supported range."); }
                 } else value = number;
             } else if (type == 4 || type == 5 || type == 6) {
