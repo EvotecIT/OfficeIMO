@@ -1,0 +1,81 @@
+{
+  "source": "currency-edited.pages",
+  "bytes": 56846,
+  "sha256": "80add9643d3aa15cb17b079eae477e165833be88d6d96853f7b9b95cc628251f",
+  "descriptorSha256": "9b573acc8063ec2169b57acfa6a250999911f5791be83d7d808023c12a7fab36",
+  "numbersParserVersion": "4.19.0",
+  "tables": [
+    {
+      "id": 119,
+      "name": "Amounts",
+      "rows": 5,
+      "columns": 2,
+      "numericCells": [
+        {
+          "row": 2,
+          "column": 2,
+          "value": -34.5,
+          "activeNumericFormat": true,
+          "suggestedType": 2,
+          "formatKey": 1,
+          "numberFormat": {
+            "kind": "Currency",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": false,
+            "currencyCode": "PLN",
+            "useAccountingStyle": false
+          }
+        },
+        {
+          "row": 3,
+          "column": 2,
+          "value": 12.5,
+          "activeNumericFormat": true,
+          "suggestedType": 2,
+          "formatKey": 2,
+          "numberFormat": {
+            "kind": "Currency",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": false,
+            "currencyCode": "USD",
+            "useAccountingStyle": false
+          }
+        },
+        {
+          "row": 4,
+          "column": 2,
+          "value": -1234.0,
+          "activeNumericFormat": true,
+          "suggestedType": 2,
+          "formatKey": 3,
+          "numberFormat": {
+            "kind": "Currency",
+            "decimalPlaces": 0,
+            "negativeStyle": 2,
+            "thousandsSeparator": true,
+            "currencyCode": "JPY",
+            "useAccountingStyle": false
+          }
+        },
+        {
+          "row": 5,
+          "column": 2,
+          "value": -7.25,
+          "activeNumericFormat": true,
+          "suggestedType": 2,
+          "formatKey": 2,
+          "numberFormat": {
+            "kind": "Currency",
+            "decimalPlaces": 2,
+            "negativeStyle": 0,
+            "thousandsSeparator": false,
+            "currencyCode": "USD",
+            "useAccountingStyle": false
+          }
+        }
+      ]
+    }
+  ]
+}

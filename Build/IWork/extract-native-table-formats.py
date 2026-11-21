@@ -50,8 +50,9 @@ def extract(path, descriptor):
                     end = occupied[index + 1][1] if index + 1 < len(occupied) else len(row.cell_storage_buffer)
                     data = row.cell_storage_buffer[offset:end]
                     assert data[0] == 5
-                    if data[1] != 2:
+                    if data[1] not in (2, 10):
                         continue
+                    currency = data[1] == 10
                     flags = struct.unpack_from('<I', data, 8)[0]
                     position, selected = 12, {}
                     for bit in range(22):
@@ -61,18 +62,22 @@ def extract(path, descriptor):
                             assert len(selected[bit]) == length
                             position += length
                     assert flags >> 22 == 0 and position == len(data)
-                    assert 0 in selected and 13 in selected
-                    key = struct.unpack('<I', selected[13])[0]
+                    format_bit = 14 if currency else 13
+                    assert 0 in selected and format_bit in selected
+                    key = struct.unpack('<I', selected[format_bit])[0]
                     item = catalog[key]
-                    assert item.format_type in (256, 258, 259)
+                    assert item.format_type in ((257,) if currency else (256, 258, 259))
+                    number_format = {'kind': {256: 'Number', 257: 'Currency', 258: 'Percentage', 259: 'Scientific'}[item.format_type],
+                        'decimalPlaces': item.decimal_places, 'negativeStyle': item.negative_style,
+                        'thousandsSeparator': item.show_thousands_separator}
+                    if currency:
+                        number_format.update(currencyCode=item.currency_code, useAccountingStyle=item.use_accounting_style)
                     cells.append({'row': tile_ref.tileid * 256 + row.tile_row_index + 1,
                         'column': column + 1, 'value': _unpack_decimal128(selected[0]),
-                        'activeNumericFormat': bool(struct.unpack_from('<H', data, 6)[0] & 1),
+                        'activeNumericFormat': bool(struct.unpack_from('<H', data, 6)[0] & (2 if currency else 1)),
                         'suggestedType': struct.unpack('<I', selected[12])[0] if 12 in selected else None,
                         'formatKey': key,
-                        'numberFormat': {'kind': {256: 'Number', 258: 'Percentage', 259: 'Scientific'}[item.format_type],
-                            'decimalPlaces': item.decimal_places, 'negativeStyle': item.negative_style,
-                            'thousandsSeparator': item.show_thousands_separator}})
+                        'numberFormat': number_format})
         tables.append({'id': identifier, 'name': model.table_name, 'rows': model.number_of_rows,
             'columns': model.number_of_columns, 'numericCells': cells})
     return {'source': path.name, 'bytes': path.stat().st_size,

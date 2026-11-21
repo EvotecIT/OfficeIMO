@@ -69,15 +69,16 @@ public sealed class IWorkNumericFormatWritingTests {
         var format = IWorkNumberFormat.CreateNumber(2); var data = IWorkTableData.Create(1, 1).SetNumber(1, 1, 12.5, format);
         var document = IWorkNumbersDocument.Create(); document.AddSheet("Data").AddTable(data); byte[] baseline = document.ToBytes();
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkNumberFormat.CreateNumber(-1));
+        Assert.Throws<ArgumentException>(() => IWorkNumberFormat.CreateCurrency("Usd", 2));
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkNumberFormat.CreatePercentage(31));
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkNumberFormat.CreateScientific(31));
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkNumberFormat.CreateNumber(2, negativeStyle: (IWorkNegativeNumberStyle)4));
         Assert.Throws<ArgumentNullException>(() => data.SetNumber(1, 1, 99, null!));
         Assert.Throws<ArgumentOutOfRangeException>(() => data.SetNumber(1, 1, double.NaN, format));
         Assert.Throws<ArgumentOutOfRangeException>(() => data.SetNumber(2, 1, 99, format));
-        var unsupported = IWorkSourceDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",
-            "numbers-blank-explicit-currency-v14.5.numbers")).ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables)
-            .SelectMany(table => table.Cells).Select(cell => cell.NumberFormat).First(item => item?.Kind == IWorkNumberFormatKind.Currency)!;
+        var unsupported = IWorkSourceDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "numbers-parser",
+            "currency-formats.numbers")).ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables)
+            .SelectMany(table => table.Cells).Select(cell => cell.NumberFormat).First(item => item?.UseAccountingStyle == true)!;
         Assert.Throws<ArgumentException>(() => data.SetNumber(1, 1, 99, unsupported));
         Assert.Equal(12.5, data.GetCell(1, 1).Value); Assert.Same(format, data.GetCell(1, 1).NumberFormat);
         data.SetNumber(1, 1, 99, IWorkNumberFormat.CreatePercentage(4));
