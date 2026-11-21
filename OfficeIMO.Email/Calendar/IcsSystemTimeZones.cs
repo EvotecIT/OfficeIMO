@@ -35,6 +35,20 @@ internal static class IcsSystemTimeZones {
         return false;
     }
 
+    /// <summary>
+    /// The UTC offset of a local clock time. RFC 5545 resolves a time repeated by a fall-back transition to its first
+    /// occurrence, which <see cref="TimeZoneInfo.GetUtcOffset(DateTime)"/> does not: it returns the standard offset.
+    /// A time skipped by a spring-forward gap keeps the offset before the gap, which is what that method returns.
+    /// </summary>
+    internal static TimeSpan GetUtcOffset(TimeZoneInfo zone, DateTime local) {
+        if (!zone.IsAmbiguousTime(local)) return zone.GetUtcOffset(local);
+        TimeSpan first = TimeSpan.MinValue;
+        foreach (TimeSpan offset in zone.GetAmbiguousTimeOffsets(local)) {
+            if (offset > first) first = offset;
+        }
+        return first;
+    }
+
 #if NETFRAMEWORK
     private static int _icuUnavailable;
 
