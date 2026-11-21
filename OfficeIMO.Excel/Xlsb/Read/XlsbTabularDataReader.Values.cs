@@ -148,9 +148,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         public override DateTime GetDateTime(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] is XlsbTabularValueKind.Date or XlsbTabularValueKind.Time
-                ? ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date)
-                : Convert.ToDateTime(GetValue(ordinal), _options.Culture);
+            return _kinds[ordinal] switch {
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
+                // A plain number read as a date is a serial in the workbook's date system.
+                XlsbTabularValueKind.Number => ConvertDate(_numbers[ordinal], true),
+                _ => Convert.ToDateTime(GetValue(ordinal), _options.Culture)
+            };
         }
 
         public override Guid GetGuid(int ordinal) {

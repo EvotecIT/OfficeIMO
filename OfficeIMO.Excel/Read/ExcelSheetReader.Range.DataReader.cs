@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel {
                     headersInFirstRow,
                     schemaSampleRows,
                     _opt,
+                    _dateSystem,
                     ct);
             }
 
@@ -158,7 +159,7 @@ namespace OfficeIMO.Excel {
             ValidateDataReaderBufferedRows(_opt, Math.Min(rows, chunkRows), cols);
 
             IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct, trackCellPresence);
-            return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, ct);
+            return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, _dateSystem, ct);
         }
 
         private IEnumerable<RangeChunk> ReadRangeStreamForDataReader(
@@ -467,6 +468,7 @@ namespace OfficeIMO.Excel {
             private readonly CancellationToken _ct;
             private CancellationToken _activeReadCancellationToken;
             private readonly CultureInfo _culture;
+            private readonly ExcelDateSystem _dateSystem;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
             private readonly List<object?[]> _prefetchedRows;
@@ -488,7 +490,9 @@ namespace OfficeIMO.Excel {
                 bool headersInFirstRow,
                 int schemaSampleRows,
                 ExcelReaderOptions options,
+                ExcelDateSystem dateSystem,
                 CancellationToken ct) {
+                _dateSystem = dateSystem;
                 _chunks = chunks.GetEnumerator();
                 _nextRow = firstRow;
                 _lastRow = lastRow;
@@ -581,10 +585,8 @@ namespace OfficeIMO.Excel {
             public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
 
             /// <inheritdoc />
-            public override DateTime GetDateTime(int ordinal) {
-                object value = GetNonDbNullValue(ordinal);
-                return value is DateTime dateTime ? dateTime : Convert.ToDateTime(value, _culture);
-            }
+            public override DateTime GetDateTime(int ordinal) =>
+                DataReaderDateValue(GetNonDbNullValue(ordinal), _dateSystem, _culture);
 
             /// <inheritdoc />
             public override decimal GetDecimal(int ordinal) =>
@@ -875,6 +877,19 @@ namespace OfficeIMO.Excel {
                 return values;
             }
         }
+
+        /// <summary>Reads a field as a date: a number is a serial in the workbook's date system.</summary>
+        internal static DateTime DataReaderDateValue(object value, ExcelDateSystem dateSystem, CultureInfo culture) => value switch {
+            DateTime dateTime => dateTime,
+            double serial => DataReaderSerialDate(serial, dateSystem),
+            decimal serial => DataReaderSerialDate((double)serial, dateSystem),
+            _ => Convert.ToDateTime(value, culture)
+        };
+
+        private static DateTime DataReaderSerialDate(double serial, ExcelDateSystem dateSystem) =>
+            ExcelDateSystemConverter.TryFromSerial(serial, dateSystem, calendarStyle: true, out DateTime value)
+                ? value
+                : throw new InvalidCastException($"The number {serial.ToString("R", CultureInfo.InvariantCulture)} has no DateTime representation.");
 
         private static object ToDataReaderValue(object? value)
             => value == null || ReferenceEquals(value, DBNull.Value) ? DBNull.Value

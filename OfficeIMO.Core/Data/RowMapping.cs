@@ -496,6 +496,29 @@ internal static class DataValueConverter {
             }
         }
         if (providerValue is not null && DataReaderMappingValue.IsNumeric(effectiveType)) value = providerValue.Numeric;
+        if (providerValue is not null && effectiveType == typeof(TimeSpan)) {
+            if (DataReaderMappingValue.TryGetDuration(providerValue.Numeric, out TimeSpan duration)) {
+                result = duration;
+                return true;
+            }
+
+            error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                ? "Value cannot be converted to TimeSpan."
+                : $"The serial {providerValue.Numeric.ToString("R", CultureInfo.InvariantCulture)} is outside the range of TimeSpan.";
+            return false;
+        }
+        if (effectiveType == typeof(DateTimeOffset) && value is DateTime offsetDateTime) {
+            // A date without an offset takes the local offset for that date, as DateTimeOffset(DateTime) does.
+            try {
+                result = new DateTimeOffset(offsetDateTime);
+                return true;
+            } catch (ArgumentOutOfRangeException ex) {
+                error = errorValuePolicy == DataMappingErrorValuePolicy.Redact
+                    ? "Value cannot be converted to DateTimeOffset."
+                    : ex.Message;
+                return false;
+            }
+        }
         if (effectiveType.IsInstanceOfType(value)) {
             result = value;
             return true;
