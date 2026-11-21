@@ -33,7 +33,7 @@ public static partial class OfficeSvgFormatting {
         AppendPathData(new StringBuilder(), commands, 0, 0, preservePrecision: true).ToString();
 
     private static StringBuilder AppendPathData(StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX, double offsetY, bool preservePrecision, bool suppressEmptyClosure = false) {
-        string Number(double value) => preservePrecision ? value.ToString("R", CultureInfo.InvariantCulture) : FormatNumber(value);
+        string Number(double value) => preservePrecision ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture) : FormatNumber(value);
         ArgumentNullException.ThrowIfNull(commands);
 
         bool subpathHasDraw = false;

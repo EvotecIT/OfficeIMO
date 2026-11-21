@@ -161,7 +161,7 @@ public sealed class JsonData {
     /// <summary>Creates a binary floating-point number with its source location; see <see cref="CreateNumber(double)"/>.</summary>
     public static JsonData CreateNumber(double value, JsonDataLocation location) {
         JsonExactNumber exact = default;
-        bool hasExact = !double.IsNaN(value) && !double.IsInfinity(value) && JsonExactNumber.TryParse(value.ToString("R", CultureInfo.InvariantCulture), out exact);
+        bool hasExact = !double.IsNaN(value) && !double.IsInfinity(value) && JsonExactNumber.TryParse(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture), out exact);
         return new JsonData(value, hasExact ? exact : default, hasExact, location);
     }
 
@@ -404,7 +404,7 @@ public sealed class JsonData {
             case JsonDataKind.Number:
                 if (value._hasExact) text.Append(value._exact.ToString());
                 else if (double.IsNaN(value._double) || double.IsInfinity(value._double)) WriteString(text, value._double.ToString(CultureInfo.InvariantCulture), limit);
-                else text.Append(value._double.ToString("R", CultureInfo.InvariantCulture));
+                else text.Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value._double, CultureInfo.InvariantCulture));
                 break;
             case JsonDataKind.Array:
                 text.Append('[');
