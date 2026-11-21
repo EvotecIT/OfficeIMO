@@ -75,10 +75,11 @@ public static partial class OfficeChartDrawingRenderer {
     // Office keeps a radial plot area square: the pie, doughnut or radar web is centred in the placed rectangle
     // and sized by its shorter side. An outer rectangle also holds the radar's category labels; a pie has no
     // axis labels, so its inner and outer rectangles are the same and outside data labels fall beyond it.
+    // labelReach is how far right of the centre labels anchored there extend; an outer area must hold them.
     private static bool PlaceRadialPlotArea(OfficeChartLayout layout, double width, double height,
-        double labelWidth, double labelHeight, ref double centerX, ref double centerY, ref double radius) {
+        double labelWidth, double labelHeight, ref double centerX, ref double centerY, ref double radius, double labelReach = 0D) {
         if (layout.PlotAreaLayout is not OfficeChartManualLayout plotArea) return false;
-        if (plotArea.Target != OfficeChartLayoutTarget.Outer) labelWidth = labelHeight = 0D;
+        if (plotArea.Target != OfficeChartLayoutTarget.Outer) labelWidth = labelHeight = labelReach = 0D;
         (double left, double placedWidth) = plotArea.Resolve(horizontal: true, width,
             centerX - radius - labelWidth / 2D, radius * 2D + labelWidth);
         (double top, double placedHeight) = plotArea.Resolve(horizontal: false, height,
@@ -86,6 +87,8 @@ public static partial class OfficeChartDrawingRenderer {
         double side = Math.Min(placedWidth - labelWidth, placedHeight - labelHeight);
         if ((labelWidth > 0D || labelHeight > 0D) && side < 8D)
             throw new NotSupportedException("Radar category labels need a larger plot area.");
+        if (placedWidth < 2D * labelReach)
+            throw new NotSupportedException("Radar value labels need a wider plot area.");
         centerX = left + placedWidth / 2D;
         centerY = top + placedHeight / 2D;
         radius = Math.Max(0.5D, side / 2D);

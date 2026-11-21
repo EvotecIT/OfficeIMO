@@ -335,6 +335,15 @@ public sealed class DrawingChartRadialLayoutTests {
     }
 
     [Fact]
+    public void OuterRadarRectangleNarrowerThanItsValueLabelsIsRejected() {
+        // Value labels start just right of the centre and are 42 pt wide; a 72 pt wide area cannot hold them.
+        var narrow = new OfficeChartManualLayout(0.4D, 0.1D, 0.15D, 0.6D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => RenderPlaced(OfficeChartType.Radar,
+            new OfficeChartLayout(showLegend: false, showCategoryAxisLabels: false), narrow));
+        Assert.Contains("value labels", exception.Message);
+    }
+
+    [Fact]
     public void PlacedOverlayLegendWithoutASizeKeepsItsAutomaticWidth() {
         // Only the position is given, so the legend keeps the width it would have beside the plot.
         var legend = new OfficeChartManualLayout(0.7D, 0.3D, xMode: OfficeChartLayoutMode.Edge, yMode: OfficeChartLayoutMode.Edge);

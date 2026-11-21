@@ -193,11 +193,14 @@ public sealed class DrawingChartSecondaryScaleTests {
             .WithSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum, maximum).WithLogarithmicScale(10D));
         var primary = new OfficeChartLayout(showLegend: false, verticalAxisMinimum: minimum, verticalAxisMaximum: maximum)
             .WithLogarithmicValueAxes(null, 10D);
-        foreach (OfficeChartLayout layout in new[] { secondary, primary }) {
+        foreach ((OfficeChartLayout layout, bool right) in new[] { (secondary, true), (primary, false) }) {
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
                 OfficeChartType.ColumnClustered, data, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240), layout: layout));
-            string[] labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
-            Assert.All(expected, label => Assert.Contains(label, labels));
+            // Only the labels beside the logarithmic axis: the secondary axis is on the right, the primary on the left.
+            double[] labels = drawing.Elements.OfType<OfficeDrawingText>().Where(text => right ? text.X > 180D : text.X + text.Width < 180D)
+                .Select(text => double.TryParse(text.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value) ? value : double.NaN)
+                .Where(value => !double.IsNaN(value)).OrderBy(value => value).ToArray();
+            Assert.Equal(expected.Select(label => double.Parse(label, System.Globalization.CultureInfo.InvariantCulture)), labels);
         }
     }
 }
