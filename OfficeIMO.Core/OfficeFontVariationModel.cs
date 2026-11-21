@@ -158,7 +158,7 @@ internal sealed class OfficeFontVariationModel {
             if (index > 0) identity.Append(';');
             identity.Append(axes[index].Tag)
                 .Append('=')
-                .Append(values[index].ToString("R", CultureInfo.InvariantCulture));
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[index], CultureInfo.InvariantCulture));
             designCoordinates.Add(axes[index].Tag, checked((float)values[index]));
         }
         return new OfficeFontVariationModel(

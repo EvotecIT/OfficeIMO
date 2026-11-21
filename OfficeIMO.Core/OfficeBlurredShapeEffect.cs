@@ -240,7 +240,7 @@ internal sealed class OfficeBlurredShapeEffect {
             Format(Sigma), Format(Margin), Format(pixelsPerUnit));
     }
 
-    private static string Format(double value) => value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+    private static string Format(double value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, System.Globalization.CultureInfo.InvariantCulture);
 
     private static class CoverageCache {
         private const long MaximumBytes = 16L * 1024L * 1024L;

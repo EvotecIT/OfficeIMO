@@ -21,19 +21,22 @@ public static partial class OfficeChartDrawingRenderer {
 
     private readonly struct SecondaryAxisRenderContext {
         internal SecondaryAxisRenderContext(bool hasSeries, ValueRange range,
-            IReadOnlyList<double> majorTicks, bool usesPercentDefaults, double labelBandWidth, OfficeChartLayout axisLayout) {
+            IReadOnlyList<double> majorTicks, bool usesPercentDefaults, double labelBandWidth, OfficeChartLayout axisLayout,
+            bool horizontal = false) {
             HasSeries = hasSeries;
             Range = range;
             MajorTicks = majorTicks;
             UsesPercentDefaults = usesPercentDefaults;
             LabelBandWidth = labelBandWidth;
             Layout = axisLayout;
+            Horizontal = horizontal;
         }
 
         internal bool HasSeries { get; }
         internal ValueRange Range { get; }
         internal IReadOnlyList<double> MajorTicks { get; }
-        internal IReadOnlyList<double> MinorTicks => GetValueAxisMinorTicks(Range,
+        internal bool Horizontal { get; }
+        internal IReadOnlyList<double> MinorTicks => GetLogarithmicMinorTicks(Layout, Horizontal, Range) ?? GetValueAxisMinorTicks(Range,
             Layout.VerticalAxisMinorUnit, MajorTicks,
             Layout.VerticalAxisMinorTickMark != OfficeChartAxisTickMark.None ||
             Layout.HorizontalAxisMinorTickMark != OfficeChartAxisTickMark.None);
@@ -62,7 +65,9 @@ public static partial class OfficeChartDrawingRenderer {
             horizontalAxisMajorTickMark: axis?.MajorTickMark ?? layout.HorizontalAxisMajorTickMark,
             verticalAxisMajorTickMark: axis?.MajorTickMark ?? layout.VerticalAxisMajorTickMark,
             horizontalAxisMinorTickMark: axis?.MinorTickMark ?? layout.HorizontalAxisMinorTickMark,
-            verticalAxisMinorTickMark: axis?.MinorTickMark ?? layout.VerticalAxisMinorTickMark);
+            verticalAxisMinorTickMark: axis?.MinorTickMark ?? layout.VerticalAxisMinorTickMark)
+            .WithLogarithmicValueAxes(barChart ? axis?.LogBase : null, barChart ? null : axis?.LogBase)
+            .WithReversedValueAxes(barChart && axis?.IsReversed == true, !barChart && axis?.IsReversed == true);
         ValueRange range = ApplyValueAxisScale(
             GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary), axisLayout,
             horizontal: barChart);
@@ -76,7 +81,7 @@ public static partial class OfficeChartDrawingRenderer {
             ? MeasureValueAxisLabelBandWidth(range, majorTicks, axisLayout, usesPercentDefaults,
                 horizontalValueAxis: barChart)
             : 0D;
-        return new SecondaryAxisRenderContext(true, range, majorTicks, usesPercentDefaults, labelBandWidth, axisLayout);
+        return new SecondaryAxisRenderContext(true, range, majorTicks, usesPercentDefaults, labelBandWidth, axisLayout, barChart);
     }
 
     private static ValueRange GetPrimaryValueAxisRange(OfficeChartSnapshot snapshot,

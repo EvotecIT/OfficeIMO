@@ -44,6 +44,14 @@ public sealed class PdfPrintJobStatusTests {
         });
         await Assert.ThrowsAsync<TimeoutException>(() => stalled.WaitForJobAsync("queue", "1", TimeSpan.FromMilliseconds(150)));
 
+        // A query that checks its token before going asynchronous, as PdfPrinterService does, also ends with the timeout
+        // when the remaining wait is below the timer resolution and the deadline token is already canceled.
+        var eager = new FakeService(token => {
+            token.ThrowIfCancellationRequested();
+            return Task.FromResult(new PdfPrintJobStatus("queue", "1", PdfPrintJobState.Processing));
+        });
+        await Assert.ThrowsAsync<TimeoutException>(() => eager.WaitForJobAsync("queue", "1", TimeSpan.FromTicks(5_000)));
+
         // A terminal answer that arrives after the deadline is not accepted.
         var late = new FakeService(async _ => {
             await Task.Delay(300);

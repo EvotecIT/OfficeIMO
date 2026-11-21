@@ -660,11 +660,11 @@ public sealed partial class OfficeFontFaceCollection {
         OfficeFontUnicodeRangeSet ranges) {
         string value = descriptor.Weight.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "|"
-            + descriptor.StretchPercent.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(descriptor.StretchPercent, System.Globalization.CultureInfo.InvariantCulture)
             + "|"
             + ((int)descriptor.Slant).ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "|"
-            + descriptor.ObliqueAngleDegrees.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(descriptor.ObliqueAngleDegrees, System.Globalization.CultureInfo.InvariantCulture)
             + "|"
             + ranges.ToStableKey();
         uint hash = 2166136261;

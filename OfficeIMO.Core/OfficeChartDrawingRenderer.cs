@@ -36,9 +36,6 @@ public static partial class OfficeChartDrawingRenderer {
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
         ArgumentNullException.ThrowIfNull(snapshot);
-        if ((IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind) || IsRadarChart(snapshot.ChartKind)) &&
-            (snapshot.Layout.PlotAreaLayout != null || snapshot.Layout.LegendLayout != null))
-            throw new NotSupportedException("Manual plot-area and legend layouts are not drawn on pie, doughnut and radar charts.");
         HashSet<(int Series, int Point)>? missingAreaPoints = GetMissingAreaPoints(snapshot);
         snapshot = ApplyBlankDisplay(snapshot);
         _renderPassHiddenLabels = GetLabelsOverMaximum(snapshot);
@@ -117,7 +114,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (IsRadarChart(snapshot.ChartKind)) {
-            AddRadarSeries(drawing, snapshot, width, height, contentTop + topLegendHeight, bottomLegendHeight, style, layout, legendSeries);
+            AddRadarSeries(drawing, snapshot, width, height, contentTop + topLegendHeight, topLegendHeight, bottomLegendHeight, style, layout, legendSeries);
             drawOverlayTitle?.Invoke();
             return drawing;
         }
@@ -1785,7 +1782,12 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddRadarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout,
+    // Radar value labels start this far right of the web's centre, in boxes this wide.
+    private const double RadarValueLabelInset = 4D;
+    private const double RadarValueLabelWidth = 42D;
+    private const double RadarDisplayUnitLabelWidth = 80D;
+
+    private static void AddRadarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double topLegendHeight, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout,
         IReadOnlyList<OfficeSeries> legendSeries) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
@@ -1798,6 +1800,19 @@ public static partial class OfficeChartDrawingRenderer {
         GetRadialPlotGeometry(width, height, contentTop, bottomLegendHeight, legendWidth,
             leftLegend, 52D, 42D, out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
+        // An outer plot area also holds the axis labels. Each category label sits RadarCategoryLabelOffset outside the
+        // web in a box RadarCategoryLabelWidth wide and one label high. The outermost value label is centred on the top
+        // of the web, with any display-unit label above it. Value labels start just right of the centre whatever the
+        // radius, so they fit only when the area is at least twice as wide as they reach.
+        double labelBoxHeight = GetAxisLabelBoxHeight(layout);
+        bool displayUnitLabel = !string.IsNullOrWhiteSpace(layout.VerticalAxisDisplayUnitLabel);
+        double valueLabelReserve = !layout.ShowValueAxisLabels ? 0D : displayUnitLabel ? 3D * labelBoxHeight + 4D : labelBoxHeight;
+        double valueLabelReach = !layout.ShowValueAxisLabels ? 0D
+            : RadarValueLabelInset + (displayUnitLabel ? RadarDisplayUnitLabelWidth : RadarValueLabelWidth);
+        PlaceRadialPlotArea(layout, width, height,
+            layout.ShowCategoryAxisLabels ? 2D * RadarCategoryLabelOffset + layout.RadarCategoryLabelWidth : 0D,
+            Math.Max(layout.ShowCategoryAxisLabels ? 2D * RadarCategoryLabelOffset + labelBoxHeight : 0D, valueLabelReserve),
+            ref centerX, ref centerY, ref radius, valueLabelReach);
         ValueRange range = GetRadarValueRange(series);
 
         if (GetShowValueGridLines(style)) {
@@ -1813,13 +1828,13 @@ public static partial class OfficeChartDrawingRenderer {
                 double tick = range.Min + (range.Max - range.Min) * ring / 4D;
                 double y = centerY - radius * ring / 4D - labelHeight / 2D;
                 AddChartText(drawing, FormatAxisValue(tick, layout, false, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor),
-                    centerX + 4D, y, 42D, labelHeight, layout.AxisLabelFontSize,
+                    centerX + RadarValueLabelInset, y, RadarValueLabelWidth, labelHeight, layout.AxisLabelFontSize,
                     style.MutedTextColor, OfficeTextAlignment.Left, style,
                     layout.AxisTextFontFamily, layout.AxisTextFontStyle);
             }
             // The display-unit label ("Thousands") sits above the outermost ring label.
-            AddAxisDisplayUnitLabel(drawing, layout.VerticalAxisDisplayUnitLabel, centerX + 4D,
-                centerY - radius - labelHeight * 1.5D - 2D, 80D, style, layout, OfficeTextAlignment.Left);
+            AddAxisDisplayUnitLabel(drawing, layout.VerticalAxisDisplayUnitLabel, centerX + RadarValueLabelInset,
+                centerY - radius - labelHeight * 1.5D - 2D, RadarDisplayUnitLabelWidth, style, layout, OfficeTextAlignment.Left);
         }
 
         if (GetShowCategoryGridLines(style)) {
@@ -1926,7 +1941,10 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (layout.ShowCategoryAxisLabels) AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
-        if (layout.OverlayLegend) {
+        if (layout.LegendLayout is OfficeChartManualLayout legendLayout) {
+            AddPlacedSeriesLegend(drawing, legendSeries, legendLayout, width, height, contentTop - topLegendHeight, topLegendHeight,
+                bottomLegendHeight, legendWidth, contentTop + 12D, Math.Max(20D, contentHeight - 24D), style, layout, snapshot.ChartKind);
+        } else if (layout.OverlayLegend) {
             AddOverlaySeriesLegend(drawing, legendSeries, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, snapshot.ChartKind);
         } else {
             AddSeriesLegend(
@@ -1941,7 +1959,7 @@ public static partial class OfficeChartDrawingRenderer {
                 snapshot.ChartKind);
         }
 
-        if (!layout.OverlayLegend && bottomLegendHeight > 0D) {
+        if (!layout.OverlayLegend && bottomLegendHeight > 0D && layout.LegendLayout == null) {
             AddSeriesLegendBand(drawing, legendSeries, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, snapshot.ChartKind);
         }
     }

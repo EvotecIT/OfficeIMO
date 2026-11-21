@@ -340,16 +340,6 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.Equal(column.X + column.Shape.Width / 2D, label.X + label.Width / 2D, 0);
     }
 
-    [Theory]
-    [InlineData(OfficeChartType.Pie)]
-    [InlineData(OfficeChartType.Radar)]
-    public void ManualLayoutsOnRadialChartsAreRejected(OfficeChartType kind) {
-        var legend = new OfficeChartManualLayout(0.7D, 0.1D, 0.2D, 0.3D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
-        NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
-            Render(kind, new OfficeChartLayout().WithManualLayouts(null, null, legend), Series(new double[] { 1, 2, 3, 4, 5 })));
-        Assert.Contains("radar", error.Message);
-    }
-
     [Fact]
     public void BubbleSeriesOnALogarithmicAxisIsRejected() {
         OfficeSeries bubbles = OfficeSeries.CreateBubble("Sales", new double[] { 1, 2, 3, 4, 5 }, new double[] { 10, 100, 1000, 10, 100 },
@@ -441,6 +431,28 @@ public sealed class DrawingChartPlotSemanticsTests {
         OfficeDrawingText legendText = Text(drawing, "Sales");
         Assert.InRange(legendText.X, 400D, 430D);
         Assert.InRange(legendText.Y, 15D, 60D);
+    }
+
+    [Fact]
+    public void PlacedBandLegendIsDrawnWhenItOverlaysThePlot() {
+        var legend = new OfficeChartManualLayout(0.3D, 0.8D, 0.4D, 0.1D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeChartLayout layout = new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom, overlayLegend: true)
+            .WithManualLayouts(null, null, legend);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, layout, Series(new double[] { 1, 2, 3, 4, 5 }));
+
+        OfficeDrawingText legendText = Text(drawing, "Sales");
+        Assert.InRange(legendText.Y, 230D, 275D);
+    }
+
+    [Fact]
+    public void PlacedSideLegendWithoutASizeIsDrawnWhenItOverlaysThePlot() {
+        // Only the position is given, so the legend keeps the width it would have beside the plot.
+        var legend = new OfficeChartManualLayout(0.7D, 0.3D, xMode: OfficeChartLayoutMode.Edge, yMode: OfficeChartLayoutMode.Edge);
+        OfficeChartLayout layout = new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Right, overlayLegend: true)
+            .WithManualLayouts(null, null, legend);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, layout, Series(new double[] { 1, 2, 3, 4, 5 }));
+
+        Assert.True(Text(drawing, "Sales").X >= 336D);
     }
 
     [Theory]

@@ -600,6 +600,8 @@ public static partial class OfficeChartDrawingRenderer {
             return automaticTicks.Count >= 2 ? automaticTicks : new[] { range.Min, range.Max };
         }
 
+        // A unit longer than the axis, as on a logarithmic axis whose bounds lie within one power, leaves the bounds.
+        if (majorUnit.Value > span) return new[] { range.Min, range.Max };
         if (ExceedsAxisUnitBudget(range, majorUnit, 32))
             throw new NotSupportedException("The chart major-axis unit exceeds the renderer tick budget.");
 

@@ -33,6 +33,9 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
                     : ReadDrawableNumberFormat(axis, "secondary axis"),
             majorTickMark: ReadTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
             minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value));
+        double? logBase = scaling?.GetFirstChild<C.LogBase>()?.Val?.Value;
+        layout = layout.WithLogarithmicScale(logBase is double value && value >= 2D && value <= 1000D ? value : null)
+            .WithReversedScale(scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin);
         string? title = ReadTitle(axis.GetFirstChild<C.Title>());
         return title == null ? layout : layout.WithTitle(title);
     }
@@ -60,7 +63,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         scaling.RemoveAllChildren<C.MaxAxisValue>();
         scaling.RemoveAllChildren<C.LogBase>();
         scaling.RemoveAllChildren<C.Orientation>();
-        scaling.AddChild(new C.Orientation { Val = C.OrientationValues.MinMax }, true);
+        if (layout.LogBase.HasValue) scaling.AddChild(new C.LogBase { Val = layout.LogBase.Value }, true);
+        scaling.AddChild(new C.Orientation { Val = layout.IsReversed ? C.OrientationValues.MaxMin : C.OrientationValues.MinMax }, true);
         if (layout.Minimum.HasValue) scaling.AddChild(new C.MinAxisValue { Val = layout.Minimum.Value }, true);
         if (layout.Maximum.HasValue) scaling.AddChild(new C.MaxAxisValue { Val = layout.Maximum.Value }, true);
         axis.RemoveAllChildren<C.MajorUnit>();
@@ -103,11 +107,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         if ((primaryValueAxis?.GetFirstChild<C.Delete>() is C.Delete deletion && deletion.Val?.Value != false) ||
             primaryValueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None)
             throw new NotSupportedException("The primary and secondary value-axis visibility cannot be projected independently.");
-        var scaling = axis.GetFirstChild<C.Scaling>();
         // An axis format the renderer cannot reproduce is drawn as General by Read.
-        if (scaling?.GetFirstChild<C.LogBase>() != null ||
-            scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
-            axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
+        if (axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
             throw new NotSupportedException("The secondary numeric axis requires an unsupported projection.");
     }
 

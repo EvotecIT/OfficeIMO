@@ -62,7 +62,7 @@ public static partial class OfficeChartDrawingRenderer {
             : 0D;
         IReadOnlyList<OfficeColor?> categoryPointColors = GetCategoryPointColors(style, values, categories.Count);
         if (topCategoryLegendHeight > 0D) {
-            AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, categoryPointColors, values.PointStyles);
+            if (layout.LegendLayout == null) AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, categoryPointColors, values.PointStyles);
             contentTop += topCategoryLegendHeight;
         }
 
@@ -77,12 +77,19 @@ public static partial class OfficeChartDrawingRenderer {
             leftLegend, outsideLabels ? 180D : 48D, outsideLabels ? 56D : 36D,
             out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
-        if (outsideLabels) radius = ReserveOutsideRadialLabelGutters(radius, visualWidth);
+        double labelLeftBound = leftLegend ? legendWidth : 0D;
+        double labelRightBound = leftLegend ? width : width - legendWidth;
+        if (PlaceRadialPlotArea(layout, width, height, 0D, 0D, ref centerX, ref centerY, ref radius)) {
+            if (outsideLabels) RequireOutsideRadialLabelGutters(centerX, radius, labelLeftBound, labelRightBound);
+        } else if (outsideLabels) {
+            radius = ReserveOutsideRadialLabelGutters(radius, visualWidth);
+        }
         int maximumExplosion = GetMaximumRenderableExplosion(values, categories.Count);
         radius /= 1D + maximumExplosion / 100D;
-        // Best-fit labels stay inside their slices and move outside, with leader lines, when they do not fit.
+        // Best-fit labels stay inside their slices and move outside, with leader lines, when they do not fit. An
+        // automatic plot area then shrinks to leave room for them; a manually placed one keeps its size.
         HashSet<int> movedOutside = FindBestFitLabelsOutsideSlices(snapshot, layout, values, total, scale, radius);
-        if (movedOutside.Count > 0 && !outsideLabels) {
+        if (movedOutside.Count > 0 && !outsideLabels && layout.PlotAreaLayout == null) {
             GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
                 leftLegend, 180D, 56D, out centerX, out centerY, out radius, out visualWidth, out contentHeight);
             radius = ReserveOutsideRadialLabelGutters(radius, visualWidth) / (1D + maximumExplosion / 100D);
@@ -137,11 +144,14 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
         if (outside.Count > 0) AddRadialOutsideLabels(drawing, outside, layout, style,
-            leftLegend ? legendWidth : 0D, leftLegend ? width : width - legendWidth,
-            contentTop, height - categoryBottomLegendHeight, centerX,
+            labelLeftBound, labelRightBound, contentTop, height - categoryBottomLegendHeight, centerX,
             radius * (1D + maximumExplosion / 100D));
 
-        if (layout.OverlayLegend) {
+        if (layout.LegendLayout is OfficeChartManualLayout legendLayout) {
+            AddPlacedCategoryLegend(drawing, categories, legendLayout, width, height, contentTop - topCategoryLegendHeight,
+                topCategoryLegendHeight, categoryBottomLegendHeight, legendWidth, contentTop + 12D, Math.Max(20D, contentHeight - 24D),
+                style, layout, categoryPointColors, values.PointStyles);
+        } else if (layout.OverlayLegend) {
             AddOverlayCategoryLegend(drawing, categories, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, categoryPointColors, values.PointStyles);
         } else {
             AddCategoryLegend(
@@ -156,7 +166,7 @@ public static partial class OfficeChartDrawingRenderer {
                 categoryPointColors, values.PointStyles);
         }
 
-        if (!layout.OverlayLegend && categoryBottomLegendHeight > 0D) {
+        if (!layout.OverlayLegend && categoryBottomLegendHeight > 0D && layout.LegendLayout == null) {
             AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, categoryPointColors, values.PointStyles);
         }
     }
@@ -182,7 +192,7 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<OfficeColor?>? legendPointColors = legendSeries == null ? null : GetCategoryPointColors(style, legendSeries, categories.Count);
         IReadOnlyList<OfficeChartPointStyle?>? legendPointStyles = legendSeries?.PointStyles;
         if (topCategoryLegendHeight > 0D) {
-            AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, legendPointColors, legendPointStyles);
+            if (layout.LegendLayout == null) AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, legendPointColors, legendPointStyles);
             contentTop += topCategoryLegendHeight;
         }
 
@@ -205,7 +215,13 @@ public static partial class OfficeChartDrawingRenderer {
             leftLegend, outsideLabels ? 180D : 48D, outsideLabels ? 56D : 36D,
             out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
-        if (outsideLabels) radius = ReserveOutsideRadialLabelGutters(radius, visualWidth);
+        double labelLeftBound = leftLegend ? legendWidth : 0D;
+        double labelRightBound = leftLegend ? width : width - legendWidth;
+        if (PlaceRadialPlotArea(layout, width, height, 0D, 0D, ref centerX, ref centerY, ref radius)) {
+            if (outsideLabels) RequireOutsideRadialLabelGutters(centerX, radius, labelLeftBound, labelRightBound);
+        } else if (outsideLabels) {
+            radius = ReserveOutsideRadialLabelGutters(radius, visualWidth);
+        }
 
         int maximumExplosion = renderableSeries.Max(item =>
             GetMaximumRenderableExplosion(item.Series, categories.Count));
@@ -257,11 +273,14 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
         if (outsideLabels) AddRadialOutsideLabels(drawing, outside, layout, style,
-            leftLegend ? legendWidth : 0D, leftLegend ? width : width - legendWidth,
-            contentTop, height - categoryBottomLegendHeight, centerX,
+            labelLeftBound, labelRightBound, contentTop, height - categoryBottomLegendHeight, centerX,
             radius * (1D + maximumExplosion / 100D));
 
-        if (layout.OverlayLegend) {
+        if (layout.LegendLayout is OfficeChartManualLayout legendLayout) {
+            AddPlacedCategoryLegend(drawing, categories, legendLayout, width, height, contentTop - topCategoryLegendHeight,
+                topCategoryLegendHeight, categoryBottomLegendHeight, legendWidth, contentTop + 12D, Math.Max(20D, contentHeight - 24D),
+                style, layout, legendPointColors, legendPointStyles);
+        } else if (layout.OverlayLegend) {
             AddOverlayCategoryLegend(drawing, categories, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, legendPointColors, legendPointStyles);
         } else {
             AddCategoryLegend(
@@ -276,7 +295,7 @@ public static partial class OfficeChartDrawingRenderer {
                 legendPointColors, legendPointStyles);
         }
 
-        if (!layout.OverlayLegend && categoryBottomLegendHeight > 0D) {
+        if (!layout.OverlayLegend && categoryBottomLegendHeight > 0D && layout.LegendLayout == null) {
             AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, legendPointColors, legendPointStyles);
         }
     }

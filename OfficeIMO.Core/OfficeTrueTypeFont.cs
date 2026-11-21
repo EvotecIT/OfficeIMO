@@ -133,7 +133,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
     /// <inheritdoc />
     public string Fingerprint => _trackingEvaluationScale == 1D ? BaseFingerprint
-        : BaseFingerprint + ":tracking-scale=" + _trackingEvaluationScale.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        : BaseFingerprint + ":tracking-scale=" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_trackingEvaluationScale, System.Globalization.CultureInfo.InvariantCulture);
     IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
         _variationModel?.DesignCoordinates ?? OfficeFontVariationModel.None.DesignCoordinates;
 

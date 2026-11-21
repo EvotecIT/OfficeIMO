@@ -3,7 +3,8 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeChartDrawingRenderer {
     // A logarithmic or reversed value axis is drawn by plotting each value at log(v) and/or -v on an
     // ordinary linear axis. Ticks, gridlines, bars, lines and crossings then need no special cases;
-    // labels restate a plotted value as the source value. Secondary, radar and radial axes stay linear.
+    // labels restate a plotted value as the source value. The secondary value axis is scaled the same way
+    // through its own settings; radar and radial axes stay linear.
     private static OfficeChartSnapshot ApplyValueAxisScales(OfficeChartSnapshot snapshot) {
         OfficeChartLayout layout = snapshot.Layout;
         OfficeChartType kind = snapshot.ChartKind;
@@ -14,52 +15,97 @@ public static partial class OfficeChartDrawingRenderer {
         bool valueOnHorizontal = horizontalBars;
         bool transformValues = HasScale(layout, valueOnHorizontal);
         bool transformX = scatter && HasScale(layout, horizontal: true);
-        if (!transformValues && !transformX) return snapshot;
+        OfficeChartLayout? secondaryScale = GetSecondaryScaleLayout(layout, valueOnHorizontal);
+        bool transformSecondary = secondaryScale != null && snapshot.Data.Series.Any(item => item.AxisGroup == OfficeChartAxisGroup.Secondary);
+        if (!transformValues && !transformX && !transformSecondary) return snapshot;
 
         Func<double, double>? toPlot = transformValues ? GetPlottingTransform(layout, valueOnHorizontal) : null;
         Func<double, double>? toSource = transformValues ? GetSourceTransform(layout, valueOnHorizontal) : null;
         Func<double, double>? xToPlot = transformX ? GetPlottingTransform(layout, horizontal: true) : null;
         Func<double, double>? xToSource = transformX ? GetSourceTransform(layout, horizontal: true) : null;
+        Func<double, double>? secondaryToPlot = transformSecondary ? GetPlottingTransform(secondaryScale!, valueOnHorizontal) : null;
+        Func<double, double>? secondaryToSource = transformSecondary ? GetSourceTransform(secondaryScale!, valueOnHorizontal) : null;
         IReadOnlyList<double> sharedX = GetScatterXValues(snapshot.Data.Categories);
 
         var series = new List<OfficeSeries>(snapshot.Data.Series.Count);
         foreach (OfficeSeries current in snapshot.Data.Series) {
             bool secondary = current.AxisGroup == OfficeChartAxisGroup.Secondary;
             bool bubble = current.BubbleSizes != null;
+            OfficeChartLayout valueScale = secondary ? secondaryScale ?? layout : layout;
+            Func<double, double>? valueToPlot = secondary ? secondaryToPlot : toPlot;
             // Bubble sizes are measured against the plotted values, so bubbles are not drawn on a logarithmic axis.
-            if (bubble && ((toPlot != null && !secondary && GetLogBase(layout, valueOnHorizontal).HasValue) ||
+            if (bubble && ((valueToPlot != null && GetLogBase(valueScale, valueOnHorizontal).HasValue) ||
                     (xToPlot != null && layout.HorizontalAxisLogBase.HasValue)))
                 throw new NotSupportedException("A bubble series cannot be drawn on a logarithmic axis.");
-            bool values = toPlot != null && !secondary;
+            bool values = valueToPlot != null;
             bool xValues = xToPlot != null;
             if (!values && !xValues) {
                 series.Add(current);
                 continue;
             }
 
-            IReadOnlyList<double> plotted = values ? current.Values.Select(toPlot!).ToArray() : current.Values;
+            IReadOnlyList<double> plotted = values ? current.Values.Select(valueToPlot!).ToArray() : current.Values;
             // Without its own X values a point takes its category's X, and a point past the categories has none,
             // as on a linear axis.
             IReadOnlyList<double>? sourceX = xValues ? current.XValues ?? Enumerable.Range(0, current.Values.Count)
                 .Select(index => index < sharedX.Count ? sharedX[index] : double.NaN).ToArray() : null;
             IReadOnlyList<double>? plottedX = xValues ? sourceX!.Select(xToPlot!).ToArray() : current.XValues;
-            series.Add(current.WithPlottedValues(plotted, plottedX, values ? toSource : null, xValues ? xToSource : null,
-                values ? current.Values : null, sourceX, xValues ? xToPlot : null));
+            series.Add(current.WithPlottedValues(plotted, plottedX, values ? secondary ? secondaryToSource : toSource : null,
+                xValues ? xToSource : null, values ? current.Values : null, sourceX, xValues ? xToPlot : null));
         }
 
-        IReadOnlyList<double> stackTotals = transformValues && GetLogBase(layout, valueOnHorizontal).HasValue
-            ? RestackOnLogarithmicAxis(snapshot, series, toPlot!)
-            : Array.Empty<double>();
         OfficeChartLayout plottingLayout = layout;
-        if (transformValues) plottingLayout = RestateAxis(plottingLayout, valueOnHorizontal, series.Where(item => item.SourceValue != null)
-            .SelectMany(item => item.Values).Concat(stackTotals));
+        if (transformValues) plottingLayout = RestateAxis(plottingLayout, valueOnHorizontal,
+            GetScaledValues(snapshot, series, layout, valueOnHorizontal, toPlot!, OfficeChartAxisGroup.Primary));
         // A logarithmic X axis is bounded by the plotted points and the trendline forecasts that reach past them.
         if (transformX) plottingLayout = RestateAxis(plottingLayout, horizontal: true, series.Where(item => item.SourceXValue != null)
             .SelectMany(item => item.XValues!.Concat(GetForecastXExtents(item, item.XValues!))));
+        if (transformSecondary) {
+            OfficeChartLayout restated = RestateAxis(secondaryScale!, valueOnHorizontal,
+                GetScaledValues(snapshot, series, secondaryScale!, valueOnHorizontal, secondaryToPlot!, OfficeChartAxisGroup.Secondary));
+            plottingLayout = plottingLayout.WithSecondaryValueAxis(valueOnHorizontal
+                ? layout.SecondaryValueAxis!.WithPlottingScale(restated.HorizontalAxisMinimum, restated.HorizontalAxisMaximum,
+                    restated.HorizontalAxisMajorUnit, restated.HorizontalAxisMinorUnit)
+                : layout.SecondaryValueAxis!.WithPlottingScale(restated.VerticalAxisMinimum, restated.VerticalAxisMaximum,
+                    restated.VerticalAxisMajorUnit, restated.VerticalAxisMinorUnit));
+        }
         return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, new OfficeChartData(snapshot.Data.Categories, series),
             snapshot.Width, snapshot.Height, snapshot.Style, plottingLayout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode,
             snapshot.RadialLayout);
     }
+
+    // The scaled values of one axis group, with stacked series restacked on a logarithmic axis; they set its bounds.
+    private static IEnumerable<double> GetScaledValues(OfficeChartSnapshot snapshot, List<OfficeSeries> series,
+        OfficeChartLayout scale, bool horizontal, Func<double, double> toPlot, OfficeChartAxisGroup group) {
+        IReadOnlyList<double> stackTotals = GetLogBase(scale, horizontal).HasValue
+            ? RestackOnLogarithmicAxis(snapshot, series, toPlot, group)
+            : Array.Empty<double>();
+        return series.Where(item => item.SourceValue != null && IsInAxisGroup(item, group))
+            .SelectMany(item => item.Values).Concat(stackTotals).ToArray();
+    }
+
+    private static bool IsInAxisGroup(OfficeSeries series, OfficeChartAxisGroup group) =>
+        (series.AxisGroup == OfficeChartAxisGroup.Secondary) == (group == OfficeChartAxisGroup.Secondary);
+
+    // The secondary value axis's scale as a layout whose value axis on the given side carries it, or null when
+    // the chart has no logarithmic or reversed secondary axis.
+    private static OfficeChartLayout? GetSecondaryScaleLayout(OfficeChartLayout layout, bool horizontal) {
+        OfficeChartValueAxisLayout? axis = layout.SecondaryValueAxis;
+        if (axis == null || (!axis.LogBase.HasValue && !axis.IsReversed)) return null;
+        return new OfficeChartLayout(
+                horizontalAxisMinimum: horizontal ? axis.Minimum : null, horizontalAxisMaximum: horizontal ? axis.Maximum : null,
+                verticalAxisMinimum: horizontal ? null : axis.Minimum, verticalAxisMaximum: horizontal ? null : axis.Maximum,
+                horizontalAxisMajorUnit: horizontal ? axis.MajorUnit : null, verticalAxisMajorUnit: horizontal ? null : axis.MajorUnit,
+                horizontalAxisMinorUnit: horizontal ? axis.MinorUnit : null, verticalAxisMinorUnit: horizontal ? null : axis.MinorUnit)
+            .WithLogarithmicValueAxes(horizontal ? axis.LogBase : null, horizontal ? null : axis.LogBase)
+            .WithReversedValueAxes(horizontal && axis.IsReversed, !horizontal && axis.IsReversed);
+    }
+
+    // The transform from source to plotted values for a series' value axis.
+    private static Func<double, double> GetSeriesPlottingTransform(OfficeChartLayout layout, OfficeSeries series, bool horizontal) =>
+        series.AxisGroup == OfficeChartAxisGroup.Secondary && GetSecondaryScaleLayout(layout, horizontal) is OfficeChartLayout secondary
+            ? GetPlottingTransform(secondary, horizontal)
+            : GetPlottingTransform(layout, horizontal);
 
     // Office adds stacked values before it scales them. Each stacked series is replotted as the steps between its
     // scaled running totals, so the renderer's own stacking puts every segment between the totals below and above
@@ -67,13 +113,13 @@ public static partial class OfficeChartDrawingRenderer {
     // needs non-negative values whose totals are 0 or at least 1; 100% stacks are not drawn on such an axis.
     // Returns the scaled totals, which set the axis bounds.
     private static IReadOnlyList<double> RestackOnLogarithmicAxis(OfficeChartSnapshot snapshot, List<OfficeSeries> series,
-        Func<double, double> toPlot) {
+        Func<double, double> toPlot, OfficeChartAxisGroup group) {
         var totals = new List<double>();
         var runningByKind = new Dictionary<OfficeChartType, double[]>();
         int length = snapshot.Data.Series.Count == 0 ? 0 : snapshot.Data.Series.Max(item => item.Values.Count);
         for (int index = 0; index < series.Count; index++) {
             OfficeSeries plotted = series[index];
-            if (plotted.SourceValue == null) continue;
+            if (plotted.SourceValue == null || !IsInAxisGroup(plotted, group)) continue;
             OfficeChartType kind = GetEffectiveSeriesKind(snapshot, plotted);
             if (IsPercentStackedBarOrColumnChart(kind) || IsPercentStackedLineChart(kind) || IsPercentStackedAreaChart(kind))
                 throw new NotSupportedException("A 100% stacked series cannot be drawn on a logarithmic value axis.");
