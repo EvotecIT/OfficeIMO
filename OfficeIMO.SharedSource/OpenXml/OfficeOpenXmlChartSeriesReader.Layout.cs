@@ -141,14 +141,10 @@ namespace OfficeIMO.OpenXml.Internal {
                     throw new NotSupportedException("Script-specific secondary axis title fonts cannot be projected.");
                 if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value is C.TickLabelPositionValues tickPosition && tickPosition != C.TickLabelPositionValues.NextTo))
                     throw new NotSupportedException("Secondary value-axis visibility cannot be projected independently.");
-                if (axis is C.ValueAxis) {
-                    var scaling = axis.GetFirstChild<C.Scaling>();
-                    if (scaling?.GetFirstChild<C.LogBase>() != null ||
-                        scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
-                        axis.GetFirstChild<C.CrossesAt>() != null || axis.GetFirstChild<C.DisplayUnits>() != null ||
-                        HasUnsupportedSharedAxisNumberFormat(axis))
-                        throw new NotSupportedException("The secondary numeric axis presentation cannot be projected.");
-                }
+                if (axis is C.ValueAxis &&
+                    (axis.GetFirstChild<C.CrossesAt>() != null || axis.GetFirstChild<C.DisplayUnits>() != null ||
+                     HasUnsupportedSharedAxisNumberFormat(axis)))
+                    throw new NotSupportedException("The secondary numeric axis presentation cannot be projected.");
             }
         }
 
