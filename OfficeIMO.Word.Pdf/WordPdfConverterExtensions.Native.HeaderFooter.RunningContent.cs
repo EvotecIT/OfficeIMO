@@ -223,8 +223,9 @@ public static partial class WordPdfConverterExtensions {
             using IDisposable? resolutionScope = resolutionSnapshot?.Use();
             using IDisposable trackedChangeScope = UseNativeTrackedChangeView(trackedChangeView);
             options?.CancellationToken.ThrowIfCancellationRequested();
+            // Header and footer stories lay out on one page, so positioned frames can float there.
             var flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(content,
-                new PdfCore.PdfPageSize(context.PageWidth, context.PageHeight)), preserveInitialSpacingBefore: true);
+                new PdfCore.PdfPageSize(context.PageWidth, context.PageHeight)) { SupportsPositionedTables = true }, preserveInitialSpacingBefore: true);
             NativeDocumentDefaults runningDefaults = defaults with { RunningContentContext = context, RunningContentSection = section };
             if (story != null && !story.ChildElements.Any())
                 RenderNativeImplicitRunningParagraph(flow, story, runningDefaults, fontMap);
@@ -235,6 +236,9 @@ public static partial class WordPdfConverterExtensions {
             int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
+                if (TryRenderNativeParagraphFrame(flow, elements, ref index,
+                    paragraph => listMarkers.TryGetValue(paragraph, out var frameMarker) ? frameMarker : null,
+                    notes, options, context.ContentWidth.ToPoints(), runningDefaults, fontMap)) continue;
                 if (TryRenderNativeJoinedParagraphs(flow, elements, ref index, ref rejectedJoinUntil,
                     paragraph => listMarkers.TryGetValue(paragraph, out var joinedMarker) ? joinedMarker : null,
                     notes, options, runningDefaults, fontMap)) continue;

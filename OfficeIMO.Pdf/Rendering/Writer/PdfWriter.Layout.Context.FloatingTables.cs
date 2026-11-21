@@ -56,6 +56,15 @@ internal static partial class PdfWriter {
             OfficeAlignment horizontal = position.HorizontalAlignment;
             if (position.MirrorHorizontalOnEvenPages && (pages.Count + 1) % 2 == 0)
                 horizontal = horizontal == OfficeAlignment.Left ? OfficeAlignment.Right : horizontal == OfficeAlignment.Right ? OfficeAlignment.Left : horizontal;
+            if (position.AlignsInPageMargin && position.HorizontalAnchor == PdfTableAnchor.Page && horizontal != OfficeAlignment.Center) {
+                double pageWidth = PageAnchorOptions.PageWidth.ToPoints();
+                double marginLeft = PageAnchorOptions.MarginLeft.ToPoints();
+                double marginRight = PageAnchorOptions.MarginRight.ToPoints();
+                double inMargin = horizontal == OfficeAlignment.Right
+                    ? Math.Min(pageWidth - marginRight, pageWidth - tableWidth)
+                    : Math.Max(0D, marginLeft - tableWidth);
+                return inMargin + position.HorizontalOffset.ToPoints();
+            }
             double alignment = horizontal == OfficeAlignment.Right ? available - tableWidth
                 : horizontal == OfficeAlignment.Center ? (available - tableWidth) / 2 : 0;
             return left + alignment + position.HorizontalOffset.ToPoints();
@@ -92,6 +101,7 @@ internal static partial class PdfWriter {
             foreach (var capture in activeFloatingFlowCaptures)
                 capture.PaintedRegions.Add(new PdfLayoutRegion(pages.Count + 1, left, top - height, tableWidth, height));
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
+            if (!position.WrapsText) return;
             floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
                 left + tableWidth + position.DistanceRight.ToPoints(), top + position.DistanceTop.ToPoints(),
                 top - height - position.DistanceBottom.ToPoints(), position.AllowOverlap));

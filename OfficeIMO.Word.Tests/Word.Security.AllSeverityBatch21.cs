@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void ContinuousSectionWithExplicitRestartStartsNewPdfNumberingGroup() {
+    public void ContinuousSectionWithExplicitRestartStaysOnTheSharedPage() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionRestart.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeContinuousSectionRestart.pdf");
 
@@ -26,10 +26,11 @@ public partial class Word {
             });
         }
 
+        // Word keeps a continuous section on the page it starts on; the restart numbers later pages.
         using PdfDocument pdf = PdfDocument.Open(pdfPath);
-        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal(1, pdf.NumberOfPages);
         Assert.Contains("BeforeRestart", pdf.GetPage(1).Text);
-        Assert.Contains("AfterRestart", pdf.GetPage(2).Text);
+        Assert.Contains("AfterRestart", pdf.GetPage(1).Text);
     }
 
     [Fact]

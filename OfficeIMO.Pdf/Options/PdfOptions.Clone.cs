@@ -117,6 +117,7 @@ public sealed partial class PdfCreateOptions {
             ShowHeader = ShowHeader,
             PageStartParity = PageStartParity,
             UseContinuingPageNumberForStartParity = UseContinuingPageNumberForStartParity,
+            ContinuesCurrentPage = ContinuesCurrentPage,
             HeaderFormat = HeaderFormat,
             HeaderContent = HeaderContent,
             FirstPageHeaderContent = FirstPageHeaderContent,

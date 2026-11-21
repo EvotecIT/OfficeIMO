@@ -144,6 +144,29 @@ internal static partial class PdfWriter {
             if (ownsPageContents && !pageContentsTransferred) pageContents.Dispose();
         }
 
+        private bool ContinuesCurrentPage(PageBlock pageBlock) =>
+            pageBlock.Options.ContinuesCurrentPage && currentPage != null && !isRunningContent && activeColumnFlow == null &&
+            activeContainerScopes.Count == 0 &&
+            System.Math.Abs(currentPage.Options.PageWidth.ToPoints() - pageBlock.Options.PageWidth.ToPoints()) < .01D &&
+            System.Math.Abs(currentPage.Options.PageHeight.ToPoints() - pageBlock.Options.PageHeight.ToPoints()) < .01D;
+
+        // The new group takes the page's remaining height with its own side margins; the
+        // next page starts with all of its own setup.
+        private void ContinuePageGroupOnCurrentPage(PdfCreateOptions options) {
+            options.Validate();
+            currentPageBaseOptions = options;
+            bool mirrored = options.MirrorMargins && currentVisiblePageNumber % 2 == 0;
+            PdfCreateOptions frame = options.Clone();
+            frame.MarginLeft = mirrored ? options.MarginRight : options.MarginLeft;
+            frame.MarginRight = mirrored ? options.MarginLeft : options.MarginRight;
+            frame.MarginTop = currentPage!.Options.MarginTop;
+            frame.MarginBottom = currentPage.Options.MarginBottom;
+            currentOpts = frame;
+            width = frame.PageWidth.ToPoints() - frame.MarginLeft.ToPoints() - frame.MarginRight.ToPoints();
+            (currentPage.ContinuedPageGroups ??= new()).Add((currentPageGroupId, frame));
+            if (currentRunningSectionId is int sectionId) (currentPage.RunningContentSections ??= new()).Add(sectionId);
+        }
+
         private void StartPage(PdfCreateOptions options) {
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
             if (nextRunningPageOptions != null) {
@@ -251,12 +274,23 @@ internal static partial class PdfWriter {
             BindSvgPageImages();
             foreach (PictureParagraphPlanKey key in pictureAnchors.Paragraphs.Keys.Where(key => key.Page == PicturePage).ToArray())
                 pictureAnchors.Paragraphs.Remove(key);
+            // Text set in a continued group's frame uses the page's font resources.
+            if (currentPage.ContinuedPageGroups != null)
+                foreach (var continued in currentPage.ContinuedPageGroups) currentPage.Options.MergeFontProgramUsageFrom(continued.Options);
             currentPage.Content = pageContents.Store(sb);
             pages.Add(currentPage);
             emittedPageGroups.Add(currentPage.PageGroupId);
             emittedPageGroupCounts.TryGetValue(currentPage.PageGroupId, out int groupCount);
             emittedPageGroupCounts[currentPage.PageGroupId] = groupCount + 1;
             previousVisiblePageNumber = currentVisiblePageNumber;
+            if (currentPage.ContinuedPageGroups != null) {
+                foreach (var continued in currentPage.ContinuedPageGroups) {
+                    emittedPageGroups.Add(continued.GroupId);
+                    emittedPageGroupCounts.TryGetValue(continued.GroupId, out int continuedCount);
+                    emittedPageGroupCounts[continued.GroupId] = continuedCount + 1;
+                    if (continued.Options.HasExplicitPageNumberStart) previousVisiblePageNumber = continued.Options.PageNumberStart;
+                }
+            }
             currentPage = null;
             // Reuse the buffer across pages (content already captured above) instead of re-growing a new
             // StringBuilder per page.

@@ -7,7 +7,7 @@ public static partial class WordPdfConverterExtensions {
     private static void RecordNativeParagraphFrameDiagnostics(WordParagraph paragraph, WordPdfExportOptions options,
         string source) {
         if (paragraph._paragraph == null || !options.DiagnosedFrameParagraphs.Add(paragraph._paragraph)) return;
-        if (HasNativeParagraphFrame(paragraph)) AddNativeExportWarning(options, "native-paragraph-frame-flattened", source,
+        if (HasNativeParagraphFrame(paragraph) && !CanRenderNativeParagraphFrame(paragraph)) AddNativeExportWarning(options, "native-paragraph-frame-flattened", source,
             "Word paragraph frame positioning, dimensions and wrapping are not supported by PDF conversion; its visible content is placed in ordinary flow.");
     }
 

@@ -22,7 +22,7 @@ public partial class Word {
     [InlineData("endnote", false, true)]
     [InlineData("header", false, true)]
     [InlineData("footer", false, true)]
-    public void SaveAsPdf_ParagraphFramesReportApproximationAndPreserveSource(string story, bool inherited, bool breakOnly) {
+    public void SaveAsPdf_ParagraphFramesArePlacedOrReportedAndPreserveSource(string story, bool inherited, bool breakOnly) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("BODY");
         WordParagraph paragraph = AddFrameDiagnosticParagraph(document, story);
@@ -34,18 +34,27 @@ public partial class Word {
         string stylesXml = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
         var options = new WordPdfExportOptions();
 
+        // Frames directly in the body, a header or a footer are placed; frames elsewhere,
+        // and frames holding a page break, keep the reported ordinary-paragraph approximation.
+        bool placed = !breakOnly && story is "body" or "header" or "footer";
         for (int index = 0; index < 2; index++) {
             var result = document.ConvertToPdfWithEvidence(options);
-            PdfConversionWarning warning = Assert.Single(result.Warnings,
-                item => item.Code == "native-paragraph-frame-flattened");
-            Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
-            Assert.True(result.HasLoss);
-            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
             using var output = new MemoryStream();
-            var saved = result.Save(output);
-            Assert.True(saved.Succeeded);
-            Assert.True(saved.HasLoss);
-            Assert.Single(saved.Warnings, item => item.Code == "native-paragraph-frame-flattened");
+            if (placed) {
+                Assert.DoesNotContain(result.Warnings, item => item.Code == "native-paragraph-frame-flattened");
+                result.ThrowIfLoss();
+                Assert.True(result.Save(output).Succeeded);
+            } else {
+                PdfConversionWarning warning = Assert.Single(result.Warnings,
+                    item => item.Code == "native-paragraph-frame-flattened");
+                Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
+                Assert.True(result.HasLoss);
+                Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+                var saved = result.Save(output);
+                Assert.True(saved.Succeeded);
+                Assert.True(saved.HasLoss);
+                Assert.Single(saved.Warnings, item => item.Code == "native-paragraph-frame-flattened");
+            }
             byte[] savedPdf = output.ToArray();
             string allText = PdfReadDocument.Open(savedPdf,
                 new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();

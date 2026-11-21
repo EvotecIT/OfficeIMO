@@ -142,6 +142,42 @@ public partial class Word {
         return FindPageTopBaseline(RenderPageTopPdf(document), "Target").Baseline;
     }
 
+    [Theory]
+    [InlineData("margins")]
+    [InlineData("restart")]
+    public void SaveAsPdf_ContinuousSectionStaysOnTheCurrentPage(string change) {
+        // Word keeps a continuous section on the same page when it changes margins or
+        // restarts numbering. Side margins apply at once; the top margin and the restart
+        // take effect from the next page, which is numbered from the restart value plus one.
+        using WordDocument document = WordDocument.Create();
+        document.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
+        document.Sections[0].PageSetup.Margins.Top = document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        document.Sections[0].PageSetup.Margins.Left = document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        WordParagraph number = document.PageSetup.Footer.AddParagraph("PG ");
+        number.AddField(WordFieldType.Page);
+        for (int i = 1; i <= 12; i++) document.AddParagraph("Alpha" + i);
+        WordSection continuous = document.AddSection(WordSectionBreakType.Continuous);
+        if (change == "margins") {
+            continuous.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(144D);
+            continuous.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(144D);
+        } else {
+            continuous.AddPageNumbering(5);
+        }
+        for (int i = 1; i <= 30; i++) continuous.AddParagraph("Beta" + i);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Docx)));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false })
+            .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var first = pdf.GetPage(1).GetWords().ToList();
+        var beta1 = first.Single(word => word.Text == "Beta1");
+        Assert.True(beta1.Letters[0].StartBaseLine.Y > 300D, "The continuous section starts below Alpha12 on page 1.");
+        Assert.Equal(change == "margins" ? 144D : 72D, beta1.BoundingBox.Left, 0);
+        var second = pdf.GetPage(2).GetWords().ToList();
+        double top = second.Where(word => word.Text.StartsWith("Beta", StringComparison.Ordinal)).Max(word => word.Letters[0].StartBaseLine.Y);
+        if (change == "margins") Assert.True(top < 792D - 144D, "Page 2 uses the top margin of the continuous section.");
+        Assert.Contains("PG1", pdf.GetPage(1).Text.Replace(" ", string.Empty));
+        Assert.Contains(change == "restart" ? "PG6" : "PG2", pdf.GetPage(2).Text.Replace(" ", string.Empty));
+    }
+
     [Fact]
     public void SaveAsPdf_ColumnBreakMarkIgnoresAutomaticSpacing() {
         // The paragraph mark carried into the next column belongs to the same paragraph,

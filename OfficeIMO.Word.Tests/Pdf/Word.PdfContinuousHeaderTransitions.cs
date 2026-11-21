@@ -41,21 +41,21 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_ContinuousHeaderFallbackReportsPaginationAndRetainsSupportedTableContent() {
+    public void SaveAsPdf_ContinuousHeaderChangeWithTableStaysOnTheSharedPage() {
+        // As in Word, the continuous section stays on the shared page, which keeps its
+        // original header; the changed header waits for a later physical page.
         using WordDocument source = WordDocument.Load(new MemoryStream(
             CreateContinuousHeaderSource(changedHeader: true, bodyBreak: false)));
         WordTable table = source.Sections[1].AddTable(1, 1);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "TABLE CELL";
 
         var result = source.ConvertToPdfWithEvidence(EmptyRunningOptions());
-        var warning = Assert.Single(result.Report.Warnings, item => item.Code == "native-continuous-section-pagination-approximated");
-        Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
+        Assert.DoesNotContain(result.Report.Warnings, item => item.Code == "native-continuous-section-pagination-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
 
-        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Equal(1, pdf.NumberOfPages);
         AssertContinuousHeaderPage(pdf, 1, "HEADER A");
-        AssertContinuousHeaderPage(pdf, 2, "HEADER B");
-        Assert.Contains("TABLE CELL", ContinuousHeaderPageText(pdf, 2));
+        Assert.Contains("TABLE CELL", ContinuousHeaderPageText(pdf, 1));
         AssertContinuousHeaderBody(pdf, ContinuousHeaderBodyMarkers.Concat(new[] { "TABLE CELL" }).ToArray());
     }
 

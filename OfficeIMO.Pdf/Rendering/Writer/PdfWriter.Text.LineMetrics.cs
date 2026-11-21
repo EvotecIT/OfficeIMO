@@ -187,7 +187,7 @@ internal static partial class PdfWriter {
             OfficeIMO.Drawing.OfficeOpenTypeLineMetrics? metrics = ResolveFontLineMetrics(font, namedFont, options);
             double fontDescent = metrics.HasValue ? size * metrics.Value.DescentRatio
                 : GetDescenderForOptions(font, namedFont, size, options);
-            ascent = rise + size * (metrics?.HorizontalAdvanceRatio ?? natural) - fontDescent;
+            ascent = rise + size * (spacing.UsesFixedFontLineBox ? natural : metrics?.HorizontalAdvanceRatio ?? natural) - fontDescent;
             descent = fontDescent - rise;
         } else {
             ascent = rise + GetAscenderForOptions(font, namedFont, size, options);
