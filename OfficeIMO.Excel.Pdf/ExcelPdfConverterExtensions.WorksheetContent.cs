@@ -159,7 +159,7 @@ namespace OfficeIMO.Excel.Pdf {
             AddWorksheetSmartArtWarnings(workbookSheet, options, sheetName);
             var charts = new List<WorksheetChartExportData>();
             foreach (ExcelChart chart in workbookSheet.Charts) {
-                if (!chart.TryGetSnapshot(out ExcelChartInfo snapshot)) {
+                if (!chart.TryGetSnapshot(options.ChartRendering.Fidelity, out ExcelChartInfo snapshot)) {
                     AddWarning(
                         options,
                         sheetName,
@@ -170,7 +170,8 @@ namespace OfficeIMO.Excel.Pdf {
 
                 foreach (var diagnostic in snapshot.Diagnostics.Where(diagnostic =>
                     diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported ||
-                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated)) {
+                    diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated ||
+                    diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation)) {
                     AddWarning(options, sheetName, diagnostic.Code, diagnostic.Message, diagnostic.LossKind);
                 }
 

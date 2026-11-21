@@ -22,6 +22,14 @@ public class OfficeImageExportOptions {
     /// <summary>Rejects fidelity loss before an image is written.</summary>
     public bool FailOnLoss { get; set; }
 
+    private OfficeChartRenderOptions _chartRendering = new OfficeChartRenderOptions();
+
+    /// <summary>How native charts are drawn, including what happens to formatting the chart renderer cannot reproduce exactly.</summary>
+    public OfficeChartRenderOptions ChartRendering {
+        get => _chartRendering;
+        set => _chartRendering = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
     /// <summary>Default maximum number of pixels allocated for one raster export.</summary>
     public const long DefaultMaximumRasterPixels = 50_000_000L;
 
@@ -165,6 +173,7 @@ public class OfficeImageExportOptions {
         target.PageSelector = PageSelector;
         target.FileConflictPolicy = FileConflictPolicy;
         target.FailOnLoss = FailOnLoss;
+        target.ChartRendering = ChartRendering?.Clone() ?? new OfficeChartRenderOptions();
         target.Scale = Scale;
         target.MaximumOutputWidth = MaximumOutputWidth;
         target.MaximumOutputHeight = MaximumOutputHeight;
@@ -197,6 +206,7 @@ public class OfficeImageExportOptions {
         effective.RasterEncoding = RasterEncoding?.Clone()!;
         effective.Fonts = Fonts?.Clone()!;
         effective.Policy = Policy?.Clone()!;
+        effective._chartRendering = ChartRendering?.Clone()!;
         effective.ValidateImageExportOptions();
         return effective;
     }
@@ -215,6 +225,8 @@ public class OfficeImageExportOptions {
     protected internal void ValidateImageExportOptions() {
         if (!Enum.IsDefined(typeof(OfficeImageExportFormat), Format)) throw new ArgumentOutOfRangeException(nameof(Format));
         if (!Enum.IsDefined(typeof(OfficeImageExportFileConflictPolicy), FileConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(FileConflictPolicy));
+        if (ChartRendering == null) throw new ArgumentNullException(nameof(ChartRendering));
+        ChartRendering.Validate();
         ValidateScale(Scale, nameof(Scale));
         if (MaximumRasterPixels < 1L) {
             throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels), "Maximum raster pixels must be positive.");

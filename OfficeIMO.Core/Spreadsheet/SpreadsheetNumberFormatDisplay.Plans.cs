@@ -136,7 +136,7 @@ namespace OfficeIMO.Spreadsheet {
                 if (double.IsNaN(displayValue) || double.IsInfinity(displayValue)) return null;
                 if (selectedSection == 1) displayValue = Math.Abs(displayValue);
                 double rounded = _decimals.Maximum <= 15
-                    ? Math.Round(displayValue, _decimals.Maximum, MidpointRounding.AwayFromZero)
+                    ? RoundForDisplay(displayValue, _decimals.Maximum)
                     : displayValue;
                 var numberFormat = NumberFormatInfo.GetInstance(provider);
                 if (_decimals.Optional == 0 && _requiredIntegerDigits <= 1) {

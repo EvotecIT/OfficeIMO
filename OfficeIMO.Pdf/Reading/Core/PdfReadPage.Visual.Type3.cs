@@ -284,13 +284,7 @@ public sealed partial class PdfReadPage {
                         if (image.IsImageMask && localImagePlacements[imageIndex].FillPattern.HasValue) return false;
                         if (type3.IsUncolored && !image.IsImageMask) return false;
                         PdfImagePlacement placement = localImagePlacements[imageIndex];
-                        if (!TryCreateImageProjection(
-                                placement,
-                                pageHeight,
-                                pageWidth,
-                                pageHeight,
-                                out _,
-                                allowAxisAlignedFallback: false)) return false;
+                        if (!CanDrawImagePlacementExactly(placement, pageHeight, pageWidth, pageHeight)) return false;
                         PdfPageDrawingEffect effect = ResolveDrawingEffect(localEffects, placement.PaintOrder, contentOrderKey: placement.ContentOrderKey);
                         localImages.Add((placement.WithExactProjection(), image, effect));
                     }
@@ -769,7 +763,7 @@ public sealed partial class PdfReadPage {
             pageWidth,
             pageHeight,
             geometryBudget,
-            out OfficeImageProjection projection,
+            out OfficeImageProjection? projection,
             out PdfPageClipPath fitted,
             out PdfPageTilingPatternPaint? tilingPaint,
             out OfficeLinearGradient? fillGradient,
@@ -814,31 +808,41 @@ public sealed partial class PdfReadPage {
         if (patternDrawing.Elements.Count == 0) return Type3PatternImageMaskDrawingResult.Unsupported;
 
         var maskDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
-        OfficeImageProjection localProjection = projection.Translate(-fitted.X, -fitted.Y);
-        (double localLeft, double localTop, double localRight, double localBottom) = localProjection.GetDestinationBounds();
-        bool projectionFitsDrawing = localLeft >= 0D &&
-            localTop >= 0D &&
-            localRight <= fitted.Width &&
-            localBottom <= fitted.Height;
-        if (fitted.IsRectangle && projectionFitsDrawing) {
-            maskDrawing.AddImageWithInterpolation(
-                image.Bytes,
-                image.MimeType,
-                localProjection,
-                image.Interpolate,
-                opacity: placement.ImageOpacity ?? 1D);
+        if (!projection.HasValue) {
+            OfficeClipPath? fullMatrixClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
+            if (fullMatrixClip == null) return Type3PatternImageMaskDrawingResult.Unsupported;
+            var host = new OfficeDrawing(fitted.Width, fitted.Height);
+            OfficeTransform localUnitSquare = CreateImageUnitSquareTransform(placement, pageHeight)
+                .Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
+            TryAddFullMatrixImage(host, image, image.Bytes, localUnitSquare, placement.ImageOpacity ?? 1D, clipPath: null);
+            maskDrawing.AddClippedDrawing(host, 0D, 0D, fullMatrixClip);
         } else {
-            OfficeClipPath? localClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
-            if (localClip == null) return Type3PatternImageMaskDrawingResult.Unsupported;
-            maskDrawing.AddClippedImageWithInterpolation(
-                image.Bytes,
-                image.MimeType,
-                localProjection,
-                image.Interpolate,
-                0D,
-                0D,
-                localClip,
-                opacity: placement.ImageOpacity ?? 1D);
+            OfficeImageProjection localProjection = projection.Value.Translate(-fitted.X, -fitted.Y);
+            (double localLeft, double localTop, double localRight, double localBottom) = localProjection.GetDestinationBounds();
+            bool projectionFitsDrawing = localLeft >= 0D &&
+                localTop >= 0D &&
+                localRight <= fitted.Width &&
+                localBottom <= fitted.Height;
+            if (fitted.IsRectangle && projectionFitsDrawing) {
+                maskDrawing.AddImageWithInterpolation(
+                    image.Bytes,
+                    image.MimeType,
+                    localProjection,
+                    image.Interpolate,
+                    opacity: placement.ImageOpacity ?? 1D);
+            } else {
+                OfficeClipPath? localClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
+                if (localClip == null) return Type3PatternImageMaskDrawingResult.Unsupported;
+                maskDrawing.AddClippedImageWithInterpolation(
+                    image.Bytes,
+                    image.MimeType,
+                    localProjection,
+                    image.Interpolate,
+                    0D,
+                    0D,
+                    localClip,
+                    opacity: placement.ImageOpacity ?? 1D);
+            }
         }
         if (maskDrawing.Elements.Count == 0) return Type3PatternImageMaskDrawingResult.Unsupported;
 
@@ -857,32 +861,39 @@ public sealed partial class PdfReadPage {
         double pageWidth,
         double pageHeight,
         VisualGeometryBudget geometryBudget,
-        out OfficeImageProjection projection,
+        out OfficeImageProjection? projection,
         out PdfPageClipPath fitted,
         out PdfPageTilingPatternPaint? tilingPaint,
         out OfficeLinearGradient? fillGradient,
         out OfficeRadialGradient? fillRadialGradient,
         out bool shadingPreparationFailed) {
-        projection = default;
+        projection = null;
         fitted = default;
         tilingPaint = null;
         fillGradient = null;
         fillRadialGradient = null;
         shadingPreparationFailed = false;
         if (!selection.HasValue || !image.IsImageMask || !image.IsImageFile) return Type3PatternImageMaskDrawingResult.Unsupported;
-        if (!TryCreateImageProjection(
+        double left, top, right, bottom;
+        if (TryCreateImageProjection(
                 placement,
                 pageHeight,
                 pageWidth,
                 pageHeight,
-                out projection,
+                out OfficeImageProjection exactProjection,
                 allowAxisAlignedFallback: false)) {
+            projection = exactProjection;
+            (left, top, right, bottom) = exactProjection.GetDestinationBounds();
+        } else if (image.Width > 0 && image.Height > 0 &&
+                   RequiresFullMatrixImageGroup(placement, pageHeight, pageWidth, pageHeight, exact: true)) {
+            // A null projection asks the drawing step to paint the mask through its full matrix.
+            (left, top, right, bottom) = GetUnitSquareBounds(CreateImageUnitSquareTransform(placement, pageHeight));
+        } else {
             return IsInvisibleImagePlacement(placement, pageHeight, pageWidth, pageHeight, geometryBudget)
                 ? Type3PatternImageMaskDrawingResult.Invisible
                 : Type3PatternImageMaskDrawingResult.Unsupported;
         }
 
-        (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
         double width = right - left;
         double height = bottom - top;
         if (width <= 0D || height <= 0D) return Type3PatternImageMaskDrawingResult.Unsupported;

@@ -4,16 +4,16 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Describes one native chart for <see cref="OfficeChartImageExporter"/>.</summary>
 internal sealed class OfficeChartImageSource {
-    private readonly Func<double, double, List<OfficeImageExportDiagnostic>, OfficeChartSnapshot> _createSnapshot;
+    private readonly Func<double, double, OfficeChartFidelity, List<OfficeImageExportDiagnostic>, OfficeChartSnapshot> _createSnapshot;
 
     /// <param name="producer">Format family used in conversion reports, such as "Word".</param>
     /// <param name="name">Chart name reported on the result.</param>
     /// <param name="source">Location reported on diagnostics.</param>
     /// <param name="frameWidth">Chart width in its document.</param>
     /// <param name="frameHeight">Chart height in its document.</param>
-    /// <param name="createSnapshot">Projects the chart at a logical extent; throws <see cref="NotSupportedException"/> with the reason when it cannot.</param>
+    /// <param name="createSnapshot">Projects the chart at a logical extent and chart fidelity, adding any approximation diagnostics; throws <see cref="NotSupportedException"/> with the reason when it cannot.</param>
     internal OfficeChartImageSource(string producer, string? name, string source, OfficeLength frameWidth, OfficeLength frameHeight,
-        Func<double, double, List<OfficeImageExportDiagnostic>, OfficeChartSnapshot> createSnapshot) {
+        Func<double, double, OfficeChartFidelity, List<OfficeImageExportDiagnostic>, OfficeChartSnapshot> createSnapshot) {
         Producer = producer;
         Name = name;
         Source = source;
@@ -28,8 +28,9 @@ internal sealed class OfficeChartImageSource {
     internal OfficeLength FrameWidth { get; }
     internal OfficeLength FrameHeight { get; }
 
-    internal OfficeChartSnapshot CreateSnapshot(double width, double height, List<OfficeImageExportDiagnostic> diagnostics) =>
-        _createSnapshot(width, height, diagnostics);
+    internal OfficeChartSnapshot CreateSnapshot(double width, double height, OfficeChartFidelity fidelity,
+        List<OfficeImageExportDiagnostic> diagnostics) =>
+        _createSnapshot(width, height, fidelity, diagnostics);
 }
 
 /// <summary>Renders one shared chart snapshot as a standalone image for the native chart owners.</summary>
@@ -134,7 +135,7 @@ internal static class OfficeChartImageExporter {
                 throw new NotSupportedException(UnsupportedChartMessage + "the chart frame has no size.");
             }
             var diagnostics = new List<OfficeImageExportDiagnostic>();
-            OfficeChartSnapshot snapshot = source.CreateSnapshot(width, height, diagnostics);
+            OfficeChartSnapshot snapshot = source.CreateSnapshot(width, height, options.ChartRendering.Fidelity, diagnostics);
             return Export(snapshot, format, options, diagnostics, source.Name, source.Source, token);
         });
 }

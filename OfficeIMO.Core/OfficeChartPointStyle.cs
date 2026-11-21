@@ -71,6 +71,18 @@ public sealed class OfficeChartPointStyle {
     public bool? ShowOutline { get; }
     /// <summary>Optional outline corner join.</summary>
     public OfficeStrokeLineJoin? OutlineJoin { get; }
+    /// <summary>Optional ending of open outlines such as line and scatter series; null draws flat ends.</summary>
+    public OfficeStrokeLineCap? OutlineCap { get; private set; }
+
+    /// <summary>Returns a copy whose open outlines end with <paramref name="cap"/>.</summary>
+    /// <param name="cap">Line ending, or null for flat ends.</param>
+    public OfficeChartPointStyle WithOutlineCap(OfficeStrokeLineCap? cap) {
+        if (cap.HasValue && !Enum.IsDefined(typeof(OfficeStrokeLineCap), cap.Value))
+            throw new ArgumentOutOfRangeException(nameof(cap));
+        var copy = (OfficeChartPointStyle)MemberwiseClone();
+        copy.OutlineCap = cap;
+        return copy;
+    }
     /// <summary>Combines point overrides with series paint without turning an inherited fill into no-fill.</summary>
     internal static OfficeChartPointStyle? Inherit(OfficeChartPointStyle? point, OfficeChartPointStyle? series) {
         if (point == null) return series;
@@ -80,7 +92,8 @@ public sealed class OfficeChartPointStyle {
             hasFill ? point.NoFill : series.NoFill,
             hasFill ? point.Hatch : series.Hatch, hasFill ? point.HatchColor : series.HatchColor,
             point.OutlineColor ?? series.OutlineColor, point.OutlineWidth ?? series.OutlineWidth,
-            point.ShowOutline ?? series.ShowOutline, point.OutlineJoin ?? series.OutlineJoin);
+            point.ShowOutline ?? series.ShowOutline, point.OutlineJoin ?? series.OutlineJoin)
+            .WithOutlineCap(point.OutlineCap ?? series.OutlineCap);
     }
 
 }

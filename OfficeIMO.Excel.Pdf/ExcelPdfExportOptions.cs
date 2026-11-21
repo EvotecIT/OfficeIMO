@@ -9,6 +9,14 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>Blocks output when conversion reports fidelity loss.</summary>
         public bool FailOnLoss { get; set; }
 
+        private global::OfficeIMO.OfficeChartRenderOptions _chartRendering = new global::OfficeIMO.OfficeChartRenderOptions();
+
+        /// <summary>How native charts are drawn, including what happens to formatting the chart renderer cannot reproduce exactly.</summary>
+        public global::OfficeIMO.OfficeChartRenderOptions ChartRendering {
+            get => _chartRendering;
+            set => _chartRendering = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
         internal CancellationToken CancellationToken { get; set; }
 
         private int _headerRowCount = 1;
@@ -446,6 +454,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         internal ExcelPdfExportOptions CloneForConversion() {
             var clone = (ExcelPdfExportOptions)MemberwiseClone();
+            clone._chartRendering = ChartRendering.Clone();
             clone._pdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
             clone.Sheets = Sheets?.ToArray();
             clone.ResourcePolicy = ResourcePolicy.Clone();

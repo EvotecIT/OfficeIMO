@@ -6,7 +6,8 @@ namespace OfficeIMO.PowerPoint.Pdf;
 
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderChart(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointChart chart, double x, double y, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
-        if (!chart.TryGetSnapshot(out PptCore.PowerPointChartSnapshot snapshot, out string? failureReason)) {
+        if (!chart.TryGetSnapshot(options.ChartRendering.Fidelity, out PptCore.PowerPointChartSnapshot snapshot, out string? failureReason,
+                out IReadOnlyList<string> approximations)) {
             AddLayoutWarning(
                 options,
                 slideNumber,
@@ -36,6 +37,20 @@ public static partial class PowerPointPdfConverterExtensions {
                     PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
                     "PowerPointChart",
                     "The shared PDF chart renderer drew a flat projection of the native chart family.",
+                    x,
+                    y,
+                    width,
+                    height);
+            }
+            foreach (string approximation in approximations) {
+                AddLayoutWarning(
+                    options,
+                    slideNumber,
+                    OfficeDiagnosticCodes.ChartApproximation,
+                    approximation,
+                    PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
+                    "PowerPointChart",
+                    "The shared PDF chart renderer drew an approximation of native chart formatting.",
                     x,
                     y,
                     width,

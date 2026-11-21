@@ -23,6 +23,28 @@ namespace OfficeIMO.PowerPoint {
                 out snapshot,
                 out failureReason);
 
+        /// <summary>
+        /// Tries to create a rendering snapshot at the requested fidelity and reports what was approximated.
+        /// </summary>
+        internal bool TryGetSnapshot(OfficeChartFidelity fidelity, out PowerPointChartSnapshot snapshot,
+            out string? failureReason, out IReadOnlyList<string> approximations) {
+            using var scope = OfficeOpenXmlChartFidelityScope.Enter(fidelity);
+            bool result = TryGetSnapshot(out snapshot, out failureReason);
+            approximations = result ? scope.Approximations.ToArray() : Array.Empty<string>();
+            return result;
+        }
+
+        /// <summary>
+        /// Tries to create a rendering snapshot with an explicit theme colour scheme at the requested fidelity.
+        /// </summary>
+        internal bool TryGetSnapshot(A.ColorScheme? colorScheme, OfficeChartFidelity fidelity,
+            out PowerPointChartSnapshot snapshot, out string? failureReason, out IReadOnlyList<string> approximations) {
+            using var scope = OfficeOpenXmlChartFidelityScope.Enter(fidelity);
+            bool result = TryGetSnapshot(colorScheme, forDataUpdate: false, out snapshot, out failureReason);
+            approximations = result ? scope.Approximations.ToArray() : Array.Empty<string>();
+            return result;
+        }
+
         private bool TryGetSnapshotForUpdate(out PowerPointChartSnapshot snapshot) =>
             TryGetSnapshotWithOwnerColorScheme(
                 forDataUpdate: true,
@@ -90,6 +112,12 @@ namespace OfficeIMO.PowerPoint {
             if (!TryReadSnapshot(colorScheme, forDataUpdate, out snapshot, out failureReason)) return false;
             PowerPointChartSeries? unsupported = forDataUpdate ? null :
                 snapshot.Data.Series.FirstOrDefault(series => series.UnsupportedSharedAppearance != null);
+            if (unsupported != null && OfficeOpenXmlChartFidelityScope.AllowsApproximation) {
+                // Best effort keeps the series' resolved colour and drops the formatting it cannot draw.
+                foreach (PowerPointChartSeries series in snapshot.Data.Series.Where(series => series.UnsupportedSharedAppearance != null))
+                    OfficeOpenXmlChartFidelityScope.Record(series.UnsupportedSharedAppearance!.TrimEnd('.') + "; it is drawn in its plain series colour.");
+                unsupported = null;
+            }
             if (unsupported != null) {
                 failureReason = unsupported.UnsupportedSharedAppearance;
                 snapshot = null!;
@@ -132,8 +160,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (!forDataUpdate) {
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plotArea,
-                        resolveSourceLinkedFormats: true);
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plotArea);
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyTypefaceOnlyTitleAppearance(plotArea);
                 }
 
@@ -462,7 +489,7 @@ namespace OfficeIMO.PowerPoint {
             // Advanced groups use the flat cached-data projection. Their native
             // text and surfaces are outside the qualified 2-D style contract.
             if (!forDataUpdate && kind == PowerPointChartSnapshotKind.Bubble)
-                style = OfficeOpenXmlChartSeriesReader.ReadStyle(GetChartPart(), chart, OfficeChartType.Bubble,
+                style = OfficeOpenXmlChartSeriesReader.ReadStyleOrApproximate(GetChartPart(), chart, OfficeChartType.Bubble,
                     colorScheme, style, data.Categories.Count);
             if (!forDataUpdate &&
                 (chart.PlotArea?.GetFirstChild<C.RadarChart>() != null ||
@@ -470,20 +497,17 @@ namespace OfficeIMO.PowerPoint {
                  chart.PlotArea?.GetFirstChild<C.DoughnutChart>() != null) &&
                 kind is PowerPointChartSnapshotKind.Radar or PowerPointChartSnapshotKind.Pie or
                     PowerPointChartSnapshotKind.Doughnut)
-                style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
+                style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyleOrApproximate(
                     GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme,
                     style, data.Categories.Count);
             // Single-group category charts project their native surfaces and axis styling too, so a chart area
             // written without fill on a dark slide is not drawn as a white panel. Formatting the shared contract
-            // cannot express keeps the text-only style instead of dropping the chart.
+            // cannot express skips the chart in strict projections; best-effort projections keep the text-only style
+            // and report it.
             if (!forDataUpdate && kind is not (PowerPointChartSnapshotKind.Radar or PowerPointChartSnapshotKind.Pie or
-                    PowerPointChartSnapshotKind.Doughnut or PowerPointChartSnapshotKind.Bubble or PowerPointChartSnapshotKind.Scatter)) {
-                try {
-                    style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
-                        GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme, style);
-                } catch (NotSupportedException) {
-                }
-            }
+                    PowerPointChartSnapshotKind.Doughnut or PowerPointChartSnapshotKind.Bubble or PowerPointChartSnapshotKind.Scatter))
+                style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyleOrApproximate(
+                    GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme, style);
             if (!forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
@@ -508,14 +532,19 @@ namespace OfficeIMO.PowerPoint {
                 Height,
                 bubbleSizeMode,
                 bubbleScalePercent,
-                ReadChartLayout(chart, kind, forDataUpdate, radialLabels),
+                ReadChartLayout(chart, kind, forDataUpdate, radialLabels,
+                    data.Series.Select((series, index) => series.SourceIndex ?? (uint)index).ToArray()),
                 style,
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartRadialLayout.Read(chart));
         }
 
         private OfficeChartLayout ReadChartLayout(
             C.Chart chart, PowerPointChartSnapshotKind kind, bool forDataUpdate,
-            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.LabelLayout? radialLabels) {
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.LabelLayout? radialLabels,
+            IReadOnlyList<uint> seriesSourceIndexes) {
+            int[]? labeledSeries = null;
+            Dictionary<int, IReadOnlyCollection<int>>? labeledPoints = null, hiddenLabelPoints = null;
+            radialLabels?.ResolveSelection(seriesSourceIndexes, out labeledSeries, out labeledPoints, out hiddenLabelPoints);
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.LegendPositionValues? nativePosition =
                 legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
@@ -703,6 +732,9 @@ namespace OfficeIMO.PowerPoint {
                 dataLabelFontSize: radialLabels?.FontSize,
                 dataLabelFontFamily: radialLabels?.FontFamily,
                 dataLabelFontStyle: radialLabels?.FontStyle,
+                dataLabelSeriesIndexes: labeledSeries,
+                dataLabelPointIndexes: labeledPoints,
+                hiddenDataLabelPointIndexes: hiddenLabelPoints,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,
                 categoryAxisNumberFormat: forDataUpdate ? null :
@@ -738,7 +770,8 @@ namespace OfficeIMO.PowerPoint {
                 .WithSecondaryValueAxis(forDataUpdate ? null :
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea,
                         () => OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
-                            .ResolveSourceLinkedGeneral(GetChartPart())))
+                            .ResolveSourceLinkedGeneral(GetChartPart(),
+                                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea))))
                 .WithDataLabelLeaderLines(radialLabels?.LeaderLines == true)
                 .WithCategoryGeometry(plotArea, GetOwnerColorScheme())
                 .WithPlotSemantics(chart);
@@ -775,18 +808,20 @@ namespace OfficeIMO.PowerPoint {
 
         private string? ReadAxisNumberFormat(C.ValueAxis axis, bool forDataUpdate) {
             if (forDataUpdate) return null;
-            if ((axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true ||
-                    GetChartPart().ChartSpace?.GetFirstChild<C.ExternalData>() == null) &&
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.HasUnsupportedSharedAxisNumberFormat(axis))
-                throw new NotSupportedException("The native axis number format cannot be projected.");
             if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) {
                 ChartPart part = GetChartPart();
-                if (part.ChartSpace?.GetFirstChild<C.ExternalData>() != null)
-                    return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
-                        .ResolveSourceLinkedGeneral(part);
+                if (part.ChartSpace?.GetFirstChild<C.ExternalData>() != null) {
+                    try {
+                        return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
+                            .ResolveSourceLinkedGeneral(part, axis);
+                    } catch (NotSupportedException) {
+                        // The cells carry formats; the chart caches the code Office last displayed.
+                        OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.RecordLinkedFormatFallback("axis");
+                    }
+                }
             }
-            string? format = axis.GetFirstChild<C.NumberingFormat>()?
-                .FormatCode?.Value;
+            // Formats the renderer cannot reproduce are drawn as General and reported.
+            string? format = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.ReadDrawableNumberFormat(axis);
             return string.IsNullOrWhiteSpace(format) ? null : format;
         }
 

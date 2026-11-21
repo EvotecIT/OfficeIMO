@@ -98,6 +98,10 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
     [Parameter]
     public SwitchParameter AllowDocumentFontEmbedding { get; set; }
 
+    /// <summary>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</summary>
+    [Parameter]
+    public OfficeChartFidelity? ChartFidelity { get; set; }
+
     /// <inheritdoc />
     protected override void ProcessRecord() {
         foreach (OfficeLength? margin in new[] { MarginLeft, MarginTop, MarginRight, MarginBottom })
@@ -126,6 +130,7 @@ public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
         if (IsBound(nameof(DefaultTableBorders))) options.DefaultTableBorders = DefaultTableBorders.IsPresent;
         if (IsBound(nameof(AllowSystemFontEmbedding))) options.ResourcePolicy.AllowSystemFontEmbedding = AllowSystemFontEmbedding.IsPresent;
         if (IsBound(nameof(AllowDocumentFontEmbedding))) options.ResourcePolicy.AllowDocumentFontEmbedding = AllowDocumentFontEmbedding.IsPresent;
+        if (ChartFidelity.HasValue) options.ChartRendering.Fidelity = ChartFidelity.Value;
         WriteObject(options);
     }
 

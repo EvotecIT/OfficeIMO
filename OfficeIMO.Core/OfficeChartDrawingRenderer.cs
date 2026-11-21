@@ -1672,7 +1672,8 @@ public static partial class OfficeChartDrawingRenderer {
                     if (layout.BlankDisplay == OfficeChartBlankDisplay.Span) continue;
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                         AddScatterPlotLine(lineGeometry, lineSegment, currentSeries.SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle,
-                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin);
+                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin,
+                            currentSeries.SeriesStyle?.OutlineCap);
                     }
 
                     lineSegment.Clear();
@@ -1683,7 +1684,8 @@ public static partial class OfficeChartDrawingRenderer {
                 if (!IsFiniteChartValue(xValue)) {
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                         AddScatterPlotLine(lineGeometry, lineSegment, currentSeries.SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle,
-                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin);
+                            clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin,
+                            currentSeries.SeriesStyle?.OutlineCap);
                     }
 
                     lineSegment.Clear();
@@ -1708,7 +1710,8 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (layout.ConnectScatterPoints && currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
                 AddScatterPlotLine(lineGeometry, lineSegment, currentSeries.SeriesStyle?.OutlineColor ?? color, strokeWidth, dashStyle,
-                    clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin);
+                    clipPlot, xRange, yRange, centerBounds, currentSeries.SeriesStyle?.OutlineJoin,
+                            currentSeries.SeriesStyle?.OutlineCap);
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
@@ -1967,7 +1970,8 @@ public static partial class OfficeChartDrawingRenderer {
         AddShape(drawing, shape, minX, minY, fill, stroke, strokeWidth, dashStyle);
     }
 
-    private static void AddPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
+    private static void AddPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid,
+        OfficeStrokeLineCap? cap = null) {
         for (int i = 1; i < points.Count; i++) {
             OfficePoint previous = points[i - 1];
             OfficePoint current = points[i];
@@ -1977,9 +1981,11 @@ public static partial class OfficeChartDrawingRenderer {
 
             double minX = Math.Min(previous.X, current.X);
             double minY = Math.Min(previous.Y, current.Y);
+            OfficeShape segment = OfficeShape.Line(previous.X - minX, previous.Y - minY, current.X - minX, current.Y - minY);
+            segment.StrokeLineCap = cap;
             AddShape(
                 drawing,
-                OfficeShape.Line(previous.X - minX, previous.Y - minY, current.X - minX, current.Y - minY),
+                segment,
                 minX,
                 minY,
                 null,

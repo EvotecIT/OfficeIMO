@@ -31,7 +31,9 @@ namespace OfficeIMO.Spreadsheet {
             }
 
             if (IsZeroValue(value) && HasOnlyOptionalDigitPlaceholders(normalized)) {
-                return string.Empty;
+                // Optional digits show nothing for zero, but the section's literals still print, such as the
+                // dash of the accounting zero section _(* "-"??_).
+                return ApplyNumericAffixes(normalized, string.Empty);
             }
 
             if (TryFormatFraction(value, normalized, selectedSection, out string fractionText)) {
@@ -64,7 +66,7 @@ namespace OfficeIMO.Spreadsheet {
                 : "F" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture);
             double roundedValue = decimalPlaces.Maximum <= 15
                 && !double.IsNaN(displayValue) && !double.IsInfinity(displayValue)
-                ? Math.Round(displayValue, decimalPlaces.Maximum, MidpointRounding.AwayFromZero)
+                ? RoundForDisplay(displayValue, decimalPlaces.Maximum)
                 : displayValue;
             var numberFormat = NumberFormatInfo.GetInstance(provider);
             string text = roundedValue.ToString(numericFormat, numberFormat);

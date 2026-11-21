@@ -588,7 +588,13 @@ internal static partial class PdfWriter {
         return commands;
     }
 
+    // Each intersection is a further clip operator, so the PDF clip is their exact intersection.
     private static void AppendClipPath(StringBuilder sb, OfficeIMO.Drawing.OfficeClipPath clipPath, double x, double y, double shapeHeight) {
+        AppendSingleClipPath(sb, clipPath, x, y, shapeHeight);
+        for (int i = 0; i < clipPath.Intersections.Count; i++) AppendSingleClipPath(sb, clipPath.Intersections[i], x, y, shapeHeight);
+    }
+
+    private static void AppendSingleClipPath(StringBuilder sb, OfficeIMO.Drawing.OfficeClipPath clipPath, double x, double y, double shapeHeight) {
         var content = new ContentStreamBuilder(sb);
         switch (clipPath.Kind) {
             case OfficeIMO.Drawing.OfficeClipPathKind.Empty:
@@ -614,6 +620,11 @@ internal static partial class PdfWriter {
     }
 
     private static void AppendLocalClipPath(StringBuilder sb, OfficeIMO.Drawing.OfficeClipPath clipPath) {
+        AppendSingleLocalClipPath(sb, clipPath);
+        for (int i = 0; i < clipPath.Intersections.Count; i++) AppendSingleLocalClipPath(sb, clipPath.Intersections[i]);
+    }
+
+    private static void AppendSingleLocalClipPath(StringBuilder sb, OfficeIMO.Drawing.OfficeClipPath clipPath) {
         var content = new ContentStreamBuilder(sb);
         switch (clipPath.Kind) {
             case OfficeIMO.Drawing.OfficeClipPathKind.Empty:

@@ -8,6 +8,11 @@ internal readonly partial struct PdfPageClipPath {
     internal const long MaximumTextClippingIntersectionWork = MaximumClippingIntersectionWork;
     private const int CurveFlatteningPointCount = 24;
     private readonly bool _canServeAsExactPathClip;
+    private readonly bool _isPrimaryExact;
+    // Set when a rectangular primary is stored as a path so rectangle shortcuts cannot ignore the intersections.
+    private readonly bool _rectangularPrimary;
+    // Absolute page-space paths, without intersections of their own, that renderers also clip by; usually null.
+    private readonly IntersectionChain? _renderingIntersections;
 
     private PdfPageClipPath(
         double x,
@@ -19,7 +24,9 @@ internal readonly partial struct PdfPageClipPath {
         IReadOnlyList<OfficePathCommand> commands,
         bool isExact = true,
         bool containsTextClipping = false,
-        bool? canServeAsExactPathClip = null) {
+        bool? canServeAsExactPathClip = null,
+        IntersectionChain? renderingIntersections = null,
+        bool rectangularPrimary = false) {
         X = x;
         Y = y;
         Width = width;
@@ -27,10 +34,12 @@ internal readonly partial struct PdfPageClipPath {
         IsRectangle = isRectangle;
         FillRule = fillRule;
         Commands = commands;
-        IsExact = isExact;
+        _isPrimaryExact = isExact;
         ContainsTextClipping = containsTextClipping;
         _canServeAsExactPathClip = canServeAsExactPathClip ??
             ComputeCanServeAsExactPathClip(isRectangle, isExact, commands);
+        _renderingIntersections = renderingIntersections;
+        _rectangularPrimary = rectangularPrimary;
     }
 
     /// <summary>True when every field matches bit for bit and both share the same command list.</summary>
@@ -42,9 +51,11 @@ internal readonly partial struct PdfPageClipPath {
         IsRectangle == other.IsRectangle &&
         FillRule == other.FillRule &&
         ReferenceEquals(Commands, other.Commands) &&
-        IsExact == other.IsExact &&
+        _isPrimaryExact == other._isPrimaryExact &&
         ContainsTextClipping == other.ContainsTextClipping &&
-        _canServeAsExactPathClip == other._canServeAsExactPathClip;
+        _canServeAsExactPathClip == other._canServeAsExactPathClip &&
+        ReferenceEquals(_renderingIntersections, other._renderingIntersections) &&
+        _rectangularPrimary == other._rectangularPrimary;
 
     public static PdfPageClipPath Rectangle(double x, double y, double width, double height) =>
         new PdfPageClipPath(x, y, width, height, true, OfficeFillRule.EvenOdd, Array.Empty<OfficePathCommand>());
@@ -60,7 +71,26 @@ internal readonly partial struct PdfPageClipPath {
             return clipPath;
         }
 
-        PdfPageClipPath active = activeClipPath.Value;
+        // Geometry is resolved on the primary paths; rendering intersections of both sides carry over unchanged.
+        PdfPageClipPath activeClip = activeClipPath.Value;
+        PdfPageClipPath resolvedClip = ResolvePrimaryClip(
+            activeClip.WithoutRenderingIntersections(),
+            clipPath.WithoutRenderingIntersections(),
+            textClippingBudget,
+            out PdfPageClipPath[]? renderingIntersections);
+        return resolvedClip.WithRenderingIntersections(CombineRenderingIntersections(
+            activeClip._renderingIntersections,
+            clipPath._renderingIntersections,
+            renderingIntersections,
+            textClippingBudget));
+    }
+
+    private static PdfPageClipPath ResolvePrimaryClip(
+        PdfPageClipPath active,
+        PdfPageClipPath clipPath,
+        PdfTextClippingBudget? textClippingBudget,
+        out PdfPageClipPath[]? renderingIntersections) {
+        renderingIntersections = null;
         bool containsTextClipping = active.ContainsTextClipping || clipPath.ContainsTextClipping;
         if (!active.IsRectangle || !clipPath.IsRectangle) {
             if (active.IsRectangle) {
@@ -88,8 +118,8 @@ internal readonly partial struct PdfPageClipPath {
             }
 
             PdfPageClipPath pathResult = CanServeAsExactPathClip(clipPath) || !CanServeAsExactPathClip(active)
-                ? IntersectPathWithPath(active, clipPath, pathIntersection, textClippingBudget)
-                : IntersectPathWithPath(clipPath, active, pathIntersection, textClippingBudget);
+                ? IntersectPathWithPath(active, clipPath, pathIntersection, textClippingBudget, out renderingIntersections)
+                : IntersectPathWithPath(clipPath, active, pathIntersection, textClippingBudget, out renderingIntersections);
             return pathResult
                 .WithExactness(pathResult.IsExact && active.IsExact && clipPath.IsExact)
                 .WithTextClipping(containsTextClipping);
@@ -113,8 +143,10 @@ internal readonly partial struct PdfPageClipPath {
         }
 
         var commands = new List<OfficePathCommand>(checked(paths.Count * 5));
+        bool dropsRenderingIntersections = false;
         for (int i = 0; i < paths.Count; i++) {
             PdfPageClipPath path = paths[i];
+            dropsRenderingIntersections |= path._renderingIntersections != null;
             if (!path.IsRectangle) {
                 commands.AddRange(path.Commands);
                 continue;
@@ -133,6 +165,8 @@ internal readonly partial struct PdfPageClipPath {
             return false;
         }
 
+        // A union of primary paths is a superset of the union of their rendered intersections.
+        if (dropsRenderingIntersections) clipPath = clipPath.WithExactness(false);
         clipPath = clipPath.WithTextClipping(true);
         return true;
     }
@@ -189,7 +223,9 @@ internal readonly partial struct PdfPageClipPath {
         PdfPageClipPath active,
         PdfPageClipPath next,
         PdfPageClipPath intersection,
-        PdfTextClippingBudget? textClippingBudget) {
+        PdfTextClippingBudget? textClippingBudget,
+        out PdfPageClipPath[]? renderingIntersections) {
+        renderingIntersections = null;
         textClippingBudget?.ChargeFlattenedPathWork(active.Commands, next.Commands);
         bool isExact = active.IsExact && next.IsExact &&
             !ContainsCurve(active.Commands) &&
@@ -205,9 +241,11 @@ internal readonly partial struct PdfPageClipPath {
             && !HasOverlappingContourBounds(clipContours, textClippingBudget);
         if (!canClipPerContour) {
             // Exact arbitrary path intersection needs a general polygon boolean engine.
-            // Preserve a conservative superset so unsupported clip complexity cannot
-            // suppress visible-content reporting or discard the rendered element.
-            return intersection.WithExactness(false);
+            // The bounds stay a conservative superset for geometry consumers, so unsupported
+            // clip complexity cannot suppress visible-content reporting or discard the element;
+            // renderers intersect both exact paths, each with its own fill rule, by coverage.
+            renderingIntersections = new[] { active, next };
+            return intersection.WithExactness(active.IsExact && next.IsExact);
         }
 
         for (int i = 0; i < subjectContours.Count; i++) {
@@ -950,13 +988,17 @@ internal readonly partial struct PdfPageClipPath {
 
     public IReadOnlyList<OfficePathCommand> Commands { get; }
 
-    internal bool IsExact { get; }
+    /// <summary>True when <see cref="Commands"/> or the rectangle alone is the exact clip; otherwise it is a superset.</summary>
+    internal bool IsExact => _isPrimaryExact && _renderingIntersections == null;
 
     internal bool ContainsTextClipping { get; }
 
+    /// <summary>How many further paths renderers clip by on top of the primary geometry.</summary>
+    internal int RenderingIntersectionCount => _renderingIntersections?.Count ?? 0;
+
     internal PdfPageClipPath AsTextClippingPath() => WithTextClipping(true);
 
-    internal bool CanProveExactIntersection => CanServeAsExactPathClip(this);
+    internal bool CanProveExactIntersection => _renderingIntersections == null && CanServeAsExactPathClip(this);
 
     internal bool CanProveNoPositiveAreaIntersection(PdfPageClipPath other) =>
         CanProveNoPositiveAreaIntersection(other, new PdfReadPage.VisualGeometryBudget());
@@ -1050,9 +1092,20 @@ internal readonly partial struct PdfPageClipPath {
         ((end.X - start.X) * (point.Y - start.Y)) - ((end.Y - start.Y) * (point.X - start.X));
 
     private PdfPageClipPath WithExactness(bool isExact) =>
-        IsExact == isExact
+        _isPrimaryExact == isExact
             ? this
-            : new PdfPageClipPath(X, Y, Width, Height, IsRectangle, FillRule, Commands, isExact, ContainsTextClipping);
+            : new PdfPageClipPath(
+                X,
+                Y,
+                Width,
+                Height,
+                IsRectangle,
+                FillRule,
+                Commands,
+                isExact,
+                ContainsTextClipping,
+                renderingIntersections: _renderingIntersections,
+                rectangularPrimary: _rectangularPrimary);
 
     private PdfPageClipPath WithTextClipping(bool containsTextClipping) =>
         ContainsTextClipping == containsTextClipping
@@ -1065,11 +1118,17 @@ internal readonly partial struct PdfPageClipPath {
                 IsRectangle,
                 FillRule,
                 Commands,
-                IsExact,
+                _isPrimaryExact,
                 containsTextClipping,
-                _canServeAsExactPathClip);
+                _canServeAsExactPathClip,
+                _renderingIntersections,
+                _rectangularPrimary);
 
     internal PdfPageClipPath WithBounds(PdfPageClipPath bounds) {
+        if (_renderingIntersections != null) {
+            return WithoutRenderingIntersections().WithBounds(bounds).WithRenderingIntersections(_renderingIntersections);
+        }
+
         if (IsRectangle) {
             return new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, true, FillRule, Commands, IsExact, ContainsTextClipping);
         }
@@ -1085,6 +1144,16 @@ internal readonly partial struct PdfPageClipPath {
     }
 
     internal PdfPageClipPath Translate(double offsetX, double offsetY) {
+        if (_renderingIntersections != null) {
+            IntersectionChain? translatedIntersections = null;
+            PdfPageClipPath[] intersections = _renderingIntersections.ToArray();
+            for (int i = 0; i < intersections.Length; i++) {
+                translatedIntersections = new IntersectionChain(intersections[i].Translate(offsetX, offsetY), translatedIntersections);
+            }
+
+            return WithoutRenderingIntersections().Translate(offsetX, offsetY).WithRenderingIntersections(translatedIntersections);
+        }
+
         if (IsRectangle) {
             return Rectangle(X - offsetX, Y - offsetY, Width, Height)
                 .WithExactness(IsExact)
@@ -1141,15 +1210,18 @@ internal readonly partial struct PdfPageClipPath {
             return null;
         }
 
-        if (IsRectangle) {
-            return OfficeClipPath.Rectangle(Width, Height);
+        if (IsRectangle || _rectangularPrimary) {
+            return AddOfficeClipIntersections(OfficeClipPath.Rectangle(Width, Height), primitiveX, primitiveY);
         }
 
+        OfficeClipPath primary;
         try {
-            return OfficeClipPath.Path(TranslateCommands(primitiveX, primitiveY), FillRule);
+            primary = OfficeClipPath.Path(TranslateCommands(primitiveX, primitiveY), FillRule);
         } catch (ArgumentException) {
             return null;
         }
+
+        return AddOfficeClipIntersections(primary, primitiveX, primitiveY);
     }
 
     private List<OfficePathCommand> TranslateCommands(double offsetX, double offsetY) {

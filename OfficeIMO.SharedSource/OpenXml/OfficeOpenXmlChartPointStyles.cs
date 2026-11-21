@@ -58,8 +58,9 @@ internal static class OfficeOpenXmlChartPointStyles {
         return true;
     }
 
+    // Line caps are drawn on open series lines and have no visible effect on closed shapes,
+    // so only pen alignment and compound lines change what a chart outline looks like.
     internal static bool HasUnsupportedLineAttributes(A.Outline outline) =>
-        outline.CapType != null && outline.CapType.Value != A.LineCapValues.Flat ||
         outline.Alignment != null && outline.Alignment.Value != A.PenAlignmentValues.Center ||
         outline.CompoundLineType != null && outline.CompoundLineType.Value != A.CompoundLineValues.Single;
 
@@ -127,7 +128,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         // turn the stored default into a second explicit paint override.
         OfficeColor? automatic = style.FillColor ?? style.OutlineColor;
         return new OfficeChartPointStyle(null, style.NoFill, outlineColor: style.OutlineColor == automatic ? null : style.OutlineColor,
-            outlineWidth: style.OutlineWidth, showOutline: style.ShowOutline, outlineJoin: style.OutlineJoin);
+            outlineWidth: style.OutlineWidth, showOutline: style.ShowOutline, outlineJoin: style.OutlineJoin).WithOutlineCap(style.OutlineCap);
     }
 
     /// <summary>Projects qualified ribbon paint into the shared flat stroke without confusing its fill and border.</summary>
@@ -176,9 +177,12 @@ internal static class OfficeOpenXmlChartPointStyles {
         OfficeStrokeLineJoin? join = outline?.GetFirstChild<A.Round>() != null ? OfficeStrokeLineJoin.Round :
             outline?.GetFirstChild<A.LineJoinBevel>() != null ? OfficeStrokeLineJoin.Bevel :
             outline?.GetFirstChild<A.Miter>() != null ? OfficeStrokeLineJoin.Miter : null;
-        if (!fill.HasValue && !noFill && !hatch.HasValue && !line.HasValue && !width.HasValue && !showOutline.HasValue && !join.HasValue) return null;
+        OfficeStrokeLineCap? cap = outline?.CapType?.Value == A.LineCapValues.Round ? OfficeStrokeLineCap.Round :
+            outline?.CapType?.Value == A.LineCapValues.Square ? OfficeStrokeLineCap.Square : null;
+        if (!fill.HasValue && !noFill && !hatch.HasValue && !line.HasValue && !width.HasValue && !showOutline.HasValue && !join.HasValue &&
+            !cap.HasValue) return null;
 
-        return new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, line, width, showOutline, join);
+        return new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, line, width, showOutline, join).WithOutlineCap(cap);
     }
 
     internal static void ApplySeries(OpenXmlCompositeElement series, OfficeSeries data, OfficeTheme? theme = null) {
@@ -273,6 +277,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         if (replacement.GetFirstChild<A.Outline>() is A.Outline requested) {
             var outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             if (requested.Width != null) outline.Width = requested.Width.Value;
+            if (requested.CapType != null) outline.CapType = requested.CapType.Value;
             if (style.ShowOutline == false || style.OutlineColor.HasValue) {
                 outline.RemoveAllChildren<A.NoFill>();
                 outline.RemoveAllChildren<A.SolidFill>();
@@ -305,9 +310,13 @@ internal static class OfficeOpenXmlChartPointStyles {
         } else if ((style?.FillColor ?? legacyColor) is OfficeColor fill)
             properties.AddChild(new A.SolidFill(CreateColor(fill, theme)), true);
         if (style?.ShowOutline == false) properties.AddChild(new A.Outline(new A.NoFill()), true);
-        else if (style?.OutlineColor != null || style?.OutlineWidth != null || style?.ShowOutline == true || style?.OutlineJoin != null) {
+        else if (style?.OutlineColor != null || style?.OutlineWidth != null || style?.ShowOutline == true || style?.OutlineJoin != null ||
+            style?.OutlineCap != null) {
             var outline = new A.Outline();
             if (style.OutlineWidth.HasValue) outline.Width = checked((int)style.OutlineWidth.Value.ToEmus());
+            if (style.OutlineCap is OfficeStrokeLineCap cap)
+                outline.CapType = cap == OfficeStrokeLineCap.Round ? A.LineCapValues.Round :
+                    cap == OfficeStrokeLineCap.Square ? A.LineCapValues.Square : A.LineCapValues.Flat;
             if (style.OutlineColor is OfficeColor line) outline.Append(new A.SolidFill(CreateColor(line, theme)));
             if (style.OutlineJoin is OfficeStrokeLineJoin join) outline.Append(join switch {
                 OfficeStrokeLineJoin.Round => new A.Round(),

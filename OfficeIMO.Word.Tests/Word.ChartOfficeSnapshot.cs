@@ -279,7 +279,8 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Equal(" / ", snapshot.Layout.DataLabelSeparator);
         var drawing = OfficeChartDrawingRenderer.Render(snapshot);
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("A / 75%"));
-        labels.AddChild(new C.DataLabel(new C.Index { Val = 0 }), true);
+        labels.AddChild(new C.DataLabel(new C.Index { Val = 0 }, new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.Run(new A.Text("Custom")))))), true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
     [Theory]

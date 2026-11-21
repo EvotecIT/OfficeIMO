@@ -1,4 +1,5 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.Pdf;
 using PSWriteOffice.Foundation;
@@ -89,6 +90,10 @@ public sealed class NewOfficePowerPointPdfOptionsCommand : OfficeCmdlet {
     [Parameter]
     public OfficeChartLayout? ChartLayout { get; set; }
 
+    /// <summary>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</summary>
+    [Parameter]
+    public OfficeChartFidelity? ChartFidelity { get; set; }
+
     /// <summary>Allow embedding fonts discovered on the current system.</summary>
     [Parameter]
     public SwitchParameter AllowSystemFontEmbedding { get; set; }
@@ -118,6 +123,7 @@ public sealed class NewOfficePowerPointPdfOptionsCommand : OfficeCmdlet {
         if (BoundSwitch(nameof(WarnOnPictureAspectRatioDistortion)) is bool warn) options.WarnOnPictureAspectRatioDistortion = warn;
         if (ChartStyle != null) options.ChartStyle = ChartStyle;
         if (ChartLayout != null) options.ChartLayout = ChartLayout;
+        if (ChartFidelity.HasValue) options.ChartRendering.Fidelity = ChartFidelity.Value;
         if (BoundSwitch(nameof(AllowSystemFontEmbedding)) is bool systemFonts) options.ResourcePolicy.AllowSystemFontEmbedding = systemFonts;
         if (BoundSwitch(nameof(AllowDocumentFontEmbedding)) is bool documentFonts) options.ResourcePolicy.AllowDocumentFontEmbedding = documentFonts;
         WriteObject(options);
