@@ -118,7 +118,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Tries to read the chart data from the chart's source range.
         /// </summary>
-        public bool TryGetData(out ExcelChartData data) {
+        public bool TryGetData(out ExcelChartData data) => TryGetData(out data, out _);
+
+        /// <summary>Reads the chart data and reports why a strict projection rejected the chart while reading it.</summary>
+        private bool TryGetData(out ExcelChartData data, out string? unsupportedReason) {
+            unsupportedReason = null;
             try {
                 ChartPart chartPart = GetChartPart();
                 ExcelChartDataRange? range = _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
@@ -139,7 +143,8 @@ namespace OfficeIMO.Excel {
                 }
                 data = chartData;
                 return true;
-            } catch {
+            } catch (Exception exception) {
+                if (exception is NotSupportedException) unsupportedReason = exception.Message;
                 data = null!;
                 return false;
             }
@@ -173,7 +178,7 @@ namespace OfficeIMO.Excel {
             out string? unsupportedReason) {
             unsupportedReason = null;
             using var scope = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Enter(fidelity);
-            if (!TryGetData(out ExcelChartData data)) {
+            if (!TryGetData(out ExcelChartData data, out unsupportedReason)) {
                 snapshot = null!;
                 return false;
             }

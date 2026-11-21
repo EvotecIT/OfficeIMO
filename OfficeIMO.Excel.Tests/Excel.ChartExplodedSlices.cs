@@ -146,7 +146,8 @@ public sealed class ExcelChartExplodedSlicesTests {
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
             .ChartSpace!.Descendants<C.PieChartSeries>().Single().AddChild(new C.Explosion { Val = 401U }, true);
 
-        Assert.Throws<InvalidOperationException>(() => chart.ToImage(OfficeImageExportFormat.Png));
+        NotSupportedException strict = Assert.Throws<NotSupportedException>(() => chart.ToImage(OfficeImageExportFormat.Png));
+        Assert.Contains("point explosion", strict.Message, StringComparison.Ordinal);
         OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
         OfficeIMO.Pdf.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(
@@ -175,7 +176,8 @@ public sealed class ExcelChartExplodedSlicesTests {
             series.GetFirstChild<C.CategoryAxisData>());
 
         Assert.True(chart.TryGetData(out _));
-        Assert.Throws<InvalidOperationException>(() => chart.ToImage(OfficeImageExportFormat.Png));
+        NotSupportedException strict = Assert.Throws<NotSupportedException>(() => chart.ToImage(OfficeImageExportFormat.Png));
+        Assert.Contains("The trendline dash pattern cannot be projected.", strict.Message, StringComparison.Ordinal);
         OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
 
