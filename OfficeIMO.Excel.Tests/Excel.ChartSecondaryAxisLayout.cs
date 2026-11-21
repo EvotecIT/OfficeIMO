@@ -120,4 +120,29 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         var visual = Assert.Single(sheet.Range("A1:J12").CreateVisualSnapshot().Charts);
         Assert.Equal("0%", visual.Snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
     }
+
+    [Fact]
+    public void SecondaryValueAxis_OverlongLinkedFormatDrawsAsGeneral() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddSheet("Results");
+        var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "North", "South" }, new[] {
+                new OfficeSeries("Count", new[] { 100d, 200d }),
+                new OfficeSeries("Ratio", new[] { .5, .75 }, null, null, null, true,
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
+        var native = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!;
+        var secondary = native.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        // The worksheet range cannot be read, so the linked axis falls back to its own cached code.
+        secondary.NumberingFormat!.FormatCode = "0\"" + new string('x', 1100) + "\"";
+        secondary.NumberingFormat.SourceLinked = true;
+        var values = native.Descendants<C.LineChartSeries>().Single().GetFirstChild<C.Values>()!;
+        values.RemoveAllChildren();
+        values.Append(new C.NumberReference(new C.Formula("Missing!$C$2:$C$3"),
+            new C.NumberingCache(new C.FormatCode("General"), new C.PointCount { Val = 2 },
+                new C.NumericPoint(new C.NumericValue("0.5")) { Index = 0 },
+                new C.NumericPoint(new C.NumericValue("0.75")) { Index = 1 })));
+
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        Assert.Null(snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
+    }
 }

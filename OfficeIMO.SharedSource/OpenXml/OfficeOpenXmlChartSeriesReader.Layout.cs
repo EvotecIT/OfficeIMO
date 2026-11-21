@@ -6,16 +6,22 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartType kind, OfficeChartData data, string? axisTitleFont = null, A.ColorScheme? scheme = null) {
+        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartType kind, OfficeChartData data, string? axisTitleFont = null, A.ColorScheme? scheme = null,
+            Result? source = null) {
             if (chart.PlotArea?.Descendants<C.Title>().Any(title =>
                     title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                     title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false) == true)
-                throw new NotSupportedException("Manual axis-title layouts and overlaid axis titles cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("Manual axis-title layouts and overlaid axis titles cannot be projected.",
+                    "Manually placed or overlaid axis titles are drawn in their automatic positions.");
             var labels = ReadLabels(chart, scheme);
-            var defaultText = ReadNativeText(chart, chart, scheme);
-            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
-            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
-            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
+            labels.ResolveSelection(source?.Series.Select(series => series.SourceIndex).ToArray() ??
+                    Enumerable.Range(0, data.Series.Count).Select(index => (uint)index).ToArray(),
+                out int[]? labeledSeries, out var labeledPoints, out var hiddenLabelPoints);
+            var defaultText = ReadTextOrApproximate(() => ReadNativeText(chart, chart, scheme), "chart");
+            var legendText = ReadTextOrApproximate(() => ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme), "legend");
+            var axisText = ReadTextOrApproximate(() => ReadUniformNativeText(chart, TextAxes(chart), scheme), "axis label");
+            var axisTitleText = ReadTextOrApproximate(() => ReadUniformNativeText(chart,
+                TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme), "axis title");
             var legend = chart.GetFirstChild<C.Legend>();
             var position = legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
             var sharedPosition = position == C.LegendPositionValues.Left ? OfficeChartLegendPosition.Left :
@@ -30,9 +36,11 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Select(value => (int)value!.Value).ToArray() : null;
             var plot = chart.PlotArea;
             if (plot?.Descendants().Any(element => element is C.TickLabelSkip or C.TickMarkSkip) == true)
-                throw new NotSupportedException("Category-axis label and tick skipping cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("Category-axis label and tick skipping cannot be projected.",
+                    "Category-axis labels and tick marks are drawn without skipping.");
             if (plot?.Descendants<C.LabelAlignment>().Any(alignment => alignment.Val?.Value is C.LabelAlignmentValues value && value != C.LabelAlignmentValues.Center) == true)
-                throw new NotSupportedException("Non-centered category label alignment cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("Non-centered category label alignment cannot be projected.",
+                    "Category labels are drawn centred.");
             var chartLayers = plot?.ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToArray();
             // One shared layout places every category point, so all category value axes must agree.
@@ -41,7 +49,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Distinct().Skip(1).Any())
                 throw new NotSupportedException("Independent cross-between geometry on different value axes cannot be projected.");
             if (plot?.Descendants<C.LabelOffset>().Any(offset => offset.Val?.Value is ushort value && value != 100) == true)
-                throw new NotSupportedException("Independent category label offsets cannot be projected.");
+                OfficeOpenXmlChartFidelityScope.Approximate("Independent category label offsets cannot be projected.",
+                    "Category labels are drawn at the default distance from their axis.");
             OpenXmlCompositeElement? horizontal = null, vertical = null;
             if (!radial && plot != null) {
                 var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
@@ -57,10 +66,6 @@ namespace OfficeIMO.OpenXml.Internal {
                     if (horizontal == null || vertical == null || (numeric && (horizontal is not C.ValueAxis || vertical is not C.ValueAxis)))
                         throw new NotSupportedException("The chart axis roles cannot be projected.");
                 }
-            }
-            foreach (var axis in new[] { horizontal, vertical }.Where(axis => axis != null)) {
-                if (axis is C.ValueAxis numericAxis && HasUnsupportedSharedAxisNumberFormat(numericAxis))
-                    throw new NotSupportedException("The native numeric axis format cannot be projected.");
             }
             if (kind == OfficeChartType.Radar &&
                 (horizontal?.GetFirstChild<C.Title>() != null || vertical?.GetFirstChild<C.Title>() != null ||
@@ -91,6 +96,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 showDataLabels: labels.Visible, showDataLabelValues: labels.Values, showDataLabelCategoryNames: labels.Categories,
                 showDataLabelSeriesNames: labels.SeriesNames, showDataLabelPercentages: labels.Percentages,
                 dataLabelSeparator: labels.Separator, dataLabelNumberFormat: labels.NumberFormat, dataLabelPosition: labels.Position,
+                dataLabelSeriesIndexes: labeledSeries, dataLabelPointIndexes: labeledPoints, hiddenDataLabelPointIndexes: hiddenLabelPoints,
                 fillRadarSeries: chart.PlotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled,
                 categoryAxisTitle: ReadLayoutTitle(categoryAxis), valueAxisTitle: ReadLayoutTitle(valueAxis), axisTitleFontFamily: axisTitleFont,
                 categoryAxisNumberFormat: categoryAxis is C.ValueAxis ? null : ReadLayoutFormat(categoryAxis, IsClearlyTextualCategoryCache(plot)),
@@ -132,9 +138,11 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (axis == null) throw new NotSupportedException("The secondary chart axes cannot be resolved.");
                 if (axis is C.CategoryAxis or C.DateAxis && !IsDeletedAxis(axis))
                     throw new NotSupportedException("Visible secondary category axes cannot be projected.");
-                if (!HasUnpaintedSecondaryAxisShape(axis.GetFirstChild<C.ChartShapeProperties>()) ||
+                // A deleted axis draws nothing, whatever its stored line.
+                if (!IsDeletedAxis(axis) && !HasUnpaintedSecondaryAxisShape(axis.GetFirstChild<C.ChartShapeProperties>()) ||
                     axis.GetFirstChild<C.MajorGridlines>() != null || axis.GetFirstChild<C.MinorGridlines>() != null)
-                    throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
+                    OfficeOpenXmlChartFidelityScope.Approximate("The secondary axis appearance cannot be projected independently.",
+                        "The secondary axis line and gridlines are drawn like the primary axis.");
                 OfficeOpenXmlChartSecondaryAxis.QualifyTitle(axis.GetFirstChild<C.Title>());
                 if (axis.GetFirstChild<C.Title>()?.Descendants().Any(child =>
                         child is A.EastAsianFont or A.ComplexScriptFont) == true)
@@ -145,8 +153,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     var scaling = axis.GetFirstChild<C.Scaling>();
                     if (scaling?.GetFirstChild<C.LogBase>() != null ||
                         scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
-                        axis.GetFirstChild<C.CrossesAt>() != null || axis.GetFirstChild<C.DisplayUnits>() != null ||
-                        HasUnsupportedSharedAxisNumberFormat(axis))
+                        axis.GetFirstChild<C.CrossesAt>() != null || axis.GetFirstChild<C.DisplayUnits>() != null)
                         throw new NotSupportedException("The secondary numeric axis presentation cannot be projected.");
                 }
             }
@@ -154,10 +161,26 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool HasUnpaintedSecondaryAxisShape(C.ChartShapeProperties? properties) {
             if (properties == null) return true;
+            // Office writes a hidden secondary axis line as no fill, no line and an empty effect list.
             A.Outline? outline = properties.GetFirstChild<A.Outline>();
-            return !properties.HasAttributes && properties.ChildElements.Count == 1 && outline != null &&
-                outline.GetAttributes().All(attribute => attribute.LocalName == "w") &&
+            return !properties.HasAttributes && outline != null &&
+                properties.ChildElements.All(child => child is A.Outline || child is A.NoFill || child is A.EffectList && !child.HasChildren) &&
                 outline.ChildElements.Count == 1 && outline.GetFirstChild<A.NoFill>() != null;
+        }
+
+        /// <summary>
+        /// Reads chart text formatting. Strict projections reject text the renderer cannot reproduce; best-effort
+        /// projections draw that text with the default formatting and report it.
+        /// </summary>
+        private static NativeText ReadTextOrApproximate(Func<NativeText> read, string role) {
+            int checkpoint = OfficeOpenXmlChartFidelityScope.Checkpoint;
+            try {
+                return read();
+            } catch (NotSupportedException exception) when (OfficeOpenXmlChartFidelityScope.AllowsApproximation) {
+                OfficeOpenXmlChartFidelityScope.RollBack(checkpoint);
+                OfficeOpenXmlChartFidelityScope.Record("The " + role + " text is drawn with default formatting: " + exception.Message);
+                return default;
+            }
         }
 
         private static string? ReadLayoutTitle(OpenXmlCompositeElement? axis) {
@@ -165,13 +188,11 @@ namespace OfficeIMO.OpenXml.Internal {
             return text?.GetFirstChild<C.RichText>()?.InnerText ?? text?.GetFirstChild<C.StringReference>()?.StringCache?.InnerText;
         }
         private static string? ReadLayoutFormat(OpenXmlCompositeElement? axis, bool textualCategories = false) {
-            if (axis != null && HasUnsupportedSharedAxisNumberFormat(axis)) {
-                // A string cache with nonnumeric labels has already materialized its display text;
-                // a number format on its category axis cannot change those labels.
-                if (textualCategories && axis is C.CategoryAxis) return null;
-                throw new NotSupportedException("The native axis format cannot be projected.");
-            }
-            return axis?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+            if (axis == null) return null;
+            // A string cache with nonnumeric labels has already materialized its display text;
+            // a number format on its category axis cannot change those labels.
+            if (textualCategories && axis is C.CategoryAxis && HasUnsupportedSharedAxisNumberFormat(axis)) return null;
+            return OfficeOpenXmlChartSecondaryAxis.ReadDrawableNumberFormat(axis);
         }
 
         /// <summary>Reads the display format of numeric categories, resolving a source-linked format from the category cache.</summary>

@@ -8198,6 +8198,12 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Used only when the source has no orientation; Orientation remains an unconditional export override."
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -8285,6 +8291,12 @@
             {
               "name": "TextShapingLanguage",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
               "mandatory": false,
               "pipeline": "none"
             }

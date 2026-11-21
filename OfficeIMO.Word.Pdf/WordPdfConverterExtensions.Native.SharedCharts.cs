@@ -5,8 +5,9 @@ namespace OfficeIMO.Word.Pdf {
         private static bool TryCreateSharedNativeWordChartSnapshot(WordChart chart, out OfficeChartSnapshot? snapshot, out string? warning) {
             snapshot = null;
             warning = null;
-            if (!chart.TryGetOfficeSnapshot(out var shared)) {
-                warning = "Word charts are not partially exported when complete cached data and supported appearance cannot be projected through the shared chart reader.";
+            if (!chart.TryGetOfficeSnapshot(null, null, out var shared, out string? failureReason, out _)) {
+                warning = "Word charts are not partially exported when complete cached data and supported appearance cannot be projected through the shared chart reader" +
+                    (string.IsNullOrWhiteSpace(failureReason) ? "." : ": " + failureReason);
                 return false;
             }
             if (shared.Data.Series.Count > MaxNativeWordChartSeries || shared.Data.Categories.Count > MaxNativeWordChartPoints ||

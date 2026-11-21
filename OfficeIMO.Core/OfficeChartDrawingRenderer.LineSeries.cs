@@ -66,7 +66,7 @@ public static partial class OfficeChartDrawingRenderer {
                 if (currentSeries.SeriesStyle?.OutlineJoin is OfficeStrokeLineJoin join) {
                     AddJoinedSeriesOutline(geometry, outlinePoints, currentSeries.SeriesStyle.OutlineColor ?? color,
                         strokeWidth, dashStyle, join, outlinePlotted, plotBounds: clipPlot ? plotBounds : null,
-                        valueRange: clipPlot ? range : null);
+                        valueRange: clipPlot ? range : null, cap: currentSeries.SeriesStyle.OutlineCap);
                 } else {
                     for (int i = 1; i < outlinePoints.Length; i++) {
                         if (!outlinePlotted[i - 1] || !outlinePlotted[i]) {
@@ -82,7 +82,9 @@ public static partial class OfficeChartDrawingRenderer {
                         if (x1 == x2 && y1 == y2) continue;
                         double minX = Math.Min(x1, x2);
                         double minY = Math.Min(y1, y2);
-                        AddShape(geometry, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
+                        OfficeShape segment = OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY);
+                        segment.StrokeLineCap = currentSeries.SeriesStyle?.OutlineCap;
+                        AddShape(geometry, segment, minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
                     }
                 }
             }

@@ -77,12 +77,12 @@ namespace OfficeIMO.Excel {
             string name = Name is { Length: > 0 } chartName ? chartName : "Chart";
             string source = _sheetName + "!" + name;
             return new OfficeChartImageSource("Excel", name, source, OfficeLength.Pixels(widthPixels), OfficeLength.Pixels(heightPixels),
-                (width, height, diagnostics) => CreateRenderSnapshot(width, height, diagnostics, out _));
+                (width, height, fidelity, diagnostics) => CreateRenderSnapshot(width, height, fidelity, diagnostics, out _));
         }
 
-        private OfficeChartSnapshot CreateRenderSnapshot(double? width, double? height,
+        private OfficeChartSnapshot CreateRenderSnapshot(double? width, double? height, OfficeChartFidelity fidelity,
             List<OfficeImageExportDiagnostic> diagnostics, out ExcelChartInfo info) {
-            if (!TryGetSnapshot(out info, out string? unsupportedReason)) {
+            if (!TryGetSnapshot(fidelity, out info, out string? unsupportedReason)) {
                 if (unsupportedReason != null) {
                     throw new NotSupportedException(OfficeChartImageExporter.UnsupportedChartMessage + unsupportedReason);
                 }
@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             var diagnostics = new List<OfficeImageExportDiagnostic>();
-            OfficeChartSnapshot officeSnapshot = CreateRenderSnapshot(null, null, diagnostics, out ExcelChartInfo info);
+            OfficeChartSnapshot officeSnapshot = CreateRenderSnapshot(null, null, options.ChartRendering.Fidelity, diagnostics, out ExcelChartInfo info);
             return OfficeChartImageExporter.Export(officeSnapshot, format, options, diagnostics, info.Name,
                 _sheetName + "!" + info.Name, cancellationToken);
         }

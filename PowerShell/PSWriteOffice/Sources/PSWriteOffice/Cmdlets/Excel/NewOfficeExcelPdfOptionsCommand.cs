@@ -166,6 +166,10 @@ public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
     [Parameter(ParameterSetName = "Default")]
     public SwitchParameter AllowDocumentFontEmbedding { get; set; }
 
+    /// <summary>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public OfficeChartFidelity? ChartFidelity { get; set; }
+
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var options = new ExcelPdfExportOptions();
@@ -195,6 +199,7 @@ public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
         SetBoundSwitch(nameof(UseWorksheetCharts), UseWorksheetCharts, value => options.UseWorksheetCharts = value);
         if (ChartStyle != null) options.ChartStyle = ChartStyle;
         if (ChartLayout != null) options.ChartLayout = ChartLayout;
+        if (ChartFidelity.HasValue) options.ChartRendering.Fidelity = ChartFidelity.Value;
         SetBoundSwitch(nameof(UseWorksheetMergedCells), UseWorksheetMergedCells, value => options.UseWorksheetMergedCells = value);
         SetBoundSwitch(nameof(UseWorksheetColumnWidths), UseWorksheetColumnWidths, value => options.UseWorksheetColumnWidths = value);
         SetBoundSwitch(nameof(UseWorksheetRowHeights), UseWorksheetRowHeights, value => options.UseWorksheetRowHeights = value);

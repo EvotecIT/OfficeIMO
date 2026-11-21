@@ -73,11 +73,9 @@ public static partial class OfficeChartDrawingRenderer {
             double? rSquared = null;
             if (trendline.Type == OfficeChartTrendlineType.MovingAverage) {
                 int period = trendline.Period ?? 2;
-                for (int i = period - 1; i < ys.Count; i++) {
-                    double average = 0D;
-                    for (int j = i - period + 1; j <= i; j++) average += ys[j];
-                    AddTrendPoint(xs[i], average / period);
-                }
+                // Each window is averaged on its own; see GetMovingAverages.
+                double[] averages = GetMovingAverages(ys, period);
+                for (int i = 0; i < averages.Length; i++) AddTrendPoint(xs[i + period - 1], averages[i]);
             } else {
                 if (!TryFitTrendline(trendline, xs, ys, out Func<double, double>? model, out equation, out rSquared)) continue;
                 // Samples are spaced evenly along the drawn axis, so a curve on a logarithmic X axis stays smooth.
@@ -98,7 +96,9 @@ public static partial class OfficeChartDrawingRenderer {
             List<List<OfficePoint>> drawn = runs.Where(run => run.Count >= 2).ToList();
             if (drawn.Count == 0) continue;
             OfficeColor color = trendline.Color ?? GetSeriesColor(style, snapshot.Data.Series, seriesIndex);
-            foreach (List<OfficePoint> run in drawn) AddTrendlinePath(geometry, run, color, trendline.Width?.ToPoints() ?? 1.5D);
+            if (!trendline.HidesLine)
+                foreach (List<OfficePoint> run in drawn)
+                    AddTrendlinePath(geometry, run, color, trendline.Width?.ToPoints() ?? 1.5D, trendline.DashStyle ?? OfficeStrokeDashStyle.Solid);
             List<OfficePoint> points = drawn.SelectMany(run => run).ToList();
 
             var parts = new List<string>(2);
@@ -129,6 +129,21 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
+    /// <summary>
+    /// Averages each window of <paramref name="period"/> values on its own: a running sum would keep the rounding error
+    /// of a large value after it leaves the window. Readers cap the period at DrawingML's 255.
+    /// </summary>
+    internal static double[] GetMovingAverages(IReadOnlyList<double> values, int period) {
+        if (period < 1 || values.Count < period) return Array.Empty<double>();
+        var averages = new double[values.Count - period + 1];
+        for (int i = period - 1; i < values.Count; i++) {
+            double sum = 0D;
+            for (int j = i - period + 1; j <= i; j++) sum += values[j];
+            averages[i - period + 1] = sum / period;
+        }
+        return averages;
+    }
+
     private static double CategoryNumberToPixel(OfficeChartSnapshot snapshot, double plotLeft, double plotWidth,
         double categoryNumber, int categoryCount, OfficeChartLayout layout) {
         if (categoryCount <= 1) return GetCartesianCategoryPointX(snapshot, plotLeft, plotWidth, 0, Math.Max(1, categoryCount), layout);
@@ -137,7 +152,8 @@ public static partial class OfficeChartDrawingRenderer {
         return first + (last - first) * (categoryNumber - 1D) / (categoryCount - 1D);
     }
 
-    private static void AddTrendlinePath(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double width) {
+    private static void AddTrendlinePath(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor color, double width,
+        OfficeStrokeDashStyle dashStyle) {
         // Keep the path inside the drawing; the plot clip hides whatever lies beyond the axes.
         var clamped = points.Select(point => new OfficePoint(
             Math.Max(0D, Math.Min(drawing.Width, point.X)),
@@ -146,7 +162,7 @@ public static partial class OfficeChartDrawingRenderer {
         double top = clamped.Min(point => point.Y);
         var commands = new List<OfficePathCommand>(clamped.Count) { OfficePathCommand.MoveTo(clamped[0].X - left, clamped[0].Y - top) };
         for (int i = 1; i < clamped.Count; i++) commands.Add(OfficePathCommand.LineTo(clamped[i].X - left, clamped[i].Y - top));
-        AddShape(drawing, OfficeShape.Path(commands), left, top, null, color, width, OfficeStrokeDashStyle.Solid);
+        AddShape(drawing, OfficeShape.Path(commands), left, top, null, color, width, dashStyle);
     }
 
     private static bool TryFitTrendline(OfficeChartTrendline trendline, IReadOnlyList<double> xs, IReadOnlyList<double> ys,

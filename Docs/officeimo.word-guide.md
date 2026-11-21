@@ -1092,6 +1092,9 @@ outlines, and per-point marker overrides reject static projection. Supported fil
 series outlines are inherited by points; explicit point outlines take precedence.
 Picture markers reject static projection. Visible inherited markers require an explicit supported series symbol.
 Small authored chart canvases retain explicit font, stroke and marker sizes; quality reports identify cramped or overflowing content.
+PDF and page-image export skip a chart they cannot draw exactly and report the reason. Set
+`ChartRendering.Fidelity` on `WordPdfExportOptions` or `WordImageExportOptions` to `OfficeChartFidelity.BestEffort`
+to draw the closest approximation instead; each approximation is reported as a `chart-approximation` warning.
 
 Category discovery checks all populated series before generating fallback labels.
 The longest available category cache supplies labels, and shorter series retain

@@ -28,15 +28,27 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             maximum: scaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
             majorUnit: axis.GetFirstChild<C.MajorUnit>()?.Val?.Value,
             minorUnit: axis.GetFirstChild<C.MinorUnit>()?.Val?.Value,
-            numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
-                axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null
-                    ? (resolveSourceLinkedFormat ??
-                        throw new NotSupportedException("The source-linked secondary axis has no qualified chart workbook."))()
-                    : axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
+            numberFormat: IsWorkbookLinked(axis) && resolveSourceLinkedFormat != null
+                    ? ResolveLinkedFormat(axis, resolveSourceLinkedFormat)
+                    : ReadDrawableNumberFormat(axis, "secondary axis"),
             majorTickMark: ReadTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
             minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value));
         string? title = ReadTitle(axis.GetFirstChild<C.Title>());
         return title == null ? layout : layout.WithTitle(title);
+    }
+
+    private static string? ResolveLinkedFormat(C.ValueAxis axis, Func<string> resolveSourceLinkedFormat) {
+        try {
+            return resolveSourceLinkedFormat();
+        } catch (NotSupportedException) {
+            RecordLinkedFormatFallback("secondary axis");
+            return ReadDrawableNumberFormat(axis, "secondary axis");
+        }
+    }
+
+    /// <summary>Reports that a workbook-linked format could not be read from the workbook, so the chart's cached code is used.</summary>
+    internal static void RecordLinkedFormatFallback(string role) {
+        OfficeOpenXmlChartFidelityScope.Record("The " + role + " number format linked to the workbook could not be resolved; the format cached in the chart is used.");
     }
 
     internal static void Apply(C.Chart? chart, OfficeChartValueAxisLayout layout) {
@@ -72,7 +84,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             new C.Layout(), new C.Overlay { Val = false }), true);
     }
 
-    internal static void QualifyLinearProjection(C.PlotArea? plot, bool resolveSourceLinkedFormats = false) {
+    internal static void QualifyLinearProjection(C.PlotArea? plot) {
         var axis = Resolve(plot);
         if (axis == null) return;
         QualifyTitle(axis.GetFirstChild<C.Title>());
@@ -92,12 +104,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             primaryValueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None)
             throw new NotSupportedException("The primary and secondary value-axis visibility cannot be projected independently.");
         var scaling = axis.GetFirstChild<C.Scaling>();
-        bool linkedWorkbookFormat = resolveSourceLinkedFormats &&
-            axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
-            axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null;
-        if ((!linkedWorkbookFormat) &&
-                HasUnsupportedSharedAxisNumberFormat(axis) ||
-            scaling?.GetFirstChild<C.LogBase>() != null ||
+        // An axis format the renderer cannot reproduce is drawn as General by Read.
+        if (scaling?.GetFirstChild<C.LogBase>() != null ||
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
             axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
             throw new NotSupportedException("The secondary numeric axis requires an unsupported projection.");
@@ -106,47 +114,92 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
     internal static bool HasUnsupportedSharedAxisNumberFormat(OpenXmlCompositeElement axis) {
         C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
         // Source-linked formats can differ from formatCode only when a workbook is attached.
-        if (numbering?.SourceLinked?.Value == true &&
-            axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null) return true;
-        string? format = numbering?.FormatCode?.Value;
-        if (string.IsNullOrWhiteSpace(format) || string.Equals(format, "General", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        bool inQuotedLiteral = false;
-        bool escaped = false;
-        bool sectionHasPlaceholder = false;
-        for (int index = 0; index < format!.Length; index++) {
-            char value = format[index];
-            if (escaped) {
-                if (value == '%') return true;
-                escaped = false;
-                continue;
-            }
-            if (value == '\\') { escaped = true; continue; }
-            if (value == '"') { inQuotedLiteral = !inQuotedLiteral; continue; }
-            if (inQuotedLiteral) {
-                if (value == '%') return true;
-                continue;
-            }
-            if (value == '0' || value == '#' || value == '?') {
-                sectionHasPlaceholder = true;
-                continue;
-            }
-            if (value == ';') {
-                if (!sectionHasPlaceholder) return true;
-                sectionHasPlaceholder = false;
-                continue;
-            }
-            if (value == '/' || value == '@' || value == '[' || value == ']') return true;
-            if (value != 'E' && value != 'e') continue;
-            int next = index + 1;
-            if (next < format.Length && (format[next] == '+' || format[next] == '-')) next++;
-            if (next < format.Length && (format[next] == '0' || format[next] == '#' || format[next] == '?'))
-                return true;
-        }
-
-        return inQuotedLiteral || escaped || !sectionHasPlaceholder;
+        if (IsWorkbookLinked(axis)) return true;
+        return !IsDrawableNumberFormat(numbering?.FormatCode?.Value);
     }
+
+    /// <summary>
+    /// Returns the number format the shared renderer draws for an axis or label set: its own code when the
+    /// renderer reproduces it, otherwise null (General) after recording the fallback.
+    /// </summary>
+    internal static string? ReadDrawableNumberFormat(OpenXmlCompositeElement owner, string role = "axis") {
+        string? format = owner.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+        // A linked axis shows the plotted cells' format, which the value or category caches record.
+        if (IsWorkbookLinked(owner) && owner is C.ValueAxis axis) format = ReadCachedValueFormat(axis) ?? format;
+        if (IsWorkbookLinked(owner) && owner is C.CategoryAxis or C.DateAxis) format = ReadCachedCategoryFormat(owner) ?? format;
+        if (!IsDrawableNumberFormat(format)) {
+            OfficeOpenXmlChartFidelityScope.Record("The " + role + " number format '" + format + "' is drawn as General.");
+            return null;
+        }
+        // Office keeps a linked code in step with the plotted cells when it saves the chart.
+        if (IsWorkbookLinked(owner) && !IsGeneral(format))
+            OfficeOpenXmlChartFidelityScope.Record("The source-linked " + role + " number format uses the code cached in the chart, '" + format + "'.");
+        return format;
+    }
+
+    private static string? ReadCachedCategoryFormat(OpenXmlCompositeElement axis) {
+        uint? id = axis.GetFirstChild<C.AxisId>()?.Val?.Value;
+        if (!id.HasValue || axis.Parent is not C.PlotArea plot) return null;
+        return plot.ChildElements.OfType<OpenXmlCompositeElement>()
+            .Where(layer => layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+                layer.Elements<C.AxisId>().Any(reference => reference.Val?.Value == id))
+            .SelectMany(layer => layer.ChildElements.Where(series => series.LocalName == "ser"))
+            .Select(series => (series.GetFirstChild<C.CategoryAxisData>() ?? (OpenXmlElement?)series.GetFirstChild<C.XValues>())?
+                .GetFirstChild<C.NumberReference>()?.NumberingCache?.FormatCode?.Text)
+            .FirstOrDefault(code => !string.IsNullOrWhiteSpace(code));
+    }
+
+    private static string? ReadCachedValueFormat(C.ValueAxis axis) =>
+        ReadCachedValueFormats(axis).FirstOrDefault(code => !string.IsNullOrWhiteSpace(code));
+
+    /// <summary>
+    /// The cached format codes of the values a value axis plots: the X values for the horizontal axis of a scatter or
+    /// bubble group, otherwise the series values.
+    /// </summary>
+    internal static IEnumerable<string?> ReadCachedValueFormats(C.ValueAxis axis) {
+        uint? id = axis.AxisId?.Val?.Value;
+        if (!id.HasValue || axis.Parent is not C.PlotArea plot) return Enumerable.Empty<string?>();
+        bool horizontal = axis.AxisPosition?.Val?.Value is C.AxisPositionValues position &&
+            (position == C.AxisPositionValues.Bottom || position == C.AxisPositionValues.Top);
+        return plot.ChildElements.OfType<OpenXmlCompositeElement>()
+            .Where(layer => layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+                layer.Elements<C.AxisId>().Any(reference => reference.Val?.Value == id))
+            .SelectMany(layer => layer.ChildElements.Where(series => series.LocalName == "ser")
+                .Select(series => horizontal && layer is C.ScatterChart or C.BubbleChart
+                    ? series.GetFirstChild<C.XValues>()
+                    : series.GetFirstChild<C.Values>() ?? (OpenXmlElement?)series.GetFirstChild<C.YValues>()))
+            .Select(values => values?.Descendants<C.FormatCode>().FirstOrDefault()?.Text);
+    }
+
+    internal static bool IsWorkbookLinked(OpenXmlCompositeElement owner) =>
+        owner.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
+        owner.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null;
+
+    private static bool IsGeneral(string? format) =>
+        string.IsNullOrWhiteSpace(format) || string.Equals(format, "General", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Whether the spreadsheet cell formatter the chart renderer uses can display values with this format.
+    /// </summary>
+    internal static bool IsDrawableNumberFormat(string? format) {
+        if (IsGeneral(format)) return true;
+        if (format!.Length > OfficeChartLayout.MaxNumberFormatLength) return false;
+        if (!OfficeIMO.Spreadsheet.SpreadsheetNumberFormatSyntax.Parse(format).IsValid) return false;
+        // Sample a value from each numeric section; the text section never formats a chart value, and a
+        // date section has no negative serials, which Office shows as ####.
+        foreach (double sample in new[] { 45123.25, -45123.25, 0D })
+            if (OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatSerialValue(sample, format!) == null &&
+                !IsEmptySection(format!, sample) && !(sample < 0D && IsDateSection(format!, sample))) return false;
+        return true;
+    }
+
+    private static bool IsDateSection(string format, double sample) =>
+        OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.IsDateTimeSection(
+            OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.SelectNumberFormatSection(format, sample < 0 ? 1 : sample == 0 ? 2 : 0, sample, out _));
+
+    private static bool IsEmptySection(string format, double sample) =>
+        OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.SelectNumberFormatSection(format,
+            sample < 0 ? 1 : sample == 0 ? 2 : 0, sample, out _).Trim().Length == 0;
 
     internal static void QualifyTitle(C.Title? title) {
         var richText = title?.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
@@ -158,8 +211,11 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         }
         if (title != null &&
             (title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-             title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false ||
-             richText?.Elements<A.Paragraph>().Skip(1).Any() == true ||
+             title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false))
+            OfficeOpenXmlChartFidelityScope.Approximate("Manual or overlaid secondary axis title layouts cannot be projected.",
+                "A manually placed or overlaid secondary axis title is drawn in its automatic position.");
+        if (title != null &&
+            (richText?.Elements<A.Paragraph>().Skip(1).Any() == true ||
              richText?.Descendants<A.Break>().Any() == true ||
              ReadTitle(title) == null))
             throw new NotSupportedException("The secondary axis title cannot be projected.");

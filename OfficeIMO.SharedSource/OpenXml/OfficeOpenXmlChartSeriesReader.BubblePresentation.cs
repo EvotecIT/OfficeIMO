@@ -47,7 +47,7 @@ namespace OfficeIMO.OpenXml.Internal {
                  axis.GetFirstChild<C.MinorUnit>() != null ||
                  axis.GetFirstChild<C.DisplayUnits>() != null ||
                  axis.GetFirstChild<C.CrossesAt>() != null ||
-                 HasUnsupportedSharedAxisNumberFormat(axis) ||
+                 OfficeOpenXmlChartSecondaryAxis.IsWorkbookLinked(axis) ||
                  (axis.GetFirstChild<C.TickLabelPosition>() is
                       C.TickLabelPosition tickLabelPosition &&
                   tickLabelPosition.Val?.Value !=

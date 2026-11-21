@@ -1,4 +1,5 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Cmdlets.Imaging;
 
@@ -30,6 +31,8 @@ public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsC
     [Parameter] public SwitchParameter NoCharts { get; set; }
     /// <summary>Render hidden shapes.</summary>
     [Parameter] public SwitchParameter IncludeHiddenShapes { get; set; }
+    /// <summary>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</summary>
+    [Parameter] public OfficeChartFidelity? ChartFidelity { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -44,6 +47,7 @@ public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsC
         options.IncludeTables = FeatureEnabled("Tables");
         options.IncludeCharts = FeatureEnabled("Charts");
         if (BoundSwitch(nameof(IncludeHiddenShapes)) is bool hiddenShapes) options.IncludeHiddenShapes = hiddenShapes;
+        if (ChartFidelity.HasValue) options.ChartRendering.Fidelity = ChartFidelity.Value;
         WriteObject(options);
     }
 }
