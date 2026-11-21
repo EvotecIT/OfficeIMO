@@ -362,12 +362,17 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return content.ChildElements
-                .OfType<Paragraph>()
-                .FirstOrDefault(paragraph =>
-                    !paragraph.Descendants<SimpleField>().Any() &&
-                    !paragraph.Descendants<FieldCode>().Any() &&
-                    !IsGeneratedResultParagraph(paragraph));
+            // A title comes before the generated list. Paragraphs from the table's own field onwards, such as a separate
+            // paragraph holding the field end, belong to the old result. A title may hold other fields.
+            OpenXmlElement? generatedField = EnumerateFieldInstructions(content)
+                .Where(field => GetFieldType(field.Instruction) is WordFieldType.TOC or WordFieldType.Index)
+                .Select(field => field.Start).FirstOrDefault();
+            foreach (Paragraph paragraph in content.ChildElements.OfType<Paragraph>()) {
+                if (generatedField != null && (paragraph == generatedField || paragraph.Descendants().Contains(generatedField))) return null;
+                if (!IsGeneratedResultParagraph(paragraph)) return paragraph;
+            }
+
+            return null;
         }
 
         private static bool IsGeneratedResultParagraph(Paragraph paragraph) {

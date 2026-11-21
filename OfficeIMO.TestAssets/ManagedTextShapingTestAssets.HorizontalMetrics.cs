@@ -34,6 +34,31 @@ internal static partial class ManagedTextShapingTestAssets {
         WithHorizontalMetrics(CreateFontFromCmap(CreateFormat12Cmap(left, 1, right, 2),
             glyphCount: 3, includeTrailingMetric: true, kern: CreateKernTable(1, 2, adjustment)), unitsPerEm, 500);
 
+    /// <summary>A font with the given em size, line metrics and per-character advances, for layout that must match a named font's metrics.</summary>
+    internal static byte[] CreateFontWithLayoutMetrics(ushort unitsPerEm, short ascender, short descender,
+        ushort windowsAscent, ushort windowsDescent, IReadOnlyDictionary<int, ushort> advances) {
+        if (advances == null || advances.Count == 0) throw new ArgumentException("At least one advance is required.", nameof(advances));
+        int[] scalars = advances.Keys.OrderBy(static scalar => scalar).ToArray();
+        var glyphAdvances = new Dictionary<int, ushort>();
+        for (int index = 0; index < scalars.Length; index++) glyphAdvances[index + 1] = advances[scalars[index]];
+        var os2 = new byte[96];
+        WriteUInt16(os2, 0, 4);
+        WriteUInt16(os2, 4, 400);
+        WriteUInt16(os2, 62, 0xC0); // REGULAR | USE_TYPO_METRICS
+        WriteUInt16(os2, 68, unchecked((ushort)ascender));
+        WriteUInt16(os2, 70, unchecked((ushort)descender));
+        WriteUInt16(os2, 74, windowsAscent);
+        WriteUInt16(os2, 76, windowsDescent);
+        byte[] font = CreateFontFromCmap(CreateDistinctFormat12Cmap(scalars), glyphCount: scalars.Length + 1,
+            ascender: ascender, descender: descender, os2: os2, glyphAdvances: glyphAdvances);
+        int count = ReadUInt16(font, 4);
+        for (int index = 0; index < count; index++) {
+            int record = 12 + index * 16;
+            if (ReadUInt32(font, record) == 0x68656164) WriteUInt16(font, checked((int)ReadUInt32(font, record + 8)) + 18, unitsPerEm);
+        }
+        return font;
+    }
+
     private static byte[] WithHorizontalMetrics(byte[] font, ushort unitsPerEm, ushort advanceWidth) {
         int count = ReadUInt16(font, 4);
         for (int index = 0; index < count; index++) {
