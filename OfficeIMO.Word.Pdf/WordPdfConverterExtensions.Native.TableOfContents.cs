@@ -143,19 +143,54 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries, double? contentWidth, bool renderTitle = true) {
-            if (renderTitle) {
-                string title = string.IsNullOrWhiteSpace(tableOfContent.Text) ? "Table of Contents" : tableOfContent.Text;
-                pdf.Paragraph(builder => builder.AddText(NormalizeNativeDirectText(title)).SetFontSize(global::OfficeIMO.OfficeLength.Points(11D)), global::OfficeIMO.OfficeAlignment.Left, null, new PdfCore.PdfParagraphStyle {
-                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(5D),
-                    KeepWithNext = true
-                });
-            }
+        /// <summary>
+        /// The paragraph formatting of the document's TOC 1-9 style, so a table generated from the headings is laid out as
+        /// Word lays out the entries it writes, and whether the style sets contextual spacing. The style is null when the
+        /// document does not define it.
+        /// </summary>
+        private static (PdfCore.PdfParagraphStyle? Style, bool ContextualSpacing) CreateNativeTableOfContentsEntryStyle(WordDocument document, int level,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+            var entry = new W.Paragraph(
+                new W.ParagraphProperties(new W.ParagraphStyleId { Val = "TOC" + level.ToString(CultureInfo.InvariantCulture) }),
+                new W.Run(new W.Text("0")));
+            document.LocalizeBuiltInStyleReferences(entry);
+            string? styleId = entry.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            if (styleId == null || !WordStyleCatalog.For(document).Contains(styleId)) return (null, false);
+            var paragraph = new WordParagraph(document, entry, entry.GetFirstChild<W.Run>()!);
+            return (CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap), UsesNativeContextualSpacing(paragraph));
+        }
 
+        private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries, double? contentWidth,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+            var levelStyles = new Dictionary<int, (PdfCore.PdfParagraphStyle? Style, bool ContextualSpacing)>();
             PdfCore.PdfTableOfContentsEntry[] navigation = entries
                 .Where(entry => entry.Level >= tableOfContent.MinLevel && entry.Level <= tableOfContent.MaxLevel && !string.IsNullOrEmpty(entry.DestinationName))
-                .Select(entry => new PdfCore.PdfTableOfContentsEntry(NormalizeNativeDirectText(entry.Text), entry.DestinationName!, entry.Level,
-                    "Table of contents: " + NormalizeNativeDirectText(entry.Text))).ToArray();
+                .Select(entry => {
+                    if (!levelStyles.TryGetValue(entry.Level, out var levelStyle)) {
+                        levelStyle = CreateNativeTableOfContentsEntryStyle(tableOfContent.Document, entry.Level, nativeDefaults, nativeFontMap);
+                        levelStyles.Add(entry.Level, levelStyle);
+                    }
+                    return new PdfCore.PdfTableOfContentsEntry(NormalizeNativeDirectText(entry.Text), entry.DestinationName!, entry.Level,
+                        "Table of contents: " + NormalizeNativeDirectText(entry.Text)) { ParagraphStyle = levelStyle.Style };
+                }).ToArray();
+            // Word shares the space between paragraphs: the next entry's space before is reduced by the declared space after.
+            // Each level has its own TOC style, so contextual spacing drops the space between consecutive entries of one level.
+            for (int index = 0; index + 1 < navigation.Length; index++) {
+                PdfCore.PdfTableOfContentsEntry current = navigation[index], next = navigation[index + 1];
+                if (current.ParagraphStyle == null || next.ParagraphStyle == null) continue;
+                double declaredAfter = current.ParagraphStyle.SpacingAfter?.ToPoints() ?? 0D;
+                double before = next.ParagraphStyle.SpacingBefore.ToPoints();
+                bool contextual = current.Level == next.Level && levelStyles[current.Level].ContextualSpacing;
+                if (contextual) {
+                    current.ParagraphStyle = current.ParagraphStyle.Clone();
+                    current.ParagraphStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D);
+                }
+                double sharedBefore = contextual ? 0D : Math.Max(0D, before - declaredAfter);
+                if (sharedBefore != before) {
+                    next.ParagraphStyle = next.ParagraphStyle.Clone();
+                    next.ParagraphStyle.SpacingBefore = global::OfficeIMO.OfficeLength.Points(sharedBefore);
+                }
+            }
             if (navigation.Length > 0) {
                 pdf.TableOfContents(new PdfCore.PdfTableOfContentsOptions {
                     Title = null,

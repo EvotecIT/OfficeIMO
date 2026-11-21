@@ -62,12 +62,18 @@ internal static partial class PdfWriter {
                 }
 
                 tableOfContentsDestinations.Add(entry.DestinationName);
-                double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel.ToPoints();
-                var style = new PdfParagraphStyle {
-                    LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent),
-                    SpacingAfter = global::OfficeIMO.OfficeLength.Points(2D),
-                    KeepTogether = true
-                };
+                PdfParagraphStyle style;
+                if (entry.ParagraphStyle != null) {
+                    style = entry.ParagraphStyle.Clone();
+                    style.KeepTogether = true;
+                } else {
+                    double leftIndent = (entry.Level - options.MinimumLevel) * options.IndentPerLevel.ToPoints();
+                    style = new PdfParagraphStyle {
+                        LeftIndent = global::OfficeIMO.OfficeLength.Points(leftIndent),
+                        SpacingAfter = global::OfficeIMO.OfficeLength.Points(2D),
+                        KeepTogether = true
+                    };
+                }
                 style.AddTabStop(global::OfficeIMO.OfficeLength.Points(1D), PdfTabAlignment.Right, options.Leader).IsFrameRightRelative = true;
                 string pageText = sectionPageNumbers.TryGetValue(entry.DestinationName, out int pageNumber)
                     ? FormatSectionPageNumber(options, pageNumber)

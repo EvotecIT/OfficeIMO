@@ -25,4 +25,10 @@ public sealed class PdfTableOfContentsEntry {
     public int Level { get; }
     /// <summary>Accessible link description.</summary>
     public string LinkContents { get; }
+
+    /// <summary>
+    /// Paragraph formatting of the entry, such as a converter's resolved entry style. When null, the entry is indented
+    /// by <see cref="PdfTableOfContentsOptions.IndentPerLevel"/>. A right tab with the leader is always added for the page number.
+    /// </summary>
+    internal PdfParagraphStyle? ParagraphStyle { get; set; }
 }
