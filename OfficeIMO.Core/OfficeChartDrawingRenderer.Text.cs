@@ -3,8 +3,9 @@ using System.Globalization;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
-    private static double GetSeriesLegendWidth(IReadOnlyList<OfficeSeries> series, double chartWidth, OfficeChartLayout layout) {
-        if (!ShouldRenderLegendSide(layout) || chartWidth < 180D) {
+    private static double GetSeriesLegendWidth(IReadOnlyList<OfficeSeries> series, double chartWidth, OfficeChartLayout layout,
+        bool overlaid = false) {
+        if (!ShouldRenderLegendSide(layout, overlaid) || chartWidth < 180D) {
             return 0D;
         }
 
@@ -39,8 +40,9 @@ public static partial class OfficeChartDrawingRenderer {
         return BoundLegendWidth(Math.Max(58D, widest + 34D), chartWidth, layout.SeriesLegendWidthRatio);
     }
 
-    private static double GetCategoryLegendWidth(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout) {
-        if (!ShouldRenderLegendSide(layout) || chartWidth < 180D) {
+    private static double GetCategoryLegendWidth(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout,
+        bool overlaid = false) {
+        if (!ShouldRenderLegendSide(layout, overlaid) || chartWidth < 180D) {
             return 0D;
         }
 
@@ -189,9 +191,9 @@ public static partial class OfficeChartDrawingRenderer {
         return GetLegendBandHeight(legendIndexes.Select(index => categories[index]), chartWidth, layout);
     }
 
-    // An automatic band shows up to two rows; a placed band shows as many as its height holds.
+    // A placed band (one with a height) is drawn where its manual layout puts it, even over the plot.
     private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered, double? placedHeight = null) {
-        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+        if ((placedHeight.HasValue ? !layout.ShowLegend : !ShouldRenderLegendBand(layout)) || width < 48D) {
             return;
         }
 
@@ -211,8 +213,12 @@ public static partial class OfficeChartDrawingRenderer {
             legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList(),
             legendIndexes.Select(index => series[index].SeriesStyle).ToList(),
             legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList(),
-            placedHeight is double height ? Math.Max(1, (int)Math.Floor((height - 4D) / layout.LegendRowHeight)) : 2);
+            GetLegendBandRows(placedHeight, layout));
     }
+
+    // An automatic band shows up to two rows; a placed band shows as many as its height holds.
+    private static int GetLegendBandRows(double? placedHeight, OfficeChartLayout layout) =>
+        placedHeight is double height ? Math.Max(1, (int)Math.Floor((height - 4D) / layout.LegendRowHeight)) : 2;
 
     // Line series are keyed by a short stroke rather than a filled square, as in Office.
     private static bool UsesLineLegendSwatch(OfficeSeries series, OfficeChartType chartKind) {
@@ -242,8 +248,8 @@ public static partial class OfficeChartDrawingRenderer {
         return indexes;
     }
 
-    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null) {
-        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, double? placedHeight = null) {
+        if ((placedHeight.HasValue ? !layout.ShowLegend : !ShouldRenderLegendBand(layout)) || width < 48D) {
             return;
         }
 
@@ -261,7 +267,8 @@ public static partial class OfficeChartDrawingRenderer {
             style,
             layout,
             legendIndexes.Select(index => (OfficeColor?)GetPointColor(style, pointColors, index)).ToList(),
-            pointStyles == null ? null : legendIndexes.Select(index => GetPointStyle(pointStyles, index)).ToList());
+            pointStyles == null ? null : legendIndexes.Select(index => GetPointStyle(pointStyles, index)).ToList(),
+            maximumRows: GetLegendBandRows(placedHeight, layout));
     }
 
     private static List<int> GetCategoryLegendIndexes(IReadOnlyList<string> categories, OfficeChartLayout layout) {
@@ -286,9 +293,10 @@ public static partial class OfficeChartDrawingRenderer {
         !layout.OverlayLegend &&
         (layout.LegendPosition == OfficeChartLegendPosition.Top || layout.LegendPosition == OfficeChartLegendPosition.Bottom);
 
-    private static bool ShouldRenderLegendSide(OfficeChartLayout layout) =>
+    // A side legend takes a column beside the plot; overlaid also counts a legend drawn over the plot.
+    private static bool ShouldRenderLegendSide(OfficeChartLayout layout, bool overlaid = false) =>
         layout.ShowLegend &&
-        !layout.OverlayLegend &&
+        (overlaid || !layout.OverlayLegend) &&
         (layout.LegendPosition == OfficeChartLegendPosition.Left || layout.LegendPosition == OfficeChartLegendPosition.Right ||
          layout.LegendPosition == OfficeChartLegendPosition.TopRight);
 
@@ -559,6 +567,9 @@ public static partial class OfficeChartDrawingRenderer {
             rotationCenterY: top + length / 2D);
     }
 
+    // How far outside the radar web a category label's centre sits.
+    private const double RadarCategoryLabelOffset = 13D;
+
     private static void AddRadarCategoryLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double centerX, double centerY, double radius, OfficeChartStyle style, OfficeChartLayout layout) {
         if (categories.Count == 0) {
             return;
@@ -566,7 +577,7 @@ public static partial class OfficeChartDrawingRenderer {
 
         int stride = Math.Max(1, (int)Math.Ceiling(categories.Count / (double)layout.MaximumRadarCategoryLabels));
         if (layout.PreventLabelOverlap) {
-            double circumferenceStep = Math.PI * 2D * Math.Max(1D, radius + 13D) / categories.Count;
+            double circumferenceStep = Math.PI * 2D * Math.Max(1D, radius + RadarCategoryLabelOffset) / categories.Count;
             stride = EnsureLabelStride(stride, circumferenceStep, layout.RadarCategoryLabelWidth * 0.7D);
         }
 
@@ -579,8 +590,8 @@ public static partial class OfficeChartDrawingRenderer {
             double angle = -Math.PI / 2D + Math.PI * 2D * i / categories.Count;
             double labelWidth = layout.RadarCategoryLabelWidth;
             double labelHeight = GetAxisLabelBoxHeight(layout);
-            double x = centerX + Math.Cos(angle) * (radius + 13D) - labelWidth / 2D;
-            double y = centerY + Math.Sin(angle) * (radius + 13D) - labelHeight / 2D;
+            double x = centerX + Math.Cos(angle) * (radius + RadarCategoryLabelOffset) - labelWidth / 2D;
+            double y = centerY + Math.Sin(angle) * (radius + RadarCategoryLabelOffset) - labelHeight / 2D;
             OfficeTextAlignment alignment = Math.Cos(angle) < -0.25D
                 ? OfficeTextAlignment.Right
                 : Math.Cos(angle) > 0.25D

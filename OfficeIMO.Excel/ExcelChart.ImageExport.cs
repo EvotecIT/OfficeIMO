@@ -394,7 +394,7 @@ namespace OfficeIMO.Excel {
             if (native == null) return null;
             var resolved = new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
                 native.MinorUnit, numberFormat, native.MajorTickMark,
-                native.MinorTickMark);
+                native.MinorTickMark).WithLogarithmicScale(native.LogBase).WithReversedScale(native.IsReversed);
             return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 

@@ -262,4 +262,155 @@ public sealed class DrawingChartRadialLayoutTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartRadialLayout(doughnutHolePercent: 9));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartRadialLayout(doughnutHolePercent: 91));
     }
+
+    // Excel 16 reference: a 480 x 288 pt chart whose plot area is placed at 12.5%/10% with half the chart's size
+    // (60, 28.8, 240 x 144 pt) draws the pie, doughnut and inner radar web as a 144 pt circle centred at (180, 100.8).
+    [Theory]
+    [InlineData(OfficeChartType.Pie, OfficeChartLayoutTarget.Inner)]
+    [InlineData(OfficeChartType.Pie, OfficeChartLayoutTarget.Outer)]
+    [InlineData(OfficeChartType.Doughnut, OfficeChartLayoutTarget.Inner)]
+    public void PlacedPlotAreaCentresThePieOnItsShorterSide(OfficeChartType kind, OfficeChartLayoutTarget target) {
+        OfficeDrawing drawing = RenderPlaced(kind, new OfficeChartLayout(showLegend: false), Placed(target));
+
+        // A pie has no axis labels, so both targets give the same square, centred in the wider rectangle.
+        OfficePoint[] points = PolygonPoints(drawing).ToArray();
+        Assert.Equal(108D, points.Min(point => point.X), 1);
+        Assert.Equal(252D, points.Max(point => point.X), 1);
+        Assert.Equal(28.8D, points.Min(point => point.Y), 1);
+        Assert.Equal(172.8D, points.Max(point => point.Y), 1);
+    }
+
+    [Theory]
+    [InlineData(OfficeChartLayoutTarget.Inner)]
+    [InlineData(OfficeChartLayoutTarget.Outer)]
+    public void PlacedPlotAreaBoundsTheRadarWebOrItsLabels(OfficeChartLayoutTarget target) {
+        OfficeDrawing drawing = RenderPlaced(OfficeChartType.Radar, new OfficeChartLayout(showLegend: false), Placed(target));
+
+        OfficePoint[] web = PolygonPoints(drawing).ToArray();
+        OfficePoint top = web.OrderBy(point => point.Y).First();
+        Assert.Equal(180D, top.X, 1);
+        if (target == OfficeChartLayoutTarget.Inner) {
+            // The inner rectangle is the web itself: its top vertex touches the top edge and the radius is half the shorter side.
+            Assert.Equal(28.8D, top.Y, 1);
+            Assert.Equal(100.8D + 72D * Math.Cos(Math.PI / 5D), web.Max(point => point.Y), 1);
+        } else {
+            // The outer rectangle also holds the category labels, so the web is smaller and the labels stay inside.
+            Assert.True(top.Y > 40D, $"The web top {top.Y} leaves no room for its label.");
+            Assert.All(Labels(drawing, Categories), label => {
+                Assert.InRange(label.X, 60D - Edge, 300D - label.Width + Edge);
+                Assert.InRange(label.Y, 28.8D - Edge, 172.8D - label.Height + Edge);
+            });
+        }
+    }
+
+    [Fact]
+    public void OuterRadarRectangleHoldsItsSideCategoryLabels() {
+        // A square 144 pt rectangle at (60, 28.8); the left and right labels are the widest reach.
+        string[] compass = { "North", "East", "South", "West" };
+        var square = new OfficeChartManualLayout(0.125D, 0.1D, 0.3D, 0.5D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Radar,
+            new OfficeChartData(compass, new[] { new OfficeSeries("Values", new[] { 3d, 2d, 4d, 1d }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(288),
+            layout: new OfficeChartLayout(showLegend: false).WithManualLayouts(square, null, null)));
+
+        Assert.All(Labels(drawing, compass), label => {
+            Assert.InRange(label.X, 60D - Edge, 204D - label.Width + Edge);
+            Assert.InRange(label.Y, 28.8D - Edge, 172.8D - label.Height + Edge);
+        });
+    }
+
+    [Fact]
+    public void OuterRadarRectangleHoldsItsValueLabelsWithoutCategoryLabels() {
+        // The outermost ring's value label is centred on the top of the web.
+        var square = new OfficeChartManualLayout(0.125D, 0.1D, 0.3D, 0.5D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Radar,
+            new OfficeChartData(new[] { "North", "East", "South", "West" }, new[] { new OfficeSeries("Values", new[] { 3d, 2d, 4d, 1d }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(288),
+            layout: new OfficeChartLayout(showLegend: false, showCategoryAxisLabels: false, axisLabelFontSize: 7D)
+                .WithManualLayouts(square, null, null)));
+
+        OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>().ToArray();
+        Assert.NotEmpty(labels);
+        Assert.All(labels, label => Assert.InRange(label.Y, 28.8D - Edge, 172.8D - label.Height + Edge));
+    }
+
+    [Fact]
+    public void OuterRadarRectangleNarrowerThanItsValueLabelsIsRejected() {
+        // Value labels start just right of the centre and are 42 pt wide; a 72 pt wide area cannot hold them.
+        var narrow = new OfficeChartManualLayout(0.4D, 0.1D, 0.15D, 0.6D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => RenderPlaced(OfficeChartType.Radar,
+            new OfficeChartLayout(showLegend: false, showCategoryAxisLabels: false), narrow));
+        Assert.Contains("value labels", exception.Message);
+    }
+
+    [Fact]
+    public void PlacedOverlayLegendWithoutASizeKeepsItsAutomaticWidth() {
+        // Only the position is given, so the legend keeps the width it would have beside the plot.
+        var legend = new OfficeChartManualLayout(0.7D, 0.3D, xMode: OfficeChartLayoutMode.Edge, yMode: OfficeChartLayoutMode.Edge);
+        var layout = new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Right, overlayLegend: true);
+        OfficeDrawing drawing = RenderPlaced(OfficeChartType.Pie, layout, null, legend);
+
+        Assert.Equal(Categories.Length, Labels(drawing, Categories).Count());
+        Assert.All(Labels(drawing, Categories), label => Assert.True(label.X >= 336D, $"{label.Text} starts at {label.X}."));
+    }
+
+    [Fact]
+    public void PlacedLegendListsRadialCategoriesInItsRectangle() {
+        var legend = new OfficeChartManualLayout(0.05D, 0.6D, 0.3D, 0.3D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeDrawing drawing = RenderPlaced(OfficeChartType.Pie, new OfficeChartLayout(), null, legend);
+
+        // Excel puts this legend at (24, 172.8) with a 144 x 86.4 pt box; the right-hand column stays empty.
+        Assert.All(Labels(drawing, Categories), label => {
+            Assert.InRange(label.X, 24D, 168D);
+            Assert.InRange(label.Y, 172.8D, 259.2D);
+        });
+    }
+
+    [Fact]
+    public void PlacedPieKeepsItsSizeAndPutsOutsideLabelsBesideIt() {
+        var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelCategoryNames: true,
+            dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
+        OfficeDrawing drawing = RenderPlaced(OfficeChartType.Pie, layout, Placed(OfficeChartLayoutTarget.Inner));
+
+        OfficePoint[] points = PolygonPoints(drawing).ToArray();
+        Assert.Equal(144D, points.Max(point => point.X) - points.Min(point => point.X), 1);
+        Assert.All(Labels(drawing, Categories), label =>
+            Assert.True(label.X + label.Width < 108D || label.X > 252D, $"{label.Text} overlaps the pie."));
+
+        // Moved to the left edge the pie leaves no room for its left labels; that is rejected instead of overlapping them.
+        var leftEdge = new OfficeChartManualLayout(0D, 0.1D, 0.5D, 0.5D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => RenderPlaced(OfficeChartType.Pie, layout, leftEdge));
+        Assert.Contains("placed plot area", exception.Message);
+    }
+
+    [Fact]
+    public void PlacedRadarRejectsAnOuterAreaWithNoRoomForCategoryLabels() {
+        var tiny = new OfficeChartManualLayout(0.4D, 0.4D, 0.1D, 0.1D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        Assert.Throws<NotSupportedException>(() => RenderPlaced(OfficeChartType.Radar, new OfficeChartLayout(showLegend: false), tiny));
+    }
+
+    // Labels may touch the rectangle's edge; allow for rounding there.
+    private const double Edge = 1E-9;
+
+    private static readonly string[] Categories = { "Alpha", "Beta", "Gamma", "Delta", "Epsilon" };
+
+    private static OfficeChartManualLayout Placed(OfficeChartLayoutTarget target) => new(0.125D, 0.1D, 0.5D, 0.5D,
+        OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge, target: target);
+
+    private static OfficeDrawing RenderPlaced(OfficeChartType kind, OfficeChartLayout layout, OfficeChartManualLayout? plotArea,
+        OfficeChartManualLayout? legend = null) =>
+        OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind,
+            new OfficeChartData(Categories, new[] { new OfficeSeries("Values", new[] { 30d, 20d, 25d, 15d, 10d }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(288),
+            layout: layout.WithManualLayouts(plotArea, null, legend)));
+
+    private static IEnumerable<OfficePoint> PolygonPoints(OfficeDrawing drawing) => drawing.Shapes
+        .Where(shape => shape.Shape.Kind == OfficeShapeKind.Polygon)
+        .SelectMany(shape => shape.Shape.Points.Select(point => new OfficePoint(shape.X + point.X, shape.Y + point.Y)));
+
+    private static IEnumerable<OfficeDrawingText> Labels(OfficeDrawing drawing, IEnumerable<string> texts) {
+        OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>().Where(text => texts.Contains(text.Text)).ToArray();
+        Assert.NotEmpty(labels);
+        return labels;
+    }
 }
