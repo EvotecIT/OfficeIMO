@@ -417,7 +417,7 @@ public static partial class PdfPowerPointConverterExtensions {
         string source = "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image";
         var details = new Dictionary<string, string> {
             ["ResourceName"] = image.ResourceName,
-            ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture),
+            ["Opacity"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(assessment.Opacity, CultureInfo.InvariantCulture),
             ["BlendMode"] = assessment.BlendMode.ToString()
         };
         switch (assessment.Disposition) {

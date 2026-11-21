@@ -93,7 +93,7 @@ internal partial class HtmlToWordConverter {
             }
             if (authored.Contains("font-size") && style.ResolvedFontSizePoints is double size) {
                 // Relative sizes have already been resolved against the original ancestor chain.
-                projected["font-size"] = size.ToString("R", CultureInfo.InvariantCulture) + "pt";
+                projected["font-size"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(size, CultureInfo.InvariantCulture) + "pt";
                 _computedFontSizePixels[element] = size * 96D / 72D;
             }
             authoredProperties[element] = authored;

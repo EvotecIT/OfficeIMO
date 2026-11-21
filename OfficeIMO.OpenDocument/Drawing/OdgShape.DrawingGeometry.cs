@@ -38,7 +38,7 @@ public sealed partial class OdgShape {
         if (x == 0 || y == 0) return OfficeShape.Rectangle(width, height);
         if (x == y) return OfficeShape.RoundedRectangle(width, height, x);
         // Shared SVG path parsing owns elliptical arc conversion; keep the declared canvas.
-        string F(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+        string F(double value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
         string data = $"M{F(x)} 0H{F(width - x)}A{F(x)} {F(y)} 0 0 1 {F(width)} {F(y)}V{F(height - y)}A{F(x)} {F(y)} 0 0 1 {F(width - x)} {F(height)}H{F(x)}A{F(x)} {F(y)} 0 0 1 0 {F(height - y)}V{F(y)}A{F(x)} {F(y)} 0 0 1 {F(x)} 0Z";
         return OfficeShape.Path(width, height, ParsePath(data));
     }

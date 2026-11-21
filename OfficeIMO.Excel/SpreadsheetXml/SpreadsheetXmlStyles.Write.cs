@@ -48,7 +48,7 @@ internal static partial class SpreadsheetXmlStyles {
     private static XElement WriteFont(Font font, WorkbookPart workbook, SpreadsheetXmlContext context) {
         var result = new XElement(Ss + "Font");
         if (font.FontName?.Val?.Value is string name) result.Add(new XAttribute(Ss + "FontName", name));
-        if (font.FontSize?.Val?.Value is double size) result.Add(new XAttribute(Ss + "Size", size.ToString("R", CultureInfo.InvariantCulture)));
+        if (font.FontSize?.Val?.Value is double size) result.Add(new XAttribute(Ss + "Size", OfficeIMO.Core.Internal.OfficeRoundTripText.Format(size, CultureInfo.InvariantCulture)));
         result.Add(new XAttribute(Ss + "Bold", ExcelOpenXmlFontProperty.IsEnabled(font.Bold) ? "1" : "0"),
             new XAttribute(Ss + "Italic", ExcelOpenXmlFontProperty.IsEnabled(font.Italic) ? "1" : "0"),
             new XAttribute(Ss + "StrikeThrough", ExcelOpenXmlFontProperty.IsEnabled(font.Strike) ? "1" : "0"));

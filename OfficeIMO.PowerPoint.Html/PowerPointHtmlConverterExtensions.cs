@@ -347,7 +347,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         body.Append(' ')
             .Append(name)
             .Append("=\"")
-            .Append(value.ToString("G17", CultureInfo.InvariantCulture))
+            .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture))
             .Append('"');
     }
 
@@ -575,7 +575,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
         if (snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Bubble) {
             body.Append(" data-officeimo-bubble-scale=\"")
-                .Append(snapshot.BubbleScalePercent.ToString("G17", CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(snapshot.BubbleScalePercent, CultureInfo.InvariantCulture))
                 .Append("\" data-officeimo-bubble-size-mode=\"")
                 .Append(OfficeHtmlText.EscapeAttribute(snapshot.BubbleSizeMode.ToString()))
                 .Append("\" data-officeimo-show-legend=\"")
@@ -633,12 +633,12 @@ public static partial class PowerPointHtmlConverterExtensions {
                     body.Append(" data-officeimo-point-color=\"").Append(OfficeHtmlText.EscapeAttribute(series.PointColors[i]!.Value.ToString())).Append('"');
                 if (series.XValues != null && i < series.XValues.Count) {
                     body.Append(" data-officeimo-x=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(series.XValues[i], CultureInfo.InvariantCulture)))
                         .Append('"');
                 }
                 if (series.BubbleSizes != null && i < series.BubbleSizes.Count) {
                     body.Append(" data-officeimo-bubble-size=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(series.BubbleSizes[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(series.BubbleSizes[i], CultureInfo.InvariantCulture)))
                         .Append('"');
                     if (series.PointColors != null && i < series.PointColors.Count &&
                         series.PointColors[i].HasValue) {
@@ -650,7 +650,7 @@ public static partial class PowerPointHtmlConverterExtensions {
                 }
 
                 body.Append('>')
-                    .Append(series.Values[i].ToString("G17", CultureInfo.InvariantCulture))
+                    .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(series.Values[i], CultureInfo.InvariantCulture))
                     .Append("</td>");
             }
 

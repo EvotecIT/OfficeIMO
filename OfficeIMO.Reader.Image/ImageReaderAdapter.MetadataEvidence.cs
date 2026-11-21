@@ -23,7 +23,7 @@ internal static partial class ImageReaderAdapter {
         builder.Add("image.resolution", "AuthoredResolution", evidence.Resolution.IsPresenceKnown ? evidence.Resolution.IsDeclared ? "true" : "false" : "unknown", "inspection-presence", location,
             attributes: ReaderInspectionMetadataBuilder.Attributes(("source", evidence.Resolution.Source), ("valid", evidence.Resolution.IsValid ? "true" : "false")));
         if (evidence.Resolution.Resolution is OfficeImageResolution resolution) {
-            builder.Add("image.resolution", "NativeResolution", resolution.Horizontal.ToString("R", CultureInfo.InvariantCulture) + "," + resolution.Vertical.ToString("R", CultureInfo.InvariantCulture), "number-pair", location,
+            builder.Add("image.resolution", "NativeResolution", OfficeIMO.OfficeRoundTripNumberText.Format(resolution.Horizontal, CultureInfo.InvariantCulture) + "," + OfficeIMO.OfficeRoundTripNumberText.Format(resolution.Vertical, CultureInfo.InvariantCulture), "number-pair", location,
                 attributes: ReaderInspectionMetadataBuilder.Attributes(("unit", resolution.Unit.ToString()), ("source", evidence.Resolution.Source)));
         }
         foreach (OfficeExifFieldEvidence field in evidence.ExifFields) {
@@ -41,7 +41,7 @@ internal static partial class ImageReaderAdapter {
                     ("timezone", timestamp.HasKnownTimezone ? "explicit-offset" : "unknown"), ("valid", timestamp.IsValid ? "true" : "false"), ("source", timestamp.Source), ("issue", timestamp.Issue)));
         }
         if (evidence.GpsCoordinate is OfficeExifGpsCoordinate gps) builder.Add("image.exif.gps", "Coordinates",
-            gps.Latitude.ToString("R", CultureInfo.InvariantCulture) + "," + gps.Longitude.ToString("R", CultureInfo.InvariantCulture), "decimal-degrees", location);
+            OfficeIMO.OfficeRoundTripNumberText.Format(gps.Latitude, CultureInfo.InvariantCulture) + "," + OfficeIMO.OfficeRoundTripNumberText.Format(gps.Longitude, CultureInfo.InvariantCulture), "decimal-degrees", location);
         foreach (OfficeXmpProperty property in evidence.XmpProperties) {
             builder.Add("image.xmp", property.Name, property.Value, "xmp-value", location,
                 attributes: ReaderInspectionMetadataBuilder.Attributes(("namespace", property.NamespaceUri), ("kind", property.Kind.ToString()), ("resource", property.IsResource ? "true" : "false"),

@@ -169,7 +169,7 @@ internal static class YamlScalarClassifier {
     }
 
     private static DataScalarKind Float(double value, out ReadOnlySpan<char> text) {
-        string formatted = value.ToString("R", CultureInfo.InvariantCulture);
+        string formatted = OfficeIMO.OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture);
         if (formatted.IndexOf('.') < 0 && formatted.IndexOf('E') < 0) formatted += ".0";
         text = formatted.AsSpan();
         return DataScalarKind.Float;

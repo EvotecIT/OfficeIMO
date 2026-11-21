@@ -83,8 +83,8 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         }
         sb.Append(MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes));
         if (imageRenderingMode == MarkdownImageRenderingMode.RichMarkdown && (Width != null || Height != null)) {
-            var w = Width != null ? $"width={Width.Value.ToPixels().ToString("R", System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
-            var h = Height != null ? $"height={Height.Value.ToPixels().ToString("R", System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
+            var w = Width != null ? $"width={OfficeIMO.Core.Internal.OfficeRoundTripText.Format(Width.Value.ToPixels(), System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
+            var h = Height != null ? $"height={OfficeIMO.Core.Internal.OfficeRoundTripText.Format(Height.Value.ToPixels(), System.Globalization.CultureInfo.InvariantCulture)}" : string.Empty;
             var sep = (w != string.Empty && h != string.Empty) ? " " : string.Empty;
             sb.Append($"{{{w}{sep}{h}}}");
         }
@@ -138,7 +138,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     private static void AppendHtmlDimension(string name, OfficeLength? length, ref string attributes, ref string style) {
         if (!length.HasValue) return;
         double pixels = length.Value.ToPixels();
-        string value = pixels.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        string value = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(pixels, System.Globalization.CultureInfo.InvariantCulture);
         if (pixels >= 0 && pixels == Math.Truncate(pixels)) {
             attributes += " " + name + "=\"" + value + "\"";
         } else {

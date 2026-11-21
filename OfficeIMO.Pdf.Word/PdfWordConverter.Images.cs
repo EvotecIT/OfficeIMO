@@ -392,7 +392,7 @@ namespace OfficeIMO.Pdf.Word {
                     opacityIsOmitted ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.None,
                     new Dictionary<string, string> {
                         ["ResourceName"] = image.ResourceName,
-                        ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture),
+                        ["Opacity"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(assessment.Opacity, CultureInfo.InvariantCulture),
                         ["MappedTransparencyPercent"] = assessment.MappedTransparencyPercent.ToString(CultureInfo.InvariantCulture)
                     });
             }

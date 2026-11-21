@@ -21,4 +21,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Html" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Numerics\OfficeRoundTripNumberText.cs" Link="SharedSource\Numerics\OfficeRoundTripNumberText.cs" />
+  </ItemGroup>
 </Project>

@@ -12,7 +12,7 @@ public static partial class HtmlComputedStyleEngine {
             if (opacity.Status == HtmlCssPropertyParseStatus.Parsed && numeric != null) {
                 double value = numeric.Type == HtmlCssNumericType.Percentage ? numeric.Value / 100D : numeric.Value;
                 value = value < 0D ? 0D : value > 1D ? 1D : value;
-                properties["opacity"] = value.ToString("R", CultureInfo.InvariantCulture);
+                properties["opacity"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
             }
         }
 
@@ -39,7 +39,7 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            string number = component.Value!.Value.ToString("R", CultureInfo.InvariantCulture);
+            string number = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(component.Value!.Value, CultureInfo.InvariantCulture);
             if (component.Kind == HtmlCssColorComponentKind.Percentage
                 || (function.Kind != HtmlCssColorFunctionKind.Rgb && i > 0)) {
                 number += "%";
@@ -56,7 +56,7 @@ public static partial class HtmlComputedStyleEngine {
         "rgba(" + color.R.ToString(CultureInfo.InvariantCulture)
         + ", " + color.G.ToString(CultureInfo.InvariantCulture)
         + ", " + color.B.ToString(CultureInfo.InvariantCulture)
-        + ", " + alpha.ToString("R", CultureInfo.InvariantCulture) + ")";
+        + ", " + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(alpha, CultureInfo.InvariantCulture) + ")";
 
     private static double ResolveAlpha(HtmlCssColorComponent alpha) {
         if (alpha.Kind == HtmlCssColorComponentKind.None) return 0D;

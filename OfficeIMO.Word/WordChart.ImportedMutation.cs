@@ -105,7 +105,7 @@ namespace OfficeIMO.Word {
                 new C.PointCount { Val = (uint)values.Count });
             for (int index = 0; index < values.Count; index++) {
                 literal.Append(new C.NumericPoint(
-                    new C.NumericValue(values[index].ToString("R", CultureInfo.InvariantCulture))) {
+                    new C.NumericValue(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[index], CultureInfo.InvariantCulture))) {
                     Index = (uint)index
                 });
             }

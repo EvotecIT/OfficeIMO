@@ -89,7 +89,7 @@ internal sealed class TomlConfigurationFileParser {
                 if (double.IsPositiveInfinity(number)) return "Infinity";
                 if (double.IsNegativeInfinity(number)) return "-Infinity";
                 string text = value.AsString();
-                return text.IndexOf('_') < 0 && text[0] != '+' ? text : number.ToString("R", CultureInfo.InvariantCulture);
+                return text.IndexOf('_') < 0 && text[0] != '+' ? text : OfficeIMO.OfficeRoundTripNumberText.Format(number, CultureInfo.InvariantCulture);
             }
             case TomlNodeKind.Boolean:
                 return (bool)value.Value ? "true" : "false";

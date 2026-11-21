@@ -944,7 +944,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static string FormatCssOpacity(double opacity) =>
-        opacity.ToString("R", CultureInfo.InvariantCulture);
+        OfficeIMO.Core.Internal.OfficeRoundTripText.Format(opacity, CultureInfo.InvariantCulture);
 
     private static string ToCssBlendMode(OfficeIMO.Drawing.OfficeBlendMode blendMode) => blendMode switch {
         OfficeIMO.Drawing.OfficeBlendMode.ColorDodge => "color-dodge",
@@ -962,7 +962,7 @@ public static partial class PdfHtmlConverterExtensions {
         string source = "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image";
         var details = new Dictionary<string, string> {
             ["ResourceName"] = image.ResourceName,
-            ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture),
+            ["Opacity"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(assessment.Opacity, CultureInfo.InvariantCulture),
             ["BlendMode"] = assessment.BlendMode.ToString()
         };
         switch (assessment.Disposition) {

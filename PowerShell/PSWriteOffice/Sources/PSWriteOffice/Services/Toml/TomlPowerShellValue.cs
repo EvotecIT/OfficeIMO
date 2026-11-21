@@ -110,7 +110,7 @@ internal static class TomlPowerShellValue {
                 if (double.IsNaN(number) || double.IsInfinity(number)) {
                     throw new ArgumentException("A TOML patch value cannot be NaN or infinity; JSON has no such numbers.");
                 }
-                string digits = number.ToString("R", CultureInfo.InvariantCulture);
+                string digits = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(number, CultureInfo.InvariantCulture);
                 json.Append(digits);
                 // A whole double keeps a fraction, so the patch writes a float rather than an integer.
                 if (digits.IndexOfAny(FloatMarkers) < 0) json.Append(".0");

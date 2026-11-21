@@ -532,7 +532,11 @@ internal static class YamlSchemaResolver {
 #if NET8_0_OR_GREATER
         return double.TryParse(buffer.Slice(0, n), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #else
-        return double.TryParse(buffer.Slice(0, n).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        string text = buffer.Slice(0, n).ToString();
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
+        // .NET Framework reads -0 as 0.
+        if (value == 0D && text[0] == '-') value = -value;
+        return true;
 #endif
     }
 

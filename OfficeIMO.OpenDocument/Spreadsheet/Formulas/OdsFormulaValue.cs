@@ -57,7 +57,7 @@ public readonly struct OdsFormulaValue {
     public string AsText() {
         switch (Kind) {
             case OdsFormulaValueKind.Empty: return string.Empty;
-            case OdsFormulaValueKind.Number: return _number.ToString("R", CultureInfo.InvariantCulture);
+            case OdsFormulaValueKind.Number: return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_number, CultureInfo.InvariantCulture);
             case OdsFormulaValueKind.Boolean: return _boolean ? "TRUE" : "FALSE";
             default: return _text ?? string.Empty;
         }

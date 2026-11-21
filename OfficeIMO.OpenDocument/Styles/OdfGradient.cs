@@ -46,7 +46,7 @@ public sealed class OdfGradient {
         element.SetAttributeValue(OdfNamespaces.Draw + "style", pattern.Style.ToString().ToLowerInvariant());
         element.SetAttributeValue(OdfNamespaces.Draw + "start-color", pattern.StartColor.ToString());
         element.SetAttributeValue(OdfNamespaces.Draw + "end-color", pattern.EndColor.ToString());
-        element.SetAttributeValue(OdfNamespaces.Draw + "angle", pattern.AngleDegrees.ToString("R", CultureInfo.InvariantCulture) + "deg");
+        element.SetAttributeValue(OdfNamespaces.Draw + "angle", OfficeIMO.Core.Internal.OfficeRoundTripText.Format(pattern.AngleDegrees, CultureInfo.InvariantCulture) + "deg");
         WritePercent("border", pattern.Border); WritePercent("start-intensity", pattern.StartIntensity); WritePercent("end-intensity", pattern.EndIntensity);
         WritePercent("cx", pattern.CenterX); WritePercent("cy", pattern.CenterY);
         void WritePercent(string name, double value) => element.SetAttributeValue(OdfNamespaces.Draw + name,
@@ -54,7 +54,7 @@ public sealed class OdfGradient {
     }
     // ODF percentages use decimal notation, so expand the round-trip double's exponent.
     private static string FormatPercent(double value) {
-        string text = (value * 100).ToString("R", CultureInfo.InvariantCulture);
+        string text = OfficeIMO.Core.Internal.OfficeRoundTripText.Format((value * 100), CultureInfo.InvariantCulture);
         int exponentAt = text.IndexOf('E');
         if (exponentAt < 0) return text + "%";
         int exponent = int.Parse(text.Substring(exponentAt + 1), NumberStyles.Integer, CultureInfo.InvariantCulture);

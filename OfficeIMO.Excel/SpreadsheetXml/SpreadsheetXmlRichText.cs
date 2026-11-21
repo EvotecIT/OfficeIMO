@@ -71,7 +71,7 @@ internal static class SpreadsheetXmlRichText {
             if (value.FontFamily != null || value.FontSize.HasValue || value.Color.HasValue) {
                 writer.WriteStartElement("html", "Font", Html.NamespaceName); wrappers++;
                 if (value.FontFamily != null) writer.WriteAttributeString("html", "Face", Html.NamespaceName, value.FontFamily);
-                if (value.FontSize.HasValue) writer.WriteAttributeString("html", "Size", Html.NamespaceName, value.FontSize.Value.ToPoints().ToString("R", CultureInfo.InvariantCulture));
+                if (value.FontSize.HasValue) writer.WriteAttributeString("html", "Size", Html.NamespaceName, OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value.FontSize.Value.ToPoints(), CultureInfo.InvariantCulture));
                 if (value.Color.HasValue) {
                     string? argb = Utilities.ExcelThemeColorResolver.Resolve(ExcelColor.ToSpreadsheetColor(value.Color.Value), workbook);
                     if (argb != null) writer.WriteAttributeString("html", "Color", Html.NamespaceName, "#" + argb.Substring(argb.Length - 6));

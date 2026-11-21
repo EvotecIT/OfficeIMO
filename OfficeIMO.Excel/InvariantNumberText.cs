@@ -81,11 +81,11 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Like <see cref="Get(double)"/>, but negative zero keeps the sign the runtime's round-trip format gives it, for
-        /// values that are copied rather than stored as Excel cell values.
+        /// Like <see cref="Get(double)"/>, but negative zero keeps its sign as <c>-0</c>, for values that are copied rather
+        /// than stored as Excel cell values.
         /// </summary>
         internal static string GetExact(double value) =>
-            BitConverter.DoubleToInt64Bits(value) == long.MinValue ? value.ToString("R", CultureInfo.InvariantCulture) : Get(value);
+            BitConverter.DoubleToInt64Bits(value) == long.MinValue ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture) : Get(value);
 
         internal static bool TryGet(int value, out string text) {
             var cache = NonNegativeCache;

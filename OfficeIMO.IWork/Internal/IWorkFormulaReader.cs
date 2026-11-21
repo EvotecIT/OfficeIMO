@@ -619,7 +619,7 @@ internal static partial class IWorkFormulaReader {
             complete = false;
             return "#NUM!";
         }
-        return value.Value.ToString("R", CultureInfo.InvariantCulture);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value.Value, CultureInfo.InvariantCulture);
     }
 
     private static Operand[] Pop(List<Operand> stack, int count, ref bool complete) {

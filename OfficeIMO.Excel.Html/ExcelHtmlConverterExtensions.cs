@@ -628,12 +628,12 @@ public static partial class ExcelHtmlConverterExtensions {
                 body.Append("<td");
                 if (series.XValues != null && i < series.XValues.Count) {
                     body.Append(" data-officeimo-x=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(series.XValues[i], CultureInfo.InvariantCulture)))
                         .Append('"');
                 }
 
                 body.Append('>')
-                    .Append(series.Values[i].ToString("G17", CultureInfo.InvariantCulture))
+                    .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(series.Values[i], CultureInfo.InvariantCulture))
                     .Append("</td>");
             }
 
@@ -755,7 +755,7 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append(' ')
             .Append(name)
             .Append("=\"")
-            .Append(value.ToString("G17", CultureInfo.InvariantCulture))
+            .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture))
             .Append('"');
     }
 

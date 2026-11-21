@@ -97,7 +97,7 @@ internal static class HtmlCssTransformParser {
             || !TryScaleFactor(parts[0], out double x)) return false;
         double y = x;
         if (parts.Count == 2 && !TryScaleFactor(parts[1], out y)) return false;
-        transformFunction = "scale(" + x.ToString("R", CultureInfo.InvariantCulture) + "," + y.ToString("R", CultureInfo.InvariantCulture) + ")";
+        transformFunction = "scale(" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(x, CultureInfo.InvariantCulture) + "," + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(y, CultureInfo.InvariantCulture) + ")";
         return true;
     }
 
