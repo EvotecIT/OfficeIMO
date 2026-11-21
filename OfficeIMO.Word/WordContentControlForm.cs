@@ -628,9 +628,29 @@ namespace OfficeIMO.Word {
 
         private static bool IsAllowedChoice(IEnumerable<string> allowedValues, object? value) {
             string? text = ConvertFormValueToString(value);
-            return string.IsNullOrEmpty(text)
-                || allowedValues.Any(allowedValue => string.Equals(allowedValue, text, StringComparison.OrdinalIgnoreCase));
+            return string.IsNullOrEmpty(text) || ResolveChoice(allowedValues, value) != null;
         }
+
+        /// <summary>
+        /// The configured choice a value selects: the choice with the same text or, for a number, the choice that reads
+        /// as the same number at 15 significant digits, so a computed 0.1 + 0.2 selects the choice "0.3" on every
+        /// framework.
+        /// </summary>
+        private static string? ResolveChoice(IEnumerable<string> allowedValues, object? value) {
+            string? text = ConvertFormValueToString(value);
+            if (string.IsNullOrEmpty(text)) return null;
+            string[] choices = allowedValues.ToArray();
+            string? exact = choices.FirstOrDefault(choice => string.Equals(choice, text, StringComparison.OrdinalIgnoreCase));
+            if (exact != null || !(value is double || value is float)) return exact;
+            double number = value is float single ? single : (double)value;
+            if (double.IsNaN(number) || double.IsInfinity(number)) return null;
+            double rounded = double.Parse(number.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture);
+            return choices.FirstOrDefault(choice =>
+                double.TryParse(choice, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed) && parsed == rounded);
+        }
+
+        private static string? FormChoiceText(IEnumerable<string> allowedValues, object? value) =>
+            ResolveChoice(allowedValues, value) ?? ConvertFormValueToString(value);
 
         private static IEnumerable<string> EnumerateDropDownListChoices(WordDropDownList dropDownList) {
             SdtContentDropDownList? list = dropDownList._sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault();

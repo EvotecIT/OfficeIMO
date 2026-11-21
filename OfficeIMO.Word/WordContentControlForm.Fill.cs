@@ -40,14 +40,14 @@ namespace OfficeIMO.Word {
 
             foreach (WordDropDownList dropDownList in DropDownLists) {
                 if (TryGetFormValue(values, keyMode, dropDownList.Tag, dropDownList.Alias, out object? value)) {
-                    dropDownList.SelectedValue = ConvertFormValueToString(value);
+                    dropDownList.SelectedValue = FormChoiceText(EnumerateDropDownListChoices(dropDownList), value);
                     updated++;
                 }
             }
 
             foreach (WordComboBox comboBox in ComboBoxes) {
                 if (TryGetFormValue(values, keyMode, comboBox.Tag, comboBox.Alias, out object? value)) {
-                    comboBox.SelectedValue = ConvertFormValueToString(value);
+                    comboBox.SelectedValue = FormChoiceText(EnumerateComboBoxChoices(comboBox), value);
                     updated++;
                 }
             }
