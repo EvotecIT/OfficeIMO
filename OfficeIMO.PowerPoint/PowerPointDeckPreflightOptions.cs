@@ -107,6 +107,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Lowest finding severity that causes <c>SaveWithPreflight</c> to fail.</summary>
         public PowerPointDeckPreflightSeverity FailureSeverity { get; set; } = PowerPointDeckPreflightSeverity.Error;
 
+        /// <summary>
+        ///     The text measurement of a rendering owner, selected with <c>WithPdfTextMeasurement</c> from
+        ///     OfficeIMO.PowerPoint.Pdf. PowerPoint itself has no PDF dependency.
+        /// </summary>
+        internal Func<PowerPointDocument, PowerPointTextMeasurement>? TextMeasurementProvider { get; set; }
+
+        /// <summary>The measurement resolved for one inspection, on that inspection's private copy.</summary>
+        internal PowerPointTextMeasurement? ResolvedTextMeasurement { get; set; }
+
         /// <summary>Creates a detached copy suitable for per-operation customization.</summary>
         public PowerPointDeckPreflightOptions Clone() => new PowerPointDeckPreflightOptions {
             DetectOffSlideShapes = DetectOffSlideShapes,
@@ -124,7 +133,8 @@ namespace OfficeIMO.PowerPoint {
             CollisionTolerance = CollisionTolerance,
             MaximumShapeCount = MaximumShapeCount,
             MaximumGroupDepth = MaximumGroupDepth,
-            FailureSeverity = FailureSeverity
+            FailureSeverity = FailureSeverity,
+            TextMeasurementProvider = TextMeasurementProvider
         };
 
         private static int RequirePositive(int value, string propertyName) {

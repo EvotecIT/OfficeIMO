@@ -21,9 +21,7 @@ public static partial class PowerPointPdfConverterExtensions {
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfCreateOptions pdfOptions = CreatePdfOptions(presentation, options);
         options.NativeTextMeasure = PdfCore.PdfWriter.CreateDrawingTextMeasure(pdfOptions);
-        bool hasExplicitDefaultFont = options.HasExplicitPdfFontConfiguration && options.PdfOptions?.HasExplicitDefaultFont == true;
-        options.NativeTextDefaultFontFamily = string.IsNullOrWhiteSpace(options.FontFamily) && !hasExplicitDefaultFont ? null
-            : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
+        options.NativeTextDefaultFontFamily = ResolveNativeTextDefaultFontFamily(options, pdfOptions);
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         ReportOmittedSpeakerNotes(presentation, options);
 
@@ -64,6 +62,12 @@ public static partial class PowerPointPdfConverterExtensions {
 
         cancellationToken.ThrowIfCancellationRequested();
         return pdf;
+    }
+
+    private static string? ResolveNativeTextDefaultFontFamily(PowerPointPdfExportOptions options, PdfCore.PdfCreateOptions pdfOptions) {
+        bool hasExplicitDefaultFont = options.HasExplicitPdfFontConfiguration && options.PdfOptions?.HasExplicitDefaultFont == true;
+        return string.IsNullOrWhiteSpace(options.FontFamily) && !hasExplicitDefaultFont ? null
+            : PdfCore.PdfFontNames.ToBaseFontName(PdfCore.PdfStandardFontMapper.GetStyledFont(pdfOptions.DefaultFont, false, false));
     }
 
     /// <summary>
