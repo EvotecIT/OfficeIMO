@@ -43,6 +43,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_NativeSave_StoresNegativeZeroFilterValueAsZero() {
+            byte[] source;
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddSheet("Filter");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue(1d);
+                sheet.Range("A1:A2").AutoFilter();
+                sheet.ApplyAutoFilterCustomCriteria(
+                    "A1:A2",
+                    0,
+                    matchAll: true,
+                    new[] { (FilterOperatorValues.GreaterThan, "-0") });
+                source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
+            }
+
+            using var archive = new ZipArchive(new MemoryStream(source, writable: false), ZipArchiveMode.Read);
+            using Stream worksheetStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/worksheets/sheet1.bin")).Open();
+            XlsbRecord custom = Assert.Single(XlsbRecordReader.ReadAll(worksheetStream),
+                record => record.Type == XlsbAutoFilterCriteria.BrtCustomFilter);
+            Assert.Equal(XlsbAutoFilterCriteria.NumberValue, custom.Data[0]);
+            Assert.Equal(new byte[8], custom.Data.Skip(2).Take(8).ToArray());
+        }
+
+        [Fact]
         public void Xlsb_NativeSave_KeepsOverflowingFilterTextAsText() {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {

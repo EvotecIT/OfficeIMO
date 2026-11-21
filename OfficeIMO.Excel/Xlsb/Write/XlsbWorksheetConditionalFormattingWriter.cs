@@ -341,7 +341,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
             using var payload = new MemoryStream();
             XlsbPayloadWriter.WriteUInt32(payload, type);
-            XlsbPayloadWriter.WriteDouble(payload, number);
+            XlsbPayloadWriter.WriteDouble(payload, number == 0D ? 0D : number); // an Xnum has no negative zero
             // fSaveGTE and fGTE only apply to icon sets; other value objects store zero, as Excel does.
             XlsbPayloadWriter.WriteUInt32(payload, iconSet ? 1U : 0U);
             XlsbPayloadWriter.WriteUInt32(payload, iconSet && value.GreaterThanOrEqual?.Value != false ? 1U : 0U);

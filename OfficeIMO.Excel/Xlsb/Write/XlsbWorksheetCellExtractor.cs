@@ -252,7 +252,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             if (OfficeIMO.Core.Internal.OfficeRoundTripText.TryParseFinite(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, number, formulaPayload);
+                // BrtFmlaNum holds an Xnum, which has no negative zero.
+                return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, number == 0D ? 0D : number, formulaPayload);
             }
 
             return new XlsbWriteCell(row, column, styleIndex, XlsbWriteCellKind.FormulaNumber, 0D, formulaPayload);
