@@ -117,6 +117,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
+byte[] carlitoRegular = File.ReadAllBytes("fonts/Carlito-Regular.ttf");
 var pdfOptions = new PowerPointPdfExportOptions {
     PdfOptions = new PdfCreateOptions()
         .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Carlito", carlitoRegular))
