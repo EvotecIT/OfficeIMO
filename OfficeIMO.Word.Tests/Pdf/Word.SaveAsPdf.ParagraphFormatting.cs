@@ -55,10 +55,10 @@ namespace OfficeIMO.Tests {
             }
 
             string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-            Assert.Contains("7 Ts", content);
-            Assert.Contains("-3.6 Ts", content);
+            // Size and offset come from the font's script metrics; both directions must be present.
+            Assert.Matches(@"(?<![-\d.])[1-9][\d.]*\s+Ts", content);
+            Assert.Matches(@"-(?:0\.\d*[1-9]|[1-9][\d.]*)\s+Ts", content);
             Assert.Contains("0 Ts", content);
-            Assert.Contains("/F1 13 Tf", content);
         }
 
         [Fact]

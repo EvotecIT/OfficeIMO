@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             int leadingSpaceCount = 1, double leadingSpaceRemainder = 0, double leadingSpaceUnitAdvance = 0,
             bool contributesLineBoxDescent = true, bool isLineBoxStrut = false,
             bool preservesPaintedGlyphs = false, PdfInlineFormField? formField = null, PdfFootnoteDefinition? footnoteReference = null,
-            bool leadingIsOrdinarySpace = false) {
+            bool leadingIsOrdinarySpace = false, double baselineShift = 0D) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -96,6 +96,8 @@ internal static partial class PdfWriter {
             PreservesPaintedGlyphs = preservesPaintedGlyphs;
             FormField = formField;
             FootnoteReference = footnoteReference;
+            BaselineShift = baselineShift;
+            LineAlignmentRise = baselineShift;
         }
 
         public string Text { get; }
@@ -130,6 +132,8 @@ internal static partial class PdfWriter {
 
         public PdfTextBaseline Baseline { get; }
         public double LineAlignmentRise { get; set; }
+        /// <summary>The source run's own baseline offset, part of <see cref="LineAlignmentRise"/>.</summary>
+        public double BaselineShift { get; private set; }
 
         public double MeasuredWidth { get; private set; }
 
@@ -142,6 +146,7 @@ internal static partial class PdfWriter {
             ContributesLineBoxDescent = source.ContributesLineBoxDescent;
             IsLineBoxStrut = source.IsLineBoxStrut;
             LineAlignmentRise = source.LineAlignmentRise;
+            BaselineShift = source.BaselineShift;
             PreservesPaintedGlyphs = source.PreservesPaintedGlyphs;
             FormField = source.FormField;
             FootnoteReference = source.FootnoteReference;

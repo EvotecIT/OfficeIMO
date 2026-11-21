@@ -153,6 +153,27 @@ public sealed class WordPdfKerningTests {
         return Assert.Single(pdf.GetPages()).Letters.ToArray();
     }
 
+    // Word kerns the glyph before a word space against the space ("A " in Times New Roman and Arial),
+    // so the gap between two words is the space advance plus that pair. The test pair shortens the
+    // first glyph's advance by 20 units and the second (the space) by 40, at 10 pt per 1000 units.
+    [Theory]
+    [InlineData(1D, 9.4D)]
+    [InlineData(0D, 10D)]
+    public void PairKerningAppliesAcrossAWordSpace(double threshold, double expected) {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("A A");
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+        paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(
+            FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', ' ')))).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+
+        Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+        Assert.Equal(2, letters.Length);
+        Assert.Equal(expected, letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 3);
+    }
+
     private static void AssertAdvance(Letter[] letters, double expected) {
         Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(letters[0].StartBaseLine.Y, letters[1].StartBaseLine.Y, 3);
