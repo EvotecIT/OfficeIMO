@@ -247,6 +247,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, document.FillContentControlValues(rate));
                 Assert.Equal("0.3", document.DropDownLists.Single(list => list.Tag == "Rate").SelectedValue);
 
+                // Exactly halfway at the 16th digit, the even neighbour is selected on every framework.
+                document.AddParagraph("Amount:").AddDropDownList(new[] { "100000000000001", "100000000000000" }, "Amount Alias", "Amount");
+                Assert.Equal(1, document.FillContentControlValues(new Dictionary<string, object?> { ["Amount"] = 100000000000000.5 }));
+                Assert.Equal("100000000000000", document.DropDownLists.Single(list => list.Tag == "Amount").SelectedValue);
+
                 string json = invalid.ToJson();
                 using JsonDocument parsed = JsonDocument.Parse(json);
                 JsonElement root = parsed.RootElement;
