@@ -12,7 +12,7 @@ internal readonly partial struct PdfPageClipPath {
     // Set when a rectangular primary is stored as a path so rectangle shortcuts cannot ignore the intersections.
     private readonly bool _rectangularPrimary;
     // Absolute page-space paths, without intersections of their own, that renderers also clip by; usually null.
-    private readonly PdfPageClipPath[]? _renderingIntersections;
+    private readonly IntersectionChain? _renderingIntersections;
 
     private PdfPageClipPath(
         double x,
@@ -25,7 +25,7 @@ internal readonly partial struct PdfPageClipPath {
         bool isExact = true,
         bool containsTextClipping = false,
         bool? canServeAsExactPathClip = null,
-        PdfPageClipPath[]? renderingIntersections = null,
+        IntersectionChain? renderingIntersections = null,
         bool rectangularPrimary = false) {
         X = x;
         Y = y;
@@ -81,7 +81,8 @@ internal readonly partial struct PdfPageClipPath {
         return resolvedClip.WithRenderingIntersections(CombineRenderingIntersections(
             activeClip._renderingIntersections,
             clipPath._renderingIntersections,
-            renderingIntersections));
+            renderingIntersections,
+            textClippingBudget));
     }
 
     private static PdfPageClipPath ResolvePrimaryClip(
@@ -992,6 +993,9 @@ internal readonly partial struct PdfPageClipPath {
 
     internal bool ContainsTextClipping { get; }
 
+    /// <summary>How many further paths renderers clip by on top of the primary geometry.</summary>
+    internal int RenderingIntersectionCount => _renderingIntersections?.Count ?? 0;
+
     internal PdfPageClipPath AsTextClippingPath() => WithTextClipping(true);
 
     internal bool CanProveExactIntersection => _renderingIntersections == null && CanServeAsExactPathClip(this);
@@ -1141,9 +1145,10 @@ internal readonly partial struct PdfPageClipPath {
 
     internal PdfPageClipPath Translate(double offsetX, double offsetY) {
         if (_renderingIntersections != null) {
-            var translatedIntersections = new PdfPageClipPath[_renderingIntersections.Length];
-            for (int i = 0; i < translatedIntersections.Length; i++) {
-                translatedIntersections[i] = _renderingIntersections[i].Translate(offsetX, offsetY);
+            IntersectionChain? translatedIntersections = null;
+            PdfPageClipPath[] intersections = _renderingIntersections.ToArray();
+            for (int i = 0; i < intersections.Length; i++) {
+                translatedIntersections = new IntersectionChain(intersections[i].Translate(offsetX, offsetY), translatedIntersections);
             }
 
             return WithoutRenderingIntersections().Translate(offsetX, offsetY).WithRenderingIntersections(translatedIntersections);

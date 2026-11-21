@@ -298,6 +298,8 @@ public sealed partial class PdfReadPage {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;
                 }
+                // Replay with the exact matrix that the check above accepted.
+                placement = placement.WithExactProjection();
                 if (requireNestedType3Uncolored && !image.IsImageMask) {
                     groupDrawing = null!;
                     return Type3TransparencyGroupDrawingResult.Unsupported;

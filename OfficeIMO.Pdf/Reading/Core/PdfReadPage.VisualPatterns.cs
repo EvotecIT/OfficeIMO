@@ -497,10 +497,12 @@ public sealed partial class PdfReadPage {
                 ? null
                 : _ => type3GlyphBudget.RecordFailure(),
             type3ImageVisitor: (placement, image, effect) => {
-                if (requireSupportedType3Content &&
-                    !CanDrawImagePlacementExactly(placement, height, width, height)) {
-                    type3GlyphBudget.RecordFailure();
-                    return;
+                if (requireSupportedType3Content) {
+                    if (!CanDrawImagePlacementExactly(placement, height, width, height)) {
+                        type3GlyphBudget.RecordFailure();
+                        return;
+                    }
+                    placement = placement.WithExactProjection();
                 }
                 elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect));
             },
@@ -599,7 +601,9 @@ public sealed partial class PdfReadPage {
                     type3GlyphBudget.RecordFailure();
                     continue;
                 }
-                if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placements[i], image, elements.Count));
+                // Type 3 content replays with the exact matrix that the check above accepted.
+                PdfImagePlacement placement = requireSupportedType3Content ? placements[i].WithExactProjection() : placements[i];
+                if (image != null) elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count));
             }
         }
         var enclosingEffects = new List<PdfPageDrawingEffectTransition>();

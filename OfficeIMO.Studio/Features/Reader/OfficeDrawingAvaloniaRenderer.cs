@@ -375,20 +375,27 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
 
     // Nested geometry clips intersect, so each intersection keeps its own fill rule.
     private static IDisposable PushClip(DrawingContext context, OfficeClipPath clip) {
-        IDisposable primary = context.PushGeometryClip(CreateClipGeometry(clip));
-        if (clip.Intersections.Count == 0) return primary;
-        var pushed = new IDisposable[clip.Intersections.Count + 1];
-        pushed[0] = primary;
-        for (int i = 0; i < clip.Intersections.Count; i++) {
-            pushed[i + 1] = context.PushGeometryClip(CreateClipGeometry(clip.Intersections[i]));
-        }
-
-        return new ClipStack(pushed);
+        if (clip.Intersections.Count == 0) return context.PushGeometryClip(CreateClipGeometry(clip));
+        return PushScopes(clip.Intersections.Count + 1, index => context.PushGeometryClip(
+            CreateClipGeometry(index == 0 ? clip : clip.Intersections[index - 1])));
     }
 
-    private sealed class ClipStack : IDisposable {
+    // Pushes every scope or none: a failed push pops the scopes already pushed before rethrowing.
+    internal static IDisposable PushScopes(int count, Func<int, IDisposable> push) {
+        var pushed = new IDisposable[count];
+        int pushedCount = 0;
+        try {
+            for (; pushedCount < count; pushedCount++) pushed[pushedCount] = push(pushedCount);
+        } catch {
+            for (int i = pushedCount - 1; i >= 0; i--) pushed[i].Dispose();
+            throw;
+        }
+        return new ScopeStack(pushed);
+    }
+
+    private sealed class ScopeStack : IDisposable {
         private readonly IDisposable[] _pushed;
-        internal ClipStack(IDisposable[] pushed) => _pushed = pushed;
+        internal ScopeStack(IDisposable[] pushed) => _pushed = pushed;
         public void Dispose() {
             for (int i = _pushed.Length - 1; i >= 0; i--) _pushed[i].Dispose();
         }

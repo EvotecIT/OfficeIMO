@@ -44,23 +44,37 @@ public partial class PdfPageImageRendererTests {
         Assert.InRange(bottom - top + 1, 38, 42);
     }
 
-    private static byte[] BuildShearedImagePdf(string context) {
+    // A shear far below a pixel is still outside the tolerance that rounds a matrix to an axis-aligned box,
+    // so an image the reader checks as exactly drawable keeps its full matrix instead of being projected.
+    [Theory]
+    [InlineData("type3-image")]
+    [InlineData("type3-group-image")]
+    [InlineData("type3-pattern-cell-image")]
+    public void RenderPageAsSvg_KeepsTheFullMatrixOfANearlyAxisAlignedType3Image(string context) {
+        byte[] pdf = BuildShearedImagePdf(context, "q 40 0 0.0009 40 30 30 cm /Im1 Do Q");
+
+        string svg = System.Text.Encoding.UTF8.GetString(PdfPageImageRenderer.RenderPageAsSvg(pdf));
+
+        Assert.Contains("0.0009", svg, StringComparison.Ordinal);
+    }
+
+    private static byte[] BuildShearedImagePdf(string context, string placementContent = ShearedImagePlacement) {
         const string Resources = "<< /Font << /FType3 5 0 R >> >>";
         string image = BuildShearedTestImage(imageMask: false), mask = BuildShearedTestImage(imageMask: true);
-        string group = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Im1 7 0 R >> >>", ShearedImagePlacement);
-        string imagePattern = BuildStreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 240 200] /XStep 240 /YStep 200 /Resources << /XObject << /Im1 7 0 R >> >>", ShearedImagePlacement);
+        string group = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Im1 7 0 R >> >>", placementContent);
+        string imagePattern = BuildStreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 240 200] /XStep 240 /YStep 200 /Resources << /XObject << /Im1 7 0 R >> >>", placementContent);
         string redPattern = BuildStreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "1 0 0 rg 0 0 10 10 re f");
         return context switch {
             "type3-image" => BuildSingleStreamPdf(ShearedType3Show, Resources,
-                ShearedType3Font + " /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 " + ShearedImagePlacement), image),
+                ShearedType3Font + " /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 " + placementContent), image),
             "type3-image-mask" => BuildSingleStreamPdf("1 0 0 rg " + ShearedType3Show, Resources,
-                ShearedType3Font + " /PaintType 2 /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 " + ShearedImagePlacement), mask),
+                ShearedType3Font + " /PaintType 2 /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 " + placementContent), mask),
             "type3-group-image" => BuildSingleStreamPdf(ShearedType3Show, Resources,
                 ShearedType3Font + " /Resources << /XObject << /Fm1 8 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do"), image, group),
             "type3-pattern-cell-image" => BuildSingleStreamPdf(ShearedType3Show, Resources,
                 ShearedType3Font + " /Resources << /Pattern << /P1 9 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 /Pattern cs /P1 scn 0 0 240 200 re f"), image, imagePattern),
             "type3-pattern-image-mask" => BuildSingleStreamPdf("/Pattern cs /P1 scn " + ShearedType3Show, "<< /Font << /FType3 5 0 R >> /Pattern << /P1 9 0 R >> >>",
-                ShearedType3Font + " /PaintType 2 /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 " + ShearedImagePlacement), mask, redPattern),
+                ShearedType3Font + " /PaintType 2 /Resources << /XObject << /Im1 7 0 R >> >> >>\nendobj", BuildStreamObject(6, "<<", "500 0 d0 " + placementContent), mask, redPattern),
             _ => throw new ArgumentOutOfRangeException(nameof(context), context, null)
         };
     }

@@ -52,5 +52,19 @@ public sealed class OfficeDrawingAvaloniaRendererClipTests {
         Assert.InRange(red, 3000, 3400);
     }
 
+    [Fact]
+    public void PushScopesUnwindsTheScopesAlreadyPushedWhenAPushFails() {
+        var disposed = new List<int>();
+
+        Assert.Throws<InvalidOperationException>(() => OfficeDrawingAvaloniaRenderer.PushScopes(3, index =>
+            index < 2 ? new Scope(() => disposed.Add(index)) : throw new InvalidOperationException()));
+
+        Assert.Equal(new[] { 1, 0 }, disposed);
+    }
+
+    private sealed class Scope(Action dispose) : IDisposable {
+        public void Dispose() => dispose();
+    }
+
     private static bool IsRed(OfficeColor color) => color.R > 200 && color.G < 80 && color.B < 80;
 }

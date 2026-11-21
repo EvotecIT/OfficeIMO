@@ -6,6 +6,7 @@ namespace OfficeIMO.Pdf;
 // (rectangle or Commands) is a superset, and renderers also clip by each of these paths.
 // Every path enters through IntersectPathWithPath, which charges its flattened vertices to the
 // page's clipping budget, so a chain of any depth stays exact and its total size stays bounded.
+// Clips share chains, so extending one costs only the new paths.
 internal readonly partial struct PdfPageClipPath {
     private PdfPageClipPath WithoutRenderingIntersections() {
         if (_renderingIntersections == null) return this;
@@ -28,7 +29,7 @@ internal readonly partial struct PdfPageClipPath {
             _canServeAsExactPathClip);
     }
 
-    private PdfPageClipPath WithRenderingIntersections(PdfPageClipPath[]? intersections) {
+    private PdfPageClipPath WithRenderingIntersections(IntersectionChain? intersections) {
         if (intersections == null || Width <= 0D || Height <= 0D) {
             return WithoutRenderingIntersections();
         }
@@ -65,35 +66,73 @@ internal readonly partial struct PdfPageClipPath {
             rectangularPrimary: true);
     }
 
-    private static PdfPageClipPath[]? CombineRenderingIntersections(
-        PdfPageClipPath[]? first,
-        PdfPageClipPath[]? second,
-        PdfPageClipPath[]? third) {
-        int count = (first?.Length ?? 0) + (second?.Length ?? 0) + (third?.Length ?? 0);
-        if (count == 0) return null;
-        if (second == null && third == null) return first;
-        if (first == null && third == null) return second;
-        if (first == null && second == null) return third;
-        if (ReferenceEquals(first, second) && third == null) return first;
+    // A new clip usually extends the active chain, which costs only the new paths. Merging two chains
+    // walks both, so that work is charged to the page clipping budget.
+    private static IntersectionChain? CombineRenderingIntersections(
+        IntersectionChain? active,
+        IntersectionChain? clip,
+        PdfPageClipPath[]? added,
+        PdfTextClippingBudget? textClippingBudget) {
+        IntersectionChain? combined = active;
+        if (clip != null && !ReferenceEquals(clip, active)) {
+            if (active == null) {
+                combined = clip;
+            } else {
+                IntersectionChain longer = active.Count >= clip.Count ? active : clip;
+                IntersectionChain shorter = ReferenceEquals(longer, active) ? clip : active;
+                textClippingBudget?.ChargeLinearIntersectionWork((long)longer.Count + shorter.Count);
+                combined = longer.AppendDistinct(shorter);
+            }
+        }
 
-        var combined = new List<PdfPageClipPath>(count);
-        var seen = new HashSet<IReadOnlyList<OfficePathCommand>>(CommandListReferenceComparer.Instance);
-        AddDistinctRenderingIntersections(combined, seen, first);
-        AddDistinctRenderingIntersections(combined, seen, second);
-        AddDistinctRenderingIntersections(combined, seen, third);
-        return combined.ToArray();
+        if (added == null) return combined;
+        for (int i = 0; i < added.Length; i++) {
+            PdfPageClipPath path = added[i];
+            if (i > 0 && !path.IsRectangle && ReferenceEquals(path.Commands, added[i - 1].Commands)) continue;
+            combined = new IntersectionChain(path, combined);
+        }
+        return combined;
     }
 
-    // Linear in the chain length. Paths sharing a command list are the same page-space clip,
-    // because Translate and WithBounds build new command lists.
-    private static void AddDistinctRenderingIntersections(
-        List<PdfPageClipPath> combined,
-        HashSet<IReadOnlyList<OfficePathCommand>> seen,
-        PdfPageClipPath[]? intersections) {
-        if (intersections == null) return;
-        for (int i = 0; i < intersections.Length; i++) {
-            PdfPageClipPath intersection = intersections[i];
-            if (intersection.IsRectangle || seen.Add(intersection.Commands)) combined.Add(intersection);
+    // An immutable list of rendering intersections, newest first. Clips that extend a chain share it.
+    internal sealed class IntersectionChain {
+        internal IntersectionChain(PdfPageClipPath path, IntersectionChain? previous) {
+            Path = path;
+            Previous = previous;
+            Count = (previous?.Count ?? 0) + 1;
+        }
+
+        internal PdfPageClipPath Path { get; }
+
+        internal IntersectionChain? Previous { get; }
+
+        internal int Count { get; }
+
+        /// <summary>The paths, oldest first.</summary>
+        internal PdfPageClipPath[] ToArray() {
+            var paths = new PdfPageClipPath[Count];
+            IntersectionChain? node = this;
+            for (int i = paths.Length - 1; i >= 0; i--) {
+                paths[i] = node!.Path;
+                node = node.Previous;
+            }
+            return paths;
+        }
+
+        // Paths sharing a command list are the same page-space clip, because Translate and WithBounds build new lists.
+        internal IntersectionChain AppendDistinct(IntersectionChain other) {
+            var seen = new HashSet<IReadOnlyList<OfficePathCommand>>(CommandListReferenceComparer.Instance);
+            for (IntersectionChain? node = this; node != null; node = node.Previous) {
+                if (ReferenceEquals(node, other)) return this;
+                if (!node.Path.IsRectangle) seen.Add(node.Path.Commands);
+            }
+
+            IntersectionChain combined = this;
+            PdfPageClipPath[] paths = other.ToArray();
+            for (int i = 0; i < paths.Length; i++) {
+                if (paths[i].IsRectangle || seen.Add(paths[i].Commands)) combined = new IntersectionChain(paths[i], combined);
+            }
+            return combined;
         }
     }
 
@@ -105,10 +144,11 @@ internal readonly partial struct PdfPageClipPath {
 
     private OfficeClipPath AddOfficeClipIntersections(OfficeClipPath primary, double primitiveX, double primitiveY) {
         if (_renderingIntersections == null) return primary;
-        var intersections = new List<OfficeClipPath>(_renderingIntersections.Length);
+        PdfPageClipPath[] chain = _renderingIntersections.ToArray();
+        var intersections = new List<OfficeClipPath>(chain.Length);
         try {
-            for (int i = 0; i < _renderingIntersections.Length; i++) {
-                PdfPageClipPath intersection = _renderingIntersections[i];
+            for (int i = 0; i < chain.Length; i++) {
+                PdfPageClipPath intersection = chain[i];
                 IReadOnlyList<OfficePathCommand> commands = intersection.IsRectangle
                     ? CreateRectangleCommands(intersection.X - primitiveX, intersection.Y - primitiveY, intersection.Width, intersection.Height)
                     : intersection.TranslateCommands(primitiveX, primitiveY);
