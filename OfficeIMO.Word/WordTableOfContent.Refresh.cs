@@ -362,12 +362,17 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return content.ChildElements
-                .OfType<Paragraph>()
-                .FirstOrDefault(paragraph =>
-                    !paragraph.Descendants<SimpleField>().Any() &&
-                    !paragraph.Descendants<FieldCode>().Any() &&
-                    !IsGeneratedResultParagraph(paragraph));
+            // A title comes before the generated list. Paragraphs after the field begin, such as a separate
+            // paragraph holding the field end, belong to the old result.
+            foreach (Paragraph paragraph in content.ChildElements.OfType<Paragraph>()) {
+                if (paragraph.Descendants<SimpleField>().Any() || paragraph.Descendants<FieldCode>().Any() ||
+                    paragraph.Descendants<FieldChar>().Any()) {
+                    return null;
+                }
+                if (!IsGeneratedResultParagraph(paragraph)) return paragraph;
+            }
+
+            return null;
         }
 
         private static bool IsGeneratedResultParagraph(Paragraph paragraph) {

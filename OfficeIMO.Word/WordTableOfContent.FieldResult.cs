@@ -8,10 +8,10 @@ namespace OfficeIMO.Word {
             SdtContentBlock content = _sdtBlock.SdtContentBlock
                 ?? throw new InvalidOperationException("Table of contents content block is missing.");
 
-            Paragraph titleParagraph = GetTitleParagraph() ?? CreateTitleParagraph("Table of Contents");
-            RemoveIfAttached(titleParagraph);
+            Paragraph? titleParagraph = GetTitleParagraph();
+            if (titleParagraph != null) RemoveIfAttached(titleParagraph);
             content.RemoveAllChildren();
-            content.Append(titleParagraph);
+            if (titleParagraph != null) content.Append(titleParagraph);
 
             int? rightTabPosition = pageNumberSeparator == "\t" ? GetTextWidthTwips() : null;
             var paragraphs = new List<Paragraph>();

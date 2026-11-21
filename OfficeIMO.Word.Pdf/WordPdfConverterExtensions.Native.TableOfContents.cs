@@ -143,7 +143,24 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries, double? contentWidth, bool renderTitle = true) {
+        /// <summary>
+        /// The paragraph formatting of the document's TOC 1-9 style, so a table generated from the headings is laid out as
+        /// Word lays out the entries it writes. Returns null when the document does not define the style.
+        /// </summary>
+        private static PdfCore.PdfParagraphStyle? CreateNativeTableOfContentsEntryStyle(WordDocument document, int level,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
+            var entry = new W.Paragraph(
+                new W.ParagraphProperties(new W.ParagraphStyleId { Val = "TOC" + level.ToString(CultureInfo.InvariantCulture) }),
+                new W.Run(new W.Text("0")));
+            document.LocalizeBuiltInStyleReferences(entry);
+            string? styleId = entry.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            if (styleId == null || !WordStyleCatalog.For(document).Contains(styleId)) return null;
+            var paragraph = new WordParagraph(document, entry, entry.GetFirstChild<W.Run>()!);
+            return CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap);
+        }
+
+        private static void RenderNativeTableOfContents(INativePdfFlow pdf, WordTableOfContent tableOfContent, IReadOnlyList<NativeTableOfContentsEntry> entries, double? contentWidth, bool renderTitle,
+            NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap) {
             if (renderTitle) {
                 string title = string.IsNullOrWhiteSpace(tableOfContent.Text) ? "Table of Contents" : tableOfContent.Text;
                 pdf.Paragraph(builder => builder.AddText(NormalizeNativeDirectText(title)).SetFontSize(global::OfficeIMO.OfficeLength.Points(11D)), global::OfficeIMO.OfficeAlignment.Left, null, new PdfCore.PdfParagraphStyle {
@@ -152,10 +169,17 @@ namespace OfficeIMO.Word.Pdf {
                 });
             }
 
+            var levelStyles = new Dictionary<int, PdfCore.PdfParagraphStyle?>();
             PdfCore.PdfTableOfContentsEntry[] navigation = entries
                 .Where(entry => entry.Level >= tableOfContent.MinLevel && entry.Level <= tableOfContent.MaxLevel && !string.IsNullOrEmpty(entry.DestinationName))
-                .Select(entry => new PdfCore.PdfTableOfContentsEntry(NormalizeNativeDirectText(entry.Text), entry.DestinationName!, entry.Level,
-                    "Table of contents: " + NormalizeNativeDirectText(entry.Text))).ToArray();
+                .Select(entry => {
+                    if (!levelStyles.TryGetValue(entry.Level, out PdfCore.PdfParagraphStyle? levelStyle)) {
+                        levelStyle = CreateNativeTableOfContentsEntryStyle(tableOfContent.Document, entry.Level, nativeDefaults, nativeFontMap);
+                        levelStyles.Add(entry.Level, levelStyle);
+                    }
+                    return new PdfCore.PdfTableOfContentsEntry(NormalizeNativeDirectText(entry.Text), entry.DestinationName!, entry.Level,
+                        "Table of contents: " + NormalizeNativeDirectText(entry.Text)) { ParagraphStyle = levelStyle };
+                }).ToArray();
             if (navigation.Length > 0) {
                 pdf.TableOfContents(new PdfCore.PdfTableOfContentsOptions {
                     Title = null,

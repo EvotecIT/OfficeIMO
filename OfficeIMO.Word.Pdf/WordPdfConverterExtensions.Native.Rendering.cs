@@ -32,7 +32,8 @@ namespace OfficeIMO.Word.Pdf {
                         RenderNativeParagraph(pdf, title, null, getMarker, Array.Empty<int>(), footnoteNumbersById,
                             options, headingDestinations, nativeDefaults, nativeFontMap, null);
                     }
-                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth, renderTitle: title == null);
+                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth, renderTitle: title == null,
+                        nativeDefaults, nativeFontMap);
                     break;
                 case WordTable table:
                     RenderNativeTable(pdf, table, getMarker, footnoteNumbersById, options, contentWidth, nativeDefaults, nativeFontMap);
