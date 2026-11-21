@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 DateTime dateTime => dateTime.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
                 DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
                 bool booleanValue => booleanValue ? "TRUE" : "FALSE",
-                _ => Convert.ToString(cell.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+                _ => OfficeIMO.OfficeRoundTripNumberText.FormatObject(cell.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
             };
         }
 

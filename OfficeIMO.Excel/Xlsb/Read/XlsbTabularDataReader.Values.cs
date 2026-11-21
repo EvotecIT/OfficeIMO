@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
                 XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom when !IsMissingCustomValue(_customValues[ordinal]) =>
-                    Convert.ToString(_customValues[ordinal], _options.Culture)
+                    OfficeIMO.OfficeRoundTripNumberText.FormatObject(_customValues[ordinal], _options.Culture)
                     ?? string.Empty,
                 _ => throw new InvalidCastException("The XLSB cell is blank.")
             };

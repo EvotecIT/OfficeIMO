@@ -43,7 +43,7 @@ internal static class ReportBlockInput {
             return headers.Select(header => {
                 foreach (DictionaryEntry entry in dictionary) {
                     if (string.Equals(Convert.ToString(entry.Key, CultureInfo.InvariantCulture), header, StringComparison.OrdinalIgnoreCase)) {
-                        return Convert.ToString(entry.Value, CultureInfo.InvariantCulture) ?? string.Empty;
+                        return OfficeIMO.OfficeRoundTripNumberText.FormatObject(entry.Value, CultureInfo.InvariantCulture) ?? string.Empty;
                     }
                 }
 
@@ -53,12 +53,12 @@ internal static class ReportBlockInput {
 
         if (input is IEnumerable enumerable and not string) {
             return enumerable.Cast<object?>()
-                .Select(value => Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty)
+                .Select(value => OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty)
                 .ToArray();
         }
 
         var psObject = PSObject.AsPSObject(input);
-        return headers.Select(header => Convert.ToString(GetPropertyValue(psObject, header), CultureInfo.InvariantCulture) ?? string.Empty).ToArray();
+        return headers.Select(header => OfficeIMO.OfficeRoundTripNumberText.FormatObject(GetPropertyValue(psObject, header), CultureInfo.InvariantCulture) ?? string.Empty).ToArray();
     }
 
     public static Dictionary<string, OfficeIMO.OfficeColor>? ToColorMap(Hashtable? table, bool caseSensitive = false) {

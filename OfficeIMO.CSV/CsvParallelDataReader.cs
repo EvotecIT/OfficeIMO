@@ -486,7 +486,7 @@ internal sealed class CsvParallelDataReader : CsvDataReader,
 
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length)
     {
-        string value = Convert.ToString(GetValue(ordinal), MappingCulture) ?? string.Empty;
+        string value = OfficeIMO.OfficeRoundTripNumberText.FormatObject(GetValue(ordinal), MappingCulture) ?? string.Empty;
         if (buffer is null) return value.Length;
         if (dataOffset >= value.Length || length == 0) return 0;
         int offset = checked((int)dataOffset);

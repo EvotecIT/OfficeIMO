@@ -458,7 +458,7 @@ internal static class PdfCommandUtilities
                 throw new PSArgumentException("Form field names cannot be empty.", nameof(fieldValues));
             }
 
-            result[key!] = Convert.ToString(entry.Value, CultureInfo.InvariantCulture) ?? string.Empty;
+            result[key!] = OfficeIMO.OfficeRoundTripNumberText.FormatObject(entry.Value, CultureInfo.InvariantCulture) ?? string.Empty;
         }
 
         return result;

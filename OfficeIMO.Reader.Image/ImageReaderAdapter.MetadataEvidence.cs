@@ -63,7 +63,7 @@ internal static partial class ImageReaderAdapter {
     private static string? FormatValue(object? value) {
         if (value == null) return null;
         if (value is byte[] bytes) return BitConverter.ToString(bytes).Replace("-", string.Empty);
-        if (value is IEnumerable sequence && !(value is string)) return string.Join(",", sequence.Cast<object>().Select(item => Convert.ToString(item, CultureInfo.InvariantCulture)));
-        return Convert.ToString(value, CultureInfo.InvariantCulture);
+        if (value is IEnumerable sequence && !(value is string)) return string.Join(",", sequence.Cast<object>().Select(item => OfficeIMO.OfficeRoundTripNumberText.FormatObject(item, CultureInfo.InvariantCulture)));
+        return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture);
     }
 }

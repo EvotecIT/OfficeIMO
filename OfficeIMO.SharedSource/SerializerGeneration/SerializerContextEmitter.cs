@@ -271,6 +271,7 @@ internal static class SerializerContextEmitter {
             float number when float.IsNaN(number) => "float.NaN",
             float number when float.IsPositiveInfinity(number) => "float.PositiveInfinity",
             float number when float.IsNegativeInfinity(number) => "float.NegativeInfinity",
+            double or float => OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture)!,
             IFormattable number => number.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString() ?? "null"
         };

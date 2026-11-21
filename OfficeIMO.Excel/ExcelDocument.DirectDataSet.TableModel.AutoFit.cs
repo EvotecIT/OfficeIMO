@@ -489,7 +489,7 @@ namespace OfficeIMO.Excel {
                     return written;
                 }
 #endif
-                return value.ToString(CultureInfo.InvariantCulture).Length;
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture).Length;
             }
 
             private static int CountFormattedCharacters(float value) {
@@ -499,7 +499,7 @@ namespace OfficeIMO.Excel {
                     return written;
                 }
 #endif
-                return value.ToString(CultureInfo.InvariantCulture).Length;
+                return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture).Length;
             }
 
             private static int CountFormattedCharacters(decimal value) {

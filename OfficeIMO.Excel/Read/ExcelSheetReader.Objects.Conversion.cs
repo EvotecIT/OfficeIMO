@@ -978,7 +978,7 @@ namespace OfficeIMO.Excel {
         private static object? ConvertToDestinationType(object value, Type destType, CultureInfo culture) {
             try {
                 if (destType == typeof(string)) {
-                    return value as string ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : Convert.ToString(value, culture));
+                    return value as string ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, culture));
                 }
 
                 if (destType == typeof(bool)) {

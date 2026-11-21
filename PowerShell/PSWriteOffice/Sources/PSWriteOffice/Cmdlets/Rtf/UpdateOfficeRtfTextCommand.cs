@@ -127,7 +127,7 @@ public sealed class UpdateOfficeRtfTextCommand : PSCmdlet
             }
 
             var field = (RtfDocumentInfoField)Enum.Parse(typeof(RtfDocumentInfoField), fieldName!, ignoreCase: true);
-            editor.SetInfo(field, Convert.ToString(entry.Value, CultureInfo.InvariantCulture));
+            editor.SetInfo(field, OfficeIMO.OfficeRoundTripNumberText.FormatObject(entry.Value, CultureInfo.InvariantCulture));
         }
     }
 
@@ -146,7 +146,7 @@ public sealed class UpdateOfficeRtfTextCommand : PSCmdlet
                 throw new PSArgumentException("RTF user property names cannot be empty.", nameof(UserProperty));
             }
 
-            editor.SetUserProperty(name!, Convert.ToString(entry.Value, CultureInfo.InvariantCulture) ?? string.Empty);
+            editor.SetUserProperty(name!, OfficeIMO.OfficeRoundTripNumberText.FormatObject(entry.Value, CultureInfo.InvariantCulture) ?? string.Empty);
         }
     }
 
@@ -165,7 +165,7 @@ public sealed class UpdateOfficeRtfTextCommand : PSCmdlet
                 throw new PSArgumentException("RTF document variable names cannot be empty.", nameof(DocumentVariable));
             }
 
-            editor.SetDocumentVariable(name!, Convert.ToString(entry.Value, CultureInfo.InvariantCulture));
+            editor.SetDocumentVariable(name!, OfficeIMO.OfficeRoundTripNumberText.FormatObject(entry.Value, CultureInfo.InvariantCulture));
         }
     }
 }

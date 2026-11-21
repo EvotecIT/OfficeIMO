@@ -52,6 +52,19 @@ internal static class OfficeRoundTripNumberText {
 #endif
     }
 
+    /// <summary>
+    /// <see cref="Convert.ToString(object, IFormatProvider)"/>, except that a <see cref="double"/> or <see cref="float"/>
+    /// formatted for a culture gets the text <see cref="Format(double, CultureInfo)"/> writes, so that boxed numbers read
+    /// the same on every framework.
+    /// </summary>
+    internal static string? FormatObject(object? value, IFormatProvider? provider) {
+        if (provider is CultureInfo culture) {
+            if (value is double number) return Format(number, culture);
+            if (value is float single) return Format(single, culture);
+        }
+        return Convert.ToString(value, provider);
+    }
+
     internal static string Format(float value, CultureInfo culture) {
 #if NETCOREAPP3_0_OR_GREATER
         return value.ToString("R", culture);

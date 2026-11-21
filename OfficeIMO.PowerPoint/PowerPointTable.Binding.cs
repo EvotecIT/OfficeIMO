@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint {
             foreach (var item in items) {
                 for (int c = 0; c < columnList.Count; c++) {
                     object? value = columnList[c].ValueSelector(item);
-                    string text = Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+                    string text = OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
                     GetCell(rowIndex, startColumn + c).Text = text;
                 }
                 rowIndex++;

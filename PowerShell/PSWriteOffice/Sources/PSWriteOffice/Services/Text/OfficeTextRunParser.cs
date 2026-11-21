@@ -231,7 +231,7 @@ internal static class OfficeTextRunParser
     internal static string? GetString(object source, params string[] names)
     {
         var value = GetValue(source, names);
-        return value == null ? null : Convert.ToString(UnwrapPSObject(value), CultureInfo.InvariantCulture);
+        return value == null ? null : OfficeIMO.OfficeRoundTripNumberText.FormatObject(UnwrapPSObject(value), CultureInfo.InvariantCulture);
     }
 
     internal static double? GetDouble(object source, params string[] names)

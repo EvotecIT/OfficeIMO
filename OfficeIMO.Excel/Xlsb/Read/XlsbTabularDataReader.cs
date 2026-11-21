@@ -586,7 +586,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Number => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(cell.Number, _options.Culture),
                 XlsbTabularValueKind.Boolean => cell.Boolean.ToString(),
                 XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => FormatDateOrSerial(cell.Number, cell.Kind == XlsbTabularValueKind.Date),
-                XlsbTabularValueKind.Custom => Convert.ToString(cell.CustomValue, _options.Culture),
+                XlsbTabularValueKind.Custom => OfficeIMO.OfficeRoundTripNumberText.FormatObject(cell.CustomValue, _options.Culture),
                 _ => null
             };
 

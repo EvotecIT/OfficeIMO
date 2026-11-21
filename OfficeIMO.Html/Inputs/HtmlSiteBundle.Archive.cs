@@ -98,7 +98,8 @@ public sealed partial class HtmlSiteBundle {
     private static bool IsHtml(string name) => name.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
         || name.EndsWith(".htm", StringComparison.OrdinalIgnoreCase);
 
-    private static string ContentType(string name) => Path.GetExtension(name).ToLowerInvariant() switch {
+    // Entry names are archive text, not host paths: Path.GetExtension rejects characters such as '|' or '"' on .NET Framework.
+    private static string ContentType(string name) => EntryExtension(name).ToLowerInvariant() switch {
         ".html" or ".htm" => "text/html",
         ".css" => "text/css",
         ".png" => "image/png",
@@ -117,4 +118,9 @@ public sealed partial class HtmlSiteBundle {
         ".otf" => "font/otf",
         _ => "application/octet-stream"
     };
+
+    private static string EntryExtension(string name) {
+        int dot = name.LastIndexOf('.');
+        return dot > name.LastIndexOfAny(new[] { '/', '\\' }) ? name.Substring(dot) : string.Empty;
+    }
 }

@@ -253,7 +253,7 @@ namespace OfficeIMO.Excel {
             private static Func<object, CultureInfo, object?> CreateConverter(Type destinationType) {
                 if (destinationType == typeof(string)) {
                     return static (value, culture) => value as string
-                        ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : Convert.ToString(value, culture));
+                        ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, culture));
                 }
 
                 if (destinationType == typeof(bool)) {

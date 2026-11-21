@@ -196,7 +196,7 @@ public sealed partial class AddOfficeExcelChartCommand {
     }
 
     private static string CategoryText(object value) {
-        string text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+        string text = OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty;
         if (string.IsNullOrWhiteSpace(text)) throw new PSArgumentException("Category values cannot be blank.", nameof(Category));
         return text;
     }

@@ -263,7 +263,7 @@ namespace OfficeIMO.Excel {
             var columnNames = new string[columnCount];
             for (int column = 0; column < columnCount; column++) {
                 columnNames[column] = includeHeaders
-                    ? Convert.ToString(cells[column].Value, CultureInfo.InvariantCulture) ?? string.Empty
+                    ? OfficeIMO.OfficeRoundTripNumberText.FormatObject(cells[column].Value, CultureInfo.InvariantCulture) ?? string.Empty
                     : "Column" + (column + 1).ToString(CultureInfo.InvariantCulture);
             }
 

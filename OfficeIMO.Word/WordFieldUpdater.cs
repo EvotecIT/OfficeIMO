@@ -1013,11 +1013,7 @@ namespace OfficeIMO.Word {
                 return dateTime.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
             }
 
-            if (value is IFormattable formattable) {
-                return formattable.ToString(null, CultureInfo.InvariantCulture);
-            }
-
-            return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? string.Empty;
         }
 
         private static string TrimQuotes(string value) {
