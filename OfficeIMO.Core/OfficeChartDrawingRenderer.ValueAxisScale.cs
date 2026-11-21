@@ -51,7 +51,7 @@ public static partial class OfficeChartDrawingRenderer {
                 .Select(index => index < sharedX.Count ? sharedX[index] : double.NaN).ToArray() : null;
             IReadOnlyList<double>? plottedX = xValues ? sourceX!.Select(xToPlot!).ToArray() : current.XValues;
             series.Add(current.WithPlottedValues(plotted, plottedX, values ? secondary ? secondaryToSource : toSource : null,
-                xValues ? xToSource : null, values ? current.Values : null, sourceX, xValues ? xToPlot : null));
+                xValues ? xToSource : null, values ? current.Values : null, sourceX, xValues ? xToPlot : null, valueToPlot));
         }
 
         OfficeChartLayout plottingLayout = layout;

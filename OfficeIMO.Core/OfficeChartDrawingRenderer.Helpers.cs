@@ -347,7 +347,8 @@ public static partial class OfficeChartDrawingRenderer {
             trendline.Forward <= 0D && trendline.Backward <= 0D) yield break;
         Func<double, double>? toPlot = series.SourceXValue != null ? series.PlotXValue : null;
         GetTrendlineSamples(series, seriesX, out List<double> xs, out List<double> ys);
-        if (!TryFitDrawableTrendline(trendline, xs, ys, toPlot, out _, out _, out _, out double[] drawable)) yield break;
+        Func<double, double>? plotValue = series.SourceValue != null ? series.PlotValue : null;
+        if (!TryFitDrawableTrendline(trendline, xs, ys, toPlot, plotValue, out _, out _, out _, out double[] drawable)) yield break;
         double first = drawable.Min() - trendline.Backward;
         double last = drawable.Max() + trendline.Forward;
         if (toPlot != null) {

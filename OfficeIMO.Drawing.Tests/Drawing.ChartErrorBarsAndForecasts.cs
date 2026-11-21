@@ -75,6 +75,21 @@ public sealed class DrawingChartErrorBarsAndForecastsTests {
     }
 
     [Fact]
+    public void ForecastsOfATrendlineALogarithmicValueAxisCannotDrawDoNotWidenTheAxis() {
+        // The linear fit of these values is about -49.5 everywhere, which a logarithmic y axis cannot draw.
+        OfficeSeries series = new OfficeSeries("Sales", new[] { -100D, 1D, 1D, -100D }, new[] { 1D, 2D, 3D, 4D }, Ink, null, showMarkers: true)
+            .WithTrendline(new OfficeChartTrendline(OfficeChartTrendlineType.Linear, color: Trend).WithNativeDetails(1000D, 0D, null));
+
+        OfficeDrawing drawing = Render(OfficeChartType.Scatter, new OfficeChartLayout(showLegend: false).WithLogarithmicValueAxes(10D, 10D),
+            new[] { "1", "2", "3", "4" }, series);
+
+        Assert.Empty(TrendPoints(drawing));
+        double largest = Texts(drawing).Select(text => double.TryParse(text.Text, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out double value) ? value : 0D).Max();
+        Assert.True(largest < 100D, $"The axis reaches {largest}.");
+    }
+
+    [Fact]
     public void BackwardForecastOnALogarithmicXAxisKeepsItsDrawablePart() {
         OfficeDrawing Draw(double backward) => Render(OfficeChartType.Scatter,
             new OfficeChartLayout(showLegend: false, horizontalAxisMinimum: 0.1D, horizontalAxisMaximum: 100D).WithLogarithmicValueAxes(10D, null),

@@ -317,6 +317,10 @@ public sealed partial class OfficeSeries {
     /// null when the plotted X values are the source values.</summary>
     internal Func<double, double>? PlotXValue { get; private set; }
 
+    /// <summary>Plots a source value on the series' transformed value axis, the inverse of <see cref="SourceValue"/>;
+    /// null when the plotted values are the source values.</summary>
+    internal Func<double, double>? PlotValue { get; private set; }
+
     /// <summary>The source value of each point when the values are plotted on a transformed axis, including points a
     /// logarithmic axis cannot draw; null when the plotted values are the source values.</summary>
     internal IReadOnlyList<double>? SourcePointValues { get; private set; }
@@ -328,7 +332,8 @@ public sealed partial class OfficeSeries {
     /// samples its trendline is fitted to.</summary>
     internal OfficeSeries WithPlottedValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues,
         Func<double, double>? sourceValue, Func<double, double>? sourceXValue,
-        IReadOnlyList<double>? sourceValues = null, IReadOnlyList<double>? sourceXValues = null, Func<double, double>? plotXValue = null) {
+        IReadOnlyList<double>? sourceValues = null, IReadOnlyList<double>? sourceXValues = null, Func<double, double>? plotXValue = null,
+        Func<double, double>? plotValue = null) {
         var copy = new OfficeSeries(Name, values, xValues, BubbleSizes, Color, PointColors,
             ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
@@ -341,6 +346,7 @@ public sealed partial class OfficeSeries {
         copy.SourceValue = sourceValue;
         copy.SourceXValue = sourceXValue;
         copy.PlotXValue = sourceXValue != null ? plotXValue : null;
+        copy.PlotValue = sourceValue != null ? plotValue : null;
         copy.SourcePointValues = sourceValues;
         copy.SourcePointXValues = sourceXValues;
         return copy;
