@@ -10,15 +10,15 @@ internal static partial class PdfWriter {
         /// Row fragments address one line index shared by all cells. A cell that stops before the deepest
         /// cell receives zero-height placeholder lines up to that index, the same placeholders continuation
         /// layouts use for consumed lines, so the shared boundary then gives every cell its own break.
-        /// Rows with merged, rotated or viewport cells, and rows that column balancing measures
+        /// Rows that a merged cell spans, rows with rotated or viewport cells, and rows that column balancing measures
         /// by shared lines, keep the shared boundary.
         /// </remarks>
         private static bool TryAlignTableRowCellBreaks(TableBlock table, PdfTableStyle style,
             PreparedFlowTableRows rows, int columns, double[] columnWidths, double columnGap,
             int rowIndex, int startLine, double available, double fullFrameHeight, bool keepSharedBoundary) {
-            if (keepSharedBoundary) return false;
+            if (keepSharedBoundary || IsTableRowCoveredByMergedCell(table, rowIndex, columns)) return false;
             List<TableCellLayout> cells = GetTableCellLayouts(table, rowIndex, columns);
-            if (cells.Count < 2 || cells.Any(cell => cell.RowSpan > 1 || cell.Viewport != null || cell.TextRotation != 0)) return false;
+            if (cells.Count < 2 || cells.Any(cell => cell.Viewport != null || cell.TextRotation != 0)) return false;
             TableCellTextLayout[] layouts = rows.Lines[rowIndex];
             double leading = rows.Leadings[rowIndex];
             double rowFloor = GetTableRowInitialTextHeight(table, rowIndex, columns, leading) +
@@ -71,6 +71,16 @@ internal static partial class PdfWriter {
             foreach (TableCellLayout cell in cells) maxLines = Math.Max(maxLines, aligned[cell.Column].LineCount);
             rows.LineCounts[rowIndex] = maxLines;
             return true;
+        }
+
+        // Every row a vertically merged cell spans, from its first row to its last, keeps the
+        // shared boundary; rows elsewhere in the table split cell by cell.
+        private static bool IsTableRowCoveredByMergedCell(TableBlock table, int rowIndex, int columns) {
+            for (int row = 0; row <= rowIndex; row++) {
+                foreach (TableCellLayout cell in GetTableCellLayouts(table, row, columns))
+                    if (cell.RowSpan > 1 && row + cell.RowSpan > rowIndex) return true;
+            }
+            return false;
         }
 
         private static TableCellTextLayout InsertTableCellPlaceholderLines(TableCellTextLayout layout, int at, int count) {

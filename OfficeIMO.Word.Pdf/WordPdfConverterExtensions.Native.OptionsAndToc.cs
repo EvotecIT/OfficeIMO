@@ -474,15 +474,21 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         // A marker drawn in the text font still takes its line height from the numbering
-        // level's font. Only that font's metrics are needed, so it is used when it is
-        // registered or installed as itself, never through a substitution or font slot.
+        // level's font. Only that font's metrics are needed, so it is used when it is registered
+        // as itself, in a named family or its own font slot, or installed; never through a
+        // substitution or a newly assigned slot.
         private static void RegisterNativeListMarkerMetricsFont(string? familyName, PdfCore.PdfCreateOptions pdfOptions,
             HashSet<string> registeredFamilies, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
             if (string.IsNullOrWhiteSpace(familyName) || nativeFontMap.TryGetNamedFontFamily(familyName, out _) ||
+                nativeFontMap.TryGetFontSlot(familyName, out _) ||
                 registeredFamilies.Contains(NormalizeNativeFontFamily(familyName!))) return;
             string literalFamily = OfficeFontFamilyParser.Quote(familyName!.Trim());
             if (pdfOptions.TryResolveFontFamilySubstitution(literalFamily, out PdfCore.PdfFontFamilySubstitution? substitution) &&
                 substitution != null) return;
+            if (pdfOptions.TryResolveEmbeddedFontFamilySlot(familyName.Trim(), out PdfCore.PdfStandardFont slot)) {
+                nativeFontMap.Register(familyName.Trim(), slot);
+                return;
+            }
             if (pdfOptions.TryResolveNamedOfficeFontFamily(literalFamily, out string? registered) && registered != null ||
                 allowSystemFontEmbedding && pdfOptions.TryRegisterNamedOfficeFontFamily(literalFamily, out registered) && registered != null)
                 nativeFontMap.RegisterNamed(familyName.Trim(), registered);

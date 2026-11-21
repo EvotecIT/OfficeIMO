@@ -800,8 +800,7 @@ internal static partial class PdfWriter {
                     }
 
                     if (TryAlignTableRowCellBreaks(tb, style, preparedRows, cols, colPixel, colGapPx, rowIndex, startLine, available,
-                        MaximumContinuationHeight(), spanFlow.ActiveCells.Count > 0 || spanFlow.Cells.Count > 0 ||
-                        activeColumnFlow?.Options.BalanceTableRowLines == true))
+                        MaximumContinuationHeight(), activeColumnFlow?.Options.BalanceTableRowLines == true))
                         totalLines = rowLineCounts[rowIndex];
                     int take = Math.Min(totalLines - startLine, GetTableRowSegmentLineCountThatFits(rowIndex, startLine, available));
                     while (take == 0) {

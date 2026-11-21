@@ -131,6 +131,35 @@ public partial class Word {
         Assert.Equal(new[] { "B1", "B2", "B3", "B4", "B5", "B6" }, BreakingRowLines(pdf.GetPage(1), "B").Concat(BreakingRowLines(pdf.GetPage(2), "B")));
     }
 
+    // A vertically merged cell keeps one boundary only for the rows it spans; a later row splits cell by cell.
+    [Fact]
+    public void SaveAsPdf_BreakingRowAfterAMergedCellKeepsEachCellsFittingLines() {
+        using WordDocument document = CreateBreakingRowDocument(fillerLines: 10, widowControl: true, spacingAfter: 10D);
+        WordTable table = document.Tables[0];
+        table.AddRow(2);
+        table.AddRow(2);
+        WordTableRow breaking = table.Rows[0];
+        breaking._tableRow.Remove();
+        table._table.Append(breaking._tableRow);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "M1";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "R1";
+        table.Rows[1].Cells[1].Paragraphs[0].Text = "R2";
+        table.Rows[0].Cells[0].MergeVertically(1);
+        foreach (WordTableRow row in table.Rows.Take(2))
+            foreach (WordTableCell cell in row.Cells) {
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
+                WordParagraph paragraph = cell.Paragraphs[0];
+                paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20));
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+            }
+
+        using var pdf = PdfPigDocument.Open(document.ToPdf(CellPaginationOptions()).ToBytes());
+
+        Assert.Equal("A1 A2", string.Join(" ", BreakingRowLines(pdf.GetPage(1), "A")));
+        Assert.Equal("B1 B2 B3 B4", string.Join(" ", BreakingRowLines(pdf.GetPage(1), "B")));
+    }
+
     // Word applies a cell's vertical alignment where its row starts; the continued part starts at the top.
     [Fact]
     public void SaveAsPdf_BreakingRowContinuesCenteredCellsAtTheTop() {

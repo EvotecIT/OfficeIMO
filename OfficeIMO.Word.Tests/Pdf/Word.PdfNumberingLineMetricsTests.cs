@@ -271,9 +271,11 @@ public partial class Word {
     // first line. The marker paints as a Unicode bullet in the text font, but its line
     // keeps the numbering level's font metrics, without embedding that font.
     [Theory]
-    [InlineData(false, 18.7D, 18.7D)]
-    [InlineData(true, 16.5D, 18.7D)]
-    public void SaveAsPdf_NormalizedBulletLineUsesTheNumberingLevelFontAscent(bool wrapped, double lineGap, double itemGap) {
+    [InlineData(false, false, 18.7D, 18.7D)]
+    [InlineData(true, false, 16.5D, 18.7D)]
+    [InlineData(false, true, 18.7D, 18.7D)]
+    public void SaveAsPdf_NormalizedBulletLineUsesTheNumberingLevelFontAscent(bool wrapped, bool markerInFontSlot,
+        double lineGap, double itemGap) {
         using WordDocument source = WordDocument.Create();
         WordList list = source.AddCustomList();
         var level = new WordListLevel(WordListLevelKind.Bullet) { LevelText = "", LevelSuffix = WordListLevelSuffix.Tab };
@@ -290,8 +292,10 @@ public partial class Word {
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Body Face",
             ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1000, -500, 0, 500, scalars)));
-        options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Marker Face",
-            ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 0, 300, scalars)));
+        var marker = new PdfEmbeddedFontFamily("Marker Face",
+            ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(1200, -300, 0, 300, scalars));
+        if (markerInFontSlot) options.RegisterFontFamily(PdfStandardFont.TimesRoman, marker);
+        else options.RegisterNamedFontFamily(marker);
 
         byte[] bytes = source.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = options

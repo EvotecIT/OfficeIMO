@@ -5675,6 +5675,13 @@ versions:
 - Superscript and subscript text no longer makes its line taller, and a line raised by an inline
   picture keeps the paragraph's line spacing below it.
 
+If your process depends on where pages break, regenerate the PDFs and compare them with your stored
+baselines, checking page counts and where tables and lists break. Refresh page-dependent content
+afterwards: run `UpdateFields` with `WithPdfLayoutPagination()` again so table-of-contents entries and
+page references use the new page numbers. Where a document was adjusted to compensate for the earlier
+layout, such as manual page breaks or rows marked `cantSplit` to keep tables together, review whether
+those adjustments are still needed.
+
 ## Word new-document defaults
 
 New documents take their heading styles from the default `OfficeTheme`: Heading 1
