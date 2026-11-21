@@ -174,6 +174,53 @@ public sealed class WordPdfKerningTests {
         Assert.Equal(expected, letters[1].StartBaseLine.X - letters[0].StartBaseLine.X, 3);
     }
 
+    // Word kerns a space only when its run has the words' font and size; a colour change does not
+    // matter. The test pair shortens 'A' by 20 units and the space by 40 at 10 pt per 1000 units.
+    [Theory]
+    [InlineData("color", 0.6D)]
+    [InlineData("size", 0D)]
+    public void PairKerningAcrossASpaceNeedsTheSpaceInTheWordsFormatting(string separator, double kerning) {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', ' ');
+        double Gap(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            foreach (string text in new[] { "A", " ", "A" }) {
+                WordParagraph run = paragraph.AddText(text);
+                run.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+                run.FontSize = global::OfficeIMO.OfficeLength.Points(text == " " && separator == "size" ? 12 : 10);
+                if (text == " " && separator == "color") run.Color = global::OfficeIMO.OfficeColor.Parse("ff0000");
+                run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+            }
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        Assert.Equal(kerning, Gap(0D) - Gap(1D), 3);
+    }
+
+    // The following word is shaped on its own, so a pair value on its first glyph reaches the
+    // line through the gap: here the space loses 20 units and the 'A' after it 40, at 10 pt.
+    [Fact]
+    public void PairKerningAcrossASpaceKeepsTheFollowingGlyphsAdjustment() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithPairPositioning(' ', 'A');
+        double Span(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("A AA");
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+            paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            Assert.Equal(3, letters.Length);
+            return letters[2].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        Assert.Equal(0.6D, Span(0D) - Span(1D), 3);
+    }
+
     private static void AssertAdvance(Letter[] letters, double expected) {
         Assert.Equal("AV", string.Concat(letters.Select(letter => letter.Value)));
         Assert.Equal(letters[0].StartBaseLine.Y, letters[1].StartBaseLine.Y, 3);

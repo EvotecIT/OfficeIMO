@@ -235,6 +235,16 @@ internal static partial class PdfWriter {
         }
     }
 
+    /// <summary>The formatting of the run a word space came from. Word kerns a space only within one formatting.</summary>
+    private readonly record struct SpaceSeparatorFormat(PdfStandardFont Font, PdfNamedFontFace? NamedFont, double FontSize,
+        PdfTextBaseline Baseline, OfficeTextFeatureSettings FeatureSettings, double HorizontalTextScaling, double CharacterSpacing,
+        double BaselineShift) {
+        internal bool Matches(RichSeg segment) => segment.Font == Font && segment.NamedFont == NamedFont &&
+            segment.FontSize == FontSize && segment.Baseline == Baseline && segment.FeatureSettings.Equals(FeatureSettings) &&
+            segment.HorizontalTextScaling == HorizontalTextScaling && segment.CharacterSpacing == CharacterSpacing &&
+            segment.BaselineShift == BaselineShift;
+    }
+
     private sealed class RunKerningFont {
         internal const int MissingGlyph = -1;
         // Parsed kerning tables are immutable per font program, so every paragraph shares them.
@@ -255,13 +265,17 @@ internal static partial class PdfWriter {
             return new[] { reader == null ? null : new RunKerningFont(reader) };
         })[0];
 
-        /// <summary>Design-unit advance change from the pairs a space forms with its neighbours, scaled to 1000 units.</summary>
+        /// <summary>
+        /// Design-unit advance change from the pairs a space forms with its neighbours, scaled to 1000 units.
+        /// The following word is shaped on its own, so a pair value on its first glyph is carried by the gap:
+        /// the words keep their width and every glyph after that first one keeps its Word position.
+        /// </summary>
         internal int SpacePairAdjustment(int last, char lastCharacter, int space, int first, char firstCharacter) {
             long key = (long)(uint)last << 32 | (uint)first;
             return _spacePairs.GetOrAdd(key, _ => {
                 OfficeOpenTypeGlyphPositioning[] positions = Kerning.PositionRun(
                     new[] { last, space, first }, new int[] { lastCharacter, ' ', firstCharacter });
-                return checked(Scale(positions[0].XAdvance) + Scale(positions[1].XAdvance));
+                return checked(Scale(positions[0].XAdvance) + Scale(positions[1].XAdvance) + Scale(positions[2].XAdvance));
             });
         }
         public int Scale(int value) => checked((int)Math.Round(value * 1000D / Reader.UnitsPerEm, MidpointRounding.AwayFromZero));

@@ -52,6 +52,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("run superscript", allText);
                 Assert.Contains("run subscript", allText);
                 Assert.Contains("After native baseline formatting", allText);
+                // The 20 pt run-level script text is drawn at its font's smaller script size.
+                var scriptWords = pdf.GetPage(1).GetWords().Where(word => word.Text == "run").ToArray();
+                Assert.Equal(2, scriptWords.Length);
+                Assert.All(scriptWords, word => Assert.InRange(word.Letters[0].PointSize, 8D, 16D));
             }
 
             string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));

@@ -43,7 +43,7 @@ public partial class Word {
 
         // Script size 0.6 em; superscript offset 0.3 em; subscript offset 0.05 em.
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -500, 0, 500, Enumerable.Range(32, 95).ToArray());
-        SetScriptMetrics(font, subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+        ManagedTextShapingTestAssets.WithScriptMetrics(font, subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
         using var pdf = PdfPigDocument.Open(RenderInlineLineBoxes(document, font));
 
         var letters = pdf.GetPage(1).Letters;
@@ -85,19 +85,6 @@ public partial class Word {
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AddBreak();
         return document;
-    }
-
-    private static void SetScriptMetrics(byte[] font, short subscriptSize, short subscriptOffset, short superscriptSize, short superscriptOffset) {
-        int tables = font[4] << 8 | font[5];
-        for (int index = 0; index < tables; index++) {
-            int record = 12 + index * 16;
-            if (System.Text.Encoding.ASCII.GetString(font, record, 4) != "OS/2") continue;
-            int os2 = font[record + 8] << 24 | font[record + 9] << 16 | font[record + 10] << 8 | font[record + 11];
-            void Write(int offset, short value) { font[os2 + offset] = (byte)(value >> 8); font[os2 + offset + 1] = (byte)value; }
-            Write(12, subscriptSize); Write(16, subscriptOffset); Write(20, superscriptSize); Write(24, superscriptOffset);
-            return;
-        }
-        throw new InvalidOperationException("The test font has no OS/2 table.");
     }
 
     private static double[] ReadInlineLineBoxBaselines(WordDocument document) {

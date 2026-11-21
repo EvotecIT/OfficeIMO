@@ -57,6 +57,7 @@ internal static partial class PdfWriter {
         var pendingSpaceFragments = new PendingSpaceFragments();
         List<(List<RichSeg> Line, RichSeg Anchor, RichSeg? SpaceStyle)>? invisibleFootnoteAnchors = null;
         RichSeg? currentSpaceStyle = null;
+        SpaceSeparatorFormat? currentRunSpaceFormat = null, pendingSeparatorFormat = null;
         RichSeg? pendingTabSourceStyle = null;
         int pendingTabSourceLine = -1;
         RichTabFieldMeasurement? pendingBufferedTabField = null;
@@ -504,6 +505,7 @@ internal static partial class PdfWriter {
                 }
                 pendingLeadingAdvance = preserveWhitespace ? pendingLeadingAdvance + spaceW : spaceW;
                 pendingLeadingSpaceCount = preserveWhitespace ? pendingLeadingSpaceCount + 1 : 1;
+                if (pendingLeadingSpaceCount == 1) pendingSeparatorFormat = currentRunSpaceFormat;
                 if (preserveWhitespace && currentSpaceStyle != null) {
                     if (pendingSpaceFragments.Count > 0 && ReferenceEquals(pendingSpaceFragments[pendingSpaceFragments.Count - 1].Style, currentSpaceStyle))
                         pendingSpaceFragments.AddSpaceToLast();
@@ -610,7 +612,7 @@ internal static partial class PdfWriter {
             string? contents = run.LinkContents;
             var baseline = run.Baseline;
             currentRunDecorationFontSize = EffectiveRichFontSize((run.FontSize?.ToPoints()) ?? fontSize, baseline);
-            currentRunDecorationTextRise = TextRiseForBaseline((run.FontSize?.ToPoints()) ?? fontSize, baseline);
+            currentRunDecorationTextRise = TextRiseForBaseline((run.FontSize?.ToPoints()) ?? fontSize, baseline) + run.BaselineShift;
             var tabLeader = run.TabLeader;
             var tabAlignment = run.TabAlignment;
             var runBaseFont = run.StandardFont.HasValue ? ChooseNormal(run.StandardFont.Value) : baseFont;
@@ -651,6 +653,8 @@ internal static partial class PdfWriter {
             double spaceW = text.IndexOfAny(SoftLineSplitChars) >= 0
                 ? MeasureRichText(" ", fontForRun, currentRunNamedFont, runFontSize, baseline, options, currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing)
                 : 0D;
+            currentRunSpaceFormat = new SpaceSeparatorFormat(fontForRun, currentRunNamedFont, runFontSize, baseline,
+                currentRunFeatureSettings, currentRunHorizontalTextScaling, currentRunCharacterSpacing, currentTextRun?.BaselineShift ?? 0D);
             bool preserveSpaceStyle = preserveWhitespace;
             for (int spaceIndex = 0; !preserveSpaceStyle && spaceIndex < text.Length; spaceIndex++) {
                 preserveSpaceStyle = text[spaceIndex] == '\t';
@@ -827,6 +831,7 @@ internal static partial class PdfWriter {
                 // takes the pairs it forms with the last and the next glyph.
                 if (token.Length > 0 && tokenProbe != null && !pendingLeadingSpaceKerned && pendingLeadingSeparator &&
                     pendingLeadingIsOrdinarySpace && !pendingLeadingIsTab && pendingLeadingSpaceCount == 1 &&
+                    pendingSeparatorFormat is { } separatorFormat && separatorFormat.Matches(tokenProbe) &&
                     (!preserveWhitespace || pendingSpaceFragments.Count == 1 && pendingSpaceFragments[0].Count == 1 &&
                         !pendingSpaceFragments[0].Style.LeadingIsTab) &&
                     lines[lines.Count - 1].Count > 0) {

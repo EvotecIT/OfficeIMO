@@ -87,26 +87,39 @@ internal static partial class PdfWriter {
         return result ?? source;
     }
 
-    // Layout normalizes the same runs many times; each source run keeps one mapped copy per options.
+    // Layout normalizes the same runs many times. Resolving the font's script metrics is the costly
+    // part, so each source run keeps its resolved geometry with the inputs it was computed from. The
+    // copy itself is made on every call, so later changes to the source run always reach it.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfTextRun, ImportedScriptRunCache> ImportedScriptRuns = new();
 
     private sealed class ImportedScriptRunCache {
-        internal volatile Tuple<PdfCreateOptions, PdfStandardFont, PdfTextRun>? Value;
+        internal volatile ImportedScriptGeometry? Value;
     }
+
+    private sealed record ImportedScriptGeometry(PdfCreateOptions Options, PdfStandardFont BaseFont, double SourceSize,
+        PdfTextBaseline Baseline, string? FontFamily, PdfStandardFont? StandardFont, bool Bold, bool Italic,
+        double? ScriptSize, double Offset);
 
     private static PdfTextRun MapImportedScriptRun(PdfTextRun run, PdfStandardFont baseFont, PdfCreateOptions options) {
         ImportedScriptRunCache cache = ImportedScriptRuns.GetValue(run, static _ => new ImportedScriptRunCache());
-        if (cache.Value is { } cached && ReferenceEquals(cached.Item1, options) && cached.Item2 == baseFont) return cached.Item3;
-        PdfTextRun mapped = run;
-        if (ResolveImportedScriptMetric(run, baseFont, options) is { } metric) {
-            double size = run.FontSize!.Value.ToPoints();
-            bool superscript = run.Baseline == PdfTextBaseline.Superscript;
-            double scriptSize = Math.Max(0.5D, RoundToHalfPoint(size * metric.SizeRatio));
-            double offset = RoundToHalfPoint(Math.Min(size * metric.OffsetRatio, size * (superscript ? 0.35D : 0.08D)));
-            mapped = run.WithScriptGeometry(scriptSize, superscript ? offset : -offset);
+        double size = run.FontSize!.Value.ToPoints();
+        ImportedScriptGeometry? geometry = cache.Value;
+        if (geometry == null || !ReferenceEquals(geometry.Options, options) || geometry.BaseFont != baseFont ||
+            geometry.SourceSize != size || geometry.Baseline != run.Baseline || geometry.FontFamily != run.FontFamily ||
+            geometry.StandardFont != run.StandardFont || geometry.Bold != run.Bold || geometry.Italic != run.Italic) {
+            double? scriptSize = null;
+            double offset = 0D;
+            if (ResolveImportedScriptMetric(run, baseFont, options) is { } metric) {
+                bool superscript = run.Baseline == PdfTextBaseline.Superscript;
+                scriptSize = Math.Max(0.5D, RoundToHalfPoint(size * metric.SizeRatio));
+                double magnitude = RoundToHalfPoint(Math.Min(size * metric.OffsetRatio, size * (superscript ? 0.35D : 0.08D)));
+                offset = superscript ? magnitude : -magnitude;
+            }
+            geometry = new ImportedScriptGeometry(options, baseFont, size, run.Baseline, run.FontFamily, run.StandardFont,
+                run.Bold, run.Italic, scriptSize, offset);
+            cache.Value = geometry;
         }
-        cache.Value = Tuple.Create(options, baseFont, mapped);
-        return mapped;
+        return geometry.ScriptSize is { } resolvedSize ? run.WithScriptGeometry(resolvedSize, geometry.Offset) : run;
     }
 
     private static double RoundToHalfPoint(double value) => Math.Round(value * 2D, MidpointRounding.AwayFromZero) / 2D;
