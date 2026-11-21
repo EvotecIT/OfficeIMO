@@ -519,9 +519,24 @@ public static partial class OfficeDrawingSvgExporter {
     }
 
     private static void AppendClipPathDefinition(StringBuilder sb, string id, OfficeClipPath clipPath) {
-        sb.Append("<defs><clipPath id=\"")
+        sb.Append("<defs>");
+        // Intersections chain as clipPath elements clipped by the next one.
+        int count = clipPath.Intersections.Count;
+        for (int i = count - 1; i >= 0; i--) {
+            AppendClipPathElement(sb, id + "-and-" + i.ToString(CultureInfo.InvariantCulture), clipPath.Intersections[i],
+                i + 1 < count ? id + "-and-" + (i + 1).ToString(CultureInfo.InvariantCulture) : null);
+        }
+
+        AppendClipPathElement(sb, id, clipPath, count > 0 ? id + "-and-0" : null);
+        sb.Append("</defs>");
+    }
+
+    private static void AppendClipPathElement(StringBuilder sb, string id, OfficeClipPath clipPath, string? clipPathId) {
+        sb.Append("<clipPath id=\"")
             .Append(Escape(id))
-            .Append("\">");
+            .Append('"');
+        if (clipPathId != null) sb.AppendClipPathReference(clipPathId);
+        sb.Append('>');
 
         switch (clipPath.Kind) {
             case OfficeClipPathKind.Empty:
@@ -538,7 +553,7 @@ public static partial class OfficeDrawingSvgExporter {
                 break;
         }
 
-        sb.Append("</clipPath></defs>");
+        sb.Append("</clipPath>");
     }
 
     private static void AppendClipPathPath(StringBuilder sb, OfficeClipPath clipPath) {

@@ -210,6 +210,16 @@ public static partial class OfficeDrawingRasterRenderer {
     }
 
     private static IDisposable PushGroupClip(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
+        IDisposable primary = PushGroupPrimaryClip(canvas, drawingGroup, scale);
+        if (drawingGroup.ClipPath.Intersections.Count == 0) return primary;
+        OfficeTransform? transform = drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform
+            ? drawingGroup.FrameTransform.Value.CreateDestinationTransform()
+            : null;
+        return PushClipIntersections(canvas, drawingGroup.ClipPath, primary,
+            contour => TransformGroupClipContour(drawingGroup, contour, scale, transform));
+    }
+
+    private static IDisposable PushGroupPrimaryClip(OfficeRasterCanvas canvas, OfficeDrawingGroup drawingGroup, double scale) {
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateGroupClipContours(drawingGroup, scale);
         if (contours.Count > 0) {
             return contours.Count == 1 && drawingGroup.ClipPath.Kind != OfficeClipPathKind.Path
@@ -372,6 +382,13 @@ public static partial class OfficeDrawingRasterRenderer {
             return null;
         }
 
+        IDisposable? primary = PushShapePrimaryClip(canvas, drawingShape, clipPath, scale);
+        return clipPath.Intersections.Count == 0
+            ? primary
+            : PushClipIntersections(canvas, clipPath, primary, contour => TransformClipContour(drawingShape, contour, scale));
+    }
+
+    private static IDisposable? PushShapePrimaryClip(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, OfficeClipPath clipPath, double scale) {
         IReadOnlyList<IReadOnlyList<OfficePoint>> contours = CreateClipContours(drawingShape, clipPath, scale);
         if (contours.Count == 0) {
             return clipPath.Kind is OfficeClipPathKind.Path or OfficeClipPathKind.Empty
@@ -381,6 +398,38 @@ public static partial class OfficeDrawingRasterRenderer {
         return contours.Count == 1 && clipPath.Kind != OfficeClipPathKind.Path
             ? PushSingleContourClip(canvas, clipPath.Kind, contours[0])
             : PushClipPolygons(canvas, contours, clipPath.FillRule);
+    }
+
+    // Each intersection is a further clip on the stack, so the canvas multiplies their antialiased coverage.
+    private static IDisposable PushClipIntersections(OfficeRasterCanvas canvas, OfficeClipPath clipPath, IDisposable? primary,
+        Func<IReadOnlyList<OfficePoint>, IReadOnlyList<OfficePoint>> transformContour) {
+        var scopes = new List<IDisposable>(clipPath.Intersections.Count + 1);
+        if (primary != null) scopes.Add(primary);
+        try {
+            for (int i = 0; i < clipPath.Intersections.Count; i++) {
+                OfficeClipPath intersection = clipPath.Intersections[i];
+                IReadOnlyList<IReadOnlyList<OfficePoint>> contours = OfficeClipPathGeometry.CreateContours(intersection, transformContour);
+                scopes.Add(contours.Count == 0
+                    ? canvas.PushClipRectangle(0, 0, 0, 0)
+                    : PushClipPolygons(canvas, contours, intersection.FillRule));
+            }
+        } catch {
+            new ClipScopeStack(scopes).Dispose();
+            throw;
+        }
+
+        return new ClipScopeStack(scopes);
+    }
+
+    private sealed class ClipScopeStack : IDisposable {
+        private readonly List<IDisposable> _scopes;
+
+        internal ClipScopeStack(List<IDisposable> scopes) => _scopes = scopes;
+
+        public void Dispose() {
+            for (int i = _scopes.Count - 1; i >= 0; i--) _scopes[i].Dispose();
+            _scopes.Clear();
+        }
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateClipContours(OfficeDrawingShape drawingShape, OfficeClipPath clipPath, double scale) {

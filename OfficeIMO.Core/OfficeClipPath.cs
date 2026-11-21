@@ -24,6 +24,12 @@ public sealed class OfficeClipPath {
     /// <summary>Fill rule used when the clipping path contains multiple contours.</summary>
     public OfficeFillRule FillRule { get; private set; } = OfficeFillRule.EvenOdd;
 
+    /// <summary>
+    /// Further clip paths in the same local coordinates that this region is intersected with, each with its own fill rule.
+    /// Consumers that cannot express them use this path alone, a superset of the region.
+    /// </summary>
+    internal IReadOnlyList<OfficeClipPath> Intersections { get; private set; } = Array.Empty<OfficeClipPath>();
+
     private OfficeClipPath() {
     }
 
@@ -161,8 +167,32 @@ public sealed class OfficeClipPath {
         Height = Height,
         CornerRadius = CornerRadius,
         FillRule = FillRule,
-        Commands = new ReadOnlyCollection<OfficePathCommand>(new List<OfficePathCommand>(Commands))
+        Commands = new ReadOnlyCollection<OfficePathCommand>(new List<OfficePathCommand>(Commands)),
+        Intersections = Intersections
     };
+
+    /// <summary>Creates a copy whose region is also intersected with the supplied clip paths.</summary>
+    internal OfficeClipPath WithIntersections(IEnumerable<OfficeClipPath> intersections) {
+        ArgumentNullException.ThrowIfNull(intersections);
+        var flattened = new List<OfficeClipPath>(Intersections);
+        foreach (OfficeClipPath intersection in intersections) {
+            ArgumentNullException.ThrowIfNull(intersection);
+            flattened.Add(intersection.Intersections.Count == 0 ? intersection : intersection.WithoutIntersections());
+            flattened.AddRange(intersection.Intersections);
+        }
+
+        OfficeClipPath copy = Clone();
+        copy.Intersections = flattened.Count == 0
+            ? Array.Empty<OfficeClipPath>()
+            : new ReadOnlyCollection<OfficeClipPath>(flattened);
+        return copy;
+    }
+
+    private OfficeClipPath WithoutIntersections() {
+        OfficeClipPath copy = Clone();
+        copy.Intersections = Array.Empty<OfficeClipPath>();
+        return copy;
+    }
 
     /// <summary>
     /// Creates a scaled detached copy of this clipping path.
@@ -177,6 +207,18 @@ public sealed class OfficeClipPath {
             return Clone();
         }
 
+        OfficeClipPath scaled = ScalePrimary(scaleX, scaleY);
+        if (Intersections.Count == 0) return scaled;
+        var intersections = new List<OfficeClipPath>(Intersections.Count);
+        for (int i = 0; i < Intersections.Count; i++) {
+            intersections.Add(Intersections[i].ScalePrimary(scaleX, scaleY));
+        }
+
+        scaled.Intersections = new ReadOnlyCollection<OfficeClipPath>(intersections);
+        return scaled;
+    }
+
+    private OfficeClipPath ScalePrimary(double scaleX, double scaleY) {
         switch (Kind) {
             case OfficeClipPathKind.Empty:
                 return Empty();
@@ -192,7 +234,7 @@ public sealed class OfficeClipPath {
 
                 return Path(Width * scaleX, Height * scaleY, commands, FillRule);
             default:
-                return Clone();
+                return WithoutIntersections();
         }
     }
 
