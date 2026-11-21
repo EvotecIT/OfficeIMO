@@ -99,8 +99,8 @@ internal static class OfficeRoundTripText
 
     /// <summary>
     /// The shortest text that parses back to <paramref name="value"/>. .NET Core 3.0 and later write it by default;
-    /// .NET Framework writes 15 digits by default, and its "R" format can return text that parses to a neighbouring
-    /// double, so the text is checked and widened to 17 digits when needed.
+    /// .NET Framework writes 15 digits by default and its "R" format jumps from 15 straight to 17, so the text is
+    /// widened one digit at a time until it parses back exactly.
     /// </summary>
     internal static string Format(double value, CultureInfo culture)
     {
@@ -114,12 +114,20 @@ internal static class OfficeRoundTripText
             return ((long)value).ToString(culture);
         }
 
-        string text = value.ToString("R", culture);
-        if (double.IsNaN(value) || double.IsInfinity(value) ||
-            (double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double parsed) &&
-             BitConverter.DoubleToInt64Bits(parsed) == BitConverter.DoubleToInt64Bits(value)))
+        if (double.IsNaN(value) || double.IsInfinity(value))
         {
-            return text;
+            return value.ToString("R", culture);
+        }
+
+        // A correctly rounded 15 or 16 digits is the shortest text when it parses back; 17 digits always does.
+        foreach (string format in new[] { "G15", "G16" })
+        {
+            string text = value.ToString(format, culture);
+            if (double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double parsed) &&
+                BitConverter.DoubleToInt64Bits(parsed) == BitConverter.DoubleToInt64Bits(value))
+            {
+                return text;
+            }
         }
 
         return value.ToString("G17", culture);

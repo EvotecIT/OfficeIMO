@@ -8,7 +8,8 @@ namespace OfficeIMO.Drawing;
 /// Shared SVG formatting helpers used by OfficeIMO renderers.
 /// </summary>
 public static partial class OfficeSvgFormatting {
-    private static string FormatPreciseNumber(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+    // The shortest round-trip text, written the same way on every target framework.
+    private static string FormatPreciseNumber(double value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 
     /// <summary>
     /// Formats a numeric SVG attribute value using invariant culture and compact precision.

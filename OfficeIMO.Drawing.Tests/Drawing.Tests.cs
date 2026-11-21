@@ -1992,6 +1992,9 @@ public partial class DrawingTests {
         var matrixBuilder = new StringBuilder("<g");
         matrixBuilder.AppendMatrixTransformAttribute(matrixTransform, 40D, 50D).Append(">");
         Assert.Equal("<g transform=\"matrix(0 1 -1 0 55 55)\">", matrixBuilder.ToString());
+        // Coefficients keep their shortest round-trip text on every framework; this one needs 16 digits.
+        Assert.Equal("matrix(0.4694715627858908 1 -0.4694715627858908 1 0 4.000000000000014)", OfficeSvgFormatting.FormatMatrixTransform(
+            new OfficeTransform(0.4694715627858908D, 1D, -0.4694715627858908D, 1D, 0D, 4.000000000000014D)));
         Assert.Equal("rotate(45 50 40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D)));
         Assert.Equal("translate(50 40) rotate(45) scale(-1 1) translate(-50 -40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D, flipHorizontal: true)));
         Assert.Null(OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(0D, 50D, 40D)));
