@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
 namespace OfficeIMO.Word;
 
@@ -41,32 +42,36 @@ public partial class WordDocument {
     }
 
     /// <summary>
-    /// Lists the charts in block content in document order, including tables and block content controls, and reading
-    /// only the selected branch of each markup-compatibility block.
+    /// Lists every chart drawing in the given content in document order, at any depth: inside tables, content controls,
+    /// hyperlinks, fields, custom XML and tracked insertions. Deleted and moved-from content is skipped, and
+    /// only the branch the Word reader selects from each markup-compatibility block is read.
     /// </summary>
-    internal List<WordChart> CollectCharts(IEnumerable<OpenXmlElement> blockContent) {
-        var paragraphs = new List<Paragraph>();
-        CollectBlockParagraphs(blockContent, paragraphs);
-        return WordSection.ConvertParagraphsToWordParagraphs(this, paragraphs)
-            .SelectMany(paragraph => paragraph.EnumerateCharts())
-            .ToList();
+    internal List<WordChart> CollectCharts(IEnumerable<OpenXmlElement> content) {
+        var charts = new List<WordChart>();
+        CollectCharts(content, charts);
+        return charts;
     }
 
-    private static void CollectBlockParagraphs(IEnumerable<OpenXmlElement> elements, List<Paragraph> paragraphs) {
-        foreach (OpenXmlElement element in elements) {
+    private void CollectCharts(IEnumerable<OpenXmlElement> content, List<WordChart> charts) {
+        foreach (OpenXmlElement element in content) {
             switch (element) {
-                case Paragraph paragraph:
-                    paragraphs.Add(paragraph);
+                case DeletedRun:
+                case MoveFromRun:
                     break;
                 case AlternateContent alternateContent:
                     if (WordAlternateContentResolver.SelectBranch(alternateContent) is { } branch) {
-                        CollectBlockParagraphs(branch.ChildElements, paragraphs);
+                        CollectCharts(branch.ChildElements, charts);
                     }
                     break;
-                case Table or TableRow or TableCell
-                    or SdtBlock or SdtContentBlock or SdtRow or SdtContentRow or SdtCell or SdtContentCell
-                    or CustomXmlBlock or CustomXmlRow or CustomXmlCell:
-                    CollectBlockParagraphs(element.ChildElements, paragraphs);
+                case WordDrawing drawing when WordParagraph.DrawingOwnsChart(drawing):
+                    Run? run = drawing.Ancestors<Run>().FirstOrDefault();
+                    Paragraph? paragraph = run?.Ancestors<Paragraph>().FirstOrDefault();
+                    if (run != null && paragraph != null) {
+                        charts.Add(new WordChart(this, new WordParagraph(this, paragraph, run), drawing));
+                    }
+                    break;
+                default:
+                    if (element.HasChildren) CollectCharts(element.ChildElements, charts);
                     break;
             }
         }

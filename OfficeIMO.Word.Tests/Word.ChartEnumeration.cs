@@ -89,26 +89,87 @@ public sealed class WordChartEnumerationTests {
     }
 
     [Fact]
-    public void ChartCollectionsIncludeChartsInContentControls() {
+    public void ChartCollectionsFindChartsInEveryWrapperAndSkipDeletedContent() {
         using var bytes = new MemoryStream();
         using (var document = WordDocument.Create()) {
-            AddChart(document.AddParagraph(), "Inline");
-            WrapChartRunInSdtRun(LastChartParagraph(document._document.Body!));
-            AddChart(document.AddParagraph(), "Block");
-            Paragraph block = LastChartParagraph(document._document.Body!);
-            var sdtBlock = new SdtBlock(new SdtProperties(new SdtId { Val = 2 }), new SdtContentBlock());
-            block.InsertBeforeSelf(sdtBlock);
-            block.Remove();
-            sdtBlock.SdtContentBlock!.Append(block);
-            AddChart(document.Sections[0].PageSetup.Header!.AddParagraph(), "Header inline");
-            WrapChartRunInSdtRun(LastChartParagraph(document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!));
+            AddWrappedCharts(document._document.Body!, text => document.AddParagraph(text), "Body");
+            WordHeader header = document.Sections[0].PageSetup.Header!;
+            AddWrappedCharts(document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!, text => header.AddParagraph(text), "Header");
             document.Save(bytes);
         }
 
+        string[] body = VisibleWrappers.Select(name => "Body " + name).ToArray();
+        string[] headerTitles = VisibleWrappers.Select(name => "Header " + name).ToArray();
         using var loaded = WordDocument.Load(new MemoryStream(bytes.ToArray()));
-        Assert.Equal(new[] { "Inline", "Block" }, loaded.Charts.Select(chart => chart.Title));
-        Assert.Equal(new[] { "Inline", "Block" }, loaded.Sections[0].Charts.Select(chart => chart.Title));
-        Assert.Equal(new[] { "Inline", "Block", "Header inline" }, loaded.AllCharts.Select(chart => chart.Title));
+        Assert.Equal(body, loaded.Charts.Select(chart => chart.Title));
+        Assert.Equal(body, loaded.Sections[0].Charts.Select(chart => chart.Title));
+        Assert.Equal(body.Concat(headerTitles), loaded.AllCharts.Select(chart => chart.Title));
+        Assert.Equal(ParagraphModelWrappers.Select(name => "Body " + name),
+            loaded.Paragraphs.Where(paragraph => paragraph.IsChart).Select(paragraph => paragraph.Chart!.Title));
+    }
+
+    private static readonly string[] VisibleWrappers = {
+        "Run", "RunAlternateContent", "Hyperlink", "SimpleField", "ComplexField", "Inserted", "MovedTo",
+        "CustomXml", "ContentControl", "AlternateContent", "BlockContentControl"
+    };
+
+    // Wrappers the paragraph model turns into a paragraph of their own. Paragraph-level mc:AlternateContent and block
+    // content controls are reachable only through the chart collections.
+    private static readonly string[] ParagraphModelWrappers = {
+        "Run", "RunAlternateContent", "Hyperlink", "SimpleField", "ComplexField", "Inserted", "MovedTo", "CustomXml", "ContentControl"
+    };
+
+    private static void AddWrappedCharts(OpenXmlElement root, Func<string, WordParagraph> addParagraph, string prefix) {
+        var wrappers = new (string Name, Func<Run, OpenXmlElement[]> Wrap)[] {
+            ("Run", run => new OpenXmlElement[] { run }),
+            ("RunAlternateContent", run => {
+                WordDrawing drawing = run.Elements<WordDrawing>().Single();
+                drawing.Remove();
+                run.Append(UnreadableChoiceWithFallback(drawing));
+                return new OpenXmlElement[] { run };
+            }),
+            ("Hyperlink", run => new OpenXmlElement[] { new Hyperlink(run) { Anchor = "top" } }),
+            ("SimpleField", run => new OpenXmlElement[] { new SimpleField(run) { Instruction = "QUOTE chart" } }),
+            ("ComplexField", run => new OpenXmlElement[] {
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" QUOTE chart ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                run,
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End })
+            }),
+            ("Inserted", run => new OpenXmlElement[] { new InsertedRun(run) { Id = "1", Author = "Tests" } }),
+            ("MovedTo", run => new OpenXmlElement[] { new MoveToRun(run) { Id = "2", Author = "Tests" } }),
+            ("CustomXml", run => new OpenXmlElement[] { new CustomXmlRun(run) { Element = "item" } }),
+            ("ContentControl", run => new OpenXmlElement[] { new SdtRun(new SdtProperties(new SdtId { Val = 1 }), new SdtContentRun(run)) }),
+            ("AlternateContent", run => new OpenXmlElement[] { UnreadableChoiceWithFallback(run) }),
+            ("BlockContentControl", run => new OpenXmlElement[] { run }),
+            ("Deleted", run => new OpenXmlElement[] { new DeletedRun(run) { Id = "3", Author = "Tests" } }),
+            ("MovedFrom", run => new OpenXmlElement[] { new MoveFromRun(run) { Id = "4", Author = "Tests" } })
+        };
+
+        foreach ((string name, Func<Run, OpenXmlElement[]> wrap) in wrappers) {
+            AddChart(addParagraph(""), prefix + " " + name);
+            Paragraph paragraph = LastChartParagraph(root);
+            Run run = paragraph.Elements<Run>().Single(candidate => candidate.Elements<WordDrawing>().Any());
+            OpenXmlElement anchor = new Run();
+            run.InsertBeforeSelf(anchor);
+            run.Remove();
+            foreach (OpenXmlElement element in wrap(run)) anchor.InsertBeforeSelf(element);
+            anchor.Remove();
+            if (name == "BlockContentControl") {
+                var block = new SdtBlock(new SdtProperties(new SdtId { Val = 2 }), new SdtContentBlock());
+                paragraph.InsertBeforeSelf(block);
+                paragraph.Remove();
+                block.SdtContentBlock!.Append(paragraph);
+            }
+        }
+    }
+
+    /// <summary>Wraps content in the fallback of a compatibility block whose only choice OfficeIMO cannot read.</summary>
+    private static AlternateContent UnreadableChoiceWithFallback(OpenXmlElement content) {
+        var choice = new AlternateContentChoice { Requires = "unknown" };
+        choice.AddNamespaceDeclaration("unknown", "urn:officeimo:tests:unknown");
+        return new AlternateContent(choice, new AlternateContentFallback(content));
     }
 
     private static Paragraph LastChartParagraph(OpenXmlElement root) =>
@@ -126,14 +187,6 @@ public sealed class WordChartEnumerationTests {
         fallbackParagraph.Remove();
         choice.Append(choiceParagraph);
         alternateContent.Append(choice, new AlternateContentFallback(fallbackParagraph));
-    }
-
-    private static void WrapChartRunInSdtRun(Paragraph paragraph) {
-        Run run = paragraph.Elements<Run>().Single(candidate => candidate.Elements<WordDrawing>().Any());
-        var sdtRun = new SdtRun(new SdtProperties(new SdtId { Val = 1 }), new SdtContentRun());
-        run.InsertBeforeSelf(sdtRun);
-        run.Remove();
-        sdtRun.SdtContentRun!.Append(run);
     }
 
     /// <summary>Moves the last chart drawing into the previous chart's run, leaving one run that holds both.</summary>

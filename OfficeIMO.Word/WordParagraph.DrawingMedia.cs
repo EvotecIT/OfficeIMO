@@ -116,13 +116,13 @@ namespace OfficeIMO.Word {
         public WordChart? Chart => EnumerateCharts().FirstOrDefault();
 
         /// <summary>Yields a chart for every chart drawing in this run, in document order.</summary>
-        /// <remarks>An inline content control yields the charts of the visible runs it contains.</remarks>
+        /// <remarks>An inline content control, hyperlink or field yields the charts inside it.</remarks>
         internal IEnumerable<WordChart> EnumerateCharts() {
             if (_run is null) {
-                if (_stdRun?.SdtContentRun is { } content) {
-                    foreach (Run run in EnumerateVisibleRuns(content)) {
-                        foreach (WordChart chart in new WordParagraph(_document, _paragraph, run).EnumerateCharts()) yield return chart;
-                    }
+                OpenXmlElement? wrapper = (OpenXmlElement?)_stdRun ?? (OpenXmlElement?)_hyperlink ?? _simpleField;
+                IEnumerable<OpenXmlElement>? content = wrapper?.ChildElements ?? (IEnumerable<OpenXmlElement>?)_runs;
+                if (content != null) {
+                    foreach (WordChart chart in _document.CollectCharts(content)) yield return chart;
                 }
                 yield break;
             }
@@ -130,31 +130,6 @@ namespace OfficeIMO.Word {
             foreach (WordDrawing drawing in EnumerateEffectiveRunContent().OfType<WordDrawing>()) {
                 if (DrawingOwnsChart(drawing)) {
                     yield return new WordChart(_document, this, drawing);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Yields the runs Word shows inside inline content: deleted and moved-from runs are skipped, and only the
-        /// selected branch of a markup-compatibility block is read.
-        /// </summary>
-        private static IEnumerable<Run> EnumerateVisibleRuns(OpenXmlElement container) {
-            foreach (OpenXmlElement child in container.ChildElements) {
-                switch (child) {
-                    case Run run:
-                        yield return run;
-                        break;
-                    case DeletedRun:
-                    case MoveFromRun:
-                        break;
-                    case AlternateContent alternateContent:
-                        if (WordAlternateContentResolver.SelectBranch(alternateContent) is { } branch) {
-                            foreach (Run run in EnumerateVisibleRuns(branch)) yield return run;
-                        }
-                        break;
-                    case OpenXmlCompositeElement composite:
-                        foreach (Run run in EnumerateVisibleRuns(composite)) yield return run;
-                        break;
                 }
             }
         }
