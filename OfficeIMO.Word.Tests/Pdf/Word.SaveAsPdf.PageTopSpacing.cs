@@ -74,10 +74,48 @@ public partial class Word {
     [InlineData("throughEmptySection", 160, 10D)]
     [InlineData("throughEmptySection", 480, 0D)]
     [InlineData("afterSectionEndnotes", 160, 10D)]
+    [InlineData("continuousWithNewPaperSize", 0, 18D)]
+    [InlineData("continuousWithNewPaperSize", 160, 10D)]
+    [InlineData("continuousWithNewPaperSize", 480, 0D)]
     public void SaveAsPdf_SectionStartSpacingCarriesAcrossEverySectionLayout(string layout, int previousAfter, double expectedGap) {
         double spaced = MeasureSectionLayoutTarget(layout, previousAfter, "360");
         double zero = MeasureSectionLayoutTarget(layout, previousAfter, "0");
         Assert.Equal(expectedGap, zero - spaced, 1);
+    }
+
+    [Theory]
+    [InlineData(0, 18D, 1)]
+    [InlineData(160, 10D, 1)]
+    [InlineData(480, 0D, 1)]
+    [InlineData(160, 10D, 2)]
+    public void SaveAsPdf_ContinuousSectionAfterColumnsCollapsesWithTheColumnText(int columnAfter, double expectedGap, int continuousColumns) {
+        // The new-page spacing carried into a two-column section is used there once; the
+        // continuous section below it, in one or two columns, collapses only with the
+        // column text's space after.
+        double spaced = MeasureContinuousAfterColumnsTarget(columnAfter, "360", continuousColumns);
+        double zero = MeasureContinuousAfterColumnsTarget(columnAfter, "0", continuousColumns);
+        Assert.Equal(expectedGap, zero - spaced, 1);
+    }
+
+    private static double MeasureContinuousAfterColumnsTarget(int columnAfter, string before, int continuousColumns) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("First").LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
+        WordSection columns = document.AddSection(WordSectionBreakType.NextPage);
+        columns.ColumnCount = 2;
+        WordParagraph columnText = columns.AddParagraph("Columns");
+        columnText.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(columnAfter / 20D);
+        WordSection continuous = document.AddSection(WordSectionBreakType.Continuous);
+        continuous.ColumnCount = continuousColumns;
+        // As Word writes it, the column text's own paragraph carries the section break.
+        W.SectionProperties breakProperties = document.Sections[1]._sectionProperties;
+        W.Paragraph mark = (W.Paragraph)breakProperties.Parent!.Parent!;
+        breakProperties.Remove();
+        columnText._paragraph.ParagraphProperties!.Append(breakProperties);
+        mark.Remove();
+        ApplyPageTopSpacing(document, continuous.AddParagraph("Target"), "Normal", before);
+        (int page, double baseline) = FindPageTopBaseline(RenderPageTopPdf(document), "Target");
+        Assert.Equal(2, page);
+        return baseline;
     }
 
     [Fact]
@@ -109,7 +147,10 @@ public partial class Word {
             last.LineSpacingAfter = after;
             if (layout == "afterSectionEndnotes") last.AddEndNote("Note");
         }
-        WordSection target = layout == "throughEmptySection" ? document.Sections[2] : document.AddSection(WordSectionBreakType.NextPage);
+        WordSection target = layout == "throughEmptySection" ? document.Sections[2]
+            : document.AddSection(layout == "continuousWithNewPaperSize" ? WordSectionBreakType.Continuous : WordSectionBreakType.NextPage);
+        // A continuous section that changes the paper size starts a new page in Word.
+        if (layout == "continuousWithNewPaperSize") target.PageSetup.Size.PageSize = WordPageSize.A4;
         if (layout == "intoColumns") target.ColumnCount = 2;
         if (layout == "afterSectionEndnotes") {
             target.AddEndnoteProperties(WordNumberFormat.Decimal, WordEndnotePosition.SectionEnd, WordNoteNumberRestart.Continuous, startNumber: 1);

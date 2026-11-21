@@ -262,7 +262,11 @@ namespace OfficeIMO.Word.Pdf {
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     ConfigureNativeRunningHeaderFooter(page, firstSection, options, nativeFontMap, listMarkers, nativeDefaults);
                     var collapseFlow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
-                    bool preserveSectionStartSpacing = sectionIndex > 0 && StartsNativeSectionOnNewPage(firstSection);
+                    // Every section group starts a fresh PDF section, where the top of the frame
+                    // would otherwise drop the space before. New-page sections keep it, and so do
+                    // continuous sections that cannot share the previous group, whether Word
+                    // starts them on a new page (paper size) or continues on the same one.
+                    bool preserveSectionStartSpacing = sectionIndex > 0;
                     double? incomingSectionSpacingAfter = previousSectionSpacingAfter;
                     if (preserveSectionStartSpacing) collapseFlow.PreserveNextSpacingBefore(incomingSectionSpacingAfter);
                     previousSectionSpacingAfter = null;
@@ -312,9 +316,15 @@ namespace OfficeIMO.Word.Pdf {
                             nativeDefaults,
                             nativeFontMap,
                             balanceColumns: currentSectionIndex + 1 < sectionGroupEnd,
-                            preserveSpacingBefore: preserveSectionStartSpacing && currentSectionIndex == sectionIndex,
-                            incomingSpacingAfter: incomingSectionSpacingAfter,
+                            // A continuous column section below earlier text starts a fresh column
+                            // frame, but Word collapses its first paragraph with the text above.
+                            preserveSpacingBefore: currentSectionIndex > sectionIndex || preserveSectionStartSpacing,
+                            incomingSpacingAfter: currentSectionIndex > sectionIndex ? collapseFlow.PendingSpacingAfter : incomingSectionSpacingAfter,
                             captureOutgoingSpacingAfter: spacingAfter => previousSectionSpacingAfter = spacingAfter)) {
+                            // The column body used the carried spacing; a continuous section that
+                            // follows on this page collapses only with the column text's space after.
+                            if (currentSectionIndex == sectionIndex) collapseFlow.ClearPreservedSpacingBefore();
+                            collapseFlow.RestorePendingSpacingAfter(previousSectionSpacingAfter);
                             RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
@@ -462,9 +472,6 @@ namespace OfficeIMO.Word.Pdf {
             sectionMark._paragraph != null && WordParagraph.IsSectionMarkOnly(sectionMark._paragraph)
                 ? CreateNativeParagraphStyle(sectionMark, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()
                 : flow.PendingSpacingAfter;
-
-        private static bool StartsNativeSectionOnNewPage(WordSection section) =>
-            section.BreakType is WordSectionBreakType.NextPage or WordSectionBreakType.OddPage or WordSectionBreakType.EvenPage;
 
         private static PdfCore.PdfPageParity? GetNativeSectionStartParity(WordSection section) {
             int? restart = section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0 ? start : null;

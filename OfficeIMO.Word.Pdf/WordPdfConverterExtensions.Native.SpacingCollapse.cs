@@ -43,6 +43,14 @@ namespace OfficeIMO.Word.Pdf {
                 _preservedSpacingAfter = Math.Max(0D, previousSpacingAfter ?? 0D);
             }
 
+            internal void RestorePendingSpacingAfter(double? spacingAfter) => _pendingSpacingAfter = spacingAfter;
+
+            /// <summary>Drops a carried section-start spacing that another flow has already used.</summary>
+            internal void ClearPreservedSpacingBefore() {
+                _preserveInitialSpacingBefore = false;
+                _preservedSpacingAfter = 0D;
+            }
+
             internal void PageBreakPreservingSpacingBefore() {
                 double? previousSpacingAfter = _pendingSpacingAfter;
                 _inner.PageBreak();
