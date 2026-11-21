@@ -135,7 +135,7 @@ namespace OfficeIMO.Word.Pdf {
                 _column.ContinuedFlow(build, separator, continuationSeparator, continuationNotice, reserveFinalNotice,
                     allowContinuationSeparatorInBottomMargin);
             public PdfCore.PdfFootnoteDefinition DefineFootnote(Action<PdfCore.PdfContentBuilder> build, PdfCore.PdfFootnoteOptions options) => _column.DefineFootnote(build, options);
-            public bool SupportsPositionedTables => false;
+            public bool SupportsPositionedTables { get; init; }
             private readonly PdfCore.PdfPageBuilder? _page;
             private readonly PdfCore.PdfContentBuilder _column;
 
@@ -246,8 +246,6 @@ namespace OfficeIMO.Word.Pdf {
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers, canContinueRunningStories);
                 bool changesRunningStories = NativeSectionGroupChangesRunningStories(sections, sectionIndex, sectionGroupEnd);
                 WordSection firstSection = sections[sectionIndex];
-                if (sectionIndex > 0) ReportNativeContinuousStoryPageFallback(
-                    sections[sectionIndex - 1], firstSection, sectionIndex, options);
                 bool preserveLogicalRunningSections = changesRunningStories || UsesNativeSectionPageCounts(firstSection) || firstSection.PageSetup.DifferentFirstPage;
                 PdfCore.PdfPageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
@@ -258,6 +256,9 @@ namespace OfficeIMO.Word.Pdf {
                     page.Margin(sectionMargins);
                     page.MirrorMargins(ShouldMirrorNativeMargins(firstSection, options));
                     page.StartOnPageParity(GetNativeSectionStartParity(firstSection), useContinuingPageNumber: true);
+                    // A continuous section stays on the current page whenever the paper size allows,
+                    // even when it changes margins, numbering or running stories.
+                    page.ContinueOnCurrentPage(sectionIndex > 0 && firstSection.BreakType == WordSectionBreakType.Continuous);
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     ConfigureNativeRunningHeaderFooter(page, firstSection, options, nativeFontMap, listMarkers, nativeDefaults);
@@ -336,6 +337,10 @@ namespace OfficeIMO.Word.Pdf {
                             if (element is WordFootNote) {
                                 continue;
                             }
+
+                            if (TryRenderNativeParagraphFrame(flow, elements, ref i,
+                                paragraph => listMarkers.TryGetValue(paragraph, out var frameMarker) ? frameMarker : null,
+                                footnoteNumbersById, options, sectionContentWidth, nativeDefaults, nativeFontMap)) continue;
 
                             if (TryRenderNativeJoinedParagraphs(flow, elements, ref i, ref rejectedJoinUntil,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,

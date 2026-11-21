@@ -226,6 +226,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeParagraphStyleDefaults styleDefaults,
             NativeTableRunStyleDefaults tableRunStyleDefaults = default,
             NativeFontMap? nativeFontMap = null) {
+            if (UsesNativeWordPerfectLineHeight(paragraph._document))
+                return ResolveNativeWordPerfectLineHeight(paragraph, nativeDefaults, styleDefaults, tableRunStyleDefaults, nativeFontMap);
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             double? lineHeight = null;
             foreach (WordParagraph run in runs) {

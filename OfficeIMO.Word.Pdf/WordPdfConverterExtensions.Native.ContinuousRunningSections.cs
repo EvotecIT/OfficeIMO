@@ -66,31 +66,6 @@ public static partial class WordPdfConverterExtensions {
         return false;
     }
 
-    /// <summary>Reports an actual separate-page fallback for a continuous running-story change.</summary>
-    private static void ReportNativeContinuousStoryPageFallback(WordSection previous, WordSection current,
-        int sectionIndex, WordPdfExportOptions? options) {
-        if (options == null || current.BreakType != WordSectionBreakType.Continuous ||
-            !NativeContinuousRunningStorySelectionChanged(previous, current)) return;
-        AddNativeExportWarning(options, "native-continuous-section-pagination-approximated",
-            "continuous section " + (sectionIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
-            "Changed header/footer stories start on a new physical page for this continuous-section layout profile. " +
-            "Native continuous pagination is approximated.");
-    }
-
-    // Story identity and selection are distinct from edge distances and paper
-    // geometry. A geometry-only refusal does not establish a story fallback.
-    private static bool NativeContinuousRunningStorySelectionChanged(WordSection previous, WordSection current) =>
-        previous.PageSetup.DifferentFirstPage != current.PageSetup.DifferentFirstPage ||
-        previous.DocumentOddEvenSettingEnabled != current.DocumentOddEvenSettingEnabled ||
-        !ReferenceEquals(previous.ResolveDefaultHeader()?._header, current.ResolveDefaultHeader()?._header) ||
-        !ReferenceEquals(previous.ResolveDefaultFooter()?._footer, current.ResolveDefaultFooter()?._footer) ||
-        (previous.PageSetup.DifferentFirstPage &&
-            (!ReferenceEquals(previous.ResolveFirstHeader()?._header, current.ResolveFirstHeader()?._header) ||
-             !ReferenceEquals(previous.ResolveFirstFooter()?._footer, current.ResolveFirstFooter()?._footer))) ||
-        (previous.DocumentOddEvenSettingEnabled &&
-            (!ReferenceEquals(previous.ResolveEvenHeader()?._header, current.ResolveEvenHeader()?._header) ||
-             !ReferenceEquals(previous.ResolveEvenFooter()?._footer, current.ResolveEvenFooter()?._footer)));
-
     /// <summary>Captures the resolved stories for a later physical page without appending a page or evaluating running factories.</summary>
     private static PdfCore.PdfCreateOptions CreateNativeContinuousRunningOptions(
         PdfCore.PdfDocument pdf, WordSection section, WordPdfExportOptions? options,

@@ -452,6 +452,8 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 styleDefaults,
                 nativeFontMap);
+            if (ResolveNativeParagraphSpacing(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).BeforeAuto == true)
+                return IsNativeCellBoundaryParagraph(paragraph, first: true) ? 0D : NativeAutomaticParagraphSpacing;
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double spacingBefore = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).Before ?? paragraph.LineSpacingBefore?.ToPoints() ??
                 GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
@@ -459,6 +461,18 @@ namespace OfficeIMO.Word.Pdf {
                 tableStyleDefaults.ParagraphSpacingBefore ??
                 (nativeDefaults.ParagraphSpacingBeforeDeclared ? nativeDefaults.ParagraphSpacingBefore : 0D);
             return spacingBefore > 0D && !double.IsNaN(spacingBefore) && !double.IsInfinity(spacingBefore) ? spacingBefore : 0D;
+        }
+
+        /// <summary>
+        /// Word omits automatic spacing before the first paragraph and after the last
+        /// paragraph of a table cell, and uses 14 pt between the paragraphs inside it.
+        /// </summary>
+        private static bool IsNativeCellBoundaryParagraph(WordParagraph paragraph, bool first) {
+            if (paragraph._paragraph?.Parent is not W.TableCell cell) return false;
+            DocumentFormat.OpenXml.OpenXmlElement? boundary = first
+                ? cell.ChildElements.FirstOrDefault(child => child is W.Paragraph or W.Table)
+                : cell.ChildElements.LastOrDefault(child => child is W.Paragraph or W.Table);
+            return ReferenceEquals(boundary, paragraph._paragraph);
         }
 
         private static double GetNativeCellParagraphSpacingAfter(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults) {
@@ -478,6 +492,8 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults,
                 styleDefaults,
                 nativeFontMap);
+            if (ResolveNativeParagraphSpacing(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).AfterAuto == true)
+                return IsNativeCellBoundaryParagraph(paragraph, first: false) ? 0D : NativeAutomaticParagraphSpacing;
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             double spacingAfter = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).After ?? paragraph.LineSpacingAfter?.ToPoints() ??
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??

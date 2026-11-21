@@ -37,7 +37,7 @@ internal static partial class PdfWriter {
             y = PositionTableY(position, height);
             AvoidFloatingTable(position, left, tableWidth, height);
             bottom = y - height;
-            floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
+            if (position.WrapsText) floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
                 left + tableWidth + position.DistanceRight.ToPoints(), y + position.DistanceTop.ToPoints(),
                 bottom - position.DistanceBottom.ToPoints(), position.AllowOverlap));
             y = flowY;
