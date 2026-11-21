@@ -513,7 +513,7 @@ public static partial class OfficeSvgDrawingReader {
         if (!normalized.EndsWith("%", StringComparison.Ordinal) ||
             HasSeparatedSvgNumericSuffix(normalized, 1) ||
             !OfficeCssNumber.TryParse(normalized.Substring(0, normalized.Length - 1), out double percentage)) return value;
-        return Math.Max(0D, Math.Min(1D, percentage / 100D)).ToString("R", CultureInfo.InvariantCulture);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(Math.Max(0D, Math.Min(1D, percentage / 100D)), CultureInfo.InvariantCulture);
     }
 
     private static string? ResolveParentSvgCssValue(XElement? parent, string propertyName) {

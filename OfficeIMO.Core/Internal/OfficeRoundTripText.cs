@@ -146,11 +146,20 @@ internal static class OfficeRoundTripText
             return ((int)value).ToString(culture);
         }
 
-        string text = value.ToString("R", culture);
-        if (float.IsNaN(value) || float.IsInfinity(value) ||
-            (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float parsed) && parsed.Equals(value)))
+        if (float.IsNaN(value) || float.IsInfinity(value))
         {
-            return text;
+            return value.ToString("R", culture);
+        }
+
+        // Seven or eight correctly rounded digits, as above; nine always parse back.
+        foreach (string format in new[] { "G7", "G8" })
+        {
+            string text = value.ToString(format, culture);
+            if (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float parsed) &&
+                BitConverter.ToInt32(BitConverter.GetBytes(parsed), 0) == BitConverter.ToInt32(BitConverter.GetBytes(value), 0))
+            {
+                return text;
+            }
         }
 
         return value.ToString("G9", culture);

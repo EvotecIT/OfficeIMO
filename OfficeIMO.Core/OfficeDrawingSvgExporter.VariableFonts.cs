@@ -36,7 +36,7 @@ public static partial class OfficeDrawingSvgExporter {
                 if (face?.VariationCoordinatesForShaping is { Count: > 0 } coordinates) {
                     string values = string.Join(",", coordinates.OrderBy(item => item.Key, StringComparer.Ordinal)
                         .Select(item => "\"" + EscapeCssString(item.Key) + "\" "
-                            + item.Value.ToString("R", CultureInfo.InvariantCulture)));
+                            + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(item.Value, CultureInfo.InvariantCulture)));
                     span.SetAttributeValue("style", "font-optical-sizing:none;font-variation-settings:" + values);
                 }
                 return span;
