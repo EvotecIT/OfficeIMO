@@ -18,6 +18,10 @@ namespace OfficeIMO.Word.Pdf {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfCreateOptions pdfOptions = options?.PdfOptions?.Clone() ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             pdfOptions.UseFontUnitTextLayout = true;
+            if (options?.IncludeLayoutPageLabels == true) {
+                pdfOptions.IncludePageLabels = true;
+                pdfOptions.IncludeLayoutPageNumberLabels = true;
+            }
             // Flat running content follows the same source defaults as styled runs.
             // Retain the configured shaper so explicit ligatures use its Latin feature path.
             pdfOptions.DefaultTextFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(pdfOptions.DefaultFontSize.ToPoints());
@@ -311,6 +315,15 @@ namespace OfficeIMO.Word.Pdf {
                     if (element is WordCoverPage coverPage) {
                         foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
                             RegisterNativeElementFonts(coverElement, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                        }
+
+                        continue;
+                    }
+
+                    // A table of contents drawn as stored uses its entries' own fonts.
+                    if (element is WordTableOfContent tableOfContent && tableOfContent.ShowsStoredEntries) {
+                        foreach (WordElement entry in GetNativeStructuredBlockElements(tableOfContent.Document, tableOfContent.SdtBlock)) {
+                            RegisterNativeElementFonts(entry, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
                         }
 
                         continue;

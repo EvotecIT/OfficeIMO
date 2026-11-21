@@ -9,8 +9,8 @@ namespace OfficeIMO.Word;
 /// It owns selection and option mapping, never document measurement or pagination.
 /// </summary>
 internal static class WordPageImageExport {
-    internal static int EstimatePageCount(WordDocument document) =>
-        OpenPages(document, new WordImageExportOptions(), CancellationToken.None).Document.Pages.Count;
+    internal static int EstimatePageCount(WordDocument document, WordImageExportOptions options) =>
+        OpenPages(document, options, CancellationToken.None).Document.Pages.Count;
 
     internal static OfficeImageExportResult Render(WordDocument document,
         OfficeImageExportFormat format, WordImageExportOptions options, CancellationToken cancellationToken) {

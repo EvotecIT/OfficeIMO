@@ -19,6 +19,13 @@ namespace OfficeIMO.Word.Pdf {
                         pdf is NativeSpacingCollapseFlow collapseFlow)
                         collapseFlow.RetainSuppressedSpacingAfter((CreateNativeParagraphStyle(paragraph, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()));
                     break;
+                case WordTableOfContent tableOfContent when tableOfContent.ShowsStoredEntries:
+                    // Entries with page references are drawn as stored, as Word draws them. Field pagination lays out
+                    // this same content, so its page numbers match the exported pages.
+                    RenderNativeStructuredBlockContent(pdf, tableOfContent.Document, tableOfContent.SdtBlock, activeSection, getMarker,
+                        footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth,
+                        skipCanvasOnlyVmlParagraphs: false, nativeDefaults, nativeFontMap!);
+                    break;
                 case WordTableOfContent tableOfContent:
                     WordParagraph? title = tableOfContent.TitleParagraph;
                     if (title != null) {

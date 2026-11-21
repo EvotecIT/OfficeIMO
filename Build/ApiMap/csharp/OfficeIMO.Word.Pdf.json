@@ -406,6 +406,13 @@
       "status": "applied"
     },
     {
+      "category": "ownership",
+      "subject": "Field pagination with the PDF export font setup",
+      "signature": "WordFieldUpdateOptions.WithPdfLayoutPagination(WordPdfExportOptions layoutOptions) : WordFieldUpdateOptions",
+      "note": "Reuses WordPdfExportOptions instead of a parallel font model. Field pagination copies the options and lays the document out through the same conversion as SaveAsPdf, so font registrations, substitutions, fallbacks and ResourcePolicy match the exported PDF. The provider delegate stays internal: this overload covers supplied fonts without exposing a layout extension point. GetEstimatedPageCount(WordPdfExportOptions) and GetEstimatedImagePageCount(WordImageExportOptions) count the pages of the same layouts.",
+      "status": "applied"
+    },
+    {
       "phase": "B",
       "applied": "phase-b-applied",
       "change": "Word page images expose options-based ToImage/ToImageAsync, SaveAsImage/SaveAsImageAsync and aggregate SaveAsImages/SaveAsImagesAsync. Rendering kernels and snapshot reading remain on the existing Word adapter.",

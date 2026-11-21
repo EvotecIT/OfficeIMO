@@ -11,7 +11,7 @@ Updates fields in a Word document.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Update-OfficeWordField [-Document <WordDocument>] [-PassThru] [<CommonParameters>]
+Update-OfficeWordField [-Document <WordDocument>] [-TableOfContents] [-LayoutOptions <WordPdfExportOptions>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -29,6 +29,16 @@ PS> New-OfficeWord -Path .\Report.docx {
 ```
 
 Updates PAGE and NUMPAGES fields and marks TOC fields as dirty before saving.
+
+### EXAMPLE 2
+```powershell
+PS> $pdf = New-OfficeWordPdfOptions -Font 'Carlito'
+$document = Open-OfficeWord -Path .\Report.docx
+$document | Update-OfficeWordField -TableOfContents -LayoutOptions $pdf
+Close-OfficeWord -Document $document -Save
+```
+
+Regenerates the table of contents and refreshes the supported fields, with page numbers from the same layout and fonts as PDF export with $pdf.
 
 ## PARAMETERS
 
@@ -48,8 +58,40 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
+### -LayoutOptions
+PDF export options whose layout, fonts and resource policy supply the page numbers of PAGEREF, NUMPAGES and body PAGE fields, including table-of-contents entries. Header and footer PAGE fields keep their stored result and SECTIONPAGES counts explicit breaks. Implies a full refresh of supported fields.
+
+```yaml
+Type: WordPdfExportOptions
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -PassThru
 Emit the updated document.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TableOfContents
+Regenerate tables of contents with page numbers from the PDF layout.
 
 ```yaml
 Type: SwitchParameter

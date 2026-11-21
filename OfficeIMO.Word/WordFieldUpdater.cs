@@ -23,11 +23,8 @@ namespace OfficeIMO.Word {
                 RegenerateTablesOfContents(document, state);
             }
 
-            if (!options.DateTimeFieldsOnly && options.UseLayoutPagination) {
-                state.Layout = options.LayoutPaginationProvider!(document);
-            }
-
-            int totalPages = options.DateTimeFieldsOnly ? 0 : state.Layout?.PageCount ?? EstimateTotalPages(document);
+            bool layOut = !options.DateTimeFieldsOnly && options.UseLayoutPagination;
+            int totalPages = options.DateTimeFieldsOnly || layOut ? 0 : EstimateTotalPages(document);
             DateTime updateDateTime = options.CurrentDateTime ?? DateTime.Now;
             WordFieldEvaluationReason dateTimeEvaluationReason = options.CurrentDateTime.HasValue
                 ? WordFieldEvaluationReason.CallerProvidedDateTime
@@ -40,13 +37,29 @@ namespace OfficeIMO.Word {
                 candidates[index].Index = index;
             }
 
-            foreach (MutableFieldCandidate candidate in SortFieldsForEvaluation(candidates)) {
+            IReadOnlyList<MutableFieldCandidate> ordered = SortFieldsForEvaluation(candidates);
+            if (!layOut) {
+                foreach (MutableFieldCandidate candidate in ordered) Process(candidate);
+                return new WordFieldUpdateReport(results.OrderBy(result => result.Index).ToArray());
+            }
+
+            // Fields whose text can change the layout (DOCVARIABLE, REF, dates and so on) are updated first, so the
+            // layout measures their new text. Page fields then take their numbers from that one layout. Like Word's own
+            // update, there is no second pass when a new page number changes line wrapping.
+            HashSet<int> pageDependent = GetPageDependentFields(candidates);
+            foreach (MutableFieldCandidate candidate in ordered.Where(candidate => !pageDependent.Contains(candidate.Sequence))) Process(candidate);
+            state.Layout = LayOutWithPageFieldBookmarks(document, mainPart, options.LayoutPaginationProvider!, state);
+            totalPages = state.Layout.PageCount;
+            foreach (MutableFieldCandidate candidate in ordered.Where(candidate => pageDependent.Contains(candidate.Sequence))) Process(candidate);
+            return new WordFieldUpdateReport(results.OrderBy(result => result.Index).ToArray());
+
+            void Process(MutableFieldCandidate candidate) {
                 if (options.DateTimeFieldsOnly) {
                     WordFieldType? fieldType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
                     if (fieldType is not (WordFieldType.Date or WordFieldType.Time)) {
                         results.Add(candidate.ToResult(fieldType, WordFieldUpdateStatus.Skipped, null,
                             "Field was left unchanged because only DATE and TIME fields were selected."));
-                        continue;
+                        return;
                     }
                 }
                 if (IsInsideRegeneratedTableOfContents(candidate, state)) {
@@ -55,7 +68,7 @@ namespace OfficeIMO.Word {
                         results.Add(candidate.ToResult(fieldType, WordFieldUpdateStatus.Updated, null,
                             "Table of contents was regenerated from the document headings; its page numbers are PAGEREF fields.",
                             WordFieldEvaluationReason.TableOfContentsRegenerated));
-                        continue;
+                        return;
                     }
                 }
 
@@ -66,13 +79,13 @@ namespace OfficeIMO.Word {
                         null,
                         "Nested field was left unchanged because its containing field result was replaced.",
                         WordFieldEvaluationReason.ContainingResultReplaced));
-                    continue;
+                    return;
                 }
 
                 if (IsInsideLockedToc(candidate, state.LockedTocFields)) {
                     WordFieldType? lockedType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
                     results.Add(candidate.ToResult(lockedType, WordFieldUpdateStatus.Skipped, null, "Field is inside a locked table of contents and was left unchanged."));
-                    continue;
+                    return;
                 }
 
                 if (options.TablesOfContentsOnly && !IsInsideRegeneratedTableOfContents(candidate, state)) {
@@ -81,7 +94,7 @@ namespace OfficeIMO.Word {
                         WordFieldUpdateStatus.Skipped,
                         null,
                         "Field was left unchanged because only tables of contents were selected."));
-                    continue;
+                    return;
                 }
 
                 WordFieldUpdateResult result = UpdateField(
@@ -93,8 +106,42 @@ namespace OfficeIMO.Word {
                     replacedContainingFields.Add(candidate);
                 }
             }
+        }
 
-            return new WordFieldUpdateReport(results.OrderBy(result => result.Index).ToArray());
+        /// <summary>Page fields, fields whose instruction contains one, and the sequences they belong to take their result after the layout.</summary>
+        private static HashSet<int> GetPageDependentFields(IReadOnlyList<MutableFieldCandidate> candidates) {
+            var bySequence = candidates.ToDictionary(candidate => candidate.Sequence);
+            var dependent = new HashSet<int>();
+            foreach (MutableFieldCandidate candidate in candidates) {
+                if (WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType is not
+                    (WordFieldType.Page or WordFieldType.NumPages or WordFieldType.PageRef or WordFieldType.SectionPages)) continue;
+                AddWithOwners(candidate);
+            }
+
+            // SEQ and LISTNUM fields number from the fields before them. When one of them waits for the layout (a reset
+            // value taken from a PAGE field), every field of that kind waits too, so they still run in document order.
+            // Deferring one group can defer an owner from the other group, so repeat until nothing is added. Each pass
+            // only adds fields, so this ends after at most one pass per group plus one.
+            var groups = new[] { WordFieldType.Seq, WordFieldType.ListNum }.Select(stateful => candidates
+                .Where(candidate => WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType == stateful).ToList()).ToList();
+            var deferredGroups = new HashSet<int>();
+            bool added = true;
+            while (added) {
+                added = false;
+                for (int group = 0; group < groups.Count; group++) {
+                    if (deferredGroups.Contains(group) || !groups[group].Any(candidate => dependent.Contains(candidate.Sequence))) continue;
+                    deferredGroups.Add(group);
+                    foreach (MutableFieldCandidate candidate in groups[group]) AddWithOwners(candidate);
+                    added = true;
+                }
+            }
+            return dependent;
+
+            void AddWithOwners(MutableFieldCandidate candidate) {
+                for (MutableFieldCandidate? current = candidate; current != null && dependent.Add(current.Sequence);
+                     current = current.InstructionParentSequence is int parent && bySequence.TryGetValue(parent, out MutableFieldCandidate? owner) ? owner : null) {
+                }
+            }
         }
 
         internal static void UpdatePageCounters(WordDocument document) {
@@ -253,6 +300,10 @@ namespace OfficeIMO.Word {
                 case WordFieldType.ListNum:
                     return TryEvaluateListNum(document, candidate, parsed, state, out value, out status, out message);
                 case WordFieldType.Page:
+                    if (state.Layout != null && state.PageFieldBookmarks.TryGetValue(candidate.AnchorElement, out string? pageBookmark)) {
+                        usedLayout = true;
+                        return TryEvaluateLayoutPage(parsed, state.Layout, pageBookmark, out value, out status, out message);
+                    }
                     return TryEvaluatePage(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.NumChars:
                     return TryFormatIntegerField(document.Statistics.Characters, parsed, "Updated from OfficeIMO document statistics Characters.", out value, out status, out message);
@@ -1400,6 +1451,8 @@ namespace OfficeIMO.Word {
             internal Dictionary<string, ListNumSequenceState> ListNumSequences { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal WordLayoutPagination? Layout { get; set; }
+
+            internal Dictionary<OpenXmlElement, string> PageFieldBookmarks { get; } = new();
 
             internal HashSet<SdtBlock> RegeneratedTablesOfContents { get; } = new();
             internal List<MutableFieldCandidate> LockedTocFields { get; } = new();
