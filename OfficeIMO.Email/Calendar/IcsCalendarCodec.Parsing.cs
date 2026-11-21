@@ -124,11 +124,8 @@ internal static partial class IcsCalendarCodec {
                         return null;
                     }
                 }
-                try {
-                    TimeZoneInfo zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+                if (IcsSystemTimeZones.TryFind(timeZoneId!, out TimeZoneInfo zone)) {
                     return new DateTimeOffset(local, zone.GetUtcOffset(local));
-                } catch (TimeZoneNotFoundException) {
-                } catch (InvalidTimeZoneException) {
                 }
                 diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED",
                     string.Concat("The iCalendar time zone '", timeZoneId,

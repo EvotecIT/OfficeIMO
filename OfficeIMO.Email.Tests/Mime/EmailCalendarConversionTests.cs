@@ -446,6 +446,20 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void ResolvesIanaTimeZoneIdsWithoutEmbeddedRules() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:iana@example.com\r\n" +
+            "DTSTART;TZID=Europe/Warsaw:20260801T100000\r\nDTEND;TZID=America/New_York:20260801T100000\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.FromHours(2)), read.Document.Appointment!.Start);
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.FromHours(-4)), read.Document.Appointment.End);
+        Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED");
+    }
+
+    [Fact]
     public void MarksEndRelativeAlarmsIncompleteForStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +

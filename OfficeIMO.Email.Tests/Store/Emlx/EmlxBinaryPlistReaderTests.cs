@@ -33,4 +33,27 @@ public class EmlxBinaryPlistReaderTests {
         Assert.All(data, value => Assert.Equal(new byte[] { 1, 2, 3, 4 }, Assert.IsType<byte[]>(value)));
         Assert.Equal(18 + 3 * IntPtr.Size, allowed.DecodedBytes);
     }
+
+    [Fact]
+    public void DateRealsKeepSubMillisecondTicks() {
+        // { "date": 2^-10 seconds after the 2001 epoch }, which is 9765.625 ticks.
+        byte[] plist = new byte[60];
+        "bplist00"u8.CopyTo(plist);
+        byte[] objects = { 0xD1, 1, 2, 0x54, (byte)'d', (byte)'a', (byte)'t', (byte)'e', 0x33 };
+        objects.CopyTo(plist, 8);
+        byte[] seconds = BitConverter.GetBytes(1D / 1024D);
+        if (BitConverter.IsLittleEndian) Array.Reverse(seconds);
+        seconds.CopyTo(plist, 17);
+        byte[] offsets = { 8, 11, 16 };
+        offsets.CopyTo(plist, 25);
+        int trailer = plist.Length - 32;
+        plist[trailer + 6] = 1;
+        plist[trailer + 7] = 1;
+        plist[trailer + 15] = 3;
+        plist[trailer + 31] = 25;
+
+        var values = new EmlxBinaryPlistReader(plist, 0, EmailStoreReaderOptions.Default, CancellationToken.None, maxDecodedBytes: 1024).Read();
+
+        Assert.Equal(new DateTimeOffset(2001, 1, 1, 0, 0, 0, TimeSpan.Zero).AddTicks(9765), values["date"]);
+    }
 }

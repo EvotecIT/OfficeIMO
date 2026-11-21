@@ -370,7 +370,7 @@ public static class OfficeRasterContainerInspector {
                     height,
                     x,
                     y,
-                    TimeSpan.FromSeconds(delayNumerator / (double)delayDenominator),
+                    OfficeIMO.Internal.OfficeRuntimeCompatibility.FromSeconds(delayNumerator / (double)delayDenominator),
                     disposalCode switch {
                         1 => OfficeRasterFrameDisposal.Background,
                         2 when frames.Count == 0 => OfficeRasterFrameDisposal.Background,
