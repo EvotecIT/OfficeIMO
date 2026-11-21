@@ -128331,6 +128331,22 @@ and require an explicit save. The result reports the actual copied rows and colu
       <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeExcelImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ChartFidelity</maml:name>
+          <maml:description>
+            <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeChartFidelity</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>IncludeCharts</maml:name>
           <maml:description>
             <maml:para>Includes charts in the rendered output; explicit false omits them.</maml:para>
@@ -128601,6 +128617,22 @@ and require an explicit save. The result reports the actual copied rows and colu
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ChartFidelity</maml:name>
+        <maml:description>
+          <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeChartFidelity</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>IncludeCharts</maml:name>
         <maml:description>
@@ -129309,6 +129341,22 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ChartFidelity</maml:name>
+          <maml:description>
+            <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeChartFidelity</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChartLayout</maml:name>
           <maml:description>
             <maml:para>Chart layout override.</maml:para>
@@ -129707,6 +129755,22 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ChartFidelity</maml:name>
+        <maml:description>
+          <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeChartFidelity</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -147326,6 +147390,22 @@ attachments and bookmarks change what readers see or what the file discloses, so
       <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficePowerPointImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ChartFidelity</maml:name>
+          <maml:description>
+            <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeChartFidelity</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>IncludeHiddenShapes</maml:name>
           <maml:description>
             <maml:para>Render hidden shapes.</maml:para>
@@ -147560,6 +147640,22 @@ attachments and bookmarks change what readers see or what the file discloses, so
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ChartFidelity</maml:name>
+        <maml:description>
+          <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeChartFidelity</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>IncludeHiddenShapes</maml:name>
         <maml:description>
@@ -148360,6 +148456,22 @@ attachments and bookmarks change what readers see or what the file discloses, so
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ChartFidelity</maml:name>
+          <maml:description>
+            <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeChartFidelity</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>ChartLayout</maml:name>
           <maml:description>
             <maml:para>Chart layout override.</maml:para>
@@ -148608,6 +148720,22 @@ attachments and bookmarks change what readers see or what the file discloses, so
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
           <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ChartFidelity</maml:name>
+        <maml:description>
+          <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeChartFidelity</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -154120,6 +154248,22 @@ Setting a key below a missing table adds the table's [header] section.</maml:par
       <command:syntaxItem parameterSetName="Default">
         <maml:name>New-OfficeWordImageOptions</maml:name>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ChartFidelity</maml:name>
+          <maml:description>
+            <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeChartFidelity</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>MaximumDegreeOfParallelism</maml:name>
           <maml:description>
             <maml:para>Maximum independent renders processed concurrently.</maml:para>
@@ -154246,6 +154390,22 @@ Setting a key below a missing table adds the table's [header] section.</maml:par
       </command:syntaxItem>
     </command:syntax>
     <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ChartFidelity</maml:name>
+        <maml:description>
+          <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeChartFidelity</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>MaximumDegreeOfParallelism</maml:name>
         <maml:description>
@@ -154767,6 +154927,22 @@ Setting a key below a missing table adds the table's [header] section.</maml:par
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>ChartFidelity</maml:name>
+          <maml:description>
+            <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+          <command:parameterValueGroup>
+            <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+            <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+          </command:parameterValueGroup>
+          <dev:type>
+            <maml:name>OfficeChartFidelity</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>DefaultTableBorders</maml:name>
           <maml:description>
             <maml:para>Draw default borders for tables that do not specify borders.</maml:para>
@@ -155001,6 +155177,22 @@ Setting a key below a missing table adds the table's [header] section.</maml:par
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
           <maml:name>String</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>ChartFidelity</maml:name>
+        <maml:description>
+          <maml:para>Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">OfficeChartFidelity</command:parameterValue>
+        <command:parameterValueGroup>
+          <command:parameterValue required="false" variableLength="false">Strict</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">BestEffort</command:parameterValue>
+        </command:parameterValueGroup>
+        <dev:type>
+          <maml:name>OfficeChartFidelity</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -214545,9 +214737,33 @@ error is written and the document is unchanged.</maml:para>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>LayoutOptions</maml:name>
+          <maml:description>
+            <maml:para>PDF export options whose layout, fonts and resource policy supply page numbers. Implies a full refresh of supported fields.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">WordPdfExportOptions</command:parameterValue>
+          <dev:type>
+            <maml:name>WordPdfExportOptions</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
           <maml:name>PassThru</maml:name>
           <maml:description>
             <maml:para>Emit the updated document.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+          <maml:name>TableOfContents</maml:name>
+          <maml:description>
+            <maml:para>Regenerate tables of contents with page numbers from the PDF layout.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
           <dev:type>
@@ -214572,9 +214788,33 @@ error is written and the document is unchanged.</maml:para>
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>LayoutOptions</maml:name>
+        <maml:description>
+          <maml:para>PDF export options whose layout, fonts and resource policy supply page numbers. Implies a full refresh of supported fields.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">WordPdfExportOptions</command:parameterValue>
+        <dev:type>
+          <maml:name>WordPdfExportOptions</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
         <maml:name>PassThru</maml:name>
         <maml:description>
           <maml:para>Emit the updated document.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="none">
+        <maml:name>TableOfContents</maml:name>
+        <maml:description>
+          <maml:para>Regenerate tables of contents with page numbers from the PDF layout.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
         <dev:type>
@@ -214616,6 +214856,19 @@ error is written and the document is unchanged.</maml:para>
             }</dev:code>
         <dev:remarks>
           <maml:para>Updates PAGE and NUMPAGES fields and marks TOC fields as dirty before saving.</maml:para>
+        </dev:remarks>
+      </command:example>
+      <command:example>
+        <maml:title>Write table-of-contents page numbers from the PDF layout.</maml:title>
+        <maml:introduction>
+          <maml:para>PS&gt; </maml:para>
+        </maml:introduction>
+        <dev:code>$pdf = New-OfficeWordPdfOptions -Font 'Carlito'&#xD;
+            $document = Open-OfficeWord -Path .\Report.docx&#xD;
+            $document | Update-OfficeWordField -TableOfContents -LayoutOptions $pdf&#xD;
+            Close-OfficeWord -Document $document -Save</dev:code>
+        <dev:remarks>
+          <maml:para>Regenerates the table of contents and refreshes the supported fields, with page numbers from the same layout and fonts as PDF export with $pdf.</maml:para>
         </dev:remarks>
       </command:example>
     </command:examples>

@@ -11,7 +11,7 @@ Creates Excel rendering settings for Export-OfficeDocumentImage and ConvertTo-Of
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeExcelImageOptions [-ShowGridlines] [-IncludeHidden] [-IncludeImages] [-IncludeCharts] [-IncludeDrawingObjects] [-IncludeConditionalFormatting] [-ShowHyperlinkHints] [-ShowCommentBodies] [-MaximumRenderedCells <Int32>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [-IncludeHiddenSheets] [-UseWorksheetPrintAreas] [-SplitWorksheetsByManualPageBreaks] [<CommonParameters>]
+New-OfficeExcelImageOptions [-ShowGridlines] [-IncludeHidden] [-IncludeImages] [-IncludeCharts] [-IncludeDrawingObjects] [-IncludeConditionalFormatting] [-ShowHyperlinkHints] [-ShowCommentBodies] [-MaximumRenderedCells <Int32>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [-IncludeHiddenSheets] [-UseWorksheetPrintAreas] [-SplitWorksheetsByManualPageBreaks] [-ChartFidelity <OfficeChartFidelity>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,6 +36,22 @@ Export-OfficeDocumentImage -Path .\Reports\Operations.xlsx -Sheet Dashboard -Out
 Renders the dashboard at double scale with charts and images, so the PNG stays sharp when embedded in a web page.
 
 ## PARAMETERS
+
+### -ChartFidelity
+Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.
+
+```yaml
+Type: OfficeChartFidelity
+Parameter Sets: Default
+Aliases: None
+Possible values: Strict, BestEffort
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -IncludeCharts
 Includes charts in the rendered output; explicit false omits them.

@@ -11,7 +11,7 @@ Creates discoverable slide selection and rendering settings for Export-OfficeDoc
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficePowerPointImageOptions [-IncludeHiddenSlides] [-NoSlideBackground] [-NoSlideContent] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoTables] [-NoCharts] [-IncludeHiddenShapes] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficePowerPointImageOptions [-IncludeHiddenSlides] [-NoSlideBackground] [-NoSlideContent] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoTables] [-NoCharts] [-IncludeHiddenShapes] [-ChartFidelity <OfficeChartFidelity>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -27,6 +27,22 @@ Export-OfficeDocumentImage -Path ./Deck.pptx -Page 1,3 -OutputDirectory ./Slides
 
 
 ## PARAMETERS
+
+### -ChartFidelity
+Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.
+
+```yaml
+Type: OfficeChartFidelity
+Parameter Sets: Default
+Aliases: None
+Possible values: Strict, BestEffort
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -IncludeHiddenShapes
 Render hidden shapes.
