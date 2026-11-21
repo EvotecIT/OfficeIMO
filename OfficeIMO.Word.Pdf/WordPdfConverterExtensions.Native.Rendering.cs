@@ -32,8 +32,8 @@ namespace OfficeIMO.Word.Pdf {
                         RenderNativeParagraph(pdf, title, null, getMarker, Array.Empty<int>(), footnoteNumbersById,
                             options, headingDestinations, nativeDefaults, nativeFontMap, null);
                     }
-                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth, renderTitle: title == null,
-                        nativeDefaults, nativeFontMap);
+                    // An untitled table stays untitled: Word adds no heading above the entries.
+                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth, nativeDefaults, nativeFontMap);
                     break;
                 case WordTable table:
                     RenderNativeTable(pdf, table, getMarker, footnoteNumbersById, options, contentWidth, nativeDefaults, nativeFontMap);

@@ -362,18 +362,22 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            // A title comes before the generated list. Paragraphs after the field begin, such as a separate
-            // paragraph holding the field end, belong to the old result.
+            // A title comes before the generated list. Paragraphs from the table's own field onwards, such as a separate
+            // paragraph holding the field end, belong to the old result. A title may hold other fields.
             foreach (Paragraph paragraph in content.ChildElements.OfType<Paragraph>()) {
-                if (paragraph.Descendants<SimpleField>().Any() || paragraph.Descendants<FieldCode>().Any() ||
-                    paragraph.Descendants<FieldChar>().Any()) {
-                    return null;
-                }
+                if (StartsGeneratedField(paragraph)) return null;
                 if (!IsGeneratedResultParagraph(paragraph)) return paragraph;
             }
 
             return null;
         }
+
+        private static bool StartsGeneratedField(Paragraph paragraph) =>
+            paragraph.Descendants<SimpleField>().Any(field => IsGeneratedFieldInstruction(field.Instruction?.Value)) ||
+            paragraph.Descendants<FieldCode>().Any(code => IsGeneratedFieldInstruction(code.Text));
+
+        private static bool IsGeneratedFieldInstruction(string? instruction) =>
+            instruction != null && Regex.IsMatch(instruction, @"^\s*(TOC|INDEX)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static bool IsGeneratedResultParagraph(Paragraph paragraph) {
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
