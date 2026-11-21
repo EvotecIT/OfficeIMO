@@ -81,7 +81,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 double[] normalized = Enumerable.Repeat(missing, categories.Count).ToArray();
                 for (int index = 0; index < item.Values.Count; index++) normalized[index] = item.Values[index];
                 series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints,
-                    maximumPointOverrides, forDataUpdate, projectionBudget.AutomaticColors));
+                    maximumPointOverrides, forDataUpdate, projectionBudget.AutomaticColors, visibility));
             }
             return series.Count == 0 ? null : new Result(categories, series);
         }
@@ -109,7 +109,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 categories ??= alignedX.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartType.Scatter,
                     scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints, maximumPointOverrides,
-                    forDataUpdate, projectionBudget.AutomaticColors));
+                    forDataUpdate, projectionBudget.AutomaticColors, visibility));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
         }
@@ -154,7 +154,8 @@ namespace OfficeIMO.OpenXml.Internal {
         private static Series ReadSeries(OpenXmlCompositeElement element, IReadOnlyList<double> values,
             IReadOnlyList<double>? xValues, OfficeChartType kind, A.ColorScheme? scheme,
             OfficeChartAxisGroup axisGroup, int fallbackIndex, int maximumPoints, int maximumPointOverrides,
-            bool forDataUpdate, OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext colorContext) {
+            bool forDataUpdate, OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext colorContext,
+            SourceVisibility? visibility = null) {
             C.ChartShapeProperties? properties = element.GetFirstChild<C.ChartShapeProperties>();
             A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), scheme);
@@ -291,10 +292,9 @@ namespace OfficeIMO.OpenXml.Internal {
                 .WithSeriesStyle(seriesPaint)
                 .WithPointStyles(styles);
             if (!forDataUpdate) {
-                data = data.WithTrendline(OfficeOpenXmlChartTrendlines.Read(element, scheme));
-                // The shared renderer has no error-bar geometry yet.
-                if (element.GetFirstChild<C.ErrorBars>() != null)
-                    OfficeOpenXmlChartFidelityScope.Approximate("Error bars cannot be projected.", "Error bars are left out.");
+                data = data.WithTrendline(OfficeOpenXmlChartTrendlines.Read(element, scheme, name))
+                    .WithErrorBars(OfficeOpenXmlChartErrorBars.Read(element, scheme, maximumPoints,
+                        visibility == null ? null : (source, amounts) => SourceVisibility.Select(visibility, source, amounts)));
             }
             if (kind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
                 if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,

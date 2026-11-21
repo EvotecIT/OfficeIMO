@@ -5,7 +5,8 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        /// <summary>The cached points a visible-cells-only chart plots, by data source (c:val, c:cat, c:xVal, c:yVal, c:bubbleSize).</summary>
+        /// <summary>The cached points a visible-cells-only chart plots, by data source (c:val, c:cat, c:xVal, c:yVal,
+        /// c:bubbleSize, and the c:plus and c:minus amounts of custom error bars).</summary>
         internal sealed class SourceVisibility {
             private readonly Dictionary<OpenXmlElement, int[]> _visible;
 
@@ -75,9 +76,12 @@ namespace OfficeIMO.OpenXml.Internal {
                     OpenXmlElement? source = reference?.Parent;
                     // Office keeps a series whose name cell is hidden.
                     if (source is C.SeriesText && source.Parent?.LocalName == "ser") continue;
-                    if (reference is not (C.NumberReference or C.StringReference) ||
-                        source is not (C.Values or C.CategoryAxisData or C.XValues or C.YValues or C.BubbleSize) ||
-                        source.Parent?.LocalName != "ser")
+                    // Custom error amounts lose their hidden cells with the points they belong to.
+                    bool seriesSource = source is C.Values or C.CategoryAxisData or C.XValues or C.YValues or C.BubbleSize &&
+                        source.Parent?.LocalName == "ser";
+                    bool errorAmounts = source is C.Plus or C.Minus && source.Parent is C.ErrorBars errorBars &&
+                        errorBars.Parent?.LocalName == "ser";
+                    if (source == null || reference is not (C.NumberReference or C.StringReference) || !seriesSource && !errorAmounts)
                         return Fail("A hidden chart source cell feeds chart content that cannot leave it out.", out reason);
                     long count = ((long)lastRow - firstRow + 1) * ((long)lastColumn - firstColumn + 1);
                     cells += count;

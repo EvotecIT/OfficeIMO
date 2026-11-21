@@ -1481,7 +1481,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void BubbleChart_RejectsTrendlinesAndErrorBarsFromSharedSnapshots() {
+        public void BubbleChart_RejectsTrendlinesButKeepsErrorBarsInSharedSnapshots() {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
@@ -1502,7 +1502,7 @@ namespace OfficeIMO.Tests {
                 .Descendants<C.BubbleChartSeries>().Single();
             series.RemoveAllChildren<C.Trendline>();
             series.Append(new C.ErrorBars());
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]

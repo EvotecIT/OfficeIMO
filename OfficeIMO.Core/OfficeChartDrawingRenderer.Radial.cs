@@ -86,6 +86,24 @@ public static partial class OfficeChartDrawingRenderer {
         }
         int maximumExplosion = GetMaximumRenderableExplosion(values, categories.Count);
         radius /= 1D + maximumExplosion / 100D;
+        // Best-fit labels stay inside their slices and move outside, with leader lines, when they do not fit. An
+        // automatic plot area then shrinks to leave room for them; a manually placed one keeps its size. A pie too
+        // small for outside labels keeps them inside, as before, and reports it.
+        HashSet<int> movedOutside = FindBestFitLabelsOutsideSlices(snapshot, layout, values, total, scale, radius);
+        if (movedOutside.Count > 0 && !outsideLabels && layout.PlotAreaLayout == null) {
+            GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
+                leftLegend, 180D, 56D, out double wideCenterX, out double wideCenterY, out double wideRadius,
+                out double wideVisualWidth, out double wideContentHeight);
+            if (HasOutsideRadialLabelGutters(wideVisualWidth)) {
+                (centerX, centerY, visualWidth, contentHeight) = (wideCenterX, wideCenterY, wideVisualWidth, wideContentHeight);
+                radius = ReserveOutsideRadialLabelGutters(wideRadius, wideVisualWidth) / (1D + maximumExplosion / 100D);
+                movedOutside = FindBestFitLabelsOutsideSlices(snapshot, layout, values, total, scale, radius);
+            } else {
+                movedOutside.Clear();
+                ReportRenderApproximation(snapshot.Name,
+                    "Best-fit data labels that do not fit inside their slices stay inside a pie too small for outside labels.");
+            }
+        }
         var outside = new List<RadialOutsideLabel>();
         double start = GetFirstSliceAngle(snapshot.RadialLayout);
         int zeroLabelIndex = 0;
@@ -119,10 +137,10 @@ public static partial class OfficeChartDrawingRenderer {
                 OfficeColor sliceColor = GetPointColor(style, values, i);
                 AddStyledPointPolygon(drawing, points, sliceColor, GetPointStyle(values, i), OfficeColor.White, 0.5D);
                 if (ShouldShowDataLabel(layout, 0, i)) {
-                    if (outsideLabels) QueueRadialOutsideLabel(outside, layout, style, categories[i], values,
+                    if (outsideLabels || movedOutside.Contains(i)) QueueRadialOutsideLabel(outside, layout, style, categories[i], values,
                         value, total, sliceCenterX, sliceCenterY, radius, middle, hasSlice: true,
                         percentageRatio: ratio);
-                    else AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * 0.58D, middle, zeroLabelIndex: null, percentageRatio: ratio);
+                    else AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * PieInsideLabelRadiusRatio, middle, zeroLabelIndex: null, percentageRatio: ratio);
                 }
 
                 start = end;
@@ -134,7 +152,7 @@ public static partial class OfficeChartDrawingRenderer {
                 zeroLabelIndex++;
             }
         }
-        if (outsideLabels) AddRadialOutsideLabels(drawing, outside, layout, style,
+        if (outside.Count > 0) AddRadialOutsideLabels(drawing, outside, layout, style,
             labelLeftBound, labelRightBound, contentTop, height - categoryBottomLegendHeight, centerX,
             radius * (1D + maximumExplosion / 100D));
 
@@ -291,6 +309,54 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
+    private const double PieInsideLabelRadiusRatio = 0.58D;
+
+    /// <summary>
+    /// Finds the best-fit pie labels that do not fit inside their slice: every corner of the label box, centred at the
+    /// inside-label radius on the slice's middle angle, must lie within the slice's angle and inside the circle.
+    /// </summary>
+    internal static HashSet<int> FindBestFitLabelsOutsideSlices(OfficeChartSnapshot snapshot, OfficeChartLayout layout,
+        OfficeSeries values, double total, double scale, double radius) {
+        var outside = new HashSet<int>();
+        if (!layout.ShowDataLabels || layout.DataLabelPosition != OfficeChartDataLabelPosition.BestFit) return outside;
+        IReadOnlyList<string> categories = snapshot.Data.Categories;
+        double insideRadius = radius * PieInsideLabelRadiusRatio;
+        // Slices are laid out from the same start angle and in the same order as they are drawn.
+        double start = GetFirstSliceAngle(snapshot.RadialLayout);
+        for (int i = 0; i < categories.Count; i++) {
+            if (!TryGetSeriesValue(values, i, out double seriesValue)) continue;
+            double ratio = Math.Max(0D, seriesValue) / scale / total;
+            double sweep = ratio * Math.PI * 2D;
+            double sliceStart = start;
+            start += sweep;
+            if (!ShouldShowDataLabel(layout, 0, i) || seriesValue <= 0D) continue;
+            string label = FormatDataLabel(layout, categories[i], values, seriesValue, total, ratio);
+            if (string.IsNullOrWhiteSpace(label)) continue;
+            double halfWidth = GetPieInsideLabelWidth(label, layout) / 2D;
+            double halfHeight = Math.Max(12D, layout.DataLabelFontSize + 6D) / 2D;
+            double middle = sliceStart + sweep / 2D;
+            double centerX = Math.Cos(middle) * insideRadius, centerY = Math.Sin(middle) * insideRadius;
+            bool fits = true;
+            foreach ((double cornerX, double cornerY) in new[] {
+                         (centerX - halfWidth, centerY - halfHeight), (centerX + halfWidth, centerY - halfHeight),
+                         (centerX - halfWidth, centerY + halfHeight), (centerX + halfWidth, centerY + halfHeight) }) {
+                if (cornerX * cornerX + cornerY * cornerY > radius * radius) fits = false;
+                // A slice that is the whole pie has no edges to cross.
+                else if (sweep < Math.PI * 2D) {
+                    double offset = Math.Atan2(cornerY, cornerX) - sliceStart;
+                    offset -= Math.Floor(offset / (Math.PI * 2D)) * Math.PI * 2D;
+                    if (offset > sweep) fits = false;
+                }
+                if (!fits) break;
+            }
+            if (!fits) outside.Add(i);
+        }
+        return outside;
+    }
+
+    private static double GetPieInsideLabelWidth(string label, OfficeChartLayout layout) =>
+        Math.Min(78D, Math.Max(40D, label.Length * layout.DataLabelFontSize * 0.52D + 12D));
+
     private static void AddPieDataLabel(
         OfficeDrawing drawing,
         OfficeChartLayout layout,
@@ -310,7 +376,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        double labelWidth = Math.Min(78D, Math.Max(40D, label.Length * layout.DataLabelFontSize * 0.52D + 12D));
+        double labelWidth = GetPieInsideLabelWidth(label, layout);
         double labelHeight = Math.Max(12D, layout.DataLabelFontSize + 6D);
         double distance = radius;
         double x = centerX + Math.Cos(angle) * distance - labelWidth / 2D;

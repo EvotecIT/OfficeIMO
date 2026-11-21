@@ -539,7 +539,7 @@ namespace OfficeIMO.Excel {
                     axisGroup: series.AxisGroup == OfficeChartAxisGroup.Secondary
                         ? OfficeChartAxisGroup.Secondary
                         : OfficeChartAxisGroup.Primary).WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
-                            .WithPointExplosions(series.PointExplosions).WithTrendline(series.Trendline)));
+                            .WithPointExplosions(series.PointExplosions).WithTrendline(series.Trendline).WithErrorBars(series.ErrorBars)));
             officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, global::OfficeIMO.OfficeLength.Points(Math.Max(1D, width)), global::OfficeIMO.OfficeLength.Points(Math.Max(1D, height)), snapshot.Style, snapshot.Layout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
             if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(officeSnapshot)) {
                 diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(

@@ -975,6 +975,13 @@ public static partial class OfficeChartDrawingRenderer {
     // Points whose labels this render pass hides: beyond an explicit axis maximum, or an empty area cell drawn at zero.
     [ThreadStatic] private static HashSet<(int Series, int Point)>? _renderPassHiddenLabels;
 
+    // The caller's diagnostic sink for this render pass, for approximations the renderer itself has to make.
+    [ThreadStatic] private static ICollection<OfficeImageExportDiagnostic>? _renderPassDiagnostics;
+
+    private static void ReportRenderApproximation(string source, string approximation) =>
+        _renderPassDiagnostics?.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+            OfficeDiagnosticCodes.ChartApproximation, approximation, source, OfficeConversionLossKind.Approximation));
+
     private readonly struct ChartLabelBounds {
         internal ChartLabelBounds(double left, double top, double right, double bottom) {
             Left = left; Top = top; Right = right; Bottom = bottom;

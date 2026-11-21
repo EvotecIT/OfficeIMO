@@ -26,26 +26,7 @@ namespace OfficeIMO.Excel {
             if (seriesList.Count != data.Series.Count) return data;
 
             var hiddenCellsBySheet = new Dictionary<ExcelSheet, OfficeOpenXmlChartHiddenCells>();
-            int[]? VisibleOffsets(OpenXmlElement? source, int count) {
-                string? formula = source?.GetFirstChild<NumberReference>()?.Formula?.Text ??
-                    source?.GetFirstChild<StringReference>()?.Formula?.Text;
-                if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
-                    !TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) ||
-                    (long)(lastRow - firstRow + 1) * (lastColumn - firstColumn + 1) != count) return null;
-                ExcelSheet sheet;
-                try {
-                    sheet = contextSheet.Document[sheetName];
-                } catch {
-                    return null;
-                }
-                if (!hiddenCellsBySheet.TryGetValue(sheet, out OfficeOpenXmlChartHiddenCells? hidden)) {
-                    hidden = new OfficeOpenXmlChartHiddenCells(sheet.WorksheetPart.Worksheet!);
-                    hiddenCellsBySheet.Add(sheet, hidden);
-                }
-                return hidden.GetVisibleOffsets((uint)firstRow, (uint)lastRow, (uint)firstColumn, (uint)lastColumn);
-            }
-            static IReadOnlyList<T> Select<T>(IReadOnlyList<T> values, int[]? offsets) =>
-                offsets == null ? values : offsets.Where(offset => offset < values.Count).Select(offset => values[offset]).ToArray();
+            int[]? VisibleOffsets(OpenXmlElement? source, int count) => GetVisibleOffsets(source, count, contextSheet, hiddenCellsBySheet);
 
             var hidden = new bool[data.Series.Count];
             var series = new IReadOnlyList<double>[data.Series.Count];
@@ -115,6 +96,39 @@ namespace OfficeIMO.Excel {
             hiddenSeries = hidden.Any(item => item) ? hidden : null;
             return new ExcelChartData(categories, visibleSeries);
         }
+
+        /// <summary>Keeps the custom error amounts of the points a visible-cells-only chart plots, as
+        /// <see cref="SelectVisiblePoints"/> keeps their values.</summary>
+        internal static Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>> CreateVisibleAmountSelector(
+            ExcelSheet contextSheet) {
+            var hiddenCellsBySheet = new Dictionary<ExcelSheet, OfficeOpenXmlChartHiddenCells>();
+            return (source, amounts) => Select(amounts, GetVisibleOffsets(source, amounts.Count, contextSheet, hiddenCellsBySheet));
+        }
+
+        // The visible cells of a source range, as offsets into its cached points; null when the range does not map one
+        // cell to each cached point or nothing in it is hidden.
+        private static int[]? GetVisibleOffsets(OpenXmlElement? source, int count, ExcelSheet contextSheet,
+            Dictionary<ExcelSheet, OfficeOpenXmlChartHiddenCells> hiddenCellsBySheet) {
+            string? formula = source?.GetFirstChild<NumberReference>()?.Formula?.Text ??
+                source?.GetFirstChild<StringReference>()?.Formula?.Text;
+            if (!TryParseSheetQualifiedRange(formula, out string sheetName, out string range) ||
+                !TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) ||
+                (long)(lastRow - firstRow + 1) * (lastColumn - firstColumn + 1) != count) return null;
+            ExcelSheet sheet;
+            try {
+                sheet = contextSheet.Document[sheetName];
+            } catch {
+                return null;
+            }
+            if (!hiddenCellsBySheet.TryGetValue(sheet, out OfficeOpenXmlChartHiddenCells? hidden)) {
+                hidden = new OfficeOpenXmlChartHiddenCells(sheet.WorksheetPart.Worksheet!);
+                hiddenCellsBySheet.Add(sheet, hidden);
+            }
+            return hidden.GetVisibleOffsets((uint)firstRow, (uint)lastRow, (uint)firstColumn, (uint)lastColumn);
+        }
+
+        private static IReadOnlyList<T> Select<T>(IReadOnlyList<T> values, int[]? offsets) =>
+            offsets == null ? values : offsets.Where(offset => offset < values.Count).Select(offset => values[offset]).ToArray();
 
         // The cached labels of a category or X range, in point order; null when the cache does not cover every point.
         private static IReadOnlyList<string>? ReadCachedLabels(OpenXmlElement? source) {

@@ -51,14 +51,15 @@ public static partial class OfficeChartDrawingRenderer {
                 .Select(index => index < sharedX.Count ? sharedX[index] : double.NaN).ToArray() : null;
             IReadOnlyList<double>? plottedX = xValues ? sourceX!.Select(xToPlot!).ToArray() : current.XValues;
             series.Add(current.WithPlottedValues(plotted, plottedX, values ? secondary ? secondaryToSource : toSource : null,
-                xValues ? xToSource : null, values ? current.Values : null, sourceX));
+                xValues ? xToSource : null, values ? current.Values : null, sourceX, xValues ? xToPlot : null, valueToPlot));
         }
 
         OfficeChartLayout plottingLayout = layout;
         if (transformValues) plottingLayout = RestateAxis(plottingLayout, valueOnHorizontal,
             GetScaledValues(snapshot, series, layout, valueOnHorizontal, toPlot!, OfficeChartAxisGroup.Primary));
+        // A logarithmic X axis is bounded by the plotted points and the trendline forecasts that reach past them.
         if (transformX) plottingLayout = RestateAxis(plottingLayout, horizontal: true, series.Where(item => item.SourceXValue != null)
-            .SelectMany(item => item.XValues!));
+            .SelectMany(item => item.XValues!.Concat(GetForecastXExtents(item, item.XValues!)).Concat(GetErrorBarExtents(item, xBars: true))));
         if (transformSecondary) {
             OfficeChartLayout restated = RestateAxis(secondaryScale!, valueOnHorizontal,
                 GetScaledValues(snapshot, series, secondaryScale!, valueOnHorizontal, secondaryToPlot!, OfficeChartAxisGroup.Secondary));
@@ -79,8 +80,9 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<double> stackTotals = GetLogBase(scale, horizontal).HasValue
             ? RestackOnLogarithmicAxis(snapshot, series, toPlot, group)
             : Array.Empty<double>();
+        // Error bars widen the axis to their reach, as on a linear axis.
         return series.Where(item => item.SourceValue != null && IsInAxisGroup(item, group))
-            .SelectMany(item => item.Values).Concat(stackTotals).ToArray();
+            .SelectMany(item => item.Values.Concat(GetErrorBarExtents(item, xBars: false))).Concat(stackTotals).ToArray();
     }
 
     private static bool IsInAxisGroup(OfficeSeries series, OfficeChartAxisGroup group) =>

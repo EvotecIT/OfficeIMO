@@ -398,7 +398,8 @@ namespace OfficeIMO.Excel {
             return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 
-        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart) {
+        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart,
+            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts = null) {
             C.PlotArea? plotArea = chartPart.ChartSpace?
                 .GetFirstChild<C.Chart>()?
                 .GetFirstChild<C.PlotArea>();
@@ -406,7 +407,7 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data, workbookPart);
+            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data, workbookPart, selectVisibleAmounts);
             if (styles.Count == 0) {
                 return data;
             }
@@ -418,7 +419,7 @@ namespace OfficeIMO.Excel {
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
                     series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize.HasValue ? OfficeLength.Points(style.MarkerSize.Value) : (OfficeLength?)null, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
                         .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions)
-                        .WithTrendline(style.Trendline));
+                        .WithTrendline(style.Trendline).WithErrorBars(style.ErrorBars));
                     changed = true;
                 } else {
                     series.Add(current);
@@ -428,7 +429,8 @@ namespace OfficeIMO.Excel {
             return changed ? new ExcelChartData(data.Categories, series) : data;
         }
 
-        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart) {
+        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart,
+            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
             var automaticColors = new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
             int seriesOrder = 0;
@@ -455,7 +457,9 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                style.Trendline = ReadImageExportTrendline(series, workbookPart);
+                style.Trendline = ReadImageExportTrendline(series, workbookPart, data.Series[index].Name);
+                style.ErrorBars = OfficeOpenXmlChartErrorBars.Read(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, 100000,
+                    selectVisibleAmounts);
                 int valueCount = data.Series[index].Values.Count;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
                 C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
@@ -540,7 +544,7 @@ namespace OfficeIMO.Excel {
             style == null || style.Value != C.ScatterStyleValues.Marker;
 
         // The first trendline of a series; the renderer draws one fitted line per series.
-        private static OfficeChartTrendline? ReadImageExportTrendline(OpenXmlCompositeElement series, WorkbookPart workbookPart) {
+        private static OfficeChartTrendline? ReadImageExportTrendline(OpenXmlCompositeElement series, WorkbookPart workbookPart, string seriesName) {
             C.Trendline? trendline = series.GetFirstChild<C.Trendline>();
             if (trendline == null) return null;
             OfficeChartTrendlineType? type = trendline.GetFirstChild<C.TrendlineType>()?.Val?.InnerText switch {
@@ -575,7 +579,9 @@ namespace OfficeIMO.Excel {
             var result = new OfficeChartTrendline(type.Value, order, period,
                 displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
                 displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
-                color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept);
+                color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept)
+                .WithNativeDetails(trendline.GetFirstChild<C.Forward>()?.Val?.Value ?? 0D, trendline.GetFirstChild<C.Backward>()?.Val?.Value ?? 0D,
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadLegendName(series, trendline, type.Value, order, period, seriesName));
             if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.HidesLine(outline)) return result.WithHiddenLine();
             return result.WithDashStyle(projecting
                 ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDashOrApproximate(outline)
@@ -855,15 +861,13 @@ namespace OfficeIMO.Excel {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             string source = GetImageExportSource();
             WorkbookPart workbookPart = _document.WorkbookPartRoot;
-            // Every trendline type is drawn now; forward and backward forecasts and further
-            // trendlines on the same series are not, so only those still warn.
-            if (chartSpace.Descendants<C.Trendline>().Any(trendline =>
-                    trendline.GetFirstChild<C.Forward>() != null || trendline.GetFirstChild<C.Backward>() != null ||
-                    trendline.Parent?.Elements<C.Trendline>().Count() > 1)) {
+            // Every trendline type, its forecasts and its legend entry are drawn; only the first trendline
+            // of a series is, so further trendlines still warn.
+            if (chartSpace.Descendants<C.Trendline>().Any(trendline => trendline.Parent?.Elements<C.Trendline>().Count() > 1)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported,
-                    "Worksheet chart trendline forecasts and additional trendlines on a series are not rendered by the shared image renderer.",
+                    "Worksheet chart trendlines after the first on a series are not rendered by the shared image renderer.",
                     source));
             }
 
@@ -875,10 +879,12 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
+            // Outside-end and best-fit pie labels draw their leader lines in the default line style.
             if (chartSpace.Descendants<C.LeaderLines>().Any(lines => lines.HasChildren || lines.HasAttributes ||
                 lines.Ancestors().FirstOrDefault(element => element is C.PieChart or C.DoughnutChart) == null ||
                 lines.Parent is not C.DataLabels labels ||
-                labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value != C.DataLabelPositionValues.OutsideEnd ||
+                labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value is C.DataLabelPositionValues position &&
+                    position != C.DataLabelPositionValues.OutsideEnd && position != C.DataLabelPositionValues.BestFit ||
                 labels.GetFirstChild<C.ShowLeaderLines>() is not C.ShowLeaderLines showLeaderLines ||
                 showLeaderLines.Val?.Value == false)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
@@ -1650,6 +1656,8 @@ namespace OfficeIMO.Excel {
             internal string? SeriesColorArgb { get; set; }
 
             internal OfficeChartTrendline? Trendline { get; set; }
+
+            internal IReadOnlyList<OfficeChartErrorBars>? ErrorBars { get; set; }
 
             internal bool AutomaticColor { get; set; }
 

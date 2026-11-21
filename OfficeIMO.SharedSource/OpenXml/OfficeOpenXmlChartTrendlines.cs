@@ -11,7 +11,7 @@ internal static class OfficeOpenXmlChartTrendlines {
     internal const int MaximumPeriod = 255;
 
     /// <summary>Reads the first trendline of a series, reporting what the shared renderer leaves out.</summary>
-    internal static OfficeChartTrendline? Read(OpenXmlCompositeElement series, A.ColorScheme? scheme) {
+    internal static OfficeChartTrendline? Read(OpenXmlCompositeElement series, A.ColorScheme? scheme, string seriesName) {
         C.Trendline[] trendlines = series.Elements<C.Trendline>().Take(2).ToArray();
         if (trendlines.Length == 0) return null;
         if (trendlines.Length > 1)
@@ -35,22 +35,10 @@ internal static class OfficeOpenXmlChartTrendlines {
                 "A trendline the renderer cannot fit is left out.");
             return null;
         }
-        if (series.Parent is C.BarChart bars && bars.BarDirection?.Val?.Value == C.BarDirectionValues.Bar) {
-            OfficeOpenXmlChartFidelityScope.Approximate("Trendlines on horizontal bar charts cannot be projected.",
-                "Trendlines on horizontal bars are left out.");
-            return null;
-        }
-        if (trendline.GetFirstChild<C.Forward>()?.Val?.Value is double forward && forward != 0D ||
-            trendline.GetFirstChild<C.Backward>()?.Val?.Value is double backward && backward != 0D)
-            OfficeOpenXmlChartFidelityScope.Approximate("Trendline forecasts cannot be projected.",
-                "Trendline forecasts are not extended beyond the data.");
         if (trendline.GetFirstChild<C.TrendlineLabel>() is C.TrendlineLabel label &&
             (label.GetFirstChild<C.ChartText>() != null || label.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null))
             OfficeOpenXmlChartFidelityScope.Approximate("Custom trendline labels cannot be projected.",
                 "A trendline label with its own text or position is drawn in the standard place.");
-        if (HasLegendEntry(series))
-            OfficeOpenXmlChartFidelityScope.Approximate("Trendline legend entries cannot be projected.",
-                "Trendline entries are left out of the legend.");
         C.ChartShapeProperties? properties = trendline.GetFirstChild<C.ChartShapeProperties>();
         A.Outline? outline = properties?.GetFirstChild<A.Outline>();
         OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
@@ -62,7 +50,9 @@ internal static class OfficeOpenXmlChartTrendlines {
         var result = new OfficeChartTrendline(type.Value, order, period,
             displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
             displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
-            color: color, width: width, intercept: intercept);
+            color: color, width: width, intercept: intercept)
+            .WithNativeDetails(trendline.GetFirstChild<C.Forward>()?.Val?.Value ?? 0D, trendline.GetFirstChild<C.Backward>()?.Val?.Value ?? 0D,
+                ReadLegendName(series, trendline, type.Value, order, period, seriesName));
         return hidden ? result.WithHiddenLine() : result.WithDashStyle(ReadDashOrApproximate(outline));
     }
 
@@ -98,6 +88,17 @@ internal static class OfficeOpenXmlChartTrendlines {
             OfficeOpenXmlChartFidelityScope.Approximate("The trendline dash pattern cannot be projected.",
                 "A trendline dash pattern the renderer cannot draw is drawn solid.");
         return dash;
+    }
+
+    // Office lists each trendline in the legend after the series, under its own name or an automatic one,
+    // unless that legend entry is deleted.
+    internal static string? ReadLegendName(OpenXmlCompositeElement series, C.Trendline trendline, OfficeChartTrendlineType type,
+        int? order, int? period, string seriesName) {
+        if (!HasLegendEntry(series)) return null;
+        string? own = trendline.GetFirstChild<C.TrendlineName>()?.Text;
+        return string.IsNullOrWhiteSpace(own)
+            ? OfficeChartDrawingRenderer.GetTrendlineLegendName(new OfficeChartTrendline(type, order, period), seriesName)
+            : own;
     }
 
     /// <summary>

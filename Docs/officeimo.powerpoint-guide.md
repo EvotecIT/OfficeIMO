@@ -458,8 +458,9 @@ tracks the exact chart appearance boundary.
 PDF export uses the native chart style unless `PowerPointPdfExportOptions.ChartStyle` supplies an override.
 
 Charts made by PowerPoint, Excel or Word draw with their default formatting, including round line caps,
-series and point data labels, trendlines, and spreadsheet number formats with sections, conditions, colours, dates,
-fractions and exponents; a format code that cannot be read is drawn as General with a `chart-approximation` warning. Other formatting the
+series and point data labels, error bars, trendlines with their forecasts and legend entries, best-fit pie labels
+with leader lines, and number formats as spreadsheet cells show them; an invalid number format is drawn as General
+with a `chart-approximation` warning. Other formatting the
 renderer cannot draw exactly makes `ToImage` and PDF export skip the chart with `unsupported-chart`. Set
 `ChartRendering.Fidelity = OfficeChartFidelity.BestEffort` on `PowerPointImageExportOptions` or `PowerPointPdfExportOptions`
 to draw the closest approximation instead; each approximation is reported as a `chart-approximation` warning, so a

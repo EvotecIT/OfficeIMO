@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests;
 public sealed class WordChartFidelityPdfTests {
     [Fact]
     public void OfficeChartAreaOutlineIsDrawnInPdf() {
-        using WordDocument document = CreateChart(errorBars: false);
+        using WordDocument document = CreateChart(gradientFill: false);
 
         OfficeIMO.Pdf.PdfConversionReport report = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false }).Report;
 
@@ -20,7 +20,7 @@ public sealed class WordChartFidelityPdfTests {
 
     [Fact]
     public void StrictPdfNamesWhyAChartIsSkippedAndBestEffortDrawsIt() {
-        using WordDocument document = CreateChart(errorBars: true);
+        using WordDocument document = CreateChart(gradientFill: true);
 
         OfficeIMO.Pdf.PdfConversionReport strict = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false }).Report;
         OfficeIMO.Pdf.PdfConversionReport bestEffort = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
@@ -29,15 +29,15 @@ public sealed class WordChartFidelityPdfTests {
         }).Report;
 
         Assert.Contains(strict.Warnings, warning => warning.Code == "native-body-chart-unsupported" &&
-            warning.Message.IndexOf("Error bars cannot be projected.", StringComparison.Ordinal) >= 0);
+            warning.Message.IndexOf("series fill, line or effect", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(bestEffort.Warnings, warning => warning.Code == "native-body-chart-unsupported");
         Assert.Contains(bestEffort.Warnings, warning => warning.Code == OfficeDiagnosticCodes.ChartApproximation &&
-            warning.Message == "Error bars are left out.");
+            warning.Message.EndsWith("it is drawn in its plain series colour.", StringComparison.Ordinal));
     }
 
     [Fact]
     public void PageImageExportHonoursBestEffortChartFidelity() {
-        using WordDocument document = CreateChart(errorBars: true);
+        using WordDocument document = CreateChart(gradientFill: true);
 
         OfficeImageExportResult strict = document.ToImage(new WordImageExportOptions());
         OfficeImageExportResult bestEffort = document.ToImage(new WordImageExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
@@ -48,13 +48,13 @@ public sealed class WordChartFidelityPdfTests {
     }
 
     [Fact]
-    public void ErrorBarsOnAPlainChartAreReportedInsteadOfLeftOutSilently() {
-        using WordDocument document = CreateChart(errorBars: true, chartArea: false);
+    public void ErrorBarsOnAPlainChartAreDrawnInStrictPdf() {
+        using WordDocument document = CreateChart(gradientFill: false, errorBars: true, chartArea: false);
 
         OfficeIMO.Pdf.PdfConversionReport strict = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false }).Report;
 
-        Assert.Contains(strict.Warnings, warning => warning.Code == "native-body-chart-unsupported" &&
-            warning.Message.IndexOf("Error bars cannot be projected.", StringComparison.Ordinal) >= 0);
+        Assert.DoesNotContain(strict.Warnings, warning => warning.Code == "native-body-chart-unsupported");
+        Assert.DoesNotContain(strict.Warnings, warning => warning.Code == OfficeDiagnosticCodes.ChartApproximation);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class WordChartFidelityPdfTests {
 
     [Fact]
     public void BestEffortDrawsAxesWhoseLabelColoursDiffer() {
-        using WordDocument document = CreateChart(errorBars: false);
+        using WordDocument document = CreateChart(gradientFill: false);
         C.PlotArea plot = document.Charts[0].ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single();
         plot.GetFirstChild<C.CategoryAxis>()!.AddChild(AxisText("C00000"), true);
         plot.GetFirstChild<C.ValueAxis>()!.AddChild(AxisText("0070C0"), true);
@@ -83,7 +83,7 @@ public sealed class WordChartFidelityPdfTests {
 
     [Fact]
     public void BestEffortDrawsAPointWithMixedCustomTextAsAStandardLabel() {
-        using WordDocument document = CreateChart(errorBars: false);
+        using WordDocument document = CreateChart(gradientFill: false);
         C.DataLabels labels = document.Charts[0].ChartPart!.ChartSpace!.Descendants<C.DataLabels>().First();
         labels.GetFirstChild<C.ShowValue>()!.Val = true;
         labels.PrependChild(new C.DataLabel(new C.Index { Val = 0U }, new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(),
@@ -102,7 +102,7 @@ public sealed class WordChartFidelityPdfTests {
 
     [Fact]
     public void ErrorBarsOnADataTableChartAreReportedAndBestEffortDrawsTheChart() {
-        using WordDocument document = CreateChart(errorBars: true);
+        using WordDocument document = CreateChart(gradientFill: false, errorBars: true);
         document.Charts[0].ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single()
             .AddChild(new C.DataTable(new C.ShowHorizontalBorder { Val = true }), true);
 
@@ -111,7 +111,7 @@ public sealed class WordChartFidelityPdfTests {
 
     [Fact]
     public void BestEffortDrawsATitleThatMixesFonts() {
-        using WordDocument document = CreateChart(errorBars: false);
+        using WordDocument document = CreateChart(gradientFill: false);
         C.Chart chart = document.Charts[0].ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
         chart.GetFirstChild<C.Title>()?.Remove();
         chart.GetFirstChild<C.AutoTitleDeleted>()?.Remove();
@@ -159,7 +159,7 @@ public sealed class WordChartFidelityPdfTests {
         new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(new A.SolidFill(new A.RgbColorModelHex { Val = color })))));
 
     // Excel and Word write this chart-area fill and outline on every new chart.
-    private static WordDocument CreateChart(bool errorBars, bool chartArea = true) {
+    private static WordDocument CreateChart(bool gradientFill, bool errorBars = false, bool chartArea = true) {
         WordDocument document = WordDocument.Create();
         WordChart chart = document.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "North", "South" }, new[] { new OfficeSeries("Revenue", new[] { 4.3d, 2.5d }) }));
@@ -180,6 +180,14 @@ public sealed class WordChartFidelityPdfTests {
             series.InsertBefore(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
                 new C.ErrorBarValueType { Val = C.ErrorValues.StandardError }, new C.NoEndCap { Val = false }),
                 series.GetFirstChild<C.CategoryAxisData>());
+        }
+        if (gradientFill) {
+            C.BarChartSeries series = space.Descendants<C.BarChartSeries>().Single();
+            series.GetFirstChild<C.ChartShapeProperties>()?.Remove();
+            series.InsertAfter(new C.ChartShapeProperties(new A.GradientFill(new A.GradientStopList(
+                new A.GradientStop(new A.RgbColorModelHex { Val = "112233" }) { Position = 0 },
+                new A.GradientStop(new A.RgbColorModelHex { Val = "445566" }) { Position = 100000 }))),
+                series.GetFirstChild<C.SeriesText>());
         }
         return document;
     }

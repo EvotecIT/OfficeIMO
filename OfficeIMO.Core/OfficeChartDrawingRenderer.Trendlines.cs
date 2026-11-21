@@ -12,8 +12,10 @@ public static partial class OfficeChartDrawingRenderer {
     private static void AddTrendlines(OfficeDrawing drawing, OfficeChartSnapshot snapshot, ValueRange primaryRange,
         ValueRange secondaryRange, bool hasSecondaryAxis, double plotLeft, double plotTop, double plotWidth,
         double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
-        if (IsBarChart(snapshot.ChartKind) || !snapshot.Data.Series.Any(series => series.Trendline != null)) return;
+        if (!snapshot.Data.Series.Any(series => series.Trendline != null)) return;
         IReadOnlyList<string> categories = snapshot.Data.Categories;
+        // Horizontal bars run their categories down the vertical axis and their values across.
+        bool horizontalBars = IsBarChart(snapshot.ChartKind);
         bool scatter = IsScatterChart(snapshot.ChartKind);
         IReadOnlyList<double> sharedX = scatter ? GetScatterXValues(categories) : Array.Empty<double>();
         ValueRange xRange = default;
@@ -35,37 +37,27 @@ public static partial class OfficeChartDrawingRenderer {
 
             // Plotted values restated as source values, and back for drawing.
             Func<double, double>? sourceY = series.SourceValue;
-            Func<double, double>? plotY = sourceY != null ? GetSeriesPlottingTransform(layout, series, horizontal: false) : null;
+            Func<double, double>? plotY = sourceY != null ? GetSeriesPlottingTransform(layout, series, horizontal: horizontalBars) : null;
             Func<double, double>? sourceX = scatter ? series.SourceXValue : null;
             Func<double, double>? plotX = sourceX != null ? GetPlottingTransform(layout, horizontal: true) : null;
-            var xs = new List<double>();
-            var ys = new List<double>();
-            IReadOnlyList<double>? seriesX = scatter ? series.XValues ?? sharedX : null;
-            // Fits use the source samples, including values a logarithmic axis cannot draw.
-            IReadOnlyList<double> sampleY = series.SourcePointValues ?? series.Values;
-            IReadOnlyList<double>? sampleX = scatter ? series.SourcePointXValues ?? seriesX : null;
-            for (int i = 0; i < sampleY.Count; i++) {
-                double y = sampleY[i];
-                if (!IsFiniteChartValue(y)) continue;
-                double x = sampleX != null ? (i < sampleX.Count ? sampleX[i] : double.NaN) : i + 1D;
-                if (!IsFiniteChartValue(x)) continue;
-                xs.Add(x);
-                ys.Add(y);
-            }
-
+            GetTrendlineSamples(series, scatter ? series.XValues ?? sharedX : null, out List<double> xs, out List<double> ys);
             if (xs.Count < 2) continue;
-            Func<double, double> toPixelX = scatter
+            Func<double, double> toCategoryPixel = scatter
                 ? value => plotLeft + plotWidth * GetUnclampedPlotRatio(plotX != null ? plotX(value) : value, xRange.Min, xRange.Max)
-                : value => CategoryNumberToPixel(snapshot, plotLeft, plotWidth, value, categories.Count, layout);
-            Func<double, double> toPixelY = value =>
-                plotTop + plotHeight - plotHeight * GetUnclampedPlotRatio(plotY != null ? plotY(value) : value, range.Min, range.Max);
+                : horizontalBars
+                    ? value => BarCategoryNumberToPixel(plotTop, plotHeight, value, categories.Count, layout, UsesTickMarkCategoryPoints(snapshot, layout))
+                    : value => CategoryNumberToPixel(snapshot, plotLeft, plotWidth, value, categories.Count, layout);
+            Func<double, double> toValuePixel = horizontalBars
+                ? value => plotLeft + plotWidth * GetUnclampedPlotRatio(plotY != null ? plotY(value) : value, range.Min, range.Max)
+                : value => plotTop + plotHeight - plotHeight * GetUnclampedPlotRatio(plotY != null ? plotY(value) : value, range.Min, range.Max);
 
             // A fitted curve breaks where its values cannot be drawn, such as at or below zero on a logarithmic axis.
             var runs = new List<List<OfficePoint>> { new List<OfficePoint>() };
             void AddTrendPoint(double x, double y) {
-                double pixelX = toPixelX(x);
-                double pixelY = IsFiniteChartValue(y) ? toPixelY(y) : double.NaN;
-                if (IsFiniteChartValue(pixelX) && IsFiniteChartValue(pixelY)) runs[runs.Count - 1].Add(new OfficePoint(pixelX, pixelY));
+                double categoryPixel = toCategoryPixel(x);
+                double valuePixel = IsFiniteChartValue(y) ? toValuePixel(y) : double.NaN;
+                if (IsFiniteChartValue(categoryPixel) && IsFiniteChartValue(valuePixel))
+                    runs[runs.Count - 1].Add(horizontalBars ? new OfficePoint(valuePixel, categoryPixel) : new OfficePoint(categoryPixel, valuePixel));
                 else if (runs[runs.Count - 1].Count > 0) runs.Add(new List<OfficePoint>());
             }
 
@@ -77,13 +69,24 @@ public static partial class OfficeChartDrawingRenderer {
                 double[] averages = GetMovingAverages(ys, period);
                 for (int i = 0; i < averages.Length; i++) AddTrendPoint(xs[i + period - 1], averages[i]);
             } else {
-                if (!TryFitTrendline(trendline, xs, ys, out Func<double, double>? model, out equation, out rSquared)) continue;
+                if (!TryFitDrawableTrendline(trendline, xs, ys, plotX, plotY, out Func<double, double>? model, out equation, out rSquared,
+                        out double[] drawable)) continue;
                 // Samples are spaced evenly along the drawn axis, so a curve on a logarithmic X axis stays smooth.
-                // Samples a logarithmic X axis cannot draw are fitted but do not bound the drawn curve.
-                double[] drawable = plotX != null ? xs.Where(value => IsFiniteChartValue(plotX(value))).ToArray() : xs.ToArray();
-                if (drawable.Length < 2) continue;
-                double first = drawable.Min();
-                double last = drawable.Max();
+                // Forecasts extend the fitted line before the first and after the last x value, as far as the axis can draw.
+                double first = drawable.Min() - trendline.Backward;
+                double last = drawable.Max() + trendline.Forward;
+                // Only the visible part of a forecast is sampled, so a long forecast keeps the curve's shape inside
+                // the plot, and a forecast the axis cannot draw, such as one reaching zero on a logarithmic axis,
+                // keeps its part from the visible axis edge. The data span itself is always drawn.
+                // The axis bounds are plotted values; a reversed axis restates its lower bound as the larger source value.
+                (double visibleFirst, double visibleLast) = scatter
+                    ? plotX == null ? (xRange.Min, xRange.Max)
+                        : sourceX != null ? OrderedPair(sourceX(xRange.Min), sourceX(xRange.Max)) : (double.NegativeInfinity, double.PositiveInfinity)
+                    : (0D, categories.Count + 1D);
+                if (!(first >= visibleFirst)) first = IsFiniteChartValue(visibleFirst) ? Math.Min(drawable.Min(), visibleFirst) : drawable.Min();
+                if (!(last <= visibleLast)) last = IsFiniteChartValue(visibleLast) ? Math.Max(drawable.Max(), visibleLast) : drawable.Max();
+                if (plotX != null && !IsFiniteChartValue(plotX(first))) first = drawable.Min();
+                if (plotX != null && !IsFiniteChartValue(plotX(last))) last = drawable.Max();
                 double plottedFirst = plotX != null ? plotX(first) : first;
                 double plottedLast = plotX != null ? plotX(last) : last;
                 for (int i = 0; i <= TrendlineSamples; i++) {
@@ -107,6 +110,7 @@ public static partial class OfficeChartDrawingRenderer {
             if (parts.Count > 0) {
                 // Label the right-hand end, which is the last point unless the axis is reversed.
                 OfficePoint end = points[points.Count - 1].X >= points[0].X ? points[points.Count - 1] : points[0];
+                if (horizontalBars) end = points[points.Count - 1].Y <= points[0].Y ? points[points.Count - 1] : points[0];
                 labels.Add((string.Join("   ", parts), end.X, end.Y));
             }
         }
@@ -130,6 +134,63 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     /// <summary>
+    /// The samples a series' trendline is fitted to: each point with a finite source value, against its 1-based
+    /// category number or, given <paramref name="seriesX"/>, its source x value. Values a logarithmic axis cannot
+    /// draw are included.
+    /// </summary>
+    private static void GetTrendlineSamples(OfficeSeries series, IReadOnlyList<double>? seriesX, out List<double> xs, out List<double> ys) {
+        xs = new List<double>();
+        ys = new List<double>();
+        IReadOnlyList<double> sampleY = series.SourcePointValues ?? series.Values;
+        IReadOnlyList<double>? sampleX = seriesX != null ? series.SourcePointXValues ?? seriesX : null;
+        for (int i = 0; i < sampleY.Count; i++) {
+            double y = sampleY[i];
+            if (!IsFiniteChartValue(y)) continue;
+            double x = sampleX != null ? (i < sampleX.Count ? sampleX[i] : double.NaN) : i + 1D;
+            if (!IsFiniteChartValue(x)) continue;
+            xs.Add(x);
+            ys.Add(y);
+        }
+    }
+
+    /// <summary>
+    /// Fits a regression trendline and returns the samples that bound its drawn curve: those the x axis can draw
+    /// (<paramref name="plotX"/> and <paramref name="plotY"/> map source values to the plotted axes). False when the
+    /// fit fails, fewer than two samples can be drawn, or no stretch of the fitted curve between the forecast ends can
+    /// be drawn on both axes, such as a fit below zero on a logarithmic value axis, so the trendline is not drawn.
+    /// </summary>
+    private static bool TryFitDrawableTrendline(OfficeChartTrendline trendline, IReadOnlyList<double> xs, IReadOnlyList<double> ys,
+        Func<double, double>? plotX, Func<double, double>? plotY, out Func<double, double>? model, out string? equation,
+        out double? rSquared, out double[] drawable) {
+        drawable = Array.Empty<double>();
+        if (xs.Count < 2 || !TryFitTrendline(trendline, xs, ys, out model, out equation, out rSquared)) {
+            model = null;
+            equation = null;
+            rSquared = null;
+            return false;
+        }
+        drawable = plotX != null ? xs.Where(value => IsFiniteChartValue(plotX(value))).ToArray() : xs.ToArray();
+        if (drawable.Length < 2) return false;
+        // The curve is drawn where two neighbouring samples both land on the axes.
+        double first = drawable.Min() - trendline.Backward, last = drawable.Max() + trendline.Forward;
+        if (!IsFiniteChartValue(first)) first = drawable.Min();
+        if (!IsFiniteChartValue(last)) last = drawable.Max();
+        bool previous = false;
+        for (int i = 0; i <= TrendlineSamples; i++) {
+            double x = first + (last - first) * i / TrendlineSamples;
+            double y = model!(x);
+            bool current = IsFiniteChartValue(y) && (plotX == null || IsFiniteChartValue(plotX(x))) &&
+                (plotY == null || IsFiniteChartValue(plotY(y)));
+            if (current && previous) return true;
+            previous = current;
+        }
+        return false;
+    }
+
+    private static (double Low, double High) OrderedPair(double first, double second) =>
+        first <= second ? (first, second) : (second, first);
+
+    /// <summary>
     /// Averages each window of <paramref name="period"/> values on its own: a running sum would keep the rounding error
     /// of a large value after it leaves the window. Readers cap the period at DrawingML's 255.
     /// </summary>
@@ -142,6 +203,30 @@ public static partial class OfficeChartDrawingRenderer {
             averages[i - period + 1] = sum / period;
         }
         return averages;
+    }
+
+    private static double BarCategoryNumberToPixel(double plotTop, double plotHeight, double categoryNumber, int categoryCount,
+        OfficeChartLayout layout, bool onTickMarks) {
+        // As for the bars: category n sits in its slot centre, or on its tick mark when the axis puts categories
+        // there (midCat); the slot order follows the horizontal category axis direction.
+        double categoryHeight = plotHeight / Math.Max(1, onTickMarks ? categoryCount - 1 : categoryCount);
+        double firstCenter = plotTop + categoryHeight * (GetHorizontalBarCategorySlotIndex(0, categoryCount, layout) + (onTickMarks ? 0D : 0.5D));
+        double step = categoryCount <= 1 ? 0D : categoryHeight * (GetHorizontalBarCategorySlotIndex(1, categoryCount, layout) -
+            GetHorizontalBarCategorySlotIndex(0, categoryCount, layout));
+        return firstCenter + step * (categoryNumber - 1D);
+    }
+
+    /// <summary>The name Office lists for a trendline in the legend unless the trendline names itself.</summary>
+    internal static string GetTrendlineLegendName(OfficeChartTrendline trendline, string seriesName) {
+        string type = trendline.Type switch {
+            OfficeChartTrendlineType.Exponential => "Expon.",
+            OfficeChartTrendlineType.Logarithmic => "Log.",
+            OfficeChartTrendlineType.Polynomial => "Poly.",
+            OfficeChartTrendlineType.Power => "Power",
+            OfficeChartTrendlineType.MovingAverage => (trendline.Period ?? 2).ToString(CultureInfo.InvariantCulture) + " per. Mov. Avg.",
+            _ => "Linear"
+        };
+        return type + " (" + seriesName + ")";
     }
 
     private static double CategoryNumberToPixel(OfficeChartSnapshot snapshot, double plotLeft, double plotWidth,

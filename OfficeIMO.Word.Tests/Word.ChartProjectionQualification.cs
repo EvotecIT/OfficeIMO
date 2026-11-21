@@ -279,6 +279,28 @@ public sealed class WordChartProjectionQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_KeepsCustomErrorAmountsWithTheVisiblePointsTheyBelongTo() {
+        using var document = WordDocument.Create();
+        var chart = AddChartWithTwoSeries(document);
+        C.BarChartSeries series = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().First();
+        string sheet = series.GetFirstChild<C.Values>()!.Descendants<C.Formula>().Single().Text!.Split('!')[0];
+        series.InsertBefore(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Plus },
+                new C.ErrorBarValueType { Val = C.ErrorValues.Custom }, new C.NoEndCap { Val = false },
+                new C.Plus(new C.NumberReference(new C.Formula(sheet + "!$D$2:$D$4"), new C.NumberingCache(new C.FormatCode("General"),
+                    new C.PointCount { Val = 3U },
+                    new C.NumericPoint(new C.NumericValue("1")) { Index = 0U },
+                    new C.NumericPoint(new C.NumericValue("2")) { Index = 1U },
+                    new C.NumericPoint(new C.NumericValue("3")) { Index = 2U })))),
+            series.GetFirstChild<C.CategoryAxisData>());
+        EditEmbeddedWorksheet(chart, worksheet => Row(worksheet, 3).Hidden = true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+
+        Assert.Equal(new[] { 3d, 5d }, snapshot.Data.Series[0].Values);
+        Assert.Equal(new[] { 1d, 3d }, Assert.Single(snapshot.Data.Series[0].ErrorBars!).Plus);
+    }
+
     private static WordChart AddChartWithTwoSeries(WordDocument document) =>
         document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
             new OfficeSeries("Values", new[] { 3d, 4d, 5d }), new OfficeSeries("Second", new[] { 6d, 7d, 8d }) }));
@@ -324,8 +346,6 @@ public sealed class WordChartProjectionQualificationTests {
     }
 
     [Theory]
-    [InlineData("trendline")]
-    [InlineData("errorBars")]
     [InlineData("dropLines")]
     [InlineData("negative")]
     [InlineData("dateAxis")]
@@ -348,7 +368,6 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("barSeriesShape")]
     [InlineData("seriesLines")]
     [InlineData("userShapes")]
-    [InlineData("radialLeaderLines")]
     [InlineData("radialInsideEnd")]
     [InlineData("radialNoVary")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
@@ -365,9 +384,7 @@ public sealed class WordChartProjectionQualificationTests {
         var plot = native.PlotArea!;
         var layer = plot.ChildElements.OfType<OpenXmlCompositeElement>().First(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal));
         var series = layer.ChildElements.OfType<OpenXmlCompositeElement>().First(item => item.LocalName == "ser");
-        if (feature == "trendline") series.AddChild(new C.Trendline(new C.TrendlineType { Val = C.TrendlineValues.Linear }), true);
-        else if (feature == "errorBars") series.AddChild(new C.ErrorBars(), true);
-        else if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
+        if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
         else if (feature == "negative") series.AddChild(new C.InvertIfNegative { Val = true }, true);
         else if (feature == "legendEntry") native.GetFirstChild<C.Legend>()!.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, new C.TextProperties(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 2400 })))), true);
         else if (feature == "rotation") space.AddChild(new C.TextProperties(new A.BodyProperties { Rotation = 5400000 }, new A.ListStyle(), new A.Paragraph()), true);
@@ -404,7 +421,6 @@ public sealed class WordChartProjectionQualificationTests {
             shapes.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", chart.ChartPart.GetIdOfPart(drawingPart)));
             space.Append(shapes);
         }
-        else if (feature == "radialLeaderLines") layer.AddChild(new C.DataLabels(new C.DataLabelPosition { Val = C.DataLabelPositionValues.BestFit }, new C.ShowValue { Val = true }, new C.ShowLeaderLines { Val = true }), true);
         else if (feature == "radialOutside" || feature == "radialInsideEnd") layer.AddChild(new C.DataLabels(
             new C.DataLabelPosition { Val = feature == "radialOutside" ? C.DataLabelPositionValues.OutsideEnd : C.DataLabelPositionValues.InsideEnd },
             new C.ShowValue { Val = true }), true);

@@ -161,6 +161,49 @@ public sealed class ExcelChartExplodedSlicesTests {
     }
 
     [Fact]
+    public void ErrorBarsOnALogarithmicAxis_AreReadAndDrawn() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 30d, 500d })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
+        C.ChartSpace space = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single().ChartSpace!;
+        C.LineChartSeries series = space.Descendants<C.LineChartSeries>().Single();
+        series.InsertBefore(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
+            new C.ErrorBarValueType { Val = C.ErrorValues.FixedValue }, new C.ErrorBarValue { Val = 1D }), series.GetFirstChild<C.CategoryAxisData>());
+        space.Descendants<C.ValueAxis>().Single().Scaling!.InsertAt(new C.LogBase { Val = 10D }, 0);
+
+        Assert.True(chart.TryGetData(out ExcelChartData data));
+        Assert.Equal(new[] { 7d, 30d, 500d }, data.Series.Single().Values);
+        OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png);
+        Assert.NotEmpty(image.Bytes);
+        Assert.DoesNotContain(image.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
+    }
+
+    [Fact]
+    public void CustomErrorBarDashTheRendererCannotDraw_StrictSkipsAndBestEffortReportsIt() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeSeries("Status", new[] { 7d, 3d, 5d })
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
+        C.LineChartSeries series = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.LineChartSeries>().Single();
+        series.InsertBefore(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
+                new C.ErrorBarValueType { Val = C.ErrorValues.FixedValue }, new C.ErrorBarValue { Val = 1D },
+                new C.ChartShapeProperties(new DocumentFormat.OpenXml.Drawing.Outline(new DocumentFormat.OpenXml.Drawing.CustomDash(
+                    new DocumentFormat.OpenXml.Drawing.DashStop { DashLength = 300000, SpaceLength = 100000 })))),
+            series.GetFirstChild<C.CategoryAxisData>());
+
+        NotSupportedException strict = Assert.Throws<NotSupportedException>(() => chart.ToImage(OfficeImageExportFormat.Png));
+        Assert.Contains("The error bar dash pattern cannot be projected.", strict.Message, StringComparison.Ordinal);
+        OfficeImageExportResult image = chart.ToImage(OfficeImageExportFormat.Png,
+            new ExcelImageExportOptions { ChartRendering = { Fidelity = OfficeChartFidelity.BestEffort } });
+        Assert.Contains(image.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
+            diagnostic.Message == "An error bar dash pattern the renderer cannot draw is drawn solid.");
+    }
+
+    [Fact]
     public void TrendlineDashTheRendererCannotDraw_StrictSkipsAndBestEffortReportsIt() {
         using var document = ExcelDocument.Create();
         ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {

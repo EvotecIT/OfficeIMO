@@ -234,6 +234,35 @@ public sealed class ExcelChartPlotSemanticsTests {
         Assert.True(snapshot.Layout.ReverseVerticalValueAxis);
     }
 
+    [Fact]
+    public void CustomErrorAmountsFollowTheVisiblePointsTheyBelongTo() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = Sheet(document);
+        sheet.Cell(3, 2).SetValue(140);
+        sheet.Cell(2, 3).SetValue(10);
+        sheet.Cell(3, 3).SetValue(20);
+        sheet.Cell(4, 3).SetValue(90);
+        sheet.SetRowHidden(3, true);
+        ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
+        C.LineChartSeries series = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts).ChartSpace!.Descendants<C.LineChartSeries>().Single();
+        series.InsertBefore(new C.ErrorBars(new C.ErrorDirection { Val = C.ErrorBarDirectionValues.Y },
+                new C.ErrorBarType { Val = C.ErrorBarValues.Plus }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
+                new C.NoEndCap { Val = false },
+                new C.Plus(new C.NumberReference(new C.Formula("Data!$C$2:$C$4"), new C.NumberingCache(new C.FormatCode("General"),
+                    new C.PointCount { Val = 3U },
+                    new C.NumericPoint(new C.NumericValue("10")) { Index = 0U },
+                    new C.NumericPoint(new C.NumericValue("20")) { Index = 1U },
+                    new C.NumericPoint(new C.NumericValue("90")) { Index = 2U })))),
+            series.GetFirstChild<C.CategoryAxisData>());
+
+        string svg = System.Text.Encoding.UTF8.GetString(chart.ToImage(OfficeImageExportFormat.Svg).Bytes);
+
+        // March (160) keeps its own +90 once February's row is hidden, so the value axis reaches 250.
+        double largest = System.Text.RegularExpressions.Regex.Matches(svg, ">([0-9]+)<").Cast<System.Text.RegularExpressions.Match>()
+            .Select(match => double.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).Max();
+        Assert.True(largest >= 250D, $"The value axis reaches {largest}.");
+    }
+
     private static ExcelSheet Sheet(ExcelDocument document) {
         ExcelSheet sheet = document.AddSheet("Data");
         sheet.Cell(1, 1).SetValue("Month");

@@ -55,6 +55,30 @@ public sealed class PowerPointChartOfficeDefaultsTests {
         Assert.Contains(expectedText, svg, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("[>3]\"high\";\"low\"", ">high<")]
+    [InlineData("0.0E+00", ">4.0E+00<")]
+    [InlineData("m/d/yyyy", ">1/4/1900<")]
+    public void ConditionalScientificAndDateAxisFormatsAreDrawn(string format, string expectedText) {
+        string svg = RenderSvg(CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty, format),
+            OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
+        Assert.Contains(expectedText, svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FractionDataLabelFormatIsDrawn() {
+        string labels = SeriesLabels.Replace("<c:dLbls>", "<c:dLbls><c:numFmt formatCode=\"# ?/?\" sourceLinked=\"0\"/>");
+        string svg = RenderSvg(CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>",
+                "<c:spPr><a:solidFill><a:schemeClr val=\"accent1\"/></a:solidFill></c:spPr><c:invertIfNegative val=\"0\"/>" + labels),
+            OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.Contains(">4 2/7<", svg, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void InvalidAxisNumberFormatIsDrawnAsGeneralWithADiagnostic() {
         string svg = RenderSvg(CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", string.Empty, "#,##0\"x"),
@@ -64,6 +88,39 @@ public sealed class PowerPointChartOfficeDefaultsTests {
         Assert.Contains(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation &&
             diagnostic.Message.IndexOf("drawn as General", StringComparison.Ordinal) >= 0);
         Assert.Contains(">4<", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ErrorBarsTrendlineForecastAndTrendlineLegendEntryAreDrawn() {
+        string series = "<c:spPr><a:solidFill><a:schemeClr val=\"accent1\"/></a:solidFill></c:spPr><c:invertIfNegative val=\"0\"/>" +
+            "<c:trendline><c:spPr><a:ln w=\"19050\"><a:solidFill><a:schemeClr val=\"accent2\"/></a:solidFill></a:ln></c:spPr>" +
+            "<c:trendlineType val=\"linear\"/><c:forward val=\"1\"/><c:dispRSqr val=\"1\"/><c:dispEq val=\"0\"/></c:trendline>" +
+            "<c:errBars><c:errBarType val=\"both\"/><c:errValType val=\"fixedVal\"/><c:noEndCap val=\"0\"/><c:val val=\"0.5\"/></c:errBars>";
+        string svg = RenderSvg(CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", series),
+            OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
+        Assert.Contains(">Linear (Revenue)<", svg, StringComparison.Ordinal);
+        Assert.Contains("R² = ", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BestFitPieLabelsThatDoNotFitMoveOutsideWithLeaderLines() {
+        string labels = SeriesLabels.Replace("<c:dLblPos val=\"outEnd\"/>", "<c:dLblPos val=\"bestFit\"/>")
+            .Replace("<c:showCatName val=\"0\"/>", "<c:showCatName val=\"1\"/>")
+            .Replace("<c:extLst>", "<c:showLeaderLines val=\"1\"/><c:extLst>");
+        string values = "<c:val><c:numRef><c:f>Sheet1!$B$2:$B$5</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val=\"4\"/>" +
+            "<c:pt idx=\"0\"><c:v>80</c:v></c:pt><c:pt idx=\"1\"><c:v>1</c:v></c:pt><c:pt idx=\"2\"><c:v>1</c:v></c:pt><c:pt idx=\"3\"><c:v>18</c:v></c:pt></c:numCache></c:numRef></c:val>";
+        string plot = "<c:pieChart><c:varyColors val=\"1\"/><c:ser><c:idx val=\"0\"/><c:order val=\"0\"/>" + SeriesName() + labels + Categories() + values +
+            "</c:ser><c:firstSliceAng val=\"0\"/></c:pieChart>";
+
+        string svg = RenderSvg(ChartSpace(plot, ExcelChartArea), OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> diagnostics);
+
+        AssertDrawn(diagnostics);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
+        Assert.Contains("South", svg, StringComparison.Ordinal);
+        Assert.Contains("East", svg, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -81,18 +138,18 @@ public sealed class PowerPointChartOfficeDefaultsTests {
 
     [Fact]
     public void BestEffortDrawsAChartThatStrictSkipsAndReportsTheApproximation() {
-        string errorBars = "<c:spPr><a:solidFill><a:schemeClr val=\"accent1\"/></a:solidFill></c:spPr><c:invertIfNegative val=\"0\"/>" +
-            "<c:errBars><c:errBarType val=\"both\"/><c:errValType val=\"stdErr\"/><c:noEndCap val=\"0\"/></c:errBars>";
-        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", errorBars);
+        string gradient = "<c:spPr><a:gradFill><a:gsLst><a:gs pos=\"0\"><a:srgbClr val=\"112233\"/></a:gs>" +
+            "<a:gs pos=\"100000\"><a:srgbClr val=\"445566\"/></a:gs></a:gsLst></a:gradFill></c:spPr><c:invertIfNegative val=\"0\"/>";
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>", gradient);
 
         RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> strict);
         string svg = RenderSvg(chart, OfficeChartFidelity.BestEffort, out IReadOnlyList<OfficeImageExportDiagnostic> bestEffort);
 
         Assert.Contains(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart &&
-            diagnostic.Message.IndexOf("Error bars", StringComparison.Ordinal) >= 0);
+            diagnostic.Message.IndexOf("series fill, line or effect", StringComparison.Ordinal) >= 0);
         AssertDrawn(bestEffort);
         OfficeImageExportDiagnostic approximation = Assert.Single(bestEffort, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
-        Assert.Equal("Error bars are left out.", approximation.Message);
+        Assert.EndsWith("it is drawn in its plain series colour.", approximation.Message, StringComparison.Ordinal);
         Assert.Equal(OfficeConversionLossKind.Approximation, approximation.LossKind);
         Assert.Contains(">North<", svg, StringComparison.Ordinal);
     }
@@ -329,7 +386,22 @@ public sealed class PowerPointChartOfficeDefaultsTests {
     }
 
     [Fact]
-    public void BestEffortKeepsBubblesWhoseErrorBarsCannotBeDrawn() {
+    public void ErrorBarsOnALogarithmicAxisAreDrawn() {
+        string chart = CategoryChart("barChart", "<c:barDir val=\"col\"/><c:grouping val=\"clustered\"/>",
+            "<c:spPr><a:solidFill><a:schemeClr val=\"accent1\"/></a:solidFill></c:spPr><c:invertIfNegative val=\"0\"/>" +
+            "<c:errBars><c:errBarType val=\"both\"/><c:errValType val=\"fixedVal\"/><c:noEndCap val=\"0\"/><c:val val=\"1\"/></c:errBars>");
+        int valueAxis = chart.IndexOf("<c:valAx>", StringComparison.Ordinal);
+        chart = chart.Substring(0, valueAxis) + chart.Substring(valueAxis)
+            .Replace("<c:scaling><c:orientation val=\"minMax\"/></c:scaling>", "<c:scaling><c:logBase val=\"10\"/><c:orientation val=\"minMax\"/></c:scaling>");
+
+        RenderSvg(chart, OfficeChartFidelity.Strict, out IReadOnlyList<OfficeImageExportDiagnostic> strict);
+
+        AssertDrawn(strict);
+        Assert.DoesNotContain(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
+    }
+
+    [Fact]
+    public void BubbleErrorBarsAreDrawnAndBubbleTrendlinesAreReported() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddChart(OfficeChartType.Bubble, new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -346,11 +418,17 @@ public sealed class PowerPointChartOfficeDefaultsTests {
             ChartRendering = { Fidelity = fidelity }
         }).Diagnostics;
 
-        Assert.Contains(Render(OfficeChartFidelity.Strict), diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart);
+        Assert.Contains(Render(OfficeChartFidelity.Strict), diagnostic => diagnostic.Code == OfficeDiagnosticCodes.UnsupportedChart &&
+            diagnostic.Message.IndexOf("Trendlines on bubble charts", StringComparison.Ordinal) >= 0);
         IReadOnlyList<OfficeImageExportDiagnostic> bestEffort = Render(OfficeChartFidelity.BestEffort);
         AssertDrawn(bestEffort);
-        Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Error bars are left out.");
         Assert.Contains(bestEffort, diagnostic => diagnostic.Message == "Trendlines on bubble charts are left out.");
+        Assert.DoesNotContain(bestEffort, diagnostic => diagnostic.Message.IndexOf("Error bars", StringComparison.Ordinal) >= 0);
+
+        series.RemoveAllChildren<C.Trendline>();
+        IReadOnlyList<OfficeImageExportDiagnostic> strict = Render(OfficeChartFidelity.Strict);
+        AssertDrawn(strict);
+        Assert.DoesNotContain(strict, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.ChartApproximation);
     }
 
     private static int CountPaths(string svg) => System.Text.RegularExpressions.Regex.Matches(svg, "<path").Count;

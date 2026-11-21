@@ -311,7 +311,11 @@ public static partial class OfficeChartDrawingRenderer {
 
                 xValues.Add(xValue);
                 yValues.Add(yValue);
+                AddErrorBarExtents(series[s], seriesXValues, i, xValue, xBars: true, xValues);
+                AddErrorBarExtents(series[s], series[s].Values, i, yValue, xBars: false, yValues);
             }
+            // Office widens the x axis to show a trendline's forecasts.
+            xValues.AddRange(GetForecastXExtents(series[s], seriesXValues));
         }
 
         return xValues.Count == 0 || yValues.Count == 0
@@ -333,12 +337,68 @@ public static partial class OfficeChartDrawingRenderer {
         return new OfficePoint(centerX + Math.Cos(angle) * radius, centerY + Math.Sin(angle) * radius);
     }
 
+    /// <summary>
+    /// The plotted x values a scatter trendline's forecasts reach, for a trendline the renderer draws: forecasts extend
+    /// from the same drawable samples as the drawn curve. Forecasts are in source units, so on a logarithmic or reversed
+    /// axis they are measured there and plotted back; a forecast end the axis cannot draw is left out.
+    /// </summary>
+    private static IEnumerable<double> GetForecastXExtents(OfficeSeries series, IReadOnlyList<double> seriesX) {
+        if (series.Trendline is not OfficeChartTrendline trendline || trendline.Type == OfficeChartTrendlineType.MovingAverage ||
+            trendline.Forward <= 0D && trendline.Backward <= 0D) yield break;
+        Func<double, double>? toPlot = series.SourceXValue != null ? series.PlotXValue : null;
+        GetTrendlineSamples(series, seriesX, out List<double> xs, out List<double> ys);
+        Func<double, double>? plotValue = series.SourceValue != null ? series.PlotValue : null;
+        if (!TryFitDrawableTrendline(trendline, xs, ys, toPlot, plotValue, out _, out _, out _, out double[] drawable)) yield break;
+        double first = drawable.Min() - trendline.Backward;
+        double last = drawable.Max() + trendline.Forward;
+        if (toPlot != null) {
+            first = toPlot(first);
+            last = toPlot(last);
+        }
+        if (IsFiniteChartValue(first)) yield return first;
+        if (IsFiniteChartValue(last)) yield return last;
+    }
+
+    // Office's automatic value axis scale also covers the reach of the series' error bars.
+    private static void AddErrorBarExtents(OfficeSeries series, IReadOnlyList<double> values, int index, double value, bool xBars,
+        List<double> extents) {
+        if (series.ErrorBars == null) return;
+        foreach (OfficeChartErrorBars bars in series.ErrorBars) {
+            if (bars.AlongCategoryAxis != xBars ||
+                !TryGetPlottedErrorSpan(series, bars, index, value, 0D, xBars, values, out _, out double minusEnd, out double plusEnd)) continue;
+            // An end past a logarithmic axis edge does not stretch the axis.
+            if (IsFiniteChartValue(minusEnd)) extents.Add(minusEnd);
+            if (IsFiniteChartValue(plusEnd)) extents.Add(plusEnd);
+        }
+    }
+
+    /// <summary>The plotted reach of a series' error bars along one axis, for the points it plots.</summary>
+    private static IEnumerable<double> GetErrorBarExtents(OfficeSeries series, bool xBars) {
+        if (series.ErrorBars == null) return Array.Empty<double>();
+        IReadOnlyList<double>? values = xBars ? series.XValues : series.Values;
+        if (values == null) return Array.Empty<double>();
+        var extents = new List<double>();
+        for (int index = 0; index < values.Count && index < series.Values.Count; index++) {
+            if (!IsFiniteChartValue(values[index]) || !TryGetSeriesValue(series, index, out _)) continue;
+            AddErrorBarExtents(series, values, index, values[index], xBars, extents);
+        }
+        return extents;
+    }
+
     private static ValueRange GetFiniteSeriesRange(IReadOnlyList<OfficeSeries> series) {
         bool any = false;
         double min = 0D;
         double max = 0D;
         foreach (OfficeSeries item in series) {
-            foreach (double value in item.Values) {
+            IReadOnlyList<double> extents = item.Values;
+            if (item.ErrorBars != null) {
+                var withBars = new List<double>(item.Values);
+                for (int index = 0; index < item.Values.Count; index++)
+                    if (IsFiniteChartValue(item.Values[index]))
+                        AddErrorBarExtents(item, item.Values, index, item.Values[index], xBars: false, withBars);
+                extents = withBars;
+            }
+            foreach (double value in extents) {
                 if (double.IsNaN(value) || double.IsInfinity(value)) {
                     continue;
                 }

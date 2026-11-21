@@ -26,8 +26,6 @@ namespace OfficeIMO.OpenXml.Internal {
             IReadOnlyList<string>? categories = null;
             for (int index = 0; index < source.Count; index++) {
                 var element = source[index];
-                if (!forDataUpdate && element.Elements<C.ErrorBars>().Any())
-                    OfficeOpenXmlChartFidelityScope.Approximate("Error bars cannot be projected.", "Error bars are left out.");
                 if (!forDataUpdate && element.Elements<C.Trendline>().Any())
                     OfficeOpenXmlChartFidelityScope.Approximate("Trendlines on bubble charts cannot be projected.",
                         "Trendlines on bubble charts are left out.");
@@ -73,6 +71,9 @@ namespace OfficeIMO.OpenXml.Internal {
                     .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadSeriesStyle(element, colorScheme))
                     .WithPointStyles(forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(
                         OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides), x.Count, colorScheme));
+                if (!forDataUpdate)
+                    data = data.WithErrorBars(OfficeOpenXmlChartErrorBars.Read(element, colorScheme, maximumPoints,
+                        visibility == null ? null : (source, amounts) => SourceVisibility.Select(visibility, source, amounts)));
                 series.Add(new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)index,
                     data, hasAutomaticColor: automaticColor));
             }
