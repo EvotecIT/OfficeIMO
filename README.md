@@ -167,6 +167,13 @@ The [package catalog](Docs/officeimo.package-catalog.md) lists every package, wh
 
 Every library targets `netstandard2.0`, `net8.0` and `net10.0`; Windows builds also target `net472`, so .NET Framework applications get the same routes. A few packages that depend on modern-only runtimes, such as `OfficeIMO.Tool`, `OfficeIMO.AI` and `OfficeIMO.Odbc`, target modern .NET only; their READMEs say so.
 
+The same input gives the same document content on every framework. A few things come from the runtime and can differ:
+
+- Package bytes. ZIP-based files (DOCX, XLSX, PPTX, OpenDocument, EPUB) use the runtime's ZIP and Deflate code, and PDF streams its Deflate, so .NET Framework, .NET 8 and .NET 10 write different bytes for the same content. Compare package contents, not file hashes. OfficeIMO.Archives writes ZIP and GZip with its own encoder, so its bytes match everywhere.
+- Culture data. Formatting or sorting with a named or the current culture uses NLS on .NET Framework and ICU on .NET 8 and 10, which differ in month abbreviations, currency patterns and collation. File content uses invariant formatting and ordinal ordering, which do not change.
+- Unicode tables. Character categories, case mapping and regular expression classes follow each runtime's Unicode version, and malformed UTF-8 decodes to a different number of replacement characters.
+- Multi-byte code pages. OLE property sets and VBA projects in code pages 932, 936, 949 and 950 decode on .NET 8 and 10 only when the application registers `CodePagesEncodingProvider`; .NET Framework includes them. The Windows single-byte code pages decode the same everywhere.
+
 OfficeIMO runs on Windows, macOS and Linux, in services, containers and build agents. It does not automate Office applications. Word, Excel and PowerPoint use the [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) for package mechanics and HTML uses [AngleSharp](https://github.com/AngleSharp/AngleSharp) for parsing. The PDF, Markdown, RTF, OpenDocument, OneNote, email and other engines are OfficeIMO's own code; the [package catalog](Docs/officeimo.package-catalog.md#dependencies) lists every third-party dependency.
 
 Keep every OfficeIMO package in an application on the same version.
