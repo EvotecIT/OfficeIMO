@@ -27,7 +27,7 @@ public sealed class ExcelXmlTableTests {
     public void Named_columns_support_namespaces_attributes_explicit_types_and_absent_fields() {
         var options = Mapping();
         using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Mapped");
-        string source = "<orders xmlns='urn:orders'><order id='00127'><total>12.5</total><paid>true</paid><date>2026-10-19T12:30:00</date><ignored>Outside the mapping</ignored></order><order id='00002'><total>0</total><paid>0</paid></order></orders>";
+        string source = "<orders xmlns='urn:orders'><order id='00127'><total>12.5</total><paid>true</paid><date>2026-10-19T12:30:00</date><ignored>Outside the mapping</ignored></order><order id='00002'><total>0.7999999999999999</total><paid>0</paid></order></orders>";
         Assert.Equal("A1:D3", sheet.FromXml(source, includeHeaders: true, options: options));
         Assert.Equal("Identifier", sheet.Cell(1, 1).GetValue<string>()); Assert.Equal("00127", sheet.Cell(2, 1).GetValue<string>());
         Assert.Equal(12.5, sheet.Cell(2, 2).GetValue<double>()); Assert.True(sheet.Cell(2, 3).GetValue<bool>());
@@ -36,6 +36,8 @@ public sealed class ExcelXmlTableTests {
         XNamespace ns = "urn:orders"; var rows = XElement.Parse(xml).Elements(ns + "order").ToArray();
         Assert.Equal("00127", (string?)rows[0].Attribute("id")); Assert.Equal("true", rows[0].Element(ns + "paid")!.Value);
         Assert.Equal("2026-10-19T12:30:00", rows[0].Element(ns + "date")!.Value); Assert.Null(rows[1].Element(ns + "date"));
+        // .NET Framework's XmlConvert writes this double as 0.79999999999999993.
+        Assert.Equal("0.7999999999999999", rows[1].Element(ns + "total")!.Value);
         using var copy = ExcelDocument.Create(); var target = copy.AddSheet("Mapped"); target.FromXml(xml, options: options);
         Assert.Equal(12.5, target.Cell(1, 2).GetValue<double>()); Assert.Empty(copy.ValidateOpenXml());
     }

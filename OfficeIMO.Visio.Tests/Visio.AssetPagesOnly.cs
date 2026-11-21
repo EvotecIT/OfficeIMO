@@ -40,19 +40,42 @@ namespace OfficeIMO.Tests {
             Assert.Equal(29.7d.ToInches(VisioMeasurementUnit.Centimeters), XmlConvert.ToDouble(aCells["PageWidth"].val!), 12);
             Assert.Equal("CM", aCells["PageHeight"].unit);
             Assert.Equal(21d.ToInches(VisioMeasurementUnit.Centimeters), XmlConvert.ToDouble(aCells["PageHeight"].val!), 12);
-            Assert.Equal((XmlConvert.ToString(0.1181102362204724d), "MM"), aCells["ShdwOffsetX"]);
-            Assert.Equal((XmlConvert.ToString(-0.1181102362204724d), "MM"), aCells["ShdwOffsetY"]);
+            Assert.Equal(("0.1181102362204724", "MM"), aCells["ShdwOffsetX"]);
+            Assert.Equal(("-0.1181102362204724", "MM"), aCells["ShdwOffsetY"]);
             Assert.Equal(("60", null), aCells["ColorSchemeIndex"]);
             Assert.Equal(("60", null), aCells["EffectSchemeIndex"]);
             Assert.Equal(("60", null), aCells["ConnectorSchemeIndex"]);
             Assert.Equal(("60", null), aCells["FontSchemeIndex"]);
             Assert.Equal(("60", null), aCells["ThemeIndex"]);
 
-            string expectedMetricScale = XmlConvert.ToString(1d.ToInches(VisioMeasurementUnit.Centimeters));
+            string expectedMetricScale = "0.39370078740157477";
             Assert.Equal(expectedMetricScale, aCells["PageScale"].val);
             Assert.Equal("CM", aCells["PageScale"].unit);
             Assert.Equal(expectedMetricScale, aCells["DrawingScale"].val);
             Assert.Equal("CM", aCells["DrawingScale"].unit);
+        }
+
+        [Fact]
+        public void ShapeAndViewNumbersWriteTheSameTextOnEveryFramework() {
+            string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            try {
+                VisioDocument document = VisioDocument.Create(target);
+                VisioPage page = document.AddPage("Page-1", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
+                page.ViewCenterX = 5.846456692913386;
+                page.AddRectangle(OfficeLength.Millimeters(50), OfficeLength.Millimeters(50), OfficeLength.Millimeters(40), OfficeLength.Millimeters(10));
+                document.Save();
+
+                using FileStream stream = File.OpenRead(target);
+                using ZipArchive zip = new(stream, ZipArchiveMode.Read);
+                XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement pageElement = LoadEntry(zip, "visio/pages/pages.xml").Root!.Element(v + "Page")!;
+                Assert.Equal("5.846456692913386", (string?)pageElement.Attribute("ViewCenterX"));
+                XElement shape = LoadEntry(zip, "visio/pages/page1.xml").Descendants(v + "Shape").Single();
+                // 40 mm is 1.574803149606299 inches; .NET Framework's "F15" printed it as 1.5748031496063.
+                Assert.Equal("1.574803149606299", (string?)shape.Elements(v + "Cell").Single(cell => (string?)cell.Attribute("N") == "Width").Attribute("V"));
+            } finally {
+                File.Delete(target);
+            }
         }
 
         [Fact]

@@ -172,7 +172,7 @@ namespace OfficeIMO.OpenXml.Internal {
         private static S.Cell CreateNumberCell(string cellReference, double value) {
             return new S.Cell {
                 CellReference = cellReference,
-                CellValue = new S.CellValue(value.ToString(CultureInfo.InvariantCulture))
+                CellValue = new S.CellValue(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture))
             };
         }
     }

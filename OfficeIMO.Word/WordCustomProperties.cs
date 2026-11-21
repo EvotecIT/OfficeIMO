@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
 
                 case WordCustomPropertyType.NumberDouble:
                     if (value is double d) {
-                        newProp.VTFloat = new VTFloat(d.ToString(CultureInfo.InvariantCulture));
+                        newProp.VTFloat = new VTFloat(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(d, CultureInfo.InvariantCulture));
                         propSet = true;
                     }
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Word {
                         newProp.VTLPWSTR = new VTLPWSTR(s);
                         propSet = true;
                     } else if (value is double d2) {
-                        newProp.VTFloat = new VTFloat(d2.ToString(CultureInfo.InvariantCulture));
+                        newProp.VTFloat = new VTFloat(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(d2, CultureInfo.InvariantCulture));
                         propSet = true;
                     } else if (value is int i2) {
                         newProp.VTInt32 = new VTInt32(i2.ToString(CultureInfo.InvariantCulture));

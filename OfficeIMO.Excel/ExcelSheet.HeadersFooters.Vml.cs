@@ -47,8 +47,8 @@ namespace OfficeIMO.Excel {
                 new XAttribute(o + "spid", "_x0000_s" + HeaderFooterShapeSpid(shapeId).ToString(CultureInfo.InvariantCulture)),
                 new XAttribute("type", "#_x0000_t75"),
                 new XAttribute("style", "position:absolute;margin-left:0;margin-top:0;width:" +
-                    widthPoints.ToString(CultureInfo.InvariantCulture) + "pt;height:" +
-                    heightPoints.ToString(CultureInfo.InvariantCulture) + "pt;z-index:1"),
+                    OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(widthPoints) + "pt;height:" +
+                    OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(heightPoints) + "pt;z-index:1"),
                 new XElement(v + "imagedata",
                     new XAttribute(r + "id", imageRelationshipId),
                     new XAttribute(o + "relid", imageRelationshipId),

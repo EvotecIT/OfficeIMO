@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             loaded.Save(roundTripPath);
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
-            string centimeterInches = XmlConvert.ToString(OfficeLength.Centimeters(1).ToInches());
+            const string centimeterInches = "0.3937007874015748";
             AssertPageSettingsXml(roundTripPath, "Settings", centimeterInches, centimeterInches, centimeterInches, centimeterInches, "1", "1", "0", unit: "IN");
 
             VisioDocument reloadedRoundTrip = VisioDocument.Load(roundTripPath);
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
             AssertPageRoutingXml(roundTripPath, "Routing", "9", "1", "3", "1", "2", "1");
-            AssertPageRoutingSpacingXml(roundTripPath, "Routing", MillimeterCache(8), MillimeterCache(9), MillimeterCache(10), MillimeterCache(11), "MM");
+            AssertPageRoutingSpacingXml(roundTripPath, "Routing", "0.31496062992125984", "0.35433070866141736", "0.3937007874015748", "0.4330708661417323", "MM");
 
             VisioDocument cleared = VisioDocument.Load(roundTripPath);
             VisioPage clearedPage = cleared.Pages.Single(current => current.Name == "Routing");
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
             loaded.Save(roundTripPath);
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
-            AssertPageLayoutGridXml(roundTripPath, "Grid", "0", MillimeterCache(20), MillimeterCache(21), MillimeterCache(8), MillimeterCache(9), "MM");
+            AssertPageLayoutGridXml(roundTripPath, "Grid", "0", "0.7874015748031497", "0.8267716535433072", "0.31496062992125984", "0.35433070866141736", "MM");
 
             VisioDocument cleared = VisioDocument.Load(roundTripPath);
             cleared.Pages.Single(current => current.Name == "Grid").ClearLayoutGridPolicy();
@@ -295,7 +295,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, loadedPage.LayoutAvenueSizeY.GetValueOrDefault(), 6);
         }
 
-        private static string MillimeterCache(double value) => XmlConvert.ToString(value.ToInches(VisioMeasurementUnit.Millimeters));
 
         private static void AssertPageSettingsXml(
             string filePath,

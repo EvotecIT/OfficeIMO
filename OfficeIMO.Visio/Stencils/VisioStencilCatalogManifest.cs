@@ -137,8 +137,8 @@ namespace OfficeIMO.Visio.Stencils {
                         new XAttribute("Name", shape.Name),
                         new XAttribute("MasterNameU", shape.MasterNameU),
                         new XAttribute("Category", shape.Category),
-                        new XAttribute("DefaultWidth", XmlConvert.ToString(shape.DefaultWidth)),
-                        new XAttribute("DefaultHeight", XmlConvert.ToString(shape.DefaultHeight)),
+                        new XAttribute("DefaultWidth", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(shape.DefaultWidth)),
+                        new XAttribute("DefaultHeight", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(shape.DefaultHeight)),
                         new XAttribute("IconNameU", shape.IconNameU),
                         !shape.IsSupported ? new XAttribute("Supported", false) : null,
                         string.IsNullOrWhiteSpace(shape.SourceLicense) ? null : new XAttribute("SourceLicense", shape.SourceLicense),
@@ -310,12 +310,12 @@ namespace OfficeIMO.Visio.Stencils {
                 points.Select(point =>
                     new XElement(Ns + "ConnectionPoint",
                         point.SectionIndex.HasValue ? new XAttribute("IX", point.SectionIndex.Value) : null,
-                        new XAttribute("X", XmlConvert.ToString(point.X)),
-                        new XAttribute("Y", XmlConvert.ToString(point.Y)),
-                        new XAttribute("DirX", XmlConvert.ToString(point.DirX)),
-                        new XAttribute("DirY", XmlConvert.ToString(point.DirY)),
-                        point.SourceWidth.HasValue ? new XAttribute("SourceWidth", XmlConvert.ToString(point.SourceWidth.Value)) : null,
-                        point.SourceHeight.HasValue ? new XAttribute("SourceHeight", XmlConvert.ToString(point.SourceHeight.Value)) : null)));
+                        new XAttribute("X", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(point.X)),
+                        new XAttribute("Y", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(point.Y)),
+                        new XAttribute("DirX", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(point.DirX)),
+                        new XAttribute("DirY", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(point.DirY)),
+                        point.SourceWidth.HasValue ? new XAttribute("SourceWidth", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(point.SourceWidth.Value)) : null,
+                        point.SourceHeight.HasValue ? new XAttribute("SourceHeight", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(point.SourceHeight.Value)) : null)));
         }
 
         private static VisioStencilPreviewImage? ReadPreviewImage(XElement shape) {

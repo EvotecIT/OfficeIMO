@@ -46,7 +46,7 @@ public sealed partial class RtfUserProperty {
     public static RtfUserProperty Integer(string name, int value) => new RtfUserProperty(name, IntegerType, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
 
     /// <summary>Creates a numeric custom property.</summary>
-    public static RtfUserProperty Number(string name, double value) => new RtfUserProperty(name, NumberType, value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    public static RtfUserProperty Number(string name, double value) => new RtfUserProperty(name, NumberType, OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, System.Globalization.CultureInfo.InvariantCulture));
 
     /// <summary>Creates a boolean custom property.</summary>
     public static RtfUserProperty Boolean(string name, bool value) => new RtfUserProperty(name, BooleanType, value ? "1" : "0");

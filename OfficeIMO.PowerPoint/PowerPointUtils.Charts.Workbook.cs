@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static byte[] BuildChartWorkbook(PowerPointScatterChartData data) =>
             OfficeOpenXmlChartWriter.BuildWorkbook(
-                new OfficeChartData(data.Series[0].XValues.Select(value => value.ToString(CultureInfo.InvariantCulture)),
+                new OfficeChartData(data.Series[0].XValues.Select(value => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture)),
                     data.Series.Select(series => new OfficeSeries(series.Name, series.YValues, series.XValues))),
                 OfficeChartType.Scatter);
 

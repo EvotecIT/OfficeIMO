@@ -132,8 +132,8 @@ namespace OfficeIMO.Word {
             NumberLiteral literal = values.GetFirstChild<NumberLiteral>() ?? InitializeNumberLiteral();
 
             // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-            string valueText = data is double d ? d.ToString(System.Globalization.CultureInfo.InvariantCulture) :
-                              data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
+            string valueText = data is double d ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(d, System.Globalization.CultureInfo.InvariantCulture) :
+                              data is float f ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(f, System.Globalization.CultureInfo.InvariantCulture) :
                               data?.ToString() ?? "0";
 
             var valuePoint = new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } };
@@ -594,7 +594,7 @@ namespace OfficeIMO.Word {
             NumberLiteral xLit = new NumberLiteral();
             xLit.Append(new PointCount() { Val = (uint)xValues.Count }); for (int i = 0; i < xValues.Count; i++) {
                 // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-                string xValueText = xValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string xValueText = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(xValues[i], System.Globalization.CultureInfo.InvariantCulture);
                 xLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(xValueText) });
             }
             x.Append(xLit);
@@ -603,7 +603,7 @@ namespace OfficeIMO.Word {
             NumberLiteral yLit = new NumberLiteral();
             yLit.Append(new PointCount() { Val = (uint)yValues.Count }); for (int i = 0; i < yValues.Count; i++) {
                 // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-                string yValueText = yValues[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string yValueText = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(yValues[i], System.Globalization.CultureInfo.InvariantCulture);
                 yLit.Append(new NumericPoint() { Index = (uint)i, NumericValue = new NumericValue(yValueText) });
             }
             y.Append(yLit);

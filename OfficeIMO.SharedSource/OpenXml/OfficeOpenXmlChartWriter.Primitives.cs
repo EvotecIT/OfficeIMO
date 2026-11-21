@@ -179,7 +179,7 @@ namespace OfficeIMO.OpenXml.Internal {
             for (int i = 0; i < values.Count; i++) {
                 cache.Append(new C.NumericPoint {
                     Index = (uint)i,
-                    NumericValue = new C.NumericValue { Text = values[i].ToString(CultureInfo.InvariantCulture) }
+                    NumericValue = new C.NumericValue { Text = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[i], CultureInfo.InvariantCulture) }
                 });
             }
 
