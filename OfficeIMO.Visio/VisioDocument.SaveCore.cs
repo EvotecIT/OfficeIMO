@@ -310,9 +310,9 @@ namespace OfficeIMO.Visio {
                         if (double.IsNaN(viewScale) || double.IsInfinity(viewScale) || viewScale <= 0) {
                             viewScale = 1;
                         }
-                        writer.WriteAttributeString("ViewScale", XmlConvert.ToString(viewScale));
-                        writer.WriteAttributeString("ViewCenterX", XmlConvert.ToString(page.ViewCenterX));
-                        writer.WriteAttributeString("ViewCenterY", XmlConvert.ToString(page.ViewCenterY));
+                        writer.WriteAttributeString("ViewScale", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(viewScale));
+                        writer.WriteAttributeString("ViewCenterX", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(page.ViewCenterX));
+                        writer.WriteAttributeString("ViewCenterY", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(page.ViewCenterY));
                         foreach (XAttribute preservedAttribute in page.PreservedPageAttributes) {
                             writer.WriteAttributeString(
                                 preservedAttribute.Name.LocalName,

@@ -529,9 +529,9 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append(", ")
                     .Append(snapshot.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                     .Append("; Size: ")
-                    .Append(snapshot.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
+                    .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(snapshot.Width.ToPixels()))
                     .Append("x")
-                    .Append(snapshot.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
+                    .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(snapshot.Height.ToPixels()))
                     .Append("</div>");
             }
 
@@ -706,13 +706,13 @@ public static partial class ExcelHtmlConverterExtensions {
                 .Append(", ")
                 .Append(image.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                 .Append("; Size: ")
-                .Append(image.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.Width.ToPixels()))
                 .Append("x")
-                .Append(image.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.Height.ToPixels()))
                 .Append("; Offset: ")
-                .Append(image.OffsetX.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.OffsetX.ToPixels()))
                 .Append(", ")
-                .Append(image.OffsetY.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.OffsetY.ToPixels()))
                 .Append("; Type: ")
                 .Append(OfficeHtmlText.Escape(image.ContentType))
                 .Append("</div>");

@@ -724,7 +724,7 @@ namespace OfficeIMO.Word {
                 if (value == null) {
                     RemoveStyleValue("rotation");
                 } else {
-                    SetStyleValue("rotation", value.Value.ToString(CultureInfo.InvariantCulture));
+                    SetStyleValue("rotation", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(value.Value));
                 }
             }
         }

@@ -463,7 +463,9 @@ namespace OfficeIMO.Word {
             literal.Append(count); var index = 0;
             foreach (var data in dataList) {
                 // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-                string valueText = data is System.IFormattable numeric
+                string valueText = data is double number ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(number, System.Globalization.CultureInfo.InvariantCulture)
+                    : data is float single ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(single, System.Globalization.CultureInfo.InvariantCulture)
+                    : data is System.IFormattable numeric
                     ? numeric.ToString(null, System.Globalization.CultureInfo.InvariantCulture)
                     : data?.ToString() ?? "0";
                 var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = valueText } };

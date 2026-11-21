@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
             set {
                 var fill = _shape?.GetFirstChild<V.Fill>();
                 if (fill != null && value != null) {
-                    fill.Opacity = value.Value.ToString(CultureInfo.InvariantCulture);
+                    fill.Opacity = OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(value.Value);
                 }
             }
         }

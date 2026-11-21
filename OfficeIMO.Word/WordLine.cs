@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
                 }
                 return 0;
             }
-            set => _line.StrokeWeight = FormattableString.Invariant($"{value}pt");
+            set => _line.StrokeWeight = OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(value) + "pt";
         }
 
         /// <summary>Gets or sets the physical stroke thickness.</summary>

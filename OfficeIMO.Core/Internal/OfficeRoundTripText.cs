@@ -103,6 +103,37 @@ internal static class OfficeRoundTripText
     /// <inheritdoc cref="Format(double, CultureInfo)"/>
     internal static string Format(float value, CultureInfo culture) => OfficeRoundTripNumberText.Format(value, culture);
 
+    /// <summary>
+    /// An <c>xsd:double</c> lexical value: the shortest round-trip text, or <c>INF</c>, <c>-INF</c> and <c>NaN</c>.
+    /// <see cref="System.Xml.XmlConvert.ToString(double)"/> writes up to 17 digits on .NET Framework and the shortest
+    /// text on .NET 8 and later; this writes the shortest text on every framework.
+    /// </summary>
+    internal static string FormatXmlDouble(double value) =>
+        double.IsNaN(value) || double.IsInfinity(value)
+            ? System.Xml.XmlConvert.ToString(value)
+            : OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// The shortest round-trip invariant text of a finite <paramref name="value"/> in positional notation, without an
+    /// exponent, for formats such as CSS lengths and Visio cells that are written as plain decimals.
+    /// </summary>
+    internal static string FormatPositional(double value) {
+        string text = OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture);
+        int exponentAt = text.IndexOf('E');
+        if (exponentAt < 0) return text;
+        bool negative = text[0] == '-';
+        int start = negative ? 1 : 0;
+        string mantissa = text.Substring(start, exponentAt - start);
+        int point = mantissa.IndexOf('.');
+        if (point < 0) point = mantissa.Length;
+        string digits = mantissa.Replace(".", string.Empty);
+        point += int.Parse(text.Substring(exponentAt + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+        string expanded = point <= 0 ? "0." + new string('0', -point) + digits
+            : point >= digits.Length ? digits + new string('0', point - digits.Length)
+            : digits.Insert(point, ".");
+        return negative ? "-" + expanded : expanded;
+    }
+
     /// <summary>A per-thread buffer of <see cref="MaximumDateTimeLength"/> characters for the writers below.</summary>
     internal static char[] Buffer => t_buffer ??= new char[MaximumDateTimeLength];
 

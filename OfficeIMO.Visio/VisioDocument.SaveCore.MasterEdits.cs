@@ -17,7 +17,7 @@ public partial class VisioDocument {
         void CaptureTransform(VisioShape model, XElement xml) {
             foreach (var value in new[] { ("Width", model.WidthInches), ("Height", model.HeightInches), ("LocPinX", model.LocPinXInches), ("LocPinY", model.LocPinYInches) }) {
                 XElement? cell = xml.Elements(XName.Get("Cell", VisioNamespace)).FirstOrDefault(e => (string?)e.Attribute("N") == value.Item1);
-                if (cell != null) cell.SetAttributeValue("V", XmlConvert.ToString(value.Item2));
+                if (cell != null) cell.SetAttributeValue("V", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(value.Item2));
             }
             var children = xml.Element(XName.Get("Shapes", VisioNamespace))?.Elements(XName.Get("Shape", VisioNamespace)).ToArray();
             if (children != null) for (int i = 0; i < model.Children.Count; i++) CaptureTransform(model.Children[i], children[i]);
