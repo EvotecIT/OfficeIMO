@@ -962,7 +962,7 @@ public static partial class PdfHtmlConverterExtensions {
         string source = "Page " + image.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Image";
         var details = new Dictionary<string, string> {
             ["ResourceName"] = image.ResourceName,
-            ["Opacity"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(assessment.Opacity, CultureInfo.InvariantCulture),
+            ["Opacity"] = assessment.Opacity.ToString("R", CultureInfo.InvariantCulture),
             ["BlendMode"] = assessment.BlendMode.ToString()
         };
         switch (assessment.Disposition) {

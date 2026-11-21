@@ -3,7 +3,7 @@ namespace OfficeIMO.Email;
 /// <summary>Creates versioned semantic fingerprints and privacy-safe comparison reports.</summary>
 public static class EmailSemanticComparer {
     /// <summary>Current canonical semantic projection schema.</summary>
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     /// <summary>Creates a semantic fingerprint, streaming deferred attachment content.</summary>
     public static EmailSemanticFingerprint CreateFingerprint(EmailDocument document,

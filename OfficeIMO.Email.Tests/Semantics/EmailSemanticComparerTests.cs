@@ -90,6 +90,19 @@ public sealed class EmailSemanticComparerTests {
     }
 
     [Fact]
+    public void Fingerprints_tell_apart_zero_and_negative_zero() {
+        EmailDocument source = CreateDocument(Array.Empty<byte>());
+        EmailDocument destination = CreateDocument(Array.Empty<byte>());
+        source.MapiProperties.Add(new MapiProperty(0x7A04, MapiPropertyType.Floating64, 0.0));
+        destination.MapiProperties.Add(new MapiProperty(0x7A04, MapiPropertyType.Floating64, -0.0));
+
+        EmailSemanticComparisonReport report = EmailSemanticComparer.Compare(source, destination);
+
+        Assert.False(report.IsMatch);
+        Assert.NotEqual(report.Source.HexDigest, report.Destination.HexDigest);
+    }
+
+    [Fact]
     public void KeyedFingerprintsAreStableAndDistinctFromUnkeyedDigests() {
         EmailDocument document = CreateDocument(Encoding.UTF8.GetBytes("secret"));
         byte[] key = Enumerable.Range(1, 32).Select(value => checked((byte)value)).ToArray();
