@@ -38,7 +38,7 @@ public sealed class UpdateOfficeWordFieldCommand : PSCmdlet
     [Parameter]
     public SwitchParameter TableOfContents { get; set; }
 
-    /// <summary>PDF export options whose layout, fonts and resource policy supply page numbers. Implies a full refresh of supported fields.</summary>
+    /// <summary>PDF export options whose layout, fonts and resource policy supply the page numbers of PAGEREF, NUMPAGES and body PAGE fields, including table-of-contents entries. Header and footer PAGE fields keep their stored result and SECTIONPAGES counts explicit breaks. Implies a full refresh of supported fields.</summary>
     [Parameter]
     public WordPdfExportOptions? LayoutOptions { get; set; }
 

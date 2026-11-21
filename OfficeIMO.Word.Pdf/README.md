@@ -207,7 +207,11 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 var fonts = new PdfCreateOptions()
-    .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Carlito", carlitoRegular, carlitoBold, carlitoItalic, carlitoBoldItalic))
+    .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Carlito",
+        File.ReadAllBytes("fonts/Carlito-Regular.ttf"),
+        File.ReadAllBytes("fonts/Carlito-Bold.ttf"),
+        File.ReadAllBytes("fonts/Carlito-Italic.ttf"),
+        File.ReadAllBytes("fonts/Carlito-BoldItalic.ttf")))
     .RegisterFontFamilySubstitution("Calibri", "Carlito", PdfFontFamilySubstitutionImpact.Compatible);
 var pdfOptions = new WordPdfExportOptions {
     PdfOptions = fonts,
@@ -219,6 +223,8 @@ document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true
 document.Save();
 document.SaveAsPdf("report.pdf", pdfOptions);
 ```
+
+Body `PAGE` fields take the page of their own line. Header and footer `PAGE` fields are drawn per page during export and keep their stored result, and `SECTIONPAGES` still counts explicit breaks. Fields whose text can change the layout, such as `DOCVARIABLE` and `REF`, are updated before the layout runs.
 
 The field update lays the document out exactly as `SaveAsPdf` does with the same options, so the table of contents lists the pages the headings have in that PDF. With a policy that keeps installed fonts out, such as the portable policy above, the page numbers are the same on every host. `GetEstimatedPageCount(pdfOptions)` returns the page count of the same layout.
 
