@@ -340,7 +340,7 @@ namespace OfficeIMO.Word.Pdf {
 
                             if (TryRenderNativeParagraphFrame(flow, elements, ref i,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var frameMarker) ? frameMarker : null,
-                                footnoteNumbersById, options, sectionContentWidth, nativeDefaults, nativeFontMap)) continue;
+                                footnoteNumbersById, options, sectionContentWidth, nativeDefaults, nativeFontMap, headingDestinations)) continue;
 
                             if (TryRenderNativeJoinedParagraphs(flow, elements, ref i, ref rejectedJoinUntil,
                                 paragraph => listMarkers.TryGetValue(paragraph, out var joinMarker) ? joinMarker : null,

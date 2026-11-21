@@ -12,7 +12,8 @@ public static partial class WordPdfConverterExtensions {
     /// </summary>
     private static bool TryRenderNativeParagraphFrame(INativePdfFlow pdf, IReadOnlyList<WordElement> elements, ref int index,
         Func<WordParagraph, (int Level, string Marker)?> getMarker, NativeNoteNumbering notes, WordPdfExportOptions? options,
-        double? contentWidth, NativeDocumentDefaults defaults, NativeFontMap fontMap) {
+        double? contentWidth, NativeDocumentDefaults defaults, NativeFontMap fontMap,
+        IReadOnlyDictionary<W.Paragraph, string>? headingDestinations = null) {
         if (elements[index] is not WordParagraph first || !CanRenderNativeParagraphFrame(first) ||
             ResolveNativeParagraphFrame(first) is not { } frame) return false;
         bool notBeside = frame.Wrap?.Value == W.TextWrappingValues.NotBeside;
@@ -29,9 +30,31 @@ public static partial class WordPdfConverterExtensions {
         }
         foreach (W.Paragraph clone in table._table.Descendants<W.Paragraph>()) options?.DiagnosedFrameParagraphs.Add(clone);
 
+        // The frame content is a copy: list markers, numbering and story relationships still
+        // resolve through the source paragraphs.
+        var sources = new Dictionary<W.Paragraph, W.Paragraph>();
+        List<W.Paragraph> copies = table._table.Descendants<W.Paragraph>().ToList();
+        for (int i = 0; i < paragraphs.Count && i < copies.Count; i++) sources[copies[i]] = paragraphs[i]._paragraph!;
+        Func<WordParagraph, (int Level, string Marker)?> frameMarker = paragraph =>
+            paragraph._paragraph != null && sources.TryGetValue(paragraph._paragraph, out W.Paragraph? source)
+                ? getMarker(new WordParagraph(first._document, source)) : getMarker(paragraph);
+
+        if (defaults.RunningContentContext == null) {
+            // Bookmarks in the frame stay link targets at the frame's position.
+            foreach (WordParagraph paragraph in paragraphs) {
+                RenderNativeParagraphBookmarks(pdf, paragraph);
+                if (paragraph._paragraph != null && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
+                    headingDestinations != null && headingDestinations.TryGetValue(paragraph._paragraph, out string? destination))
+                    pdf.Bookmark(destination);
+            }
+        }
+
         var collapseFlow = pdf as NativeSpacingCollapseFlow;
         var collapseState = collapseFlow?.CaptureState();
-        PdfCore.TableBlock? block = BuildNativeTableBlock(table, getMarker, notes, options, contentWidth, defaults, fontMap, pdf.SupportsPositionedTables);
+        PdfCore.TableBlock? block;
+        using (WordDocumentTraversal.UseListParagraphAliases(first._document, sources))
+        using (WordPartOwnership.UseDetachedOwner(table._table, WordPartOwnership.Resolve(first._document, first._paragraph!)))
+            block = BuildNativeTableBlock(table, frameMarker, notes, options, contentWidth, defaults, fontMap, pdf.SupportsPositionedTables);
         if (block != null) {
             if (block.Style is { Position: { } position } blockStyle) blockStyle.Position = CreateNativeFramePosition(position, frame);
             pdf.Table(block.Cells.Select(row => row.ToArray()), block.Align, block.Style);

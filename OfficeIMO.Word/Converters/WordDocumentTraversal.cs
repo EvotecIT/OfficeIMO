@@ -89,6 +89,32 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Lets detached copies of paragraphs, such as projected frame content, resolve the same
+        /// list information and markers as the paragraphs they were copied from.
+        /// </summary>
+        internal static IDisposable UseListParagraphAliases(WordDocument document,
+            IReadOnlyDictionary<Paragraph, Paragraph> copiesToSources) {
+            ListInfoSnapshot? active = ActiveListInfoSnapshot.Value;
+            if (active == null || !ReferenceEquals(active.Document, document) || copiesToSources.Count == 0)
+                return new ListInfoSnapshotScope(active);
+            var markers = new Dictionary<WordParagraph, ResolvedListMarker>(ParagraphReferenceComparer.Instance);
+            foreach (var pair in active.Markers) markers[pair.Key] = pair.Value;
+            Dictionary<WordParagraph, (int Level, string Marker)>? renderMarkers = null;
+            if (active.RenderMarkers != null) {
+                renderMarkers = new Dictionary<WordParagraph, (int Level, string Marker)>(ParagraphReferenceComparer.Instance);
+                foreach (var pair in active.RenderMarkers) renderMarkers[pair.Key] = pair.Value;
+            }
+            foreach (var alias in copiesToSources) {
+                var source = new WordParagraph(document, alias.Value);
+                var copy = new WordParagraph(document, alias.Key);
+                if (active.Markers.TryGetValue(source, out ResolvedListMarker marker)) markers[copy] = marker;
+                if (active.RenderMarkers != null && active.RenderMarkers.TryGetValue(source, out var render)) renderMarkers![copy] = render;
+            }
+            ActiveListInfoSnapshot.Value = new ListInfoSnapshot(document, markers, renderMarkers);
+            return new ListInfoSnapshotScope(active);
+        }
+
+        /// <summary>
         /// Describes list information for a paragraph.
         /// </summary>
         public readonly struct ListInfo {

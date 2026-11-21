@@ -46,7 +46,9 @@ internal static partial class PdfWriter {
             pendingFloatingBookmarks.Clear();
         }
 
-        private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
+        // A page group continued on this page anchors to its own side margins.
+        private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions
+            : continuedPageAnchorOptions ?? currentPage?.Options ?? currentOpts;
 
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0

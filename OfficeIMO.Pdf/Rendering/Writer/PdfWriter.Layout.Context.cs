@@ -162,13 +162,17 @@ internal static partial class PdfWriter {
             frame.MarginTop = currentPage!.Options.MarginTop;
             frame.MarginBottom = currentPage.Options.MarginBottom;
             currentOpts = frame;
+            continuedPageAnchorOptions = frame;
             width = frame.PageWidth.ToPoints() - frame.MarginLeft.ToPoints() - frame.MarginRight.ToPoints();
             (currentPage.ContinuedPageGroups ??= new()).Add((currentPageGroupId, frame));
             if (currentRunningSectionId is int sectionId) (currentPage.RunningContentSections ??= new()).Add(sectionId);
         }
 
+        private PdfCreateOptions? continuedPageAnchorOptions;
+
         private void StartPage(PdfCreateOptions options) {
             if (isRunningContent) throw new InvalidOperationException("Running PDF content cannot create another page.");
+            continuedPageAnchorOptions = null;
             if (nextRunningPageOptions != null) {
                 options = nextRunningPageOptions;
                 nextRunningPageOptions = null;
