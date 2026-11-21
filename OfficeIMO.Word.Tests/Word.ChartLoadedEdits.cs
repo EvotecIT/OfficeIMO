@@ -76,6 +76,50 @@ public sealed class WordChartLoadedEditTests {
     }
 
     [Fact]
+    public void SetTitleReplacesSavedReferenceAndMultiRunTitles() {
+        using var reloaded = SaveAndLoad(document => {
+            var reference = CreateBarChart(document);
+            var title = reference.ChartPart!.ChartSpace!.Descendants<C.Title>().First();
+            title.ChartText!.Remove();
+            title.PrependChild(new C.ChartText(new C.StringReference(new C.Formula("Sheet1!$A$1"),
+                new C.StringCache(new C.PointCount { Val = 1U }, new C.StringPoint(new C.NumericValue("Old")) { Index = 0U })))) ;
+            var runs = CreateBarChart(document).ChartPart!.ChartSpace!.Descendants<C.Title>().First();
+            runs.Descendants<A.Run>().Single().InsertAfterSelf(new A.Run(new A.Text(" by region")));
+        });
+
+        WordChart referenceChart = reloaded.Charts[0];
+        Assert.Equal("Old", referenceChart.Title);
+        referenceChart.SetTitle("From reference");
+        Assert.Equal("From reference", referenceChart.Title);
+        Assert.Null(referenceChart.ChartPart!.ChartSpace!.Descendants<C.StringReference>().FirstOrDefault());
+
+        WordChart multiRunChart = reloaded.Charts[1];
+        multiRunChart.SetTitle("Sales by quarter");
+        Assert.Equal("Sales by quarter", multiRunChart.Title);
+        Assert.Single(multiRunChart.ChartPart!.ChartSpace!.Descendants<C.Title>().First().Descendants<A.Run>());
+        Assert.Empty(reloaded.ValidateDocument());
+    }
+
+    [Fact]
+    public void LoadedBarChartAcceptsLineAndAreaSeriesAndRejectsRadar() {
+        using var reloaded = SaveAndLoad(document => CreateBarChart(document));
+        WordChart chart = Assert.Single(reloaded.Charts);
+
+        chart.AddArea("Range", new List<int> { 2, 3 }, OfficeColor.Parse("#16A085"));
+        chart.AddLine("Trend", new List<int> { 1, 3 }, OfficeColor.Parse("#C0392B"));
+        var plot = chart.ChartPart!.ChartSpace!.Descendants<C.PlotArea>().Single();
+        Assert.NotNull(plot.GetFirstChild<C.AreaChart>());
+        Assert.NotNull(plot.GetFirstChild<C.LineChart>());
+        Assert.Single(plot.Elements<C.CategoryAxis>());
+        Assert.Single(plot.Elements<C.ValueAxis>());
+        Assert.Empty(reloaded.ValidateDocument());
+
+        var error = Assert.Throws<NotSupportedException>(() =>
+            chart.AddRadar("Shape", new List<int> { 1, 2 }, OfficeColor.Parse("#8E44AD")));
+        Assert.Contains("radar", error.Message);
+    }
+
+    [Fact]
     public void LoadedChartReadsSavedTitleAndCategoriesForLaterEdits() {
         using var reloaded = SaveAndLoad(document => CreateBarChart(document));
         WordChart chart = Assert.Single(reloaded.Charts);

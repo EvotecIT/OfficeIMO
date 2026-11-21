@@ -221,14 +221,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordChart> Charts {
             get {
-                List<WordChart> list = new List<WordChart>();
-                var paragraphs = Paragraphs.Where(p => p.IsChart).ToList();
-                foreach (var paragraph in paragraphs) {
-                    if (paragraph.Chart != null) {
-                        list.Add(paragraph.Chart);
-                    }
-                }
-                return list;
+                return _document.CollectCharts(GetSectionBodyChildren());
             }
         }
 
