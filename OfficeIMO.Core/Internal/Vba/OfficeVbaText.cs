@@ -4,33 +4,17 @@ namespace OfficeIMO.Core.Internal;
 
 /// <summary>Strict VBA code-page conversion and source-file normalization.</summary>
 internal static class OfficeVbaText {
-    // Windows-1252 is the usual Office project encoding and has no in-box provider on modern .NET.
-    private const string Windows1252High = "\u20ac\u0081\u201a\u0192\u201e\u2026\u2020\u2021\u02c6\u2030\u0160\u2039\u0152\u008d\u017d\u008f\u0090\u2018\u2019\u201c\u201d\u2022\u2013\u2014\u02dc\u2122\u0161\u203a\u0153\u009d\u017e\u0178";
+    // The Windows ANSI code pages Office projects use have no in-box provider on modern .NET, so they decode through
+    // the canonical tables on every framework.
+    internal static string Decode(byte[] bytes, int codePage) =>
+        OfficeLegacySingleByteEncoding.IsSupported(codePage)
+            ? OfficeLegacySingleByteEncoding.Decode(bytes, 0, bytes.Length, codePage)
+            : GetEncoding(codePage).GetString(bytes);
 
-    internal static string Decode(byte[] bytes, int codePage) {
-        if (codePage == 1250) return OfficeLegacySingleByteEncoding.Decode(bytes, 0, bytes.Length, codePage);
-        if (codePage != 1252) return GetEncoding(codePage).GetString(bytes);
-        var chars = new char[bytes.Length];
-        for (int index = 0; index < bytes.Length; index++) {
-            byte value = bytes[index];
-            chars[index] = value >= 128 && value < 160 ? Windows1252High[value - 128] : (char)value;
-        }
-        return new string(chars);
-    }
-
-    internal static byte[] Encode(string text, int codePage) {
-        if (codePage == 1250) return OfficeLegacySingleByteEncoding.Encode(text, codePage);
-        if (codePage != 1252) return GetEncoding(codePage).GetBytes(text);
-        var bytes = new byte[text.Length];
-        for (int index = 0; index < text.Length; index++) {
-            char value = text[index];
-            int special = Windows1252High.IndexOf(value);
-            if (special >= 0) bytes[index] = (byte)(128 + special);
-            else if (value < 128 || value >= 160 && value <= 255) bytes[index] = (byte)value;
-            else throw new EncoderFallbackException("The VBA source contains a character outside the project's Windows-1252 code page.");
-        }
-        return bytes;
-    }
+    internal static byte[] Encode(string text, int codePage) =>
+        OfficeLegacySingleByteEncoding.IsSupported(codePage)
+            ? OfficeLegacySingleByteEncoding.Encode(text, codePage)
+            : GetEncoding(codePage).GetBytes(text);
 
     private static Encoding GetEncoding(int codePage) {
         try {
