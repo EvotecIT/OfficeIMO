@@ -573,12 +573,12 @@ internal static class PdfContentStreamTextRewriter {
     private static string BuildTransformPrefix(Matrix2D transform) => string.Format(
         CultureInfo.InvariantCulture,
         "q {0} {1} {2} {3} {4} {5} cm ",
-        transform.A,
-        transform.B,
-        transform.C,
-        transform.D,
-        transform.E,
-        transform.F);
+        PdfNumberFormatter.PreciseOrRaw(transform.A),
+        PdfNumberFormatter.PreciseOrRaw(transform.B),
+        PdfNumberFormatter.PreciseOrRaw(transform.C),
+        PdfNumberFormatter.PreciseOrRaw(transform.D),
+        PdfNumberFormatter.PreciseOrRaw(transform.E),
+        PdfNumberFormatter.PreciseOrRaw(transform.F));
 
     private static bool IsTextShowOperator(string name) => name is "Tj" or "TJ" or "'" or "\"";
 

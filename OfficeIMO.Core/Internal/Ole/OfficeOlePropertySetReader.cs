@@ -250,6 +250,10 @@ namespace OfficeIMO.Core.Internal {
                 throw new InvalidDataException("The OLE ANSI string value is truncated.");
             }
 
+            if (OfficeLegacySingleByteEncoding.IsSupported(codePage)) {
+                return OfficeLegacySingleByteEncoding.Decode(bytes, offset, length, codePage);
+            }
+
             try {
                 return Encoding.GetEncoding(codePage).GetString(bytes, offset, length);
             } catch (ArgumentException) {

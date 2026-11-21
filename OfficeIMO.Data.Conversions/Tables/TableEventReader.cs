@@ -314,7 +314,7 @@ internal sealed class TableEventReader : DataEventReader {
                     return (DataScalarKind.Integer, ((long)number).ToString(CultureInfo.InvariantCulture));
                 }
 
-                return (DataScalarKind.Float, number.ToString("R", CultureInfo.InvariantCulture));
+                return (DataScalarKind.Float, OfficeIMO.OfficeRoundTripNumberText.Format(number, CultureInfo.InvariantCulture));
             }
             case DateTimeOffset offset:
                 return (DataScalarKind.OffsetDateTime, offset.ToString("yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz", CultureInfo.InvariantCulture));

@@ -67,7 +67,7 @@ namespace OfficeIMO.PowerPoint {
             Dgm.LayoutNode root = CreateSmartArtCanvas("list",
                 CreateAlgorithm(Dgm.AlgorithmValues.Composite,
                     (Dgm.ParameterIdValues.AspectRatio,
-                        aspectRatio.ToString("R",
+                        OfficeIMO.Core.Internal.OfficeRoundTripText.Format(aspectRatio,
                             CultureInfo.InvariantCulture))));
             Dgm.Constraints constraints = new();
             int count = Math.Max(1, nodeCount);

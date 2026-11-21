@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("2024-01-02T03:04:05.0000000+00:00", CellText(cellDto));
 
                 Cell cellTs = cells.First(c => c.CellReference == "A2");
-                AssertRoundTripNumericText(time.TotalDays, cellTs.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(time), cellTs.CellValue!.Text);
 
                 Cell cellUint = cells.First(c => c.CellReference == "A3");
                 Assert.Equal(ui.ToString(CultureInfo.InvariantCulture), cellUint.CellValue!.Text);
@@ -93,13 +93,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("2024-01-02T03:04:05.0000000+00:00", CellText(cellNullableDto));
 
                 Cell cellNullableTs = cells.First(c => c.CellReference == "A10");
-                AssertRoundTripNumericText(nullableTs.Value.TotalDays, cellNullableTs.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(nullableTs.Value), cellNullableTs.CellValue!.Text);
 #if NET6_0_OR_GREATER
                 Cell cellDateOnly = cells.First(c => c.CellReference == "A11");
                 AssertRoundTripNumericText(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate(), cellDateOnly.CellValue!.Text);
 
                 Cell cellTimeOnly = cells.First(c => c.CellReference == "A12");
-                AssertRoundTripNumericText(timeOnly.ToTimeSpan().TotalDays, cellTimeOnly.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(timeOnly.ToTimeSpan()), cellTimeOnly.CellValue!.Text);
 #endif
 
                 var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
 
                 Cell cellDuration = cells.First(c => c.CellReference == "A1");
                 Assert.Equal(CellValues.Number, cellDuration.DataType!.Value);
-                AssertRoundTripNumericText(duration.TotalDays, cellDuration.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(duration), cellDuration.CellValue!.Text);
                 Assert.NotNull(cellDuration.StyleIndex);
 
                 var styles = workbookPart.WorkbookStylesPart!.Stylesheet!;
@@ -326,7 +326,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(cellFormat.ApplyNumberFormat?.Value ?? false);
 
                 Cell cellNullable = cells.First(c => c.CellReference == "A2");
-                AssertRoundTripNumericText(duration.TotalDays, cellNullable.CellValue!.Text);
+                AssertRoundTripNumericText(MillisecondSerial(duration), cellNullable.CellValue!.Text);
                 Assert.NotNull(cellNullable.StyleIndex);
                 Assert.Equal(cellDuration.StyleIndex!.Value, cellNullable.StyleIndex!.Value);
             }

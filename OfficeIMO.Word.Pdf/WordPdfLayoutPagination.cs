@@ -8,9 +8,11 @@ namespace OfficeIMO.Word.Pdf {
     /// </summary>
     internal static class WordPdfLayoutPagination {
         /// <summary>
-        /// Lays out a copy of the document and records the displayed page number of every body bookmark.
+        /// Lays out a copy of the document with the PDF export options and records the displayed page number of every
+        /// body bookmark. The copy goes through the same conversion as PDF export with the same options, so fonts,
+        /// substitutions, fallbacks and the resource policy resolve the same way.
         /// </summary>
-        internal static WordLayoutPagination Create(WordDocument document) {
+        internal static WordLayoutPagination Create(WordDocument document, WordPdfExportOptions layoutOptions) {
             using var cloneStream = new MemoryStream();
             using (document._wordprocessingDocument.Clone(cloneStream, true)) {
             }
@@ -31,14 +33,14 @@ namespace OfficeIMO.Word.Pdf {
                 return new WordLayoutPagination(new Dictionary<string, (int Number, string? Label)>(StringComparer.Ordinal), 1);
             }
 
-            UnwrapTablesOfContents(body);
             MoveBookmarksIntoParagraphs(body);
 
-            var pdfOptions = new PdfCore.PdfCreateOptions {
-                IncludePageLabels = true,
-                IncludeLayoutPageNumberLabels = true
-            };
-            using PdfCore.PdfDocument pdf = clone.ToPdf(new WordPdfExportOptions { PdfOptions = pdfOptions });
+            WordPdfExportOptions options = layoutOptions.Clone();
+            options.IncludeLayoutPageLabels = true;
+            // A field update reports through its own result: loss findings must not stop it, and DATE/TIME belong to the update.
+            options.FailOnLoss = false;
+            options.DateTimeFieldUpdateOptions = null;
+            using PdfCore.PdfDocument pdf = clone.ToPdf(options);
             PdfCore.PdfReadDocument read = pdf.GetReadDocument();
             IReadOnlyList<PdfCore.PdfPageLabel> labels = read.PageLabels;
 
@@ -46,6 +48,17 @@ namespace OfficeIMO.Word.Pdf {
             foreach (PdfCore.PdfNamedDestination destination in read.NamedDestinations) {
                 if (destination.PageNumber is int physicalPage && !pages.ContainsKey(destination.Name)) {
                     pages.Add(destination.Name, physicalPage);
+                }
+            }
+
+            // A PAGE field marker is a link drawn on the field's own line; that line's page wins over the paragraph's first line.
+            var fieldLines = new HashSet<string>(StringComparer.Ordinal);
+            for (int pageIndex = 0; pageIndex < read.Pages.Count; pageIndex++) {
+                foreach (PdfCore.PdfLinkAnnotation link in read.Pages[pageIndex].GetLinkAnnotations()) {
+                    if (link.DestinationName is string name && name.StartsWith(WordFieldUpdater.PageFieldBookmarkPrefix, StringComparison.Ordinal)
+                        && fieldLines.Add(name)) {
+                        pages[name] = link.PageNumber ?? pageIndex + 1;
+                    }
                 }
             }
 
@@ -127,31 +140,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// The layout engine draws table-of-contents controls with its own generated entries. Unwrapping them lays out
-        /// the entry paragraphs that are actually stored in the document, so the pages after the table match.
-        /// </summary>
-        private static void UnwrapTablesOfContents(Body body) {
-            foreach (SdtBlock block in body.Descendants<SdtBlock>().Where(IsTableOfContentBlock).ToList()) {
-                SdtContentBlock? content = block.SdtContentBlock;
-                if (content == null || block.Parent == null) {
-                    continue;
-                }
-
-                foreach (var child in content.ChildElements.ToList()) {
-                    child.Remove();
-                    block.Parent.InsertBefore(child, block);
-                }
-
-                block.Remove();
-            }
-        }
-
-        private static bool IsTableOfContentBlock(SdtBlock block) {
-            string? gallery = block.SdtProperties?.GetFirstChild<SdtContentDocPartObject>()?.GetFirstChild<DocPartGallery>()?.Val?.Value;
-            return string.Equals(gallery, "Table of Contents", StringComparison.Ordinal);
         }
 
         /// <summary>

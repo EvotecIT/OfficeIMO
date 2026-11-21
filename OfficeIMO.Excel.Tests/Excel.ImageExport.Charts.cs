@@ -1446,7 +1446,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportReportsUnsupportedChartAxisNumberFormat() {
+        public void ExcelRange_ImageExportReportsInvalidChartAxisNumberFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisFormatDiag");
@@ -1459,7 +1459,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(4, 1).SetValue("Mar");
             sheet.Cell(4, 2).SetValue(1600);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Format Diagnostic" });
-            chart.SetValueAxisNumberFormat("yyyy-mm-dd");
+            chart.SetValueAxisNumberFormat("0.0\"x");
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
@@ -1503,7 +1503,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportReportsUnsupportedChartCategoryAxisDateNumberFormat() {
+        public void ExcelRange_ImageExportReportsInvalidChartCategoryAxisNumberFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartCategoryFormatDiag");
@@ -1516,7 +1516,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(4, 1).SetValue("3");
             sheet.Cell(4, 2).SetValue(1600);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Category Axis Format Diagnostic" });
-            chart.SetCategoryAxisNumberFormat("yyyy-mm-dd");
+            chart.SetCategoryAxisNumberFormat("0.0\"x");
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ToImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 

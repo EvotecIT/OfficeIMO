@@ -1176,14 +1176,13 @@ namespace OfficeIMO.Tests {
                 C.NumberingFormat numberingFormat =
                     axis.GetFirstChild<C.NumberingFormat>()!;
                 string? originalFormat = numberingFormat.FormatCode?.Value;
+                // Spreadsheet formats draw through the cell formatter; an invalid code draws as General.
+                numberingFormat.FormatCode = "0.0\"x";
+                Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot invalidFormat));
+                Assert.DoesNotContain("0.0\"x", new[] { invalidFormat.Layout.HorizontalAxisNumberFormat, invalidFormat.Layout.VerticalAxisNumberFormat });
+
                 numberingFormat.FormatCode = "0.00E+00";
-                Assert.False(chart.TryGetOfficeSnapshot(out _));
-
-                numberingFormat.FormatCode = "m/d/yyyy";
-                Assert.False(chart.TryGetOfficeSnapshot(out _));
-
-                numberingFormat.FormatCode = "# ?/?";
-                Assert.False(chart.TryGetOfficeSnapshot(out _));
+                Assert.True(chart.TryGetOfficeSnapshot(out _));
 
                 numberingFormat.FormatCode = "\"E+00\"0.0x";
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
@@ -1482,7 +1481,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void BubbleChart_RejectsTrendlinesAndErrorBarsFromSharedSnapshots() {
+        public void BubbleChart_RejectsTrendlinesButKeepsErrorBarsInSharedSnapshots() {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create(new MemoryStream());
             PowerPointChart chart = presentation.AddSlide().AddChart(
@@ -1503,7 +1502,7 @@ namespace OfficeIMO.Tests {
                 .Descendants<C.BubbleChartSeries>().Single();
             series.RemoveAllChildren<C.Trendline>();
             series.Append(new C.ErrorBars());
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
         }
 
         [Fact]

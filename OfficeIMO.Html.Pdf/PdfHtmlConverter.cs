@@ -944,7 +944,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static string FormatCssOpacity(double opacity) =>
-        opacity.ToString("R", CultureInfo.InvariantCulture);
+        OfficeIMO.Core.Internal.OfficeRoundTripText.Format(opacity, CultureInfo.InvariantCulture);
 
     private static string ToCssBlendMode(OfficeIMO.Drawing.OfficeBlendMode blendMode) => blendMode switch {
         OfficeIMO.Drawing.OfficeBlendMode.ColorDodge => "color-dodge",

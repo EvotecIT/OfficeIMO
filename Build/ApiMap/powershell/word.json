@@ -7433,6 +7433,18 @@
               "pipeline": "byValue"
             },
             {
+              "name": "TableOfContents",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "LayoutOptions",
+              "type": "WordPdfExportOptions",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
               "name": "PassThru",
               "type": "switch",
               "mandatory": false,
@@ -7441,7 +7453,7 @@
           ]
         }
       ],
-      "notes": "Singular noun (was Update-OfficeWordFields).",
+      "notes": "Singular noun (was Update-OfficeWordFields). -TableOfContents regenerates tables of contents; with it or -LayoutOptions, page numbers come from the PDF layout with the given export options.",
       "examples": [
         {
           "title": "Update fields at the end of a block",
@@ -7452,6 +7464,11 @@
           "title": "Refresh fields in existing documents",
           "description": "Opens each report, updates every field result and saves it.",
           "code": "foreach ($file in Get-ChildItem -Path .\\Reports\\Q3 -Filter *.docx) {\n    $doc = Open-OfficeWord -LiteralPath $file.FullName\n    $doc | Update-OfficeWordField\n    Close-OfficeWord -Document $doc -Save\n}"
+        },
+        {
+          "title": "Table of contents pages from the PDF layout",
+          "description": "Regenerates the table of contents with the page numbers that PDF export with the same options produces.",
+          "code": "$pdf = New-OfficeWordPdfOptions -Font 'Carlito'\n$doc = Open-OfficeWord -Path .\\Report.docx\n$doc | Update-OfficeWordField -TableOfContents -LayoutOptions $pdf\nClose-OfficeWord -Document $doc -Save"
         }
       ]
     },
@@ -8198,6 +8215,12 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Used only when the source has no orientation; Orientation remains an unconditional export override."
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -8285,6 +8308,12 @@
             {
               "name": "TextShapingLanguage",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
               "mandatory": false,
               "pipeline": "none"
             }

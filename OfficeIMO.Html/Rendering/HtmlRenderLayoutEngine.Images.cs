@@ -266,7 +266,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         if (fontSize.HasValue) {
             if (style.Length > 0) style.Append(';');
-            style.Append("font-size:").Append(fontSize.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append("px");
+            style.Append("font-size:").Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(fontSize.Value, System.Globalization.CultureInfo.InvariantCulture)).Append("px");
         }
         return style.ToString();
     }

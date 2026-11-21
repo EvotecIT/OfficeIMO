@@ -9,10 +9,10 @@ namespace OfficeIMO.Visio {
     // Save-time helper methods for VisioDocument.
     public partial class VisioDocument {
 
-        private static string ToVisioString(double value) {
-            string text = Math.Round(value, 15).ToString("F15", CultureInfo.InvariantCulture);
-            return text.TrimEnd('0').TrimEnd('.');
-        }
+        // "F15" prints 15 significant digits on .NET Framework and exact binary digits on .NET 8 and later, so the
+        // value is rounded to 15 decimals and then written as its shortest round-trip text on every framework.
+        private static string ToVisioString(double value) =>
+            OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(Math.Round(value, 15));
 
         private static void WriteCell(XmlWriter writer, string ns, string name, double value) {
             writer.WriteStartElement("Cell", ns);

@@ -158,7 +158,7 @@ public sealed partial class CsvDocument
         var index = aligned.Count;
         foreach (var staticColumn in options.StaticColumns!)
         {
-            result[index++] = Convert.ToString(staticColumn.Value, options.Culture) ?? string.Empty;
+            result[index++] = OfficeIMO.OfficeRoundTripNumberText.FormatObject(staticColumn.Value, options.Culture) ?? string.Empty;
         }
 
         return result;

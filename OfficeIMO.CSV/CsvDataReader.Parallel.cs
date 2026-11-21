@@ -205,7 +205,7 @@ public partial class CsvDataReader : IDataReaderTypedParallelBatchSource
         {
             if (ordinal >= _sourceColumnCount)
             {
-                return Convert.ToString(GetRawValue(ordinal), _culture) ?? string.Empty;
+                return OfficeIMO.OfficeRoundTripNumberText.FormatObject(GetRawValue(ordinal), _culture) ?? string.Empty;
             }
             return ordinal < _currentStringRow.Count ? _currentStringRow[ordinal] : string.Empty;
         }

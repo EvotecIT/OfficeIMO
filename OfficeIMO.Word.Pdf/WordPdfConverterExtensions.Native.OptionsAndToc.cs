@@ -18,6 +18,10 @@ namespace OfficeIMO.Word.Pdf {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfCreateOptions pdfOptions = options?.PdfOptions?.Clone() ?? PdfCore.PdfCreateOptions.CreateNeutralOptions();
             pdfOptions.UseFontUnitTextLayout = true;
+            if (options?.IncludeLayoutPageLabels == true) {
+                pdfOptions.IncludePageLabels = true;
+                pdfOptions.IncludeLayoutPageNumberLabels = true;
+            }
             // Flat running content follows the same source defaults as styled runs.
             // Retain the configured shaper so explicit ligatures use its Latin feature path.
             pdfOptions.DefaultTextFeatureSettings = default(NativeTextSpacing).ResolveFeatureSettings(pdfOptions.DefaultFontSize.ToPoints());
@@ -316,6 +320,15 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
+                    // A table of contents drawn as stored uses its entries' own fonts.
+                    if (element is WordTableOfContent tableOfContent && tableOfContent.ShowsStoredEntries) {
+                        foreach (WordElement entry in GetNativeStructuredBlockElements(tableOfContent.Document, tableOfContent.SdtBlock)) {
+                            RegisterNativeElementFonts(entry, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                        }
+
+                        continue;
+                    }
+
                     if (element is WordStructuredDocumentTag structuredDocumentTag) {
                         foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
                             RegisterNativeElementFonts(structuredElement, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
@@ -467,7 +480,31 @@ namespace OfficeIMO.Word.Pdf {
                     registeredFontSlots,
                     allowSystemFontEmbedding,
                     nativeFontMap);
+            } else if (listInfo.HasValue) {
+                RegisterNativeListMarkerMetricsFont(listInfo.Value.MarkerFontFamily, pdfOptions,
+                    registeredFamilies, allowSystemFontEmbedding, nativeFontMap);
             }
+        }
+
+        // A marker drawn in the text font still takes its line height from the numbering
+        // level's font. Only that font's metrics are needed, so it is used when it is registered
+        // as itself, in a named family or its own font slot, or installed; never through a
+        // substitution or a newly assigned slot.
+        private static void RegisterNativeListMarkerMetricsFont(string? familyName, PdfCore.PdfCreateOptions pdfOptions,
+            HashSet<string> registeredFamilies, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {
+            if (string.IsNullOrWhiteSpace(familyName) || nativeFontMap.TryGetNamedFontFamily(familyName, out _) ||
+                nativeFontMap.TryGetFontSlot(familyName, out _) ||
+                registeredFamilies.Contains(NormalizeNativeFontFamily(familyName!))) return;
+            string literalFamily = OfficeFontFamilyParser.Quote(familyName!.Trim());
+            if (pdfOptions.TryResolveFontFamilySubstitution(literalFamily, out PdfCore.PdfFontFamilySubstitution? substitution) &&
+                substitution != null) return;
+            if (pdfOptions.TryResolveEmbeddedFontFamilySlot(familyName.Trim(), out PdfCore.PdfStandardFont slot)) {
+                nativeFontMap.Register(familyName.Trim(), slot);
+                return;
+            }
+            if (pdfOptions.TryResolveNamedOfficeFontFamily(literalFamily, out string? registered) && registered != null ||
+                allowSystemFontEmbedding && pdfOptions.TryRegisterNamedOfficeFontFamily(literalFamily, out registered) && registered != null)
+                nativeFontMap.RegisterNamed(familyName.Trim(), registered);
         }
 
         private static void RegisterNativeEffectiveParagraphFont(

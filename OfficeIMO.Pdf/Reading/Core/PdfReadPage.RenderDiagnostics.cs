@@ -1067,13 +1067,7 @@ public sealed partial class PdfReadPage {
         if (imageDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject) &&
             ResolveObject(optionalContentObject) is not null and not PdfNull) return false;
         if (requireInterpolation && !ResolveType3ImageInterpolation(imageDictionary)) return false;
-        if (!TryCreateImageProjection(
-                placement,
-                projectionPageHeight,
-                projectionPageWidth,
-                projectionPageHeight,
-                out _,
-                allowAxisAlignedFallback: false)) return false;
+        if (!CanDrawImagePlacementExactly(placement, projectionPageHeight, projectionPageWidth, projectionPageHeight)) return false;
 
         IReadOnlyList<PdfExtractedImage> images;
         try {

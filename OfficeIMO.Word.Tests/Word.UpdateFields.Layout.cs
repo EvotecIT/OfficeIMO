@@ -67,6 +67,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsLayoutPlacesBodyPageFieldOnItsLaidOutPage() {
+            using WordDocument document = WordDocument.Create();
+            for (int index = 0; index < 120; index++) {
+                document.AddParagraph("Body line " + index + " that fills the page so the field flows onto a later page without an explicit break.");
+            }
+            document.AddParagraph("This is page ").AddField(WordFieldType.Page);
+            document.AddParagraph("Pages: ").AddField(WordFieldType.NumPages);
+            string bookmarksBefore = string.Join(",", document._document.Body!.Descendants<BookmarkStart>().Select(_ => _.Name?.Value));
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions().WithPdfLayoutPagination());
+
+            WordFieldUpdateResult page = report.Results.Single(x => x.FieldType == WordFieldType.Page);
+            WordFieldUpdateResult pages = report.Results.Single(x => x.FieldType == WordFieldType.NumPages);
+            Assert.Equal(WordFieldEvaluationBasis.LayoutPagination, page.EvaluationBasis);
+            Assert.NotEqual("1", page.ResultText);
+            Assert.Equal(pages.ResultText, page.ResultText);
+            Assert.Equal(bookmarksBefore, string.Join(",", document._document.Body!.Descendants<BookmarkStart>().Select(_ => _.Name?.Value)));
+        }
+
+        [Fact]
         public void Test_UpdateFieldsLayoutUsesSectionNumberFormat() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("First section");

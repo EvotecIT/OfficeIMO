@@ -359,22 +359,14 @@ internal static partial class IWorkFormulaReader {
                 || node.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
                 || node.HasField(28) && !ReferencesOwningTable(node, owningTable))) return false;
         if (nodes[0].GetUnsigned(1) == 67) {
-            if (nodes.Count != 1) return false;
             IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(nodes[0], 40);
             if (tract == null
+                || nodes.Count != 1 && !IsLocalAbsoluteSumTract(nodes, tract)
                 || !TryAbsoluteRange(tract, 4, out firstRow, out lastRow)
                 || !TryAbsoluteRange(tract, 3, out firstColumn, out lastColumn)) return false;
             return firstRow >= 0 && firstColumn >= 0 && lastRow >= firstRow && lastColumn >= firstColumn;
         }
-        bool hasSupportedRangeWrapper = nodes.Count == 4
-            && nodes[3].GetUnsigned(1) == 16
-            && nodes[3].FieldCount(2) <= 1
-            && nodes[3].FieldCount(3) <= 1
-            && !nodes[3].HasUnexpectedWireKind(2, IWorkWireKind.Varint)
-            && !nodes[3].HasUnexpectedWireKind(3, IWorkWireKind.Varint)
-            && nodes[3].GetUnsigned(2) == SumFunctionIndex
-            && nodes[3].GetUnsigned(3) == 1;
-        if (nodes.Count != 3 && !hasSupportedRangeWrapper) return false;
+        if (nodes.Count != 3 && (nodes.Count != 4 || !IsSingleArgumentSum(nodes[3]))) return false;
         if (nodes[0].GetUnsigned(1) != 36
             || nodes[1].GetUnsigned(1) != 36 || nodes[2].GetUnsigned(1) != 29
             || !TryAbsoluteCell(nodes[0], out firstRow, out firstColumn)
@@ -383,6 +375,25 @@ internal static partial class IWorkFormulaReader {
         if (lastColumn < firstColumn) (firstColumn, lastColumn) = (lastColumn, firstColumn);
         return true;
     }
+
+    // Numbers 16 emits SUM of a table-qualified tract with all four ends fixed.
+    // A relative or ambiguous endpoint cannot safely drive a destructive spreadsheet merge.
+    private static bool IsLocalAbsoluteSumTract(IReadOnlyList<IWorkWireMessage> nodes, IWorkWireMessage tract) {
+        if (nodes.Count != 2 || nodes[1].TotalFieldCount != 3 || !IsSingleArgumentSum(nodes[1])
+            || !nodes[0].HasField(28) || tract.HasField(1) || tract.HasField(2)) return false;
+        IWorkWireMessage? sticky = IWorkObjectIndex.TryGetMessage(nodes[0], 33);
+        if (sticky == null || sticky.TotalFieldCount != 4) return false;
+        for (int field = 1; field <= 4; field++) {
+            if (!TrySticky(sticky, field, out bool absolute) || !absolute) return false;
+        }
+        return true;
+    }
+
+    private static bool IsSingleArgumentSum(IWorkWireMessage node) =>
+        node.GetUnsigned(1) == 16
+        && node.FieldCount(2) == 1 && !node.HasUnexpectedWireKind(2, IWorkWireKind.Varint)
+        && node.FieldCount(3) == 1 && !node.HasUnexpectedWireKind(3, IWorkWireKind.Varint)
+        && node.GetUnsigned(2) == SumFunctionIndex && node.GetUnsigned(3) == 1;
 
     private static bool TryReadNodes(IWorkWireMessage formula, int maximumNodes,
         out IReadOnlyList<IWorkWireMessage> nodes) {
@@ -619,7 +630,7 @@ internal static partial class IWorkFormulaReader {
             complete = false;
             return "#NUM!";
         }
-        return value.Value.ToString("R", CultureInfo.InvariantCulture);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value.Value, CultureInfo.InvariantCulture);
     }
 
     private static Operand[] Pop(List<Operand> stack, int count, ref bool complete) {

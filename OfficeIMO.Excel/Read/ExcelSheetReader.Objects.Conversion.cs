@@ -35,8 +35,30 @@ namespace OfficeIMO.Excel {
                 && rawFallback is CellRaw dateRaw && !dateRaw.CustomValueHandled && dateRaw.RawText != null
                 && !ExcelCellValueText.FitsCalendar(date, culture)) return dateRaw.RawText;
 
+            if (ExcelTemporalValueConversion.Handles(binding.DestinationType)) {
+                // A duration or time of day comes from the stored serial rather than its date carrier.
+                if (value is DateTime && binding.DestinationType != typeof(DateTime)
+                    && rawFallback is CellRaw serialRaw && !serialRaw.CustomValueHandled
+                    && serialRaw.TypeHint != CellValues.Date
+                    && (binding.DestinationType == typeof(TimeSpan) || IsTimeOnly(binding.DestinationType))
+                    && TryParseInvariantDouble(serialRaw.RawText, out double serial)) value = serial;
+                return ConvertTemporal(value, binding, culture);
+            }
+
             return binding.ConvertValue(value, culture);
         }
+
+        /// <summary>Converts to a date or time destination, throwing instead of leaving the destination's default.</summary>
+        private object? ConvertTemporal<TTarget>(object value, TypedPropertyBinding<TTarget> binding, CultureInfo culture) =>
+            ExcelTemporalValueConversion.Convert(value, binding.DestinationType, _dateSystem, culture,
+                typeof(TTarget).Name + "." + binding.Property.Name, _opt.MappingErrorValuePolicy);
+
+        private static bool IsTimeOnly(Type type) =>
+#if NET6_0_OR_GREATER
+            type == typeof(TimeOnly);
+#else
+            false;
+#endif
 
         private bool TryConvertCellForBinding<TTarget>(
             DocumentFormat.OpenXml.Spreadsheet.Cell cell,
@@ -923,7 +945,14 @@ namespace OfficeIMO.Excel {
             return builder.ToString();
         }
 
-        private object? TryChangeType(object value, Type targetType, CultureInfo culture) {
+        /// <param name="value">The cell value.</param>
+        /// <param name="targetType">The destination type.</param>
+        /// <param name="culture">The culture for text conversion.</param>
+        /// <param name="serial">
+        /// The stored serial of a date cell read for a duration or time of day. The converter hook still sees the cell's
+        /// own value; the serial replaces it only for the built-in conversion.
+        /// </param>
+        private object? TryChangeType(object value, Type targetType, CultureInfo culture, double? serial = null) {
             if (value == null) return null;
 
             var nullable = Nullable.GetUnderlyingType(targetType);
@@ -935,8 +964,13 @@ namespace OfficeIMO.Excel {
                 if (ok) return v;
             }
 
+            if (serial.HasValue) value = serial.Value;
+
             var srcType = value.GetType();
             if (targetType.IsAssignableFrom(srcType)) return value;
+            if (ExcelTemporalValueConversion.Handles(destType)) {
+                return ExcelTemporalValueConversion.Convert(value, destType, _dateSystem, culture, destType.Name, _opt.MappingErrorValuePolicy);
+            }
 
             return ConvertToDestinationType(value, destType, culture);
         }
@@ -944,7 +978,7 @@ namespace OfficeIMO.Excel {
         private static object? ConvertToDestinationType(object value, Type destType, CultureInfo culture) {
             try {
                 if (destType == typeof(string)) {
-                    return value as string ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : Convert.ToString(value, culture));
+                    return value as string ?? (value is DateTime date ? ExcelCellValueText.FormatDate(date, culture) : OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, culture));
                 }
 
                 if (destType == typeof(bool)) {
@@ -982,13 +1016,6 @@ namespace OfficeIMO.Excel {
                 if (destType == typeof(decimal)) {
                     if (value is decimal decimalValue) return decimalValue;
                     return OfficeDecimalConversion.FromObject(value, culture);
-                }
-
-                if (destType == typeof(DateTime)) {
-                    if (value is DateTime dt) return dt;
-                    if (value is double oa) return DateTime.FromOADate(oa);
-                    if (DateTime.TryParse(Convert.ToString(value, culture), culture, DateTimeStyles.AssumeLocal, out var parsed)) return parsed;
-                    return null;
                 }
 
                 return OfficeDecimalConversion.ChangeType(value, destType, culture);

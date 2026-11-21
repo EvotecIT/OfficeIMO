@@ -93,7 +93,7 @@ namespace OfficeIMO.Excel {
             decimal decimalInterval = integerRange ? 0 : OfficeDecimalConversion.FromDouble(interval);
             var labels = new List<PivotFieldValue>(span + 2) {
                 PivotFieldValue.FromText("<" + (integerRange ? FormatIntegerGroupNumber(start)
-                    : start.ToString("R", CultureInfo.InvariantCulture)))
+                    : OfficeIMO.Core.Internal.OfficeRoundTripText.Format(start, CultureInfo.InvariantCulture)))
             };
             for (int index = 0; index < span; index++) {
                 if (integerRange) {
@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
                 }
             }
             labels.Add(PivotFieldValue.FromText(">" + (integerRange ? FormatIntegerGroupNumber(end)
-                : end.ToString("R", CultureInfo.InvariantCulture))));
+                : OfficeIMO.Core.Internal.OfficeRoundTripText.Format(end, CultureInfo.InvariantCulture))));
             return new PivotFieldValues(labels);
         }
 

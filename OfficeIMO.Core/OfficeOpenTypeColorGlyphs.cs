@@ -9,14 +9,18 @@ internal interface IOfficeColorFontProgram {
 }
 
 internal readonly struct OfficeColorGlyphLayer {
-    internal OfficeColorGlyphLayer(int glyphId, OfficeColor color, LayerTransform? transform = null) {
+    internal OfficeColorGlyphLayer(int glyphId, OfficeColor color, LayerTransform? transform = null, bool isForeground = false) {
         GlyphId = glyphId;
         Color = color;
         Transform = transform;
+        IsForeground = isForeground;
     }
 
     internal int GlyphId { get; }
     internal OfficeColor Color { get; }
+
+    /// <summary>Whether the layer paints with the text color (CPAL entry 0xFFFF) rather than a palette color.</summary>
+    internal bool IsForeground { get; }
 
     /// <summary>Font-unit placement of this layer's outline; COLR v0 layers have none.</summary>
     internal LayerTransform? Transform { get; }
@@ -28,7 +32,9 @@ internal sealed partial class OfficeOpenTypeColorGlyphs {
     private const int MaximumLayers = 262144;
     private const int MaximumExpandedLayers = 262144;
     private const int MaximumPalettes = 4096;
-    private const int MaximumPaletteEntries = 4096;
+    // CPAL counts are 16-bit: Segoe UI Emoji uses tens of thousands of entries in one palette.
+    // MaximumExpandedLayers still bounds the total palette storage.
+    private const int MaximumPaletteEntries = ushort.MaxValue;
 
     private readonly IReadOnlyDictionary<int, LayerRecord[]> _layers;
     private readonly OfficeColor[][] _palettes;
@@ -180,7 +186,8 @@ internal sealed partial class OfficeOpenTypeColorGlyphs {
         var resolved = new OfficeColorGlyphLayer[records.Length];
         for (int index = 0; index < records.Length; index++) {
             LayerRecord record = records[index];
-            resolved[index] = new OfficeColorGlyphLayer(record.GlyphId, record.ResolveColor(colors, foreground), record.Transform);
+            resolved[index] = new OfficeColorGlyphLayer(record.GlyphId, record.ResolveColor(colors, foreground), record.Transform,
+                record.UsesForegroundOnly);
         }
         layers = Array.AsReadOnly(resolved);
         return true;
@@ -239,6 +246,7 @@ internal sealed partial class OfficeOpenTypeColorGlyphs {
 
         internal int GlyphId { get; }
         internal LayerTransform? Transform { get; }
+        internal bool UsesForegroundOnly => Array.TrueForAll(_stops, stop => stop.PaletteEntry == ushort.MaxValue);
 
         internal OfficeColor ResolveColor(OfficeColor[] palette, OfficeColor foreground) {
             if (_stops.Length == 1 && _stops[0].Alpha == 1D && _alpha == 1D) return Entry(_stops[0].PaletteEntry);

@@ -97,56 +97,41 @@ internal static class OfficeRoundTripText
         return new string(buffer, 0, WriteOffset(target, position, value.Offset.Ticks));
     }
 
-    /// <summary>
-    /// The shortest text that parses back to <paramref name="value"/>. .NET Core 3.0 and later write it by default;
-    /// .NET Framework writes 15 digits by default, and its "R" format can return text that parses to a neighbouring
-    /// double, so the text is checked and widened to 17 digits when needed.
-    /// </summary>
-    internal static string Format(double value, CultureInfo culture)
-    {
-#if NETCOREAPP3_0_OR_GREATER
-        return value.ToString(culture);
-#else
-        // A whole number below 10^15 has at most 15 digits: "R" writes them in fixed notation, and they parse back
-        // exactly, so it is the integer's text. The integer formatter skips the round-trip check.
-        if (value != 0 && Math.Abs(value) < 1e15 && Math.Floor(value) == value)
-        {
-            return ((long)value).ToString(culture);
-        }
-
-        string text = value.ToString("R", culture);
-        if (double.IsNaN(value) || double.IsInfinity(value) ||
-            (double.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out double parsed) &&
-             BitConverter.DoubleToInt64Bits(parsed) == BitConverter.DoubleToInt64Bits(value)))
-        {
-            return text;
-        }
-
-        return value.ToString("G17", culture);
-#endif
-    }
+    /// <summary>The shortest text that parses back to <paramref name="value"/>, the same on every framework.</summary>
+    internal static string Format(double value, CultureInfo culture) => OfficeRoundTripNumberText.Format(value, culture);
 
     /// <inheritdoc cref="Format(double, CultureInfo)"/>
-    internal static string Format(float value, CultureInfo culture)
-    {
-#if NETCOREAPP3_0_OR_GREATER
-        return value.ToString(culture);
-#else
-        // Seven digits for a float, as above.
-        if (value != 0 && Math.Abs(value) < 1e7f && Math.Floor(value) == value)
-        {
-            return ((int)value).ToString(culture);
-        }
+    internal static string Format(float value, CultureInfo culture) => OfficeRoundTripNumberText.Format(value, culture);
 
-        string text = value.ToString("R", culture);
-        if (float.IsNaN(value) || float.IsInfinity(value) ||
-            (float.TryParse(text, NumberStyles.Float | NumberStyles.AllowThousands, culture, out float parsed) && parsed.Equals(value)))
-        {
-            return text;
-        }
+    /// <summary>
+    /// An <c>xsd:double</c> lexical value: the shortest round-trip text, or <c>INF</c>, <c>-INF</c> and <c>NaN</c>.
+    /// <see cref="System.Xml.XmlConvert.ToString(double)"/> writes up to 17 digits on .NET Framework and the shortest
+    /// text on .NET 8 and later; this writes the shortest text on every framework.
+    /// </summary>
+    internal static string FormatXmlDouble(double value) =>
+        double.IsNaN(value) || double.IsInfinity(value)
+            ? System.Xml.XmlConvert.ToString(value)
+            : OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture);
 
-        return value.ToString("G9", culture);
-#endif
+    /// <summary>
+    /// The shortest round-trip invariant text of a finite <paramref name="value"/> in positional notation, without an
+    /// exponent, for formats such as CSS lengths and Visio cells that are written as plain decimals.
+    /// </summary>
+    internal static string FormatPositional(double value) {
+        string text = OfficeRoundTripNumberText.Format(value, CultureInfo.InvariantCulture);
+        int exponentAt = text.IndexOf('E');
+        if (exponentAt < 0) return text;
+        bool negative = text[0] == '-';
+        int start = negative ? 1 : 0;
+        string mantissa = text.Substring(start, exponentAt - start);
+        int point = mantissa.IndexOf('.');
+        if (point < 0) point = mantissa.Length;
+        string digits = mantissa.Replace(".", string.Empty);
+        point += int.Parse(text.Substring(exponentAt + 1), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture);
+        string expanded = point <= 0 ? "0." + new string('0', -point) + digits
+            : point >= digits.Length ? digits + new string('0', point - digits.Length)
+            : digits.Insert(point, ".");
+        return negative ? "-" + expanded : expanded;
     }
 
     /// <summary>A per-thread buffer of <see cref="MaximumDateTimeLength"/> characters for the writers below.</summary>

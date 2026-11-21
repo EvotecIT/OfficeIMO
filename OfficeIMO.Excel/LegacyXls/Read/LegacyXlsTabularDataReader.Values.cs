@@ -127,9 +127,15 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         public override DateTime GetDateTime(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] == ValueKind.Date
-                ? _dates[ordinal]
-                : Convert.ToDateTime(GetValue(ordinal), _options.Culture);
+            if (_kinds[ordinal] == ValueKind.Date) return _dates[ordinal];
+            // A plain number read as a date is a serial in the workbook's date system.
+            if (_kinds[ordinal] == ValueKind.Number) {
+                return LegacyXlsDateSerialConverter.TryConvert(_numbers[ordinal], _uses1904DateSystem, out DateTime date)
+                    ? date
+                    : throw new InvalidCastException($"The XLS number '{_numbers[ordinal].ToString("R", System.Globalization.CultureInfo.InvariantCulture)}' is not a valid Excel date.");
+            }
+
+            return Convert.ToDateTime(GetValue(ordinal), _options.Culture);
         }
 
         public override Guid GetGuid(int ordinal) {

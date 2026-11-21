@@ -86,7 +86,7 @@ namespace OfficeIMO.Visio {
             return value;
         }
         private void Unmapped(uint type) { _unmapped.TryGetValue(type, out int count); _unmapped[type] = count + 1; }
-        private static XElement Cell(string name, double value) => new(Ns + name, value.ToString("R", CultureInfo.InvariantCulture));
+        private static XElement Cell(string name, double value) => new(Ns + name, OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture));
         private static XElement Cell(string name, string value) => new(Ns + name, value);
         private static XAttribute Id(uint value) => new("ID", value.ToString(CultureInfo.InvariantCulture));
     }

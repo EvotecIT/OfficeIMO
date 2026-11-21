@@ -12,7 +12,7 @@ namespace OfficeIMO.Visio {
         private static void WritePageCell(XmlWriter writer, string ns, string name, double value, string? unit = null, string? formula = null) {
             writer.WriteStartElement("Cell", ns);
             writer.WriteAttributeString("N", name);
-            writer.WriteAttributeString("V", XmlConvert.ToString(value));
+            writer.WriteAttributeString("V", OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble(value));
             if (unit != null) writer.WriteAttributeString("U", unit);
             if (formula != null) writer.WriteAttributeString("F", formula);
             writer.WriteEndElement();

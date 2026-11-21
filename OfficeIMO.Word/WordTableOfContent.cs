@@ -31,6 +31,49 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal SdtBlock SdtBlock => _sdtBlock;
 
+        internal WordDocument Document => _document;
+
+        /// <summary>
+        /// True when Word shows the stored entries of this table: their page numbers are <c>PAGEREF</c> fields, as Word
+        /// and <see cref="WordFieldUpdateOptions.UpdateTablesOfContents"/> write them, and nothing asks Word to rebuild the
+        /// table when the document opens (<see cref="WordSettings.UpdateFieldsOnOpen"/> or a dirty field). Renderers draw
+        /// such a table as stored and generate any other one from the headings, as Word shows it after the rebuild.
+        /// </summary>
+        internal bool ShowsStoredEntries {
+            get {
+                SdtContentBlock? content = _sdtBlock.SdtContentBlock;
+                if (content == null || _document.Settings.UpdateFieldsOnOpen) return false;
+                bool pageReferences = false;
+                // A complex field's instruction can be split across runs; classify it once it is complete.
+                var open = new Stack<System.Text.StringBuilder?>();
+                foreach (OpenXmlElement element in content.Descendants()) {
+                    if (element is FieldChar { Dirty.Value: true } || element is SimpleField { Dirty.Value: true }) return false;
+                    switch (element) {
+                        case SimpleField simple:
+                            pageReferences |= IsPageReference(simple.Instruction?.Value);
+                            break;
+                        case FieldChar { FieldCharType.Value: var type }:
+                            if (type == FieldCharValues.Begin) {
+                                open.Push(new System.Text.StringBuilder());
+                            } else if (open.Count > 0 && (type == FieldCharValues.Separate || type == FieldCharValues.End)) {
+                                System.Text.StringBuilder? instruction = open.Pop();
+                                if (instruction != null) pageReferences |= IsPageReference(instruction.ToString());
+                                // After the separator the field result follows; its instruction is already classified.
+                                if (type == FieldCharValues.Separate) open.Push(null);
+                            }
+                            break;
+                        case FieldCode code when open.Count > 0:
+                            open.Peek()?.Append(code.Text);
+                            break;
+                    }
+                }
+                return pageReferences;
+
+                static bool IsPageReference(string? instruction) => !string.IsNullOrWhiteSpace(instruction) &&
+                    WordFieldInventory.ParseInstruction(instruction!).FieldType == WordFieldType.PageRef;
+            }
+        }
+
         /// <summary>
         /// Gets the template style used to create this table of contents.
         /// </summary>

@@ -98,20 +98,38 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
+    // Percentage labels divide source values, so the total adds source values even when the series are
+    // plotted on a logarithmic or reversed axis.
     private static double GetDataLabelCategoryTotal(IReadOnlyList<OfficeSeries> series, int categoryIndex) {
-        double total = GetPositiveCategoryTotal(series, categoryIndex);
+        double total = 0D;
+        for (int s = 0; s < series.Count; s++) {
+            if (TryGetSourceSeriesValue(series[s], categoryIndex, out double value) && value > 0D) total += value;
+        }
+
         if (total > 0D) {
             return total;
         }
 
         for (int s = 0; s < series.Count; s++) {
-            if (TryGetSeriesValue(series[s], categoryIndex, out double value)) {
+            if (TryGetSourceSeriesValue(series[s], categoryIndex, out double value)) {
                 total += Math.Abs(value);
             }
         }
 
         return total;
     }
+
+    // A point's source value: the value itself, or what a logarithmic or reversed axis plotted it from.
+    private static bool TryGetSourceSeriesValue(OfficeSeries series, int index, out double value) {
+        if (!TryGetSeriesValue(series, index, out value)) return false;
+        value = GetSourceSeriesValue(series, index, value);
+        return IsFiniteChartValue(value);
+    }
+
+    private static double GetSourceSeriesValue(OfficeSeries series, int index, double plotted) =>
+        series.SourcePointValues != null && index >= 0 && index < series.SourcePointValues.Count
+            ? series.SourcePointValues[index]
+            : series.SourceValue != null ? series.SourceValue(plotted) : plotted;
 
     private readonly struct PercentStackedTotals {
         internal PercentStackedTotals(double[] positive, double[] negative) {
@@ -153,14 +171,16 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static ValueRange GetPercentStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
+        // A stack spans only the side its values lie on, so an all-negative stack (including a positive
+        // stack plotted on a reversed axis) fills -100% to 0.
         PercentStackedTotals totals = BuildPercentStackedTotals(series, categoryCount);
+        bool positive = false, negative = false;
         for (int category = 0; category < categoryCount; category++) {
-            if (totals.Negative[category] > 0D) {
-                return new ValueRange(-1D, 1D).AsFixed();
-            }
+            positive |= totals.Positive[category] > 0D;
+            negative |= totals.Negative[category] > 0D;
         }
 
-        return new ValueRange(0D, 1D).AsFixed();
+        return (negative ? new ValueRange(-1D, positive ? 1D : 0D) : new ValueRange(0D, 1D)).AsFixed();
     }
 
     private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeSeries> series, int categoryCount) {
@@ -291,7 +311,11 @@ public static partial class OfficeChartDrawingRenderer {
 
                 xValues.Add(xValue);
                 yValues.Add(yValue);
+                AddErrorBarExtents(series[s], seriesXValues, i, xValue, xBars: true, xValues);
+                AddErrorBarExtents(series[s], series[s].Values, i, yValue, xBars: false, yValues);
             }
+            // Office widens the x axis to show a trendline's forecasts.
+            xValues.AddRange(GetForecastXExtents(series[s], seriesXValues));
         }
 
         return xValues.Count == 0 || yValues.Count == 0
@@ -313,12 +337,68 @@ public static partial class OfficeChartDrawingRenderer {
         return new OfficePoint(centerX + Math.Cos(angle) * radius, centerY + Math.Sin(angle) * radius);
     }
 
+    /// <summary>
+    /// The plotted x values a scatter trendline's forecasts reach, for a trendline the renderer draws: forecasts extend
+    /// from the same drawable samples as the drawn curve. Forecasts are in source units, so on a logarithmic or reversed
+    /// axis they are measured there and plotted back; a forecast end the axis cannot draw is left out.
+    /// </summary>
+    private static IEnumerable<double> GetForecastXExtents(OfficeSeries series, IReadOnlyList<double> seriesX) {
+        if (series.Trendline is not OfficeChartTrendline trendline || trendline.Type == OfficeChartTrendlineType.MovingAverage ||
+            trendline.Forward <= 0D && trendline.Backward <= 0D) yield break;
+        Func<double, double>? toPlot = series.SourceXValue != null ? series.PlotXValue : null;
+        GetTrendlineSamples(series, seriesX, out List<double> xs, out List<double> ys);
+        Func<double, double>? plotValue = series.SourceValue != null ? series.PlotValue : null;
+        if (!TryFitDrawableTrendline(trendline, xs, ys, toPlot, plotValue, out _, out _, out _, out double[] drawable)) yield break;
+        double first = drawable.Min() - trendline.Backward;
+        double last = drawable.Max() + trendline.Forward;
+        if (toPlot != null) {
+            first = toPlot(first);
+            last = toPlot(last);
+        }
+        if (IsFiniteChartValue(first)) yield return first;
+        if (IsFiniteChartValue(last)) yield return last;
+    }
+
+    // Office's automatic value axis scale also covers the reach of the series' error bars.
+    private static void AddErrorBarExtents(OfficeSeries series, IReadOnlyList<double> values, int index, double value, bool xBars,
+        List<double> extents) {
+        if (series.ErrorBars == null) return;
+        foreach (OfficeChartErrorBars bars in series.ErrorBars) {
+            if (bars.AlongCategoryAxis != xBars ||
+                !TryGetPlottedErrorSpan(series, bars, index, value, 0D, xBars, values, out _, out double minusEnd, out double plusEnd)) continue;
+            // An end past a logarithmic axis edge does not stretch the axis.
+            if (IsFiniteChartValue(minusEnd)) extents.Add(minusEnd);
+            if (IsFiniteChartValue(plusEnd)) extents.Add(plusEnd);
+        }
+    }
+
+    /// <summary>The plotted reach of a series' error bars along one axis, for the points it plots.</summary>
+    private static IEnumerable<double> GetErrorBarExtents(OfficeSeries series, bool xBars) {
+        if (series.ErrorBars == null) return Array.Empty<double>();
+        IReadOnlyList<double>? values = xBars ? series.XValues : series.Values;
+        if (values == null) return Array.Empty<double>();
+        var extents = new List<double>();
+        for (int index = 0; index < values.Count && index < series.Values.Count; index++) {
+            if (!IsFiniteChartValue(values[index]) || !TryGetSeriesValue(series, index, out _)) continue;
+            AddErrorBarExtents(series, values, index, values[index], xBars, extents);
+        }
+        return extents;
+    }
+
     private static ValueRange GetFiniteSeriesRange(IReadOnlyList<OfficeSeries> series) {
         bool any = false;
         double min = 0D;
         double max = 0D;
         foreach (OfficeSeries item in series) {
-            foreach (double value in item.Values) {
+            IReadOnlyList<double> extents = item.Values;
+            if (item.ErrorBars != null) {
+                var withBars = new List<double>(item.Values);
+                for (int index = 0; index < item.Values.Count; index++)
+                    if (IsFiniteChartValue(item.Values[index]))
+                        AddErrorBarExtents(item, item.Values, index, item.Values[index], xBars: false, withBars);
+                extents = withBars;
+            }
+            foreach (double value in extents) {
                 if (double.IsNaN(value) || double.IsInfinity(value)) {
                     continue;
                 }
@@ -536,6 +616,8 @@ public static partial class OfficeChartDrawingRenderer {
             return automaticTicks.Count >= 2 ? automaticTicks : new[] { range.Min, range.Max };
         }
 
+        // A unit longer than the axis, as on a logarithmic axis whose bounds lie within one power, leaves the bounds.
+        if (majorUnit.Value > span) return new[] { range.Min, range.Max };
         if (ExceedsAxisUnitBudget(range, majorUnit, 32))
             throw new NotSupportedException("The chart major-axis unit exceeds the renderer tick budget.");
 
@@ -634,11 +716,10 @@ public static partial class OfficeChartDrawingRenderer {
         return GetCategoryPointX(plotLeft, step, categoryIndex, categoryCount, layout);
     }
 
-    // A column plot uses category slots, so its line and area companions pass
-    // through the same slot centers, including on a reversed axis.
+    // OOXML midCat puts every category, bars included, on a tick mark; between centres them in slots.
+    // A single category has no tick-mark span, so it is centred, with its label, either way.
     private static bool UsesTickMarkCategoryPoints(OfficeChartSnapshot snapshot, OfficeChartLayout layout) =>
-        layout.CategoryPointsOnTickMarks &&
-        !snapshot.Data.Series.Any(series => IsColumnChart(GetEffectiveSeriesKind(snapshot, series)));
+        layout.CategoryPointsOnTickMarks && snapshot.Data.Categories.Count > 1;
 
     private static ValueRange GetFiniteRange(IReadOnlyList<double> values) {
         bool any = false;

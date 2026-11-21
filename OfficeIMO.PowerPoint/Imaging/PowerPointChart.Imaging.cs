@@ -36,10 +36,14 @@ public partial class PowerPointChart {
     private OfficeChartImageSource CreateImageSource() {
         string name = Name is { Length: > 0 } shapeName ? shapeName : "Chart";
         string source = "PowerPoint chart '" + name + "'";
-        return new OfficeChartImageSource("PowerPoint", name, source, Width, Height, (width, height, diagnostics) => {
+        return new OfficeChartImageSource("PowerPoint", name, source, Width, Height, (width, height, fidelity, diagnostics) => {
+            using var scope = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Enter(fidelity);
             if (!TryGetOfficeSnapshot(width, height, out OfficeChartSnapshot snapshot, out string? reason, out string? projectionNotice)) {
                 throw new NotSupportedException(OfficeChartImageExporter.UnsupportedChartMessage + reason);
             }
+            foreach (string approximation in scope.Approximations)
+                diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                    OfficeDiagnosticCodes.ChartApproximation, approximation, source, OfficeConversionLossKind.Approximation));
             if (projectionNotice != null) {
                 diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
                     PowerPointImageExportDiagnosticCodes.ChartProjected, projectionNotice, source,

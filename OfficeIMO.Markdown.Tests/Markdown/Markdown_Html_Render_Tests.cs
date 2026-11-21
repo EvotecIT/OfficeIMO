@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
                 .WithColors(accent: "SeaGreen", heading: "#064e3b", text: "#102030", background: "#f7fbff");
-            theme.Table.BorderWidth = OfficeLength.Points(0.9);
+            theme.Table.BorderWidth = OfficeLength.Points(0.7);
             theme.Table.CellPaddingX = OfficeLength.Pixels(11);
             theme.Table.CellPaddingY = OfficeLength.Inches(5D / 96D);
             theme.Table.EmphasizeHeader = false;
@@ -199,9 +199,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("--md-heading: #064e3b", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body { color: #102030; background: #f7fbff; }", html, StringComparison.Ordinal);
             Assert.Contains("border-color: #a7f3d0", html, StringComparison.Ordinal);
-            Assert.Contains("border-width: 1.2px", html, StringComparison.Ordinal);
+            // 0.7pt is 0.9333333333333333px, which .NET Framework's general format shortened to 15 digits.
+            Assert.Contains("border-width: 0.9333333333333333px", html, StringComparison.Ordinal);
             Assert.Contains("article.markdown-body th { background: transparent; color: inherit; }", html, StringComparison.Ordinal);
-            Assert.Contains("article.markdown-body th, article.markdown-body td { border-color: #a7f3d0; border-width: 1.2px; padding: 5px 11px; }", html, StringComparison.Ordinal);
+            Assert.Contains("article.markdown-body th, article.markdown-body td { border-color: #a7f3d0; border-width: 0.9333333333333333px; padding: 5px 11px; }", html, StringComparison.Ordinal);
             Assert.Contains("padding: 5px 11px", html, StringComparison.Ordinal);
             Assert.Contains("tbody tr:nth-child(2n) { background-color: transparent; }", html, StringComparison.Ordinal);
             Assert.DoesNotContain("tbody tr:nth-child(even)", html, StringComparison.Ordinal);

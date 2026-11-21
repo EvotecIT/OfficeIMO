@@ -38,10 +38,14 @@ public partial class WordChart {
         string source = "Word chart '" + name + "'";
         return new OfficeChartImageSource("Word", name, source,
             OfficeLength.Points(GetWidthPoints()), OfficeLength.Points(GetHeightPoints()),
-            (width, height, diagnostics) => {
+            (width, height, fidelity, diagnostics) => {
+                using var scope = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Enter(fidelity);
                 if (!TryGetOfficeSnapshot(width, height, out OfficeChartSnapshot snapshot, out string? reason, out string? projectionNotice)) {
                     throw new NotSupportedException(OfficeChartImageExporter.UnsupportedChartMessage + (reason ?? "the chart could not be projected."));
                 }
+                foreach (string approximation in scope.Approximations)
+                    diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+                        OfficeDiagnosticCodes.ChartApproximation, approximation, source, OfficeConversionLossKind.Approximation));
                 if (projectionNotice != null) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
                         OfficeDiagnosticCodes.ChartFlattened, projectionNotice, source, OfficeConversionLossKind.Approximation));

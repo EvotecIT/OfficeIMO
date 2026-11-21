@@ -11,7 +11,7 @@ Creates discoverable Excel-to-PDF conversion options for Convert-OfficeDocument 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeExcelPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-PageSize <PdfPageSize>] [-MarginLeft <OfficeLength>] [-MarginTop <OfficeLength>] [-MarginRight <OfficeLength>] [-MarginBottom <OfficeLength>] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-Sheet <OfficeSheetSelector[]>] [-RespectWorkbookSheetVisibility] [-UseWorksheetPrintAreas] [-UseWorksheetPageSetup] [-UseWorksheetPrintTitleRows] [-UseWorksheetPageBreaks] [-UseWorksheetHeadersAndFooters] [-UseWorksheetHeaderFooterImages] [-UseWorksheetCellStyles] [-UseWorksheetHyperlinks] [-UseWorksheetImages] [-UseWorksheetCharts] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-UseWorksheetMergedCells] [-UseWorksheetColumnWidths] [-UseWorksheetRowHeights] [-RespectWorksheetHiddenRowsAndColumns] [-IncludeSheetHeadings] [-HeaderRowCount <Int32>] [-MaxRowsPerSheet <Int32>] [-UseBoundedWorksheetRead] [-EmptyCellText <string>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeExcelPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-PageSize <PdfPageSize>] [-MarginLeft <OfficeLength>] [-MarginTop <OfficeLength>] [-MarginRight <OfficeLength>] [-MarginBottom <OfficeLength>] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-Sheet <OfficeSheetSelector[]>] [-RespectWorkbookSheetVisibility] [-UseWorksheetPrintAreas] [-UseWorksheetPageSetup] [-UseWorksheetPrintTitleRows] [-UseWorksheetPageBreaks] [-UseWorksheetHeadersAndFooters] [-UseWorksheetHeaderFooterImages] [-UseWorksheetCellStyles] [-UseWorksheetHyperlinks] [-UseWorksheetImages] [-UseWorksheetCharts] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-UseWorksheetMergedCells] [-UseWorksheetColumnWidths] [-UseWorksheetRowHeights] [-RespectWorksheetHiddenRowsAndColumns] [-IncludeSheetHeadings] [-HeaderRowCount <Int32>] [-MaxRowsPerSheet <Int32>] [-UseBoundedWorksheetRead] [-EmptyCellText <string>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [-ChartFidelity <OfficeChartFidelity>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -62,6 +62,22 @@ Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ChartFidelity
+Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.
+
+```yaml
+Type: OfficeChartFidelity
+Parameter Sets: Default
+Aliases: None
+Possible values: Strict, BestEffort
 
 Required: False
 Position: named

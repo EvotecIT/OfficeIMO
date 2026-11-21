@@ -115,7 +115,7 @@ internal static class ExcelXmlTableCodec {
         }
         object scalar = DataType(type).IsInstanceOfType(value) ? value : Parse(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty, type);
         return type switch {
-            ExcelXmlTableValueType.Number => !double.IsNaN((double)scalar) && !double.IsInfinity((double)scalar) ? XmlConvert.ToString((double)scalar) : throw new InvalidDataException("XML table number must be finite."),
+            ExcelXmlTableValueType.Number => !double.IsNaN((double)scalar) && !double.IsInfinity((double)scalar) ? OfficeIMO.Core.Internal.OfficeRoundTripText.FormatXmlDouble((double)scalar) : throw new InvalidDataException("XML table number must be finite."),
             ExcelXmlTableValueType.Boolean => XmlConvert.ToString((bool)scalar),
             ExcelXmlTableValueType.DateTime => XmlConvert.ToString((DateTime)scalar, XmlDateTimeSerializationMode.Unspecified),
             _ => throw new InvalidDataException("Unsupported XML table scalar type.") };

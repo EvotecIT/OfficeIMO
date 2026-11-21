@@ -529,9 +529,9 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append(", ")
                     .Append(snapshot.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                     .Append("; Size: ")
-                    .Append(snapshot.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
+                    .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(snapshot.Width.ToPixels()))
                     .Append("x")
-                    .Append(snapshot.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
+                    .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(snapshot.Height.ToPixels()))
                     .Append("</div>");
             }
 
@@ -628,12 +628,12 @@ public static partial class ExcelHtmlConverterExtensions {
                 body.Append("<td");
                 if (series.XValues != null && i < series.XValues.Count) {
                     body.Append(" data-officeimo-x=\"")
-                        .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))
+                        .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(series.XValues[i], CultureInfo.InvariantCulture)))
                         .Append('"');
                 }
 
                 body.Append('>')
-                    .Append(series.Values[i].ToString("G17", CultureInfo.InvariantCulture))
+                    .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(series.Values[i], CultureInfo.InvariantCulture))
                     .Append("</td>");
             }
 
@@ -706,13 +706,13 @@ public static partial class ExcelHtmlConverterExtensions {
                 .Append(", ")
                 .Append(image.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                 .Append("; Size: ")
-                .Append(image.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.Width.ToPixels()))
                 .Append("x")
-                .Append(image.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.Height.ToPixels()))
                 .Append("; Offset: ")
-                .Append(image.OffsetX.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.OffsetX.ToPixels()))
                 .Append(", ")
-                .Append(image.OffsetY.ToPixels().ToString(CultureInfo.InvariantCulture))
+                .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(image.OffsetY.ToPixels()))
                 .Append("; Type: ")
                 .Append(OfficeHtmlText.Escape(image.ContentType))
                 .Append("</div>");
@@ -755,7 +755,7 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append(' ')
             .Append(name)
             .Append("=\"")
-            .Append(value.ToString("G17", CultureInfo.InvariantCulture))
+            .Append(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture))
             .Append('"');
     }
 

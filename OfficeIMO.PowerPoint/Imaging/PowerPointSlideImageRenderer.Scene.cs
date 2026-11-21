@@ -75,7 +75,7 @@ internal static partial class PowerPointSlideImageRenderer {
             } else if (shape is PowerPointTable table) {
                 AddTable(drawing, table, diagnostics, mapping, colorScheme);
             } else if (shape is PowerPointChart chart) {
-                AddChart(drawing, chart, diagnostics, mapping, colorScheme);
+                AddChart(drawing, chart, diagnostics, mapping, colorScheme, options.ChartRendering.Fidelity);
             } else if (shape is PowerPointSmartArt smartArt) {
                 // Office caches the laid-out SmartArt shapes for exactly this purpose.
                 if (smartArt.TryCreateCachedDrawing(out PowerPointGroupShape cachedDrawing, out string? cachedDrawingFailure)) {

@@ -20,6 +20,12 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
+        private const double NativeAutomaticParagraphSpacing = 14D;
+
+        private static bool IsNativeFirstBodyParagraph(WordParagraph paragraph) =>
+            paragraph._paragraph != null && ReferenceEquals(paragraph._paragraph, paragraph._document?
+                ._wordprocessingDocument.MainDocumentPart?.Document?.Body?.Descendants<W.Paragraph>().FirstOrDefault());
+
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) =>
             CreateNativeParagraphStyle(paragraph, GetNativeDocumentDefaults(paragraph._document));
 
@@ -39,7 +45,12 @@ namespace OfficeIMO.Word.Pdf {
             style.LineSpacing = lineSpacing.ToPdfLineSpacing(naturalLineHeight);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
             var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
-            if (spacingInLines.Before.HasValue) {
+            NativeParagraphSpacing resolvedSpacing = ResolveNativeParagraphSpacing(paragraph, styleDefaults, nativeDefaults);
+            if (resolvedSpacing.BeforeAuto == true) {
+                // Automatic (HTML) spacing replaces the authored value. Word omits it
+                // before the first paragraph of the document.
+                style.SpacingBefore = NativeSpacingLength(IsNativeFirstBodyParagraph(paragraph) ? 0D : NativeAutomaticParagraphSpacing, before: true);
+            } else if (spacingInLines.Before.HasValue) {
                 style.SpacingBefore = NativeSpacingLength(spacingInLines.Before.Value, before: true);
             } else if (paragraph.LineSpacingBefore.HasValue) {
                 style.SpacingBefore = paragraph.LineSpacingBefore.Value;
@@ -51,7 +62,9 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingBefore = NativeSpacingLength(nativeDefaults.ParagraphSpacingBefore, before: true);
             }
 
-            if (spacingInLines.After.HasValue) {
+            if (resolvedSpacing.AfterAuto == true) {
+                style.SpacingAfter = NativeSpacingLength(NativeAutomaticParagraphSpacing, before: false);
+            } else if (spacingInLines.After.HasValue) {
                 style.SpacingAfter = NativeSpacingLength(spacingInLines.After.Value, before: false);
             } else if (paragraph.LineSpacingAfter.HasValue) {
                 style.SpacingAfter = paragraph.LineSpacingAfter.Value;
@@ -89,7 +102,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.DefaultTabStopWidth = global::OfficeIMO.OfficeLength.Points(nativeDefaults.DefaultTabStopWidth.Value);
             }
 
-            if (!spacingInLines.After.HasValue && !paragraph.LineSpacingAfter.HasValue &&
+            if (resolvedSpacing.AfterAuto != true && !spacingInLines.After.HasValue && !paragraph.LineSpacingAfter.HasValue &&
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&
                 !styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = NativeSpacingLength(nativeDefaults.ParagraphSpacingAfter, before: false);

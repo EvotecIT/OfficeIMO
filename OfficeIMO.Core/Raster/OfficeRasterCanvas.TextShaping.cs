@@ -112,7 +112,7 @@ public sealed partial class OfficeRasterCanvas {
             foreach (OfficeColorGlyphContours layer in colorLayers) {
                 inkBottom = Math.Max(inkBottom, FindMaximumContourY(layer.Contours));
                 if ((simulatedStyle & OfficeFontStyle.Italic) == OfficeFontStyle.Italic) SlantContours(layer.Contours, originY, size);
-                FillTextContours(layer.Contours, layer.Color, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
+                PaintColorGlyphLayer(layer, (simulatedStyle & OfficeFontStyle.Bold) != 0 ? OfficeSyntheticTextStyle.BoldOffset(size) : 0D);
             }
             DrawVerticalTextDecorations(originX, y, height, inkBottom, size, style,
                 underlineStyle, strikethroughStyle, decorationColor ?? color);

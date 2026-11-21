@@ -44,10 +44,10 @@ namespace OfficeIMO.Excel {
             => new(name, values, xValues: null, chartType, axisGroup, seriesColorArgb: null, seriesLineWidth: null, seriesLineDashStyle: null, pointColorArgb: null, showMarkers: true, connectLine: true, markerSize: null, markerShape: null, markerOutlineColorArgb: null, markerOutlineWidth: null, ownsValues: true);
 
         internal ExcelChartSeries WithXValues(IReadOnlyList<double>? xValues) =>
-            new(Name, Values, xValues, ChartType, AxisGroup, SeriesColorArgb, _seriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, _markerSize, MarkerShape, MarkerOutlineColorArgb, _markerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) { SeriesStyle = SeriesStyle, PointStyles = PointStyles, PointExplosions = PointExplosions, HasAutomaticColor = HasAutomaticColor, Trendline = Trendline };
+            new(Name, Values, xValues, ChartType, AxisGroup, SeriesColorArgb, _seriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, _markerSize, MarkerShape, MarkerOutlineColorArgb, _markerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) { SeriesStyle = SeriesStyle, PointStyles = PointStyles, PointExplosions = PointExplosions, HasAutomaticColor = HasAutomaticColor, Trendline = Trendline, ErrorBars = ErrorBars };
 
         internal ExcelChartSeries WithValuesAndXValues(IReadOnlyList<double> values, IReadOnlyList<double>? xValues) =>
-            new(Name, values, xValues, ChartType, AxisGroup, SeriesColorArgb, _seriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, _markerSize, MarkerShape, MarkerOutlineColorArgb, _markerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) { SeriesStyle = SeriesStyle, PointStyles = PointStyles?.Count == values.Count ? PointStyles : null, PointExplosions = PointExplosions?.Count == values.Count ? PointExplosions : null, HasAutomaticColor = HasAutomaticColor, Trendline = Trendline };
+            new(Name, values, xValues, ChartType, AxisGroup, SeriesColorArgb, _seriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine, _markerSize, MarkerShape, MarkerOutlineColorArgb, _markerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) { SeriesStyle = SeriesStyle, PointStyles = PointStyles?.Count == values.Count ? PointStyles : null, PointExplosions = PointExplosions?.Count == values.Count ? PointExplosions : null, HasAutomaticColor = HasAutomaticColor, Trendline = Trendline, ErrorBars = ErrorBars };
 
         internal ExcelChartSeries WithImageExportStyle(string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool? connectLine, OfficeLength? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool automaticColor = false) =>
             new(Name, Values, XValues, ChartType, AxisGroup, seriesColorArgb ?? SeriesColorArgb, seriesLineWidth ?? _seriesLineWidth, seriesLineDashStyle ?? SeriesLineDashStyle, pointColorArgb ?? PointColorArgb, showMarkers, connectLine ?? ConnectLine, markerSize ?? _markerSize, markerShape ?? MarkerShape, markerOutlineColorArgb ?? MarkerOutlineColorArgb, markerOutlineWidth ?? _markerOutlineWidth, ownsValues: false, bubbleSizes: BubbleSizes) {
@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel {
                 PointStyles = PointStyles,
                 PointExplosions = PointExplosions,
                 HasAutomaticColor = automaticColor && seriesColorArgb != null,
-                Trendline = Trendline
+                Trendline = Trendline, ErrorBars = ErrorBars
             };
 
         /// <summary>Whether the series colour was resolved from the chart style and theme rather than stored.</summary>
@@ -71,6 +71,15 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Trendline read from the native series for rendering.</summary>
         internal OfficeChartTrendline? Trendline { get; private set; }
+
+        /// <summary>Error bars read from the native series for rendering.</summary>
+        internal IReadOnlyList<OfficeChartErrorBars>? ErrorBars { get; private set; }
+
+        internal ExcelChartSeries WithErrorBars(IReadOnlyList<OfficeChartErrorBars>? errorBars) {
+            ExcelChartSeries copy = WithTrendline(Trendline);
+            copy.ErrorBars = errorBars;
+            return copy;
+        }
 
         internal ExcelChartSeries WithTrendline(OfficeChartTrendline? trendline) {
             var copy = WithPointStyles(PointStyles);
@@ -95,7 +104,7 @@ namespace OfficeIMO.Excel {
                 PointStyles = styles,
                 PointExplosions = PointExplosions,
                 HasAutomaticColor = HasAutomaticColor,
-                Trendline = Trendline
+                Trendline = Trendline, ErrorBars = ErrorBars
             };
 
         internal ExcelChartSeries WithPointExplosions(IReadOnlyList<int>? explosions) =>
@@ -106,7 +115,7 @@ namespace OfficeIMO.Excel {
                 PointStyles = PointStyles,
                 PointExplosions = explosions,
                 HasAutomaticColor = HasAutomaticColor,
-                Trendline = Trendline
+                Trendline = Trendline, ErrorBars = ErrorBars
             };
 
         /// <summary>
@@ -130,7 +139,7 @@ namespace OfficeIMO.Excel {
                 PointStyles = PointStyles,
                 PointExplosions = PointExplosions,
                 HasAutomaticColor = HasAutomaticColor,
-                Trendline = Trendline
+                Trendline = Trendline, ErrorBars = ErrorBars
             };
 
         /// <summary>

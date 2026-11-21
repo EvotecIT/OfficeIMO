@@ -3,8 +3,9 @@ using System.Globalization;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
-    private static double GetSeriesLegendWidth(IReadOnlyList<OfficeSeries> series, double chartWidth, OfficeChartLayout layout) {
-        if (!ShouldRenderLegendSide(layout) || chartWidth < 180D) {
+    private static double GetSeriesLegendWidth(IReadOnlyList<OfficeSeries> series, double chartWidth, OfficeChartLayout layout,
+        bool overlaid = false) {
+        if (!ShouldRenderLegendSide(layout, overlaid) || chartWidth < 180D) {
             return 0D;
         }
 
@@ -39,8 +40,9 @@ public static partial class OfficeChartDrawingRenderer {
         return BoundLegendWidth(Math.Max(58D, widest + 34D), chartWidth, layout.SeriesLegendWidthRatio);
     }
 
-    private static double GetCategoryLegendWidth(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout) {
-        if (!ShouldRenderLegendSide(layout) || chartWidth < 180D) {
+    private static double GetCategoryLegendWidth(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout,
+        bool overlaid = false) {
+        if (!ShouldRenderLegendSide(layout, overlaid) || chartWidth < 180D) {
             return 0D;
         }
 
@@ -189,8 +191,9 @@ public static partial class OfficeChartDrawingRenderer {
         return GetLegendBandHeight(legendIndexes.Select(index => categories[index]), chartWidth, layout);
     }
 
-    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered) {
-        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+    // A placed band (one with a height) is drawn where its manual layout puts it, even over the plot.
+    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, OfficeChartType chartKind = OfficeChartType.ColumnClustered, double? placedHeight = null) {
+        if ((placedHeight.HasValue ? !layout.ShowLegend : !ShouldRenderLegendBand(layout)) || width < 48D) {
             return;
         }
 
@@ -209,8 +212,13 @@ public static partial class OfficeChartDrawingRenderer {
             layout,
             legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList(),
             legendIndexes.Select(index => series[index].SeriesStyle).ToList(),
-            legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList());
+            legendIndexes.Select(index => UsesLineLegendSwatch(series[index], chartKind)).ToList(),
+            GetLegendBandRows(placedHeight, layout));
     }
+
+    // An automatic band shows up to two rows; a placed band shows as many as its height holds.
+    private static int GetLegendBandRows(double? placedHeight, OfficeChartLayout layout) =>
+        placedHeight is double height ? Math.Max(1, (int)Math.Floor((height - 4D) / layout.LegendRowHeight)) : 2;
 
     // Line series are keyed by a short stroke rather than a filled square, as in Office.
     private static bool UsesLineLegendSwatch(OfficeSeries series, OfficeChartType chartKind) {
@@ -240,8 +248,8 @@ public static partial class OfficeChartDrawingRenderer {
         return indexes;
     }
 
-    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null) {
-        if (!ShouldRenderLegendBand(layout) || width < 48D) {
+    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, double? placedHeight = null) {
+        if ((placedHeight.HasValue ? !layout.ShowLegend : !ShouldRenderLegendBand(layout)) || width < 48D) {
             return;
         }
 
@@ -259,7 +267,8 @@ public static partial class OfficeChartDrawingRenderer {
             style,
             layout,
             legendIndexes.Select(index => (OfficeColor?)GetPointColor(style, pointColors, index)).ToList(),
-            pointStyles == null ? null : legendIndexes.Select(index => GetPointStyle(pointStyles, index)).ToList());
+            pointStyles == null ? null : legendIndexes.Select(index => GetPointStyle(pointStyles, index)).ToList(),
+            maximumRows: GetLegendBandRows(placedHeight, layout));
     }
 
     private static List<int> GetCategoryLegendIndexes(IReadOnlyList<string> categories, OfficeChartLayout layout) {
@@ -284,9 +293,10 @@ public static partial class OfficeChartDrawingRenderer {
         !layout.OverlayLegend &&
         (layout.LegendPosition == OfficeChartLegendPosition.Top || layout.LegendPosition == OfficeChartLegendPosition.Bottom);
 
-    private static bool ShouldRenderLegendSide(OfficeChartLayout layout) =>
+    // A side legend takes a column beside the plot; overlaid also counts a legend drawn over the plot.
+    private static bool ShouldRenderLegendSide(OfficeChartLayout layout, bool overlaid = false) =>
         layout.ShowLegend &&
-        !layout.OverlayLegend &&
+        (overlaid || !layout.OverlayLegend) &&
         (layout.LegendPosition == OfficeChartLegendPosition.Left || layout.LegendPosition == OfficeChartLegendPosition.Right ||
          layout.LegendPosition == OfficeChartLegendPosition.TopRight);
 
@@ -301,14 +311,14 @@ public static partial class OfficeChartDrawingRenderer {
         return rows * layout.LegendRowHeight + 4D;
     }
 
-    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, IReadOnlyList<bool>? lineSwatches = null) {
+    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null, IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, IReadOnlyList<bool>? lineSwatches = null, int maximumRows = 2) {
         List<string?> labelList = labels.ToList();
         if (labelList.Count == 0) {
             return;
         }
 
         int columns = GetLegendBandColumns(labelList, width, layout);
-        int visibleCount = Math.Min(labelList.Count, columns * 2);
+        int visibleCount = (int)Math.Min(labelList.Count, (long)columns * maximumRows);
         // Entries sit together at their measured width instead of spreading across the chart:
         // a top legend starts at the left edge under the title, a bottom legend is centred.
         double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
@@ -416,7 +426,8 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         int stride = Math.Max(1, (int)Math.Ceiling(categories.Count / (double)layout.MaximumHorizontalCategoryAxisLabels));
-        double slot = plotHeight / categories.Count;
+        bool onTickMarks = layout.CategoryPointsOnTickMarks && categories.Count > 1;
+        double slot = plotHeight / (onTickMarks ? categories.Count - 1 : categories.Count);
         if (layout.PreventLabelOverlap) {
             stride = EnsureLabelStride(stride, slot, 10D + 2D);
         }
@@ -428,7 +439,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             int categorySlot = GetHorizontalBarCategorySlotIndex(i, categories.Count, layout);
-            double centerY = plotTop + slot * categorySlot + slot / 2D;
+            double centerY = plotTop + slot * categorySlot + (onTickMarks ? 0D : slot / 2D);
             double labelHeight = GetAxisLabelBoxHeight(layout);
             AddChartText(drawing, label, labelLeft, centerY - labelHeight / 2D, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
@@ -440,7 +451,7 @@ public static partial class OfficeChartDrawingRenderer {
             double tick = ticks[i];
             double labelHeight = GetAxisLabelBoxHeight(layout);
             double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight) - labelHeight / 2D;
-            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor), labelLeft, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            AddChartText(drawing, FormatAxisValue(GetAxisSourceValue(tick, layout, horizontal: false), layout, percentDefault, layout.VerticalAxisNumberFormat, layout.VerticalAxisDisplayUnitDivisor), labelLeft, y, labelWidth, labelHeight, layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
 
         // The units label sits just clear of the top tick label.
@@ -462,7 +473,7 @@ public static partial class OfficeChartDrawingRenderer {
                 : tick >= range.Max
                     ? Math.Max(0D, x - labelWidth + 2D)
                     : Math.Max(0D, x - labelWidth / 2D);
-            AddChartText(drawing, FormatAxisValue(tick, layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), textLeft, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            AddChartText(drawing, FormatAxisValue(GetAxisSourceValue(tick, layout, horizontal: true), layout, percentDefault, layout.HorizontalAxisNumberFormat, layout.HorizontalAxisDisplayUnitDivisor), textLeft, labelY, labelWidth, GetAxisLabelBoxHeight(layout), layout.AxisLabelFontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
         }
 
         AddAxisDisplayUnitLabel(drawing, layout.HorizontalAxisDisplayUnitLabel, plotLeft + plotWidth - 58D, labelsAbovePlot ? labelY - 11D : labelY + 11D, 58D, style, layout, OfficeTextAlignment.Right);
@@ -556,6 +567,9 @@ public static partial class OfficeChartDrawingRenderer {
             rotationCenterY: top + length / 2D);
     }
 
+    // How far outside the radar web a category label's centre sits.
+    private const double RadarCategoryLabelOffset = 13D;
+
     private static void AddRadarCategoryLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double centerX, double centerY, double radius, OfficeChartStyle style, OfficeChartLayout layout) {
         if (categories.Count == 0) {
             return;
@@ -563,7 +577,7 @@ public static partial class OfficeChartDrawingRenderer {
 
         int stride = Math.Max(1, (int)Math.Ceiling(categories.Count / (double)layout.MaximumRadarCategoryLabels));
         if (layout.PreventLabelOverlap) {
-            double circumferenceStep = Math.PI * 2D * Math.Max(1D, radius + 13D) / categories.Count;
+            double circumferenceStep = Math.PI * 2D * Math.Max(1D, radius + RadarCategoryLabelOffset) / categories.Count;
             stride = EnsureLabelStride(stride, circumferenceStep, layout.RadarCategoryLabelWidth * 0.7D);
         }
 
@@ -576,8 +590,8 @@ public static partial class OfficeChartDrawingRenderer {
             double angle = -Math.PI / 2D + Math.PI * 2D * i / categories.Count;
             double labelWidth = layout.RadarCategoryLabelWidth;
             double labelHeight = GetAxisLabelBoxHeight(layout);
-            double x = centerX + Math.Cos(angle) * (radius + 13D) - labelWidth / 2D;
-            double y = centerY + Math.Sin(angle) * (radius + 13D) - labelHeight / 2D;
+            double x = centerX + Math.Cos(angle) * (radius + RadarCategoryLabelOffset) - labelWidth / 2D;
+            double y = centerY + Math.Sin(angle) * (radius + RadarCategoryLabelOffset) - labelHeight / 2D;
             OfficeTextAlignment alignment = Math.Cos(angle) < -0.25D
                 ? OfficeTextAlignment.Right
                 : Math.Cos(angle) > 0.25D
@@ -703,90 +717,14 @@ public static partial class OfficeChartDrawingRenderer {
 
         if (!double.TryParse(label, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value))
             return label;
-        if (TryFormatSerialDate(value, layout.CategoryAxisNumberFormat!, out string? date)) return date!;
         return TryFormatDataLabelValue(value, layout.CategoryAxisNumberFormat, out string? formatted)
             ? formatted!
             : label;
     }
 
-    // Date and time category axes cache spreadsheet serial numbers (1900 date system) and
-    // format them with an Excel date format such as m/d/yyyy.
-    private static bool TryFormatSerialDate(double serial, string numberFormat, out string? formatted) {
-        formatted = null;
-        if (serial < 0D || serial > 2958465D || numberFormat.Length > OfficeChartLayout.MaxNumberFormatLength) return false;
-        string section = numberFormat.Split(';')[0];
-        var pattern = new System.Text.StringBuilder();
-        bool hasDate = false, hasHours = false, twelveHour = section.IndexOf("AM/PM", StringComparison.OrdinalIgnoreCase) >= 0;
-        for (int i = 0; i < section.Length;) {
-            char c = section[i];
-            if (c == '"') {
-                int end = section.IndexOf('"', i + 1);
-                if (end < 0) return false;
-                AppendLiteral(pattern, section.Substring(i + 1, end - i - 1));
-                i = end + 1;
-                continue;
-            }
-            if (c == '\\' && i + 1 < section.Length) {
-                AppendLiteral(pattern, section[i + 1].ToString());
-                i += 2;
-                continue;
-            }
-            if (c == '[') {
-                int end = section.IndexOf(']', i);
-                if (end < 0) return false;
-                i = end + 1;
-                continue;
-            }
-            if (string.Compare(section, i, "AM/PM", 0, 5, StringComparison.OrdinalIgnoreCase) == 0) {
-                pattern.Append("tt");
-                i += 5;
-                continue;
-            }
-            char lower = char.ToLowerInvariant(c);
-            if (lower is 'y' or 'm' or 'd' or 'h' or 's') {
-                int run = 1;
-                while (i + run < section.Length && char.ToLowerInvariant(section[i + run]) == lower) run++;
-                switch (lower) {
-                    case 'y': pattern.Append(run <= 2 ? "yy" : "yyyy"); hasDate = true; break;
-                    case 'd': pattern.Append(run == 1 ? "d" : run == 2 ? "dd" : run == 3 ? "ddd" : "dddd"); hasDate = true; break;
-                    case 'h': pattern.Append(twelveHour ? (run == 1 ? "h" : "hh") : (run == 1 ? "H" : "HH")); hasHours = true; break;
-                    case 's': pattern.Append(run == 1 ? "s" : "ss"); break;
-                    default:
-                        // m after an hour or before seconds means minutes.
-                        string rest = section.Substring(i + run).TrimStart(':', ' ');
-                        bool minutes = hasHours && pattern.ToString().TrimEnd(':', ' ').EndsWith("H", StringComparison.OrdinalIgnoreCase) ||
-                            rest.StartsWith("s", StringComparison.OrdinalIgnoreCase);
-                        if (minutes) pattern.Append(run == 1 ? "m" : "mm");
-                        else {
-                            pattern.Append(run == 1 ? "M" : run == 2 ? "MM" : run == 3 ? "MMM" : "MMMM");
-                            hasDate = true;
-                        }
-                        break;
-                }
-                i += run;
-                continue;
-            }
-            if (c is '0' or '#' or '?' or '%' or 'E' or 'e' or '@') return false;
-            AppendLiteral(pattern, c.ToString());
-            i++;
-        }
-        if (!hasDate && !hasHours) return false;
-        // Excel counts 1900-02-29, so serials from 61 on are one day ahead of the calendar.
-        DateTime date = new DateTime(1899, 12, serial >= 61D ? 30 : 31).AddDays(serial);
-        string datePattern = pattern.ToString();
-        // A single DateTime format character is interpreted as a standard format.
-        // Excel's one-letter date tokens are custom formats instead.
-        if (datePattern.Length == 1) datePattern = "%" + datePattern;
-        formatted = date.ToString(datePattern, CultureInfo.InvariantCulture);
-        return true;
-    }
-
-    private static void AppendLiteral(System.Text.StringBuilder pattern, string text) {
-        foreach (char c in text) pattern.Append('\\').Append(c);
-    }
-
     private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeSeries series,
-        double value, double total, double? percentageRatio = null) {
+        double value, double total, double? percentageRatio = null, int pointIndex = -1) {
+        value = GetSourceSeriesValue(series, pointIndex, value);
         var parts = new List<string>(4);
         if (layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(series.Name)) {
             parts.Add(series.Name);
@@ -840,6 +778,8 @@ public static partial class OfficeChartDrawingRenderer {
         return value.ToString("0.##", CultureInfo.InvariantCulture);
     }
 
+    // Chart caches hold spreadsheet values, so labels use the spreadsheet cell formatter: sections and
+    // conditions, colour and currency tags, fractions, exponents, and 1900-system dates and times.
     private static bool TryFormatDataLabelValue(double value, string? numberFormat, out string? formatted) {
         formatted = null;
         if (string.IsNullOrWhiteSpace(numberFormat) ||
@@ -850,365 +790,8 @@ public static partial class OfficeChartDrawingRenderer {
             return false;
         }
 
-        string format = SelectSignedNumberFormatSection(numberFormat, value);
-
-        if (format.Length == 0) {
-            return false;
-        }
-
-        bool percent = format.IndexOf('%') >= 0;
-        bool grouped = HasDataLabelGrouping(format);
-        int decimals = GetDataLabelDecimalPlaces(format);
-        int requiredDecimals = GetDataLabelRequiredDecimalPlaces(format);
-        int scalingCommas = GetDataLabelScalingCommaCount(format);
-        double displayValue = (percent ? value * 100D : value) / Math.Pow(1000D, scalingCommas);
-        bool useAbsoluteNegative = displayValue < 0D && numberFormat.IndexOf(';') >= 0;
-        string numericFormat = (grouped ? "N" : "F") + decimals.ToString(CultureInfo.InvariantCulture);
-        double signedDisplay = useAbsoluteNegative ? Math.Abs(displayValue) : displayValue;
-        // Decimal conversion retains the spreadsheet's 15 significant digits and
-        // avoids runtime-specific floating-point midpoint formatting.
-        if (decimal.TryParse(signedDisplay.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float,
-            CultureInfo.InvariantCulture, out decimal decimalDisplay))
-            formatted = Math.Round(decimalDisplay, decimals, MidpointRounding.AwayFromZero).ToString(numericFormat, CultureInfo.InvariantCulture);
-        else
-            formatted = signedDisplay.ToString(numericFormat, CultureInfo.InvariantCulture);
-        formatted = TrimOptionalDataLabelDecimals(formatted, requiredDecimals);
-        if (TryGetDataLabelFormatAffixes(format, out string prefix, out string suffix)) {
-            if (percent && suffix.IndexOf('%') < 0) {
-                suffix += "%";
-            }
-
-            formatted = prefix + formatted + suffix;
-        } else if (percent) {
-            formatted += "%";
-        }
-
-        return true;
-    }
-
-    private static string SelectSignedNumberFormatSection(string numberFormat, double value) {
-        int firstSeparator = numberFormat.IndexOf(';');
-        if (firstSeparator < 0) {
-            return numberFormat.Trim();
-        }
-
-        if (value < 0D) {
-            int secondSeparator = numberFormat.IndexOf(';', firstSeparator + 1);
-            return TrimNumberFormatSection(numberFormat, firstSeparator + 1, secondSeparator);
-        }
-
-        if (Math.Abs(value) < 0.0000001D) {
-            int secondSeparator = numberFormat.IndexOf(';', firstSeparator + 1);
-            if (secondSeparator >= 0) {
-                int thirdSeparator = numberFormat.IndexOf(';', secondSeparator + 1);
-                return TrimNumberFormatSection(numberFormat, secondSeparator + 1, thirdSeparator);
-            }
-        }
-
-        return TrimNumberFormatSection(numberFormat, 0, firstSeparator);
-    }
-
-    private static string TrimNumberFormatSection(string numberFormat, int startIndex, int endIndex) {
-        int end = endIndex < 0 ? numberFormat.Length : endIndex;
-        while (startIndex < end && char.IsWhiteSpace(numberFormat[startIndex])) {
-            startIndex++;
-        }
-
-        while (end > startIndex && char.IsWhiteSpace(numberFormat[end - 1])) {
-            end--;
-        }
-
-        return numberFormat.Substring(startIndex, end - startIndex);
-    }
-
-    private static bool TryGetDataLabelFormatAffixes(string format, out string prefix, out string suffix) {
-        prefix = string.Empty;
-        suffix = string.Empty;
-        int firstPlaceholder = -1;
-        int lastPlaceholder = -1;
-        bool inQuotedLiteral = false;
-        bool escaped = false;
-        for (int i = 0; i < format.Length; i++) {
-            char c = format[i];
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"') {
-                inQuotedLiteral = !inQuotedLiteral;
-                continue;
-            }
-
-            if (!inQuotedLiteral && (c == '0' || c == '#' || c == '?')) {
-                firstPlaceholder = firstPlaceholder < 0 ? i : firstPlaceholder;
-                lastPlaceholder = i;
-            }
-        }
-
-        if (firstPlaceholder < 0 || lastPlaceholder < firstPlaceholder) {
-            return false;
-        }
-
-        prefix = NormalizeDataLabelFormatLiteral(format.Substring(0, firstPlaceholder));
-        suffix = NormalizeDataLabelFormatLiteral(format.Substring(lastPlaceholder + 1));
-        return true;
-    }
-
-    private static string NormalizeDataLabelFormatLiteral(string value) {
-        if (string.IsNullOrEmpty(value)) {
-            return string.Empty;
-        }
-
-        var builder = new System.Text.StringBuilder(value.Length);
-        bool inQuotedLiteral = false;
-        bool escaped = false;
-        int nextClosingBracket = value.IndexOf(']');
-        for (int i = 0; i < value.Length; i++) {
-            char c = value[i];
-            if (escaped) {
-                builder.Append(c);
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"') {
-                inQuotedLiteral = !inQuotedLiteral;
-                continue;
-            }
-
-            if (!inQuotedLiteral && c == '[') {
-                while (nextClosingBracket >= 0 && nextClosingBracket < i) {
-                    nextClosingBracket = value.IndexOf(']', nextClosingBracket + 1);
-                }
-
-                if (nextClosingBracket > i) {
-                    i = nextClosingBracket;
-                    nextClosingBracket = value.IndexOf(']', nextClosingBracket + 1);
-                    continue;
-                }
-            }
-
-            if (!inQuotedLiteral && (c == '_' || c == '*')) {
-                if (i + 1 < value.Length) {
-                    i++;
-                }
-
-                continue;
-            }
-
-            if (!inQuotedLiteral && c == '%') {
-                builder.Append('%');
-                continue;
-            }
-
-            if (inQuotedLiteral || !IsDataLabelFormatSyntax(c)) {
-                builder.Append(c);
-            }
-        }
-
-        return builder.ToString();
-    }
-
-    private static bool IsDataLabelFormatSyntax(char c) =>
-        c == ',' ||
-        c == '.' ||
-        c == '0' ||
-        c == '#' ||
-        c == '?' ||
-        c == ';';
-
-    private static bool HasDataLabelGrouping(string format) {
-        int decimalIndex = format.IndexOf('.');
-        int searchLength = decimalIndex >= 0 ? decimalIndex : format.Length;
-        bool seenPlaceholder = false;
-        bool inQuotedLiteral = false;
-        bool escaped = false;
-        for (int i = 0; i < searchLength; i++) {
-            char c = format[i];
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"') {
-                inQuotedLiteral = !inQuotedLiteral;
-                continue;
-            }
-
-            if (inQuotedLiteral) {
-                continue;
-            }
-
-            if (c == '0' || c == '#' || c == '?') {
-                seenPlaceholder = true;
-                continue;
-            }
-
-            if (c == ',' && seenPlaceholder && HasLaterDataLabelPlaceholder(format, i + 1, searchLength)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static int GetDataLabelScalingCommaCount(string format) {
-        int lastPlaceholder = GetLastDataLabelPlaceholderIndex(format);
-        if (lastPlaceholder < 0) {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = lastPlaceholder + 1; i < format.Length; i++) {
-            char c = format[i];
-            if (c == ',') {
-                count++;
-                continue;
-            }
-
-            if (char.IsWhiteSpace(c)) {
-                continue;
-            }
-
-            break;
-        }
-
-        return count;
-    }
-
-    private static int GetLastDataLabelPlaceholderIndex(string format) {
-        int lastPlaceholder = -1;
-        bool inQuotedLiteral = false;
-        bool escaped = false;
-        for (int i = 0; i < format.Length; i++) {
-            char c = format[i];
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"') {
-                inQuotedLiteral = !inQuotedLiteral;
-                continue;
-            }
-
-            if (!inQuotedLiteral && (c == '0' || c == '#' || c == '?')) {
-                lastPlaceholder = i;
-            }
-        }
-
-        return lastPlaceholder;
-    }
-
-    private static bool HasLaterDataLabelPlaceholder(string format, int startIndex, int endIndex) {
-        bool inQuotedLiteral = false;
-        bool escaped = false;
-        for (int i = startIndex; i < endIndex; i++) {
-            char c = format[i];
-            if (escaped) {
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\') {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"') {
-                inQuotedLiteral = !inQuotedLiteral;
-                continue;
-            }
-
-            if (!inQuotedLiteral && (c == '0' || c == '#' || c == '?')) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static int GetDataLabelDecimalPlaces(string format) {
-        int decimalIndex = format.IndexOf('.');
-        if (decimalIndex < 0) {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = decimalIndex + 1; i < format.Length; i++) {
-            char c = format[i];
-            if (c == '0' || c == '#') {
-                count++;
-                continue;
-            }
-
-            break;
-        }
-
-        return Math.Min(6, count);
-    }
-
-    private static int GetDataLabelRequiredDecimalPlaces(string format) {
-        int decimalIndex = format.IndexOf('.');
-        if (decimalIndex < 0) {
-            return 0;
-        }
-
-        int count = 0;
-        for (int i = decimalIndex + 1; i < format.Length; i++) {
-            char c = format[i];
-            if (c == '0') {
-                count++;
-                continue;
-            }
-
-            if (c == '#' || c == '?') {
-                continue;
-            }
-
-            break;
-        }
-
-        return Math.Min(6, count);
-    }
-
-    private static string TrimOptionalDataLabelDecimals(string value, int requiredDecimals) {
-        int decimalIndex = value.IndexOf('.');
-        if (decimalIndex < 0) {
-            return value;
-        }
-
-        int trimIndex = value.Length - 1;
-        while (trimIndex > decimalIndex + requiredDecimals && value[trimIndex] == '0') {
-            trimIndex--;
-        }
-
-        if (trimIndex == decimalIndex && requiredDecimals == 0) {
-            trimIndex--;
-        }
-
-        return trimIndex == value.Length - 1 ? value : value.Substring(0, trimIndex + 1);
+        formatted = OfficeIMO.Spreadsheet.SpreadsheetNumberFormatDisplay.FormatSerialValue(value, numberFormat, CultureInfo.InvariantCulture);
+        return formatted != null;
     }
 
     private static string FormatDataLabelPercent(double ratio, string? numberFormat) =>
@@ -1234,7 +817,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         // A bar grows away from its baseline, which an axis crossing can move off zero.
         bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
@@ -1280,7 +863,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         // A bar grows away from its baseline, which an axis crossing can move off zero.
         bool forward = growsForward ?? value >= 0D;
         if (string.IsNullOrWhiteSpace(label)) {
@@ -1324,7 +907,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        string label = FormatDataLabel(layout, category, series, value, total);
+        string label = FormatDataLabel(layout, category, series, value, total, pointIndex: pointIndex);
         if (string.IsNullOrWhiteSpace(label)) {
             return;
         }
@@ -1391,6 +974,13 @@ public static partial class OfficeChartDrawingRenderer {
 
     // Points whose labels this render pass hides: beyond an explicit axis maximum, or an empty area cell drawn at zero.
     [ThreadStatic] private static HashSet<(int Series, int Point)>? _renderPassHiddenLabels;
+
+    // The caller's diagnostic sink for this render pass, for approximations the renderer itself has to make.
+    [ThreadStatic] private static ICollection<OfficeImageExportDiagnostic>? _renderPassDiagnostics;
+
+    private static void ReportRenderApproximation(string source, string approximation) =>
+        _renderPassDiagnostics?.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning,
+            OfficeDiagnosticCodes.ChartApproximation, approximation, source, OfficeConversionLossKind.Approximation));
 
     private readonly struct ChartLabelBounds {
         internal ChartLabelBounds(double left, double top, double right, double bottom) {

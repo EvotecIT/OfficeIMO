@@ -3370,6 +3370,10 @@ public sealed partial class PdfReadPage {
             return;
         }
 
+        if (TryAddShearedImagePlacement(drawing, pageHeight, placement, image, cancellationToken)) {
+            return;
+        }
+
         if (!TryCreateImageProjection(
                 placement,
                 pageHeight,
@@ -3393,6 +3397,73 @@ public sealed partial class PdfReadPage {
         }
 
         drawing.AddImageSharedWithInterpolation(drawingBytes, image.MimeType, projection, image.Interpolate, opacity: placement.ImageOpacity ?? 1D);
+    }
+
+    // An image projection expresses rotation and flips only. A sheared image matrix is painted as a
+    // group carrying the full affine, so the image covers its parallelogram rather than the bounding box.
+    private static bool TryAddShearedImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement,
+        PdfExtractedImage image, CancellationToken cancellationToken) {
+        if (!image.IsImageFile || image.Width <= 0 || image.Height <= 0 ||
+            !RequiresFullMatrixImageGroup(placement, pageHeight, drawing.Width, drawing.Height, placement.RequireExactProjection)) return false;
+        return TryAddFullMatrixImage(drawing, image, image.GetDrawingBytes(cancellationToken),
+            CreateImageUnitSquareTransform(placement, pageHeight), placement.ImageOpacity ?? 1D, placement.ClipPath);
+    }
+
+    // The image unit square in drawing space: row 0 at the top, with the page's y axis flipped.
+    private static OfficeTransform CreateImageUnitSquareTransform(PdfImagePlacement placement, double pageHeight) =>
+        new OfficeTransform(placement.A, -placement.B, -placement.C, placement.D,
+            placement.C + placement.E, pageHeight - placement.D - placement.F);
+
+    // True for a visible, invertible image matrix that no image projection can express (a shear).
+    // Such an image is drawn exactly by TryAddFullMatrixImage. In exact mode this also covers matrices
+    // that are only nearly axis-aligned or orthogonal, which the group draws without rounding.
+    private static bool RequiresFullMatrixImageGroup(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, bool exact) {
+        if (!IsFinite(placement.A) || !IsFinite(placement.B) || !IsFinite(placement.C) ||
+            !IsFinite(placement.D) || !IsFinite(placement.E) || !IsFinite(placement.F)) return false;
+        if (exact ? IsExactlyPlainAxisAlignedImagePlacement(placement) : IsPlainAxisAlignedImagePlacement(placement)) return false;
+        if (TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out _, requireExactOrthogonality: exact)) return false;
+        OfficeTransform unitSquare = CreateImageUnitSquareTransform(placement, pageHeight);
+        if (!unitSquare.TryInvert(out _)) return false;
+        (double left, double top, double right, double bottom) = GetUnitSquareBounds(unitSquare);
+        return HasVisibleOverlap(left, top, right - left, bottom - top, drawingWidth, drawingHeight);
+    }
+
+    // Whether an image placement can be drawn without approximating its matrix or crop.
+    private static bool CanDrawImagePlacementExactly(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight) =>
+        TryCreateImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out _, allowAxisAlignedFallback: false) ||
+        RequiresFullMatrixImageGroup(placement, pageHeight, drawingWidth, drawingHeight, exact: true);
+
+    private static (double Left, double Top, double Right, double Bottom) GetUnitSquareBounds(OfficeTransform unitSquare) {
+        OfficePoint p0 = unitSquare.TransformPoint(new OfficePoint(0D, 0D));
+        OfficePoint p1 = unitSquare.TransformPoint(new OfficePoint(1D, 0D));
+        OfficePoint p2 = unitSquare.TransformPoint(new OfficePoint(1D, 1D));
+        OfficePoint p3 = unitSquare.TransformPoint(new OfficePoint(0D, 1D));
+        return (Math.Min(Math.Min(p0.X, p1.X), Math.Min(p2.X, p3.X)), Math.Min(Math.Min(p0.Y, p1.Y), Math.Min(p2.Y, p3.Y)),
+            Math.Max(Math.Max(p0.X, p1.X), Math.Max(p2.X, p3.X)), Math.Max(Math.Max(p0.Y, p1.Y), Math.Max(p2.Y, p3.Y)));
+    }
+
+    // Paints an image full-frame inside a group whose transform maps the image unit square onto
+    // unitSquare in drawing space, under an optional drawing-space clip.
+    private static bool TryAddFullMatrixImage(OfficeDrawing drawing, PdfExtractedImage image, byte[] drawingBytes,
+        OfficeTransform unitSquare, double opacity, PdfPageClipPath? clipPath) {
+        var inner = new OfficeDrawing(image.Width, image.Height);
+        inner.AddImageSharedWithInterpolation(drawingBytes, image.MimeType,
+            new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, image.Width, image.Height)), image.Interpolate,
+            opacity: opacity);
+        OfficeTransform transform = OfficeTransform.Scale(1D / image.Width, 1D / image.Height).Then(unitSquare);
+        if (!clipPath.HasValue) {
+            drawing.AddEffectDrawing(inner, transform);
+            return true;
+        }
+
+        PdfPageClipPath clip = clipPath.Value;
+        if (clip.Width <= 0D || clip.Height <= 0D || !TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out clip)) return true;
+        OfficeClipPath? officeClip = clip.ToOfficeClipPath(clip.X, clip.Y);
+        if (officeClip == null) return false;
+        var host = new OfficeDrawing(Math.Max(0.01D, officeClip.Width), Math.Max(0.01D, officeClip.Height));
+        host.AddEffectDrawing(inner, transform.Then(OfficeTransform.Translate(-clip.X, -clip.Y)));
+        drawing.AddClippedDrawing(host, clip.X, clip.Y, officeClip);
+        return true;
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection, byte[] drawingBytes) {

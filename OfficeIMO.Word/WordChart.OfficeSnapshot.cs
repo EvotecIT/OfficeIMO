@@ -51,12 +51,21 @@ public partial class WordChart {
                 out var kind, out var bubbleScale, out var bubbleMode);
             if (data == null) return Fail("The chart family, series appearance or cached data has no shared chart projection.", out failureReason);
             var textReader = new OfficeOpenXmlChartTextReader(_document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.FontScheme);
-            if (!textReader.TryReadSharedTextStyle(chart, out var textStyle) ||
-                !textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var axisTitleFont)) return Fail("The chart text formatting cannot be projected.", out failureReason);
+            OfficeChartStyle? textStyle = null;
+            string? axisTitleFont = null;
+            if (textReader.TryReadSharedTextStyle(chart, out var sharedText) &&
+                textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var titleFont)) {
+                textStyle = sharedText;
+                axisTitleFont = titleFont;
+            } else if (OfficeOpenXmlChartFidelityScope.AllowsApproximation) {
+                OfficeOpenXmlChartFidelityScope.Record("Chart text that mixes fonts is drawn in the default chart font.");
+            } else {
+                return Fail("The chart text formatting cannot be projected.", out failureReason);
+            }
             OfficeChartData officeData = data.ToData();
             snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart) ?? OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(chart), kind, officeData, global::OfficeIMO.OfficeLength.Points(renderWidth), global::OfficeIMO.OfficeLength.Points(renderHeight),
-                OfficeOpenXmlChartSeriesReader.ReadStyle(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
-                OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
+                OfficeOpenXmlChartSeriesReader.ReadStyleOrApproximate(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
+                OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme, data),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
             if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
                 snapshot = null!;

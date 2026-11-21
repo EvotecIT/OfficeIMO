@@ -29,8 +29,8 @@ namespace OfficeIMO.Visio {
                         if (width <= 0 || height <= 0 || pageScale <= 0 || drawingScale <= 0)
                             throw new InvalidDataException("Binary Visio page size and scale must be positive.");
                         sheet.Add(new XElement(Ns + "PageProps", Cell("PageWidth", width), Cell("PageHeight", height),
-                            new XElement(Ns + "PageScale", new XAttribute("Unit", "IN"), pageScale.ToString("R", CultureInfo.InvariantCulture)),
-                            new XElement(Ns + "DrawingScale", new XAttribute("Unit", "IN"), drawingScale.ToString("R", CultureInfo.InvariantCulture)))); break;
+                            new XElement(Ns + "PageScale", new XAttribute("Unit", "IN"), OfficeIMO.Core.Internal.OfficeRoundTripText.Format(pageScale, CultureInfo.InvariantCulture)),
+                            new XElement(Ns + "DrawingScale", new XAttribute("Unit", "IN"), OfficeIMO.Core.Internal.OfficeRoundTripText.Format(drawingScale, CultureInfo.InvariantCulture)))); break;
                     case 0x85:
                         sheet.Add(new XElement(Ns + "Line", Cell("LineWeight", chunk.Number(1)), Cell("LineColor", Color(chunk, 10)),
                             Cell("LineColorTrans", chunk.Byte(13) / 255D),

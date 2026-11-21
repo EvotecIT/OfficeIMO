@@ -20,10 +20,14 @@ namespace OfficeIMO.Word {
                 OpenXmlCompositeElement group = plotArea.ChildElements.OfType<OpenXmlCompositeElement>().Single(IsSupportedChartPlotElement);
                 if (!OfficeOpenXmlChartSeriesReader.TryReadKind(group, out OfficeIMO.OfficeChartType kind)) return false;
                 A.ColorScheme? scheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+                OfficeOpenXmlChartSeriesReader.SourceVisibility? visibility = null;
+                if (_chartPart != null && !OfficeOpenXmlChartSeriesReader.TryReadSourceVisibility(_chartPart, chart, out visibility, out _)) return false;
                 OfficeOpenXmlChartSeriesReader.Result? result = group is C.ScatterChart scatter
-                    ? OfficeOpenXmlChartSeriesReader.ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, (int)MaxCachedChartPoints)
+                    ? OfficeOpenXmlChartSeriesReader.ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, (int)MaxCachedChartPoints,
+                        visibility: visibility)
                     : OfficeOpenXmlChartSeriesReader.ReadCategories(group.ChildElements.OfType<OpenXmlCompositeElement>()
-                        .Where(element => element.LocalName == "ser"), kind, scheme, OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, (int)MaxCachedChartPoints);
+                        .Where(element => element.LocalName == "ser"), kind, scheme, OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, (int)MaxCachedChartPoints,
+                        visibility: visibility);
                 if (result == null || result.Series.Any(series => series.HasUnsupportedAppearance)) return false;
                 var data = new WordChartData(result.Categories, result.Series.Select(series => new WordChartSeries(series.Data)).ToArray());
                 snapshot = CreateSnapshot(chart, ToWordSnapshotKind(kind), data);

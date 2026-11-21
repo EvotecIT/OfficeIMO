@@ -16,7 +16,10 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyDictionary<W.Paragraph, string> headingDestinations,
         NativeDocumentDefaults nativeDefaults,
         NativeFontMap nativeFontMap,
-        bool balanceColumns) {
+        bool balanceColumns,
+        bool preserveSpacingBefore = false,
+        double? incomingSpacingAfter = null,
+        Action<double?>? captureOutgoingSpacingAfter = null) {
         int count = section.ColumnCount ?? 1;
         if (count <= 1) return false;
         double gap = section.ColumnsSpace is OfficeLength spacing && spacing >= OfficeLength.Zero
@@ -50,7 +53,9 @@ public static partial class WordPdfConverterExtensions {
             ? definitions[0].Width.ToPoints()
             : (sectionContentWidth - totalGap) / count;
         page.Content(content => content.Columns(column => {
-            INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column, pageSize));
+            var collapseFlow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column, pageSize));
+            if (preserveSpacingBefore) collapseFlow.PreserveNextSpacingBefore(incomingSpacingAfter);
+            INativePdfFlow flow = collapseFlow;
             int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 WordElement element = elements[index];
@@ -66,6 +71,7 @@ public static partial class WordPdfConverterExtensions {
                     nextElement: GetNextNativeRenderableElement(elements, index));
             }
             RenderNativeImplicitTerminalBodyBarParagraph(flow, section, options, nativeDefaults, nativeFontMap);
+            captureOutgoingSpacingAfter?.Invoke(GetNativeSectionOutgoingSpacingAfter(elements, collapseFlow, nativeDefaults, nativeFontMap));
         }, columnOptions));
         return true;
     }

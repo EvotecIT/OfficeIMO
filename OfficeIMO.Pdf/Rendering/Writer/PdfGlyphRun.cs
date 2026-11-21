@@ -138,6 +138,15 @@ internal sealed class PdfTextShowCommand {
 
     internal double GetJustificationAdvance(int glyphIndex) => _justificationAdvances?[glyphIndex] ?? 0D;
 
+    /// <summary>Per-glyph artwork, aligned with the shown glyphs, when the run contains color glyphs.</summary>
+    internal IReadOnlyList<PdfColorGlyphArt?>? ColorArt { get; private set; }
+
+    internal PdfTextShowCommand WithColorArt(IReadOnlyList<PdfColorGlyphArt?> art) {
+        var copy = (PdfTextShowCommand)MemberwiseClone();
+        copy.ColorArt = art;
+        return copy;
+    }
+
     /// <summary>
     /// Right-to-left glyphs in visual order, mapped through ToUnicode only. They get their own show operator so
     /// readers see a pure right-to-left run they can reorder, rather than a mixed-direction TJ array.

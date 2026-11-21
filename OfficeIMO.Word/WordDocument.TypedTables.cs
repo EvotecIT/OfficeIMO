@@ -20,7 +20,7 @@ public partial class WordDocument {
         }
         for (int row = 0; row < data.Rows.Count; row++)
             for (int column = 0; column < data.Headers.Length; column++)
-                GetOrCreateParagraph(table, row + offset, column).Text = System.Convert.ToString(data.Rows[row][column], CultureInfo.CurrentCulture) ?? string.Empty;
+                GetOrCreateParagraph(table, row + offset, column).Text = OfficeIMO.OfficeRoundTripNumberText.FormatObject(data.Rows[row][column], CultureInfo.CurrentCulture) ?? string.Empty;
         ApplyTableAlignments(table, options);
         return table;
     }
@@ -34,7 +34,7 @@ public partial class WordDocument {
         var table = CreateOptionsTable(rows, columns, options);
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++)
-                GetOrCreateParagraph(table, row, column).Text = System.Convert.ToString(values[row, column], CultureInfo.CurrentCulture) ?? string.Empty;
+                GetOrCreateParagraph(table, row, column).Text = OfficeIMO.OfficeRoundTripNumberText.FormatObject(values[row, column], CultureInfo.CurrentCulture) ?? string.Empty;
         ApplyTableAlignments(table, options);
         return table;
     }

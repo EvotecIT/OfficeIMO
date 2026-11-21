@@ -4,7 +4,8 @@ internal static partial class ManagedTextShapingTestAssets {
     internal static byte[] CreateFontWithCommonSubstitution(bool unsupported, bool microSign = false, bool blankSpace = false) {
         byte[] gsub = CreateMultipleGsub(scriptTag: "latn");
         WriteUInt16(gsub, 74, 0);
-        if (unsupported) WriteUInt16(gsub, 32, 8);
+        // IgnoreLigatures is outside the managed Latin subset; a marks-only flag is not.
+        if (unsupported) WriteUInt16(gsub, 32, 4);
         WriteUInt16(gsub, 52, (ushort)(microSign ? 6 : 2));
         return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { 32, (int)',', (int)'1', (int)'A', (int)'B', 0x00B5, 0x03B1, 0x03B2, 0x0410, 0x0411 }), glyphCount: 12, gsub: gsub,
             blankGlyphIds: blankSpace ? new[] { 1 } : null);

@@ -702,8 +702,9 @@ internal static partial class PdfWriter {
                 return take;
             }
 
+            // Only repeated header rows stay whole; a header row styled but not repeated breaks like a body row, as in Word.
             bool CanSplitTableRowIntoRemainingSpace(int rowIndex) =>
-                rowIndex >= headerRowCount &&
+                rowIndex >= repeatHeaderRowCount &&
                 !TableRowHasViewport(tb, rowIndex, cols) &&
                 GetTableRowAllowBreakAcrossPages(style, rowIndex) &&
                 rowLineCounts[rowIndex] > 1 &&
@@ -798,6 +799,9 @@ internal static partial class PdfWriter {
                         available = y - TableBottom();
                     }
 
+                    if (TryAlignTableRowCellBreaks(tb, style, preparedRows, cols, colPixel, colGapPx, rowIndex, startLine, available,
+                        MaximumContinuationHeight(), activeColumnFlow?.Options.BalanceTableRowLines == true))
+                        totalLines = rowLineCounts[rowIndex];
                     int take = Math.Min(totalLines - startLine, GetTableRowSegmentLineCountThatFits(rowIndex, startLine, available));
                     while (take == 0) {
                         NewTablePage(rowIndex, startLine);

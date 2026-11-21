@@ -11,7 +11,7 @@ Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficePowerPointPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoSlideBackgrounds] [-NoTables] [-NoCharts] [-NoSmartArt] [-IncludeHiddenSlides] [-PageLayout <PowerPointPdfPageLayout>] [-HandoutSlidesPerPage <Int32>] [-NoSpeakerNotes] [-MaxGroupShapeDepth <Int32>] [-PictureFit <OfficeImageFit>] [-WarnOnPictureAspectRatioDistortion] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficePowerPointPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoSlideBackgrounds] [-NoTables] [-NoCharts] [-NoSmartArt] [-IncludeHiddenSlides] [-PageLayout <PowerPointPdfPageLayout>] [-HandoutSlidesPerPage <Int32>] [-NoSpeakerNotes] [-MaxGroupShapeDepth <Int32>] [-PictureFit <OfficeImageFit>] [-WarnOnPictureAspectRatioDistortion] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-ChartFidelity <OfficeChartFidelity>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -59,6 +59,22 @@ Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ChartFidelity
+Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.
+
+```yaml
+Type: OfficeChartFidelity
+Parameter Sets: Default
+Aliases: None
+Possible values: Strict, BestEffort
 
 Required: False
 Position: named

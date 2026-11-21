@@ -230,6 +230,7 @@ internal static class ExcelExtractionExtensions {
         }
         if (value is DateTime dt) return dt.ToString("o", CultureInfo.InvariantCulture);
         if (value is DateTimeOffset dto) return dto.ToString("o", CultureInfo.InvariantCulture);
+        if (value is double or float) return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture) ?? fallback;
         if (value is IFormattable f) return f.ToString(null, CultureInfo.InvariantCulture) ?? fallback;
         return value.ToString() ?? fallback;
     }

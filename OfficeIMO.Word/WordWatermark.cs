@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
             set {
                 var fill = _shape?.GetFirstChild<V.Fill>();
                 if (fill != null && value != null) {
-                    fill.Opacity = value.Value.ToString(CultureInfo.InvariantCulture);
+                    fill.Opacity = OfficeIMO.Core.Internal.OfficeRoundTripText.FormatPositional(value.Value);
                 }
             }
         }
@@ -373,7 +373,7 @@ namespace OfficeIMO.Word {
 
             var style = ImageShapeStyleHelper.GetStyle(shape);
             if (value.HasValue) {
-                style[key] = value.Value.ToPoints().ToString("R", CultureInfo.InvariantCulture) + "pt";
+                style[key] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value.Value.ToPoints(), CultureInfo.InvariantCulture) + "pt";
             } else {
                 style.Remove(key);
             }
@@ -910,8 +910,8 @@ namespace OfficeIMO.Word {
             var style = ImageShapeStyleHelper.GetStyle(shape1);
             double widthPt = Helpers.ConvertPixelsToPoints(imageLocation.Width);
             double heightPt = Helpers.ConvertPixelsToPoints(imageLocation.Height);
-            style["width"] = widthPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
-            style["height"] = heightPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
+            style["width"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(widthPt, CultureInfo.InvariantCulture) + "pt";
+            style["height"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(heightPt, CultureInfo.InvariantCulture) + "pt";
             ImageShapeStyleHelper.SetStyle(shape1, style);
 
             shape1.Append(imageData1);
@@ -943,8 +943,8 @@ namespace OfficeIMO.Word {
             var style = ImageShapeStyleHelper.GetStyle(shape);
             double widthPt = Helpers.ConvertPixelsToPoints(imageLocation.Width);
             double heightPt = Helpers.ConvertPixelsToPoints(imageLocation.Height);
-            style["width"] = widthPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
-            style["height"] = heightPt.ToString("R", CultureInfo.InvariantCulture) + "pt";
+            style["width"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(widthPt, CultureInfo.InvariantCulture) + "pt";
+            style["height"] = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(heightPt, CultureInfo.InvariantCulture) + "pt";
             ImageShapeStyleHelper.SetStyle(shape, style);
 
             shape.Append(imageData1);

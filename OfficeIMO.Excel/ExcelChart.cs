@@ -118,7 +118,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Tries to read the chart data from the chart's source range.
         /// </summary>
-        public bool TryGetData(out ExcelChartData data) {
+        public bool TryGetData(out ExcelChartData data) => TryGetData(out data, out _);
+
+        /// <summary>Reads the chart data and reports why a strict projection rejected the chart while reading it.</summary>
+        private bool TryGetData(out ExcelChartData data, out string? unsupportedReason) {
+            unsupportedReason = null;
             try {
                 ChartPart chartPart = GetChartPart();
                 ExcelChartDataRange? range = _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
@@ -133,13 +137,33 @@ namespace OfficeIMO.Excel {
 
                 chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
                 chartData = ExcelChartUtils.ApplyScatterSeriesXValues(chartPart, chartData, sheet);
-                chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot);
+                bool[]? hiddenSeries = null;
+                // Custom error amounts lose the same hidden cells as the values, whenever the values lost any.
+                Func<DocumentFormat.OpenXml.OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts = null;
+                if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSourceVisibility.PlotsVisibleCellsOnly(
+                        chartPart.ChartSpace?.GetFirstChild<C.Chart>())) {
+                    ExcelChartData? allPoints = chartData;
+                    chartData = ExcelChartUtils.SelectVisiblePoints(chartPart, sheet, chartData, out hiddenSeries);
+                    if (chartData == null) {
+                        data = null!;
+                        return false;
+                    }
+                    if (!ReferenceEquals(chartData, allPoints)) selectVisibleAmounts = ExcelChartUtils.CreateVisibleAmountSelector(sheet);
+                }
+                chartData = ApplyImageExportSeriesStyles(chartPart, chartData, _document.WorkbookPartRoot, selectVisibleAmounts);
+                chartData = ExcelChartUtils.RemoveSeries(chartData, hiddenSeries);
+                // With every series hidden Excel plots nothing, which no snapshot can stand for.
+                if (chartData.Series.Count == 0) {
+                    data = null!;
+                    return false;
+                }
                 if (range != null) {
                     _dataRange = range;
                 }
                 data = chartData;
                 return true;
-            } catch {
+            } catch (Exception exception) {
+                if (exception is NotSupportedException) unsupportedReason = exception.Message;
                 data = null!;
                 return false;
             }
@@ -152,16 +176,28 @@ namespace OfficeIMO.Excel {
             TryGetSnapshotCore(null, out snapshot, out _);
 
         internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, out ExcelChartInfo snapshot) =>
-            TryGetSnapshotCore(geometry, out snapshot, out _);
+            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot, out _);
 
-        /// <summary>Reads the snapshot and reports why a chart whose data resolved cannot be projected.</summary>
-        internal bool TryGetSnapshot(out ExcelChartInfo snapshot, out string? unsupportedReason) =>
-            TryGetSnapshotCore(null, out snapshot, out unsupportedReason);
+        /// <summary>Creates a rendering snapshot at the requested chart fidelity.</summary>
+        internal bool TryGetSnapshot(OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) =>
+            TryGetSnapshotCore(null, fidelity, out snapshot, out _);
 
-        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot,
+        /// <summary>Creates a worksheet rendering snapshot at the requested chart fidelity.</summary>
+        internal bool TryGetSnapshot(ExcelWorksheetGeometryIndex geometry, OfficeChartFidelity fidelity, out ExcelChartInfo snapshot) =>
+            TryGetSnapshotCore(geometry, fidelity, out snapshot, out _);
+
+        /// <summary>Reads the snapshot at the requested chart fidelity and reports why a chart whose data resolved cannot be projected.</summary>
+        internal bool TryGetSnapshot(OfficeChartFidelity fidelity, out ExcelChartInfo snapshot, out string? unsupportedReason) =>
+            TryGetSnapshotCore(null, fidelity, out snapshot, out unsupportedReason);
+
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, out ExcelChartInfo snapshot, out string? unsupportedReason) =>
+            TryGetSnapshotCore(geometry, OfficeChartFidelity.Strict, out snapshot, out unsupportedReason);
+
+        private bool TryGetSnapshotCore(ExcelWorksheetGeometryIndex? geometry, OfficeChartFidelity fidelity, out ExcelChartInfo snapshot,
             out string? unsupportedReason) {
             unsupportedReason = null;
-            if (!TryGetData(out ExcelChartData data)) {
+            using var scope = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Enter(fidelity);
+            if (!TryGetData(out ExcelChartData data, out unsupportedReason)) {
                 snapshot = null!;
                 return false;
             }
@@ -169,8 +205,14 @@ namespace OfficeIMO.Excel {
             try {
                 (OfficeLength anchorWidth, OfficeLength anchorHeight) = GetAnchorSize(geometry);
                 var plot = GetChartPart().ChartSpace?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()?.PlotArea;
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot, resolveSourceLinkedFormats: true);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot);
                 var bubble = ReadBubbleImageSettings(plot, data);
+                OfficeChartStyle? style = CreateImageExportStyle(data.Categories.Count);
+                OfficeChartLayout? layout = CreateImageExportLayout();
+                IReadOnlyList<OfficeImageExportDiagnostic> diagnostics = CreateImageExportDiagnostics().Concat(bubble.Diagnostics)
+                    .Concat(scope.Approximations.Select(approximation => new OfficeImageExportDiagnostic(
+                        OfficeImageExportDiagnosticSeverity.Warning, OfficeDiagnosticCodes.ChartApproximation, approximation,
+                        GetImageExportSource(), OfficeConversionLossKind.Approximation))).ToArray();
                 snapshot = new ExcelChartInfo(
                     Name,
                     Title ?? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.ReadAutomaticTitle(GetChart(),
@@ -183,9 +225,9 @@ namespace OfficeIMO.Excel {
                     GetAnchorOffset(horizontal: false),
                     anchorWidth,
                     anchorHeight,
-                    CreateImageExportStyle(data.Categories.Count),
-                    CreateImageExportLayout(),
-                    CreateImageExportDiagnostics().Concat(bubble.Diagnostics).ToArray(),
+                    style,
+                    layout,
+                    diagnostics,
                     RadialLayout, bubble.Scale, bubble.Mode, bubble.ShowNegative);
                 return true;
             } catch (Exception exception) when (exception is ArgumentException || exception is FormatException ||

@@ -144,7 +144,7 @@ internal static class TomlFormatter {
             text.Append(BitConverter.DoubleToInt64Bits(value) < 0 ? "-0.0" : "0.0");
             return;
         }
-        string number = value.ToString("R", CultureInfo.InvariantCulture);
+        string number = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
         int exponent = number.IndexOf('E');
         if (exponent >= 0) {
             // "1E+20" is valid TOML; a mantissa without a fraction is fine before an exponent.

@@ -26,7 +26,7 @@ public partial class WordSection {
                     break;
                 case SdtBlock control:
                     // Suppress conversion-time field updates; the returned model remains editable.
-                    elements.Add(ConvertStdBlockToWordElements(document, control, readOnly: true));
+                    elements.Add(ConvertStdBlockToWordElements(document, control));
                     break;
             }
         }

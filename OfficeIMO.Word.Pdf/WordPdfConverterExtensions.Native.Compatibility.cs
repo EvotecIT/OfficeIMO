@@ -14,6 +14,18 @@ public static partial class WordPdfConverterExtensions {
         return document != null && UsesModernNativeWordLayout(document);
     }
 
+    // Word 2013 and later drop the space before a paragraph that starts a page through
+    // page-break-before. Earlier compatibility modes keep it, reduced by the space after
+    // the paragraph that ended the previous page.
+    private static void RenderNativePageBreakBefore(INativePdfFlow pdf, WordParagraph paragraph) {
+        if (!UsesModernNativeWordLayout(paragraph._document) && pdf is NativeSpacingCollapseFlow collapseFlow) {
+            collapseFlow.PageBreakPreservingSpacingBefore();
+            return;
+        }
+
+        pdf.PageBreak();
+    }
+
     /// <summary>Resolves the effective Word layout mode while retaining stored compatibility flags.</summary>
     private static bool UsesModernNativeWordLayout(WordDocument document) {
         if (document.SourceFormat == WordFileFormat.Doc) return false;

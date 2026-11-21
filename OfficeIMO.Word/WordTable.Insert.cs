@@ -24,7 +24,7 @@ public partial class WordTable {
             ContinueVerticalMerges(row, existing[index]);
         }
         for (int column = 0; column < values.Length; column++) {
-            string text = System.Convert.ToString(values[column], CultureInfo.CurrentCulture) ?? string.Empty;
+            string text = OfficeIMO.OfficeRoundTripNumberText.FormatObject(values[column], CultureInfo.CurrentCulture) ?? string.Empty;
             TableCell? merged = index < existing.Count ? FindVerticalMergeStart(existing, index, column) : null;
             if (merged != null) GetCell(merged).AddParagraph(text);
             else GetCell(WordTableContent.CellAtColumn(row._tableRow, column)!.Value.Cell).AddParagraph(text, true);
@@ -44,7 +44,7 @@ public partial class WordTable {
         var added = new List<WordTableCell>(rows.Count);
         for (int row = 0; row < rows.Count; row++) {
             WordTableCell cell = InsertColumnCell(rows[row], index, out bool merged);
-            if (row < values.Length) cell.AddParagraph(System.Convert.ToString(values[row], CultureInfo.CurrentCulture) ?? string.Empty, !merged);
+            if (row < values.Length) cell.AddParagraph(OfficeIMO.OfficeRoundTripNumberText.FormatObject(values[row], CultureInfo.CurrentCulture) ?? string.Empty, !merged);
             added.Add(cell);
         }
         RefreshGrid();

@@ -25,7 +25,7 @@ internal static class ExcelInspectionProjection {
                             ("storedFormula", cell.StoredFormula), ("formulaKind", cell.FormulaKind),
                             ("hasStoredValue", cell.HasStoredValue ? "true" : "false"),
                             ("storedValue", cell.StoredValue), ("storedValueType", cell.StoredValueType),
-                            ("interpretedCachedValue", Convert.ToString(cell.Value, CultureInfo.InvariantCulture)),
+                            ("interpretedCachedValue", OfficeIMO.OfficeRoundTripNumberText.FormatObject(cell.Value, CultureInfo.InvariantCulture)),
                             ("sourceFormat", document.SourceFormat.ToString()), ("calculated", "false")));
                 }
                 if (builder.Options.IncludeComments && cell.Comment != null)

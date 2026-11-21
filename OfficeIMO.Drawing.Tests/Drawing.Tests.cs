@@ -1403,7 +1403,8 @@ public partial class DrawingTests {
         Assert.Contains("<polygon points=\"0,20 30,0 60,20\"", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1458,7 +1459,8 @@ public partial class DrawingTests {
         Assert.Contains("stroke-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-dasharray=\"8 4\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-linecap=\"round\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1626,7 +1628,8 @@ public partial class DrawingTests {
         Assert.Contains("<path d=\"M0 0Q30 0 60 20L0 20Z\"", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#112233\" fill-opacity=\"0.502\"", svg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#FF0000\" stroke-width=\"2\"", svg, StringComparison.Ordinal);
-        Assert.Contains("transform=\"matrix(0.707 0.707 -0.707 0.707", svg, StringComparison.Ordinal);
+        // Matrix coefficients round-trip exactly.
+        Assert.Matches(@"transform=""matrix\(0\.7071067811865\d* 0\.7071067811865\d* -0\.7071067811865\d* 0\.7071067811865\d* ", svg);
     }
 
     [Fact]
@@ -1989,6 +1992,9 @@ public partial class DrawingTests {
         var matrixBuilder = new StringBuilder("<g");
         matrixBuilder.AppendMatrixTransformAttribute(matrixTransform, 40D, 50D).Append(">");
         Assert.Equal("<g transform=\"matrix(0 1 -1 0 55 55)\">", matrixBuilder.ToString());
+        // Coefficients keep their shortest round-trip text on every framework; this one needs 16 digits.
+        Assert.Equal("matrix(0.4694715627858908 1 -0.4694715627858908 1 0 4.000000000000014)", OfficeSvgFormatting.FormatMatrixTransform(
+            new OfficeTransform(0.4694715627858908D, 1D, -0.4694715627858908D, 1D, 0D, 4.000000000000014D)));
         Assert.Equal("rotate(45 50 40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D)));
         Assert.Equal("translate(50 40) rotate(45) scale(-1 1) translate(-50 -40)", OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(45D, 50D, 40D, flipHorizontal: true)));
         Assert.Null(OfficeSvgFormatting.FormatImageFrameTransform(new OfficeImageFrameTransform(0D, 50D, 40D)));

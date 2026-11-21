@@ -547,7 +547,7 @@ document.UpdateFields(new WordFieldUpdateOptions {
 }.WithPdfLayoutPagination());
 ```
 
-Each table of contents becomes a complete TOC field with one hyperlinked entry per heading and a `PAGEREF` page number, and the document is no longer flagged to update fields on open. Reference `OfficeIMO.Word.Pdf` and add `using OfficeIMO.Word.Pdf;` for `WithPdfLayoutPagination()`. This explicit engine selection lays out a copy of the document, so it costs about as much as a PDF conversion; without it, `PAGEREF` and `NUMPAGES` use explicit page and section breaks. Headings are paragraphs with `Heading1`-`Heading9` styles, heading styles copied by a merge (such as `heading 1_0`), or outline levels from the paragraph or its style.
+Each table of contents becomes a complete TOC field with one hyperlinked entry per heading and a `PAGEREF` page number, and the document is no longer flagged to update fields on open. Reference `OfficeIMO.Word.Pdf` and add `using OfficeIMO.Word.Pdf;` for `WithPdfLayoutPagination()`. This explicit engine selection lays out a copy of the document, so it costs about as much as a PDF conversion; without it, `PAGEREF`, `NUMPAGES` and body `PAGE` fields use explicit page and section breaks. Pass the PDF export options, `WithPdfLayoutPagination(pdfOptions)`, when the application supplies its own fonts: the page numbers then come from the same layout as `SaveAsPdf` with those options, including font registrations, substitutions and the resource policy ([example](../OfficeIMO.Word.Pdf/README.md#table-of-contents-page-numbers-from-the-same-layout)). Headings are paragraphs with `Heading1`-`Heading9` styles, heading styles copied by a merge (such as `heading 1_0`), or outline levels from the paragraph or its style.
 
 `TablesOfContentsOnly` regenerates the tables of contents the same way but refreshes only the fields inside them, their `PAGEREF` page numbers, and leaves every other field result as it is.
 
@@ -1067,7 +1067,7 @@ cells keep the chart's blank-cell setting (gaps, connected lines or zero), and a
 shows the single series name, or Office's English "Chart Title" placeholder for an English chart with
 several series. Nonstandard axis arrangements,
 title shape fills or unsupported legend fills,
-manual title layouts, unsupported numeric formats, and nondefault bar spacing
+manual axis-title layouts, unsupported numeric formats, and nondefault bar spacing
 require a richer projection and return false. Analytical overlays, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
 multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,
@@ -1092,6 +1092,9 @@ outlines, and per-point marker overrides reject static projection. Supported fil
 series outlines are inherited by points; explicit point outlines take precedence.
 Picture markers reject static projection. Visible inherited markers require an explicit supported series symbol.
 Small authored chart canvases retain explicit font, stroke and marker sizes; quality reports identify cramped or overflowing content.
+PDF and page-image export skip a chart they cannot draw exactly and report the reason. Set
+`ChartRendering.Fidelity` on `WordPdfExportOptions` or `WordImageExportOptions` to `OfficeChartFidelity.BestEffort`
+to draw the closest approximation instead; each approximation is reported as a `chart-approximation` warning.
 
 Category discovery checks all populated series before generating fallback labels.
 The longest available category cache supplies labels, and shorter series retain

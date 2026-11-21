@@ -56,7 +56,7 @@ public sealed partial class OdgShape {
     }
 
     private static string FormatNativeMatrix(OfficeTransform transform) {
-        string F(double number) => number.ToString("R", CultureInfo.InvariantCulture);
+        string F(double number) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(number, CultureInfo.InvariantCulture);
         return $"matrix({F(transform.M11)} {F(transform.M12)} {F(transform.M21)} {F(transform.M22)} {F(transform.OffsetX)}pt {F(transform.OffsetY)}pt)";
     }
 }

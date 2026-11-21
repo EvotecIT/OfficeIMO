@@ -13,7 +13,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>Returns the shared layout's document page count.</summary>
-        public static int GetEstimatedPageCount(this WordDocument document) => WordPageImageExport.EstimatePageCount(document);
+        public static int GetEstimatedPageCount(this WordDocument document) =>
+            WordPageImageExport.EstimatePageCount(document, new WordImageExportOptions());
+
+        /// <summary>
+        /// Returns how many pages PDF export with <paramref name="layoutOptions"/> produces, using the same fonts,
+        /// substitutions and resource policy.
+        /// </summary>
+        /// <param name="document">Document to lay out; it is not changed.</param>
+        /// <param name="layoutOptions">PDF export options whose layout is counted.</param>
+        public static int GetEstimatedPageCount(this WordDocument document, OfficeIMO.Word.Pdf.WordPdfExportOptions layoutOptions) {
+            ArgumentNullException.ThrowIfNull(layoutOptions);
+            return WordPageImageExport.EstimatePageCount(document, new WordImageExportOptions { LayoutOptions = layoutOptions.Clone() });
+        }
 
         /// <summary>Creates format-neutral visual snapshots for a page range or the complete document.</summary>
         public static IReadOnlyList<WordDocumentVisualInfo> CreateVisualSnapshots(this WordDocument document, WordImageExportOptions? options = null) {
@@ -66,7 +78,17 @@ namespace OfficeIMO.Word {
         /// <remarks>
         /// This follows OfficeIMO's renderer layout model and is not a substitute for Word's application-owned pagination.
         /// </remarks>
-        public static int GetEstimatedImagePageCount(this WordDocument document) => WordPageImageExport.EstimatePageCount(document);
+        public static int GetEstimatedImagePageCount(this WordDocument document) =>
+            WordPageImageExport.EstimatePageCount(document, new WordImageExportOptions());
+
+        /// <summary>
+        /// Returns how many pages image export with <paramref name="options"/> produces, including its layout options and fonts.
+        /// </summary>
+        /// <remarks>Page selection settings do not change the count.</remarks>
+        public static int GetEstimatedImagePageCount(this WordDocument document, WordImageExportOptions options) {
+            ArgumentNullException.ThrowIfNull(options);
+            return WordPageImageExport.EstimatePageCount(document, NormalizeImageExportOptions(options));
+        }
 
         private static WordImageExportOptions NormalizeImageExportOptions(WordImageExportOptions? options) {
             WordImageExportOptions resolved = options?.Clone() ?? new WordImageExportOptions();

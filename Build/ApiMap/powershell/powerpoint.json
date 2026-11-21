@@ -5463,6 +5463,12 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         }
@@ -5603,6 +5609,12 @@
             {
               "name": "TextShapingLanguage",
               "type": "string",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ChartFidelity",
+              "type": "OfficeChartFidelity",
               "mandatory": false,
               "pipeline": "none"
             }

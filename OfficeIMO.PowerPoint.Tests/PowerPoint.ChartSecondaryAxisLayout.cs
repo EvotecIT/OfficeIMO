@@ -24,7 +24,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Fact]
-    public void CacheOnlySourceLinkedPrimaryFormatMustBeRenderable() {
+    public void CacheOnlySourceLinkedPrimaryFormatFallsBackToGeneralWhenNotRenderable() {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
@@ -34,16 +34,18 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         C.NumberingFormat format = space.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!;
         format.SourceLinked = true;
         format.FormatCode = "0.0";
-        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var drawn));
+        Assert.Equal("0.0", drawn.Layout.VerticalAxisNumberFormat);
 
-        format.FormatCode = "[Red]0";
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        format.FormatCode = "0.0\"x";
+        Assert.True(chart.TryGetOfficeSnapshot(out var fallback));
+        Assert.Null(fallback.Layout.VerticalAxisNumberFormat);
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void PrimarySourceLinkedAxisRejectsInheritedWorkbookStyles(bool columnStyle) {
+    public void PrimarySourceLinkedAxisWithWorkbookStylesUsesTheCachedCellFormat(bool columnStyle) {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
@@ -77,11 +79,12 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         }
         bytes.Position = 0;
         package.FeedData(bytes);
-        // The cached values carry the styled cell format, so the axis needs the workbook projection.
+        // The cached values carry the styled cell format, which a linked axis displays.
         foreach (C.FormatCode code in part.ChartSpace.Descendants<C.Values>().SelectMany(values => values.Descendants<C.FormatCode>()))
             code.Text = "#,##0.00";
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("#,##0.00", snapshot.Layout.VerticalAxisNumberFormat);
     }
 
     [Fact]
@@ -91,13 +94,14 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var chart = slide.AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 12d }) }));
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
-        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[Red]0";
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "0.0\"x";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Null(snapshot.Layout.VerticalAxisNumberFormat);
         chart.UpdateData(new OfficeChartData(new[] { "A" },
             new[] { new OfficeSeries("Values", new[] { 24d }) }));
-        Assert.Equal("[Red]0", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+        Assert.Equal("0.0\"x", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
     }
 
     [Theory]
@@ -165,7 +169,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void UnsupportedNumericAxisFormatIsNotProjected(bool secondaryAxis) {
+    public void UnsupportedNumericAxisFormatIsDrawnAsGeneral(bool secondaryAxis) {
         using var presentation = PowerPointDocument.Create();
         var chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] {
@@ -177,9 +181,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(item => item.AxisPosition!.Val!.Value ==
                 (secondaryAxis ? C.AxisPositionValues.Right : C.AxisPositionValues.Left));
-        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[Red]0";
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "0.0\"x";
         axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Null(secondaryAxis ? snapshot.Layout.SecondaryValueAxis!.NumberFormat : snapshot.Layout.VerticalAxisNumberFormat);
     }
 
     [Theory]
@@ -229,8 +234,6 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Theory]
-    [InlineData("logarithmic")]
-    [InlineData("reversed")]
     [InlineData("displayUnits")]
     [InlineData("deleted")]
     public void SecondaryValueAxis_UnsupportedProjectionPreservesNativeUpdates(string setting) {
@@ -245,8 +248,6 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var secondary = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
         if (setting == "deleted") secondary.AddChild(new C.Delete { Val = true }, true);
-        else if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
-        else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else secondary.AddChild(new C.DisplayUnits(new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
         string Appearance(C.ValueAxis axis) {
             var copy = (C.ValueAxis)axis.CloneNode(true);
@@ -285,7 +286,52 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void PrimaryValueAxis_RejectsNonlinearOrReversedStaticProjection(bool reversed) {
+    public void SecondaryValueAxis_ProjectsLogarithmicAndReversedScalesAndKeepsThemOnUpdate(bool reversed) {
+        using var presentation = PowerPointDocument.Create();
+        var slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Count", new[] { 100d, 150d }),
+            new OfficeSeries("Ratio", new[] { 1d, 10d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, data);
+        C.ValueAxis Secondary() => slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        C.ValueAxis axis = Secondary();
+        if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
+        else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        OfficeChartValueAxisLayout secondary = snapshot.Layout.SecondaryValueAxis!;
+        Assert.Equal((reversed, reversed ? (double?)null : 10D), (secondary.IsReversed, secondary.LogBase));
+        Assert.Equal((false, (double?)null), (snapshot.Layout.ReverseVerticalValueAxis, snapshot.Layout.VerticalAxisLogBase));
+        chart.UpdateData(data);
+        axis = Secondary();
+        Assert.Equal(reversed, axis.Scaling!.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin);
+        Assert.Equal(!reversed, axis.Scaling.GetFirstChild<C.LogBase>()?.Val?.Value == 10);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
+    [Fact]
+    public void SecondaryValueAxis_WritesLogarithmicAndReversedScales() {
+        using var presentation = PowerPointDocument.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Count", new[] { 100d, 150d }),
+            new OfficeSeries("Ratio", new[] { 1d, 10d }, null, null, null, true,
+                renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithLogarithmicScale(10D).WithReversedScale(true));
+
+        C.Scaling scaling = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).Scaling!;
+        Assert.Equal(10D, scaling.GetFirstChild<C.LogBase>()?.Val?.Value);
+        Assert.Equal(C.OrientationValues.MaxMin, scaling.GetFirstChild<C.Orientation>()?.Val?.Value);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PrimaryValueAxis_ProjectsLogarithmicAndReversedScalesAndKeepsThemOnUpdate(bool reversed) {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" },
@@ -294,7 +340,8 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal((reversed, reversed ? (double?)null : 10D), (snapshot.Layout.ReverseVerticalValueAxis, snapshot.Layout.VerticalAxisLogBase));
         chart.UpdateData(data);
         axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         Assert.Equal(reversed, axis.Scaling!.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin);
@@ -354,7 +401,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData(false, true)]
     [InlineData(true, false)]
     [InlineData(true, true)]
-    public void ScatterSnapshot_RejectsNonlinearOrReversedAxes(bool verticalAxis, bool reversed) {
+    public void ScatterSnapshot_ProjectsLogarithmicAndReversedAxes(bool verticalAxis, bool reversed) {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartType.Scatter,
@@ -366,7 +413,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        OfficeChartLayout layout = snapshot.Layout;
+        Assert.Equal(reversed, verticalAxis ? layout.ReverseVerticalValueAxis : layout.ReverseHorizontalValueAxis);
+        Assert.Equal(reversed ? null : 10D, verticalAxis ? layout.VerticalAxisLogBase : layout.HorizontalAxisLogBase);
     }
 
     [Fact]

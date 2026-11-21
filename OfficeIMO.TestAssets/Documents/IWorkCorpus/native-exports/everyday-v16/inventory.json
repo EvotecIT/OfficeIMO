@@ -1,0 +1,44 @@
+{
+  "source": "native-exports/everyday-v16/inventory.numbers",
+  "sourceSha256": "c6dd5c93a9b07dd1780971b9418a7d502819f9975e54dc81a7901c7ed1d11c36",
+  "producer": "Numbers 16.0 (7052.0.68)",
+  "buildHistory": "M16.0-7052.0.68-2",
+  "license": "MIT (OfficeIMO authored content)",
+  "artifacts": [
+    {
+      "path": "native-exports/everyday-v16/apple-inventory.xlsx",
+      "sha256": "0fbb73b2a4dbbcea895e10457c55bb20151a08a535a6e94cbcade551e7efc9ed"
+    },
+    {
+      "path": "native-exports/everyday-v16/apple-inventory.pdf",
+      "sha256": "5e157519fa33b7663def1d724339c54fe847c769833945ae51fd63a522ace364"
+    },
+    {
+      "path": "native-exports/everyday-v16/officeimo-inventory.pdf",
+      "sha256": "3c85e543765369f5b92efd7d83b4f632fe506716d78c5acf5a56b83bdfd7d793"
+    }
+  ],
+  "environment": {
+    "os": "macOS 27.2.1 (26B131), arm64",
+    "locale": "pl-PL",
+    "pdfRenderer": "Producing Apple application 16.0 (7052.0.68); inspected with pypdfium2 4.30.0",
+    "pdfExportOptions": "Apple app scripting defaults"
+  },
+  "origin": "Blank Numbers document authored in Numbers with Inputs and Totals on one sheet. Apple XLSX exports one worksheet per table and excludes the summary worksheet.",
+  "nativeTemplates": "Blank",
+  "pdfFonts": [
+    "HelveticaNeue (embedded subset)",
+    "HelveticaNeue-Bold (embedded subset)"
+  ],
+  "comparison": {
+    "content": "4×3 and 3×2 grids in order, B4:C4 merge, 16 populated cells including two cross-table formulas with numeric caches.",
+    "independentDecoder": "numbers-parser 4.19.0 reads both grids and B4:C4.",
+    "edit": "Set Inputs!B2 from 3 to 11 in disposable copies of the native workbook and saved OfficeIMO XLSX, opened in Numbers. Both formula results change from [8, 26] to [16, 42].",
+    "inspectedPages": [
+      1,
+      2
+    ],
+    "appearance": "Native source shows both tables and titles on one page. Numbers XLSX reimport shows one grid per page, omits on-grid table titles and adds empty grid lines.",
+    "defaultPolicy": "Rejects an incomplete preview. Explicit partial XLSX reports cell-padding omission, automatic-decimal approximation and border-width approximation."
+  }
+}

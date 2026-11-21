@@ -108,6 +108,31 @@ foreach (OfficeDiagnostic finding in report.Diagnostics) {
 }
 ```
 
+### Preflight with the export fonts
+
+Deck preflight lays out text boxes with the same paragraph flow as export. Pass the PDF export options to `WithPdfTextMeasurement` so its overflow and auto-fit checks also measure with the same fonts, substitutions and resource policy:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
+
+byte[] carlitoRegular = File.ReadAllBytes("fonts/Carlito-Regular.ttf");
+var pdfOptions = new PowerPointPdfExportOptions {
+    PdfOptions = new PdfCreateOptions()
+        .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Carlito", carlitoRegular))
+        .RegisterFontFamilySubstitution("Calibri", "Carlito", PdfFontFamilySubstitutionImpact.Compatible),
+    ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+};
+
+using var presentation = PowerPointDocument.Load("deck.pptx");
+PowerPointDeckPreflightReport preflight = presentation.InspectPreflight(
+    new PowerPointDeckPreflightOptions().WithPdfTextMeasurement(pdfOptions));
+if (preflight.IsSuccessful) presentation.SaveAsPdf("deck.pdf", pdfOptions);
+```
+
+Without this selection, preflight measures with installed system fonts.
+
 ## What it maps
 
 - Full-slide pages use the authored slide size; notes pages use portrait letter and handouts use landscape letter.

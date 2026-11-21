@@ -15,6 +15,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     private readonly int _lookupList;
     private readonly Lazy<(int[]? Indexes, int Required)> _latinDefaultFeatures;
     private LatinDefaultLookupCache? _latinDefaultLookups;
+    private LatinDefaultLookupCache? _latinExplicitLookups;
+    private readonly Lazy<OfficeOpenTypeGlyphFilter?> _glyphFilter;
 
     private OfficeOpenTypeSubstitution(OfficeOpenTypeReader reader, int table, int length) {
         _reader = reader;
@@ -27,11 +29,17 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             int[]? indexes = ReadLatinDefaultFeatureIndexes(out int required);
             return (indexes, required);
         });
+        _glyphFilter = new Lazy<OfficeOpenTypeGlyphFilter?>(() => OfficeOpenTypeGlyphFilter.TryCreate(reader.Data));
     }
 
     private sealed class LatinDefaultLookupCache {
-        internal LatinDefaultLookupCache(KeyValuePair<int, int>[]? lookups) => Lookups = lookups;
+        internal LatinDefaultLookupCache(OfficeTextFeatureSettings settings, KeyValuePair<int, int>[]? lookups, bool filtersMarks) {
+            Settings = settings; Lookups = lookups; FiltersMarks = filtersMarks;
+        }
+        internal OfficeTextFeatureSettings Settings { get; }
         internal KeyValuePair<int, int>[]? Lookups { get; }
+        /// <summary>Whether a selected lookup skips marks, so runs containing a mark must decline.</summary>
+        internal bool FiltersMarks { get; }
     }
 
     internal static OfficeOpenTypeSubstitution? TryCreate(byte[] data) {

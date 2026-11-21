@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel {
             }
 
             /// <summary>Writes a duration cell.</summary>
-            public ExcelTabularRowWriter Write(TimeSpan value) { BeginCell(DirectDataSetWorkbookWriter.GetTimeStyleAttribute(_useCellValueNumberFormats)); if (_native != null) _native.WriteNumber((double)(value.TotalDays)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value.TotalDays); return this; }
+            public ExcelTabularRowWriter Write(TimeSpan value) { BeginCell(DirectDataSetWorkbookWriter.GetTimeStyleAttribute(_useCellValueNumberFormats)); if (_native != null) _native.WriteNumber(ExcelDateSystemConverter.ToSerial(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, ExcelDateSystemConverter.ToSerial(value)); return this; }
             /// <summary>Writes a double-precision numeric cell.</summary>
             public ExcelTabularRowWriter Write(double value) { BeginCell(); if (_native != null) _native.WriteNumber((double)(value)); else DirectDataSetWorkbookWriter.WriteRawValueCell(_writer, value); return this; }
             /// <summary>Writes a single-precision numeric cell.</summary>

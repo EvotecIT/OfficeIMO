@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
             chartSpace.Append(new C.RoundedCorners { Val = false });
 
             C.Chart chart = new();
-            chart.Append(new C.AutoTitleDeleted { Val = false });
+            chart.Append(new C.AutoTitleDeleted { Val = true });
 
             C.PlotArea plotArea = new();
             plotArea.Append(new C.Layout());
@@ -96,7 +96,7 @@ namespace OfficeIMO.PowerPoint {
             chartSpace.Append(new C.RoundedCorners { Val = false });
 
             C.Chart chart = new();
-            chart.Append(new C.AutoTitleDeleted { Val = false });
+            chart.Append(new C.AutoTitleDeleted { Val = true });
 
             C.PlotArea plotArea = new();
             plotArea.Append(new C.Layout());
@@ -211,7 +211,7 @@ namespace OfficeIMO.PowerPoint {
         internal static void UpdateChartData(ChartPart chartPart, PowerPointScatterChartData data) {
             ArgumentNullException.ThrowIfNull(data);
             var shared = new OfficeIMO.Drawing.OfficeChartData(
-                data.Series[0].XValues.Select(value => value.ToString(CultureInfo.InvariantCulture)),
+                data.Series[0].XValues.Select(value => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture)),
                 data.Series.Select(series => new OfficeIMO.OfficeSeries(series.Name, series.YValues, series.XValues)));
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.UpdateScatterData(chartPart, shared);
         }
@@ -588,7 +588,7 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < values.Count; i++) {
                 cache.Append(new C.NumericPoint {
                     Index = (uint)i,
-                    NumericValue = new C.NumericValue { Text = values[i].ToString(CultureInfo.InvariantCulture) }
+                    NumericValue = new C.NumericValue { Text = OfficeIMO.Core.Internal.OfficeRoundTripText.Format(values[i], CultureInfo.InvariantCulture) }
                 });
             }
 

@@ -522,6 +522,10 @@ internal static class YamlSchemaResolver {
         return true;
     }
 
+#if !NET8_0_OR_GREATER
+    private static readonly double NegativeZero = BitConverter.Int64BitsToDouble(long.MinValue);
+#endif
+
     private static bool ParseFloat(ReadOnlySpan<char> s, out double value) {
 #if NET8_0_OR_GREATER
         // Underscores occur only in YAML 1.1 spellings; other text parses in place.
@@ -532,7 +536,11 @@ internal static class YamlSchemaResolver {
 #if NET8_0_OR_GREATER
         return double.TryParse(buffer.Slice(0, n), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 #else
-        return double.TryParse(buffer.Slice(0, n).ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        string text = buffer.Slice(0, n).ToString();
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)) return false;
+        // .NET Framework reads -0 as 0; .NET Core running this build already keeps the sign.
+        if (value == 0D && text[0] == '-') value = NegativeZero;
+        return true;
 #endif
     }
 

@@ -624,6 +624,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 bool boolean => boolean ? "TRUE" : "FALSE",
                 DateTime dateTime => dateTime.ToString("O", CultureInfo.InvariantCulture),
                 DateTimeOffset dateTimeOffset => dateTimeOffset.ToString("O", CultureInfo.InvariantCulture),
+                double or float => OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture),
                 IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
                 _ => Convert.ToString(value, CultureInfo.InvariantCulture),
             };

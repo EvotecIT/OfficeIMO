@@ -19,7 +19,8 @@ internal static class ProjectDataSchema {
     internal static string? Text(object? value) => value switch {
         null => null, DateTime date when date.Kind == DateTimeKind.Unspecified => date.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture),
         DateTime => throw new InvalidDataException("Project table dates must use DateTimeKind.Unspecified; timezone-bearing values cannot be exported implicitly."),
-        bool flag => flag ? "true" : "false", IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+        bool flag => flag ? "true" : "false", double or float => OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture),
+        IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
         _ => value.ToString()
     };
     internal static ProjectMappedTable Export(ProjectDataKind kind, IEnumerable<string?[]> rows, int maxRows, int maxCells) {

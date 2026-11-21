@@ -117,8 +117,10 @@ public class PowerPointSharedBubbleChartImportContractTests {
     }
 
     [Fact]
-    public void BubbleChart_RejectsVisibleOnlySnapshotWithHiddenWorkbookRows() {
-        using PowerPointDocument presentation = CreateDocument(out PowerPointChart chart);
+    public void BubbleChart_LeavesOutBubblesInHiddenWorkbookRows() {
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Bubble, new OfficeChartData(new[] { "1", "3" },
+            new[] { OfficeSeries.CreateBubble("Portfolio", new[] { 1D, 3D }, new[] { 2D, 5D }, new[] { 4D, 6D }) }));
         ChartPart chartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
         EmbeddedPackagePart embedded = Assert.Single(
             chartPart.GetPartsOfType<EmbeddedPackagePart>());
@@ -131,7 +133,12 @@ public class PowerPointSharedBubbleChartImportContractTests {
             row.Ancestors<S.Worksheet>().Single().Save();
         }
 
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+
+        OfficeSeries series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(new[] { 3D }, series.XValues);
+        Assert.Equal(new[] { 5D }, series.Values);
+        Assert.Equal(new[] { 6D }, series.BubbleSizes);
     }
 
     [Fact]

@@ -8,7 +8,8 @@ public static partial class OfficeChartDrawingRenderer {
     private static void AddJoinedSeriesOutline(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points,
         OfficeColor color, double width, OfficeStrokeDashStyle dashStyle, OfficeStrokeLineJoin join,
         IReadOnlyList<bool>? plotted = null, bool closed = false,
-        ChartPlotBounds? plotBounds = null, ValueRange? valueRange = null, ValueRange? xRange = null) {
+        ChartPlotBounds? plotBounds = null, ValueRange? valueRange = null, ValueRange? xRange = null,
+        OfficeStrokeLineCap? cap = null) {
         if (points.Count < 2) return;
         var runs = new List<List<OfficePoint>>();
         var run = new List<OfficePoint>();
@@ -89,6 +90,7 @@ public static partial class OfficeChartDrawingRenderer {
             // A horizontal/vertical open path still needs a positive declared canvas.
             OfficeShape shape = OfficeShape.Path(Math.Max(1D, right - left), Math.Max(1D, bottom - top), commands);
             shape.StrokeLineJoin = join;
+            shape.StrokeLineCap = closePath ? null : cap;
             AddShape(drawing, shape, left, top, null, color, width, dashStyle);
         }
 

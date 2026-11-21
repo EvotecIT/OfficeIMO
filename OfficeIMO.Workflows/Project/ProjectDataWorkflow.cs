@@ -100,6 +100,7 @@ public static class ProjectDataWorkflow {
         DateTime date when date.Kind == DateTimeKind.Unspecified => date.ToString("yyyy-MM-ddTHH:mm:ss.fffffff", CultureInfo.InvariantCulture),
         DateTime => throw new InvalidDataException("Project table dates must explicitly use DateTimeKind.Unspecified; timezone-bearing values are not converted implicitly."),
         bool flag => flag ? "true" : "false",
+        double or float => OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture),
         IFormattable formatted => formatted.ToString(null, CultureInfo.InvariantCulture),
         _ => throw new InvalidDataException("The input contains a value that has no portable project-table representation.")
     };

@@ -41,7 +41,7 @@ public sealed class ConvertToOfficeProjectTableCommand : PSCmdlet {
         var rows = table.Rows.Cast<System.Data.DataRow>().Select(row => headers.Select((_, index) => {
             var value = row[index];
             return value == DBNull.Value ? null : value is DateTime date ? date.ToString("s", System.Globalization.CultureInfo.InvariantCulture)
-                : Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
+                : OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, System.Globalization.CultureInfo.InvariantCulture);
         }).ToArray());
         var columns = new List<ProjectDataColumn>();
         foreach (System.Collections.DictionaryEntry item in ColumnMap) {

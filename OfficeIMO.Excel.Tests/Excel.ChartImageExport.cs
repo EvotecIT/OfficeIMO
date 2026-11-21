@@ -46,7 +46,7 @@ public sealed class ExcelChartImageExportTests {
         }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right)
-            .Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+            .AddChild(new C.DisplayUnits(new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
 
         var error = Assert.Throws<NotSupportedException>(() => chart.ToImage(new OfficeChartImageExportOptions()));
         Assert.Contains("secondary numeric axis", error.Message);

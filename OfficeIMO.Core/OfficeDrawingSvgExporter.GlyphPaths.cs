@@ -171,7 +171,7 @@ public static partial class OfficeDrawingSvgExporter {
             } else {
                 OfficeColor fill = text.Color ?? OfficeColor.Black;
                 element.SetAttributeValue("fill", "#" + fill.ToRgbHex());
-                element.SetAttributeValue("fill-opacity", (fill.A / 255D).ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                element.SetAttributeValue("fill-opacity", OfficeIMO.Core.Internal.OfficeRoundTripText.Format(fill.A / 255D, System.Globalization.CultureInfo.InvariantCulture));
             }
         }
         foreach (XNode node in root.Nodes()) output.Append(node.ToString(SaveOptions.DisableFormatting));

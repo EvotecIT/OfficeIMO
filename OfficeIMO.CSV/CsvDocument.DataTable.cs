@@ -132,7 +132,7 @@ public sealed partial class CsvDocument
         {
             values[index++] = staticColumn.Value is null || staticColumn.Value == DBNull.Value
                 ? DBNull.Value
-                : Convert.ToString(staticColumn.Value, options.Culture) ?? string.Empty;
+                : OfficeIMO.OfficeRoundTripNumberText.FormatObject(staticColumn.Value, options.Culture) ?? string.Empty;
         }
     }
 

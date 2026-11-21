@@ -63,6 +63,10 @@ internal static partial class ManagedTextShapingTestAssets {
         return data;
     }
 
+    /// <summary>The emoji sequence fixture with a weight axis: variable, with GSUB and no GPOS or feature variations.</summary>
+    internal static byte[] CreateVariableEmojiSequenceFont() =>
+        CreateEmojiSequenceFont(additionalTables: new[] { ("fvar", CreateWeightAxisFvar()) });
+
     private static byte[] CreateWeightAxisFvar() {
         var fvar = new byte[36];
         WriteUInt16(fvar, 0, 1);

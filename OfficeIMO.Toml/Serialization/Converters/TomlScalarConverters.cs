@@ -66,7 +66,7 @@ internal static class TomlValueText {
     /// <summary>A float's text without digit separators, for an exact decimal read.</summary>
     public static string FloatText(TomlReadNode value) {
         if (value.TryGetRaw(out ReadOnlySpan<char> raw)) return raw.ToString().Replace("_", string.Empty);
-        return ((double)value.DecodedValue).ToString("R", CultureInfo.InvariantCulture);
+        return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(((double)value.DecodedValue), CultureInfo.InvariantCulture);
     }
 }
 
@@ -217,7 +217,7 @@ internal sealed class TomlDoubleConverter : TomlScalarConverter<double> {
 
     public override void Write(TomlEmitter emitter, double value, TomlWriteState state) => emitter.WriteFloat(value);
 
-    protected override string FormatText(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+    protected override string FormatText(double value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 
     protected override bool TryParseText(string text, out double value) => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 }
@@ -237,10 +237,10 @@ internal sealed class TomlSingleConverter : TomlScalarConverter<float> {
             emitter.WriteFloat(value);
             return;
         }
-        emitter.WriteFloatText(value.ToString("R", CultureInfo.InvariantCulture));
+        emitter.WriteFloatText(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture));
     }
 
-    protected override string FormatText(float value) => value.ToString("R", CultureInfo.InvariantCulture);
+    protected override string FormatText(float value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 
     protected override bool TryParseText(string text, out float value) => float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
 }

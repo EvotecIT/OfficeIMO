@@ -67,8 +67,9 @@ namespace OfficeIMO.Excel {
             bool showValueGridLines = HasImageExportMajorGridlines(valueAxis);
             bool showCategoryMinorGridLines = HasImageExportMinorGridlines(categoryAxis);
             bool showValueMinorGridLines = HasImageExportMinorGridlines(valueAxis);
-            C.PieChartSeries? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
-                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
+            OpenXmlCompositeElement? radialSeries = ChartType is OfficeChartType.Pie or OfficeChartType.Doughnut
+                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault()
+                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPlotSemantics.GetPointColoredSeries(plotArea);
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,
                     radialPointCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme,
@@ -194,7 +195,9 @@ namespace OfficeIMO.Excel {
             }
             if (radialChart != null && visibleLabels.Skip(1).Any(labels =>
                 !string.Equals(labels.OuterXml, dataLabels?.OuterXml, StringComparison.Ordinal)))
-                throw new NotSupportedException("Different radial data-label layouts cannot be projected by one shared layout.");
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
+                    "Different radial data-label layouts cannot be projected by one shared layout.",
+                    "Radial data labels with different layouts per series are drawn with the first labelled series' layout.");
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.Title? title = chart.GetFirstChild<C.Title>();
             OfficeChartValueAxisLayout? secondaryValueAxis = ReadImageExportSecondaryValueAxis(plotArea);
@@ -370,24 +373,33 @@ namespace OfficeIMO.Excel {
         private static bool HasDefaultPlotSemantics(OfficeChartLayout layout) =>
             layout.BlankDisplay == OfficeChartLayout.Default.BlankDisplay &&
             layout.HorizontalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.HorizontalAxisCrossesAt == null &&
-            layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.VerticalAxisCrossesAt == null;
+            layout.VerticalAxisCrossingPosition == OfficeChartAxisCrossingPosition.AutoZero && layout.VerticalAxisCrossesAt == null &&
+            layout.HorizontalAxisLogBase == null && layout.VerticalAxisLogBase == null &&
+            !layout.ReverseHorizontalValueAxis && !layout.ReverseVerticalValueAxis && !layout.VaryColorsByPoint &&
+            layout.PlotAreaLayout == null && layout.TitleLayout == null && layout.LegendLayout == null;
 
         private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
             var axis = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea);
             if (axis == null) return null;
             string? numberFormat = GetImageExportAxisNumberFormat(axis);
+            // Qualify the format before the axis layout is built: an axis format the renderer cannot reproduce falls
+            // back to General instead of dropping the chart.
+            if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat)) {
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Record(
+                    "The secondary axis number format '" + numberFormat + "' is drawn as General.");
+                numberFormat = null;
+            }
             OfficeChartValueAxisLayout? native = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(
                 plotArea, () => numberFormat ?? "General");
             if (native == null) return null;
-            if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat))
-                throw new NotSupportedException("The secondary axis number format cannot be rendered.");
             var resolved = new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
                 native.MinorUnit, numberFormat, native.MajorTickMark,
-                native.MinorTickMark);
+                native.MinorTickMark).WithLogarithmicScale(native.LogBase).WithReversedScale(native.IsReversed);
             return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 
-        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart) {
+        private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart,
+            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts = null) {
             C.PlotArea? plotArea = chartPart.ChartSpace?
                 .GetFirstChild<C.Chart>()?
                 .GetFirstChild<C.PlotArea>();
@@ -395,7 +407,7 @@ namespace OfficeIMO.Excel {
                 return data;
             }
 
-            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data, workbookPart);
+            Dictionary<int, ImageExportSeriesStyle> styles = GetImageExportSeriesStyles(plotArea, data, workbookPart, selectVisibleAmounts);
             if (styles.Count == 0) {
                 return data;
             }
@@ -407,7 +419,7 @@ namespace OfficeIMO.Excel {
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
                     series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize.HasValue ? OfficeLength.Points(style.MarkerSize.Value) : (OfficeLength?)null, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth, style.AutomaticColor)
                         .WithSeriesStyle(style.SeriesStyle).WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions)
-                        .WithTrendline(style.Trendline));
+                        .WithTrendline(style.Trendline).WithErrorBars(style.ErrorBars));
                     changed = true;
                 } else {
                     series.Add(current);
@@ -417,7 +429,8 @@ namespace OfficeIMO.Excel {
             return changed ? new ExcelChartData(data.Categories, series) : data;
         }
 
-        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart) {
+        private static Dictionary<int, ImageExportSeriesStyle> GetImageExportSeriesStyles(C.PlotArea plotArea, ExcelChartData data, WorkbookPart workbookPart,
+            Func<OpenXmlElement, IReadOnlyList<double>, IReadOnlyList<double>>? selectVisibleAmounts) {
             var styles = new Dictionary<int, ImageExportSeriesStyle>();
             var automaticColors = new OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext();
             int seriesOrder = 0;
@@ -444,7 +457,9 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                style.Trendline = ReadImageExportTrendline(series, workbookPart);
+                style.Trendline = ReadImageExportTrendline(series, workbookPart, data.Series[index].Name);
+                style.ErrorBars = OfficeOpenXmlChartErrorBars.Read(series, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme, 100000,
+                    selectVisibleAmounts);
                 int valueCount = data.Series[index].Values.Count;
                 C.Marker? marker = series.GetFirstChild<C.Marker>();
                 C.ScatterStyleValues? scatterStyle = (series.Parent as C.ScatterChart)?.GetFirstChild<C.ScatterStyle>()?.Val?.Value;
@@ -462,8 +477,12 @@ namespace OfficeIMO.Excel {
                     workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
                 if (series is C.PieChartSeries) {
                     if (!OfficeOpenXmlChartExplosions.TryRead(series, pointOverrides, valueCount,
-                        out int[]? explosions))
-                        throw new NotSupportedException("The native pie or doughnut point explosion cannot be rendered.");
+                        out int[]? explosions)) {
+                        OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate(
+                            "The native pie or doughnut point explosion cannot be rendered.",
+                            "Pie or doughnut slice explosions that cannot be reproduced are drawn without separation.");
+                        explosions = null;
+                    }
                     style.PointExplosions = explosions;
                 }
                 if (series.Parent is C.Line3DChart) {
@@ -525,7 +544,7 @@ namespace OfficeIMO.Excel {
             style == null || style.Value != C.ScatterStyleValues.Marker;
 
         // The first trendline of a series; the renderer draws one fitted line per series.
-        private static OfficeChartTrendline? ReadImageExportTrendline(OpenXmlCompositeElement series, WorkbookPart workbookPart) {
+        private static OfficeChartTrendline? ReadImageExportTrendline(OpenXmlCompositeElement series, WorkbookPart workbookPart, string seriesName) {
             C.Trendline? trendline = series.GetFirstChild<C.Trendline>();
             if (trendline == null) return null;
             OfficeChartTrendlineType? type = trendline.GetFirstChild<C.TrendlineType>()?.Val?.InnerText switch {
@@ -542,15 +561,31 @@ namespace OfficeIMO.Excel {
             int? period = trendline.GetFirstChild<C.Period>()?.Val?.Value is uint averagePeriod && averagePeriod <= int.MaxValue ? (int)averagePeriod : null;
             if (type == OfficeChartTrendlineType.Polynomial && order is null or < 2 or > 6) return null;
             if (type == OfficeChartTrendlineType.MovingAverage && period is null or < 2) return null;
+            // Rendering limits are checked only while the chart is projected for export; reading chart data alone
+            // never fails on how a trendline would be drawn.
+            bool projecting = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.IsProjecting;
+            if (period > OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.MaximumPeriod) {
+                if (projecting)
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartFidelityScope.Approximate("The native trendline type cannot be projected.",
+                        "A trendline the renderer cannot fit is left out.");
+                return null;
+            }
             C.ChartShapeProperties? properties = trendline.GetFirstChild<C.ChartShapeProperties>();
+            A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? color = TryGetSolidLine(properties, workbookPart, out OfficeColor line) ? line : null;
             double? width = TryGetLineWidth(properties, out double lineWidth) && lineWidth > 0D ? lineWidth : null;
             double? intercept = trendline.GetFirstChild<C.Intercept>()?.Val?.Value is double fixedIntercept && !double.IsNaN(fixedIntercept) && !double.IsInfinity(fixedIntercept)
                 ? fixedIntercept : null;
-            return new OfficeChartTrendline(type.Value, order, period,
+            var result = new OfficeChartTrendline(type.Value, order, period,
                 displayEquation: trendline.GetFirstChild<C.DisplayEquation>()?.Val?.Value == true,
                 displayRSquared: trendline.GetFirstChild<C.DisplayRSquaredValue>()?.Val?.Value == true,
-                color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept);
+                color: color, width: width.HasValue ? OfficeLength.Points(width.Value) : null, intercept: intercept)
+                .WithNativeDetails(trendline.GetFirstChild<C.Forward>()?.Val?.Value ?? 0D, trendline.GetFirstChild<C.Backward>()?.Val?.Value ?? 0D,
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadLegendName(series, trendline, type.Value, order, period, seriesName));
+            if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.HidesLine(outline)) return result.WithHiddenLine();
+            return result.WithDashStyle(projecting
+                ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDashOrApproximate(outline)
+                : OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTrendlines.ReadDash(outline));
         }
 
         private static string? GetImageExportSeriesColor(C.ChartShapeProperties properties, WorkbookPart workbookPart) {
@@ -826,15 +861,13 @@ namespace OfficeIMO.Excel {
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             string source = GetImageExportSource();
             WorkbookPart workbookPart = _document.WorkbookPartRoot;
-            // Every trendline type is drawn now; forward and backward forecasts and further
-            // trendlines on the same series are not, so only those still warn.
-            if (chartSpace.Descendants<C.Trendline>().Any(trendline =>
-                    trendline.GetFirstChild<C.Forward>() != null || trendline.GetFirstChild<C.Backward>() != null ||
-                    trendline.Parent?.Elements<C.Trendline>().Count() > 1)) {
+            // Every trendline type, its forecasts and its legend entry are drawn; only the first trendline
+            // of a series is, so further trendlines still warn.
+            if (chartSpace.Descendants<C.Trendline>().Any(trendline => trendline.Parent?.Elements<C.Trendline>().Count() > 1)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported,
-                    "Worksheet chart trendline forecasts and additional trendlines on a series are not rendered by the shared image renderer.",
+                    "Worksheet chart trendlines after the first on a series are not rendered by the shared image renderer.",
                     source));
             }
 
@@ -846,10 +879,12 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
+            // Outside-end and best-fit pie labels draw their leader lines in the default line style.
             if (chartSpace.Descendants<C.LeaderLines>().Any(lines => lines.HasChildren || lines.HasAttributes ||
                 lines.Ancestors().FirstOrDefault(element => element is C.PieChart or C.DoughnutChart) == null ||
                 lines.Parent is not C.DataLabels labels ||
-                labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value != C.DataLabelPositionValues.OutsideEnd ||
+                labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value is C.DataLabelPositionValues position &&
+                    position != C.DataLabelPositionValues.OutsideEnd && position != C.DataLabelPositionValues.BestFit ||
                 labels.GetFirstChild<C.ShowLeaderLines>() is not C.ShowLeaderLines showLeaderLines ||
                 showLeaderLines.Val?.Value == false)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
@@ -1290,14 +1325,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool HasUnsupportedImageExportAxisScaling(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.Scaling scaling) {
-            C.OrientationValues? orientation = scaling.GetFirstChild<C.Orientation>()?.Val?.Value;
-            if (orientation != null &&
-                orientation.Value != C.OrientationValues.MinMax &&
-                !IsSupportedImageExportAxisOrientation(plotArea, axis, orientation.Value)) {
-                return true;
-            }
-
-            if (scaling.GetFirstChild<C.LogBase>() != null) {
+            // Reversed value and category axes and logarithmic value axes are drawn by the shared renderer.
+            if (scaling.GetFirstChild<C.LogBase>() != null && axis is not C.ValueAxis) {
                 return true;
             }
 
@@ -1320,10 +1349,6 @@ namespace OfficeIMO.Excel {
             return min.HasValue && max.HasValue && max.Value <= min.Value;
         }
 
-        private static bool IsSupportedImageExportAxisOrientation(C.PlotArea plotArea, OpenXmlCompositeElement axis, C.OrientationValues orientation) =>
-            orientation == C.OrientationValues.MaxMin &&
-            (axis is C.CategoryAxis || axis is C.DateAxis) &&
-            !HasHorizontalBarChart(plotArea);
 
         private static bool HasUnsupportedImageExportChartAreaStyle(C.ChartSpace chartSpace, WorkbookPart workbookPart) {
             C.ShapeProperties? chartAreaProperties = chartSpace.GetFirstChild<C.ShapeProperties>();
@@ -1631,6 +1656,8 @@ namespace OfficeIMO.Excel {
             internal string? SeriesColorArgb { get; set; }
 
             internal OfficeChartTrendline? Trendline { get; set; }
+
+            internal IReadOnlyList<OfficeChartErrorBars>? ErrorBars { get; set; }
 
             internal bool AutomaticColor { get; set; }
 

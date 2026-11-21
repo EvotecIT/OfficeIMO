@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             var rows = new[] {
                 new MetricRow { Label = "Q1", Current = 10, Target = 12 },
                 new MetricRow { Label = "Q2", Current = 12, Target = 11 },
-                new MetricRow { Label = "Q3", Current = 9, Target = 13 }
+                new MetricRow { Label = "Q3", Current = 1D / 3D, Target = 13 }
             };
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
@@ -52,9 +52,10 @@ namespace OfficeIMO.Tests {
                     .GetFirstChild<NumberReference>()?
                     .GetFirstChild<NumberingCache>()?
                     .Elements<NumericPoint>()
-                    .Select(p => double.Parse(p.NumericValue?.Text ?? "0", CultureInfo.InvariantCulture))
+                    .Select(p => p.NumericValue?.Text ?? string.Empty)
                     .ToList();
-                Assert.Equal(new[] { 10d, 12d, 9d }, currentValues);
+                // The cache keeps the shortest round-trip text on every framework, not .NET Framework's 15 digits.
+                Assert.Equal(new[] { "10", "12", "0.3333333333333333" }, currentValues);
 
                 var targetValues = series[1]
                     .GetFirstChild<Values>()?

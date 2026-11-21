@@ -10,7 +10,6 @@ namespace OfficeIMO.OpenXml.Internal {
             C.BubbleChart bubble, int maximumPointOverrides) =>
             IsVaryColorsEnabled(bubble.GetFirstChild<C.VaryColors>()) ||
             IsBubble3DEnabled(bubble.GetFirstChild<C.Bubble3D>()) ||
-            HasUnsupportedBubbleSourceVisibility(part, chart) ||
             HasUnsupportedBubbleAxes(plotArea, bubble) || HasUnsupportedBubbleLegend(chart) ||
             HasUnsupportedBubbleAreaLayout(part, plotArea) || HasEnabledBubbleDataLabels(bubble) ||
             bubble.Elements<C.BubbleChartSeries>().Any(series => IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()) ||
@@ -48,7 +47,7 @@ namespace OfficeIMO.OpenXml.Internal {
                  axis.GetFirstChild<C.MinorUnit>() != null ||
                  axis.GetFirstChild<C.DisplayUnits>() != null ||
                  axis.GetFirstChild<C.CrossesAt>() != null ||
-                 HasUnsupportedSharedAxisNumberFormat(axis) ||
+                 OfficeOpenXmlChartSecondaryAxis.IsWorkbookLinked(axis) ||
                  (axis.GetFirstChild<C.TickLabelPosition>() is
                       C.TickLabelPosition tickLabelPosition &&
                   tickLabelPosition.Val?.Value !=

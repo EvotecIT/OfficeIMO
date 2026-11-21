@@ -3,27 +3,30 @@ namespace OfficeIMO.IWork.Internal;
 /// <summary>Encodes the bounded scalar subset of modern iWork table cells.</summary>
 internal static class IWorkTableCellStorageWriter {
     internal static byte[] Encode(IWorkTableCell? cell, IReadOnlyDictionary<string, uint> strings, uint? numberFormatKey) {
-        byte type = cell?.Kind switch { IWorkCellKind.Text => 3, IWorkCellKind.Number => 2,
+        bool currency = cell?.NumberFormat?.Kind == IWorkNumberFormatKind.Currency;
+        byte type = cell?.Kind switch { IWorkCellKind.Text => 3, IWorkCellKind.Number => currency ? (byte)10 : (byte)2,
             IWorkCellKind.Boolean => 6, _ => 0 };
-        int length = type == 3 ? 16 : type == 2 ? 28 : type == 6 ? 20 : 12;
+        int length = type == 3 ? 16 : (type is 2 or 10) ? 28 : type == 6 ? 20 : 12;
         if (numberFormatKey.HasValue) length += 8;
         var bytes = new byte[length];
         bytes[0] = 5; bytes[1] = type;
         if (type == 3) {
             WriteUInt32(bytes, 8, 1u << 3);
             WriteUInt32(bytes, 12, strings[(string)cell!.Value!]);
-        } else if (type == 2) {
+        } else if (type is 2 or 10) {
             // Apple's BNC numeric decoder requires Decimal128, even though the
             // shared source reader also understands older double-backed numbers.
-            WriteUInt32(bytes, 8, 1u | (numberFormatKey.HasValue ? (1u << 12) | (1u << 13) : 0));
+            int formatBit = currency ? 14 : 13;
+            WriteUInt32(bytes, 8, 1u | (numberFormatKey.HasValue ? (1u << 12) | (1u << formatBit) : 0));
             byte[] scalar = IWorkDecimal128Writer.Encode((double)cell!.Value!);
             Buffer.BlockCopy(scalar, 0, bytes, 12, scalar.Length);
             if (numberFormatKey.HasValue) {
                 // The active numeric-family marker distinguishes an explicit format
                 // from Automatic with retained display metadata. The suggested type
                 // and format key alone render correctly but reset on native edits.
-                bytes[6] = 1;
-                WriteUInt32(bytes, 28, 1);
+                byte formatFamily = currency ? (byte)2 : (byte)1;
+                bytes[6] = formatFamily;
+                WriteUInt32(bytes, 28, formatFamily);
                 WriteUInt32(bytes, 32, numberFormatKey.Value);
             }
         } else if (type == 6) {

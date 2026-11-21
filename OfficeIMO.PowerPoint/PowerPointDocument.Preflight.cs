@@ -14,6 +14,9 @@ namespace OfficeIMO.PowerPoint {
             long slideWidth = SlideSize.Width.ToEmus();
             long slideHeight = SlideSize.Height.ToEmus();
             int inspectedShapeCount = 0;
+            if (resolved.DetectTextOverflow || resolved.DetectUnreadableFontReduction) {
+                resolved.ResolvedTextMeasurement = resolved.TextMeasurementProvider?.Invoke(this);
+            }
 
             for (int slideIndex = 0; slideIndex < Slides.Count; slideIndex++) {
                 PowerPointSlide slide = Slides[slideIndex];
@@ -149,13 +152,16 @@ namespace OfficeIMO.PowerPoint {
 
             if (textBox.Width.ToPoints() <= 0D || textBox.Height.ToPoints() <= 0D) return;
             double authoredFontSize = ResolveFontSize(textBox, options.DefaultFontSize.ToPoints());
-            string fontName = ResolveFontName(textBox);
-            var metrics = OfficeDrawingTextLayout.CreateMetrics(new OfficeDrawing(textBox.Width.ToPoints(), textBox.Height.ToPoints()));
             var diagnostics = new List<OfficeImageExportDiagnostic>();
             // Inspect the same paragraph flow, native fitting and mixed-run metrics used
             // by image/PDF export instead of a second plain-text wrapping approximation.
+            // With PDF text measurement selected, the fonts are the ones PDF export measures with.
+            PowerPointTextMeasurement? measurement = options.ResolvedTextMeasurement;
+            Func<string?, double, string?, OfficeFontStyle, double> measure = measurement?.Measure
+                ?? OfficeDrawingTextLayout.CreateMetrics(new OfficeDrawing(textBox.Width.ToPoints(), textBox.Height.ToPoints())).MeasureText;
+            string? fontName = measurement == null ? ResolveFontName(textBox) : measurement.DefaultFontFamily;
             OfficeDrawing drawing = PowerPointSlideImageRenderer.CreateTextBoxDrawing(textBox,
-                textBox.Width.ToPoints(), textBox.Height.ToPoints(), diagnostics, metrics.MeasureText, fontName);
+                textBox.Width.ToPoints(), textBox.Height.ToPoints(), diagnostics, measure, fontName);
             bool clipped = diagnostics.Any(diagnostic => diagnostic.Code is "powerpoint-text-overflow" or "powerpoint-text-layout-limit");
             double resolvedFontSize = authoredFontSize;
             if (textBox.TextAutoFit == PowerPointTextAutoFit.Normal) {

@@ -219,7 +219,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            object? converted = binding.ConvertValue(objectValue, _opt.Culture);
+            object? converted = ExcelTemporalValueConversion.Handles(binding.DestinationType)
+                ? ConvertTemporal(objectValue, binding, _opt.Culture)
+                : binding.ConvertValue(objectValue, _opt.Culture);
             if (converted != null || binding.IsNullable) {
                 binding.SetValue(target, converted);
             }

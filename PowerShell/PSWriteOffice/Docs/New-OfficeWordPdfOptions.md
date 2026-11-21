@@ -11,7 +11,7 @@ Creates discoverable Word-to-PDF conversion options for Convert-OfficeDocument.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeWordPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-PageSize <PdfPageSize>] [-Orientation <OfficePageOrientation>] [-FallbackPageSize <PdfPageSize>] [-FallbackOrientation <OfficePageOrientation>] [-MarginLeft <OfficeLength>] [-MarginTop <OfficeLength>] [-MarginRight <OfficeLength>] [-MarginBottom <OfficeLength>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-IncludePageNumbers] [-PageNumberFormat <string>] [-DefaultTableBorders] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeWordPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-PageSize <PdfPageSize>] [-Orientation <OfficePageOrientation>] [-FallbackPageSize <PdfPageSize>] [-FallbackOrientation <OfficePageOrientation>] [-MarginLeft <OfficeLength>] [-MarginTop <OfficeLength>] [-MarginRight <OfficeLength>] [-MarginBottom <OfficeLength>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-IncludePageNumbers] [-PageNumberFormat <string>] [-DefaultTableBorders] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [-ChartFidelity <OfficeChartFidelity>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -68,6 +68,22 @@ Type: String
 Parameter Sets: Default
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ChartFidelity
+Chart handling: Strict (default) skips charts with formatting that cannot be drawn exactly; BestEffort draws the closest approximation and reports chart-approximation warnings.
+
+```yaml
+Type: OfficeChartFidelity
+Parameter Sets: Default
+Aliases: None
+Possible values: Strict, BestEffort
 
 Required: False
 Position: named

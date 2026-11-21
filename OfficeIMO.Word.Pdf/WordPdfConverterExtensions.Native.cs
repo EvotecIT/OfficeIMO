@@ -240,6 +240,7 @@ namespace OfficeIMO.Word.Pdf {
             string? pageFootnoteBodyProfileGap = null;
             bool pageFootnoteBodyProfileChecked = false;
             var documentEndnotes = new List<PdfFootnote>();
+            double? previousSectionSpacingAfter = null;
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options, listMarkers, canContinueRunningStories);
@@ -260,7 +261,16 @@ namespace OfficeIMO.Word.Pdf {
                     ConfigureNativePageNumbering(page, firstSection);
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     ConfigureNativeRunningHeaderFooter(page, firstSection, options, nativeFontMap, listMarkers, nativeDefaults);
-                    INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
+                    var collapseFlow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
+                    // Every section group starts a fresh PDF section, where the top of the frame
+                    // would otherwise drop the space before. New-page sections keep it, and so do
+                    // continuous sections that cannot share the previous group, whether Word
+                    // starts them on a new page (paper size) or continues on the same one.
+                    bool preserveSectionStartSpacing = sectionIndex > 0;
+                    double? incomingSectionSpacingAfter = previousSectionSpacingAfter;
+                    if (preserveSectionStartSpacing) collapseFlow.PreserveNextSpacingBefore(incomingSectionSpacingAfter);
+                    previousSectionSpacingAfter = null;
+                    INativePdfFlow flow = collapseFlow;
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -288,7 +298,8 @@ namespace OfficeIMO.Word.Pdf {
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
 
                         if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap, options)) {
-                            RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
+                            previousSectionSpacingAfter = collapseFlow.PendingSpacingAfter;
+                            RenderNativeSectionEndNotes(collapseFlow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
 
@@ -304,8 +315,17 @@ namespace OfficeIMO.Word.Pdf {
                             headingDestinations,
                             nativeDefaults,
                             nativeFontMap,
-                            balanceColumns: currentSectionIndex + 1 < sectionGroupEnd)) {
-                            RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
+                            balanceColumns: currentSectionIndex + 1 < sectionGroupEnd,
+                            // A continuous column section below earlier text starts a fresh column
+                            // frame, but Word collapses its first paragraph with the text above.
+                            preserveSpacingBefore: currentSectionIndex > sectionIndex || preserveSectionStartSpacing,
+                            incomingSpacingAfter: currentSectionIndex > sectionIndex ? collapseFlow.PendingSpacingAfter : incomingSectionSpacingAfter,
+                            captureOutgoingSpacingAfter: spacingAfter => previousSectionSpacingAfter = spacingAfter)) {
+                            // The column body used the carried spacing; a continuous section that
+                            // follows on this page collapses only with the column text's space after.
+                            if (currentSectionIndex == sectionIndex) collapseFlow.ClearPreservedSpacingBefore();
+                            collapseFlow.RestorePendingSpacingAfter(previousSectionSpacingAfter);
+                            RenderNativeSectionEndNotes(collapseFlow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
 
@@ -351,7 +371,10 @@ namespace OfficeIMO.Word.Pdf {
                         }
 
                         RenderNativeImplicitTerminalBodyBarParagraph(flow, section, options, nativeDefaults, nativeFontMap);
-                        RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
+                        // Notes rendered at the end of the section are not body text, so the
+                        // boundary is read before them.
+                        previousSectionSpacingAfter = GetNativeSectionOutgoingSpacingAfter(elements, collapseFlow, nativeDefaults, nativeFontMap);
+                        RenderNativeSectionEndNotes(collapseFlow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                     }
                 });
 
@@ -439,12 +462,41 @@ namespace OfficeIMO.Word.Pdf {
                  (canContinueRunningStories && CanContinueNativeDefaultHeaderStory(previous, current, options)));
         }
 
+        /// <summary>
+        /// Renders notes placed at the end of a section. Word collapses the next body paragraph
+        /// with the body text before the notes, so the notes leave the body's spacing state as it was.
+        /// </summary>
+        private static void RenderNativeSectionEndNotes(NativeSpacingCollapseFlow flow, List<PdfFootnote> footnotes, WordSection section,
+            NativeNoteNumbering numbering, WordPdfExportOptions? options, NativeDocumentDefaults defaults, NativeFontMap fontMap) {
+            var state = flow.CaptureState();
+            RenderNativeFootnotes(flow, footnotes, section, numbering, options, defaults, fontMap);
+            flow.RestoreState(state);
+        }
+
+        /// <summary>
+        /// The space after that ends a section, which the next new-page section's first paragraph
+        /// collapses against. An empty section-mark paragraph is not drawn, but its space after counts.
+        /// </summary>
+        private static double? GetNativeSectionOutgoingSpacingAfter(IReadOnlyList<WordElement> elements,
+            NativeSpacingCollapseFlow flow, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) =>
+            elements.Count > 0 && elements[elements.Count - 1] is WordParagraph sectionMark &&
+            sectionMark._paragraph != null && WordParagraph.IsSectionMarkOnly(sectionMark._paragraph)
+                ? CreateNativeParagraphStyle(sectionMark, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()
+                : flow.PendingSpacingAfter;
+
         private static PdfCore.PdfPageParity? GetNativeSectionStartParity(WordSection section) {
-            if (section.BreakType == WordSectionBreakType.OddPage) return PdfCore.PdfPageParity.Odd;
-            if (section.BreakType == WordSectionBreakType.EvenPage) return PdfCore.PdfPageParity.Even;
-            if (section.BreakType == WordSectionBreakType.NextPage &&
-                section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0) {
-                return start % 2 == 0 ? PdfCore.PdfPageParity.Even : PdfCore.PdfPageParity.Odd;
+            int? restart = section._sectionProperties.GetFirstChild<W.PageNumberType>()?.Start?.Value is int start && start > 0 ? start : null;
+            // Facing pages keep odd numbers on right-hand pages, so Word adds a blank page
+            // whenever the section's first number would land on the wrong side. Without
+            // facing pages a restart only renumbers: odd and even starts move the number
+            // to the required parity, and next-page starts never add a page.
+            bool facingPages = section._document.Settings.MirrorMargins || section.DocumentOddEvenSettingEnabled;
+            if (section.BreakType == WordSectionBreakType.OddPage || section.BreakType == WordSectionBreakType.EvenPage) {
+                if (restart.HasValue && !facingPages) return null;
+                return section.BreakType == WordSectionBreakType.OddPage ? PdfCore.PdfPageParity.Odd : PdfCore.PdfPageParity.Even;
+            }
+            if (section.BreakType == WordSectionBreakType.NextPage && facingPages && restart.HasValue) {
+                return restart.Value % 2 == 0 ? PdfCore.PdfPageParity.Even : PdfCore.PdfPageParity.Odd;
             }
             return null;
         }

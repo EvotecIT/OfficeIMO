@@ -279,7 +279,7 @@ internal static class PdfRowColumnBuilder
     private static string? GetString(object specification, params string[] names)
     {
         var value = GetValue(specification, names);
-        return value == null ? null : Convert.ToString(value, CultureInfo.InvariantCulture);
+        return value == null ? null : OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture);
     }
 
     private static double? GetDouble(object specification, params string[] names)

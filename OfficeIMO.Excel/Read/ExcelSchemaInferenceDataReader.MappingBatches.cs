@@ -15,6 +15,7 @@ internal sealed partial class ExcelSchemaInferenceDataReader {
         DbDataReader inner, List<object[]> samples, bool replayOnly) {
         _inner = inner;
         _culture = source._culture;
+        _dateSystem = source._dateSystem;
         _columnTypes = source._columnTypes;
         _sampledRows = samples;
         _mappingReplayOnly = replayOnly;

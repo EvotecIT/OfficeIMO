@@ -245,19 +245,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (formatCode.Length > ImageExportMaxAxisNumberFormatLength ||
-                formatCode.IndexOf('[') >= 0 ||
-                formatCode.IndexOf('@') >= 0) {
-                return false;
-            }
-
-            for (int i = 0; i < formatCode.Length; i++) {
-                if (char.IsLetter(formatCode[i])) {
-                    return false;
-                }
-            }
-
-            return true;
+            return formatCode.Length <= ImageExportMaxAxisNumberFormatLength &&
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.IsDrawableNumberFormat(formatCode);
         }
     }
 }

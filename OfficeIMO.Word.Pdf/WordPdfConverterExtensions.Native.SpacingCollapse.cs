@@ -16,6 +16,7 @@ namespace OfficeIMO.Word.Pdf {
             private readonly INativePdfFlow _inner;
             private double? _pendingSpacingAfter;
             private bool _preserveInitialSpacingBefore;
+            private double _preservedSpacingAfter;
 
             public NativeSpacingCollapseFlow(INativePdfFlow inner, bool preserveInitialSpacingBefore = false) {
                 _inner = inner;
@@ -29,6 +30,43 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = declaredSpacingAfter;
 
             public PdfCore.PdfPageSize PageSize => _inner.PageSize;
+
+            /// <summary>The trailing space after of the last block, while the next block can still collapse with it.</summary>
+            internal double? PendingSpacingAfter => _pendingSpacingAfter;
+
+            // Word keeps the space before of the first paragraph on a page that starts a
+            // new section (or follows a legacy page-break-before), reduced by the space
+            // after that ended the previous page, instead of dropping it at the page top.
+            internal void PreserveNextSpacingBefore(double? previousSpacingAfter) {
+                _pendingSpacingAfter = null;
+                _preserveInitialSpacingBefore = true;
+                _preservedSpacingAfter = Math.Max(0D, previousSpacingAfter ?? 0D);
+            }
+
+            internal void RestorePendingSpacingAfter(double? spacingAfter) => _pendingSpacingAfter = spacingAfter;
+
+            // Out-of-flow content, such as notes rendered at the end of a section, must neither
+            // read nor replace the body's collapse state.
+            internal (double? Pending, bool Preserve, double Carried) CaptureState() =>
+                (_pendingSpacingAfter, _preserveInitialSpacingBefore, _preservedSpacingAfter);
+
+            internal void RestoreState((double? Pending, bool Preserve, double Carried) state) {
+                _pendingSpacingAfter = state.Pending;
+                _preserveInitialSpacingBefore = state.Preserve;
+                _preservedSpacingAfter = state.Carried;
+            }
+
+            /// <summary>Drops a carried section-start spacing that another flow has already used.</summary>
+            internal void ClearPreservedSpacingBefore() {
+                _preserveInitialSpacingBefore = false;
+                _preservedSpacingAfter = 0D;
+            }
+
+            internal void PageBreakPreservingSpacingBefore() {
+                double? previousSpacingAfter = _pendingSpacingAfter;
+                _inner.PageBreak();
+                PreserveNextSpacingBefore(previousSpacingAfter);
+            }
 
             public void PageBreak(bool preserveEmptyPage = false) {
                 _inner.PageBreak(preserveEmptyPage);
@@ -172,9 +210,12 @@ namespace OfficeIMO.Word.Pdf {
                 // explicit spacer avoids generic page-start suppression while
                 // keeping measurement and rendering on the same flow path.
                 bool preserve = _preserveInitialSpacingBefore;
+                double preservedSpacingAfter = _preservedSpacingAfter;
                 _preserveInitialSpacingBefore = false;
-                if (preserve && spacingBefore > 0D) {
-                    _inner.Spacer(spacingBefore);
+                _preservedSpacingAfter = 0D;
+                if (preserve) {
+                    double preservedSpacingBefore = spacingBefore - preservedSpacingAfter;
+                    if (preservedSpacingBefore > 0D) _inner.Spacer(preservedSpacingBefore);
                     return 0D;
                 }
                 return _pendingSpacingAfter.HasValue
@@ -185,6 +226,7 @@ namespace OfficeIMO.Word.Pdf {
             private void ResetSpacingCollapse() {
                 _pendingSpacingAfter = null;
                 _preserveInitialSpacingBefore = false;
+                _preservedSpacingAfter = 0D;
             }
         }
     }

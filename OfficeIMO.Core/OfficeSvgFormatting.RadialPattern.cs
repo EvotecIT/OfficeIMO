@@ -12,7 +12,7 @@ public static partial class OfficeSvgFormatting {
         Action<StringBuilder, string> appendColorField, Action<StringBuilder, string> appendAlphaField) {
         string N(double value) {
             if (double.IsNaN(value) || double.IsInfinity(value)) throw new NotSupportedException("Native radial SVG paint bounds must be finite.");
-            return value.ToString("R", CultureInfo.InvariantCulture);
+            return OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
         }
         string region = " x=\"" + N(left) + "\" y=\"" + N(top) + "\" width=\"" + N(width) + "\" height=\"" + N(height) + "\"";
         string colorId = id + "-color", alphaId = id + "-alpha", maskId = id + "-mask";

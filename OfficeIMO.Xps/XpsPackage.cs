@@ -61,5 +61,5 @@ internal static class XpsPackage {
             throw new InvalidDataException("Invalid or excessive XPS numeric value.");
         return result;
     }
-    internal static string N(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+    internal static string N(double value) => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
 }

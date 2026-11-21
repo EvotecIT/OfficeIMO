@@ -343,7 +343,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     /// <inheritdoc />
     public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length)
     {
-        var value = Convert.ToString(GetValue(ordinal), _culture) ?? string.Empty;
+        var value = OfficeIMO.OfficeRoundTripNumberText.FormatObject(GetValue(ordinal), _culture) ?? string.Empty;
         if (buffer is null)
         {
             return value.Length;

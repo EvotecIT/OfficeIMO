@@ -30,6 +30,8 @@ public static partial class OfficeChartDrawingRenderer {
         var percentStackedTotalsByKind = stackedSeriesByKind
             .Where(group => IsPercentStackedLineChart(group.Key))
             .ToDictionary(group => group.Key, group => BuildPercentStackedTotals(group.Value, categories.Count));
+        // Error bars sit above every line, so they are drawn once all lines are drawn.
+        var errorBars = new List<Action>();
         foreach ((OfficeSeries currentSeries, int sourceSeriesIndex, OfficeChartType kind) in lineSeries) {
             bool currentStacked = IsStackedLineChart(kind) || IsPercentStackedLineChart(kind);
             bool currentPercentStacked = IsPercentStackedLineChart(kind);
@@ -56,6 +58,13 @@ public static partial class OfficeChartDrawingRenderer {
                     clipPlot ? plottedValue
                         : ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
                 plotted[i] = true;
+                if (!currentPercentStacked && currentSeries.ErrorBars != null) {
+                    OfficeSeries barSeries = currentSeries;
+                    int point = i;
+                    double barValue = value, offset = plottedValue - value, barX = points[i].X;
+                    errorBars.Add(() => AddPointErrorBars(geometry, barSeries, point, barValue, offset, barX, horizontal: false,
+                        item => ToPlotY(item, range.Min, range.Max, plotTop, plotHeight), range));
+                }
             }
 
             if (currentSeries.ConnectLine && currentSeries.SeriesStyle?.ShowOutline != false) {
@@ -66,7 +75,7 @@ public static partial class OfficeChartDrawingRenderer {
                 if (currentSeries.SeriesStyle?.OutlineJoin is OfficeStrokeLineJoin join) {
                     AddJoinedSeriesOutline(geometry, outlinePoints, currentSeries.SeriesStyle.OutlineColor ?? color,
                         strokeWidth, dashStyle, join, outlinePlotted, plotBounds: clipPlot ? plotBounds : null,
-                        valueRange: clipPlot ? range : null);
+                        valueRange: clipPlot ? range : null, cap: currentSeries.SeriesStyle.OutlineCap);
                 } else {
                     for (int i = 1; i < outlinePoints.Length; i++) {
                         if (!outlinePlotted[i - 1] || !outlinePlotted[i]) {
@@ -82,7 +91,9 @@ public static partial class OfficeChartDrawingRenderer {
                         if (x1 == x2 && y1 == y2) continue;
                         double minX = Math.Min(x1, x2);
                         double minY = Math.Min(y1, y2);
-                        AddShape(geometry, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
+                        OfficeShape segment = OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY);
+                        segment.StrokeLineCap = currentSeries.SeriesStyle?.OutlineCap;
+                        AddShape(geometry, segment, minX, minY, null, currentSeries.SeriesStyle?.OutlineColor ?? color, currentSeries.SeriesStyle?.OutlineWidth?.ToPoints() ?? strokeWidth, dashStyle);
                     }
                 }
             }
@@ -132,6 +143,7 @@ public static partial class OfficeChartDrawingRenderer {
                 }
             }
         }
+        foreach (Action draw in errorBars) draw();
         if (clipPlot) AddClippedPlotGeometry(drawing, geometry, labels, plotBounds);
     }
 

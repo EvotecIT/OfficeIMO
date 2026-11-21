@@ -43,6 +43,10 @@ public class YamlSerializerInteropTests {
             // The libraries' rules for Uri differ: YamlDotNet 18 reads a null scalar as the text "null", and SharpYaml
             // 3.17 has no Uri scalar, so each reads the member only where it agrees.
             config.Endpoint = new Uri("relative/path", UriKind.Relative);
+#if NETFRAMEWORK
+            // .NET Framework's parser reads -0.0 as 0, so YamlDotNet and SharpYaml there cannot keep its sign.
+            if (BitConverter.DoubleToInt64Bits(config.Ratio) == long.MinValue) config.Ratio = 0D;
+#endif
             string yaml = YamlSerializer.Serialize(config, Pascal.AppConfig);
             Assert.Equal(yaml, YamlSerializer.Serialize(dotNet.Deserialize<AppConfig>(yaml), Pascal.AppConfig));
             config.Endpoint = null;

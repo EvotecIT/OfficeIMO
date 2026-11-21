@@ -22,11 +22,11 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal PdfTextShowCommand ToTextShowCommand(string text, PdfGlyphRun run, double fontMetricScale = 1D) {
         PdfTextShowCommand command = run.ToTextShowCommand().WithPinner(_textPins);
-        if (_tracking == null) return command;
-        return new PdfTextShowCommand(command.GlyphHex, run.Glyphs, command.ActualText,
+        if (_tracking == null) return WithColorGlyphArt(command, run);
+        return WithColorGlyphArt(new PdfTextShowCommand(command.GlyphHex, run.Glyphs, command.ActualText,
             logicalGlyphs: command.LogicalGlyphs, advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount, visualGlyphs: command.VisualGlyphs,
             tracking: _tracking, unitsPerEm: UnitsPerEm, trackingBoundaries: GetTrackingBoundaries(text, run), negativeTracking: run.TotalAdvanceWidth1000 < 0, fontMetricScale: fontMetricScale, isScalarBidi: command.IsScalarBidi, isolatedRightToLeft: command.IsolatedRightToLeft)
-            .WithPinner(_textPins);
+            .WithPinner(_textPins), run);
     }
 
     private static bool[] GetTrackingBoundaries(string text, PdfGlyphRun run) {

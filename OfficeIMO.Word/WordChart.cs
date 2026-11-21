@@ -254,7 +254,7 @@ namespace OfficeIMO.Word {
             }
 
             // 2. AutoTitleDeleted (must come after Title if Title exists)
-            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = false };
+            AutoTitleDeleted autoTitleDeleted1 = new AutoTitleDeleted() { Val = string.IsNullOrEmpty(title) };
             chart1.Append(autoTitleDeleted1);
 
             // 8. PlotArea (comes after View3D, Floor, SideWall, BackWall if they were present)
@@ -298,6 +298,7 @@ namespace OfficeIMO.Word {
                         // Insert title at the beginning (before AutoTitleDeleted) to maintain schema order
                         var autoTitleDeleted = _chart.GetFirstChild<AutoTitleDeleted>();
                         if (autoTitleDeleted != null) {
+                            autoTitleDeleted.Val = false;
                             _chart.InsertBefore(newTitle, autoTitleDeleted);
                         } else {
                             // If no AutoTitleDeleted found, insert at the beginning
@@ -482,7 +483,9 @@ namespace OfficeIMO.Word {
             literal.Append(count); var index = 0;
             foreach (var data in dataList) {
                 // Ensure decimal values use invariant culture (period as decimal separator) for OpenXML compatibility
-                string valueText = data is System.IFormattable numeric
+                string valueText = data is double number ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(number, System.Globalization.CultureInfo.InvariantCulture)
+                    : data is float single ? OfficeIMO.Core.Internal.OfficeRoundTripText.Format(single, System.Globalization.CultureInfo.InvariantCulture)
+                    : data is System.IFormattable numeric
                     ? numeric.ToString(null, System.Globalization.CultureInfo.InvariantCulture)
                     : data?.ToString() ?? "0";
                 var numericPoint = new NumericPoint() { Index = Convert.ToUInt32(index), NumericValue = new NumericValue() { Text = valueText } };

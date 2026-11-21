@@ -237,6 +237,21 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(invalid.Issues, issue => issue.Kind == WordContentControlFormIssueKind.UnusedValue && issue.Key == "Extra");
                 Assert.Throws<InvalidOperationException>(() => invalid.EnsureValid());
 
+                // A computed number selects the numeric choice it equals at 15 significant digits, on every framework.
+                document.AddParagraph("Rate:").AddDropDownList(new[] { "0.3", "0.5" }, "Rate Alias", "Rate");
+                var rate = new Dictionary<string, object?> { ["Rate"] = 0.1 + 0.2 };
+                Assert.DoesNotContain(document.ValidateContentControlValues(rate).Issues,
+                    issue => issue.Kind == WordContentControlFormIssueKind.InvalidChoice && issue.Key == "Rate");
+                Assert.Contains(document.ValidateContentControlValues(new Dictionary<string, object?> { ["Rate"] = 0.4 }).Issues,
+                    issue => issue.Kind == WordContentControlFormIssueKind.InvalidChoice && issue.Key == "Rate");
+                Assert.Equal(1, document.FillContentControlValues(rate));
+                Assert.Equal("0.3", document.DropDownLists.Single(list => list.Tag == "Rate").SelectedValue);
+
+                // Exactly halfway at the 16th digit, the even neighbour is selected on every framework.
+                document.AddParagraph("Amount:").AddDropDownList(new[] { "100000000000001", "100000000000000" }, "Amount Alias", "Amount");
+                Assert.Equal(1, document.FillContentControlValues(new Dictionary<string, object?> { ["Amount"] = 100000000000000.5 }));
+                Assert.Equal("100000000000000", document.DropDownLists.Single(list => list.Tag == "Amount").SelectedValue);
+
                 string json = invalid.ToJson();
                 using JsonDocument parsed = JsonDocument.Parse(json);
                 JsonElement root = parsed.RootElement;

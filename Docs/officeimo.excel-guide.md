@@ -2238,6 +2238,8 @@ chart.SaveAsImage("revenue-chart.svg", new ExcelImageExportOptions {
 });
 ```
 
+`ChartRendering.Fidelity = OfficeChartFidelity.BestEffort` on `ExcelImageExportOptions` or `ExcelPdfExportOptions` also draws chart formatting that strict export rejects, such as differing pie label layouts or slice explosions it cannot reproduce, and reports each approximation as a `chart-approximation` warning.
+
 `ToImage(options)` returns encoded bytes. `ToImage(options, out report)` also supplies fidelity diagnostics; `ToImageAsync(options)` returns bytes and report together. Single-image and batch saves return `OfficeConversionReport`, preserve caller-owned streams and support cancellation. `FailOnLoss` rejects diagnosed loss before writing, and `FileConflictPolicy` controls existing files. One `ExcelImageExportOptions` type holds range, sheet, print-area, content, font and encoding settings. Fallback image-layout dimensions use `DefaultColumnWidth` and `DefaultRowHeight` as `OfficeLength` values.
 
 ## Content provenance

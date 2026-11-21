@@ -58,4 +58,39 @@ public sealed class OfficeChartTrendline {
 
     /// <summary>Optional fixed y-intercept.</summary>
     public double? Intercept { get; }
+
+    // The native dash pattern read from a chart; only the static renderer draws it.
+    internal OfficeStrokeDashStyle? DashStyle { get; private set; }
+
+    // Native forecasts, in category or x-value units, and the legend entry Office adds for the trendline.
+    internal double Forward { get; private set; }
+    internal double Backward { get; private set; }
+    internal string? LegendName { get; private set; }
+
+    internal OfficeChartTrendline WithNativeDetails(double forward, double backward, string? legendName) {
+        var copy = (OfficeChartTrendline)MemberwiseClone();
+        copy.Forward = IsFiniteForecast(forward) ? forward : 0D;
+        copy.Backward = IsFiniteForecast(backward) ? backward : 0D;
+        copy.LegendName = string.IsNullOrWhiteSpace(legendName) ? null : legendName;
+        return copy;
+    }
+
+    private static bool IsFiniteForecast(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
+
+    internal OfficeChartTrendline WithDashStyle(OfficeStrokeDashStyle? dashStyle) {
+        if (dashStyle.HasValue && !Enum.IsDefined(typeof(OfficeStrokeDashStyle), dashStyle.Value))
+            throw new ArgumentOutOfRangeException(nameof(dashStyle));
+        var copy = (OfficeChartTrendline)MemberwiseClone();
+        copy.DashStyle = dashStyle;
+        return copy;
+    }
+
+    // A native trendline whose line has no fill still shows its equation and R-squared labels.
+    internal bool HidesLine { get; private set; }
+
+    internal OfficeChartTrendline WithHiddenLine() {
+        var copy = (OfficeChartTrendline)MemberwiseClone();
+        copy.HidesLine = true;
+        return copy;
+    }
 }

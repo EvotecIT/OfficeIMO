@@ -197,6 +197,39 @@ document.SaveAsPdf("portable.pdf", options);
 
 Both system-font and document-font embedding must be allowed to discover installed document families. `FontFamily` selects a conversion-wide default. Local-file and remote-resource access remain separate policy settings.
 
+### Table of contents page numbers from the same layout
+
+Field updates can take their page numbers from the PDF layout. Pass the export options to `WithPdfLayoutPagination` so the table of contents, `PAGEREF`, `NUMPAGES` and body `PAGE` fields use the same fonts, substitutions, fallbacks and resource policy as the PDF:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+var fonts = new PdfCreateOptions()
+    .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Carlito",
+        File.ReadAllBytes("fonts/Carlito-Regular.ttf"),
+        File.ReadAllBytes("fonts/Carlito-Bold.ttf"),
+        File.ReadAllBytes("fonts/Carlito-Italic.ttf"),
+        File.ReadAllBytes("fonts/Carlito-BoldItalic.ttf")))
+    .RegisterFontFamilySubstitution("Calibri", "Carlito", PdfFontFamilySubstitutionImpact.Compatible);
+var pdfOptions = new WordPdfExportOptions {
+    PdfOptions = fonts,
+    ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
+};
+
+using var document = WordDocument.Load("report.docx");
+document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true }.WithPdfLayoutPagination(pdfOptions));
+document.Save();
+document.SaveAsPdf("report.pdf", pdfOptions);
+```
+
+Body `PAGE` fields take the page of their own line. Header and footer `PAGE` fields are drawn per page during export and keep their stored result, and `SECTIONPAGES` still counts explicit breaks. Fields whose text can change the layout, such as `DOCVARIABLE` and `REF`, are updated before the layout runs.
+
+The field update lays the document out exactly as `SaveAsPdf` does with the same options, so the table of contents lists the pages the headings have in that PDF. With a policy that keeps installed fonts out, such as the portable policy above, the page numbers are the same on every host. `GetEstimatedPageCount(pdfOptions)` returns the page count of the same layout.
+
+PDF export draws a table of contents as stored when its entries carry `PAGEREF` page numbers and the document does not ask Word to rebuild fields on open; otherwise it generates the table from the headings, as Word shows it after that rebuild.
+
 ### Page images with PDF pagination
 
 Render the conversion result when PNG, JPEG or SVG pages must share the PDF's line breaks, tables, fonts and pagination:
@@ -382,7 +415,7 @@ Text boxes inside table cells retain their selected visible text through flatten
 
 For imported groups with unsupported DrawingML geometry, fixed-position export uses the document's VML fallback when available and reports `NativeShapeGroupVmlFallback`. Supported groups with other wrapping or anchor modes are placed in document flow with `NativeShapeGroupFlowed`; groups that cannot be rendered report `NativeShapeGroupUnsupported`. Arbitrary custom geometry, rotation, flips, foreground stacking, and exact text wrapping around groups remain limited.
 
-Next-page section starts create a new page. Odd/even starts use the continuing page number to insert a blank page when needed, then apply the new section's numbering restart. An odd/even start advances a conflicting restart to the next matching number. Next-page starts with an explicit restart also align the section start with that number's parity. Compatible continuous sections share a page. Embedded page breaks preserve text, run formatting, hyperlinks and explicit bookmark targets on both sides of the break, including consecutive blank pages. Fields spanning paragraphs retain their result visibility through page and column splits; hidden field instructions and their breaks do not create pages. A section mark without body content retains its editable formatting and anchors without adding a blank body line or an extra page. Column layout and changes in page geometry remain subject to the native layout engine's supported paths.
+Next-page section starts create a new page. Odd/even starts without a numbering restart insert a blank page when the continuing page number has the wrong parity; with a restart they advance a conflicting number to the next matching one instead. With facing pages (mirror margins or different odd and even headers), a blank page keeps odd numbers on right-hand pages, including after a next-page restart. The first paragraph of a new-page section keeps its space before, reduced by the previous section's last space after; after a page break or when text flows onto a new page or column, the space before is dropped. Compatible continuous sections share a page. Embedded page breaks preserve text, run formatting, hyperlinks and explicit bookmark targets on both sides of the break, including consecutive blank pages. Fields spanning paragraphs retain their result visibility through page and column splits; hidden field instructions and their breaks do not create pages. A section mark without body content retains its editable formatting and anchors without adding a blank body line or an extra page. Column layout and changes in page geometry remain subject to the native layout engine's supported paths.
 
 Footnote and endnote reference labels preserve decimal, Roman and letter formats, starting numbers, continuous numbering and section restarts. Word's letter-note sequence continues as `aa`, `bb`, `cc` after `z`. A zero DOCX starting number displays `0` for decimal notes and a blank first label for Roman or letter notes, then continues at `1`, `i` or `a` in the selected case. References retain their source position and styling; note-body reference marks use the same label.
 

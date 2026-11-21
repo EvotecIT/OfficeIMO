@@ -12,6 +12,7 @@ public static partial class OfficeDrawingRasterRenderer {
         IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels, CancellationToken cancellationToken) {
         if (effect.InnerDrawing.PostCompositionColorTransform != null) return false;
         if (TryForwardTranslatedImage(canvas, effect, scale, imageCodec, maximumRasterPixels, cancellationToken)) return true;
+        if (TryForwardAffineImage(canvas, effect, scale, imageCodec, maximumRasterPixels, cancellationToken)) return true;
         OfficeTransform transform = effect.Transform;
         if (layer.Interpolate || effect.Opacity != 1D || effect.BlendMode != OfficeBlendMode.Normal ||
             effect.SoftMask != null || effect.UnfilteredGeometryBounds.HasValue || layer.Left != 0D ||
@@ -55,6 +56,25 @@ public static partial class OfficeDrawingRasterRenderer {
             projection.Translate(transform.OffsetX, transform.OffsetY), image.AlternativeText,
             image.Opacity, image.Interpolate, useDataSnapshot: true);
         RenderImage(canvas, placed, scale, imageCodec, maximumRasterPixels, cancellationToken);
+        return true;
+    }
+
+    /// <summary>
+    /// Samples a single full-frame image under a rotated or sheared group transform once, on the destination grid,
+    /// so it covers the transformed parallelogram exactly instead of resampling an intermediate layer.
+    /// </summary>
+    private static bool TryForwardAffineImage(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effect,
+        double scale, IOfficeRasterImageCodec? imageCodec, long maximumRasterPixels, CancellationToken cancellationToken) {
+        OfficeTransform transform = effect.Transform;
+        OfficeDrawing drawing = effect.InnerDrawing;
+        if (effect.Opacity != 1D || effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask != null ||
+            effect.UnfilteredGeometryBounds.HasValue || (transform.M12 == 0D && transform.M21 == 0D) ||
+            drawing.Elements.Count != 1 || drawing.Elements[0] is not OfficeDrawingImage image) return false;
+        OfficeImageProjection projection = image.Projection;
+        if (projection.HasTransform || projection.HasCrop || projection.X != 0D || projection.Y != 0D ||
+            projection.Width != drawing.Width || projection.Height != drawing.Height) return false;
+        RenderAffineImage(canvas, image, projection.CreateUnitSquareTransform().Then(transform), scale,
+            imageCodec, maximumRasterPixels, cancellationToken);
         return true;
     }
 

@@ -123,6 +123,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _mathGlyphData = !_variationModel.IsVariable && tables.TryGetValue("MATH", out int glyphMathOffset)
             ? OfficeOpenTypeMathGlyphs.TryRead(data, glyphMathOffset, tableLengths["MATH"], _numGlyphs) : null;
         _colorGlyphs = reader == null ? null : OfficeOpenTypeColorGlyphs.TryParse(reader);
+        _bitmapGlyphs = reader == null ? null : OfficeOpenTypeBitmapGlyphs.TryCreate(reader, _unitsPerEm, GetOutlineOrigin);
         _hasUnreadColorTable = tables.ContainsKey("sbix") || tables.ContainsKey("CBDT") || tables.ContainsKey("SVG ")
             || tables.ContainsKey("COLR") && _colorGlyphs == null;
         _variations = variationModel != null && variationModel.IsVariable
@@ -132,7 +133,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
     /// <inheritdoc />
     public string Fingerprint => _trackingEvaluationScale == 1D ? BaseFingerprint
-        : BaseFingerprint + ":tracking-scale=" + _trackingEvaluationScale.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        : BaseFingerprint + ":tracking-scale=" + OfficeIMO.Core.Internal.OfficeRoundTripText.Format(_trackingEvaluationScale, System.Globalization.CultureInfo.InvariantCulture);
     IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
         _variationModel?.DesignCoordinates ?? OfficeFontVariationModel.None.DesignCoordinates;
 

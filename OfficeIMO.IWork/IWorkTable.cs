@@ -144,19 +144,19 @@ public sealed partial class IWorkTableCell {
     public string DisplayText => Kind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
         IWorkCellKind.DateTime when Value is DateTime date => FormatDateTime(date),
-        IWorkCellKind.Duration when Value is double seconds => seconds.ToString("R", CultureInfo.InvariantCulture) + "s",
+        IWorkCellKind.Duration when Value is double seconds => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(seconds, CultureInfo.InvariantCulture) + "s",
         IWorkCellKind.Formula => Formula ?? "=?",
         IWorkCellKind.Error => Error ?? "#ERROR",
-        _ => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty
+        _ => OfficeIMO.OfficeRoundTripNumberText.FormatObject(Value, CultureInfo.InvariantCulture) ?? string.Empty
     };
 
     /// <summary>Gets a culture-invariant display representation of the cached value, including for formula cells.</summary>
     public string CachedDisplayText => ValueKind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
         IWorkCellKind.DateTime when Value is DateTime date => FormatDateTime(date),
-        IWorkCellKind.Duration when Value is double seconds => seconds.ToString("R", CultureInfo.InvariantCulture) + "s",
+        IWorkCellKind.Duration when Value is double seconds => OfficeIMO.Core.Internal.OfficeRoundTripText.Format(seconds, CultureInfo.InvariantCulture) + "s",
         IWorkCellKind.Error => Error ?? "#ERROR",
-        _ => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty
+        _ => OfficeIMO.OfficeRoundTripNumberText.FormatObject(Value, CultureInfo.InvariantCulture) ?? string.Empty
     };
 
     private static string FormatDateTime(DateTime value) =>

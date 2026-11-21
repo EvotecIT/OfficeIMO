@@ -55,7 +55,7 @@ public static partial class OfficeDrawingPortableExporter {
         }
         output.Append(']'); CheckJson(output, limit);
     }
-    private static string Number(double value) => value == 0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture);
+    private static string Number(double value) => value == 0 ? "0" : OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
     private static void Quoted(StringBuilder output, string text, int limit) {
         long required = 2;
         foreach (char c in text) required += c < 0x20 ? 6 : c == '"' || c == '\\' ? 2 : 1;

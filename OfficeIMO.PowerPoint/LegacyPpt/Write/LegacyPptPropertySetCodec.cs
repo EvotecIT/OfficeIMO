@@ -309,11 +309,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             CultureInfo.InvariantCulture));
                     return true;
                 case float value:
-                    property.VTFloat = new VTFloat(value.ToString("R",
+                    property.VTFloat = new VTFloat(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value,
                         CultureInfo.InvariantCulture));
                     return true;
                 case double value:
-                    property.VTDouble = new VTDouble(value.ToString("R",
+                    property.VTDouble = new VTDouble(OfficeIMO.Core.Internal.OfficeRoundTripText.Format(value,
                         CultureInfo.InvariantCulture));
                     return true;
                 case sbyte or short or int:

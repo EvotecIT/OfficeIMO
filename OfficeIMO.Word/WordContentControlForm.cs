@@ -617,6 +617,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
+            if (value is double or float) {
+                return OfficeIMO.OfficeRoundTripNumberText.FormatObject(value, CultureInfo.InvariantCulture);
+            }
+
             return value is IFormattable formattable
                 ? formattable.ToString(null, CultureInfo.InvariantCulture)
                 : value.ToString();
@@ -624,9 +628,60 @@ namespace OfficeIMO.Word {
 
         private static bool IsAllowedChoice(IEnumerable<string> allowedValues, object? value) {
             string? text = ConvertFormValueToString(value);
-            return string.IsNullOrEmpty(text)
-                || allowedValues.Any(allowedValue => string.Equals(allowedValue, text, StringComparison.OrdinalIgnoreCase));
+            return string.IsNullOrEmpty(text) || ResolveChoice(allowedValues, value) != null;
         }
+
+        /// <summary>
+        /// The configured choice a value selects: the choice with the same text or, for a number, the choice that has
+        /// the same value at 15 significant digits, so a computed 0.1 + 0.2 selects the choice "0.3" on every framework.
+        /// </summary>
+        private static string? ResolveChoice(IEnumerable<string> allowedValues, object? value) {
+            string? text = ConvertFormValueToString(value);
+            if (string.IsNullOrEmpty(text)) return null;
+            string[] choices = allowedValues.ToArray();
+            string? exact = choices.FirstOrDefault(choice => string.Equals(choice, text, StringComparison.OrdinalIgnoreCase));
+            if (exact != null || !(value is double || value is float)) return exact;
+            double number = value is float single ? single : (double)value;
+            if (double.IsNaN(number) || double.IsInfinity(number)) return null;
+            var rounded = RoundToFifteenDigits(number);
+            return choices.FirstOrDefault(choice =>
+                double.TryParse(choice, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+                && !double.IsNaN(parsed) && !double.IsInfinity(parsed) && RoundToFifteenDigits(parsed).Equals(rounded));
+        }
+
+        /// <summary>
+        /// The exact value of a double rounded to 15 significant digits, halves to even, as sign, digits and power of ten
+        /// with trailing zeros removed. "G15" rounds halves differently on .NET Framework, so it is not used here.
+        /// </summary>
+        private static (bool Negative, System.Numerics.BigInteger Digits, int Exponent) RoundToFifteenDigits(double value) {
+            if (value == 0D) return (false, System.Numerics.BigInteger.Zero, 0);
+            long bits = BitConverter.DoubleToInt64Bits(value);
+            int biased = (int)((bits >> 52) & 0x7FF);
+            long fraction = bits & 0xFFFFFFFFFFFFFL;
+            System.Numerics.BigInteger mantissa = biased == 0 ? fraction : fraction | (1L << 52);
+            int binaryExponent = biased == 0 ? -1074 : biased - 1075;
+            System.Numerics.BigInteger digits = binaryExponent >= 0
+                ? mantissa << binaryExponent
+                : mantissa * System.Numerics.BigInteger.Pow(5, -binaryExponent);
+            int exponent = Math.Min(binaryExponent, 0);
+            int length = digits.ToString(CultureInfo.InvariantCulture).Length;
+            if (length > 15) {
+                System.Numerics.BigInteger divisor = System.Numerics.BigInteger.Pow(10, length - 15);
+                System.Numerics.BigInteger quotient = System.Numerics.BigInteger.DivRem(digits, divisor, out System.Numerics.BigInteger remainder);
+                int half = (remainder * 2).CompareTo(divisor);
+                if (half > 0 || (half == 0 && !quotient.IsEven)) quotient += 1;
+                digits = quotient;
+                exponent += length - 15;
+            }
+            while ((digits % 10).IsZero) {
+                digits /= 10;
+                exponent++;
+            }
+            return (bits < 0, digits, exponent);
+        }
+
+        private static string? FormChoiceText(IEnumerable<string> allowedValues, object? value) =>
+            ResolveChoice(allowedValues, value) ?? ConvertFormValueToString(value);
 
         private static IEnumerable<string> EnumerateDropDownListChoices(WordDropDownList dropDownList) {
             SdtContentDropDownList? list = dropDownList._sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault();

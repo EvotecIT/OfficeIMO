@@ -178,19 +178,20 @@ The [Numbers creation reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/n
 All three native creators accept the same immutable format metadata:
 
 ```csharp
-var values = IWorkTableData.Create(3, 1)
+var values = IWorkTableData.Create(4, 1)
     .SetNumber(1, 1, -1234.5, IWorkNumberFormat.CreateNumber(2, true,
         IWorkNegativeNumberStyle.Parentheses))
     .SetNumber(2, 1, 0.125, IWorkNumberFormat.CreatePercentage(2))
-    .SetNumber(3, 1, 12345, IWorkNumberFormat.CreateScientific(4));
+    .SetNumber(3, 1, 12345, IWorkNumberFormat.CreateScientific(4))
+    .SetNumber(4, 1, 42.5, IWorkNumberFormat.CreateCurrency("USD", 2));
 // Pass values to a Pages, Numbers or Keynote AddTable call.
 ```
 
-Decimal and percentage formats support 0–30 fractional digits, optional grouping and minus, red, parentheses or red-and-parentheses negatives. Scientific formats support 0–30 fractional mantissa digits with minus negatives and no grouping. Formatting changes display, not the stored finite double. A later three-argument `SetNumber` clears the explicit format. Tables retain their format snapshots when the input grid changes.
+Decimal, percentage and currency formats support 0–30 fractional digits, optional grouping and minus, red, parentheses or red-and-parentheses negatives. Scientific formats support 0–30 fractional mantissa digits with minus negatives and no grouping. Formatting changes display, not the stored finite double. A later three-argument `SetNumber` clears the explicit format. Tables retain their format snapshots when the input grid changes.
 
 The [native format reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/iwork-created-numeric-formats.json) pairs independent graph/cell decoding with Numbers 14.5, Pages 15.4 and Keynote 15.4 open, format-inspector checks, numeric edits, save/reopen and native editable/PDF exports. All 57 edited numeric cells retain their values and selected format metadata; every native PDF page is inspected. Saved OfficeIMO XLSX retains numeric values and format codes. Saved DOCX/PPTX uses the existing invariant display contract and reports approximation for native locale and appearance. Numbers' inherited four-point cell padding still requires partial XLSX acceptance.
 
-Automatic, currency, fraction, temporal, custom and locale-specific formats are not authored. The receiving app selects separators, fonts, fitting and pagination; extra displayed digits do not increase scalar precision. Source reading supports additional qualified format families independently of this creation subset.
+Currency uses an explicit three-letter uppercase identifier. The [Apple 16.0 reference](../OfficeIMO.TestAssets/Documents/IWorkCorpus/native-exports/currency-v16/manifest.json) covers PLN, USD and JPY across the three creators. Automatic precision, accounting alignment, fraction, temporal, custom and locale-specific formats remain outside creation. The receiving app selects separators, fonts, fitting and pagination; extra displayed digits do not increase scalar precision. Source reading supports additional qualified format families independently of this creation subset.
 
 The [macOS arm64 NativeAOT receipt](../Docs/Compatibility/iwork-numeric-formats-native-aot-macos-arm64-2026-10-10.json) records 31 native smoke profiles on .NET 8 and .NET 10, including deterministic numeric-format creation, native-edited readback and saved DOCX/XLSX/PPTX.
 
