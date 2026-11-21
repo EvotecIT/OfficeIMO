@@ -49,8 +49,30 @@ public sealed class DrawingRoundTripNumberTextTests {
     [InlineData(1E+09F, "1E+09")]
     [InlineData(1E-05F, "1E-05")]
     [InlineData(3.4028235E+38F, "3.4028235E+38")]
+    // Powers of two, where the gap to the next lower float is half as wide, and a value whose shorter probes carry.
+    [InlineData(1.5474251E+26F, "1.5474251E+26")]
+    [InlineData(1.2621775E-29F, "1.2621775E-29")]
+    [InlineData(0.9999999F, "0.9999999")]
     public void FloatsUseDotNetCoreRoundTripText(float value, string expected) {
         Assert.Equal(expected, OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture));
+    }
+
+    // .NET Framework's parser reads .NET Core's shortest text for these as a neighbouring double, so on that runtime
+    // they get the 17-digit text instead. Either way the text reads back with the runtime's own parser.
+    [Theory]
+    [InlineData(0.91241918127630794D, "0.912419181276308", "0.91241918127630794")]
+    [InlineData(3.2506899999999998E-06D, "3.25069E-06", "3.2506899999999998E-06")]
+    [InlineData(-3.0597645285442957E-48D, "-3.059764528544296E-48", "-3.0597645285442957E-48")]
+    [InlineData(4.4465908125712189E-323D, "4.4E-323", "4.4465908125712189E-323")]
+    public void DoublesReadBackWithTheRuntimeParser(double value, string shortest, string framework) {
+        string text = OfficeRoundTripText.Format(value, CultureInfo.InvariantCulture);
+#if NETFRAMEWORK
+        Assert.Equal(framework, text);
+#else
+        Assert.Equal(shortest, text);
+#endif
+        Assert.Equal(BitConverter.DoubleToInt64Bits(value),
+            BitConverter.DoubleToInt64Bits(double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture)));
     }
 
     [Fact]
