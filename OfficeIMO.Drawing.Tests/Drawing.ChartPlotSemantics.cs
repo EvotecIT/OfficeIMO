@@ -444,6 +444,17 @@ public sealed class DrawingChartPlotSemanticsTests {
         Assert.InRange(legendText.Y, 230D, 275D);
     }
 
+    [Fact]
+    public void PlacedSideLegendWithoutASizeIsDrawnWhenItOverlaysThePlot() {
+        // Only the position is given, so the legend keeps the width it would have beside the plot.
+        var legend = new OfficeChartManualLayout(0.7D, 0.3D, xMode: OfficeChartLayoutMode.Edge, yMode: OfficeChartLayoutMode.Edge);
+        OfficeChartLayout layout = new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Right, overlayLegend: true)
+            .WithManualLayouts(null, null, legend);
+        OfficeDrawing drawing = Render(OfficeChartType.ColumnClustered, layout, Series(new double[] { 1, 2, 3, 4, 5 }));
+
+        Assert.True(Text(drawing, "Sales").X >= 336D);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

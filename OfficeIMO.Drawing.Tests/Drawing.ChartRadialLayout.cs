@@ -297,10 +297,37 @@ public sealed class DrawingChartRadialLayoutTests {
             // The outer rectangle also holds the category labels, so the web is smaller and the labels stay inside.
             Assert.True(top.Y > 40D, $"The web top {top.Y} leaves no room for its label.");
             Assert.All(Labels(drawing, Categories), label => {
-                Assert.InRange(label.X, 60D, 300D - label.Width);
-                Assert.InRange(label.Y, 28.8D, 172.8D - label.Height);
+                Assert.InRange(label.X, 60D - Edge, 300D - label.Width + Edge);
+                Assert.InRange(label.Y, 28.8D - Edge, 172.8D - label.Height + Edge);
             });
         }
+    }
+
+    [Fact]
+    public void OuterRadarRectangleHoldsItsSideCategoryLabels() {
+        // A square 144 pt rectangle at (60, 28.8); the left and right labels are the widest reach.
+        string[] compass = { "North", "East", "South", "West" };
+        var square = new OfficeChartManualLayout(0.125D, 0.1D, 0.3D, 0.5D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, OfficeChartType.Radar,
+            new OfficeChartData(compass, new[] { new OfficeSeries("Values", new[] { 3d, 2d, 4d, 1d }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(288),
+            layout: new OfficeChartLayout(showLegend: false).WithManualLayouts(square, null, null)));
+
+        Assert.All(Labels(drawing, compass), label => {
+            Assert.InRange(label.X, 60D - Edge, 204D - label.Width + Edge);
+            Assert.InRange(label.Y, 28.8D - Edge, 172.8D - label.Height + Edge);
+        });
+    }
+
+    [Fact]
+    public void PlacedOverlayLegendWithoutASizeKeepsItsAutomaticWidth() {
+        // Only the position is given, so the legend keeps the width it would have beside the plot.
+        var legend = new OfficeChartManualLayout(0.7D, 0.3D, xMode: OfficeChartLayoutMode.Edge, yMode: OfficeChartLayoutMode.Edge);
+        var layout = new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Right, overlayLegend: true);
+        OfficeDrawing drawing = RenderPlaced(OfficeChartType.Pie, layout, null, legend);
+
+        Assert.Equal(Categories.Length, Labels(drawing, Categories).Count());
+        Assert.All(Labels(drawing, Categories), label => Assert.True(label.X >= 336D, $"{label.Text} starts at {label.X}."));
     }
 
     [Fact]
@@ -337,6 +364,9 @@ public sealed class DrawingChartRadialLayoutTests {
         var tiny = new OfficeChartManualLayout(0.4D, 0.4D, 0.1D, 0.1D, OfficeChartLayoutMode.Edge, OfficeChartLayoutMode.Edge);
         Assert.Throws<NotSupportedException>(() => RenderPlaced(OfficeChartType.Radar, new OfficeChartLayout(showLegend: false), tiny));
     }
+
+    // Labels may touch the rectangle's edge; allow for rounding there.
+    private const double Edge = 1E-9;
 
     private static readonly string[] Categories = { "Alpha", "Beta", "Gamma", "Delta", "Epsilon" };
 

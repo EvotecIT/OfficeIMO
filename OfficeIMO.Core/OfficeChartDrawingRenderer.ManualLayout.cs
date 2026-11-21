@@ -7,6 +7,8 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartManualLayout legendLayout, double width, double height, double contentTop, double topLegendHeight,
         double bottomLegendHeight, double legendWidth, double plotTop, double plotHeight, OfficeChartStyle style,
         OfficeChartLayout layout, OfficeChartType chartKind) {
+        // An overlaid legend reserves no column, but a layout that gives only its position keeps the automatic width.
+        if (layout.OverlayLegend) legendWidth = GetSeriesLegendWidth(legendSeries, width, layout, overlaid: true);
         PlacedLegend placed = ResolvePlacedLegend(legendLayout, layout, width, height, contentTop, topLegendHeight,
             bottomLegendHeight, legendWidth, plotTop, plotHeight);
         if (placed.Band) {
@@ -21,6 +23,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartManualLayout legendLayout, double width, double height, double contentTop, double topLegendHeight,
         double bottomLegendHeight, double legendWidth, double plotTop, double plotHeight, OfficeChartStyle style,
         OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors, IReadOnlyList<OfficeChartPointStyle?>? pointStyles) {
+        if (layout.OverlayLegend) legendWidth = GetCategoryLegendWidth(categories, width, layout, overlaid: true);
         PlacedLegend placed = ResolvePlacedLegend(legendLayout, layout, width, height, contentTop, topLegendHeight,
             bottomLegendHeight, legendWidth, plotTop, plotHeight);
         if (placed.Band) {
