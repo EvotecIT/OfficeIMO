@@ -40,21 +40,7 @@ public static partial class OfficeChartDrawingRenderer {
             Func<double, double>? plotY = sourceY != null ? GetPlottingTransform(layout, horizontal: horizontalBars) : null;
             Func<double, double>? sourceX = scatter ? series.SourceXValue : null;
             Func<double, double>? plotX = sourceX != null ? GetPlottingTransform(layout, horizontal: true) : null;
-            var xs = new List<double>();
-            var ys = new List<double>();
-            IReadOnlyList<double>? seriesX = scatter ? series.XValues ?? sharedX : null;
-            // Fits use the source samples, including values a logarithmic axis cannot draw.
-            IReadOnlyList<double> sampleY = series.SourcePointValues ?? series.Values;
-            IReadOnlyList<double>? sampleX = scatter ? series.SourcePointXValues ?? seriesX : null;
-            for (int i = 0; i < sampleY.Count; i++) {
-                double y = sampleY[i];
-                if (!IsFiniteChartValue(y)) continue;
-                double x = sampleX != null ? (i < sampleX.Count ? sampleX[i] : double.NaN) : i + 1D;
-                if (!IsFiniteChartValue(x)) continue;
-                xs.Add(x);
-                ys.Add(y);
-            }
-
+            GetTrendlineSamples(series, scatter ? series.XValues ?? sharedX : null, out List<double> xs, out List<double> ys);
             if (xs.Count < 2) continue;
             Func<double, double> toCategoryPixel = scatter
                 ? value => plotLeft + plotWidth * GetUnclampedPlotRatio(plotX != null ? plotX(value) : value, xRange.Min, xRange.Max)
@@ -83,11 +69,9 @@ public static partial class OfficeChartDrawingRenderer {
                 double[] averages = GetMovingAverages(ys, period);
                 for (int i = 0; i < averages.Length; i++) AddTrendPoint(xs[i + period - 1], averages[i]);
             } else {
-                if (!TryFitTrendline(trendline, xs, ys, out Func<double, double>? model, out equation, out rSquared)) continue;
+                if (!TryFitDrawableTrendline(trendline, xs, ys, plotX, out Func<double, double>? model, out equation, out rSquared,
+                        out double[] drawable)) continue;
                 // Samples are spaced evenly along the drawn axis, so a curve on a logarithmic X axis stays smooth.
-                // Samples a logarithmic X axis cannot draw are fitted but do not bound the drawn curve.
-                double[] drawable = plotX != null ? xs.Where(value => IsFiniteChartValue(plotX(value))).ToArray() : xs.ToArray();
-                if (drawable.Length < 2) continue;
                 // Forecasts extend the fitted line before the first and after the last x value, as far as the axis can draw.
                 double first = drawable.Min() - trendline.Backward;
                 double last = drawable.Max() + trendline.Forward;
@@ -147,6 +131,44 @@ public static partial class OfficeChartDrawingRenderer {
             AddChartText(drawing, text, labelX, labelY, width, height, fontSize, style.TextColor, OfficeTextAlignment.Right, style,
                 layout.DataLabelFontFamily);
         }
+    }
+
+    /// <summary>
+    /// The samples a series' trendline is fitted to: each point with a finite source value, against its 1-based
+    /// category number or, given <paramref name="seriesX"/>, its source x value. Values a logarithmic axis cannot
+    /// draw are included.
+    /// </summary>
+    private static void GetTrendlineSamples(OfficeSeries series, IReadOnlyList<double>? seriesX, out List<double> xs, out List<double> ys) {
+        xs = new List<double>();
+        ys = new List<double>();
+        IReadOnlyList<double> sampleY = series.SourcePointValues ?? series.Values;
+        IReadOnlyList<double>? sampleX = seriesX != null ? series.SourcePointXValues ?? seriesX : null;
+        for (int i = 0; i < sampleY.Count; i++) {
+            double y = sampleY[i];
+            if (!IsFiniteChartValue(y)) continue;
+            double x = sampleX != null ? (i < sampleX.Count ? sampleX[i] : double.NaN) : i + 1D;
+            if (!IsFiniteChartValue(x)) continue;
+            xs.Add(x);
+            ys.Add(y);
+        }
+    }
+
+    /// <summary>
+    /// Fits a regression trendline and returns the samples that bound its drawn curve: those the x axis can draw
+    /// (<paramref name="plotX"/> maps a source x to the plotted axis). False when the fit fails or fewer than two
+    /// samples can be drawn, so the trendline is not drawn.
+    /// </summary>
+    private static bool TryFitDrawableTrendline(OfficeChartTrendline trendline, IReadOnlyList<double> xs, IReadOnlyList<double> ys,
+        Func<double, double>? plotX, out Func<double, double>? model, out string? equation, out double? rSquared, out double[] drawable) {
+        drawable = Array.Empty<double>();
+        if (xs.Count < 2 || !TryFitTrendline(trendline, xs, ys, out model, out equation, out rSquared)) {
+            model = null;
+            equation = null;
+            rSquared = null;
+            return false;
+        }
+        drawable = plotX != null ? xs.Where(value => IsFiniteChartValue(plotX(value))).ToArray() : xs.ToArray();
+        return drawable.Length >= 2;
     }
 
     private static (double Low, double High) OrderedPair(double first, double second) =>

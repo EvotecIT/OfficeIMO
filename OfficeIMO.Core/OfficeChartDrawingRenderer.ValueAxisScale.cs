@@ -55,7 +55,7 @@ public static partial class OfficeChartDrawingRenderer {
             .SelectMany(item => item.Values).Concat(stackTotals));
         // A logarithmic X axis is bounded by the plotted points and the trendline forecasts that reach past them.
         if (transformX) plottingLayout = RestateAxis(plottingLayout, horizontal: true, series.Where(item => item.SourceXValue != null)
-            .SelectMany(item => item.XValues!.Concat(GetForecastXExtents(item))));
+            .SelectMany(item => item.XValues!.Concat(GetForecastXExtents(item, item.XValues!))));
         return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, new OfficeChartData(snapshot.Data.Categories, series),
             snapshot.Width, snapshot.Height, snapshot.Style, plottingLayout, snapshot.BubbleScalePercent, snapshot.BubbleSizeMode,
             snapshot.RadialLayout);
