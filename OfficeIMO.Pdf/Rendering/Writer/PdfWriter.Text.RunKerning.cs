@@ -52,7 +52,7 @@ internal static partial class PdfWriter {
                 left.Text.Length == 0 || right.Text.Length == 0 ||
                 char.IsWhiteSpace(left.Text, left.Text.Length - 1) || char.IsWhiteSpace(right.Text, 0) ||
                 left.Font != right.Font || left.NamedFont != right.NamedFont || left.FontSize != right.FontSize ||
-                left.Baseline != right.Baseline || left.HorizontalTextScaling != right.HorizontalTextScaling ||
+                left.Baseline != right.Baseline || left.BaselineShift != right.BaselineShift || left.HorizontalTextScaling != right.HorizontalTextScaling ||
                 left.CharacterSpacing != right.CharacterSpacing || left.FontMetricScale != 1D || right.FontMetricScale != 1D ||
                 !left.FeatureSettings.Equals(right.FeatureSettings) || !HasKerningFeature(left) ||
                 left.TextDirection is not (OfficeTextDirection.Auto or OfficeTextDirection.LeftToRight) ||
@@ -112,7 +112,7 @@ internal static partial class PdfWriter {
             && !char.IsWhiteSpace(left.Text, left.Text.Length - 1) && !char.IsWhiteSpace(right.Text, 0)
             && !char.IsControl(left.Text, left.Text.Length - 1) && !char.IsControl(right.Text, 0)
             && left.Font == right.Font && left.NamedFont == right.NamedFont
-            && left.FontSize == right.FontSize && left.Baseline == right.Baseline
+            && left.FontSize == right.FontSize && left.Baseline == right.Baseline && left.BaselineShift == right.BaselineShift
             && left.HorizontalTextScaling == right.HorizontalTextScaling && left.CharacterSpacing == right.CharacterSpacing
             && left.FontMetricScale == 1D && right.FontMetricScale == 1D
             && left.FeatureSettings.Equals(right.FeatureSettings)

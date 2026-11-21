@@ -222,6 +222,35 @@ public sealed class WordPdfKerningTests {
         Assert.Equal(0.36D, Gap(0D) - Gap(1D), 3);
     }
 
+    // Word kerns a pair inside one script position but not between superscript and subscript text,
+    // even when both take the same script size.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PairKerningStaysWithinOneScriptPosition(bool sameScript) {
+        byte[] font = ManagedTextShapingTestAssets.WithScriptMetrics(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V', withOs2: true),
+            subscriptSize: 600, subscriptOffset: 50, superscriptSize: 600, superscriptOffset: 300);
+        double Span(double threshold) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            foreach (string text in new[] { "A", "V", "A" }) {
+                WordParagraph run = paragraph.AddText(text);
+                run.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+                run.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+                run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(threshold);
+                if (text == "V" && !sameScript) run.SetSubscript(); else run.SetSuperscript();
+            }
+            using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(FontOptions(font)))
+                .ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
+            return letters[1].StartBaseLine.X - letters[0].StartBaseLine.X;
+        }
+
+        double kerning = Span(0D) - Span(1D);
+        if (sameScript) Assert.True(kerning > 0.1D, $"Superscript pair kerning was {kerning}.");
+        else Assert.Equal(0D, kerning, 3);
+    }
+
     // The following word is shaped on its own, so a pair value on its first glyph reaches the
     // line through the gap: here the space loses 20 units and the 'A' after it 40, at 10 pt.
     [Fact]
