@@ -153,6 +153,9 @@ internal static partial class PdfWriter {
             bool hasBoldItalic = false;
             for (int runIndex = 0; runIndex < effectiveRuns.Count; runIndex++) {
                 PdfTextRun run = effectiveRuns[runIndex];
+                // An ascent-only strut sits beside the painted text it raises, such as a list marker
+                // drawn in another font. It paints nothing, so its font needs no resource.
+                if (run.IsLineBoxStrut && !run.ContributesLineBoxDescent && run.Text.Length == 0) continue;
                 bool isBold = run.Bold || forceBold;
                 bool isItalic = run.Italic;
                 hasBold |= isBold;

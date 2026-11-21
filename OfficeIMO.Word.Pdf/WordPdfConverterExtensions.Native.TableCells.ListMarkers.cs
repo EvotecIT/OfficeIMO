@@ -29,7 +29,8 @@ namespace OfficeIMO.Word.Pdf {
                     - (leftIndent + firstLineIndent - anchorShift + markerWidth))
             };
 
-            var result = new List<PdfCore.PdfTextRun>(2) { markerRun };
+            var result = new List<PdfCore.PdfTextRun>(3) { markerRun };
+            if (CreateNativeListMarkerFontStrut(marker, paragraph, markerRun, nativeFontMap) is { } markerStrut) result.Add(markerStrut);
             if (info.Value.LevelSuffix == WordListLevelSuffix.Space)
                 result.Add(CreateNativeListSpaceSuffixTextRun(paragraph, nativeDefaults, nativeFontMap,
                     out _, out _, tableStyleDefaults.RunStyle));

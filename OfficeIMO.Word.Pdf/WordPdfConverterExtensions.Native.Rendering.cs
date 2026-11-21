@@ -694,6 +694,8 @@ namespace OfficeIMO.Word.Pdf {
                         AddNativeInlineListMarkerSpacer(builder, leadingMarkerOffset);
                     }
                     builder.AddRuns(new[] { measuredMarker });
+                    if (CreateNativeListMarkerFontStrut(marker.Value.Marker, paragraph, measuredMarker, nativeFontMap) is { } markerStrut)
+                        builder.AddRuns(new[] { markerStrut });
                 } else builder.AddText(marker.Value.Marker);
                 if (useAlignedMarkerColumn) {
                     if (markerInfo?.LevelSuffix == WordListLevelSuffix.Space) {

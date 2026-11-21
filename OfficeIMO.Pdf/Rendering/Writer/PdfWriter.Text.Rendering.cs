@@ -324,6 +324,8 @@ internal static partial class PdfWriter {
             double currentTextRise = 0;
             for (int si = 0; si < segs.Count; si++) {
                 var s = segs[si];
+                // Line-box struts size the line but paint nothing, so they select no font.
+                if (s.IsLineBoxStrut && s.Text.Length == 0 && s.LeadingAdvance == 0D) continue;
                 string fontRes = GetFontResourceName(s.Font, s.NamedFont, ChooseNormal(opts.DefaultFont));
                 double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                 double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;

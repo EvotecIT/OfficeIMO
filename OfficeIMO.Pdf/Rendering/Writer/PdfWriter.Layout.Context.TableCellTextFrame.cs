@@ -29,7 +29,9 @@ internal static partial class PdfWriter {
                     visibleCount, rowLeading, innerWidth);
                 if (!verticalOffsetOverride.HasValue) {
                     double unused = Math.Max(0D, availableHeight - contentHeight);
-                    PdfCellVerticalAlign alignment = GetTableCellVerticalAlignment(style, rowIndex, column);
+                    // Word aligns a cell within the fragment where its row starts; continued fragments start at the top.
+                    PdfCellVerticalAlign alignment = sourceStartLine > 0 ? PdfCellVerticalAlign.Top
+                        : GetTableCellVerticalAlignment(style, rowIndex, column);
                     if (alignment == PdfCellVerticalAlign.Middle) verticalOffset = unused / 2D;
                     else if (alignment == PdfCellVerticalAlign.Bottom) verticalOffset = unused;
                 }

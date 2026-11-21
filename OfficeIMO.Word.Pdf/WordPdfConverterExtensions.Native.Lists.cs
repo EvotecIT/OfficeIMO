@@ -133,7 +133,9 @@ namespace OfficeIMO.Word.Pdf {
                 !string.Equals(ResolveNativeListMarkerFontFamily(info.Value, marker.Marker, paragraphTextStyle, nativeFontMap),
                     paragraphTextStyle.FontFamily, StringComparison.OrdinalIgnoreCase) ||
                 (info.Value.MarkerBold ?? paragraphTextStyle.Bold) != paragraphTextStyle.Bold ||
-                (info.Value.MarkerItalic ?? paragraphTextStyle.Italic) != paragraphTextStyle.Italic) return false;
+                (info.Value.MarkerItalic ?? paragraphTextStyle.Italic) != paragraphTextStyle.Italic ||
+                ResolveNativeListMarkerFontStrut(info.Value, marker.Marker, paragraphTextStyle.FontFamily, paragraphTextStyle.Font,
+                    nativeFontMap) != null) return false;
 
             if (HasNativePageBreakBefore(paragraph) ||
                 paragraph.IsPageBreak ||
@@ -397,6 +399,34 @@ namespace OfficeIMO.Word.Pdf {
                 fontFamily: nativeFontMap != null
                     ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)
                     : textStyle.FontFamily, strikeStyle: textStyle.StrikeStyle) { ContributesLineBoxDescent = false }, textStyle.EffectiveFontSize);
+        }
+
+        // Word sizes the marker's line from the numbering level's font even when the
+        // marker paints as a Unicode bullet in the text font, as Symbol and picture
+        // bullets do. Like the marker itself, the strut adds ascent but no descent.
+        private static PdfCore.PdfTextRun? CreateNativeListMarkerFontStrut(string marker, WordParagraph paragraph,
+            PdfCore.PdfTextRun markerRun, NativeFontMap? nativeFontMap) {
+            WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
+            if (info == null) return null;
+            if (ResolveNativeListMarkerFontStrut(info.Value, marker, markerRun.FontFamily, markerRun.StandardFont, nativeFontMap)
+                is not { } font) return null;
+            return new PdfCore.PdfTextRun(string.Empty, bold: markerRun.Bold, italic: markerRun.Italic,
+                fontSize: markerRun.FontSize, standardFont: font.Slot, fontFamily: font.Family) {
+                IsLineBoxStrut = true, ContributesLineBoxDescent = false
+            };
+        }
+
+        // The numbering font resolves like any other run font: a named family, or the standard
+        // font slot it is registered in. A strut is needed only when that differs from the painted font.
+        private static (string? Family, PdfCore.PdfStandardFont? Slot)? ResolveNativeListMarkerFontStrut(
+            WordDocumentTraversal.ListInfo info, string marker, string? paintedFamily, PdfCore.PdfStandardFont? paintedSlot,
+            NativeFontMap? nativeFontMap) {
+            if (nativeFontMap == null || !WordDocumentTraversal.ShouldUseTextFontForMarker(info, marker)) return null;
+            if (nativeFontMap.TryGetNamedFontFamily(info.MarkerFontFamily, out string? family))
+                return string.Equals(family, paintedFamily, StringComparison.OrdinalIgnoreCase) ? null : (family, null);
+            if (!nativeFontMap.TryGetFontSlot(info.MarkerFontFamily, out PdfCore.PdfStandardFont slot)) return null;
+            return paintedFamily == null && paintedSlot.HasValue &&
+                PdfCore.PdfStandardFontMapper.GetFontFamily(paintedSlot.Value) == slot ? null : (null, slot);
         }
 
         private static double EstimateNativeListMarkerWidth(string marker, double fontSize, NativeTextSpacing textSpacing = default) {

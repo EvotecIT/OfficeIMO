@@ -5657,6 +5657,31 @@ Use `p { margin-top: 0 }` to keep the previous top spacing.
 
 `new HtmlPdfExportOptions()`, and the conversions that start from it, keep the browser's eight CSS-pixel `body` margin, so pages wrap as they do in a browser. Add `body{margin:0}` to keep the previous edge-to-edge layout. Image export, the render scene and editable projections still use an uninset body in `Document` user-agent mode.
 
+## Word to PDF lines and page breaks follow Word more closely
+
+Word to PDF conversion matches Word's line layout in more places, so a converted document can wrap,
+break pages and number pages (including `WithPdfLayoutPagination()` results) differently from earlier
+versions:
+
+- Pair kerning (`w:kern`) now applies to fonts whose ligature lookups skip combining marks, such as
+  Aptos, the default font of current Word. Aptos text is narrower and wraps where Word wraps it, and
+  these fonts no longer report `unsupported-font-ligature-substitution`.
+- A list item's first line is as tall as the numbering level's font requires, such as Symbol for the
+  default bullet, even though the bullet is drawn in the text font.
+- A table row that breaks across pages keeps every line of each cell that fits on the page, instead
+  of cutting all cells where the most limited cell stops. A first row that a table style formats as a
+  header, but that is not set to repeat, breaks across pages like any other row. The continued part
+  of a split row starts at the top of each cell.
+- Superscript and subscript text no longer makes its line taller, and a line raised by an inline
+  picture keeps the paragraph's line spacing below it.
+
+If your process depends on where pages break, regenerate the PDFs and compare them with your stored
+baselines, checking page counts and where tables and lists break. Refresh page-dependent content
+afterwards: run `UpdateFields` with `WithPdfLayoutPagination()` again so table-of-contents entries and
+page references use the new page numbers. Where a document was adjusted to compensate for the earlier
+layout, such as manual page breaks or rows marked `cantSplit` to keep tables together, review whether
+those adjustments are still needed.
+
 ## Word new-document defaults
 
 New documents take their heading styles from the default `OfficeTheme`: Heading 1
