@@ -51,6 +51,17 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            // A PAGE field marker is a link drawn on the field's own line; that line's page wins over the paragraph's first line.
+            var fieldLines = new HashSet<string>(StringComparer.Ordinal);
+            for (int pageIndex = 0; pageIndex < read.Pages.Count; pageIndex++) {
+                foreach (PdfCore.PdfLinkAnnotation link in read.Pages[pageIndex].GetLinkAnnotations()) {
+                    if (link.DestinationName is string name && name.StartsWith(WordFieldUpdater.PageFieldBookmarkPrefix, StringComparison.Ordinal)
+                        && fieldLines.Add(name)) {
+                        pages[name] = link.PageNumber ?? pageIndex + 1;
+                    }
+                }
+            }
+
             int pageCount = Math.Max(1, read.Pages.Count);
             AddUnprojectedBookmarks(body, pages, pageCount);
             var displayedPages = pages.ToDictionary(pair => pair.Key, pair => GetDisplayedPageNumber(pair.Value, labels), StringComparer.Ordinal);

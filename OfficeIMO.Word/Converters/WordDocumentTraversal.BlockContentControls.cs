@@ -21,7 +21,7 @@ internal static partial class WordDocumentTraversal {
             } else if (child is Table table) {
                 elements.Add(new WordTable(document, table, initializeChildren: false, readOnly: true));
             } else if (child is SdtBlock nested) {
-                elements.Add(WordSection.ConvertStdBlockToWordElements(document, nested, readOnly: true));
+                elements.Add(WordSection.ConvertStdBlockToWordElements(document, nested));
             }
         }
 

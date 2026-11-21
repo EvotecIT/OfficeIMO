@@ -42,7 +42,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// When true, <c>PAGEREF</c> (including table-of-contents page numbers), <c>NUMPAGES</c> and body <c>PAGE</c> fields
         /// use page numbers from OfficeIMO's own page layout, the engine behind PDF conversion, instead of counting explicit
-        /// page and section breaks. This lays out a copy of the document, so it costs about as much as a PDF conversion.
+        /// page and section breaks. Header and footer <c>PAGE</c> fields and <c>SECTIONPAGES</c> do not. Fields whose text can
+        /// change the layout are updated first; the page fields then take their numbers from one layout of the result, with no
+        /// second pass, as in Word's own update. This lays out a copy of the document, so it costs about as much as a PDF conversion.
         /// </summary>
         /// <remarks>
         /// Select the native engine with <c>WithPdfLayoutPagination()</c> from OfficeIMO.Word.Pdf. Pass the PDF export

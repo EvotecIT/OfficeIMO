@@ -560,9 +560,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document"></param>
         /// <param name="sdtBlock"></param>
-        /// <param name="readOnly">Wraps existing content without queuing field updates during conversion.</param>
         /// <returns></returns>
-        internal static WordElement ConvertStdBlockToWordElements(WordDocument document, SdtBlock? sdtBlock, bool readOnly = false) {
+        internal static WordElement ConvertStdBlockToWordElements(WordDocument document, SdtBlock? sdtBlock) {
             if (sdtBlock == null) {
                 return new WordStructuredDocumentTag(document, new SdtBlock());
             }
@@ -574,7 +573,8 @@ namespace OfficeIMO.Word {
             if (docPartGallery != null && docPartGallery.Val == "Cover Pages") {
                 return new WordCoverPage(document, sdtBlock!);
             } else if (docPartGallery != null && docPartGallery.Val == "Table of Contents") {
-                return new WordTableOfContent(document, sdtBlock!, queueUpdateOnOpen: !readOnly);
+                // Reading the elements must not change the document: only an explicit update queues a rebuild.
+                return new WordTableOfContent(document, sdtBlock!, queueUpdateOnOpen: false);
             }
 
             var watermark = ConvertStdBlockToWatermark(document, sdtBlock);

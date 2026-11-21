@@ -320,6 +320,15 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
+                    // A table of contents drawn as stored uses its entries' own fonts.
+                    if (element is WordTableOfContent tableOfContent && tableOfContent.ShowsStoredEntries) {
+                        foreach (WordElement entry in GetNativeStructuredBlockElements(tableOfContent.Document, tableOfContent.SdtBlock)) {
+                            RegisterNativeElementFonts(entry, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                        }
+
+                        continue;
+                    }
+
                     if (element is WordStructuredDocumentTag structuredDocumentTag) {
                         foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
                             RegisterNativeElementFonts(structuredElement, pdfOptions, registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
