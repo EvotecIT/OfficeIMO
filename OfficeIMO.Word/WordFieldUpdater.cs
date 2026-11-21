@@ -120,11 +120,19 @@ namespace OfficeIMO.Word {
 
             // SEQ and LISTNUM fields number from the fields before them. When one of them waits for the layout (a reset
             // value taken from a PAGE field), every field of that kind waits too, so they still run in document order.
-            foreach (WordFieldType stateful in new[] { WordFieldType.Seq, WordFieldType.ListNum }) {
-                List<MutableFieldCandidate> group = candidates
-                    .Where(candidate => WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType == stateful).ToList();
-                if (group.Any(candidate => dependent.Contains(candidate.Sequence))) {
-                    foreach (MutableFieldCandidate candidate in group) AddWithOwners(candidate);
+            // Deferring one group can defer an owner from the other group, so repeat until nothing is added. Each pass
+            // only adds fields, so this ends after at most one pass per group plus one.
+            var groups = new[] { WordFieldType.Seq, WordFieldType.ListNum }.Select(stateful => candidates
+                .Where(candidate => WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType == stateful).ToList()).ToList();
+            var deferredGroups = new HashSet<int>();
+            bool added = true;
+            while (added) {
+                added = false;
+                for (int group = 0; group < groups.Count; group++) {
+                    if (deferredGroups.Contains(group) || !groups[group].Any(candidate => dependent.Contains(candidate.Sequence))) continue;
+                    deferredGroups.Add(group);
+                    foreach (MutableFieldCandidate candidate in groups[group]) AddWithOwners(candidate);
+                    added = true;
                 }
             }
             return dependent;

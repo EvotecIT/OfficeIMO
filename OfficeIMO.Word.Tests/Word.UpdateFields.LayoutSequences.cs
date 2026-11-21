@@ -34,6 +34,43 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "7", "1", "2" }, sequence.Skip(sequence.Length - 3));
         }
 
+        // A LISTNUM that waits for the layout defers every LISTNUM, including one nested in a SEQ instruction. That SEQ
+        // then waits too, and so must the other SEQ fields, or they would number before it.
+        [Fact]
+        public void Test_LayoutPaginationKeepsNestedSequenceChainsInDocumentOrder() {
+            string[] withLayout = UpdateNestedSequenceChain(layout: true);
+            string[] withoutLayout = UpdateNestedSequenceChain(layout: false);
+
+            Assert.Equal(withoutLayout, withLayout);
+            Assert.Equal(new[] { "1", "2", "3" }, withLayout);
+        }
+
+        private static string[] UpdateNestedSequenceChain(bool layout) {
+            using WordDocument document = WordDocument.Create();
+            AddSequenceParagraph(document, "A", " SEQ Figure ");
+            AddNestedField(document, "B", " LISTNUM NumberDefault \\l 1 ", " PAGE ");
+            AddNestedField(document, "C", " SEQ Figure ", " LISTNUM NumberDefault \\l 1 ");
+            AddSequenceParagraph(document, "D", " SEQ Figure ");
+            var options = new WordFieldUpdateOptions();
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(layout ? options.WithPdfLayoutPagination() : options);
+            return report.Results.Where(result => result.FieldType == WordFieldType.Seq)
+                .OrderBy(result => result.Index).Select(result => result.ResultText!).ToArray();
+        }
+
+        private static void AddNestedField(WordDocument document, string label, string instruction, string nestedInstruction) {
+            Paragraph xml = document.AddParagraph(label + " ")._paragraph;
+            xml.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+            xml.Append(new Run(new FieldCode(instruction) { Space = SpaceProcessingModeValues.Preserve }));
+            xml.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+            xml.Append(new Run(new FieldCode(nestedInstruction) { Space = SpaceProcessingModeValues.Preserve }));
+            xml.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+            xml.Append(new Run(new Text("1")));
+            xml.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            xml.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+            xml.Append(new Run(new Text("0")));
+            xml.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        }
+
         private static void AddSequenceParagraph(WordDocument document, string label, string instruction, bool nestedPage = false) {
             WordParagraph paragraph = document.AddParagraph(label + " ");
             Paragraph xml = paragraph._paragraph;
