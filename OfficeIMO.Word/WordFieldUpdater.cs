@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!options.DateTimeFieldsOnly && options.UseLayoutPagination) {
-                state.Layout = options.LayoutPaginationProvider!(document);
+                state.Layout = LayOutWithPageFieldBookmarks(document, mainPart, options.LayoutPaginationProvider!, state);
             }
 
             int totalPages = options.DateTimeFieldsOnly ? 0 : state.Layout?.PageCount ?? EstimateTotalPages(document);
@@ -253,6 +253,10 @@ namespace OfficeIMO.Word {
                 case WordFieldType.ListNum:
                     return TryEvaluateListNum(document, candidate, parsed, state, out value, out status, out message);
                 case WordFieldType.Page:
+                    if (state.Layout != null && state.PageFieldBookmarks.TryGetValue(candidate.AnchorElement, out string? pageBookmark)) {
+                        usedLayout = true;
+                        return TryEvaluateLayoutPage(parsed, state.Layout, pageBookmark, out value, out status, out message);
+                    }
                     return TryEvaluatePage(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.NumChars:
                     return TryFormatIntegerField(document.Statistics.Characters, parsed, "Updated from OfficeIMO document statistics Characters.", out value, out status, out message);
@@ -1404,6 +1408,8 @@ namespace OfficeIMO.Word {
             internal Dictionary<string, ListNumSequenceState> ListNumSequences { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal WordLayoutPagination? Layout { get; set; }
+
+            internal Dictionary<OpenXmlElement, string> PageFieldBookmarks { get; } = new();
 
             internal HashSet<SdtBlock> RegeneratedTablesOfContents { get; } = new();
             internal List<MutableFieldCandidate> LockedTocFields { get; } = new();

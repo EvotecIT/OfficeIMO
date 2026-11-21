@@ -79,8 +79,16 @@ public static partial class OfficeConverter {
         LoadOptions = WordInputOptions(settings), SaveOptions = settings.WordSave,
         CompatibilityMode = settings.CompatibilityMode, EmbedSourceWhenLossy = settings.EmbedSourceWhenLossy,
         LossPolicy = settings.FailOnLoss ? OfficeConversionLossPolicy.Block : OfficeConversionLossPolicy.Allow,
-        VisualFallbackRenderer = document => document.ToImages(OfficeImageExportFormat.Png)
+        VisualFallbackRenderer = document => document.ToImages(OfficeImageExportFormat.Png, WordVisualFallbackOptions(settings))
     };
+
+    // Fallback pages are drawn with the fonts and resource policy the caller set for Word PDF output.
+    private static WordImageExportOptions? WordVisualFallbackOptions(OfficeConversionOptions settings) {
+        if (settings.Word == null) return null;
+        WordPdfExportOptions layout = settings.Word.Clone();
+        layout.FailOnLoss = false;
+        return new WordImageExportOptions { LayoutOptions = layout };
+    }
 
     private static ExcelDocumentConversionOptions ExcelNativeOptions(OfficeConversionOptions settings) => new() {
         LoadOptions = ExcelInputOptions(settings), SaveOptions = settings.ExcelSave,

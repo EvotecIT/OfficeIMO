@@ -66,7 +66,7 @@ public sealed partial class OfficeConversionOptions {
     public int VisualFallbackMaxColumns { get; set; } = 128;
     /// <summary>Maximum rows retained by Excel visual fallback.</summary>
     public int VisualFallbackMaxRows { get; set; } = 1024;
-    /// <summary>Word-to-PDF rendering settings.</summary>
+    /// <summary>Word-to-PDF rendering settings, also used to draw the pages of a Word visual fallback.</summary>
     public WordPdfExportOptions? Word { get; set; }
     /// <summary>Excel-to-PDF rendering settings.</summary>
     public ExcelPdfExportOptions? Excel { get; set; }
