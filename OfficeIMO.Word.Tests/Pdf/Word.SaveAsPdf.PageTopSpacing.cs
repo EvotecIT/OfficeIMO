@@ -65,6 +65,75 @@ public partial class Word {
         Assert.Equal(expectedGap, headingZero - heading, 1);
     }
 
+    [Theory]
+    [InlineData("intoColumns", 0, 18D)]
+    [InlineData("intoColumns", 160, 10D)]
+    [InlineData("intoColumns", 480, 0D)]
+    [InlineData("fromColumns", 160, 10D)]
+    [InlineData("fromColumns", 480, 0D)]
+    [InlineData("throughEmptySection", 160, 10D)]
+    [InlineData("throughEmptySection", 480, 0D)]
+    [InlineData("afterSectionEndnotes", 160, 10D)]
+    public void SaveAsPdf_SectionStartSpacingCarriesAcrossEverySectionLayout(string layout, int previousAfter, double expectedGap) {
+        double spaced = MeasureSectionLayoutTarget(layout, previousAfter, "360");
+        double zero = MeasureSectionLayoutTarget(layout, previousAfter, "0");
+        Assert.Equal(expectedGap, zero - spaced, 1);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ColumnBreakMarkIgnoresAutomaticSpacing() {
+        // The paragraph mark carried into the next column belongs to the same paragraph,
+        // so automatic space before does not apply to it.
+        Assert.Equal(MeasureAutomaticColumnBreakTarget(automatic: false), MeasureAutomaticColumnBreakTarget(automatic: true), 1);
+    }
+
+    private static double MeasureSectionLayoutTarget(string layout, int previousAfter, string before) {
+        using WordDocument document = WordDocument.Create();
+        global::OfficeIMO.OfficeLength after = global::OfficeIMO.OfficeLength.Points(previousAfter / 20D);
+        int expectedPage = 2;
+        if (layout == "throughEmptySection") {
+            document.AddParagraph("First");
+            document.AddSection(WordSectionBreakType.NextPage);
+            document.AddSection(WordSectionBreakType.NextPage);
+            // The middle section holds only its section-mark paragraph.
+            var markProperties = (W.ParagraphProperties)document.Sections[1]._sectionProperties.Parent!;
+            markProperties.AddChild(new W.SpacingBetweenLines { After = (previousAfter).ToString(System.Globalization.CultureInfo.InvariantCulture) }, true);
+            expectedPage = 3;
+        } else {
+            if (layout == "fromColumns") document.Sections[0].ColumnCount = 2;
+            if (layout == "afterSectionEndnotes") {
+                document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal, WordEndnotePosition.SectionEnd,
+                    WordNoteNumberRestart.Continuous, startNumber: 1);
+            }
+            WordParagraph last = document.AddParagraph("First");
+            last.LineSpacingAfter = after;
+            if (layout == "afterSectionEndnotes") last.AddEndNote("Note");
+        }
+        WordSection target = layout == "throughEmptySection" ? document.Sections[2] : document.AddSection(WordSectionBreakType.NextPage);
+        if (layout == "intoColumns") target.ColumnCount = 2;
+        if (layout == "afterSectionEndnotes") {
+            target.AddEndnoteProperties(WordNumberFormat.Decimal, WordEndnotePosition.SectionEnd, WordNoteNumberRestart.Continuous, startNumber: 1);
+        }
+        ApplyPageTopSpacing(document, target.AddParagraph("Target"), "Normal", before);
+        (int page, double baseline) = FindPageTopBaseline(RenderPageTopPdf(document), "Target");
+        Assert.Equal(expectedPage, page);
+        return baseline;
+    }
+
+    private static double MeasureAutomaticColumnBreakTarget(bool automatic) {
+        using WordDocument document = WordDocument.Create();
+        document.Sections[0].ColumnCount = 2;
+        WordParagraph split = document.AddParagraph("First");
+        if (automatic) {
+            W.ParagraphProperties properties = split._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
+            properties.SpacingBetweenLines = new W.SpacingBetweenLines { Before = "100", BeforeAutoSpacing = true };
+        }
+        split.AddBreak(WordBreakType.Column);
+        WordParagraph target = document.AddParagraph("Target");
+        target.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(0D);
+        return FindPageTopBaseline(RenderPageTopPdf(document), "Target").Baseline;
+    }
+
     [Fact]
     public void SaveAsPdf_NextPageSectionCollapsesWithEmptySectionMarkSpacing() {
         // The empty paragraph that holds the section break has no space after, so the

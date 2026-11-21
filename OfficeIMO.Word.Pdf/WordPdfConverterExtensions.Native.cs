@@ -262,7 +262,9 @@ namespace OfficeIMO.Word.Pdf {
                     ConfigureNativeHeaderFooter(page, firstSection, options, headerFooterMarginExpansion.Header, headerFooterMarginExpansion.Footer, nativeFontMap, listMarkers);
                     ConfigureNativeRunningHeaderFooter(page, firstSection, options, nativeFontMap, listMarkers, nativeDefaults);
                     var collapseFlow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf, sectionPageSize));
-                    if (sectionIndex > 0 && StartsNativeSectionOnNewPage(firstSection)) collapseFlow.PreserveNextSpacingBefore(previousSectionSpacingAfter);
+                    bool preserveSectionStartSpacing = sectionIndex > 0 && StartsNativeSectionOnNewPage(firstSection);
+                    double? incomingSectionSpacingAfter = previousSectionSpacingAfter;
+                    if (preserveSectionStartSpacing) collapseFlow.PreserveNextSpacingBefore(incomingSectionSpacingAfter);
                     previousSectionSpacingAfter = null;
                     INativePdfFlow flow = collapseFlow;
 
@@ -292,6 +294,7 @@ namespace OfficeIMO.Word.Pdf {
                         if (currentSectionIndex + 1 == sections.Count) footnotes.AddRange(documentEndnotes);
 
                         if (TryRenderNativeEmptySectionMark(flow, section, elements, nativeDefaults, nativeFontMap, options)) {
+                            previousSectionSpacingAfter = collapseFlow.PendingSpacingAfter;
                             RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
@@ -308,7 +311,10 @@ namespace OfficeIMO.Word.Pdf {
                             headingDestinations,
                             nativeDefaults,
                             nativeFontMap,
-                            balanceColumns: currentSectionIndex + 1 < sectionGroupEnd)) {
+                            balanceColumns: currentSectionIndex + 1 < sectionGroupEnd,
+                            preserveSpacingBefore: preserveSectionStartSpacing && currentSectionIndex == sectionIndex,
+                            incomingSpacingAfter: incomingSectionSpacingAfter,
+                            captureOutgoingSpacingAfter: spacingAfter => previousSectionSpacingAfter = spacingAfter)) {
                             RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
                             continue;
                         }
@@ -355,13 +361,10 @@ namespace OfficeIMO.Word.Pdf {
                         }
 
                         RenderNativeImplicitTerminalBodyBarParagraph(flow, section, options, nativeDefaults, nativeFontMap);
+                        // Notes rendered at the end of the section are not body text, so the
+                        // boundary is read before them.
+                        previousSectionSpacingAfter = GetNativeSectionOutgoingSpacingAfter(elements, collapseFlow, nativeDefaults, nativeFontMap);
                         RenderNativeFootnotes(flow, footnotes, section, footnoteNumbersById, options, nativeDefaults, nativeFontMap);
-                        // An empty section-mark paragraph is not drawn, but its space after
-                        // is what the next section's first paragraph collapses against.
-                        previousSectionSpacingAfter = elements.Count > 0 && elements[elements.Count - 1] is WordParagraph sectionMark &&
-                            sectionMark._paragraph != null && WordParagraph.IsSectionMarkOnly(sectionMark._paragraph)
-                            ? CreateNativeParagraphStyle(sectionMark, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()
-                            : collapseFlow.PendingSpacingAfter;
                     }
                 });
 
@@ -448,6 +451,17 @@ namespace OfficeIMO.Word.Pdf {
                 (NativeSectionHeaderFooterReferencesEquivalent(previous, current) ||
                  (canContinueRunningStories && CanContinueNativeDefaultHeaderStory(previous, current, options)));
         }
+
+        /// <summary>
+        /// The space after that ends a section, which the next new-page section's first paragraph
+        /// collapses against. An empty section-mark paragraph is not drawn, but its space after counts.
+        /// </summary>
+        private static double? GetNativeSectionOutgoingSpacingAfter(IReadOnlyList<WordElement> elements,
+            NativeSpacingCollapseFlow flow, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) =>
+            elements.Count > 0 && elements[elements.Count - 1] is WordParagraph sectionMark &&
+            sectionMark._paragraph != null && WordParagraph.IsSectionMarkOnly(sectionMark._paragraph)
+                ? CreateNativeParagraphStyle(sectionMark, nativeDefaults, nativeFontMap).SpacingAfter?.ToPoints()
+                : flow.PendingSpacingAfter;
 
         private static bool StartsNativeSectionOnNewPage(WordSection section) =>
             section.BreakType is WordSectionBreakType.NextPage or WordSectionBreakType.OddPage or WordSectionBreakType.EvenPage;
